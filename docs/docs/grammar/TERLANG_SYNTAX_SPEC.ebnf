@@ -6,10 +6,13 @@ SyntaxSpec ::= Program .
 
 Program ::= { Declaration } .
 
-Declaration
+Declaration ::= { Annotation } DeclarationCore .
+
+DeclarationCore
   ::= ErlangAttributeDecl "."
    | ModuleDecl "." 
    | ImportDecl "."
+   | ExportDecl "."
    | TypeDecl "." 
    | OpaqueTypeDecl "."
    | StructDecl "."
@@ -19,9 +22,23 @@ Declaration
    | ImplDecl "."
    | ServerDecl "."
    | TemplateDecl "."
+   | ConfigMacroDecl
+   | ExtensionRawDecl
    | FunctionDecl "."
    | MethodDecl "."
    .
+
+Annotation ::= "@" AnnotationPath [ AnnotationSubject ] [ AnnotationArgs ] .
+AnnotationPath ::= LowerIdent { "." LowerIdent } .
+AnnotationSubject
+  ::= AnnotationQualifiedName
+   | ConfigBool
+   | Int
+   | Float
+   | StringLiteral
+   .
+AnnotationQualifiedName ::= NameRef { "." NameRef } .
+AnnotationArgs ::= ConfigMacroBlock .
 
 (* Erlang interop attributes.
    These belong to the Erlang interop frontend, not necessarily Terlang source
@@ -82,9 +99,10 @@ TypeDecl ::= [ "pub" ] "type" TypeName [ TypeParams ] "=" TypeExpr .
    functions expose that behavior.
 
    A `pub opaque type` exports the opaque type name and arity, not its
-   representation.
+   representation. Interface artifacts may therefore omit the representation
+   body and declare only the opaque type surface.
 *)
-OpaqueTypeDecl ::= [ "pub" ] "opaque" "type" TypeName [ TypeParams ] "=" TypeExpr .
+OpaqueTypeDecl ::= [ "pub" ] "opaque" "type" TypeName [ TypeParams ] [ "=" TypeExpr ] .
 
 
 (* Struct derivation is compile-time expansion, not true inheritance.
@@ -110,7 +128,7 @@ StructDerives ::= "derives" TypeRef { "," TypeRef } .
 
 ConstructorDecl ::= [ "pub" ] "constructor" TypeName [ TypeParams ] "{" ConstructorClause { ";" ConstructorClause } "}" .
 FunctionDecl ::= [ "pub" ] [ "macro" ] ( TypedFunction | ClauseFunction ) .
-TraitDecl ::= "trait" TypeName [ TypeParams ] [ "extends" TraitRef { "," TraitRef } ] "{" [ TraitMethodDecl { ";" TraitMethodDecl } [ ";" ] ] "}" .
+TraitDecl ::= [ "pub" ] "trait" TypeName [ TypeParams ] [ "extends" TraitRef { "," TraitRef } ] "{" [ TraitMethodDecl { ";" TraitMethodDecl } [ ";" ] ] "}" .
 
 (* A method may only be declared in the module that defines its receiver type.
    Method identity is keyed by receiver type + method name + method arity.
@@ -145,16 +163,16 @@ MethodFunction
 
 ModuleDecl ::= "module" ModulePath .
 
-ImportDecl ::= "import" ImportItem { "," ImportItem } .
+ImportDecl ::= "import" ImportItem .
 
 ImportItem
-  ::= ModuleImport
-   | AssetImport
+  ::= ModuleItemImport
    | SelectiveImport
+   | AssetImport
    .
 
-ModuleImport ::= ModulePath [ "as" LowerIdent ] .
-SelectiveImport ::= ModulePath ".{" ImportSym { "," ImportSym } "}" .
+ModuleItemImport ::= [ "type" ] ModulePath "." ImportSym .
+SelectiveImport ::= [ "type" ] ModulePath ".{" ImportSym { "," ImportSym } "}" .
 
 ImportSym
   ::= LowerImportSym
@@ -181,21 +199,67 @@ UpperImportSym ::= UpperIdent [ "as" UpperIdent ] .
     `
       import css "page.css" as page_css.
       import markdown "intro.md" as intro.
-      import json "schema.json" as schema.
     `
 *)
-AssetImport ::= AssetKind StringLiteral "as" LowerIdent .
-AssetKind ::= LowerIdent .
+AssetImport ::= AssetKind StringLiteral "as" AssetAlias .
+AssetKind ::= "file" | "css" | "markdown" .
+AssetAlias ::= NameRef .
 
-ProtocolDecl ::= "protocol" ModulePath RawBlock .
+ExportDecl ::= "export" ExportItem { "," ExportItem } .
+ExportItem ::= LowerIdent "/" Int .
+
+ProtocolDecl ::= [ "pub" ] "protocol" ProtocolName RawBlock .
+ProtocolName ::= NameRef .
 
 ModulePath ::= LowerIdent { "." LowerIdent } .
 QualifiedValueRef ::= ModulePath "." LowerIdent .
+ScopedValueRef ::= TypeName "." LowerIdent .
 QualifiedTypeRef ::= ModulePath "." TypeName .
 
 ImplDecl ::= "impl" RawBlock .
 ServerDecl ::= "server" RawBlock .
 TemplateDecl ::= "template" TypeName "from" StringLiteral RawBlock .
+ConfigMacroDecl ::= ConfigMacroName ConfigMacroTarget ConfigMacroBlock "." .
+ConfigMacroName
+  ::= "target"
+   | "native"
+   | "machine"
+   | "static"
+   .
+ConfigMacroTarget ::= ConfigPath .
+ConfigPath ::= LowerIdent { "." LowerIdent } .
+ConfigMacroBlock ::= "{" [ ConfigEntry { ";" ConfigEntry } [ ";" ] ] "}" .
+ConfigEntry ::= ConfigKey ":" ConfigValue .
+ConfigKey ::= LowerIdent { "." LowerIdent } .
+ConfigValue
+  ::= ConfigBool
+   | ConfigSymbol
+   | Int
+   | Float
+   | StringLiteral
+   | ConfigList
+   | ConfigMap
+   .
+ConfigBool ::= "true" | "false" .
+ConfigSymbol ::= LowerIdent .
+ConfigList ::= "[" [ ConfigValue { "," ConfigValue } ] "]" .
+ConfigMap ::= "#{" [ ConfigMapEntry { "," ConfigMapEntry } ] "}" .
+ConfigMapEntry ::= ConfigKey ":" ConfigValue .
+ExtensionRawDecl
+  ::= ExtensionRawDeclKeyword RawDeclText "."
+   | ExtensionRawDeclKeyword RawBlock [ "." ]
+   .
+ExtensionRawDeclKeyword
+  ::= "native"
+   | "machine"
+   | "on"
+   | "supervisor"
+   | "event_protocol"
+   | "workflow"
+   | "lawset"
+   | "static"
+   .
+RawDeclText ::= RawText .
 
 
 (* Raw macro names are user-defined.
@@ -213,8 +277,11 @@ TemplateDecl ::= "template" TypeName "from" StringLiteral RawBlock .
 
 RawMacroExpr ::= RawMacroName RawBlock .
 RawMacroName ::= LowerIdent .
+HtmlBlockExpr ::= "html" RawBlock .
 
 TypeName ::= UpperIdent .
+RecordName ::= NameRef .
+RecordFieldName ::= NameRef .
 TypeParams ::= "[" TypeVar { "," TypeVar } "]" .
 
 StructBody ::= "{" [ StructField { "," StructField } ] "}" .
@@ -257,7 +324,7 @@ Expr ::= SendExpr .
 CaseExpr ::= "case" Expr "of" Clause { ";" Clause } "end" .
 Clause ::= PatternList [ "when" Expr ] "->" Expr .
 FunExpr ::= "fun" "(" [ PatternList ] ")" "->" Expr "end" .
-ReceiveExpr ::= "receive" Clause { ";" Clause } "end" .
+ReceiveExpr ::= "receive" Clause { ";" Clause } [ "after" Expr "->" Expr ] "end" .
 TryExpr ::= "try" Expr [ "of" Clause { ";" Clause } ] [ "catch" CatchClause { ";" CatchClause } ] [ "after" Expr "->" Expr ] "end" .
 IfExpr ::= "if" IfClause { ";" IfClause } "end" .
 CatchClause ::= PatternList [ "when" Expr ] "->" Expr .
@@ -265,7 +332,9 @@ IfClause ::= Expr "->" Expr .
 QuoteExpr ::= "quote" Expr .
 UnquoteExpr ::= "unquote" "(" Expr ")" .
 SendExpr ::= PipeExpr { "!" PipeExpr } .
-PipeExpr ::= CmpExpr { "|>" CmpExpr } .
+PipeExpr ::= OrExpr { "|>" OrExpr } .
+OrExpr ::= AndExpr { "or" AndExpr } .
+AndExpr ::= CmpExpr { "and" CmpExpr } .
 CmpExpr ::= AddExpr { CmpOp AddExpr } .
 AddExpr ::= MulExpr { AddOp MulExpr } .
 MulExpr ::= UnaryExpr { MulOp UnaryExpr } .
@@ -273,8 +342,9 @@ UnaryExpr ::= UnaryOp UnaryExpr | PostfixExpr .
 UnaryOp ::= "-" | "not" | "!" .
 AddOp ::= "+" | "-" .
 MulOp ::= "*" | "/" | "div" | "rem" .
-CmpOp ::= "==" | "=:=" | "/=" | "=/=" | ">=" | ">" | "<=" | "<" | ">=>" .
-PostfixExpr ::= PrimaryExpr { FieldSuffix } .
+CmpOp ::= "==" | "=:=" | "/=" | "=/=" | ">=" | ">" | "<=" | "<" .
+PostfixExpr ::= PrimaryExpr { PostfixSuffix } .
+PostfixSuffix ::= FieldSuffix | IndexSuffix | FunCallSuffix .
 PrimaryExpr
   ::= AtomLiteral
    | CallExpr
@@ -286,8 +356,9 @@ PrimaryExpr
    | TupleExpr
    | ListExpr
    | ConsListExpr
+   | FixedArrayExpr
    | MapExpr
-   | RecordExpr
+   | TemplateInstantiateExpr
    | ErlangRecordExpr
    | MacroExpr
    | CaseExpr
@@ -301,25 +372,35 @@ PrimaryExpr
    | "(" Expr ")"
    | RemoteCallExpr
    | RemoteFunRef
+   | HtmlBlockExpr
    | RawMacroExpr 
    | ConstructorChainExpr .
 
 TupleExpr ::= "{" [ Expr { "," Expr } ] "}" .
 ListExpr ::= "[" [ Expr { "," Expr } ] "]" .
 ConsListExpr ::= "[" Expr "|" Expr "]" .
-ListGeneratorExpr ::= "[" Expr "|" Generator { "," Generator } "]" .
+FixedArrayExpr ::= "#[" [ Expr { "," Expr } ] "]" .
+ListGeneratorExpr ::= "[" Expr "|" Generator "]" .
 Generator ::= Pattern "<-" Expr .
 MapExpr ::= "#{" [ MapField { "," MapField } ] "}" .
-MapField ::= Expr ( "=>" | ":=" ) Expr .
+MapField ::= MapExprKey ( "=>" | ":=" ) Expr .
+MapExprKey ::= NameRef .
+TemplateInstantiateExpr ::= TemplateName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
+TemplateName ::= NameRef .
 RecordExpr ::= TypeName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
-RemoteCallExpr ::= NameRef ":" LowerIdent "(" [ Expr { "," Expr } ] ")" .
+RemoteCallExpr ::= ColonRemoteCallExpr | DottedRemoteCallExpr | ScopedCallExpr .
+ColonRemoteCallExpr ::= NameRef ":" LowerIdent "(" [ ExprList ] ")" .
+DottedRemoteCallExpr ::= QualifiedValueRef "(" [ ExprList ] ")" .
+ScopedCallExpr ::= ScopedValueRef "(" [ ExprList ] ")" .
 RemoteFunRef ::= "fun" NameRef ":" LowerIdent "/" Int .
-FieldSuffix ::= "#" TypeName "." LowerIdent | "#" TypeName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
-ErlangRecordExpr ::= "#" TypeName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
+FieldSuffix ::= "." LowerIdent | "#" RecordName "." RecordFieldName | "#" RecordName "{" [ RecordFieldName "=" Expr { "," RecordFieldName "=" Expr } ] "}" .
+IndexSuffix ::= "[" Expr "]" .
+FunCallSuffix ::= "." "(" [ ExprList ] ")" .
+ErlangRecordExpr ::= "#" RecordName "{" [ RecordFieldName "=" Expr { "," RecordFieldName "=" Expr } ] "}" .
 MacroExpr ::= "?" NameRef [ "(" [ Expr { "," Expr } ] ")" ] .
 
 Pattern ::= PrimaryPattern .
-ListPattern ::= "[" [ Pattern { "," Pattern } [ "|" Pattern ] ] "]" .
+ListPattern ::= "[" "]" | "[" Pattern { "," Pattern } "]" | "[" Pattern "|" Pattern "]" .
 PrimaryPattern
   ::= "_"
    | Binding
@@ -327,17 +408,18 @@ PrimaryPattern
    | AtomLiteral
    | Int
    | Float
-   | StringLiteral
    | TuplePattern
    | ListPattern
    | MapPattern
    | RecordPattern
+   | "(" Pattern ")"
    .
 TuplePattern ::= "{" [ Pattern { "," Pattern } ] "}" .
 ConstructorPattern ::= ConstructorAtom [ "(" PatternList1 ")" ] .
 MapPattern ::= "#{" [ PatternMapField { "," PatternMapField } ] "}" .
-PatternMapField ::= Expr ( "=>" | ":=" ) Pattern .
-RecordPattern ::= "#" TypeName "{" [ LowerIdent "=" Pattern { "," LowerIdent "=" Pattern } ] "}" .
+PatternMapField ::= MapPatternKey ( "=>" | ":=" ) Pattern .
+MapPatternKey ::= NameRef .
+RecordPattern ::= "#" RecordName "{" [ RecordFieldName "=" Pattern { "," RecordFieldName "=" Pattern } ] "}" .
 
 BinarySegment ::= Expr [ ":" Expr ] [ "/" BinarySegmentType { "-" BinarySegmentType } ] .
 BinarySegmentType ::= "integer" | "float" | "binary" | "bytes" | "bitstring" | "bits" | "utf8" | "utf16" | "utf32" | "signed" | "unsigned" | "big" | "little" | "native" .
@@ -355,6 +437,7 @@ ReservedWord
    | "import"
    | "export"
    | "type"
+   | "nominal"
    | "opaque"
    | "struct"
    | "constructor"
@@ -362,15 +445,30 @@ ReservedWord
    | "extends"
    | "protocol"
    | "impl"
+   | "where"
    | "server"
    | "template"
+   | "target"
+   | "native"
+   | "machine"
+   | "on"
+   | "supervisor"
+   | "event_protocol"
+   | "workflow"
+   | "lawset"
+   | "static"
    | "from"
+   | "file"
+   | "css"
+   | "markdown"
+   | "html"
    | "pub"
    | "macro"
    | "case"
    | "of"
    | "fun"
    | "receive"
+   | "receives"
    | "if"
    | "try"
    | "catch"
@@ -380,11 +478,15 @@ ReservedWord
    | "unquote"
    | "end"
    | "as"
+   | "and"
+   | "or"
    | "not"
    | "div"
    | "rem"
    | "then"
    | "derives"
+   | "true"
+   | "false"
 
    (* Erlang interop attribute words. *)
    | "record"
@@ -460,9 +562,25 @@ StringChar ::= ? any source character except unescaped terminator ? .
 
 (* Informal conventions
    - [] = optional, {} = repetition zero-or-more, () = grouping, | = alternation.
-   - RawText is opaque in first pass and must be preserved with span text on both ANTLR and LALRPOP outputs.
+   - RawText is opaque in first pass and must be preserved with span text by maintained parser implementations.
    - Raw forms for protocol/impl/server/template are explicit declarations with their
      own dedicated productions.
+   - Config macro declarations are optional structured capability/configuration
+     blocks. `target erlang { otp_application: true; process_mailbox: enabled }.`
+     is syntax only; selected target-profile validation decides whether each
+     entry is supported. Config macros are not required in every file. Config
+     values are not Terlang runtime expressions and config symbols are not
+     runtime atoms.
+   - Annotations are structured compiler metadata attached to declarations.
+     `@java.annotation Deprecated` and
+     `@java.annotation Table { name: "users" }` are target-scoped metadata, not
+     runtime expressions. Macros may consume or produce annotations, but
+     annotations remain a distinct metadata channel through compiler phases.
+   - Raw pointer syntax is not part of ordinary Terlang source mode. Native
+     memory work is expressed through typed abstractions such as fixed arrays,
+     buffers, resources, opaque native handles, and explicit FFI/native
+     boundaries. Target backends own pointer lowering after target-profile
+     validation.
    - Keyword-opened expressions use `end` as their closing token: `case`, `fun`, `receive`, `try`, and `if`.
    - Top-level declarations are terminated by `.`; block declarations include
      `{ ... }` before the terminating dot.
@@ -471,12 +589,13 @@ StringChar ::= ? any source character except unescaped terminator ? .
      constructor-pattern heads. Terlang does not treat bare identifiers as atoms.
    - Call expressions are written `Name(...)` and resolved semantically as either
      function calls or constructor calls depending on declaration context.
-   - v0 does not provide general expression-call postfix syntax such as `f.(10)`.
-     Anonymous function values are first-class; invocation of non-name values is not
-     part of the grammar.
-   - Reserved for a future version:
-     `FunctorCallExpr ::= Expr "." "(" [ ExprList ] ")" .` is intentionally not in
-     v0.
+   - Function-value invocation uses postfix dot-call syntax:
+     `f.(10)` invokes the value of `f` as a callable value. `Name(...)` remains
+     named function or constructor-call syntax, while `Expr.(...)` is reserved for
+     values whose type is callable.
+   - Pipe-to-call and pipe-to-function-value are distinct syntax forms:
+     `value |> f(extra)` is call insertion, while `value |> target` lowers through
+     function-value invocation as `target.(value)`.
    - Hard Erlang interop is required, but Terlang source syntax and Erlang
      interop syntax are separate frontends.
    - Erlang interop forms normalize into shared interface/runtime artifacts.
