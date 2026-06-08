@@ -549,7 +549,7 @@ CallExpr ::= NameRef "(" [ ExprList ] ")" .
           role = role
         }
     }.
-}.
+
   `
 *)
 ConstructorChainExpr ::= CallExpr "with" RecordExpr .
