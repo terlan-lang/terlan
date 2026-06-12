@@ -21,6 +21,11 @@ jobs:
       - name: Install Rust toolchain
         run: rustup toolchain install stable --profile minimal
 
+      - name: Install Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "29"
+
       - name: Build artifact
         run: make release-artifact-linux
 

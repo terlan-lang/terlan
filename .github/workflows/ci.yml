@@ -1,14 +1,36 @@
-name: CI
+name: Compiler CI
 
 on:
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "std/**"
+      - "tests/**"
+      - "docs/grammar/**"
+      - "tools/**"
+      - "Makefile"
+      - ".github/workflows/ci.yml"
   push:
     branches:
       - main
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "std/**"
+      - "tests/**"
+      - "docs/grammar/**"
+      - "tools/**"
+      - "Makefile"
+      - ".github/workflows/ci.yml"
 
 jobs:
   check:
-    name: Check and test
+    name: Compiler check and test
     runs-on: ubuntu-latest
 
     steps:
