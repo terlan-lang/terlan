@@ -10,7 +10,7 @@ through explicit compiler targets.
 
 Terlan favors immutable data, explicit types, and predictable control flow,
 while remaining practical for object-style APIs, platform interop, and rich
-domain modeling. If you have worked in the industry across multiple server stacks, everything about Terlan should familiar and intuitive.
+domain modeling. If you have worked in the industry across multiple server stacks, everything about Terlan should feel familiar and intuitive.
 
 ## Hello World
 
