@@ -1,0 +1,11 @@
+module std.core.Option.
+
+pub type None =
+    Atom["none"].
+
+pub type Some[T] =
+    {Atom["some"], value: T}.
+
+pub type Option[T] =
+      None
+    | Some[T].

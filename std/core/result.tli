@@ -1,0 +1,11 @@
+module std.core.Result.
+
+pub type Ok[T] =
+    {Atom["ok"], value: T}.
+
+pub type Err[E] =
+    {Atom["error"], reason: E}.
+
+pub type Result[T, E] =
+      Ok[T]
+    | Err[E].

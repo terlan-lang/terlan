@@ -1,0 +1,18 @@
+[package]
+name = "terlan_lsp"
+version = "0.0.1"
+edition = "2021"
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
+
+[[bin]]
+name = "terlan-lsp"
+path = "src/main.rs"
+
+[dependencies]
+terlan_syntax = { path = "../terlan_syntax" }
+terlan_hir = { path = "../terlan_hir" }
+terlan_typeck = { path = "../terlan_typeck" }
+tokio = { version = "1", features = ["io-std", "io-util", "rt-multi-thread", "macros", "time"] }
+tower-lsp = "0.20"

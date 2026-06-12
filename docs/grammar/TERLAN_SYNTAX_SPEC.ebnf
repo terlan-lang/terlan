@@ -279,7 +279,7 @@ TypeExpr ::= TypeUnion .
 TypeUnion ::= TypeArrow { "|" TypeArrow } .
 TypeArrow ::= TypePrimary | "(" [ TypeExprList ] ")" "->" TypeExpr .
 TypeExprList ::= TypeExpr { "," TypeExpr } .
-TypePrimary ::= TypeRef [ TypeArgs ] | TypeTuple | TypeList | TypeMap | TypeLiteral | "(" TypeExpr ")" .
+TypePrimary ::= AtomTypeLiteral | TypeRef [ TypeArgs ] | TypeTuple | TypeList | TypeMap | TypeLiteral | "(" TypeExpr ")" .
 TypeArgs ::= "[" TypeExprList "]" .
 
 TypeRef ::= [ ModulePath "." ] TypeName .
@@ -292,26 +292,26 @@ TypeTupleElem
 TypeList ::= "[" TypeExpr "]" .
 TypeMap ::= "#{" [ TypeMapField { "," TypeMapField } ] "}" .
 TypeMapField ::= LowerIdent ( ":=" | "=>" ) TypeExpr .
-TypeLiteral ::= AtomLiteral | Int | Float | StringLiteral .
-AtomLiteral ::= RawAtom | QuotedAtom .
+TypeLiteral ::= Int | Float | StringLiteral .
+AtomTypeLiteral ::= "Atom" "[" StringLiteral "]" .
 ConstraintList ::= "[" Constraint { "," Constraint } "]" .
 Constraint ::= TraitRef .
 
 Expr ::= LetExpr | SendExpr .
 
-(* A let expression is a semicolon-separated binding sequence with an optional
-   final body expression.
+(* A let expression is a semicolon-separated binding sequence with a required
+   final result expression.
 
-   If the final body expression is omitted, the let expression evaluates to the
-   final binding value. The surrounding expression terminator, such as a
-   function declaration's `.`, closes the let expression.
+   Bindings never double as return values. The final expression after the
+   binding sequence is the value of the let expression. The surrounding
+   expression terminator, such as a function declaration's `.`, closes that
+   final expression.
 
    Examples:
-     let x = expr.                 // evaluates to x
-     let x = 1; y = 2.             // evaluates to y
+     let x = expr; x.              // evaluates to x
      let x = 1; y = 2; x + y.      // evaluates to x + y
 *)
-LetExpr ::= "let" LetBinding { ";" LetBinding } [ ";" Expr ] .
+LetExpr ::= "let" LetBinding { ";" LetBinding } ";" Expr .
 LetBinding ::= Binding "=" Expr .
 
 CaseExpr ::= "case" Expr "{" [ Clause { ";" Clause } [ ";" ] ] "}" .
@@ -319,6 +319,19 @@ Clause ::= PatternList [ "when" Expr ] "->" Expr .
 LambdaExpr ::= "(" [ PatternList ] ")" "->" Expr .
 ReceiveExpr ::= "receive" "{" [ Clause { ";" Clause } [ ";" ] ] [ "after" Expr "->" Expr ] "}" .
 TryExpr ::= "try" Expr "{" [ Clause { ";" Clause } [ ";" ] ] [ "catch" CatchClause { ";" CatchClause } [ ";" ] ] [ "after" Expr "->" Expr ] "}" .
+(* If expressions are clause-based and do not use an `else` keyword.
+
+   A fallback branch is written as a final wildcard clause:
+
+     if {
+       ready -> run();
+       _ -> wait()
+     }
+
+   Target profiles must require exhaustiveness before backend emission. For
+   boolean-style conditions, use either explicit `true` / `false` clauses or a
+   final `_` fallback clause.
+*)
 IfExpr ::= "if" "{" IfClause { ";" IfClause } [ ";" ] "}" .
 CatchClause ::= PatternList [ "when" Expr ] "->" Expr .
 IfClause ::= Expr "->" Expr .
@@ -342,8 +355,7 @@ CmpOp ::= "==" | "!=" | ">=" | ">" | "<=" | "<" .
 PostfixExpr ::= PrimaryExpr { PostfixSuffix } .
 PostfixSuffix ::= MethodCallSuffix | FieldSuffix | IndexSuffix | FunCallSuffix .
 PrimaryExpr
-  ::= AtomLiteral
-   | CallExpr
+  ::= CallExpr
    | Binding
    | Int
    | Float
@@ -404,7 +416,6 @@ PrimaryPattern
   ::= "_"
    | Binding
    | ConstructorPattern
-   | AtomLiteral
    | Int
    | Float
    | TuplePattern
@@ -494,14 +505,7 @@ Identifier ::= LowerIdent | UpperIdent .
 LowerIdent ::= LowerLetter { IdentContinue } .
 UpperIdent ::= UpperLetter { IdentContinue } .
 
-AtomName ::= LowerIdent .
 ConstructorAtom ::= UpperIdent .
-
-(* Bare raw atoms use non-reserved lowercase atom names, such as :none and :empty.
-   Reserved-word atoms must be quoted, such as :'type' or :'case'.
-*)
-RawAtom ::= ":" AtomName | ":" QuotedAtom .
-QuotedAtom ::= "'" { QuotedAtomChar } "'" .
 
 Binding ::= LowerIdent | "_" LowerIdent .
 ExprList ::= Expr { "," Expr } .
@@ -529,7 +533,6 @@ HexInt ::= "0x" HexDigit { HexDigit } .
 OctalInt ::= "0o" OctalDigit { OctalDigit } .
 Float ::= Digit { Digit } "." Digit { Digit } .
 StringLiteral ::= "\"" { StringChar } "\"" .
-QuotedAtomChar ::= ? any source character except unescaped "'" ? .
 Binary ::= "<<" [ BinarySegment { "," BinarySegment } ] ">>" .
 
 BinaryDigit ::= "0" | "1" .
@@ -569,6 +572,8 @@ StringChar ::= ? any source character except unescaped terminator ? .
      validation.
    - Keyword expressions use brace bodies: `case value { ... }`,
      `receive { ... }`, `try expr { ... }`, and `if { ... }`.
+     `if` is clause-based and has no `else` keyword; use a final `_ -> ...`
+     branch for fallback behavior.
      Anonymous functions use lambda syntax: `(x: Int) -> x + 1`.
      The old `of`, `end`, and `fun ... end` forms are not canonical Terlan
      source syntax.
@@ -589,8 +594,11 @@ StringChar ::= ? any source character except unescaped terminator ? .
    - Terlan source EBNF does not include Erlang interop grammar. BEAM/Erlang
      compatibility is a backend and runtime artifact obligation, not a source
      syntax obligation.
-   - Raw atom patterns are always allowed and literal-match at runtime:
-     `:none`, `:empty`, etc. are pattern literals.
+   - `Atom["name"]` is the language-neutral primitive for stable symbolic
+     singleton values. It is a type-position literal. Source programs should
+     bind these singleton shapes to named aliases, such as
+     `pub type None = Atom["none"].`, and use the named alias in expressions
+     and patterns.
    - Upper-case patterns are constructor-pattern syntax: `None` or `None(...)`.
      This syntax is only valid when `None` is a declared constructor-like
      pattern shape, such as an explicit constructor declaration or a

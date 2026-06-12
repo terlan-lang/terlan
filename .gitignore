@@ -1,0 +1,18 @@
+# Rust build outputs
+/target/
+*.rlib
+
+# BEAM build outputs and crash dumps
+*.beam
+erl_crash.dump
+erl_crash_*.dump
+rebar3.crashdump
+
+# Local editor and language-server state
+/.metals/
+/.vscode/
+
+# Local OS/editor scratch files
+*~
+*.swp
+*.swo

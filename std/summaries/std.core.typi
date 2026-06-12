@@ -1,0 +1,8 @@
+std.core
+module Bool
+module Function
+module Identity
+module Option
+module Ordering
+module Result
+module Unit

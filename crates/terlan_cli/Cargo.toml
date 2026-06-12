@@ -1,0 +1,30 @@
+[package]
+name = "terlan_cli"
+version = "0.0.1"
+edition = "2021"
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
+
+[[bin]]
+name = "terlc"
+path = "src/main.rs"
+
+[dependencies]
+terlan_syntax = { path = "../terlan_syntax" }
+terlan_erlang = { path = "../terlan_erlang" }
+terlan_hir = { path = "../terlan_hir" }
+terlan_html = { path = "../terlan_html" }
+terlan_typeck = { path = "../terlan_typeck" }
+terlan_lsp = { path = "../terlan_lsp" }
+ammonia = "4.1.2"
+oxc_allocator = "0.134.0"
+oxc_ast = "0.134.0"
+oxc_codegen = "0.134.0"
+oxc_parser = "0.134.0"
+oxc_span = "0.134.0"
+oxc_syntax = "0.134.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]

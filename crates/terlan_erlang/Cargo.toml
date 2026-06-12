@@ -1,0 +1,10 @@
+[package]
+name = "terlan_erlang"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+terlan_hir = { path = "../terlan_hir" }
+terlan_html = { path = "../terlan_html" }
+terlan_syntax = { path = "../terlan_syntax" }
+terlan_typeck = { path = "../terlan_typeck" }

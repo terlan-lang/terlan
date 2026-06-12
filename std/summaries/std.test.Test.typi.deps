@@ -1,0 +1,8 @@
+module=std.test.Test
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:3d46caa40252824f
+source_hash=15316741546924730999
+interface_hash=15726169543232049261
+interface_doc_hash=15799998711848648868
+deps=0

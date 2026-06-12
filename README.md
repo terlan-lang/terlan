@@ -1,0 +1,135 @@
+# Terlan
+
+## Write once. Compile everywhere.
+
+Terlan is an open source, statically typed, functional programming language for
+building safe, predictable, industrial-strength software across server, native,
+and web platforms. Terlan uses Erlang/BEAM as its reliability core, then
+supplements it with access to the Rust and JavaScript ecosystems
+through explicit compiler targets.
+
+Terlan favors immutable data, explicit types, and predictable control flow,
+while remaining practical for object-style APIs, platform interop, and rich
+domain modeling.
+
+## Status
+
+Current version: `0.0.1`.
+
+Terlan is in a very early experimental stage. The compiler, standard library,
+syntax, and release tooling are still changing quickly.
+
+Input, issues, experiments, and design feedback are especially welcome at this stage.
+If you want to support the project, please star the repository.
+
+## Install
+
+Install the Linux x86_64 release artifact:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | sh
+```
+
+Or install from a release checkout with Rust:
+
+```sh
+cargo install --path crates/terlan_cli --bin terlc --force
+terlc version
+```
+
+The expected version is:
+
+```text
+terlc 0.0.1
+```
+
+## Erlang/OTP
+
+Terlan 0.0.1 is validated against Erlang/OTP 29 and requires an OTP 29.x
+installation for the Erlang target. `terlc build` and `terlc test` invoke
+`erlc` and `erl`, so both commands must be available on `PATH`.
+
+Check the installed OTP release:
+
+```sh
+erl -noshell -eval 'io:format("~s~n", [erlang:system_info(otp_release)]), halt().'
+```
+
+The command should print:
+
+```text
+29
+```
+
+Install OTP 29 from the official Erlang downloads page:
+
+```text
+https://www.erlang.org/downloads/29
+```
+
+The official source-build instructions are here:
+
+```text
+https://www.erlang.org/doc/system/install.html
+```
+
+For a quick container check, Erlang publishes an OTP 29 image:
+
+```sh
+docker run -it erlang:29
+```
+
+## Create And Run
+
+Create a new project:
+
+```sh
+terlc init hello
+cd hello
+```
+
+Build it:
+
+```sh
+terlc build
+```
+
+Run it:
+
+```sh
+./_build/bin/hello
+```
+
+Expected output:
+
+```text
+hello from Terlan
+```
+
+## Test
+
+`terlc init` creates a sample test file:
+
+```text
+tests/hello/main_test.tl
+```
+
+Run it with:
+
+```sh
+terlc test tests/hello/main_test.tl
+```
+
+Expected output:
+
+```text
+running 1 tests
+test hello_text_is_stable ... ok
+test result: ok. 1 passed; 0 failed
+```
+
+## Current Scope
+
+0.0.1 is the first usable-program milestone. It supports simple Terlan programs,
+manifest-backed BEAM builds, runnable `_build/bin/<package>` launchers, and
+Terlan test files executed through the Erlang target.

@@ -1,0 +1,8 @@
+[package]
+name = "terlan_typeck"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+terlan_syntax = { path = "../terlan_syntax" }
+terlan_hir = { path = "../terlan_hir" }

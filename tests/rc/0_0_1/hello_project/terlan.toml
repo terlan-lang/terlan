@@ -1,0 +1,7 @@
+[package]
+name = "hello"
+version = "0.0.1"
+
+[build]
+source_roots = ["src"]
+artifact = "beam-thin"

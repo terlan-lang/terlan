@@ -1,0 +1,19 @@
+pub(crate) mod artifacts;
+pub(crate) mod build;
+pub(crate) mod check;
+pub(crate) mod doc;
+pub(crate) mod emit;
+pub(crate) mod emit_js;
+pub(crate) mod emit_native_metadata;
+#[cfg(test)]
+pub(crate) mod emit_rust;
+pub(crate) mod fmt;
+pub(crate) mod hover;
+pub(crate) mod init;
+pub(crate) mod interface;
+pub(crate) mod json;
+pub(crate) mod lsp;
+pub(crate) mod repl;
+pub(crate) mod static_site;
+pub(crate) mod syntax_contract;
+pub(crate) mod test;

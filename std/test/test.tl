@@ -1,0 +1,76 @@
+//! Portable test assertions.
+//!
+//! `std.test.Test` provides Bool-returning assertions used by `terlc test` target
+//! runners.
+
+module std.test.Test.
+
+/// Assertion is the portable result value returned by test assertions.
+///
+/// A passing assertion returns `true`; a failing assertion returns `false`.
+///
+/// ```terlan
+/// module test_assertion_type_example.
+///
+/// pub type Assertion = Bool.
+///
+/// pub pass(): Assertion ->
+///     true.
+/// ```
+pub type Assertion = Bool.
+
+/// Returns the condition as an assertion result.
+///
+/// ```terlan
+/// module test_assert_example.
+///
+/// pub assert(condition: Bool): Bool ->
+///     condition.
+///
+/// pub demo(): Bool ->
+///     assert(true).
+/// ```
+pub assert(condition: Bool): Assertion ->
+    condition.
+
+/// Returns the condition as an assertion result.
+///
+/// `assert_true` is the explicit truth assertion name used by test runners and
+/// generated diagnostics.
+///
+/// ```terlan
+/// module test_assert_true_example.
+///
+/// pub assert_true(condition: Bool): Bool ->
+///     condition.
+///
+/// pub demo(): Bool ->
+///     assert_true(true).
+/// ```
+pub assert_true(condition: Bool): Assertion ->
+    condition.
+
+/// Returns whether the two values are exactly equal.
+///
+/// ```terlan
+/// module test_assert_equal_example.
+///
+/// pub assert_equal(left: A, right: A): Bool ->
+///     left == right.
+///
+/// pub demo(): Bool ->
+///     assert_equal(42, 42).
+/// ```
+pub assert_equal(left: A, right: A): Assertion ->
+    left == right.
+
+/// Returns a failing assertion result.
+///
+/// ```terlan
+/// module test_fail_example.
+///
+/// pub fail(): Bool ->
+///     false.
+/// ```
+pub fail(): Assertion ->
+    false.

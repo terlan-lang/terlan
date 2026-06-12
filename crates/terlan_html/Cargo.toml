@@ -1,0 +1,9 @@
+[package]
+name = "terlan_html"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+comrak = "0.52"
+cssparser = "0.35.0"
+html5ever = "0.35.0"

@@ -1,0 +1,83 @@
+//! Core unit type.
+//!
+//! `std.core.Unit` defines the conventional no-information return value.
+
+module std.core.Unit.
+
+import std.core.Option.{None, Some}.
+import type std.core.Option.Option.
+import std.core.Ordering.{Eq}.
+
+/// Unit is the type of the singleton `Atom["unit"]` value.
+///
+/// Use `Unit` for APIs that need to signal completion without returning
+/// additional data.
+///
+/// ```terlan
+/// module unit_example.
+///
+/// pub type Unit = Atom["unit"].
+///
+/// pub done(): Unit ->
+///     Unit().
+/// ```
+pub type Unit = Atom["unit"].
+
+/// Compares two `Unit` values.
+///
+/// Input: two `Unit` values.
+/// Output: always `Eq()`.
+/// Transformation: maps the singleton `Unit` domain onto
+/// `std.core.Ordering.Comparison`; because `Unit` has exactly one value, both
+/// inputs are always equal.
+///
+/// This function is the named implementation hook for compiler-known
+/// `std.core.Ordering.Ordering[Unit]` conformance in 0.0.1.
+///
+/// ```terlan
+/// module unit_compare_example.
+///
+/// pub demo(): std.core.Ordering.Comparison ->
+///     std.core.Unit.compare(Unit(), Unit()).
+/// ```
+pub compare(_left: Unit, _right: Unit): std.core.Ordering.Comparison ->
+    Eq().
+
+/// Renders `Unit` as its canonical UTF-8 `String`.
+///
+/// Input: one `Unit` value.
+/// Output: the string `"unit"`.
+/// Transformation: maps the singleton `Unit()` value onto the canonical
+/// spelling required by `std.core.String.Show[Unit]`.
+///
+/// ```terlan
+/// module unit_to_string_example.
+///
+/// pub demo(): String ->
+///     std.core.Unit.to_string(Unit()).
+/// ```
+pub to_string(value: Unit): String ->
+    "unit".
+
+/// Parses a canonical UTF-8 `String` into `Unit`.
+///
+/// Input: one `String` value.
+/// Output: `Option[Unit]`, where `"unit"` returns `Some(Unit())` and any other
+/// string returns `None()`.
+/// Transformation: recognizes only the canonical spelling used by
+/// `std.core.String.Parse[Unit]` and rejects all other strings.
+///
+/// ```terlan
+/// module unit_from_string_example.
+///
+/// pub demo(): Option[Unit] ->
+///     std.core.Unit.from_string("unit").
+/// ```
+pub from_string(value: String): Option[Unit] ->
+    case value == "unit" {
+        true ->
+            Some(Unit());
+
+        false ->
+            None()
+    }.

@@ -1,0 +1,191 @@
+//! Core ordering trait and comparison result.
+//!
+//! `std.core.Ordering` defines the trait for values that can be ordered. The
+//! closed comparison result is named `Comparison`.
+
+module std.core.Ordering.
+
+import std.core.Option.{None, Some}.
+import type std.core.Option.Option.
+
+/// Comparison represents less-than, equal, or greater-than comparison results.
+///
+/// Input: no runtime input; this is a closed result type.
+/// Output: one of `Lt()`, `Eq()`, or `Gt()`.
+/// Transformation: gives ordering implementations a stable return domain
+/// without making the `Ordering` trait itself a value.
+///
+/// ```terlan
+/// module comparison_example.
+///
+/// pub type Comparison =
+///       Lt
+///     | Eq
+///     | Gt.
+///
+/// pub less(): Comparison ->
+///     Lt().
+/// ```
+pub type Lt =
+    Atom["lt"].
+
+/// Eq represents equal comparison.
+///
+/// ```terlan
+/// module comparison_eq_example.
+///
+/// pub equal(): Eq ->
+///     Eq().
+/// ```
+pub type Eq =
+    Atom["eq"].
+
+/// Gt represents greater-than comparison.
+///
+/// ```terlan
+/// module comparison_gt_example.
+///
+/// pub greater(): Gt ->
+///     Gt().
+/// ```
+pub type Gt =
+    Atom["gt"].
+
+/// Comparison is the closed result domain for total ordering.
+///
+/// ```terlan
+/// module comparison_type_example.
+///
+/// pub choose(flag: Bool): Comparison ->
+///     if {
+///         flag -> Gt();
+///         _ -> Lt()
+///     }.
+/// ```
+pub type Comparison =
+      Lt
+    | Eq
+    | Gt.
+
+/// Compares two `Comparison` values using declaration order.
+///
+/// Input: two `Comparison` values.
+/// Output: `Lt()` when `left` comes before `right`, `Eq()` when both values are
+/// equal, and `Gt()` when `left` comes after `right`.
+/// Transformation: orders the closed comparison result domain as
+/// `Lt() < Eq() < Gt()`.
+///
+/// This function is the named implementation hook for compiler-known
+/// `std.core.Ordering.Ordering[Comparison]` conformance in 0.0.1.
+///
+/// ```terlan
+/// module comparison_compare_example.
+///
+/// pub demo(): Comparison ->
+///     std.core.Ordering.compare(Lt(), Gt()).
+/// ```
+pub compare(left: Comparison, right: Comparison): Comparison ->
+    case left == right {
+        true ->
+            Eq();
+
+        false ->
+            case left {
+                Lt ->
+                    Lt();
+
+                Eq ->
+                    case right {
+                        Lt ->
+                            Gt();
+
+                        Eq ->
+                            Eq();
+
+                        Gt ->
+                            Lt()
+                    };
+
+                Gt ->
+                    Gt()
+            }
+    }.
+
+/// Renders `Comparison` as its canonical UTF-8 `String`.
+///
+/// Input: one `Comparison` value.
+/// Output: `"lt"`, `"eq"`, or `"gt"`.
+/// Transformation: maps the closed comparison result domain onto the canonical
+/// string spellings required by `std.core.String.Show[Comparison]`.
+///
+/// ```terlan
+/// module comparison_to_string_example.
+///
+/// pub demo(): String ->
+///     std.core.Ordering.to_string(Lt()).
+/// ```
+pub to_string(value: Comparison): String ->
+    case value {
+        Lt ->
+            "lt";
+
+        Eq ->
+            "eq";
+
+        Gt ->
+            "gt"
+    }.
+
+/// Parses a canonical UTF-8 `String` into `Comparison`.
+///
+/// Input: one `String` value.
+/// Output: `Option[Comparison]`, where `"lt"`, `"eq"`, and `"gt"` return their
+/// corresponding comparison values and any other string returns `None()`.
+/// Transformation: recognizes only the canonical spellings used by
+/// `std.core.String.Parse[Comparison]` and rejects all other strings.
+///
+/// ```terlan
+/// module comparison_from_string_example.
+///
+/// pub demo(): Option[Comparison] ->
+///     std.core.Ordering.from_string("lt").
+/// ```
+pub from_string(value: String): Option[Comparison] ->
+    case value == "lt" {
+        true ->
+            Some(Lt());
+
+        false ->
+            case value == "eq" {
+                true ->
+                    Some(Eq());
+
+                false ->
+                    case value == "gt" {
+                        true ->
+                            Some(Gt());
+
+                        false ->
+                            None()
+                    }
+            }
+    }.
+
+/// Describes values that have a total ordering.
+///
+/// Input: two values of the same type `T`.
+/// Output: `Comparison`, where `Lt()` means the left value is less than the
+/// right value, `Eq()` means both values compare equally, and `Gt()` means the
+/// left value is greater than the right value.
+/// Transformation: compares two values without changing either input.
+///
+/// ```terlan
+/// module ordering_trait_example.
+///
+/// pub trait Ordering[T] {
+///     compare(left: T, right: T): std.core.Ordering.Comparison.
+/// }.
+/// ```
+pub trait Ordering[T] {
+    compare(left: T, right: T): Comparison.
+}.

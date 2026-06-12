@@ -1,0 +1,8 @@
+module=std.core.Identity
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:3d46caa40252824f
+source_hash=4436431080366846775
+interface_hash=1183554707709824831
+interface_doc_hash=8121291867724979503
+deps=0

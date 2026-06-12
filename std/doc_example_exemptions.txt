@@ -1,0 +1,7 @@
+# Public stdlib APIs that are exempt from documentation examples.
+#
+# Format:
+#   std/<feature>/<file>.tl:<line>:<kind>:<name>
+#
+# Exemptions are allowed only for marker-only APIs with no runtime behavior and
+# no callable surface. Keep this file empty unless an exemption is reviewed.

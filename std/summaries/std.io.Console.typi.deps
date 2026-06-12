@@ -1,0 +1,9 @@
+module=std.io.Console
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:3d46caa40252824f
+source_hash=4837420582200576787
+interface_hash=9234495433959359931
+interface_doc_hash=17243841148831292596
+deps=1
+std.core.Unit=1106609842815203392
