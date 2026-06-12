@@ -20,7 +20,6 @@ The value proposition of Terlan is best demonstrated in the following example:
 module hello_terl.Main.
 
 import std.io.Console.{println}.
-import std.core.Bool.
 
 pub main(): Unit ->
     println("Hello Terl").
