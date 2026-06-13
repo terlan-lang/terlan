@@ -71,8 +71,13 @@ publish-preflight:
 		exit 1; \
 	}
 	@if git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
-		echo "local tag v$(VERSION) already exists"; \
-		exit 1; \
+		tag_sha=$$(git rev-parse "refs/tags/v$(VERSION)"); \
+		head_sha=$$(git rev-parse HEAD); \
+		if [ "$$tag_sha" != "$$head_sha" ]; then \
+			echo "local tag v$(VERSION) already exists at $$tag_sha, not HEAD $$head_sha"; \
+			exit 1; \
+		fi; \
+		echo "local tag v$(VERSION) already exists at HEAD; continuing"; \
 	fi
 	@if git ls-remote --exit-code --tags origin "refs/tags/v$(VERSION)" >/dev/null 2>&1; then \
 		echo "remote tag v$(VERSION) already exists"; \
@@ -82,7 +87,9 @@ publish-preflight:
 	$(MAKE) test
 
 publish: publish-preflight
-	git tag "v$(VERSION)"
+	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
+		git tag "v$(VERSION)"; \
+	fi
 	git push origin main
 	git push origin "v$(VERSION)"
 	@echo "Published tag v$(VERSION). GitHub Actions will build and upload the release artifact."
