@@ -48,3 +48,5 @@ make release-artifact-linux
 ```
 
 Tagged runs upload `terlc-linux-x86_64.tar.gz` to the matching GitHub release.
+The release body is generated from the matching `CHANGELOG.md` section, such as
+`## 0.0.2` for tag `v0.0.2`.
