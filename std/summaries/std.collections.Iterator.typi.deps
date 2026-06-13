@@ -1,0 +1,10 @@
+module=std.collections.Iterator
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:7c98039801b93422
+source_hash=8907708763992187727
+interface_hash=7072952334587783129
+interface_doc_hash=5030706449196183162
+deps=2
+std.core.Option=7710729503108467427
+std.core.Unit=9561744969949975774

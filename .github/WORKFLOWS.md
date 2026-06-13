@@ -34,7 +34,14 @@ v0.0.1
 v0.0.2
 ```
 
-It builds the Linux x86_64 `terlc` artifact with:
+It validates the compiler and generated std summaries with:
+
+```sh
+make check
+make test
+```
+
+Then it builds the Linux x86_64 `terlc` artifact with:
 
 ```sh
 make release-artifact-linux

@@ -770,30 +770,17 @@ mod tests {
     }
 
     #[test]
-    fn canonical_terlan_ebnf_contract_matches_golden_summary() {
+    fn canonical_terlan_ebnf_contract_matches_expected_summary() {
         let output = compile_ebnf_contract(include_str!(
             "../../../docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
         ))
         .expect("compile canonical Terlan EBNF contract");
 
         let actual = ContractSummary::from_contract(&output);
-        if std::env::var_os("TERLAN_UPDATE_SYNTAX_CONTRACT_GOLDENS").is_some() {
-            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../docs/grammar/fixtures/contract")
-                .join("terlan_syntax_spec_contract_summary.json");
-            std::fs::create_dir_all(path.parent().expect("summary path has parent"))
-                .expect("create syntax contract fixture directory");
-            let json = serde_json::to_string_pretty(&actual)
-                .expect("serialize Terlan EBNF contract summary");
-            std::fs::write(path, format!("{json}\n"))
-                .expect("write Terlan EBNF contract summary golden");
-            return;
-        }
-
         let expected = serde_json::from_str::<ContractSummary>(include_str!(
             "../../../docs/grammar/fixtures/contract/terlan_syntax_spec_contract_summary.json"
         ))
-        .expect("parse golden contract summary");
+        .expect("parse expected contract summary");
 
         assert_eq!(actual, expected);
     }

@@ -11,8 +11,10 @@ on:
       - "tests/**"
       - "docs/grammar/**"
       - "tools/**"
+      - "scripts/**"
       - "Makefile"
       - ".github/workflows/ci.yml"
+      - ".github/workflows/release.yml"
   push:
     branches:
       - main
@@ -25,8 +27,10 @@ on:
       - "tests/**"
       - "docs/grammar/**"
       - "tools/**"
+      - "scripts/**"
       - "Makefile"
       - ".github/workflows/ci.yml"
+      - ".github/workflows/release.yml"
 
 permissions:
   contents: read

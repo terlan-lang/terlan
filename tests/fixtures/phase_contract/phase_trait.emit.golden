@@ -1,3 +1,0 @@
--module(phase_trait).
--export([is_same/2]).
-is_same(Left, Right) ->

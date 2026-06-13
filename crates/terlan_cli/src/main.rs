@@ -1200,10 +1200,10 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/phase_contract")
     }
 
-    fn read_phase_contract_golden(name: &str, stage: &str) -> String {
-        let path = phase_contract_fixture_root().join(format!("{name}.{stage}.golden"));
+    fn read_phase_contract_expected(name: &str, stage: &str) -> String {
+        let path = phase_contract_fixture_root().join(format!("{name}.{stage}.expected"));
         fs::read_to_string(&path).unwrap_or_else(|err| {
-            panic!("failed to read phase contract golden {path:?}: {err}");
+            panic!("failed to read phase contract expected output {path:?}: {err}");
         })
     }
 
@@ -1281,7 +1281,7 @@ mod tests {
         serde_json::from_str(&manifest_text).expect("parse phase manifest")
     }
 
-    fn normalize_golden_text(text: &str) -> String {
+    fn normalize_expected_text(text: &str) -> String {
         text.lines()
             .map(|line| line.trim_end())
             .filter(|line| !line.is_empty())
@@ -1315,14 +1315,30 @@ mod tests {
     /// - `module`: syntax-output module fixture.
     ///
     /// Output:
-    /// - Sorted function export names including public source functions and
-    ///   Erlang constructor helper exports.
+    /// - Sorted Erlang export names including public source functions with
+    ///   hidden trait-evidence arguments and constructor helper exports.
     ///
     /// Transformation:
-    /// - Starts from the public source function surface and appends deterministic
-    ///   constructor helper names for public constructors.
+    /// - Derives public function arity from source parameters plus runtime
+    ///   trait-evidence parameters, then appends deterministic constructor
+    ///   helper names for public constructors.
     fn syntax_public_erlang_surface_snapshot(module: &SyntaxModuleOutput) -> Vec<String> {
-        let mut entries = syntax_public_function_surface_snapshot(module);
+        let mut entries = module
+            .declarations
+            .iter()
+            .filter_map(|decl| match &decl.payload {
+                SyntaxDeclarationPayload::Function {
+                    name,
+                    params,
+                    generic_bounds,
+                    is_public,
+                    ..
+                } if *is_public => {
+                    Some(format!("{}/{}", name, params.len() + generic_bounds.len()))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
         for decl in &module.declarations {
             match &decl.payload {
                 SyntaxDeclarationPayload::Constructor {
@@ -1493,7 +1509,7 @@ mod tests {
             "interface_functions={}",
             resolved.interface.functions.len()
         ));
-        normalize_golden_text(&out.join("\n"))
+        normalize_expected_text(&out.join("\n"))
     }
 
     fn typed_stage_snapshot(diagnostics: &[terlan_typeck::Diagnostic]) -> String {
@@ -1514,11 +1530,11 @@ mod tests {
             })
             .collect::<Vec<_>>();
         entries.sort();
-        normalize_golden_text(&entries.join("\n"))
+        normalize_expected_text(&entries.join("\n"))
     }
 
     fn core_stage_snapshot(core: &terlan_typeck::CoreModule) -> String {
-        normalize_golden_text(&core.contract_text())
+        normalize_expected_text(&core.contract_text())
     }
 
     fn emit_stage_snapshot(path: &Path) -> String {
@@ -1538,7 +1554,7 @@ mod tests {
         if out.is_empty() {
             panic!("no emit snapshot lines found in {path:?}");
         }
-        normalize_golden_text(&out.join("\n"))
+        normalize_expected_text(&out.join("\n"))
     }
 
     fn parse_erlang_exported_function_surface(path: &Path) -> Vec<String> {
@@ -1606,9 +1622,35 @@ mod tests {
         exports
     }
 
-    fn assert_phase_contract_golden(fixture: PhaseContractFixture) {
+    /// Extracts public function names from backend surface entries.
+    ///
+    /// Inputs:
+    /// - `surface`: sorted backend export entries formatted as `name/arity`.
+    ///
+    /// Output:
+    /// - Sorted function names with backend arity removed.
+    ///
+    /// Transformation:
+    /// - Splits each surface entry at the final `/`, keeps the function-name
+    ///   prefix, sorts the names, and removes duplicates so cross-backend
+    ///   checks compare source-visible names rather than backend ABI arity.
+    fn public_function_names_from_surface(surface: &[String]) -> Vec<String> {
+        let mut names = surface
+            .iter()
+            .filter_map(|entry| {
+                entry
+                    .rsplit_once('/')
+                    .map(|(name, _arity)| name.to_string())
+            })
+            .collect::<Vec<_>>();
+        names.sort();
+        names.dedup();
+        names
+    }
+
+    fn assert_phase_contract_expected(fixture: PhaseContractFixture) {
         let root = phase_contract_fixture_root();
-        let update_goldens = std::env::var_os("TERRLANG_UPDATE_PHASE_GOLDEN").is_some();
+        let update_expected = std::env::var_os("TERLAN_UPDATE_PHASE_EXPECTED").is_some();
         let source_path = root.join(fixture.source_path);
         let source = fs::read_to_string(&source_path).unwrap_or_else(|err| {
             panic!("failed to read phase fixture source {source_path:?}: {err}");
@@ -1627,33 +1669,36 @@ mod tests {
         let resolved =
             resolve_syntax_module_output_with_interfaces(&syntax_output, &interfaces).module;
         let resolved_snapshot = resolve_stage_snapshot(&resolved);
-        let expected_resolve = read_phase_contract_golden(fixture.module_name, "resolve");
-        if update_goldens {
-            let golden_path = root.join(format!("{}.resolve.golden", fixture.module_name));
-            fs::write(&golden_path, &resolved_snapshot).expect("write resolve phase golden");
+        let expected_resolve = read_phase_contract_expected(fixture.module_name, "resolve");
+        if update_expected {
+            let expected_path = root.join(format!("{}.resolve.expected", fixture.module_name));
+            fs::write(&expected_path, &resolved_snapshot).expect("write resolve phase expected");
         } else {
-            assert_eq!(resolved_snapshot, normalize_golden_text(&expected_resolve));
+            assert_eq!(
+                resolved_snapshot,
+                normalize_expected_text(&expected_resolve)
+            );
         }
 
         let diagnostics =
             type_check_syntax_module_output_with_templates(&syntax_output, &resolved, &source_path);
         let typed_snapshot = typed_stage_snapshot(&diagnostics);
-        let expected_typed = read_phase_contract_golden(fixture.module_name, "typed");
-        if update_goldens {
-            let golden_path = root.join(format!("{}.typed.golden", fixture.module_name));
-            fs::write(&golden_path, &typed_snapshot).expect("write typed phase golden");
+        let expected_typed = read_phase_contract_expected(fixture.module_name, "typed");
+        if update_expected {
+            let expected_path = root.join(format!("{}.typed.expected", fixture.module_name));
+            fs::write(&expected_path, &typed_snapshot).expect("write typed phase expected");
         } else {
-            assert_eq!(typed_snapshot, normalize_golden_text(&expected_typed));
+            assert_eq!(typed_snapshot, normalize_expected_text(&expected_typed));
         }
 
         let core = terlan_typeck::lower_syntax_module_output_to_core(&syntax_output, &resolved);
         let core_snapshot = core_stage_snapshot(&core);
-        let expected_core = read_phase_contract_golden(fixture.module_name, "core");
-        if update_goldens {
-            let golden_path = root.join(format!("{}.core.golden", fixture.module_name));
-            fs::write(&golden_path, &core_snapshot).expect("write core phase golden");
+        let expected_core = read_phase_contract_expected(fixture.module_name, "core");
+        if update_expected {
+            let expected_path = root.join(format!("{}.core.expected", fixture.module_name));
+            fs::write(&expected_path, &core_snapshot).expect("write core phase expected");
         } else {
-            assert_eq!(core_snapshot, normalize_golden_text(&expected_core));
+            assert_eq!(core_snapshot, normalize_expected_text(&expected_core));
         }
 
         let out_dir = make_temp_dir("phase_contract_emit");
@@ -1673,19 +1718,19 @@ mod tests {
             support::erlang_output_stem(&syntax_output.module_name)
         ));
         let emit_snapshot = emit_stage_snapshot(&emitted_path);
-        let expected_emit = read_phase_contract_golden(fixture.module_name, "emit");
-        if update_goldens {
-            let golden_path = root.join(format!("{}.emit.golden", fixture.module_name));
-            fs::write(&golden_path, &emit_snapshot).expect("write emit phase golden");
+        let expected_emit = read_phase_contract_expected(fixture.module_name, "emit");
+        if update_expected {
+            let expected_path = root.join(format!("{}.emit.expected", fixture.module_name));
+            fs::write(&expected_path, &emit_snapshot).expect("write emit phase expected");
         } else {
-            assert_eq!(emit_snapshot, normalize_golden_text(&expected_emit));
+            assert_eq!(emit_snapshot, normalize_expected_text(&expected_emit));
         }
     }
 
     #[test]
-    fn run_phase_contract_fixtures_match_golden() {
+    fn run_phase_contract_fixtures_match_expected_outputs() {
         for fixture in phase_contract_fixtures() {
-            assert_phase_contract_golden(fixture);
+            assert_phase_contract_expected(fixture);
         }
     }
 
@@ -1702,7 +1747,7 @@ mod tests {
     ///   fixture that exercises case-pattern runtime-binding freshness.
     ///
     /// Output:
-    /// - Test assertion only; no source or golden files are modified.
+    /// - Test assertion only; no source or expected-output files are modified.
     ///
     /// Transformation:
     /// - Lowers each fixture through the formal parse/resolve/typecheck/CoreIR
@@ -1731,7 +1776,7 @@ mod tests {
     ///   `BinaryOp` CoreIR with Lean-covered variable children.
     ///
     /// Output:
-    /// - Test assertion only; no source or golden files are modified.
+    /// - Test assertion only; no source or expected-output files are modified.
     ///
     /// Transformation:
     /// - Lowers each candidate fixture through the formal
@@ -1767,7 +1812,7 @@ mod tests {
     ///   and case runtime-binding freshness evidence.
     ///
     /// Output:
-    /// - Test assertion only; no source or golden files are modified.
+    /// - Test assertion only; no source or expected-output files are modified.
     ///
     /// Transformation:
     /// - Runs each fixture through command-level `check --emit-phase-manifest`
@@ -1802,7 +1847,7 @@ mod tests {
     ///   variable argument children.
     ///
     /// Output:
-    /// - Test assertion only; no source or golden files are modified.
+    /// - Test assertion only; no source or expected-output files are modified.
     ///
     /// Transformation:
     /// - Runs each candidate fixture through command-level
@@ -1933,10 +1978,11 @@ mod tests {
                 "js surface mismatch for {:?}",
                 source_path
             );
-            for public_function in &js_surface {
+            let erlang_public_names = public_function_names_from_surface(&erlang_surface);
+            for public_function in public_function_names_from_surface(&js_surface) {
                 assert!(
-                    erlang_surface.contains(public_function),
-                    "Erlang surface missing public JS function {public_function} for {:?}",
+                    erlang_public_names.contains(&public_function),
+                    "Erlang surface missing public JS function name {public_function} for {:?}",
                     source_path
                 );
             }
@@ -5928,7 +5974,7 @@ module core_v0_rejects_template_instantiate.\n\ntemplate UserCard from \"./templ
             ),
             (
                 "function_clause_name_mismatch",
-                "expected function clause for declared function name",
+                "expected Dot",
                 "module bad.function_clause_name_mismatch.\n\nvalue(0) -> 0;\nother(1) -> 1.\n",
             ),
             (

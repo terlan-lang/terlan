@@ -26,6 +26,12 @@ jobs:
         with:
           otp-version: "29"
 
+      - name: Check
+        run: make check
+
+      - name: Test
+        run: make test
+
       - name: Build artifact
         run: make release-artifact-linux
 

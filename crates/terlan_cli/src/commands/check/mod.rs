@@ -38,7 +38,7 @@ use crate::{formal_pipeline::CheckedSyntaxModuleArtifacts, CliCommand, CliState}
 /// Transformation:
 /// - Parses check-local arguments, delegates directory checks to the existing
 ///   directory checker, and runs single-file sources through the formal compile
-///   phase pipeline with optional phase-manifest emission.
+///   phase pipeline with optional phase-manifest and cache-interface emission.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     let (path, phase_manifest_path) = match parse_check_args(&cmd.args) {
         Ok(result) => result,
@@ -240,23 +240,107 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         return compile.exit_code;
     }
 
-    let CheckedSyntaxModuleArtifacts { syntax_output, .. } = compile
+    let artifacts = compile
         .artifacts
         .expect("compile module should produce artifacts on success");
+    if let Some(cache_dir) = state.cache_dir.as_deref() {
+        if let Err(err) = write_single_file_interface_cache(
+            cache_dir,
+            &path,
+            source_hash,
+            &artifacts,
+            state.incremental,
+        ) {
+            eprintln!("{}", err);
+            return ExitCode::from(1);
+        }
+    }
 
     if state.trace_invalidation {
-        println!("CHECK {}", syntax_output.module_name);
+        println!("CHECK {}", artifacts.syntax_output.module_name);
         if let Some(cache_dir) = state.cache_dir.as_deref() {
-            let interface_target = cache_dir.join(format!("{}.typi", syntax_output.module_name));
+            let interface_target =
+                cache_dir.join(format!("{}.typi", artifacts.syntax_output.module_name));
             if interface_target.exists() {
-                println!("INTERFACE_CACHE_HIT {}", syntax_output.module_name);
+                println!(
+                    "INTERFACE_CACHE_HIT {}",
+                    artifacts.syntax_output.module_name
+                );
             } else {
-                println!("INTERFACE_CACHE_MISS {}", syntax_output.module_name);
+                println!(
+                    "INTERFACE_CACHE_MISS {}",
+                    artifacts.syntax_output.module_name
+                );
             }
         }
     }
 
     ExitCode::SUCCESS
+}
+
+/// Writes generated interface cache files for one successfully checked source.
+///
+/// Inputs:
+/// - `cache_dir`: target directory for generated `.typi` and `.typi.deps`
+///   files.
+/// - `path`: source path used for dependency-manifest path-sensitive hashes.
+/// - `source_hash`: stable hash of the checked source text.
+/// - `artifacts`: successful formal pipeline output for the checked source.
+/// - `incremental`: whether unchanged cache files may be left untouched.
+///
+/// Output:
+/// - `Ok(())` when both cache files are written or already current.
+/// - `Err(String)` when syntax-contract identity lookup, directory creation,
+///   or cache-file writing fails.
+///
+/// Transformation:
+/// - Projects the formal module interface into `.typi` text and writes a
+///   matching dependency manifest so single-file checks can serve as the
+///   canonical stdlib summary generator without weakening directory layout
+///   validation.
+fn write_single_file_interface_cache(
+    cache_dir: &Path,
+    path: &str,
+    source_hash: u64,
+    artifacts: &CheckedSyntaxModuleArtifacts,
+    incremental: bool,
+) -> Result<(), String> {
+    fs::create_dir_all(cache_dir)
+        .map_err(|err| format!("cannot create cache directory: {}", err))?;
+    let syntax_contract_identity = current_syntax_contract_identity()?;
+    let module_name = &artifacts.syntax_output.module_name;
+    let interface = &artifacts.core.interface;
+    let interface_text = interface.to_terlan_interface_text();
+    let interface_target = cache_dir.join(format!("{module_name}.typi"));
+    crate::support::write_if_changed_or_forced(
+        &interface_target,
+        interface_text.as_bytes(),
+        incremental,
+    )
+    .map_err(|err| format!("failed to write interface output: {}", err))?;
+
+    let dependency_hashes = collect_syntax_dependency_hashes(
+        &artifacts.syntax_output,
+        &artifacts.interfaces,
+        Some(Path::new(path)),
+        None,
+    );
+    let manifest = DependencyManifest {
+        module: module_name.clone(),
+        syntax_contract_identity,
+        source_hash,
+        interface_hash: fingerprint(interface.to_terlan_interface_type_text().as_bytes()),
+        interface_doc_hash: fingerprint(interface.to_terlan_interface_doc_text().as_bytes()),
+        dependencies: dependency_hashes,
+    };
+    let manifest_target = cache_dir.join(format!("{module_name}.typi.deps"));
+    crate::support::write_if_changed_or_forced(
+        &manifest_target,
+        manifest.encode().as_bytes(),
+        incremental,
+    )
+    .map_err(|err| format!("failed to write dependency manifest: {}", err))?;
+    Ok(())
 }
 
 /// Parses command-local flags for `check`.

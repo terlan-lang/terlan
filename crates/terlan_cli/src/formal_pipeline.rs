@@ -132,19 +132,27 @@ fn parse_embedded_std_interface(summary: &str) -> Option<(String, ModuleInterfac
 
 const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.core.Bool.typi"),
+    include_str!("../../../std/summaries/std.core.Equal.typi"),
     include_str!("../../../std/summaries/std.core.Float.typi"),
-    include_str!("../../../std/summaries/std.core.Function.typi"),
-    include_str!("../../../std/summaries/std.core.Identity.typi"),
     include_str!("../../../std/summaries/std.core.Int.typi"),
+    include_str!("../../../std/summaries/std.collections.Enumerable.typi"),
+    include_str!("../../../std/summaries/std.collections.Iterable.typi"),
+    include_str!("../../../std/summaries/std.collections.Iterator.typi"),
+    include_str!("../../../std/summaries/std.collections.List.typi"),
+    include_str!("../../../std/summaries/std.collections.Map.typi"),
+    include_str!("../../../std/summaries/std.collections.typi"),
     include_str!("../../../std/summaries/std.core.Option.typi"),
     include_str!("../../../std/summaries/std.core.Ordering.typi"),
     include_str!("../../../std/summaries/std.core.Result.typi"),
+    include_str!("../../../std/summaries/std.collections.Set.typi"),
     include_str!("../../../std/summaries/std.core.String.typi"),
     include_str!("../../../std/summaries/std.core.Unit.typi"),
     include_str!("../../../std/summaries/std.core.typi"),
     include_str!("../../../std/summaries/std.io.Console.typi"),
+    include_str!("../../../std/summaries/std.io.File.typi"),
     include_str!("../../../std/summaries/std.io.typi"),
     include_str!("../../../std/summaries/std.test.Test.typi"),
+    include_str!("../../../std/summaries/std.test.typi"),
 ];
 
 /// Lists Terlan implementation sources under a directory.

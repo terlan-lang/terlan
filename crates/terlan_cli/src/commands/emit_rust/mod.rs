@@ -926,6 +926,7 @@ pub len(): Int ->
             type_bodies: HashMap::new(),
             type_docs: HashMap::new(),
             traits: HashMap::new(),
+            trait_conformances: Vec::new(),
             constructors: HashMap::new(),
             functions: HashMap::new(),
         }

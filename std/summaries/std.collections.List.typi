@@ -1,0 +1,90 @@
+//! Core list collection contract.
+//!
+//! `std.collections.List` is the portable ordered collection surface for Terlan list
+//! values.
+
+module std.collections.List.
+
+/// List represents an ordered collection of values.
+///
+/// Input: type parameter `T`.
+/// Output: an opaque ordered collection type.
+/// Transformation: hides the selected backend representation behind the
+/// portable `std.collections.List` API.
+
+pub opaque type List[T].
+
+/// Removes every value from a list.
+///
+/// Input: a mutable `List[T]` receiver.
+/// Output: `Unit`.
+/// Transformation: lowers through the compiler-owned `core.list.clear`
+/// intrinsic and updates the receiver binding so it becomes empty.
+
+pub clear(list: List[T]): Unit.
+
+/// Applies a callback to each value in a list.
+///
+/// Input: one `List[T]` receiver and one callback from `T` to `Unit`.
+/// Output: `Unit`.
+/// Transformation: creates a traversal state with `list.iterator()` and
+/// delegates to `std.collections.Iterator.each`, preserving list contents while the
+/// callback performs any requested effects.
+
+pub each(list: List[T], cb: (T ) -> Unit): Unit.
+
+/// Returns the first value in a list.
+///
+/// Input: one `List[T]`.
+/// Output: `Some(value)` when the list is non-empty; otherwise `None`.
+/// Transformation: lowers through the compiler-owned `core.list.first`
+/// intrinsic and observes the receiver without changing its contents.
+
+pub first(list: List[T]): Option[T].
+
+/// Returns whether a list contains no values.
+///
+/// Input: one `List[T]`.
+/// Output: `true` when the list is empty; otherwise `false`.
+/// Transformation: lowers through the compiler-owned `core.list.is_empty`
+/// intrinsic and observes the receiver without changing its contents.
+
+pub is_empty(list: List[T]): Bool.
+
+/// Returns an iterator over the list.
+///
+/// Input: one `List[T]`.
+/// Output: an `Iterator[T]` positioned at the beginning of the list.
+/// Transformation: lowers through the compiler-owned `core.list.iterator`
+/// intrinsic. The source-level iterator state is immutable; backends choose
+/// the efficient representation behind the opaque iterator type.
+
+pub iterator(list: List[T]): Iterator[T].
+
+/// Returns the number of values in a list.
+///
+/// Input: one `List[T]`.
+/// Output: the number of values currently visible in the list.
+/// Transformation: lowers through the compiler-owned `core.list.length`
+/// intrinsic and observes the receiver without changing its contents.
+
+pub length(list: List[T]): Int.
+
+/// Creates an empty list.
+///
+/// Input: no value input.
+/// Output: an empty `List[T]`.
+/// Transformation: lowers through the compiler-owned `core.list.new`
+/// intrinsic, using the selected backend's canonical empty-list value.
+
+pub new(): List[T].
+
+/// Appends a value to the end of a list.
+///
+/// Input: a mutable `List[T]` receiver and one value of type `T`.
+/// Output: `Unit`.
+/// Transformation: lowers through the compiler-owned `core.list.push`
+/// intrinsic and updates the receiver binding in source order. Pipe chains
+/// continue with the updated receiver.
+
+pub push(list: List[T], value: T): Unit.

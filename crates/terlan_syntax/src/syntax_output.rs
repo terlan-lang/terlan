@@ -200,7 +200,23 @@ pub struct SyntaxTypeOutput {
 pub struct SyntaxParamOutput {
     pub name: String,
     pub annotation: SyntaxTypeOutput,
+    #[serde(default, rename = "mutable", skip_serializing_if = "is_false")]
+    pub is_mutable: bool,
     pub span: EbnfSourceSpan,
+}
+
+/// Returns whether a boolean value is false for compact syntax JSON output.
+///
+/// Inputs:
+/// - `value`: boolean metadata value being considered for serialization.
+///
+/// Output:
+/// - `true` when the value is false and can be omitted from serialized output.
+///
+/// Transformation:
+/// - Performs a direct boolean negation with no side effects.
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -403,6 +419,7 @@ pub enum SyntaxExprKind {
     BinaryOp,
     Quote,
     Unquote,
+    Sequence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1030,6 +1047,7 @@ fn param_output(param: &Param) -> SyntaxParamOutput {
     SyntaxParamOutput {
         name: param.name.clone(),
         annotation: type_output(&param.annotation),
+        is_mutable: param.is_mutable,
         span: param.span.into(),
     }
 }
@@ -1652,6 +1670,20 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
+        Expr::Sequence(expressions) => expr_node(
+            SyntaxExprKind::Sequence,
+            None,
+            None,
+            None,
+            expressions
+                .iter()
+                .map(|expr| expr_output_with_span(expr, span))
+                .collect(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            span,
+        ),
     }
 }
 
@@ -2181,6 +2213,7 @@ mod tests {
             } => {
                 assert_eq!(receiver.name, "self");
                 assert_eq!(receiver.annotation.text, "User");
+                assert!(!receiver.is_mutable);
                 assert_eq!(name, "identity");
                 assert!(params.is_empty());
                 assert_eq!(return_type.text, "User");
@@ -2189,6 +2222,197 @@ mod tests {
             }
             other => panic!("unexpected method payload: {other:?}"),
         }
+    }
+
+    /// Verifies mutable receiver metadata survives syntax output.
+    ///
+    /// Inputs:
+    /// - A module containing a receiver method declared with contextual `mut`.
+    ///
+    /// Output:
+    /// - Assertions over the method payload showing `receiver.mutable = true`.
+    ///
+    /// Transformation:
+    /// - Parses source through syntax output and preserves the receiver
+    ///   mutability marker without lowering or resolving its semantics.
+    #[test]
+    fn syntax_output_preserves_mutable_receiver_marker() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module method_output_mutable.
+
+            pub (mut self: User) rename(name: String): User -> self.
+            "#,
+        )
+        .expect("method syntax output");
+
+        match &output.declarations[0].payload {
+            SyntaxDeclarationPayload::Method { receiver, name, .. } => {
+                assert_eq!(name, "rename");
+                assert_eq!(receiver.name, "self");
+                assert_eq!(receiver.annotation.text, "User");
+                assert!(receiver.is_mutable);
+            }
+            other => panic!("unexpected method payload: {other:?}"),
+        }
+    }
+
+    /// Verifies release core collection contracts survive formal syntax output.
+    ///
+    /// Inputs:
+    /// - Release source contracts for `std.collections.Map`, `std.collections.List`, and
+    ///   `std.collections.Set`.
+    ///
+    /// Output:
+    /// - Test passes when the formal syntax-output boundary preserves each
+    ///   collection module name and each mutable receiver method required by
+    ///   the P0.3 contract.
+    ///
+    /// Transformation:
+    /// - Parses release contracts through `parse_module_as_syntax_output`,
+    ///   filters method declarations, and checks receiver mutability without
+    ///   typechecking or backend lowering.
+    #[test]
+    fn syntax_output_preserves_release_core_collection_contracts() {
+        let contracts = [
+            (
+                "std.collections.Map",
+                include_str!("../../../std/collections/map.tl"),
+                vec![
+                    ("put", "map", "Map[K, V]", true),
+                    ("remove", "map", "Map[K, V]", true),
+                    ("clear", "map", "Map[K, V]", true),
+                ],
+            ),
+            (
+                "std.collections.List",
+                include_str!("../../../std/collections/list.tl"),
+                vec![
+                    ("push", "list", "List[T]", true),
+                    ("clear", "list", "List[T]", true),
+                ],
+            ),
+            (
+                "std.collections.Set",
+                include_str!("../../../std/collections/set.tl"),
+                vec![
+                    ("add", "set", "Set[T]", true),
+                    ("remove", "set", "Set[T]", true),
+                    ("clear", "set", "Set[T]", true),
+                ],
+            ),
+        ];
+
+        for (expected_module, source, expected_methods) in contracts {
+            let output = parse_module_as_syntax_output(source)
+                .expect("syntax output release collection contract");
+            assert_eq!(output.module_name, expected_module);
+
+            for (expected_name, expected_receiver_name, expected_receiver_type, is_mutable) in
+                expected_methods
+            {
+                let method = output
+                    .declarations
+                    .iter()
+                    .find_map(|declaration| match &declaration.payload {
+                        SyntaxDeclarationPayload::Method { name, receiver, .. }
+                            if name == expected_name =>
+                        {
+                            Some(receiver)
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| {
+                        panic!("missing method `{expected_name}` in {expected_module}")
+                    });
+
+                assert_eq!(method.name, expected_receiver_name);
+                assert_eq!(method.annotation.text, expected_receiver_type);
+                assert_eq!(method.is_mutable, is_mutable);
+            }
+        }
+    }
+
+    /// Verifies release iterator/iterable contracts survive syntax output.
+    ///
+    /// Inputs:
+    /// - Release interface contracts for `std.collections.Iterator` and
+    ///   `std.collections.Iterable`.
+    ///
+    /// Output:
+    /// - Test passes when syntax output preserves `Iterator.next` as a
+    ///   function signature and `Iterable.iterator` as a trait method
+    ///   signature.
+    ///
+    /// Transformation:
+    /// - Parses release contracts through interface syntax output and inspects
+    ///   structured declarations without typechecking or backend lowering.
+    #[test]
+    fn syntax_output_preserves_release_traversal_contracts() {
+        let iterator_output =
+            parse_module_as_syntax_output(include_str!("../../../std/collections/iterator.tl"))
+                .expect("syntax output iterator contract");
+        assert_eq!(iterator_output.module_name, "std.collections.Iterator");
+        let iterator_function_shapes: Vec<String> = iterator_output
+            .declarations
+            .iter()
+            .filter_map(|declaration| match &declaration.payload {
+                SyntaxDeclarationPayload::Function {
+                    name,
+                    params,
+                    return_type,
+                    ..
+                } => Some(format!(
+                    "{}({}) -> {}",
+                    name,
+                    params
+                        .iter()
+                        .map(|param| param.annotation.text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    return_type.text
+                )),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            iterator_output.declarations.iter().any(|declaration| {
+                matches!(
+                    &declaration.payload,
+                    SyntaxDeclarationPayload::Function {
+                        name,
+                        params,
+                        return_type,
+                        ..
+                    } if name == "next"
+                        && params.len() == 1
+                        && params[0].annotation.text == "Iterator[T]"
+                        && return_type.text == "Option[Step[T]]"
+                )
+            }),
+            "iterator function shapes: {iterator_function_shapes:?}"
+        );
+
+        let iterable_output =
+            parse_module_as_syntax_output(include_str!("../../../std/collections/iterable.tl"))
+                .expect("syntax output iterable contract");
+        assert_eq!(iterable_output.module_name, "std.collections.Iterable");
+        let trait_decl = iterable_output
+            .declarations
+            .iter()
+            .find_map(|declaration| match &declaration.payload {
+                SyntaxDeclarationPayload::Trait { name, methods, .. } if name == "Iterable" => {
+                    Some(methods)
+                }
+                _ => None,
+            })
+            .expect("Iterable trait declaration");
+        assert!(trait_decl.iter().any(|method| {
+            method.name == "iterator"
+                && method.params.len() == 1
+                && method.params[0].annotation.text == "C"
+                && method.return_type.text == "Iterator[T]"
+        }));
     }
 
     /// Verifies canonical config declarations are exposed as structured syntax

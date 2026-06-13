@@ -533,27 +533,14 @@ mod tests {
     }
 
     #[test]
-    fn canonical_contract_artifact_matches_golden_summary() {
+    fn canonical_contract_artifact_matches_expected_summary() {
         let artifact =
             cached_canonical_terlan_syntax_contract_artifact().expect("syntax contract artifact");
         let actual = SyntaxContractArtifactSummary::from_artifact(&artifact);
-        if std::env::var_os("TERLAN_UPDATE_SYNTAX_CONTRACT_GOLDENS").is_some() {
-            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../docs/grammar/fixtures/contract")
-                .join("terlan_syntax_contract_artifact_summary.json");
-            std::fs::create_dir_all(path.parent().expect("summary path has parent"))
-                .expect("create syntax contract fixture directory");
-            let json = serde_json::to_string_pretty(&actual)
-                .expect("serialize syntax contract artifact summary");
-            std::fs::write(path, format!("{json}\n"))
-                .expect("write syntax contract artifact summary golden");
-            return;
-        }
-
         let expected = serde_json::from_str::<SyntaxContractArtifactSummary>(include_str!(
             "../../../docs/grammar/fixtures/contract/terlan_syntax_contract_artifact_summary.json"
         ))
-        .expect("parse golden artifact summary");
+        .expect("parse expected artifact summary");
 
         assert_eq!(actual, expected);
     }

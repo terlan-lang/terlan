@@ -2,10 +2,29 @@
 
 All notable release-facing changes to Terlan are tracked here.
 
-## Unreleased
+## 0.0.2
 
-- Begin post-0.0.1 stabilization work toward the next patch release.
+- Publish the 0.0.2 language-feature and base-standard-library release.
 - Add semicolon-separated expression sequencing support for function bodies.
+- Add receiver methods, mutable receiver command-style calls, and receiver-aware
+  pipe dispatch.
+- Add trait conformance support through `implements`, explicit `impl` blocks,
+  trait default methods, and generic-bound dispatch.
+- Add function-value invocation with `f.(args)`.
+- Add portable `Atom["name"]` singleton aliases.
+- Expand `std.core` coverage for `Unit`, `Option`, `Result`, `Ordering`,
+  `Bool`, `Int`, `Float`, and `String` with summaries and Terlan tests.
+- Add `std.collections` contracts for `List`, `Map`, `Set`, `Iterable`,
+  `Iterator`, and `Enumerable`, including list-backed traversal lowering.
+- Add `std.io.File` text APIs and constrained negative diagnostics for invalid
+  `std.io` calls.
+- Generate `std/summaries/*.typi` and `.typi.deps` from Terlan std source, and
+  add CI checks that reject stale committed summaries before release.
+- Remove redundant early std modules and aliases that are not part of the
+  release surface: `std.core.Atom`, `std.core.Function`, `std.core.Identity`,
+  and `std.test.Test.assert`.
+- Expand syntax, phase-contract, lowering, and standard-library test coverage
+  for the released surface.
 
 ## 0.0.1
 

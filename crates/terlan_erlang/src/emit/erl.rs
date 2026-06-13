@@ -5,17 +5,20 @@ use super::{erlang_type_param_name, is_generic_type_var, map_module_name, map_st
 #[derive(Debug, Clone)]
 pub(super) struct ErlModule {
     pub(super) name: String,
+    pub(super) docs: Vec<String>,
     pub(super) forms: Vec<ErlForm>,
 }
 
 impl ErlModule {
     /// Renders a complete Erlang module.
     ///
-    /// Input is the module name plus ordered Erlang forms. Output is `.erl`
-    /// source text with a module header. The transformation preserves form
+    /// Input is the module name, module docs, and ordered Erlang forms. Output
+    /// is `.erl` source text with a module header. The transformation lowers
+    /// Terlan module docs into native Erlang `-moduledoc` and preserves form
     /// order so callers control deterministic output.
     pub(super) fn render(&self) -> String {
         let mut out = format!("-module({}).\n\n", self.name);
+        out.push_str(&render_doc_attribute("moduledoc", &self.docs));
         for form in &self.forms {
             out.push_str(&form.render());
         }
@@ -69,7 +72,7 @@ impl ErlTypeDecl {
     /// side. Output is an Erlang `-type` or `-opaque` form. The transformation
     /// marks phantom type parameters with `_` so generated specs remain valid.
     pub(super) fn render(&self) -> String {
-        let mut out = render_edoc(&self.docs);
+        let mut out = render_doc_attribute("doc", &self.docs);
         let mut rhs_vars = BTreeMap::new();
         self.rhs.collect_type_vars(&mut rhs_vars);
         let params = if self.params.is_empty() {
@@ -116,7 +119,7 @@ impl ErlRecordDecl {
     /// form. The transformation preserves field order and renders an empty
     /// record body when no fields are present.
     pub(super) fn render(&self) -> String {
-        let mut out = render_edoc(&self.docs);
+        let mut out = render_doc_attribute("doc", &self.docs);
         if self.fields.is_empty() {
             out.push_str(&format!("-record({}, {{}}).\n\n", self.name));
             return out;
@@ -175,7 +178,7 @@ impl ErlSpec {
     /// only once and renders them as phantom variables for Dialyzer-friendly
     /// specs.
     pub(super) fn render(&self) -> String {
-        let mut out = render_edoc(&self.docs);
+        let mut out = render_doc_attribute("doc", &self.docs);
         let mut vars = BTreeMap::new();
         for arg in &self.args {
             arg.collect_type_vars(&mut vars);
@@ -215,7 +218,7 @@ impl ErlFunction {
     /// function source. The transformation gives every clause the shared name
     /// and selects `;` or `.` terminators based on clause position.
     pub(super) fn render(&self) -> String {
-        let mut out = render_edoc(&self.docs);
+        let mut out = render_doc_attribute("doc", &self.docs);
         for (index, clause) in self.clauses.iter().enumerate() {
             let is_last = index + 1 == self.clauses.len();
             out.push_str(&clause.render(&self.name, is_last));
@@ -225,22 +228,40 @@ impl ErlFunction {
     }
 }
 
-/// Renders Terlan documentation lines as Erlang EDoc comments.
+/// Renders Terlan documentation lines as an Erlang documentation attribute.
 ///
 /// Input is a sequence of already extracted doc strings. Output is a possibly
-/// empty comment block. The transformation prefixes each line with `%% @doc`
-/// and separates non-empty doc blocks from the following form.
-fn render_edoc(docs: &[String]) -> String {
-    let mut out = String::new();
-    for line in docs {
-        out.push_str("%% @doc ");
-        out.push_str(line);
-        out.push('\n');
+/// empty native documentation attribute. The transformation joins source doc
+/// lines with newlines and emits `-moduledoc` or `-doc` so BEAM builds can
+/// carry EEP-48/HexDocs-readable documentation instead of loose comments.
+fn render_doc_attribute(attribute: &str, docs: &[String]) -> String {
+    if docs.is_empty() {
+        return String::new();
     }
-    if !docs.is_empty() {
-        out.push('\n');
-    }
-    out
+
+    format!(
+        "-{} \"{}\".\n\n",
+        attribute,
+        escape_erlang_string_literal(&docs.join("\n"))
+    )
+}
+
+/// Escapes text for use in an Erlang string literal.
+///
+/// Input is raw documentation text. Output is text safe to place between
+/// Erlang double quotes. The transformation preserves newlines as `\n` escapes
+/// and escapes backslashes, quotes, carriage returns, and tabs.
+fn escape_erlang_string_literal(text: &str) -> String {
+    text.chars()
+        .flat_map(|ch| match ch {
+            '\\' => "\\\\".chars().collect::<Vec<_>>(),
+            '"' => "\\\"".chars().collect::<Vec<_>>(),
+            '\n' => "\\n".chars().collect::<Vec<_>>(),
+            '\r' => "\\r".chars().collect::<Vec<_>>(),
+            '\t' => "\\t".chars().collect::<Vec<_>>(),
+            other => vec![other],
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone)]
@@ -290,6 +311,7 @@ pub(super) enum ErlType {
     },
     Tuple(Vec<ErlType>),
     List(Box<ErlType>),
+    Map(Vec<ErlMapTypeField>),
     Union(Vec<ErlType>),
     Fun {
         args: Vec<ErlType>,
@@ -324,6 +346,14 @@ impl ErlType {
                 format!("{{{}}}", items)
             }
             ErlType::List(inner) => format!("[{}]", inner.render()),
+            ErlType::Map(fields) => {
+                let fields = fields
+                    .iter()
+                    .map(ErlMapTypeField::render)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("#{{{}}}", fields)
+            }
             ErlType::Union(items) => items
                 .iter()
                 .map(ErlType::render)
@@ -370,6 +400,11 @@ impl ErlType {
                 }
             }
             ErlType::List(inner) => inner.collect_type_vars(vars),
+            ErlType::Map(fields) => {
+                for field in fields {
+                    field.value.collect_type_vars(vars);
+                }
+            }
             ErlType::Fun { args, ret } => {
                 for arg in args {
                     arg.collect_type_vars(vars);
@@ -406,6 +441,14 @@ impl ErlType {
                 format!("{{{}}}", items)
             }
             ErlType::List(inner) => format!("[{}]", inner.render_with_phantom_vars(phantom_vars)),
+            ErlType::Map(fields) => {
+                let fields = fields
+                    .iter()
+                    .map(|field| field.render_with_phantom_vars(phantom_vars))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("#{{{}}}", fields)
+            }
             ErlType::Union(items) => items
                 .iter()
                 .map(|item| item.render_with_phantom_vars(phantom_vars))
@@ -427,6 +470,40 @@ impl ErlType {
                 )
             }
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct ErlMapTypeField {
+    pub(super) key: String,
+    pub(super) value: ErlType,
+    pub(super) required: bool,
+}
+
+impl ErlMapTypeField {
+    /// Renders an Erlang map type field.
+    ///
+    /// Input is a key, lowered value type, and requiredness flag. Output is
+    /// Erlang map type syntax. The transformation selects `:=` for required
+    /// keys and `=>` for optional/associative keys.
+    fn render(&self) -> String {
+        let sep = if self.required { ":=" } else { "=>" };
+        format!("{}{}{}", self.key, sep, self.value.render())
+    }
+
+    /// Renders an Erlang map type field with phantom type variables marked.
+    ///
+    /// Inputs are one map type field and the phantom-variable set collected
+    /// from the enclosing spec. Output is Erlang map type syntax. The
+    /// transformation delegates value rendering to the nested type mapper.
+    fn render_with_phantom_vars(&self, phantom_vars: &BTreeSet<String>) -> String {
+        let sep = if self.required { ":=" } else { "=>" };
+        format!(
+            "{}{}{}",
+            self.key,
+            sep,
+            self.value.render_with_phantom_vars(phantom_vars)
+        )
     }
 }
 
@@ -581,7 +658,7 @@ impl ErlExpr {
             } => {
                 let guard = guard
                     .as_ref()
-                    .map(|guard| format!(" when {}", guard.render()))
+                    .map(|guard| format!(", {}", guard.render()))
                     .unwrap_or_default();
                 format!(
                     "[{} || {} <- {}{}]",

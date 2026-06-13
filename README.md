@@ -154,6 +154,11 @@ test result: ok. 1 passed; 0 failed
 
 ## Current Scope
 
-0.0.1 is the first usable-program milestone. It supports simple Terlan programs,
-manifest-backed BEAM builds, runnable `_build/bin/<package>` launchers, and
-Terlan test files executed through the Erlang target.
+0.0.2 expands Terlan from the first usable-program milestone into a
+language-feature and base-standard-library milestone. It supports simple
+Terlan programs, manifest-backed BEAM builds, runnable `_build/bin/<package>`
+launchers, Terlan test files executed through the Erlang target, receiver
+methods, trait conformance, function-value calls, semicolon-separated
+expression sequencing, generated stdlib interface summaries, and an initial
+portable standard-library surface for core values, collections, console I/O,
+and text file I/O.

@@ -4,29 +4,21 @@
 # callable from the repository root while stdlib recipes live with stdlib
 # sources and policy documents.
 
-.PHONY: stdlib-help stdlib-check formal-0-0-1-std-negative-api-tests-check formal-0-0-1-std-core-backend-primitive-calls-check formal-0-0-1-std-receiver-methods-check formal-0-0-1-primitive-operation-classification-check formal-0-0-1-core-primitive-intrinsics-check
+.PHONY: stdlib-help stdlib-check stdlib-build-interfaces stdlib-summary-inventory-check stdlib-summary-generated-check
 
 stdlib-help:
 	@echo "  make stdlib-check      - verify 0.0.1 stdlib release API coverage and release tests"
-	@echo "  make formal-0-0-1-std-negative-api-tests-check - verify constrained stdlib API diagnostics"
-	@echo "  make formal-0-0-1-std-core-backend-primitive-calls-check - verify reviewed std.core backend primitive call inventory"
-	@echo "  make formal-0-0-1-std-receiver-methods-check - verify receiver-shaped primitive APIs use receiver methods"
-	@echo "  make formal-0-0-1-primitive-operation-classification-check - verify primitive operation classification docs cover release APIs"
-	@echo "  make formal-0-0-1-core-primitive-intrinsics-check - verify CoreIR primitive contracts cover backend cleanup obligations"
+	@echo "  make stdlib-build-interfaces - regenerate stdlib .typi summaries"
+	@echo "  make stdlib-summary-inventory-check - verify stdlib sources have checked-in summaries"
+	@echo "  make stdlib-summary-generated-check - verify checked-in summaries match generated summaries"
 
-stdlib-check: formal-0-0-1-primitive-operation-classification-check formal-0-0-1-core-primitive-intrinsics-check formal-0-0-1-std-core-backend-primitive-calls-check formal-0-0-1-std-receiver-methods-check formal-0-0-1-std-api-tests-check formal-0-0-1-std-negative-api-tests-check formal-0-0-1-std-release-tests
+stdlib-check: stdlib-summary-inventory-check stdlib-summary-generated-check
 
-formal-0-0-1-std-negative-api-tests-check:
-	@bash scripts/check_0_0_1_std_negative_api_tests.sh
+stdlib-build-interfaces:
+	@python3 scripts/build_stdlib_interfaces.py
 
-formal-0-0-1-std-core-backend-primitive-calls-check:
-	@bash scripts/check_0_0_1_std_core_backend_primitive_calls.sh
+stdlib-summary-inventory-check:
+	@python3 scripts/check_stdlib_summary_inventory.py
 
-formal-0-0-1-std-receiver-methods-check:
-	@bash scripts/check_0_0_1_std_receiver_methods.sh
-
-formal-0-0-1-primitive-operation-classification-check:
-	@bash scripts/check_0_0_1_primitive_operation_classification.sh
-
-formal-0-0-1-core-primitive-intrinsics-check:
-	@bash scripts/check_0_0_1_core_primitive_intrinsics.sh
+stdlib-summary-generated-check:
+	@python3 scripts/check_stdlib_generated_summaries.py

@@ -1,7 +1,9 @@
-//! Core integer conformance helpers.
-//!
-//! `std.core.Int` provides named operations used by stdlib trait/conformance
-//! implementations for primitive `Int`.
+/**
+ * Core integer conformance helpers.
+ *
+ * `std.core.Int` provides named operations used by stdlib trait/conformance
+ * implementations for primitive `Int`.
+ */
 
 module std.core.Int.
 
@@ -9,71 +11,77 @@ import std.core.Option.{None, Some}.
 import type std.core.Option.Option.
 import std.core.Ordering.{Eq, Gt, Lt}.
 
-/// Compares two `Int` values using numeric total ordering.
-///
-/// Input: two `Int` values.
-/// Output: `Lt()` when `left` is numerically less than `right`, `Eq()` when the
-/// values are equal, and `Gt()` when `left` is numerically greater than
-/// `right`.
-/// Transformation: maps the primitive integer ordering relation onto
-/// `std.core.Ordering.Comparison`.
-///
-/// This function is the named implementation hook for compiler-known
-/// `std.core.Ordering.Ordering[Int]` conformance in 0.0.1.
-///
-/// ```terlan
-/// module int_compare_example.
-///
-/// pub demo(): std.core.Ordering.Comparison ->
-///     std.core.Int.compare(1, 2).
-/// ```
+/**
+ * Compares two `Int` values using numeric total ordering.
+ *
+ * Input: two `Int` values.
+ * Output: `Lt` when `left` is numerically less than `right`, `Eq` when the
+ * values are equal, and `Gt` when `left` is numerically greater than
+ * `right`.
+ * Transformation: maps the primitive integer ordering relation onto
+ * `std.core.Ordering.Comparison`.
+ *
+ * This function is the named implementation hook for compiler-known
+ * `std.core.Ordering.Comparable[Int]` conformance in 0.0.1.
+ *
+ * ```terlan
+ * module int_compare_example.
+ *
+ * pub demo(): std.core.Ordering.Comparison ->
+ *    std.core.Int.compare(1, 2).
+ * ```
+ */
 pub compare(left: Int, right: Int): std.core.Ordering.Comparison ->
     case left == right {
         true ->
-            Eq();
+            Eq;
 
         false ->
             case left < right {
                 true ->
-                    Lt();
+                    Lt;
 
                 false ->
-                    Gt()
+                    Gt
             }
     }.
 
-/// Renders an `Int` as its canonical UTF-8 `String`.
-///
-/// Input: one `Int` value.
-/// Output: the canonical decimal string for the input integer.
-/// Transformation: lowers through the compiler-owned `core.int.to_string`
-/// intrinsic and returns the canonical text representation used by
-/// `std.core.String.Show[Int]`.
-///
-/// ```terlan
-/// module int_to_string_example.
-///
-/// pub demo(): String ->
-///     std.core.Int.to_string(42).
-/// ```
+/**
+ * Renders an `Int` as its canonical UTF-8 `String`.
+ *
+ * Input: one `Int` value.
+ * Output: the canonical decimal string for the input integer.
+ * Transformation: lowers through the compiler-owned `core.int.to_string`
+ * intrinsic and returns the canonical text representation used by
+ * `std.core.String.Show[Int]`.
+ *
+ * ```terlan
+ * module int_to_string_example.
+ *
+ * pub demo(): String ->
+ *    std.core.Int.to_string(42).
+ * ```
+ */
 @compiler.intrinsic {core.int.to_string}
 pub to_string(value: Int): String ->
     "".
 
-/// Parses a canonical UTF-8 `String` into `Int`.
-///
-/// Input: one `String` value.
-/// Output: `Option[Int]`, where canonical signed decimal text returns
-/// `Some(value)` and invalid text returns `None()`.
-/// Transformation: lowers through the compiler-owned `core.int.from_string`
-/// intrinsic and accepts only inputs where the full string is consumed.
-///
-/// ```terlan
-/// module int_from_string_example.
-///
-/// pub demo(): Option[Int] ->
-///     std.core.Int.from_string("42").
-/// ```
+/**
+ * Parses a canonical UTF-8 `String` into `Int`.
+ *
+ * Input: one `String` value.
+ * Output: `Option[Int]`, where canonical signed decimal text returns
+ * `Some(value)` and invalid text returns `None`.
+ * Transformation: lowers through the compiler-owned `core.int.from_string`
+ * intrinsic and accepts only inputs where the full string is consumed.
+ *
+ * ```terlan
+ * module int_from_string_example.
+ *
+ * pub demo(): Option[Int] ->
+ *    std.core.Int.from_string("42").
+ * ```
+ */
 @compiler.intrinsic {core.int.from_string}
 pub from_string(value: String): Option[Int] ->
-    None().
+    None.

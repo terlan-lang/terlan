@@ -798,6 +798,10 @@ fn release_support_modules() -> &'static [ReleaseSupportModule] {
             source: include_str!("../../../../../std/core/bool.tl"),
         },
         ReleaseSupportModule {
+            path: "std/core/equal.tl",
+            source: include_str!("../../../../../std/core/equal.tl"),
+        },
+        ReleaseSupportModule {
             path: "std/core/unit.tl",
             source: include_str!("../../../../../std/core/unit.tl"),
         },
@@ -822,16 +826,16 @@ fn release_support_modules() -> &'static [ReleaseSupportModule] {
             source: include_str!("../../../../../std/core/result.tl"),
         },
         ReleaseSupportModule {
-            path: "std/core/identity.tl",
-            source: include_str!("../../../../../std/core/identity.tl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/function.tl",
-            source: include_str!("../../../../../std/core/function.tl"),
-        },
-        ReleaseSupportModule {
             path: "std/core/string.tl",
             source: include_str!("../../../../../std/core/string.tl"),
+        },
+        ReleaseSupportModule {
+            path: "std/io/console.tl",
+            source: include_str!("../../../../../std/io/console.tl"),
+        },
+        ReleaseSupportModule {
+            path: "std/io/file.tl",
+            source: include_str!("../../../../../std/io/file.tl"),
         },
     ]
 }

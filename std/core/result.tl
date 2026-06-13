@@ -1,93 +1,103 @@
-//! Core success-or-error value type.
-//!
-//! `std.core.Result` represents either a successful value or an error value.
+/**
+ * Core success-or-error value type.
+ *
+ * `std.core.Result` represents either a successful value or an error value.
+ */
 
 module std.core.Result.
 
-/// Ok represents a successful result value.
-///
-/// `Ok[T]` is a typed alias for the tuple `{Atom["ok"], value}`.
-///
-/// ```terlan
-/// module ok_type_example.
-///
-/// pub type Ok[T] =
-///     {Atom["ok"], value: T}.
-///
-/// pub success(value: Int): Ok[Int] ->
-///     Ok(value).
-/// ```
+/**
+ * Ok represents a successful result value.
+ *
+ * `Ok[T]` is a typed alias for the tuple `{Atom["ok"], value}`.
+ *
+ * ```terlan
+ * module ok_type_example.
+ *
+ * pub type Ok[T] =
+ *    {Atom["ok"], value: T}.
+ *
+ * pub success(value: Int): Ok[Int] ->
+ *    Ok(value).
+ * ```
+ */
 pub type Ok[T] =
     {Atom["ok"], value: T}.
 
-/// Err represents a failed result value.
-///
-/// `Err[E]` is a typed alias for the tuple `{Atom["error"], reason}`.
-///
-/// ```terlan
-/// module err_type_example.
-///
-/// pub type Err[E] =
-///     {Atom["error"], reason: E}.
-///
-/// pub type Problem = Atom["problem"].
-///
-/// pub failure(reason: Problem): Err[Problem] ->
-///     Err(reason).
-/// ```
+/**
+ * Err represents a failed result value.
+ *
+ * `Err[E]` is a typed alias for the tuple `{Atom["error"], reason}`.
+ *
+ * ```terlan
+ * module err_type_example.
+ *
+ * pub type Err[E] =
+ *    {Atom["error"], reason: E}.
+ *
+ * pub type Problem = Atom["problem"].
+ *
+ * pub failure(reason: Problem): Err[Problem] ->
+ *    Err(reason).
+ * ```
+ */
 pub type Err[E] =
     {Atom["error"], reason: E}.
 
-/// Result represents a computation that can succeed or fail.
-///
-/// Use `Ok(value)` for success and `Err(reason)` for failure.
-///
-/// ```terlan
-/// module result_example.
-///
-/// pub type Ok[T] =
-///     {Atom["ok"], value: T}.
-///
-/// pub type Err[E] =
-///     {Atom["error"], reason: E}.
-///
-/// pub type Problem =
-///     Atom["problem"].
-///
-/// pub type Result[T, E] =
-///       Ok[T]
-///     | Err[E].
-///
-/// pub success(x: Int): Result[Int, Problem] ->
-///     Ok(x).
-///
-/// pub failure(problem: Problem): Result[Int, Problem] ->
-///     Err(problem).
-/// ```
+/**
+ * Result represents a computation that can succeed or fail.
+ *
+ * Use `Ok(value)` for success and `Err(reason)` for failure.
+ *
+ * ```terlan
+ * module result_example.
+ *
+ * pub type Ok[T] =
+ *    {Atom["ok"], value: T}.
+ *
+ * pub type Err[E] =
+ *    {Atom["error"], reason: E}.
+ *
+ * pub type Problem =
+ *    Atom["problem"].
+ *
+ * pub type Result[T, E] =
+ *      Ok[T]
+ *    | Err[E].
+ *
+ * pub success(x: Int): Result[Int, Problem] ->
+ *    Ok(x).
+ *
+ * pub failure(problem: Problem): Result[Int, Problem] ->
+ *    Err(problem).
+ * ```
+ */
 pub type Result[T, E] =
       Ok[T]
     | Err[E].
 
-/// Maps a successful value and leaves errors unchanged.
-///
-/// ```terlan
-/// module result_map_example.
-///
-/// import std.core.Result.{Err, Ok}.
-/// import type std.core.Result.Result.
-///
-/// pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
-///     case value {
-///         Ok(x) ->
-///             Ok(f(x));
-///
-///         Err(reason) ->
-///             Err(reason)
-///     }.
-///
-/// pub demo(value: Result[Int, E], f: (Int) -> Int): Result[Int, E] ->
-///     map(value, f).
-/// ```
+/**
+ * Maps a successful value and leaves errors unchanged.
+ *
+ * ```terlan
+ * module result_map_example.
+ *
+ * import std.core.Result.{Err, Ok}.
+ * import type std.core.Result.Result.
+ *
+ * pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
+ *    case value {
+ *        Ok(x) ->
+ *            Ok(f(x));
+ *
+ *        Err(reason) ->
+ *            Err(reason)
+ *    }.
+ *
+ * pub demo(value: Result[Int, E], f: (Int) -> Int): Result[Int, E] ->
+ *    map(value, f).
+ * ```
+ */
 pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
     case value {
         Ok(x) ->
@@ -97,26 +107,28 @@ pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
             Err(reason)
     }.
 
-/// Maps an error value and leaves successes unchanged.
-///
-/// ```terlan
-/// module result_map_error_example.
-///
-/// import std.core.Result.{Err, Ok}.
-/// import type std.core.Result.Result.
-///
-/// pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
-///     case value {
-///         Ok(x) ->
-///             Ok(x);
-///
-///         Err(reason) ->
-///             Err(f(reason))
-///     }.
-///
-/// pub demo(value: Result[Int, Int], f: (Int) -> Int): Result[Int, Int] ->
-///     map_error(value, f).
-/// ```
+/**
+ * Maps an error value and leaves successes unchanged.
+ *
+ * ```terlan
+ * module result_map_error_example.
+ *
+ * import std.core.Result.{Err, Ok}.
+ * import type std.core.Result.Result.
+ *
+ * pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
+ *    case value {
+ *        Ok(x) ->
+ *            Ok(x);
+ *
+ *        Err(reason) ->
+ *            Err(f(reason))
+ *    }.
+ *
+ * pub demo(value: Result[Int, Int], f: (Int) -> Int): Result[Int, Int] ->
+ *    map_error(value, f).
+ * ```
+ */
 pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
     case value {
         Ok(x) ->
@@ -126,30 +138,32 @@ pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
             Err(f(reason))
     }.
 
-/// Chains a successful value into another result-producing computation.
-///
-/// `and_then` returns the original error unchanged when the input is an error.
-/// When the input succeeds, it calls the supplied function and returns that
-/// function's result directly.
-///
-/// ```terlan
-/// module result_and_then_example.
-///
-/// import std.core.Result.{Err, Ok}.
-/// import type std.core.Result.Result.
-///
-/// pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
-///     case value {
-///         Ok(x) ->
-///             f(x);
-///
-///         Err(reason) ->
-///             Err(reason)
-///     }.
-///
-/// pub demo(value: Result[Int, E], f: (Int) -> Result[Int, E]): Result[Int, E] ->
-///     and_then(value, f).
-/// ```
+/**
+ * Chains a successful value into another result-producing computation.
+ *
+ * `and_then` returns the original error unchanged when the input is an error.
+ * When the input succeeds, it calls the supplied function and returns that
+ * function's result directly.
+ *
+ * ```terlan
+ * module result_and_then_example.
+ *
+ * import std.core.Result.{Err, Ok}.
+ * import type std.core.Result.Result.
+ *
+ * pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
+ *    case value {
+ *        Ok(x) ->
+ *            f(x);
+ *
+ *        Err(reason) ->
+ *            Err(reason)
+ *    }.
+ *
+ * pub demo(value: Result[Int, E], f: (Int) -> Result[Int, E]): Result[Int, E] ->
+ *    and_then(value, f).
+ * ```
+ */
 pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
     case value {
         Ok(x) ->
@@ -159,26 +173,28 @@ pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
             Err(reason)
     }.
 
-/// Extracts a successful value or returns the provided default.
-///
-/// ```terlan
-/// module result_with_default_example.
-///
-/// import std.core.Result.{Err, Ok}.
-/// import type std.core.Result.Result.
-///
-/// pub with_default(value: Result[A, E], default: A): A ->
-///     case value {
-///         Ok(x) ->
-///             x;
-///
-///         Err(_reason) ->
-///             default
-///     }.
-///
-/// pub demo(value: Result[Int, E]): Int ->
-///     with_default(value, 0).
-/// ```
+/**
+ * Extracts a successful value or returns the provided default.
+ *
+ * ```terlan
+ * module result_with_default_example.
+ *
+ * import std.core.Result.{Err, Ok}.
+ * import type std.core.Result.Result.
+ *
+ * pub with_default(value: Result[A, E], default: A): A ->
+ *    case value {
+ *        Ok(x) ->
+ *            x;
+ *
+ *        Err(_reason) ->
+ *            default
+ *    }.
+ *
+ * pub demo(value: Result[Int, E]): Int ->
+ *    with_default(value, 0).
+ * ```
+ */
 pub with_default(value: Result[A, E], default: A): A ->
     case value {
         Ok(x) ->

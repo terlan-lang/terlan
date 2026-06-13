@@ -1919,96 +1919,21 @@ mod tests {
         assert!(err.contains(baseline.module_name));
     }
 
-    /// Verifies LP8 handoff documents mention every static proof baseline.
-    ///
-    /// Inputs:
-    /// - Static `contract_baselines` table.
-    /// - Static `next_lean_model_candidate_baselines` table.
-    /// - Compile-time contents of the CoreIR Lean conformance note.
-    /// - Compile-time contents of the Lean proof-track README.
-    /// - Compile-time contents of the current 0.0.1 roadmap.
-    ///
-    /// Output:
-    /// - Test assertion only; no files or compiler artifacts are modified.
-    ///
-    /// Transformation:
-    /// - Checks each baseline module name appears in both handoff documents so
-    ///   the documented restart path stays aligned with the gated contract.
-    /// - Checks each next-model candidate appears in the current-candidate text
-    ///   across the conformance note, Lean README, and roadmap so the Lean
-    ///   resume cycle is not stale.
-    #[cfg(feature = "internal_formal_docs")]
-    #[test]
-    fn proof_baseline_docs_mention_every_fixture() {
-        let conformance_note =
-            include_str!("../../../../../docs/compiler/CORE_IR_LEAN_CONFORMANCE.md");
-        let lean_readme = include_str!("../../../../../proofs/lean/README.md");
-        let formal_roadmap = include_str!("../../../../../docs/roadmap/ROADMAP_0_0_1.md");
-
-        for baseline in contract_baselines()
-            .iter()
-            .chain(next_lean_model_candidate_baselines())
-        {
-            assert!(
-                conformance_note.contains(baseline.module_name),
-                "CoreIR Lean conformance note must mention {}",
-                baseline.module_name
-            );
-            assert!(
-                lean_readme.contains(baseline.module_name),
-                "Lean README must mention {}",
-                baseline.module_name
-            );
-        }
-
-        for candidate in next_lean_model_candidate_baselines() {
-            let selected_candidate = format!("Current selection: `{}`", candidate.module_name);
-            let conformance_candidate = format!(
-                "current pinned LP8 next-model candidate is `{}`",
-                candidate.module_name
-            );
-            let readme_candidate = format!(
-                "current pinned next-model candidate is\n`{}`",
-                candidate.module_name
-            );
-            assert!(
-                conformance_note.contains(&conformance_candidate),
-                "CoreIR Lean conformance note must name {} as the current candidate",
-                candidate.module_name
-            );
-            assert!(
-                lean_readme.contains(&readme_candidate),
-                "Lean README must name {} as the current candidate",
-                candidate.module_name
-            );
-            assert!(
-                formal_roadmap.contains(&selected_candidate),
-                "current roadmap must name {} as the current selection",
-                candidate.module_name
-            );
-        }
-    }
-
-    /// Verifies the pinned remote-call candidate documents its promotion blocker.
+    /// Verifies the pinned remote-call candidate keeps concrete compiler data.
     ///
     /// Inputs:
     /// - Static next-model candidate table.
-    /// - Compile-time contents of the CoreIR Lean conformance note.
-    /// - Compile-time contents of the Lean proof-track README.
-    /// - Compile-time contents of the current 0.0.1 roadmap.
     ///
     /// Output:
     /// - Test assertion only; no files or compiler artifacts are modified.
     ///
     /// Transformation:
-    /// - When `phase_trait` remains a next-model candidate, checks the static
-    ///   baseline is still pinned to a proof-model-required remote-call form and
-    ///   the handoff documents name the remote-dispatch readiness policy. This
-    ///   prevents the candidate from staying pinned for a vague or stale
-    ///   Lean-modeling reason after remote-call typing/progress anchors exist.
-    #[cfg(feature = "internal_formal_docs")]
+    /// - Checks the static `phase_trait` baseline is still pinned to a
+    ///   proof-model-required remote-call Core form. Documentation handoff
+    ///   wording is validated by internal script tooling rather than crate
+    ///   tests so release compiler crates do not include roadmap prose.
     #[test]
-    fn proof_baseline_phase_trait_documents_remote_dispatch_policy_blocker() {
+    fn proof_baseline_phase_trait_pins_remote_dispatch_contract() {
         let Some(phase_trait_candidate) = next_lean_model_candidate_baselines()
             .iter()
             .find(|candidate| candidate.module_name == "phase_trait")
@@ -2024,25 +1949,5 @@ mod tests {
                     && snippet.contains(":proof=proof-model-required")),
             "phase_trait must remain pinned to a proof-model-required remote-call Core form"
         );
-
-        let conformance_note =
-            include_str!("../../../../../docs/compiler/CORE_IR_LEAN_CONFORMANCE.md");
-        let lean_readme = include_str!("../../../../../proofs/lean/README.md");
-        let formal_roadmap = include_str!("../../../../../docs/roadmap/ROADMAP_0_0_1.md");
-
-        for (doc_name, doc_text) in [
-            ("CoreIR Lean conformance note", conformance_note),
-            ("Lean README", lean_readme),
-            ("current roadmap", formal_roadmap),
-        ] {
-            assert!(
-                doc_text.contains("remote-dispatch"),
-                "{doc_name} must name the remote-dispatch policy while phase_trait is pinned"
-            );
-            assert!(
-                doc_text.contains("readiness"),
-                "{doc_name} must describe the readiness blocker while phase_trait is pinned"
-            );
-        }
     }
 }

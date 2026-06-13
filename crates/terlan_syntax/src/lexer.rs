@@ -23,6 +23,54 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
             continue;
         }
 
+        if ch == '/' && i + 2 < chars.len() && chars[i + 1] == '*' && chars[i + 2] == '*' {
+            let start = i;
+            match parse_block_comment(&chars, i) {
+                Some((text, end)) => {
+                    if doc_block_contains_nested_doc_start(&text) {
+                        errors.push(LexError {
+                            message: "nested documentation block comments are not supported"
+                                .to_string(),
+                            span: Span::new(start, end),
+                        });
+                        break;
+                    }
+                    tokens.push(Token::new(
+                        TokenKind::DocBlockComment,
+                        normalize_doc_block_comment_text(&text),
+                        start,
+                        end,
+                    ));
+                    i = end;
+                    continue;
+                }
+                None => {
+                    errors.push(LexError {
+                        message: "unterminated documentation block comment".to_string(),
+                        span: Span::new(i, chars.len()),
+                    });
+                    break;
+                }
+            }
+        }
+
+        if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '*' {
+            match parse_block_comment(&chars, i) {
+                Some((text, end)) => {
+                    tokens.push(Token::new(TokenKind::Comment, text, i, end));
+                    i = end;
+                    continue;
+                }
+                None => {
+                    errors.push(LexError {
+                        message: "unterminated block comment".to_string(),
+                        span: Span::new(i, chars.len()),
+                    });
+                    break;
+                }
+            }
+        }
+
         if ch == '/' && i + 2 < chars.len() && chars[i + 1] == '/' && chars[i + 2] == '/' {
             let start = i;
             i += 3;
@@ -42,6 +90,16 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
             }
             let text = normalize_doc_comment_text(&chars[start + 3..i]);
             tokens.push(Token::new(TokenKind::ModuleDocComment, text, start, i));
+            continue;
+        }
+
+        if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+            let start = i;
+            while i < chars.len() && chars[i] != '\n' {
+                i += 1;
+            }
+            let text: String = chars[start..i].iter().collect();
+            tokens.push(Token::new(TokenKind::Comment, text, start, i));
             continue;
         }
 
@@ -374,9 +432,96 @@ fn parse_binary(chars: &[char], start: usize) -> Option<(String, usize)> {
     None
 }
 
+/// Parses a C-style block comment and returns its exact source text.
+///
+/// Inputs:
+/// - `chars`: complete source as characters.
+/// - `start`: index of the opening `/` in `/*`.
+///
+/// Output:
+/// - The complete block comment text and exclusive end offset, or `None` when
+///   no terminating `*/` exists.
+///
+/// Transformation:
+/// - Scans forward without nesting so public `/** ... */` docs and ordinary
+///   `/* ... */` comments share the same low-level delimiter handling.
+fn parse_block_comment(chars: &[char], start: usize) -> Option<(String, usize)> {
+    if chars.get(start) != Some(&'/') || chars.get(start + 1) != Some(&'*') {
+        return None;
+    }
+
+    let mut i = start + 2;
+    while i + 1 < chars.len() {
+        if chars[i] == '*' && chars[i + 1] == '/' {
+            let end = i + 2;
+            return Some((chars[start..end].iter().collect(), end));
+        }
+        i += 1;
+    }
+
+    None
+}
+
+/// Checks whether a public documentation block contains another doc opener.
+///
+/// Inputs:
+/// - `text`: complete source text for a `/** ... */` block.
+///
+/// Output:
+/// - `true` when the inner text contains another `/**` opener.
+///
+/// Transformation:
+/// - Removes the outer documentation delimiters and searches only the inner
+///   body so the opening delimiter itself is not treated as nested syntax.
+fn doc_block_contains_nested_doc_start(text: &str) -> bool {
+    text.strip_prefix("/**")
+        .and_then(|value| value.strip_suffix("*/"))
+        .is_some_and(|inner| inner.contains("/**"))
+}
+
 fn normalize_doc_comment_text(chars: &[char]) -> String {
     let text = chars.iter().collect::<String>();
     text.strip_prefix(' ').unwrap_or(&text).to_string()
+}
+
+/// Normalizes a canonical Terlan documentation block into public doc text.
+///
+/// Inputs:
+/// - `text`: complete source text for a `/** ... */` block.
+///
+/// Output:
+/// - Public documentation text with delimiters removed and leading `*` margins
+///   stripped from each line.
+///
+/// Transformation:
+/// - Removes the outer documentation delimiters, trims empty boundary lines,
+///   and normalizes common JSDoc/TypeDoc formatting while preserving internal
+///   blank lines and tag text for later documentation tooling.
+fn normalize_doc_block_comment_text(text: &str) -> String {
+    let inner = text
+        .strip_prefix("/**")
+        .and_then(|value| value.strip_suffix("*/"))
+        .unwrap_or(text);
+    let mut lines = inner
+        .lines()
+        .map(|line| {
+            let trimmed = line.trim_start();
+            if let Some(rest) = trimmed.strip_prefix('*') {
+                rest.strip_prefix(' ').unwrap_or(rest).to_string()
+            } else {
+                trimmed.to_string()
+            }
+        })
+        .collect::<Vec<_>>();
+
+    while lines.first().is_some_and(|line| line.trim().is_empty()) {
+        lines.remove(0);
+    }
+    while lines.last().is_some_and(|line| line.trim().is_empty()) {
+        lines.pop();
+    }
+
+    lines.join("\n")
 }
 
 fn is_ident_start(ch: char) -> bool {
@@ -411,6 +556,44 @@ mod tests {
         assert_eq!(tokens[0].text, "Module docs.");
         assert_eq!(tokens[1].kind, TokenKind::DocComment);
         assert_eq!(tokens[1].text, "Adds one.");
+    }
+
+    #[test]
+    fn doc_block_comments_are_public_doc_tokens() {
+        let src = "/**\n * Adds one.\n *\n * @param x The value.\n * @returns The incremented value.\n */\nmodule mathx.\n";
+        let tokens = lex(src).expect("lexer should parse doc block comments");
+        assert_eq!(tokens[0].kind, TokenKind::DocBlockComment);
+        assert_eq!(
+            tokens[0].text,
+            "Adds one.\n\n@param x The value.\n@returns The incremented value."
+        );
+    }
+
+    #[test]
+    fn line_and_block_comments_are_not_public_docs() {
+        let src = "// implementation note\n/* implementation block */\nmodule mathx.\n";
+        let tokens = lex(src).expect("lexer should parse implementation comments");
+        assert_eq!(tokens[0].kind, TokenKind::Comment);
+        assert_eq!(tokens[1].kind, TokenKind::Comment);
+        assert_eq!(tokens[2].kind, TokenKind::Module);
+    }
+
+    #[test]
+    fn rejects_unterminated_doc_block_comments() {
+        let errors = lex("/** missing close").expect_err("unterminated doc block");
+        assert_eq!(
+            errors[0].message,
+            "unterminated documentation block comment"
+        );
+    }
+
+    #[test]
+    fn rejects_nested_doc_block_comments() {
+        let errors = lex("/** Outer /** Inner */ Outer */").expect_err("nested doc block");
+        assert_eq!(
+            errors[0].message,
+            "nested documentation block comments are not supported"
+        );
     }
 
     /// Verifies that exact inequality is tokenized as one comparison operator.

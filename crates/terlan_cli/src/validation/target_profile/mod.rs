@@ -1177,6 +1177,7 @@ impl TargetProfile {
                 | CoreExpr::ConstructorChain { .. }
                 | CoreExpr::RemoteFunRef { .. }
                 | CoreExpr::RemoteCall { .. }
+                | CoreExpr::MutableReceiverCall { .. }
                 | CoreExpr::Intrinsic(_)
                 | CoreExpr::Receive { .. }
                 | CoreExpr::Try { .. } => false,
@@ -1741,6 +1742,24 @@ fn validate_core_expr(
         CoreExpr::Call { args, .. } => {
             for arg in args {
                 validate_core_expr(profile, function_scope, "call arg", arg, violations);
+            }
+        }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            validate_core_expr(
+                profile,
+                function_scope,
+                "mutable receiver call receiver",
+                receiver,
+                violations,
+            );
+            for arg in args {
+                validate_core_expr(
+                    profile,
+                    function_scope,
+                    "mutable receiver call arg",
+                    arg,
+                    violations,
+                );
             }
         }
         CoreExpr::FunctionCall { callee, args } => {
@@ -2370,6 +2389,7 @@ mod tests {
             type_bodies: HashMap::new(),
             type_docs: HashMap::new(),
             traits: HashMap::new(),
+            trait_conformances: Vec::new(),
             constructors: HashMap::new(),
             functions: HashMap::new(),
         }
@@ -4299,6 +4319,50 @@ module profile_test_list_comprehension_expr_core_v0.\n\npub f(values: List[Int])
                 .any(|violation| violation.code == "target_profile_unsupported"
                     && violation.message.contains("ListComprehension")),
             "CoreV0 profile should reject list-comprehension core terms: {:?}",
+            core_v0
+        );
+    }
+
+    /// Verifies CoreV0 rejects list-comprehension expressions sourced from
+    /// generic `Iterable[C, T]` implementations.
+    ///
+    /// Inputs:
+    /// - Source containing a generic iterable-comprehension that is accepted by
+    ///   formal typechecking.
+    ///
+    /// Output:
+    /// - Test passes when target-profile validation reports the expression as
+    ///   unsupported for `core-v0`.
+    ///
+    /// Transformation:
+    /// - Lowers source through the formal syntax-output/CoreIR path and checks
+    ///   target-subset validation without mutating compiler artifacts.
+    #[test]
+    fn target_profile_rejects_iterable_list_comprehension_expr_for_core_v0_profile() {
+        let module = lower(
+            "\
+module profile_test_iterable_list_comprehension_expr_core_v0.\n\n\
+pub type Iterator[T] = List[T].\n\
+\n\
+pub trait Iterable[C, T] {\n\
+    iterator(collection: C): Iterator[T].\n\
+}.\n\
+\n\
+pub struct IntCollection implements Iterable[IntCollection, Int] {\n\
+    values: List[Int]\n\
+}.\n\n\
+pub values(items: IntCollection): List[Int] ->\n     [value | value <- items, value > 0].\n",
+            "src/profile_test_iterable_list_comprehension_expr_core_v0.tl",
+        );
+
+        let core_v0 = target_profile_checks(&module, TargetProfile::CoreV0);
+
+        assert!(
+            core_v0
+                .iter()
+                .any(|violation| violation.code == "target_profile_unsupported"
+                    && violation.message.contains("ListComprehension")),
+            "CoreV0 profile should reject generic iterable list-comprehension core terms: {:?}",
             core_v0
         );
     }

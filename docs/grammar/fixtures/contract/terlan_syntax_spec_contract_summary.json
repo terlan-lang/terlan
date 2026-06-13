@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "entry_rule": "SyntaxSpec",
-  "rule_count": 176,
+  "rule_count": 179,
   "key_rules": [
     {
       "name": "SyntaxSpec",

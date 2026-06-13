@@ -398,16 +398,19 @@ fn format_function(function: &FunctionDecl) -> String {
 /// - Canonical Terlan receiver-method source text.
 ///
 /// Transformation:
-/// - Renders the receiver as `(name: Type)` before the method name and formats
-///   the first body clause as a declaration body. Multi-clause receiver methods
-///   are not currently produced by the parser, so only the first clause is
-///   emitted.
+/// - Renders the receiver as `(name: Type)` or `(mut name: Type)` before the
+///   method name and formats the first body clause as a declaration body.
+///   Multi-clause receiver methods are not currently produced by the parser, so
+///   only the first clause is emitted.
 fn format_method(method: &MethodDecl) -> String {
     let mut out = String::new();
     if method.is_public {
         out.push_str("pub ");
     }
     out.push('(');
+    if method.receiver.is_mutable {
+        out.push_str("mut ");
+    }
     out.push_str(&method.receiver.name);
     out.push_str(": ");
     out.push_str(&format_type_expr(&method.receiver.annotation));
@@ -744,6 +747,11 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
             }
             format!("let {}", parts.join("; "))
         }
+        Expr::Sequence(expressions) => expressions
+            .iter()
+            .map(|expr| format_expr(expr, 0))
+            .collect::<Vec<_>>()
+            .join("; "),
         Expr::Call {
             callee,
             args,

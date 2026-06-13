@@ -8,7 +8,8 @@ use terlan_syntax::{
 };
 use terlan_typeck::{
     CoreEffectSet, CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CoreModule, CoreModuleMetadata,
-    CorePrimitiveIntrinsic, CoreRuntimeCapability, CoreSourceIdentity, CoreType, CORE_IR_SCHEMA,
+    CorePattern, CorePrimitiveIntrinsic, CoreRuntimeCapability, CoreSourceIdentity,
+    CoreTupleTypeElem, CoreType, CORE_IR_SCHEMA,
 };
 
 /// Builds a minimal syntax-aware CoreIR module for backend gate tests.
@@ -92,6 +93,27 @@ fn test_core_module_for_syntax(module: &SyntaxModuleOutput) -> CoreModule {
 /// - Wraps the primitive identity and arguments in the production CoreIR
 ///   intrinsic-call shape used by source lowering.
 fn test_string_intrinsic_call(
+    intrinsic: CorePrimitiveIntrinsic,
+    args: Vec<CoreExpr>,
+    return_type: CoreType,
+) -> CoreIntrinsicCall {
+    test_primitive_intrinsic_call(intrinsic, args, return_type)
+}
+
+/// Builds a pure CoreIR primitive intrinsic call for Erlang backend tests.
+///
+/// Inputs:
+/// - `intrinsic`: primitive intrinsic identity under test.
+/// - `args`: CoreIR argument expressions supplied to the intrinsic.
+/// - `return_type`: typed CoreIR result contract for the intrinsic.
+///
+/// Output:
+/// - CoreIR intrinsic call with a pure effect set and empty source span.
+///
+/// Transformation:
+/// - Wraps the primitive identity and arguments in the production CoreIR
+///   intrinsic-call shape used by source lowering.
+fn test_primitive_intrinsic_call(
     intrinsic: CorePrimitiveIntrinsic,
     args: Vec<CoreExpr>,
     return_type: CoreType,
@@ -195,6 +217,186 @@ fn runtime_console_println_capability_lowers_to_erlang_io_format() {
     assert_eq!(
         rendered,
         "begin io:format(\"~ts~n\", [\"hello\"]), unit end"
+    );
+}
+
+/// Verifies CoreIR list comprehensions lower to Erlang comprehensions.
+///
+/// Inputs:
+/// - A backend-neutral CoreIR list-comprehension expression with a direct
+///   variable generator pattern.
+///
+/// Output:
+/// - Test assertion over the rendered Erlang expression.
+///
+/// Transformation:
+/// - Lowers the CoreIR comprehension through the formal CoreIR backend path,
+///   preserving generator binding, source expression, and yielded expression
+///   as Erlang list-comprehension syntax.
+#[test]
+fn core_list_comprehension_lowers_to_erlang_list_comprehension() {
+    let expr = CoreExpr::ListComprehension {
+        expr: Box::new(CoreExpr::BinaryOp {
+            operator: "+".to_string(),
+            left: Box::new(CoreExpr::Var("value".to_string())),
+            right: Box::new(CoreExpr::Int(1)),
+        }),
+        pattern: CorePattern::Var("value".to_string()),
+        source: Box::new(CoreExpr::Var("values".to_string())),
+        guard: None,
+    };
+
+    let rendered = lower_core_expr_to_erlang(&expr)
+        .expect("CoreIR list comprehension should lower")
+        .render();
+
+    assert_eq!(rendered, "[Value + 1 || Value <- Values]");
+}
+
+/// Verifies CoreIR list-comprehension lowering supports Erlang-native
+/// destructuring patterns.
+///
+/// Inputs:
+/// - A CoreIR list comprehension whose generator pattern destructures a tuple.
+///
+/// Output:
+/// - Test assertion over the rendered Erlang expression.
+///
+/// Transformation:
+/// - Recursively lowers the CoreIR tuple pattern into Erlang generator pattern
+///   syntax so traversal lowering can rely on backend-native pattern matching
+///   for supported pattern shapes.
+#[test]
+fn core_list_comprehension_lowers_destructuring_pattern() {
+    let expr = CoreExpr::ListComprehension {
+        expr: Box::new(CoreExpr::Var("left".to_string())),
+        pattern: CorePattern::Tuple(vec![
+            CorePattern::Var("left".to_string()),
+            CorePattern::Wildcard,
+        ]),
+        source: Box::new(CoreExpr::Var("pairs".to_string())),
+        guard: None,
+    };
+
+    let rendered = lower_core_expr_to_erlang(&expr)
+        .expect("CoreIR destructuring list comprehension should lower")
+        .render();
+
+    assert_eq!(rendered, "[Left || {Left, _} <- Pairs]");
+}
+
+/// Verifies `core.list.iterator` lowers to the BEAM list state.
+///
+/// Inputs:
+/// - A CoreIR primitive intrinsic call with one list expression.
+///
+/// Output:
+/// - Test assertion over the rendered Erlang expression.
+///
+/// Transformation:
+/// - Lowers the portable `List.iterator` intrinsic through the backend-owned
+///   traversal contract and proves the current BEAM representation is reused
+///   behind the opaque iterator API.
+#[test]
+fn core_list_iterator_intrinsic_lowers_to_erlang_list_state() {
+    let call = test_primitive_intrinsic_call(
+        CorePrimitiveIntrinsic::ListIterator,
+        vec![CoreExpr::List(vec![CoreExpr::Int(1), CoreExpr::Int(2)])],
+        CoreType::List(Box::new(CoreType::Named("Dynamic".to_string()))),
+    );
+
+    let rendered = super::lower_core_intrinsic_call_to_erlang(&call)
+        .expect("list iterator intrinsic should lower")
+        .render();
+
+    assert_eq!(rendered, "[1, 2]");
+}
+
+/// Verifies `core.iterator.next` lowers to explicit state-passing traversal.
+///
+/// Inputs:
+/// - A CoreIR primitive intrinsic call with one iterator-state expression.
+///
+/// Output:
+/// - Test assertion over the rendered Erlang expression.
+///
+/// Transformation:
+/// - Lowers the portable `Iterator.next` intrinsic into a backend case
+///   expression that returns `Some({value, next})` for a non-empty list state
+///   and `None` for the empty state.
+#[test]
+fn core_iterator_next_intrinsic_lowers_to_erlang_option_step() {
+    let call = test_primitive_intrinsic_call(
+        CorePrimitiveIntrinsic::IteratorNext,
+        vec![CoreExpr::Var("iterator".to_string())],
+        CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Tuple(vec![
+                CoreTupleTypeElem::Type(CoreType::Named("Dynamic".to_string())),
+                CoreTupleTypeElem::Type(CoreType::List(Box::new(CoreType::Named(
+                    "Dynamic".to_string(),
+                )))),
+            ])],
+        },
+    );
+
+    let rendered = super::lower_core_intrinsic_call_to_erlang(&call)
+        .expect("iterator next intrinsic should lower")
+        .render();
+
+    assert!(rendered.contains("case Iterator of"));
+    assert!(rendered.contains(
+        "[_TerlanIteratorValue|_TerlanNextIterator] -> {'some', {_TerlanIteratorValue, _TerlanNextIterator}}"
+    ));
+    assert!(rendered.contains("[] -> 'none'"));
+}
+
+/// Verifies release traversal APIs lower through syntax-bridge intrinsics.
+///
+/// Inputs:
+/// - A syntax-output module that calls `std.collections.List.iterator(values)` and
+///   passes the result to `std.collections.Iterator.next(...)`.
+///
+/// Output:
+/// - Test assertion over the generated Erlang module text.
+///
+/// Transformation:
+/// - Exercises the current formal syntax-output bridge from source-shaped
+///   release API calls into compiler-owned traversal intrinsics, proving the
+///   emitted Erlang uses explicit state-passing traversal instead of backend
+///   module calls named after Terlan std modules.
+#[test]
+fn formal_syntax_output_direct_emit_lowers_release_traversal_intrinsics() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module syntax_output_traversal_emit.
+
+pub demo(values: List): Option ->
+    std.collections.Iterator.next(std.collections.List.iterator(values)).
+"#,
+    )
+    .expect("parse traversal intrinsic bridge fixture");
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
+    .expect("release traversal APIs should lower through syntax bridge")
+    .render();
+
+    assert!(output.contains("demo(Values) ->"));
+    assert!(output.contains("case Values of"));
+    assert!(output.contains(
+        "[_TerlanIteratorValue|_TerlanNextIterator] -> {'some', {_TerlanIteratorValue, _TerlanNextIterator}}"
+    ));
+    assert!(output.contains("[] -> 'none'"));
+    assert!(
+        !output.contains("std_collections_iterator"),
+        "release traversal API must not lower to a backend module call:\n{}",
+        output
     );
 }
 
@@ -489,7 +691,7 @@ pub type None =
 /// - A body expression that invokes `f.(value)`.
 ///
 /// Output:
-/// - Test passes when emitted Erlang uses the parameter variable `F(Value)`
+/// - Test passes when emitted Erlang uses the parameter value `(F)(Value)`
 ///   instead of a local function call `f(Value)`.
 ///
 /// Transformation:
@@ -516,7 +718,7 @@ f.(value).
     )
     .expect("formal subset should lower directly from syntax output")
     .render();
-    assert!(output.contains("apply(Value, F) ->\n    F(Value)."));
+    assert!(output.contains("apply(Value, F) ->\n    (F)(Value)."));
     assert!(!output.contains("f(Value)"));
 }
 
@@ -945,7 +1147,6 @@ Items(values).
     );
 }
 
-#[cfg(feature = "internal_historical_tests")]
 #[test]
 fn formal_syntax_output_direct_emit_rejects_nullary_literal_alias_constructor_calls() {
     let module = parse_module_as_syntax_output(
@@ -975,7 +1176,6 @@ None().
     );
 }
 
-#[cfg(feature = "internal_historical_tests")]
 #[test]
 fn formal_syntax_output_direct_emit_rejects_imported_nullary_literal_alias_constructor_calls() {
     let provider = parse_module_as_syntax_output(
@@ -1072,7 +1272,6 @@ pub type None =
 
 pub unwrap(input: Dynamic): Dynamic ->
 case input {
-    Ok(value) -> value;
     None -> :none
 }.
 "#,
@@ -1090,12 +1289,40 @@ case input {
     .render();
     assert!(output.contains("-type ok(T) :: {ok, T}."));
     assert!(output.contains("-type none() :: 'none'."));
+    assert!(output.contains("'none' -> 'none'"), "output:\n{}", output);
+}
+
+#[test]
+fn formal_syntax_output_direct_emit_lowers_literal_alias_values() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module alias_value_emit.
+
+pub type None =
+:none.
+
+pub none(): None ->
+None.
+"#,
+    )
+    .expect("parse alias value emit fixture");
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
+    .expect("literal alias values should lower directly from syntax output")
+    .render();
+
+    assert!(output.contains("-type none() :: 'none'."));
     assert!(
-        output.contains("{ok, Value} -> Value"),
+        output.contains("none() ->\n    'none'."),
         "output:\n{}",
         output
     );
-    assert!(output.contains("'none' -> 'none'"), "output:\n{}", output);
 }
 
 #[test]
@@ -1146,6 +1373,9 @@ case input {
 fn formal_syntax_output_direct_emit_preserves_type_and_function_docs() {
     let module = parse_module_as_syntax_output(
         r#"
+//! Module docs.
+//! Second module line.
+
 module syntax_output_docs_emit.
 
 /// Status value.
@@ -1169,12 +1399,17 @@ x + 1.
     .render();
 
     assert!(
-        output.contains("%% @doc Status value.\n\n-type status() :: ok."),
+        output.contains("-moduledoc \"Module docs.\\nSecond module line.\"."),
         "output:\n{}",
         output
     );
     assert!(
-        output.contains("%% @doc Adds one.\n\n-spec add(integer()) -> integer()."),
+        output.contains("-doc \"Status value.\".\n\n-type status() :: ok."),
+        "output:\n{}",
+        output
+    );
+    assert!(
+        output.contains("-doc \"Adds one.\".\n\n-spec add(integer()) -> integer()."),
         "output:\n{}",
         output
     );
@@ -1210,7 +1445,7 @@ name: Text
 
     assert!(output.contains("-export_type([user/0])."));
     assert!(output.contains("-type user() :: #user{}."));
-    assert!(output.contains("%% @doc A user account."));
+    assert!(output.contains("-doc \"A user account.\"."));
     assert!(output.contains("id % Stable internal ID."));
     assert!(output.contains("name % Display name."));
 }
@@ -1995,6 +2230,175 @@ user.display_name().
     assert!(output.is_none());
 }
 
+/// Verifies Erlang syntax lowering preserves receiver mutability metadata.
+///
+/// Inputs:
+/// - A syntax-output module containing one mutable receiver method and one
+///   immutable receiver method for the same receiver type.
+///
+/// Output:
+/// - Test passes when the lowering context marks only the mutable method as
+///   mutable while preserving ordinary receiver-method lookup behavior.
+///
+/// Transformation:
+/// - Builds the direct syntax-output lowering context and inspects the internal
+///   receiver-method inventory that later mutable rebinding lowering will use.
+#[test]
+fn formal_syntax_output_lowering_context_preserves_receiver_mutability() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module receiver_mutability_context.
+
+pub struct Map {
+    size: Int
+}.
+
+pub (mut map: Map) put(): Unit ->
+    Unit.
+
+pub (map: Map) size(): Int ->
+    map.size.
+"#,
+    )
+    .expect("parse receiver mutability context fixture");
+
+    let ctx = super::syntax::SyntaxLowerCtx::new(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    );
+
+    assert!(
+        ctx.receiver_method_target("Map", "put", 0)
+            .expect("put receiver target")
+            .mutable
+    );
+    assert!(
+        !ctx.receiver_method_target("Map", "size", 0)
+            .expect("size receiver target")
+            .mutable
+    );
+}
+
+/// Verifies mutable receiver pipes bind the backend-updated receiver.
+///
+/// Inputs:
+/// - A syntax-output module with one mutable receiver method and one function
+///   using `map |> put()`.
+///
+/// Output:
+/// - Test passes when direct Erlang lowering emits a backend-local binding from
+///   `put(Map)` and returns that binding as the pipe expression value.
+///
+/// Transformation:
+/// - Runs the syntax-output Erlang bridge directly, bypassing formal pipeline
+///   typecheck gates, and inspects the rendered Erlang source for the hidden
+///   mutable receiver threading convention.
+#[test]
+fn formal_syntax_output_direct_emit_lowers_mutable_receiver_pipe_to_updated_binding() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module mutable_receiver_pipe_emit.
+
+pub struct Map {
+    size: Int
+}.
+
+pub (mut map: Map) put(): Unit ->
+    map.
+
+pub run(map: Map): Map ->
+    map |> put().
+"#,
+    )
+    .expect("parse mutable receiver pipe fixture");
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
+    .expect("mutable receiver pipe should lower directly from syntax output")
+    .render();
+
+    assert!(
+        output.contains("_TerlanMutReceiver = put(Map)"),
+        "output:\n{}",
+        output
+    );
+    assert!(
+        output.contains(
+            "run(Map) ->\n    begin\n    _TerlanMutReceiver = put(Map),\n    _TerlanMutReceiver\nend."
+        ),
+        "output:\n{}",
+        output
+    );
+    assert!(!output.contains("|>"), "output:\n{}", output);
+}
+
+/// Verifies sequences thread mutable receiver updates into later expressions.
+///
+/// Inputs:
+/// - A syntax-output module with a mutable receiver method, an immutable
+///   receiver method, and a sequence `map.put(); map.size()`.
+///
+/// Output:
+/// - Test passes when the mutable call result is bound once and the following
+///   receiver method call uses the updated binding instead of the original
+///   source parameter.
+///
+/// Transformation:
+/// - Runs direct syntax-output Erlang lowering and inspects the rendered
+///   sequence binding convention used before formal build gates enable mutable
+///   receiver execution.
+#[test]
+fn formal_syntax_output_direct_emit_lowers_mutable_receiver_sequence_to_rebinding() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module mutable_receiver_sequence_emit.
+
+pub struct Map {
+    size: Int
+}.
+
+pub (mut map: Map) put(): Unit ->
+    map.
+
+pub (map: Map) size(): Int ->
+    map.size.
+
+pub run(map: Map): Int ->
+    map.put(); map.size().
+"#,
+    )
+    .expect("parse mutable receiver sequence fixture");
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
+    .expect("mutable receiver sequence should lower directly from syntax output")
+    .render();
+
+    assert!(
+        output.contains("_TerlanMutReceiver0 = put(Map)"),
+        "output:\n{}",
+        output
+    );
+    assert!(
+        output.contains("size(_TerlanMutReceiver0)"),
+        "output:\n{}",
+        output
+    );
+}
+
 #[test]
 fn formal_syntax_output_direct_emit_lowers_qualified_type_specs() {
     let module = parse_module_as_syntax_output(
@@ -2274,7 +2678,7 @@ pub mapper(): Dynamic ->
     .render();
 
     assert!(
-        output.contains("make(Value) ->\n    #{count=>Value, ok:=ok}."),
+        output.contains("make(Value) ->\n    #{count=>Value, ok=>ok}."),
         "output:\n{}",
         output
     );
@@ -2310,7 +2714,7 @@ case input {
     .render();
 
     assert!(
-        output.contains("make(Value) ->\n    #{count=>Value, ok:=ok}."),
+        output.contains("make(Value) ->\n    #{count=>Value, ok=>ok}."),
         "output:\n{}",
         output
     );
@@ -2399,6 +2803,37 @@ pub increment(values: List[Int]): List[Int] ->
 
     assert!(
         output.contains("increment(Values) ->\n    [Value + 1 || Value <- Values]."),
+        "output:\n{}",
+        output
+    );
+}
+
+#[test]
+fn formal_syntax_output_direct_emit_lowers_stacked_list_comprehension_filters() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module syntax_output_list_comprehension_filter_emit.
+
+pub selected(values: List[Int]): List[Int] ->
+[value | value <- values, value > 0, value < 10].
+"#,
+    )
+    .expect("parse stacked-filter list comprehension fixture");
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
+    .expect("stacked-filter list comprehension should lower directly from syntax output")
+    .render();
+
+    assert!(
+        output.contains(
+            "selected(Values) ->\n    [Value || Value <- Values, Value > 0 andalso Value < 10]."
+        ),
         "output:\n{}",
         output
     );
@@ -2664,7 +3099,7 @@ name: Text = <<"guest">>
     let output = super::lower_syntax_struct_headers_to_hrl(&module)
         .expect("struct headers should lower directly from syntax output");
 
-    assert!(output.contains("%% @doc A user account."));
+    assert!(output.contains("-doc \"A user account.\"."));
     assert!(output.contains("-record(user, {id, name = <<\"guest\">>})."));
 }
 

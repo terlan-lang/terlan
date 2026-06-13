@@ -229,7 +229,7 @@ impl CoreMapTypeField {
     /// - `self`: typed map field payload.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the key/operator text plus typed value payload without
@@ -251,7 +251,7 @@ impl CoreTupleTypeElem {
     /// - `self`: typed tuple element payload.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes positional elements as their nested CoreType text and
@@ -273,7 +273,7 @@ impl CoreType {
     /// - `self`: typed Core type payload derived from signature text.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes built-in and simple named type payloads without backend
@@ -1079,7 +1079,7 @@ impl CorePattern {
     /// - `self`: typed Core pattern from the Lean-covered pattern subset.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the structural Core pattern without using source spans,
@@ -1156,7 +1156,7 @@ impl CoreMapPatternField {
     /// - `self`: typed Core map-pattern field from syntax-output lowering.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the source key, required/optional map-match operator, and
@@ -1174,7 +1174,7 @@ impl CoreRecordPatternField {
     /// - `self`: typed Core record-pattern field from syntax-output lowering.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the field key, source field-match operator, and
@@ -1352,7 +1352,7 @@ impl CoreCheckedPreservationEvidence {
     /// - `self`: evidence object attached to a typed Core expression summary.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the evidence kind, substitution-freshness obligation, and
@@ -1435,6 +1435,31 @@ pub enum CorePrimitiveIntrinsic {
     StringReplace,
     StringSplit,
     StringSplitOnce,
+    ListNew,
+    ListIsEmpty,
+    ListLength,
+    ListFirst,
+    ListIterator,
+    ListPush,
+    ListClear,
+    IteratorNext,
+    MapNew,
+    MapIsEmpty,
+    MapSize,
+    MapGet,
+    MapContainsKey,
+    MapPut,
+    MapRemove,
+    MapClear,
+    MapIterator,
+    SetNew,
+    SetIsEmpty,
+    SetSize,
+    SetContains,
+    SetAdd,
+    SetRemove,
+    SetClear,
+    SetIterator,
 }
 
 impl CorePrimitiveIntrinsic {
@@ -1480,6 +1505,31 @@ impl CorePrimitiveIntrinsic {
             Self::StringReplace => "core.string.replace",
             Self::StringSplit => "core.string.split",
             Self::StringSplitOnce => "core.string.split_once",
+            Self::ListNew => "core.list.new",
+            Self::ListIsEmpty => "core.list.is_empty",
+            Self::ListLength => "core.list.length",
+            Self::ListFirst => "core.list.first",
+            Self::ListIterator => "core.list.iterator",
+            Self::ListPush => "core.list.push",
+            Self::ListClear => "core.list.clear",
+            Self::IteratorNext => "core.iterator.next",
+            Self::MapNew => "core.map.new",
+            Self::MapIsEmpty => "core.map.is_empty",
+            Self::MapSize => "core.map.size",
+            Self::MapGet => "core.map.get",
+            Self::MapContainsKey => "core.map.contains_key",
+            Self::MapPut => "core.map.put",
+            Self::MapRemove => "core.map.remove",
+            Self::MapClear => "core.map.clear",
+            Self::MapIterator => "core.map.iterator",
+            Self::SetNew => "core.set.new",
+            Self::SetIsEmpty => "core.set.is_empty",
+            Self::SetSize => "core.set.size",
+            Self::SetContains => "core.set.contains",
+            Self::SetAdd => "core.set.add",
+            Self::SetRemove => "core.set.remove",
+            Self::SetClear => "core.set.clear",
+            Self::SetIterator => "core.set.iterator",
         }
     }
 }
@@ -1487,6 +1537,9 @@ impl CorePrimitiveIntrinsic {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreRuntimeCapability {
     ConsolePrintln,
+    FileExists,
+    FileReadText,
+    FileWriteText,
 }
 
 impl CoreRuntimeCapability {
@@ -1505,6 +1558,9 @@ impl CoreRuntimeCapability {
     pub fn registry_key(&self) -> &'static str {
         match self {
             Self::ConsolePrintln => "runtime.console.println",
+            Self::FileExists => "runtime.file.exists",
+            Self::FileReadText => "runtime.file.read_text",
+            Self::FileWriteText => "runtime.file.write_text",
         }
     }
 }
@@ -1652,6 +1708,12 @@ pub enum CoreExpr {
         function: String,
         args: Vec<CoreExpr>,
     },
+    MutableReceiverCall {
+        receiver: Box<CoreExpr>,
+        method: String,
+        args: Vec<CoreExpr>,
+        effects: CoreEffectSet,
+    },
     FunctionCall {
         callee: Box<CoreExpr>,
         args: Vec<CoreExpr>,
@@ -1741,7 +1803,7 @@ impl CoreExpr {
     /// - `self`: typed Core expression from the initial Lean-covered subset.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the structural Core expression without source spans,
@@ -1919,6 +1981,21 @@ impl CoreExpr {
                     .collect::<Vec<_>>()
                     .join(",")
             ),
+            CoreExpr::MutableReceiverCall {
+                receiver,
+                method,
+                args,
+                effects,
+            } => format!(
+                "MutableReceiverCall({}.{};args={};effects={})",
+                receiver.contract_text(),
+                method,
+                args.iter()
+                    .map(CoreExpr::contract_text)
+                    .collect::<Vec<_>>()
+                    .join(","),
+                effects.contract_text()
+            ),
             CoreExpr::FunctionCall { callee, args } => format!(
                 "FunctionCall({};{})",
                 callee.contract_text(),
@@ -2026,7 +2103,7 @@ impl CoreMapExprField {
     /// - `self`: typed Core map-expression field from syntax-output lowering.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the field key, source insert/update operator, and
@@ -2044,7 +2121,7 @@ impl CoreLetBinding {
     /// - `self`: local binding lowered from syntax output.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the binding name and recursively rendered value expression
@@ -2061,7 +2138,7 @@ impl CoreRecordExprField {
     /// - `self`: typed Core record field from syntax-output lowering.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the field key, source field assignment operator, and
@@ -2079,7 +2156,7 @@ impl CoreCaseClause {
     /// - `self`: typed unguarded case clause from the current Core subset.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the pattern/body pair without source spans, backend syntax,
@@ -2105,7 +2182,7 @@ impl CoreIfClause {
     /// - `self`: typed condition/body branch from syntax-output lowering.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the condition/body pair without source spans, backend
@@ -2126,7 +2203,7 @@ impl CoreReceiveAfter {
     /// - `self`: typed receive timeout branch from syntax-output lowering.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the timeout trigger/body pair without source spans,
@@ -2147,7 +2224,7 @@ impl CoreTryAfter {
     /// - `self`: typed try cleanup branch from syntax-output lowering.
     ///
     /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
+    /// - Stable compact text for CoreIR contracts and phase expected fixtures.
     ///
     /// Transformation:
     /// - Serializes the cleanup trigger/body pair without source spans,
@@ -2288,7 +2365,7 @@ pub struct CoreModule {
 }
 
 impl CoreModule {
-    /// Renders the interface portion of the core module for golden tests and
+    /// Renders the interface portion of the core module for expected-output tests and
     /// deterministic snapshot comparison.
     pub fn interface_text(&self) -> String {
         self.interface.to_terlan_interface_text()
@@ -2300,7 +2377,7 @@ impl CoreModule {
     /// - `self`: Core module artifact produced by formal typechecking.
     ///
     /// Output:
-    /// - Stable line-oriented text suitable for golden fixtures.
+    /// - Stable line-oriented text suitable for expected fixtures.
     ///
     /// Transformation:
     /// - Serializes only backend-agnostic CoreIR identity and declaration
@@ -2499,6 +2576,7 @@ struct FunctionBound {
 struct ReceiverMethodDispatchSignature {
     receiver_type: Type,
     scheme: FunctionScheme,
+    receiver_mutable: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -2762,6 +2840,7 @@ fn type_check_syntax_module_with_inputs<'a>(
     alias_names.extend(resolved.imported_types.keys().cloned());
     let imported_type_names = imported_type_names(resolved);
     alias_names.extend(inputs.alias_extra_names);
+    alias_names.extend(primitive_type_names());
     let function_signatures = inputs.function_signatures;
     let constructor_signatures = inputs.constructor_signatures;
     let struct_fields = inputs.struct_fields;
@@ -2826,6 +2905,10 @@ fn check_syntax_module_functions(
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     for declaration in &module.declarations {
+        if is_compiler_intrinsic_declaration(declaration) {
+            continue;
+        }
+
         match &declaration.payload {
             SyntaxDeclarationPayload::Function {
                 name,
@@ -2910,7 +2993,7 @@ fn check_syntax_module_functions(
                         .iter()
                         .map(|param| param.annotation.text.clone())
                         .collect::<Vec<_>>(),
-                    &return_type.text,
+                    mutable_receiver_internal_return_type(receiver, return_type),
                     generic_bounds,
                     alias_names,
                     imported_type_names,
@@ -2935,6 +3018,26 @@ fn check_syntax_module_functions(
         }
     }
     diagnostics
+}
+
+/// Returns whether a declaration is implemented by a compiler intrinsic.
+///
+/// Inputs:
+/// - `declaration`: syntax-output declaration carrying parsed annotations.
+///
+/// Output:
+/// - `true` when the declaration has `@compiler.intrinsic {...}`.
+/// - `false` for ordinary source declarations.
+///
+/// Transformation:
+/// - Reads only the annotation path and ignores annotation payload text so the
+///   checker can trust the explicit compiler-provided implementation marker
+///   without coupling type checking to backend intrinsic registry parsing.
+fn is_compiler_intrinsic_declaration(declaration: &SyntaxDeclarationOutput) -> bool {
+    declaration
+        .annotations
+        .iter()
+        .any(|annotation| annotation.path == ["compiler", "intrinsic"])
 }
 
 /// Synthesizes callable patterns for receiver-method body checking.
@@ -2979,6 +3082,49 @@ fn receiver_method_clauses_with_bindings(
             }
         })
         .collect()
+}
+
+/// Selects the internal body-check return type for receiver methods.
+///
+/// Inputs:
+/// - `receiver`: source receiver parameter, including the contextual `mut`
+///   marker.
+/// - `return_type`: source-visible method return type annotation.
+///
+/// Output:
+/// - Receiver type text for command-style mutable receiver methods declared as
+///   returning `Unit`; otherwise the original source return type.
+///
+/// Transformation:
+/// - Models the first P0.2c executable ABI slice: command-style mutable receiver
+///   methods expose `Unit` at the source level but must produce the updated
+///   receiver value internally so backend lowering has a concrete value to
+///   rebind.
+fn mutable_receiver_internal_return_type<'a>(
+    receiver: &'a SyntaxParamOutput,
+    return_type: &'a SyntaxTypeOutput,
+) -> &'a str {
+    if receiver.is_mutable && is_unit_type_text(&return_type.text) {
+        &receiver.annotation.text
+    } else {
+        &return_type.text
+    }
+}
+
+/// Checks whether a type annotation names Terlan `Unit`.
+///
+/// Inputs:
+/// - `text`: source type annotation text.
+///
+/// Output:
+/// - `true` when `text` is the compact source spelling `Unit`.
+///
+/// Transformation:
+/// - Normalizes whitespace using the same type-text comparison helper used by
+///   trait/receiver validation; this intentionally does not treat arbitrary
+///   aliases as `Unit`.
+fn is_unit_type_text(text: &str) -> bool {
+    trait_type_text_equal(text, "Unit")
 }
 
 /// Checks syntax-output callable clauses against a declared function scheme.
@@ -3153,6 +3299,7 @@ pub fn type_check_syntax_module_output(
     alias_names.extend(imported_aliases.keys().cloned());
     alias_names.extend(resolved.imported_types.keys().cloned());
     alias_names.extend(collect_syntax_alias_extra_names(module));
+    alias_names.extend(primitive_type_names());
     let trait_signatures = collect_syntax_trait_signatures(module, resolved);
     let trait_method_calls =
         collect_syntax_trait_method_calls(module, &alias_names, &trait_signatures, resolved);
@@ -3285,7 +3432,8 @@ pub fn lower_syntax_module_output_to_core(
         }
     }
 
-    let mut function_clauses = core_syntax_function_clauses(module);
+    let receiver_methods = core_receiver_method_dispatch_signatures(module, resolved);
+    let mut function_clauses = core_syntax_function_clauses(module, &receiver_methods);
     let constructor_identities = core_constructor_identities(module, resolved, &core.constructors);
     resolve_constructor_identities_in_function_clauses(
         &mut function_clauses,
@@ -3786,6 +3934,11 @@ fn core_expr_substitution_freshness_evidence(expr: &CoreExpr) -> CoreSubstitutio
         | CoreExpr::Intrinsic(CoreIntrinsicCall { args, .. }) => {
             combine_expr_freshness(args.iter().map(core_expr_substitution_freshness_evidence))
         }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            core_expr_substitution_freshness_evidence(receiver).combine(combine_expr_freshness(
+                args.iter().map(core_expr_substitution_freshness_evidence),
+            ))
+        }
         CoreExpr::FunctionCall { callee, args } => {
             core_expr_substitution_freshness_evidence(callee).combine(combine_expr_freshness(
                 args.iter().map(core_expr_substitution_freshness_evidence),
@@ -4087,6 +4240,10 @@ fn core_expr_has_checked_preservation_evidence(expr: &CoreExpr) -> bool {
             args.iter().all(core_expr_has_checked_preservation_evidence)
         }
         CoreExpr::Call { args, .. } => args.iter().all(core_expr_has_checked_preservation_evidence),
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            core_expr_has_checked_preservation_evidence(receiver)
+                && args.iter().all(core_expr_has_checked_preservation_evidence)
+        }
         CoreExpr::FunctionCall { callee, args } => {
             core_expr_has_checked_preservation_evidence(callee)
                 && args.iter().all(core_expr_has_checked_preservation_evidence)
@@ -4375,6 +4532,7 @@ fn count_core_expr_local_constructor_identities(
         | CoreExpr::RemoteCall { .. }
         | CoreExpr::Intrinsic(_)
         | CoreExpr::Call { .. }
+        | CoreExpr::MutableReceiverCall { .. }
         | CoreExpr::FunctionCall { .. }
         | CoreExpr::If { .. }
         | CoreExpr::UnaryOp { .. }
@@ -4804,6 +4962,7 @@ fn core_import_identity(
 ///   backend-neutral summaries for the initial CoreIR lowering slice.
 fn core_syntax_function_clauses(
     module: &SyntaxModuleOutput,
+    receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) -> HashMap<(String, usize), Vec<CoreFunctionClause>> {
     let mut clauses = HashMap::new();
     for declaration in &module.declarations {
@@ -4818,7 +4977,7 @@ fn core_syntax_function_clauses(
                 (name.clone(), params.len()),
                 function_clauses
                     .iter()
-                    .map(core_function_clause_summary)
+                    .map(|clause| core_function_clause_summary(clause, receiver_methods))
                     .collect(),
             );
         }
@@ -4937,6 +5096,44 @@ fn refresh_core_evidence_in_expr_summary(summary: &mut CoreExprSummary) {
     for child in &mut summary.children {
         refresh_core_evidence_in_expr_summary(child);
     }
+}
+
+/// Collects receiver-method dispatch metadata for syntax-to-Core lowering.
+///
+/// Inputs:
+/// - `module`: syntax-output module whose local receiver methods should be
+///   available to Core expression summarization.
+/// - `resolved`: resolved module state containing imported type names and
+///   imported type-alias interfaces.
+///
+/// Output:
+/// - Receiver-method dispatch signatures keyed by `(method name, non-receiver
+///   arity)`.
+///
+/// Transformation:
+/// - Rebuilds the same alias/type-name context used by typechecking, then
+///   delegates to the receiver-method dispatch collector so CoreIR lowering can
+///   preserve the declared mutability marker without reading backend syntax.
+fn core_receiver_method_dispatch_signatures(
+    module: &SyntaxModuleOutput,
+    resolved: &ResolvedModule,
+) -> HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>> {
+    let local_aliases = collect_syntax_type_aliases(module);
+    let imported_aliases = imported_type_aliases(resolved);
+    let imported_names = imported_type_names(resolved);
+    let mut alias_names = collect_syntax_type_names(module);
+    alias_names.extend(imported_aliases.keys().cloned());
+    alias_names.extend(resolved.imported_types.keys().cloned());
+    alias_names.extend(collect_syntax_alias_extra_names(module));
+    alias_names.extend(primitive_type_names());
+
+    collect_syntax_receiver_method_dispatch_signatures(
+        module,
+        &alias_names,
+        &imported_names,
+        &imported_aliases,
+        &local_aliases,
+    )
 }
 
 /// Collects constructor identities eligible for CoreIR identity annotation.
@@ -5084,6 +5281,12 @@ fn resolve_constructor_identities_in_core_expr(
         }
         CoreExpr::FunctionCall { callee, args } => {
             resolve_constructor_identities_in_core_expr(callee, constructor_identities);
+            for arg in args {
+                resolve_constructor_identities_in_core_expr(arg, constructor_identities);
+            }
+        }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            resolve_constructor_identities_in_core_expr(receiver, constructor_identities);
             for arg in args {
                 resolve_constructor_identities_in_core_expr(arg, constructor_identities);
             }
@@ -5348,6 +5551,7 @@ fn resolve_constructor_identities_in_core_pattern(
 ///   retained in the same order as the rendered pattern summaries.
 fn core_function_clause_summary(
     clause: &terlan_syntax::SyntaxFunctionClauseOutput,
+    receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) -> CoreFunctionClause {
     let patterns = clause
         .patterns
@@ -5380,8 +5584,11 @@ fn core_function_clause_summary(
         core_patterns,
         pattern_proof_coverage,
         pattern_checked_preservation_evidence,
-        guard: clause.guard.as_ref().map(core_expr_summary),
-        body: core_expr_summary(&clause.body),
+        guard: clause
+            .guard
+            .as_ref()
+            .map(|guard| core_expr_summary(guard, receiver_methods)),
+        body: core_expr_summary(&clause.body, receiver_methods),
     }
 }
 
@@ -5397,43 +5604,47 @@ fn core_function_clause_summary(
 /// - Preserves semantic expression kind, arity, text, remote target, operator,
 ///   and recursively summarized child expressions while intentionally omitting
 ///   backend rendering details.
-fn core_expr_summary(expr: &SyntaxExprOutput) -> CoreExprSummary {
+fn core_expr_summary(
+    expr: &SyntaxExprOutput,
+    receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
+) -> CoreExprSummary {
     let mut children = expr
         .children
         .iter()
-        .map(core_expr_summary)
+        .map(|child| core_expr_summary(child, receiver_methods))
         .collect::<Vec<_>>();
     children.extend(
         expr.fields
             .iter()
-            .map(|field| core_expr_summary(&field.value)),
+            .map(|field| core_expr_summary(&field.value, receiver_methods)),
     );
     children.extend(expr.clauses.iter().flat_map(|clause| {
         let mut clause_children = Vec::new();
         if let Some(guard) = &clause.guard {
-            clause_children.push(core_expr_summary(guard));
+            clause_children.push(core_expr_summary(guard, receiver_methods));
         }
-        clause_children.push(core_expr_summary(&clause.body));
+        clause_children.push(core_expr_summary(&clause.body, receiver_methods));
         clause_children
     }));
     children.extend(expr.catch_clauses.iter().flat_map(|clause| {
         let mut clause_children = Vec::new();
         if let Some(guard) = &clause.guard {
-            clause_children.push(core_expr_summary(guard));
+            clause_children.push(core_expr_summary(guard, receiver_methods));
         }
-        clause_children.push(core_expr_summary(&clause.body));
+        clause_children.push(core_expr_summary(&clause.body, receiver_methods));
         clause_children
     }));
     if let Some(after) = &expr.try_after {
-        children.push(core_expr_summary(&after.trigger));
-        children.push(core_expr_summary(&after.body));
+        children.push(core_expr_summary(&after.trigger, receiver_methods));
+        children.push(core_expr_summary(&after.body, receiver_methods));
     }
     if let Some(after) = &expr.receive_after {
-        children.push(core_expr_summary(&after.trigger));
-        children.push(core_expr_summary(&after.body));
+        children.push(core_expr_summary(&after.trigger, receiver_methods));
+        children.push(core_expr_summary(&after.body, receiver_methods));
     }
 
-    let core_expr = core_expr_from_syntax(expr);
+    let core_expr = core_mutable_receiver_call_expr_from_syntax(expr, receiver_methods)
+        .or_else(|| core_expr_from_syntax(expr));
     let checked_preservation_evidence = core_expr
         .as_ref()
         .and_then(core_expr_checked_preservation_evidence);
@@ -5556,6 +5767,7 @@ fn core_expr_proof_coverage(
             Some(CoreExpr::Let { .. }) => CoreProofCoverage::ProofModelRequired,
             _ => CoreProofCoverage::ProofModelRequired,
         },
+        SyntaxExprKind::Sequence => CoreProofCoverage::ProofModelRequired,
         SyntaxExprKind::Cast => CoreProofCoverage::ProofModelRequired,
         SyntaxExprKind::Float
         | SyntaxExprKind::Map
@@ -5697,6 +5909,7 @@ fn core_expr_is_lean_modeled(expr: &CoreExpr) -> bool {
         | CoreExpr::TemplateInstantiate { .. }
         | CoreExpr::ConstructorChain { .. }
         | CoreExpr::RemoteFunRef { .. }
+        | CoreExpr::MutableReceiverCall { .. }
         | CoreExpr::Intrinsic(_)
         | CoreExpr::Receive { .. }
         | CoreExpr::Try { .. } => false,
@@ -5710,7 +5923,7 @@ fn core_expr_is_lean_modeled(expr: &CoreExpr) -> bool {
 ///
 /// Output:
 /// - `false` until the formal roadmap promotes the selected remote-dispatch
-///   subset and updates phase-contract goldens, proof-baseline tables, and target
+///   subset and updates phase-contract expected outputs, proof-baseline tables, and target
 ///   dispatch contracts together.
 ///
 /// Transformation:
@@ -5871,6 +6084,7 @@ fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
             })
         }
         SyntaxExprKind::Fun
+        | SyntaxExprKind::Sequence
         | SyntaxExprKind::Call
         | SyntaxExprKind::Case
         | SyntaxExprKind::Macro
@@ -6414,6 +6628,84 @@ fn core_remote_intrinsic_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Optio
     core_intrinsic_expr_from_parts(module, function.as_str(), args, expr.span.into())
 }
 
+/// Converts a mutable receiver-method call into effectful CoreIR.
+///
+/// Inputs:
+/// - `expr`: syntax-output call expression that may have a field-access callee.
+/// - `receiver_methods`: declared local receiver-method dispatch signatures.
+///
+/// Output:
+/// - `Some(CoreExpr::MutableReceiverCall)` when the call is shaped as
+///   `receiver.method(args...)` and all declared candidates for the method/arity
+///   are mutable receiver methods.
+/// - `None` for non-receiver calls, unknown methods, mixed mutable/immutable
+///   overload sets, or children outside the current typed Core subset.
+///
+/// Transformation:
+/// - Preserves the receiver expression separately from non-receiver arguments
+///   and attaches the stable receiver-mutation effect label so later lowering
+///   can choose target-specific rebinding or in-place mutation semantics.
+fn core_mutable_receiver_call_expr_from_syntax(
+    expr: &SyntaxExprOutput,
+    receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
+) -> Option<CoreExpr> {
+    if !matches!(expr.kind, SyntaxExprKind::Call) || expr.remote.is_some() {
+        return None;
+    }
+
+    let (callee, args) = expr.children.split_first()?;
+    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+        return None;
+    }
+
+    let method = callee.text.as_deref()?;
+    if !receiver_method_set_is_exclusively_mutable(receiver_methods, method, args.len()) {
+        return None;
+    }
+
+    let receiver = callee.children.first()?;
+    Some(CoreExpr::MutableReceiverCall {
+        receiver: Box::new(core_expr_from_syntax(receiver)?),
+        method: method.to_string(),
+        args: args
+            .iter()
+            .map(core_expr_from_syntax)
+            .collect::<Option<Vec<_>>>()?,
+        effects: core_receiver_mutation_effect_set(),
+    })
+}
+
+/// Checks whether a receiver-method dispatch bucket is unambiguously mutable.
+///
+/// Inputs:
+/// - `receiver_methods`: local receiver-method dispatch signatures.
+/// - `method`: source-level method name from a field-access callee.
+/// - `arity`: non-receiver argument count.
+///
+/// Output:
+/// - `true` only when at least one candidate exists and every candidate in the
+///   method/arity bucket is declared with a mutable receiver.
+/// - `false` for missing buckets or mixed mutable/immutable overload sets.
+///
+/// Transformation:
+/// - Treats CoreIR mutation as a semantic commitment. Ambiguous overload sets
+///   remain ordinary summary-only calls until type-directed Core lowering can
+///   select one exact receiver type.
+fn receiver_method_set_is_exclusively_mutable(
+    receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
+    method: &str,
+    arity: usize,
+) -> bool {
+    receiver_methods
+        .get(&(method.to_string(), arity))
+        .is_some_and(|candidates| {
+            !candidates.is_empty()
+                && candidates
+                    .iter()
+                    .all(|candidate| candidate.receiver_mutable)
+        })
+}
+
 /// Converts a receiver-method syntax-output call into a primitive intrinsic.
 ///
 /// Inputs:
@@ -6553,6 +6845,10 @@ fn core_primitive_intrinsic(
         "std.core.Int" => core_int_primitive_intrinsic(function, arity),
         "std.core.Float" => core_float_primitive_intrinsic(function, arity),
         "std.core.String" => core_string_primitive_intrinsic(function, arity),
+        "std.collections.List" => core_list_primitive_intrinsic(function, arity),
+        "std.collections.Iterator" => core_iterator_primitive_intrinsic(function, arity),
+        "std.collections.Map" => core_map_primitive_intrinsic(function, arity),
+        "std.collections.Set" => core_set_primitive_intrinsic(function, arity),
         _ => None,
     }
 }
@@ -6581,6 +6877,9 @@ fn core_runtime_capability(
 ) -> Option<CoreRuntimeCapability> {
     match (module, function, arity) {
         ("std.io.Console", "println", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
+        ("std.io.File", "exists", 1) => Some(CoreRuntimeCapability::FileExists),
+        ("std.io.File", "read_text", 1) => Some(CoreRuntimeCapability::FileReadText),
+        ("std.io.File", "write_text", 2) => Some(CoreRuntimeCapability::FileWriteText),
         _ => None,
     }
 }
@@ -6597,10 +6896,9 @@ fn core_runtime_capability(
 ///
 /// Transformation:
 /// - Maps the 0.0.1 Bool API hooks to stable CoreIR intrinsic identities so
-///   external projects do not depend on a generated BEAM `std_core_bool` module.
+///   external projects do not depend on backend-generated internal module artifacts.
 fn core_bool_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
     match (function, arity) {
-        ("equal", 2) => Some(CorePrimitiveIntrinsic::BoolEqual),
         ("compare", 2) => Some(CorePrimitiveIntrinsic::BoolCompare),
         ("to_string", 1) => Some(CorePrimitiveIntrinsic::BoolToString),
         ("from_string", 1) => Some(CorePrimitiveIntrinsic::BoolFromString),
@@ -6665,7 +6963,6 @@ fn core_float_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePr
 ///   without carrying backend module/function names into CoreIR.
 fn core_string_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
     match (function, arity) {
-        ("equal", 2) => Some(CorePrimitiveIntrinsic::StringEqual),
         ("compare", 2) => Some(CorePrimitiveIntrinsic::StringCompare),
         ("to_string", 1) => Some(CorePrimitiveIntrinsic::StringToString),
         ("from_string", 1) => Some(CorePrimitiveIntrinsic::StringFromString),
@@ -6685,6 +6982,124 @@ fn core_string_primitive_intrinsic(function: &str, arity: usize) -> Option<CoreP
         ("replace", 3) => Some(CorePrimitiveIntrinsic::StringReplace),
         ("split", 2) => Some(CorePrimitiveIntrinsic::StringSplit),
         ("split_once", 2) => Some(CorePrimitiveIntrinsic::StringSplitOnce),
+        _ => None,
+    }
+}
+
+/// Resolves a `std.collections.List` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.collections.List` module
+///   path.
+/// - `arity`: argument count after receiver methods have been normalized to
+///   receiver-first calls.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for the selected 0.0.2 list intrinsic
+///   surface.
+/// - `None` for unknown names or arity mismatches.
+///
+/// Transformation:
+/// - Maps portable `std.collections.List` API names to closed compiler-owned
+///   intrinsic identities so CoreIR and target backends do not expose list
+///   details.
+fn core_list_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("new", 0) => Some(CorePrimitiveIntrinsic::ListNew),
+        ("is_empty", 1) => Some(CorePrimitiveIntrinsic::ListIsEmpty),
+        ("length", 1) => Some(CorePrimitiveIntrinsic::ListLength),
+        ("first", 1) => Some(CorePrimitiveIntrinsic::ListFirst),
+        ("iterator", 1) => Some(CorePrimitiveIntrinsic::ListIterator),
+        ("push", 2) => Some(CorePrimitiveIntrinsic::ListPush),
+        ("clear", 1) => Some(CorePrimitiveIntrinsic::ListClear),
+        _ => None,
+    }
+}
+
+/// Resolves a `std.collections.Iterator` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.collections.Iterator`
+///   module path.
+/// - `arity`: argument count after receiver methods have been normalized to
+///   receiver-first calls.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for the selected traversal intrinsic.
+/// - `None` for unknown names or arity mismatches.
+///
+/// Transformation:
+/// - Maps portable iterator APIs to compiler-owned intrinsic identities so
+///   CoreIR and target backends own traversal state representation.
+fn core_iterator_primitive_intrinsic(
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("next", 1) => Some(CorePrimitiveIntrinsic::IteratorNext),
+        _ => None,
+    }
+}
+
+/// Resolves a `std.collections.Map` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.collections.Map` module
+///   path.
+/// - `arity`: argument count after receiver methods have been normalized to
+///   receiver-first calls.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for the selected 0.0.2 map intrinsic
+///   surface.
+/// - `None` for unknown names or arity mismatches.
+///
+/// Transformation:
+/// - Maps portable `std.collections.Map` API names to closed compiler-owned intrinsic
+///   identities so CoreIR and target backends do not expose backend-specific map
+///   details.
+fn core_map_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("new", 0) => Some(CorePrimitiveIntrinsic::MapNew),
+        ("is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
+        ("size", 1) => Some(CorePrimitiveIntrinsic::MapSize),
+        ("get", 2) => Some(CorePrimitiveIntrinsic::MapGet),
+        ("contains_key", 2) => Some(CorePrimitiveIntrinsic::MapContainsKey),
+        ("put", 3) => Some(CorePrimitiveIntrinsic::MapPut),
+        ("remove", 2) => Some(CorePrimitiveIntrinsic::MapRemove),
+        ("clear", 1) => Some(CorePrimitiveIntrinsic::MapClear),
+        ("iterator", 1) => Some(CorePrimitiveIntrinsic::MapIterator),
+        _ => None,
+    }
+}
+
+/// Resolves a `std.collections.Set` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.collections.Set` module
+///   path.
+/// - `arity`: argument count after receiver methods have been normalized to
+///   receiver-first calls.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for the selected 0.0.2 set intrinsic
+///   surface.
+/// - `None` for unknown names or arity mismatches.
+///
+/// Transformation:
+/// - Maps portable `std.collections.Set` API names to closed compiler-owned intrinsic
+///   identities so CoreIR and target backends do not expose representation
+///   details.
+fn core_set_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("new", 0) => Some(CorePrimitiveIntrinsic::SetNew),
+        ("is_empty", 1) => Some(CorePrimitiveIntrinsic::SetIsEmpty),
+        ("size", 1) => Some(CorePrimitiveIntrinsic::SetSize),
+        ("contains", 2) => Some(CorePrimitiveIntrinsic::SetContains),
+        ("add", 2) => Some(CorePrimitiveIntrinsic::SetAdd),
+        ("remove", 2) => Some(CorePrimitiveIntrinsic::SetRemove),
+        ("clear", 1) => Some(CorePrimitiveIntrinsic::SetClear),
+        ("iterator", 1) => Some(CorePrimitiveIntrinsic::SetIterator),
         _ => None,
     }
 }
@@ -6754,6 +7169,46 @@ fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> C
                 CoreTupleTypeElem::Type(CoreType::String),
             ])],
         },
+        CorePrimitiveIntrinsic::ListNew
+        | CorePrimitiveIntrinsic::ListIterator
+        | CorePrimitiveIntrinsic::ListPush
+        | CorePrimitiveIntrinsic::ListClear => {
+            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
+        }
+        CorePrimitiveIntrinsic::ListIsEmpty => CoreType::Bool,
+        CorePrimitiveIntrinsic::ListLength => CoreType::Int,
+        CorePrimitiveIntrinsic::ListFirst => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Named("Dynamic".to_string())],
+        },
+        CorePrimitiveIntrinsic::IteratorNext => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Named("Dynamic".to_string())],
+        },
+        CorePrimitiveIntrinsic::MapNew
+        | CorePrimitiveIntrinsic::MapPut
+        | CorePrimitiveIntrinsic::MapRemove
+        | CorePrimitiveIntrinsic::MapClear => CoreType::Named("Map".to_string()),
+        CorePrimitiveIntrinsic::MapIterator => {
+            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
+        }
+        CorePrimitiveIntrinsic::MapIsEmpty | CorePrimitiveIntrinsic::MapContainsKey => {
+            CoreType::Bool
+        }
+        CorePrimitiveIntrinsic::MapSize => CoreType::Int,
+        CorePrimitiveIntrinsic::MapGet => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Named("Dynamic".to_string())],
+        },
+        CorePrimitiveIntrinsic::SetNew
+        | CorePrimitiveIntrinsic::SetAdd
+        | CorePrimitiveIntrinsic::SetRemove
+        | CorePrimitiveIntrinsic::SetClear => CoreType::Named("Set".to_string()),
+        CorePrimitiveIntrinsic::SetIterator => {
+            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
+        }
+        CorePrimitiveIntrinsic::SetIsEmpty | CorePrimitiveIntrinsic::SetContains => CoreType::Bool,
+        CorePrimitiveIntrinsic::SetSize => CoreType::Int,
     }
 }
 
@@ -6772,6 +7227,21 @@ fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> C
 fn core_runtime_capability_return_type(capability: &CoreRuntimeCapability) -> CoreType {
     match capability {
         CoreRuntimeCapability::ConsolePrintln => CoreType::Named("Unit".to_string()),
+        CoreRuntimeCapability::FileExists => CoreType::Bool,
+        CoreRuntimeCapability::FileReadText => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::String,
+                CoreType::Named("std.io.File.FileError".to_string()),
+            ],
+        },
+        CoreRuntimeCapability::FileWriteText => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Unit".to_string()),
+                CoreType::Named("std.io.File.FileError".to_string()),
+            ],
+        },
     }
 }
 
@@ -6806,6 +7276,24 @@ fn core_pure_effect_set() -> CoreEffectSet {
 fn core_io_effect_set() -> CoreEffectSet {
     CoreEffectSet {
         effects: vec!["io".to_string()],
+    }
+}
+
+/// Builds the canonical mutable receiver Core effect set.
+///
+/// Inputs:
+/// - None.
+///
+/// Output:
+/// - `CoreEffectSet` containing the stable `receiver_mutation` label.
+///
+/// Transformation:
+/// - Centralizes the effect payload used by receiver methods whose source
+///   receiver is declared mutable, keeping mutation separate from ordinary
+///   `Unit`-returning calls in CoreIR.
+fn core_receiver_mutation_effect_set() -> CoreEffectSet {
+    CoreEffectSet {
+        effects: vec!["receiver_mutation".to_string()],
     }
 }
 
@@ -8988,6 +9476,26 @@ fn canonicalize_trait_lookup_types(types: &[Type]) -> Vec<Type> {
         .collect()
 }
 
+/// Returns primitive source type names for type-expression parsing.
+///
+/// Inputs:
+/// - No runtime inputs.
+///
+/// Output:
+/// - Set of built-in source type names that should parse as concrete types
+///   instead of generic variables.
+///
+/// Transformation:
+/// - Materializes the primitive type namespace used by trait conformance,
+///   function signature, and receiver-method parsing so std summaries such as
+///   `Show[Int]` remain concrete when imported by user modules.
+fn primitive_type_names() -> HashSet<String> {
+    ["Bool", "Float", "Int", "String", "Unit"]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
+}
+
 fn check_parsed_trait_impl_signature(
     impl_decl: &ParsedTraitImpl,
     impl_span: Span,
@@ -9334,7 +9842,7 @@ fn collect_syntax_trait_method_calls(
     module: &SyntaxModuleOutput,
     alias_names: &HashSet<String>,
     trait_signatures: &HashMap<String, ParsedTraitSignature>,
-    _resolved: &ResolvedModule,
+    resolved: &ResolvedModule,
 ) -> HashMap<(String, String), Vec<ResolvedTraitMethod>> {
     let mut methods: HashMap<(String, String), Vec<ResolvedTraitMethod>> = HashMap::new();
     let mut inheritance_cache: HashMap<String, Option<HashMap<String, TraitMethodSignature>>> =
@@ -9362,8 +9870,127 @@ fn collect_syntax_trait_method_calls(
         alias_names,
         &mut inheritance_cache,
     );
+    collect_imported_interface_trait_method_calls(
+        resolved,
+        &mut methods,
+        trait_signatures,
+        alias_names,
+        &mut inheritance_cache,
+    );
 
     methods
+}
+
+/// Registers imported interface conformances as trait dispatch candidates.
+///
+/// Inputs:
+/// - `resolved`: resolved module carrying selected trait imports and provider
+///   interfaces.
+/// - `methods`: dispatch candidate map to extend.
+/// - `trait_signatures`: known local/imported trait signatures, keyed by local
+///   trait name.
+/// - `alias_names`: type names visible to type-expression parsing.
+/// - `inheritance_cache`: inherited trait method cache shared with other
+///   conformance candidate collectors.
+///
+/// Output:
+/// - No direct return value.
+///
+/// Transformation:
+/// - Reads public provider `ModuleInterface::trait_conformances`, keeps only
+///   facts for selected imported traits, rewrites the trait head to the local
+///   import name, and reuses the existing candidate specialization machinery.
+fn collect_imported_interface_trait_method_calls(
+    resolved: &ResolvedModule,
+    methods: &mut HashMap<(String, String), Vec<ResolvedTraitMethod>>,
+    trait_signatures: &HashMap<String, ParsedTraitSignature>,
+    alias_names: &HashSet<String>,
+    inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
+) {
+    for imported in resolved.imported_traits.values() {
+        let Some(interface) = resolved.interface_map.get(&imported.source_module) else {
+            continue;
+        };
+
+        for conformance in &interface.trait_conformances {
+            if !conformance.public {
+                continue;
+            }
+            let Some(mut implemented_trait) =
+                parse_trait_instance_from_text(&conformance.trait_ref)
+            else {
+                continue;
+            };
+            if implemented_trait.name != imported.source_name {
+                continue;
+            }
+            implemented_trait.name = imported.local_name.clone();
+            implemented_trait.type_args =
+                qualify_interface_trait_type_args(&implemented_trait.type_args, interface);
+            let for_type = qualify_interface_trait_type_text(&conformance.for_type, interface)
+                .unwrap_or_else(|| conformance.for_type.clone());
+            collect_trait_method_candidates(
+                methods,
+                &ParsedTraitImpl {
+                    target: implemented_trait,
+                    for_type: Some(for_type),
+                    methods: Vec::new(),
+                },
+                &imported.local_name,
+                trait_signatures,
+                alias_names,
+                inheritance_cache,
+            );
+        }
+    }
+}
+
+/// Qualifies provider-local trait instance arguments from an interface.
+///
+/// Inputs:
+/// - `type_args`: concrete trait arguments from a provider interface
+///   conformance, such as `ExternalUser`.
+/// - `interface`: provider module interface that defines public type names.
+///
+/// Output:
+/// - Type argument text rendered with provider module qualification where the
+///   argument names refer to provider public types.
+///
+/// Transformation:
+/// - Parses each type argument using the provider interface type namespace,
+///   qualifies public type heads, then renders the internal type back to stable
+///   text for ordinary trait candidate specialization.
+fn qualify_interface_trait_type_args(
+    type_args: &[String],
+    interface: &ModuleInterface,
+) -> Vec<String> {
+    type_args
+        .iter()
+        .map(|arg| qualify_interface_trait_type_text(arg, interface).unwrap_or_else(|| arg.clone()))
+        .collect()
+}
+
+/// Qualifies one provider-local type expression from an interface.
+///
+/// Inputs:
+/// - `text`: type expression text from provider interface metadata.
+/// - `interface`: provider module interface that owns public type names.
+///
+/// Output:
+/// - Qualified type text, or `None` when the expression cannot be parsed.
+///
+/// Transformation:
+/// - Parses text in the provider interface namespace, qualifies public
+///   unqualified type names to `module.Type`, and renders the result through
+///   `pretty_type` so imported conformance dispatch matches consumer-side
+///   imported type inference.
+fn qualify_interface_trait_type_text(text: &str, interface: &ModuleInterface) -> Option<String> {
+    let mut vars = HashMap::new();
+    let mut next_var = 0usize;
+    let alias_names = interface_type_names(interface);
+    let qualified_names = interface_qualified_type_names(interface);
+    let parsed = parse_type_expr(text, &alias_names, &mut vars, &mut next_var)?;
+    Some(pretty_type(&qualify_type_names(&parsed, &qualified_names)))
 }
 
 /// Seeds trait method lookup keys before concrete impl candidates are added.
@@ -10745,8 +11372,9 @@ fn collect_syntax_receiver_method_dispatch_signatures(
 /// Transformation:
 /// - Parses all type annotations in one variable scope, expands imported aliases
 ///   without erasing named imported identities, qualifies imported type names,
-///   and converts generic bounds into the same internal form used for normal
-///   functions.
+///   converts generic bounds into the same internal form used for normal
+///   functions, and preserves the receiver mutability marker for later
+///   compiler-owned rebinding analysis.
 fn receiver_method_dispatch_signature(
     receiver: &SyntaxParamOutput,
     params: &[SyntaxParamOutput],
@@ -10831,6 +11459,7 @@ fn receiver_method_dispatch_signature(
             ret,
             bounds,
         },
+        receiver_mutable: receiver.is_mutable,
     })
 }
 
@@ -10841,8 +11470,9 @@ fn receiver_method_dispatch_signature(
 /// - `local_type_names`: type and struct names declared in the same module.
 ///
 /// Output:
-/// - Diagnostics for duplicate receiver-method identities and receiver methods
-///   declared outside the receiver type's owner module.
+/// - Diagnostics for result-producing mutable receiver declarations, duplicate
+///   receiver-method identities, and receiver methods declared outside the
+///   receiver type's owner module.
 ///
 /// Transformation:
 /// - Checks the source-level receiver annotation head without expanding aliases.
@@ -10862,11 +11492,24 @@ fn check_syntax_receiver_methods(
             receiver,
             name,
             params,
+            return_type,
             ..
         } = &declaration.payload
         else {
             continue;
         };
+
+        if receiver.is_mutable && !is_unit_type_text(&return_type.text) {
+            diagnostics.push(Diagnostic {
+                span: declaration.span.into(),
+                message: format!(
+                    "result-producing mutable receiver method `{}` for `{}` is not supported by the selected compiler path yet; return Unit until the mutable receiver result ABI is implemented",
+                    name,
+                    receiver.annotation.text
+                ),
+                severity: DiagSeverity::Error,
+            });
+        }
 
         let receiver_text = normalize_trait_type_text(&receiver.annotation.text);
         let key = (receiver_text.clone(), name.clone(), params.len());
@@ -11557,6 +12200,11 @@ fn infer_syntax_expr(
             .first()
             .map(|inner| infer_syntax_expr(inner, locals, ctx, subst, errors))
             .unwrap_or(Type::Dynamic),
+        SyntaxExprKind::Sequence => expr
+            .children
+            .last()
+            .map(|inner| infer_syntax_expr(inner, locals, ctx, subst, errors))
+            .unwrap_or(Type::Dynamic),
     }
 }
 
@@ -11608,6 +12256,7 @@ fn infer_syntax_var(name: &str, locals: &HashMap<String, Type>, ctx: &ExprInferC
     locals
         .get(name)
         .cloned()
+        .or_else(|| infer_singleton_alias_value(name, ctx))
         .or_else(|| infer_unique_local_function_value(name, ctx))
         .or_else(|| ctx.file_imports.get(name).map(|_| Type::Binary))
         .or_else(|| {
@@ -11618,6 +12267,67 @@ fn infer_syntax_var(name: &str, locals: &HashMap<String, Type>, ctx: &ExprInferC
             })
         })
         .unwrap_or(Type::Dynamic)
+}
+
+/// Infers a bare singleton type alias used as a value expression.
+///
+/// Inputs:
+/// - `name`: source identifier from a variable expression.
+/// - `ctx`: expression inference context containing local aliases, selected
+///   imported aliases, and provider interfaces.
+///
+/// Output:
+/// - The alias representation type for zero-payload aliases such as
+///   `None = Atom["none"]` or `Unit = Atom["unit"]`.
+/// - `None` for aliases that carry associated values, non-alias names, opaque
+///   aliases, or unresolved imports.
+///
+/// Transformation:
+/// - Resolves local aliases directly from the merged alias map.
+/// - Resolves selected imported aliases through their provider interface, then
+///   qualifies any provider-local type references before returning the expanded
+///   singleton representation.
+fn infer_singleton_alias_value(name: &str, ctx: &ExprInferContext<'_>) -> Option<Type> {
+    if let Some(alias) = ctx.aliases.get(name) {
+        return singleton_alias_value_type(alias, ctx.aliases);
+    }
+
+    let imported = ctx.constructor_aliases.get(name)?;
+    let interface = ctx.interface_map.get(&imported.module)?;
+    let interface_aliases = interface_type_aliases(interface);
+    let alias = interface_aliases.get(&imported.name)?;
+    let qualified_names = interface_qualified_type_names(interface);
+    singleton_alias_value_type(alias, &interface_aliases)
+        .map(|ty| qualify_type_names(&ty, &qualified_names))
+}
+
+/// Returns the value type represented by a zero-payload transparent alias.
+///
+/// Inputs:
+/// - `alias`: transparent type alias candidate.
+/// - `aliases`: alias environment used to expand the candidate body.
+///
+/// Output:
+/// - `Some(Type)` for aliases whose runtime representation is a single literal
+///   atom and carries no associated values.
+/// - `None` for aliases with type parameters, opaque aliases, tuple payloads,
+///   unions, or any non-singleton representation.
+///
+/// Transformation:
+/// - Expands aliases before checking singleton shape so source spelling does
+///   not affect whether the value can be used bare.
+fn singleton_alias_value_type(
+    alias: &TypeAlias,
+    aliases: &HashMap<String, TypeAlias>,
+) -> Option<Type> {
+    if alias.is_opaque || !alias.params.is_empty() {
+        return None;
+    }
+
+    match expand_type_aliases(&alias.body, aliases) {
+        Type::LiteralAtom(atom) => Some(Type::LiteralAtom(atom)),
+        _ => None,
+    }
 }
 
 /// Infers a bare local function name used as a first-class value.
@@ -12009,6 +12719,208 @@ fn infer_syntax_call_with_arg_types(
     infer_syntax_local_call(function_name, arg_types, ctx, subst, errors)
 }
 
+/// Returns whether a local function can also accept a pipe-inserted call.
+///
+/// Inputs:
+/// - `function_name`: unqualified pipe target name.
+/// - `arg_types`: pipe-inserted argument types, including the receiver/input as
+///   the first argument.
+/// - `ctx` and `subst`: active inference context and current substitutions.
+///
+/// Output:
+/// - `true` when a local function signature or resolved local function symbol
+///   can accept the same pipe-inserted call.
+/// - `false` when no local function candidate matches.
+///
+/// Transformation:
+/// - Tries explicit source function schemes with cloned substitutions so
+///   ambiguity detection does not mutate the real inference state or emit
+///   diagnostics. Resolved HIR symbols are intentionally ignored here because
+///   receiver methods also appear in the backend receiver-first symbol table;
+///   those are not separate source-level function declarations.
+fn local_function_pipe_target_matches(
+    function_name: &str,
+    arg_types: &[Type],
+    ctx: &ExprInferContext,
+    subst: &HashMap<TypeVarId, Type>,
+) -> bool {
+    if let Some(scheme) = ctx
+        .signatures
+        .get(&(function_name.to_string(), arg_types.len()))
+    {
+        let mut trial_subst = subst.clone();
+        if infer_function_with_bounds(
+            scheme,
+            Some(function_name),
+            arg_types,
+            ctx,
+            &mut trial_subst,
+        )
+        .is_ok()
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Returns whether a selected imported function can accept pipe insertion.
+///
+/// Inputs:
+/// - `function_name`: local selected-import name.
+/// - `arg_types`: pipe-inserted argument types, including the receiver/input as
+///   the first argument.
+/// - `ctx` and `subst`: active inference context and current substitutions.
+///
+/// Output:
+/// - `true` when the selected import resolves to a provider signature that can
+///   accept the pipe-inserted arguments.
+/// - `false` when the name is not a selected import, the provider interface is
+///   unavailable, the arity is missing, or the arguments do not match.
+///
+/// Transformation:
+/// - Resolves the local selected-import target through loaded interfaces and
+///   checks the provider function scheme with cloned substitutions so ambiguity
+///   detection does not mutate inference state or emit import diagnostics.
+fn imported_function_pipe_target_matches(
+    function_name: &str,
+    arg_types: &[Type],
+    ctx: &ExprInferContext,
+    subst: &HashMap<TypeVarId, Type>,
+) -> bool {
+    let Some(target) = ctx.function_imports.get(function_name) else {
+        return false;
+    };
+    let resolved_module = ctx
+        .module_aliases
+        .get(&target.module)
+        .map(String::as_str)
+        .unwrap_or(target.module.as_str());
+    let Some(interface) = ctx.interface_map.get(resolved_module) else {
+        return false;
+    };
+    let Some(signature) = interface
+        .functions
+        .get(&(target.function.clone(), arg_types.len()))
+    else {
+        return false;
+    };
+    let Some(scheme) = parse_interface_signature(signature, interface, ctx.aliases) else {
+        return false;
+    };
+    let mut trial_subst = subst.clone();
+    infer_function_with_bounds(
+        &scheme,
+        Some(function_name),
+        arg_types,
+        ctx,
+        &mut trial_subst,
+    )
+    .is_ok()
+}
+
+/// Infers pipe-forward syntax that targets a receiver method.
+///
+/// Inputs:
+/// - `left`: pipe input expression used as the receiver.
+/// - `right`: call expression written as `method(args...)`.
+/// - `locals`, `ctx`, `subst`, and `errors`: active expression inference state.
+///
+/// Output:
+/// - `Some(Type)` when the right side names a receiver method for that arity.
+/// - `None` when no receiver-method candidate exists, allowing ordinary pipe
+///   insertion to run.
+///
+/// Transformation:
+/// - Resolves `value |> method(args)` as `value.method(args)` before ordinary
+///   function insertion. Immutable receiver methods return their declared
+///   return type. Mutable receiver methods return the updated receiver type for
+///   pipe continuation, regardless of the command method's declared result.
+fn infer_syntax_receiver_method_pipe_forward(
+    left: &SyntaxExprOutput,
+    right: &SyntaxExprOutput,
+    locals: &HashMap<String, Type>,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    if right.remote.is_some() || !syntax_callee_is_var(right) {
+        return None;
+    }
+
+    let method = syntax_callee_name(right)?;
+    let arity = right.children.len().saturating_sub(1);
+    let candidates = ctx.receiver_methods.get(&(method.to_string(), arity))?;
+    let receiver_type = infer_syntax_expr(left, locals, ctx, subst, errors);
+    let arg_types = right
+        .children
+        .iter()
+        .skip(1)
+        .map(|arg| infer_syntax_expr(arg, locals, ctx, subst, errors))
+        .collect::<Vec<_>>();
+    let mut pipe_inserted_arg_types = Vec::with_capacity(arg_types.len() + 1);
+    pipe_inserted_arg_types.push(receiver_type.clone());
+    pipe_inserted_arg_types.extend(arg_types.iter().cloned());
+
+    for candidate in candidates {
+        let mut trial_subst = subst.clone();
+        if unify(&candidate.receiver_type, &receiver_type, &mut trial_subst).is_err() {
+            continue;
+        }
+        if local_function_pipe_target_matches(method, &pipe_inserted_arg_types, ctx, &trial_subst)
+            || imported_function_pipe_target_matches(
+                method,
+                &pipe_inserted_arg_types,
+                ctx,
+                &trial_subst,
+            )
+        {
+            errors.push(format!(
+                "ambiguous pipe target `{}` / {}: receiver method and ordinary function both match; use explicit receiver or function call syntax",
+                method,
+                arity
+            ));
+            return Some(Type::Dynamic);
+        }
+        match infer_function_with_bounds(
+            &candidate.scheme,
+            Some(method),
+            &arg_types,
+            ctx,
+            &mut trial_subst,
+        ) {
+            Ok(ty) => {
+                let pipe_type = if candidate.receiver_mutable {
+                    apply_subst(&receiver_type, &trial_subst)
+                } else {
+                    ty
+                };
+                *subst = trial_subst;
+                return Some(pipe_type);
+            }
+            Err(message) => {
+                errors.push(message);
+                return Some(Type::Dynamic);
+            }
+        }
+    }
+
+    let candidate_types = candidates
+        .iter()
+        .map(|candidate| pretty_type(&candidate.receiver_type))
+        .collect::<Vec<_>>()
+        .join(", ");
+    errors.push(format!(
+        "no receiver method `{}` / {} for {}; candidates: {}",
+        method,
+        arity,
+        pretty_type(&receiver_type),
+        candidate_types
+    ));
+    Some(Type::Dynamic)
+}
+
 fn infer_syntax_pipe_forward(
     expr: &SyntaxExprOutput,
     locals: &HashMap<String, Type>,
@@ -12030,6 +12942,14 @@ fn infer_syntax_pipe_forward(
         let _ = infer_syntax_expr(left, locals, ctx, subst, errors);
         let _ = infer_syntax_expr(right, locals, ctx, subst, errors);
         return Type::Dynamic;
+    }
+
+    if right.kind == SyntaxExprKind::Call {
+        if let Some(ty) =
+            infer_syntax_receiver_method_pipe_forward(left, right, locals, ctx, subst, errors)
+        {
+            return ty;
+        }
     }
 
     let mut arg_types = Vec::with_capacity(right.children.len());
@@ -12353,6 +13273,14 @@ fn infer_syntax_remote_call(
                 let mut matching = None::<usize>;
                 let mut matches = 0usize;
                 for (index, impl_candidate) in impls.iter().enumerate() {
+                    if !trait_method_candidate_matches_call(
+                        impl_candidate,
+                        &lookup_arg_types,
+                        ctx,
+                        subst,
+                    ) {
+                        continue;
+                    }
                     let mut trial_subst = subst.clone();
                     if infer_function_call(
                         &impl_candidate.scheme,
@@ -12543,6 +13471,48 @@ fn infer_syntax_remote_call(
     Type::Dynamic
 }
 
+/// Checks whether a trait candidate can own the current call.
+///
+/// Inputs:
+/// - `candidate`: resolved trait method candidate with concrete impl type args.
+/// - `arg_types`: inferred source-visible call argument types.
+/// - `ctx`: expression inference context containing alias expansion rules.
+/// - `subst`: current type-variable substitution table.
+///
+/// Output:
+/// - `true` when the candidate has no owner type information or when its first
+///   impl type argument unifies with the call's first argument type.
+/// - `false` when a different concrete conformance owns the method.
+///
+/// Transformation:
+/// - Uses a cloned substitution table and transparent alias expansion to filter
+///   trait method candidates before ambiguity counting. This keeps imported
+///   multi-conformance traits such as `std.core.String.Show` from treating
+///   `Show[Int]`, `Show[Bool]`, and `Show[String]` as simultaneous matches for
+///   one receiver/value argument.
+fn trait_method_candidate_matches_call(
+    candidate: &ResolvedTraitMethod,
+    arg_types: &[Type],
+    ctx: &ExprInferContext,
+    subst: &HashMap<TypeVarId, Type>,
+) -> bool {
+    let Some(owner_type) = candidate.impl_type_args.first() else {
+        return true;
+    };
+    let Some(first_arg_type) = arg_types.first() else {
+        return true;
+    };
+
+    let mut trial_subst = subst.clone();
+    if unify(owner_type, first_arg_type, &mut trial_subst).is_ok() {
+        return true;
+    }
+
+    let owner_expanded = expand_type_aliases(owner_type, ctx.aliases);
+    let arg_expanded = expand_type_aliases(first_arg_type, ctx.aliases);
+    unify(&owner_expanded, &arg_expanded, &mut trial_subst).is_ok()
+}
+
 /// Infers a local receiver-method call.
 ///
 /// Inputs:
@@ -12704,13 +13674,11 @@ fn primitive_receiver_method_scheme(
 
     let binary = Type::Binary;
     match (method, arg_count) {
-        ("equal", 1) | ("contains", 1) | ("starts_with", 1) | ("ends_with", 1) => {
-            Some(FunctionScheme {
-                params: vec![binary],
-                ret: Type::Bool,
-                bounds: Vec::new(),
-            })
-        }
+        ("contains", 1) | ("starts_with", 1) | ("ends_with", 1) => Some(FunctionScheme {
+            params: vec![binary],
+            ret: Type::Bool,
+            bounds: Vec::new(),
+        }),
         ("compare", 1) => Some(FunctionScheme {
             params: vec![binary],
             ret: Type::Union(vec![
@@ -13264,11 +14232,16 @@ fn infer_syntax_list_comprehension(
         Type::List(elem) => *elem,
         Type::Dynamic | Type::Term => Type::Dynamic,
         other => {
-            errors.push(format!(
-                "list comprehension source must be List, found {}",
-                pretty_type(&other)
-            ));
-            Type::Dynamic
+            if let Some(iterable_item_type) = infer_iterable_comprehension_element_type(&other, ctx)
+            {
+                iterable_item_type
+            } else {
+                errors.push(format!(
+                    "list comprehension source must be List or Iterable, found {}",
+                    pretty_type(&other)
+                ));
+                Type::Dynamic
+            }
         }
     };
     let mut item_locals = locals.clone();
@@ -13287,6 +14260,10 @@ fn infer_syntax_list_comprehension(
     }
     if let Some(guard) = expr.children.get(2) {
         refine_by_syntax_guard(guard, &mut item_locals, ctx.aliases, &mut item_subst);
+        let guard_type = infer_syntax_expr(guard, &item_locals, ctx, &mut item_subst, errors);
+        if let Err(message) = unify(&Type::Bool, &guard_type, &mut item_subst) {
+            errors.push(format!("list comprehension filter {}", message));
+        }
     }
     let item_type = expr
         .children
@@ -13295,6 +14272,45 @@ fn infer_syntax_list_comprehension(
         .unwrap_or(Type::Dynamic);
 
     Type::List(Box::new(apply_subst(&item_type, &item_subst)))
+}
+
+fn infer_iterable_comprehension_element_type(
+    source_type: &Type,
+    ctx: &ExprInferContext,
+) -> Option<Type> {
+    let source_type = expand_type_aliases(source_type, ctx.aliases);
+
+    if let Some(impl_args_by_type) = ctx.trait_bound_impl_type_args.get("Iterable") {
+        for impl_args in impl_args_by_type {
+            if impl_args.len() < 2 {
+                continue;
+            }
+
+            let collection_arg = expand_type_aliases(&impl_args[0], ctx.aliases);
+            let item_arg = expand_type_aliases(&impl_args[1], ctx.aliases);
+            let mut local_subst = HashMap::new();
+
+            if unify(&collection_arg, &source_type, &mut local_subst).is_ok() {
+                return Some(apply_subst(&item_arg, &local_subst));
+            }
+        }
+    }
+
+    for bound in ctx.current_bounds.iter() {
+        if bound.trait_name != "Iterable" || bound.trait_args.len() < 2 {
+            continue;
+        }
+
+        let collection_arg = expand_type_aliases(&bound.trait_args[0], ctx.aliases);
+        let item_arg = expand_type_aliases(&bound.trait_args[1], ctx.aliases);
+        let mut local_subst = HashMap::new();
+
+        if unify(&collection_arg, &source_type, &mut local_subst).is_ok() {
+            return Some(apply_subst(&item_arg, &local_subst));
+        }
+    }
+
+    None
 }
 
 fn infer_syntax_fun_expr(
@@ -14387,7 +15403,13 @@ fn alias_constructor_call_schemes(
     name: &str,
     aliases: &HashMap<String, TypeAlias>,
 ) -> Option<Vec<ConstructorScheme>> {
-    alias_constructor_schemes(name, aliases)
+    alias_constructor_schemes(name, aliases).and_then(|schemes| {
+        let callable = schemes
+            .into_iter()
+            .filter(|scheme| !scheme.fixed_params.is_empty() || scheme.vararg.is_some())
+            .collect::<Vec<_>>();
+        (!callable.is_empty()).then_some(callable)
+    })
 }
 
 fn alias_constructor_params(body: &Type) -> Option<Vec<Type>> {
@@ -14525,6 +15547,69 @@ fn guard_narrow_type(callee_name: &str) -> Option<Type> {
     }
 }
 
+/// Builds the broad type shape required by a structural pattern.
+///
+/// Inputs:
+/// - `pattern`: syntax-output pattern being checked against an unconstrained
+///   generic type variable.
+///
+/// Output:
+/// - A broad `Type` that represents the minimum structural shape required by
+///   the pattern.
+///
+/// Transformation:
+/// - Preserves structural containers such as tuples, lists, and maps while
+///   assigning `Dynamic` to value-binding leaves. Literal leaves keep their
+///   primitive type so generic pattern payloads can be constrained without
+///   inventing constructor-specific rules.
+fn syntax_pattern_shape_type(pattern: &SyntaxPatternOutput) -> Type {
+    match pattern.kind {
+        SyntaxPatternKind::Int => Type::Int,
+        SyntaxPatternKind::Float => Type::Float,
+        SyntaxPatternKind::Atom => {
+            let atom = pattern.text.as_deref().unwrap_or_default();
+            if atom == "true" || atom == "false" {
+                Type::Bool
+            } else if is_literal_atom(atom) {
+                Type::LiteralAtom(atom.to_string())
+            } else {
+                Type::Atom
+            }
+        }
+        SyntaxPatternKind::Tuple => Type::Tuple(
+            pattern
+                .children
+                .iter()
+                .map(syntax_pattern_shape_type)
+                .collect(),
+        ),
+        SyntaxPatternKind::List | SyntaxPatternKind::ListCons => Type::List(Box::new(
+            pattern
+                .children
+                .first()
+                .map(syntax_pattern_shape_type)
+                .unwrap_or(Type::Dynamic),
+        )),
+        SyntaxPatternKind::Map | SyntaxPatternKind::MapField => Type::Map(
+            pattern
+                .fields
+                .iter()
+                .map(|field| MapFieldType {
+                    key: field.key.clone(),
+                    value: syntax_pattern_shape_type(&field.value),
+                    required: true,
+                })
+                .collect(),
+        ),
+        SyntaxPatternKind::Wildcard
+        | SyntaxPatternKind::Var
+        | SyntaxPatternKind::Constructor
+        | SyntaxPatternKind::Ignore
+        | SyntaxPatternKind::Placeholder
+        | SyntaxPatternKind::Record => Type::Dynamic,
+    }
+}
+
 fn check_syntax_pattern(
     pattern: &SyntaxPatternOutput,
     expected: &Type,
@@ -14575,6 +15660,11 @@ fn check_syntax_pattern(
                 })
         }
         SyntaxPatternKind::Tuple => match &expected {
+            Type::Var(id) => {
+                bind_var(*id, syntax_pattern_shape_type(pattern), subst)?;
+                let specialized = apply_subst(&Type::Var(*id), subst);
+                check_syntax_pattern(pattern, &specialized, aliases, ctx, locals, subst)
+            }
             Type::Union(variants) => {
                 let mut ok = false;
                 for variant in variants {
@@ -16638,7 +17728,7 @@ fn split_top_level_union(input: &str) -> Vec<String> {
 }
 
 fn split_module_name(name: &str) -> (Option<String>, String) {
-    if let Some((module, base)) = name.split_once('.') {
+    if let Some((module, base)) = name.rsplit_once('.') {
         (Some(module.to_string()), base.to_string())
     } else {
         (None, name.to_string())
@@ -16741,6 +17831,34 @@ mod tests {
         let module = parse_module_as_syntax_output(source)
             .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
         let resolved = resolve_syntax_module_output(&module).module;
+        type_check_syntax_module_output(&module, &resolved)
+    }
+
+    /// Typechecks source with checked-in std interfaces loaded.
+    ///
+    /// Inputs:
+    /// - `source`: Terlan source text to parse and typecheck.
+    /// - `std_relative_path`: repository-relative std source path used as the
+    ///   anchor for std summary discovery.
+    ///
+    /// Output:
+    /// - Diagnostics produced by formal syntax-output typechecking.
+    ///
+    /// Transformation:
+    /// - Loads interfaces through `load_interfaces_from_file_set`, resolves the
+    ///   parsed source against those interfaces, and typechecks with the same
+    ///   std summary visibility used by external compiler commands.
+    fn check_syntax_output_with_std_interfaces(
+        source: &str,
+        std_relative_path: &str,
+    ) -> Vec<Diagnostic> {
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(std_relative_path);
+        let interfaces = load_interfaces_from_file_set(&fixture_path.to_string_lossy());
+        let module = parse_module_as_syntax_output(source)
+            .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
+        let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
         type_check_syntax_module_output(&module, &resolved)
     }
 
@@ -16992,7 +18110,7 @@ import option.{None, Some}.\n\
 import type ordering.Comparison.\n\
 pub compare_int(left: Int, right: Int): Comparison -> :lt.\n\
 pub demo(): Bool ->\n\
-    std.test.Test.assert_equal(:lt, option.compare(None(), Some(1), compare_int)).\n\
+    std.test.Test.assert_equal(:lt, option.compare(None, Some(1), compare_int)).\n\
 ",
         )
         .unwrap_or_else(|err| panic!("failed to parse consumer fixture: {:?}", err));
@@ -17020,7 +18138,7 @@ pub demo(): Bool ->\n\
     /// Transformation:
     /// - Loads checked-in std `.typi` summaries, resolves a consumer module
     ///   against them, and typechecks a release-style assertion using
-    ///   `Option.compare(None(), Some(1), compare_int)`.
+    ///   `Option.compare(None, Some(1), compare_int)`.
     #[test]
     fn syntax_output_std_option_compare_summary_preserves_comparison_return_type() {
         let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -17150,9 +18268,9 @@ import type std.core.Ordering.Comparison.\n\
 pub compare_int(left: Int, right: Int): Comparison ->\n\
     std.core.Int.compare(left, right).\n\
 pub direct(): Comparison ->\n\
-    std.core.Option.compare(None(), Some(1), compare_int).\n\
+    std.core.Option.compare(None, Some(1), compare_int).\n\
 pub demo(): Bool ->\n\
-    std.test.Test.assert_equal(Lt(), std.core.Option.compare(None(), Some(1), compare_int)).\n\
+    std.test.Test.assert_equal(Lt, std.core.Option.compare(None, Some(1), compare_int)).\n\
 ",
         )
         .unwrap_or_else(|err| panic!("failed to parse summary consumer fixture: {:?}", err));
@@ -18161,9 +19279,9 @@ pub type None = Atom[\"none\"].\n\
 module alias_literal_comparisons.\n\
 pub type Unit = Atom[\"unit\"].\n\
 pub value(): Unit ->\n\
-    Unit().\n\
+    Unit.\n\
 pub matches(): Bool ->\n\
-    value() == Unit().\n\
+    value() == Unit.\n\
 ",
         );
         assert!(
@@ -18174,7 +19292,20 @@ pub matches(): Bool ->\n\
     }
 
     #[test]
-    fn syntax_output_literal_alias_constructor_calls_are_valid_on_formal_path() {
+    fn syntax_output_literal_alias_values_are_valid_on_formal_path() {
+        let diagnostics = check_syntax_output(
+            "\
+module alias_literal_values.\n\
+pub type None = Atom[\"none\"].\n\
+pub none(): None ->\n\
+    None.\n\
+",
+        );
+        assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+    }
+
+    #[test]
+    fn syntax_output_literal_alias_constructor_calls_are_rejected_on_formal_path() {
         let diagnostics = check_syntax_output(
             "\
 module alias_literal_calls.\n\
@@ -18183,7 +19314,13 @@ pub none(): None ->\n\
     None().\n\
 ",
         );
-        assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diag| diag.message == "unknown constructor None / 0"),
+            "diagnostics: {:?}",
+            diagnostics
+        );
     }
 
     #[test]
@@ -18205,7 +19342,24 @@ pub none(): Dynamic ->\n\
     }
 
     #[test]
-    fn syntax_output_imported_literal_alias_constructor_calls_are_valid_on_formal_path() {
+    fn syntax_output_imported_literal_alias_values_are_valid_on_formal_path() {
+        let diagnostics = check_syntax_output_with_interface(
+            "\
+module imported_alias_literal_values.\n\
+import literals.{None}.\n\
+pub none(): None ->\n\
+    None.\n\
+",
+            "\
+module literals.\n\
+pub type None = Atom[\"none\"].\n\
+",
+        );
+        assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+    }
+
+    #[test]
+    fn syntax_output_imported_literal_alias_constructor_calls_are_rejected_on_formal_path() {
         let diagnostics = check_syntax_output_with_interface(
             "\
 module imported_alias_literal_calls.\n\
@@ -18218,7 +19372,13 @@ module literals.\n\
 pub type None = Atom[\"none\"].\n\
 ",
         );
-        assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diag| diag.message == "unknown constructor None / 0"),
+            "diagnostics: {:?}",
+            diagnostics
+        );
     }
 
     #[test]
@@ -19093,6 +20253,72 @@ pub inc_all(values: List[Int]): List[Int] ->\n\
     }
 
     #[test]
+    fn syntax_output_accepts_stacked_list_comprehension_filters_on_formal_path() {
+        let diagnostics = check_syntax_output(
+            "\
+module syntax_list_stacked_filters.\n\
+pub values(items: List[Int]): List[Int] ->\n\
+    [x | x <- items, x > 0, x < 10].\n\
+",
+        );
+
+        assert!(
+            diagnostics.is_empty(),
+            "unexpected diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    #[test]
+    fn syntax_output_accepts_iterable_list_comprehension_on_formal_path() {
+        let diagnostics = check_syntax_output(
+            "\
+module syntax_iterable_comprehension.
+pub type Iterator[T] = List[T].
+
+pub trait Iterable[C, T] {
+    iterator(collection: C): Iterator[T].
+}.
+
+pub struct IntCollection implements Iterable[IntCollection, Int] {
+    values: List[Int]
+}.
+
+pub (collection: IntCollection) iterator(): Iterator[Int] ->
+    collection.values.
+
+pub values(items: IntCollection): List[Int] ->
+    [value | value <- items, value > 0].
+",
+        );
+
+        assert!(
+            diagnostics.is_empty(),
+            "unexpected diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    #[test]
+    fn syntax_output_rejects_non_bool_list_comprehension_filter_on_formal_path() {
+        let diagnostics = check_syntax_output(
+            "\
+module syntax_list_filter_type.\n\
+pub values(items: List[Int]): List[Int] ->\n\
+    [x | x <- items, x].\n\
+",
+        );
+
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diag| diag.message.contains("list comprehension filter")),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    #[test]
     fn syntax_output_rejects_list_comprehension_non_list_source_on_formal_path() {
         let diagnostics = check_syntax_output(
             "\
@@ -19105,7 +20331,7 @@ pub inc_all(value: Int): List[Int] ->\n\
         assert!(
             diagnostics.iter().any(|diag| {
                 diag.message
-                    .contains("list comprehension source must be List")
+                    .contains("list comprehension source must be List or Iterable")
             }),
             "diagnostics: {:?}",
             diagnostics
@@ -19461,6 +20687,91 @@ pub (user: User) to_string(): String ->\n\
         );
     }
 
+    /// Verifies the release Iterable contract typechecks as receiver methods.
+    ///
+    /// Inputs:
+    /// - A source module containing the release-shaped `Iterator[T]` and
+    ///   `Iterable[C, T]` contracts.
+    /// - A struct declaring `implements Iterable[IntCollection, Int]`.
+    /// - A matching receiver method `iterator(): Iterator[Int]`.
+    ///
+    /// Output:
+    /// - Test passes when declaration-site conformance reports no diagnostics.
+    ///
+    /// Transformation:
+    /// - Exercises formal typecheck conformance without traversal lowering:
+    ///   the trait method's first parameter maps to the receiver and the return
+    ///   type is specialized from `Iterator[T]` to `Iterator[Int]`.
+    #[test]
+    fn syntax_output_checks_release_traversal_contracts_on_formal_path() {
+        let diagnostics = check_syntax_output(
+            "\
+module iterable_contract_ok.\n\
+\n\
+pub trait Iterable[C, T] {\n\
+    iterator(collection: C): Iterator[T].\n\
+}.\n\
+\n\
+pub struct IntCollection implements Iterable[IntCollection, Int] {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub type Iterator[T] = IntCollection.\n\
+\n\
+pub (collection: IntCollection) iterator(): Iterator[Int] ->\n\
+    collection.\n\
+",
+        );
+
+        assert!(
+            diagnostics.is_empty(),
+            "unexpected diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    /// Verifies Iterable conformance requires the receiver method.
+    ///
+    /// Inputs:
+    /// - A source module containing the release-shaped `Iterable[C, T]`
+    ///   contract.
+    /// - A struct declaring `implements Iterable[IntCollection, Int]` without an
+    ///   `iterator` receiver method.
+    ///
+    /// Output:
+    /// - Test passes when typecheck emits the stable missing receiver method
+    ///   diagnostic.
+    ///
+    /// Transformation:
+    /// - Runs declaration-site conformance validation and proves traversal
+    ///   contracts are checked before any collection traversal lowering exists.
+    #[test]
+    fn syntax_output_rejects_release_traversal_contracts_missing_receiver_method() {
+        let diagnostics = check_syntax_output(
+            "\
+module iterable_contract_missing_method.\n\
+\n\
+pub opaque type Iterator[T].\n\
+\n\
+pub trait Iterable[C, T] {\n\
+    iterator(collection: C): Iterator[T].\n\
+}.\n\
+\n\
+pub struct IntCollection implements Iterable[IntCollection, Int] {\n\
+    size: Int\n\
+}.\n\
+",
+        );
+
+        assert!(
+            diagnostics.iter().any(|diag| diag.message.contains(
+                "missing receiver method `iterator` for `IntCollection` implementing `Iterable`"
+            )),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
     #[test]
     fn syntax_output_resolves_local_receiver_method_calls_on_formal_path() {
         let diagnostics = check_syntax_output(
@@ -19484,6 +20795,362 @@ pub show(user: User): String ->\n\
             "unexpected diagnostics: {:?}",
             diagnostics
         );
+    }
+
+    /// Verifies pipe-forward prefers receiver-method resolution.
+    ///
+    /// Inputs:
+    /// - A module with an immutable receiver method and a function body using
+    ///   `value |> method()`.
+    ///
+    /// Output:
+    /// - Test passes when typecheck resolves the pipe as a receiver-method call
+    ///   instead of requiring a separate receiver-first free function.
+    ///
+    /// Transformation:
+    /// - Runs the formal syntax-output typecheck path and proves receiver pipes
+    ///   infer through the receiver-method dispatch table.
+    #[test]
+    fn syntax_output_typechecks_pipe_into_receiver_method() {
+        let diagnostics = check_syntax_output(
+            "\
+module receiver_pipe_ok.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) display_name(): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user |> display_name().\n\
+",
+        );
+
+        assert!(
+            diagnostics.is_empty(),
+            "unexpected diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    /// Verifies receiver-method pipe ambiguity is diagnosed.
+    ///
+    /// Inputs:
+    /// - A module with both a receiver method `label()` for `User` and an
+    ///   ordinary function `label(user: User)`.
+    /// - A pipe expression written as `user |> label()`.
+    ///
+    /// Output:
+    /// - Test passes when typecheck reports the ambiguous pipe target instead
+    ///   of silently choosing the receiver method or ordinary function.
+    ///
+    /// Transformation:
+    /// - Runs receiver-method-first pipe inference and checks the explicit
+    ///   ambiguity rule documented for P0.2b.
+    #[test]
+    fn syntax_output_rejects_ambiguous_receiver_method_pipe_target() {
+        let diagnostics = check_syntax_output(
+            "\
+module receiver_pipe_ambiguous.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(): String ->\n\
+    user.name.\n\
+\n\
+label(user: User): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user |> label().\n\
+",
+        );
+
+        assert!(
+            diagnostics.iter().any(|diag| diag.message.contains(
+                "ambiguous pipe target `label` / 0: receiver method and ordinary function both match"
+            )),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    /// Verifies selected imported functions participate in pipe ambiguity.
+    ///
+    /// Inputs:
+    /// - A provider interface exporting `label(value: Dynamic): String`.
+    /// - A consumer importing `label`, declaring a receiver method named
+    ///   `label`, and using `user |> label()`.
+    ///
+    /// Output:
+    /// - Test passes when typecheck reports the same ambiguity diagnostic used
+    ///   for local ordinary functions.
+    ///
+    /// Transformation:
+    /// - Resolves the selected import through the loaded interface during the
+    ///   side-effect-free ambiguity check without emitting import diagnostics.
+    #[test]
+    fn syntax_output_rejects_imported_ambiguous_receiver_method_pipe_target() {
+        let interface_source = "\
+module labels.\n\
+pub label(value: Dynamic): String.\n\
+";
+        let diagnostics = check_syntax_output_with_interface(
+            "\
+module receiver_pipe_import_ambiguous.\n\
+\n\
+import labels.{label}.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user |> label().\n\
+",
+            interface_source,
+        );
+
+        assert!(
+            diagnostics.iter().any(|diag| diag.message.contains(
+                "ambiguous pipe target `label` / 0: receiver method and ordinary function both match"
+            )),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    #[test]
+    fn syntax_output_accepts_command_style_mutable_receiver_body_returning_receiver() {
+        let diagnostics = check_syntax_output(
+            "\
+module receiver_dispatch_mutable_command_style.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(): Unit ->\n\
+    map.\n\
+",
+        );
+
+        assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+    }
+
+    /// Verifies mutable receiver pipe steps continue with the receiver type.
+    ///
+    /// Inputs:
+    /// - A module with a mutable receiver method returning `Unit`.
+    /// - A function whose declared return type is the receiver type and whose
+    ///   body is `receiver |> put()`.
+    ///
+    /// Output:
+    /// - Test passes when no return-type mismatch treats the pipe as `Unit`,
+    ///   and no blanket mutable-receiver unsupported diagnostic is emitted.
+    ///
+    /// Transformation:
+    /// - Exercises P0.2c command-style mutable receiver checking while keeping
+    ///   pipe continuation typed as the receiver.
+    #[test]
+    fn syntax_output_mutable_receiver_pipe_continues_with_receiver_type() {
+        let diagnostics = check_syntax_output(
+            "\
+module receiver_pipe_mutable_continuation.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(): Unit ->\n\
+    map.\n\
+\n\
+pub update(map: Map): Map ->\n\
+    map |> put().\n\
+",
+        );
+
+        assert!(
+            !diagnostics.iter().any(|diag| diag
+                .message
+                .contains("mutable receiver method `put` for `Map` is parsed but not supported")),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+        assert!(
+            !diagnostics
+                .iter()
+                .any(|diag| diag.message.contains("expected Map found Unit")),
+            "mutable receiver pipe should continue as Map, diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    #[test]
+    fn syntax_output_rejects_result_producing_mutable_receiver_methods() {
+        let diagnostics = check_syntax_output(
+            "\
+module receiver_dispatch_mutable_arbitrary_return.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(): String ->\n\
+    \"map\".\n\
+",
+        );
+
+        assert!(
+            diagnostics.iter().any(|diag| diag.message.contains(
+                "result-producing mutable receiver method `put` for `Map` is not supported"
+            )),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+        assert!(
+            !diagnostics.iter().any(|diag| diag
+                .message
+                .contains("mutable receiver method `put` for `Map` must return")),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    #[test]
+    fn syntax_output_rejects_receiver_returning_mutable_receiver_methods_until_result_abi() {
+        let diagnostics = check_syntax_output(
+            "\
+module receiver_dispatch_mutable_receiver_return.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(): Map ->\n\
+    map.\n\
+",
+        );
+
+        assert!(
+            diagnostics.iter().any(|diag| diag.message.contains(
+                "result-producing mutable receiver method `put` for `Map` is not supported"
+            )),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+        assert!(
+            !diagnostics.iter().any(|diag| diag
+                .message
+                .contains("mutable receiver method `put` for `Map` must return")),
+            "diagnostics: {:?}",
+            diagnostics
+        );
+    }
+
+    /// Verifies receiver-method dispatch metadata preserves mutability.
+    ///
+    /// Inputs:
+    /// - A syntax-output module containing one mutable receiver method and one
+    ///   immutable receiver method for the same receiver type.
+    ///
+    /// Output:
+    /// - Test passes when the dispatch table marks only the command-style
+    ///   mutable method as `receiver_mutable`.
+    ///
+    /// Transformation:
+    /// - Builds receiver dispatch signatures from parsed syntax output and
+    ///   checks the compiler-owned metadata that later rebinding lowering will
+    ///   consume.
+    #[test]
+    fn syntax_output_receiver_dispatch_signatures_preserve_mutable_marker() {
+        let module = parse_module_as_syntax_output(
+            "\
+module receiver_dispatch_mutability_metadata.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(): Unit ->\n\
+    Unit.\n\
+\n\
+pub (map: Map) size(): Int ->\n\
+    map.size.\n\
+",
+        )
+        .expect("parse receiver dispatch mutability fixture");
+
+        let mut alias_names = HashSet::new();
+        alias_names.insert("Map".to_string());
+        alias_names.insert("Unit".to_string());
+        let signatures = collect_syntax_receiver_method_dispatch_signatures(
+            &module,
+            &alias_names,
+            &HashMap::new(),
+            &HashMap::new(),
+            &HashMap::new(),
+        );
+
+        let put = signatures
+            .get(&("put".to_string(), 0))
+            .and_then(|methods| methods.first())
+            .expect("mutable put dispatch signature");
+        assert!(put.receiver_mutable);
+        assert_eq!(pretty_type(&put.receiver_type), "Map");
+        assert_eq!(pretty_type(&put.scheme.ret), "Unit");
+
+        let size = signatures
+            .get(&("size".to_string(), 0))
+            .and_then(|methods| methods.first())
+            .expect("immutable size dispatch signature");
+        assert!(!size.receiver_mutable);
+        assert_eq!(pretty_type(&size.receiver_type), "Map");
+        assert_eq!(pretty_type(&size.scheme.ret), "Int");
+    }
+
+    /// Verifies release core collection contracts typecheck on the formal path.
+    ///
+    /// Inputs:
+    /// - Release source contracts for `std.collections.Map`, `std.collections.List`, and
+    ///   `std.collections.Set`.
+    ///
+    /// Output:
+    /// - Test passes when all promoted collection contracts produce no
+    ///   diagnostics.
+    ///
+    /// Transformation:
+    /// - Runs release contracts through formal syntax-output typechecking and
+    ///   relies on `@compiler.intrinsic` declarations for compiler-provided
+    ///   collection method implementations.
+    #[test]
+    fn syntax_output_accepts_release_core_collection_contracts() {
+        let contracts = [
+            include_str!("../../../std/collections/map.tl"),
+            include_str!("../../../std/collections/list.tl"),
+            include_str!("../../../std/collections/set.tl"),
+        ];
+
+        for (source, std_relative_path) in contracts.into_iter().zip([
+            "std/collections/map.tl",
+            "std/collections/list.tl",
+            "std/collections/set.tl",
+        ]) {
+            let diagnostics = check_syntax_output_with_std_interfaces(source, std_relative_path);
+
+            assert!(
+                diagnostics.is_empty(),
+                "unexpected release collection diagnostics in {:?}",
+                diagnostics
+            );
+        }
     }
 
     #[test]
@@ -19639,6 +21306,34 @@ pub stringify(user: User): String ->\n\
             "unexpected diagnostics: {:?}",
             diagnostics
         );
+    }
+
+    /// Verifies multi-segment module type references keep their full module path.
+    ///
+    /// Inputs:
+    /// - A type expression with a lowercase package segment, uppercase module
+    ///   segment, and uppercase type name.
+    ///
+    /// Output:
+    /// - Parsed and rendered type text preserving `people.Provider` as the
+    ///   module path and `ExternalUser` as the type name.
+    ///
+    /// Transformation:
+    /// - Exercises qualified type-name splitting so imported interface
+    ///   conformance metadata can match consumer-side imported value types.
+    #[test]
+    fn type_parser_preserves_multi_segment_module_type_references() {
+        let mut vars = HashMap::new();
+        let mut next_var = 0usize;
+        let ty = parse_type_expr(
+            "people.Provider.ExternalUser",
+            &HashSet::new(),
+            &mut vars,
+            &mut next_var,
+        )
+        .expect("parse qualified type");
+
+        assert_eq!(pretty_type(&ty), "people.Provider.ExternalUser");
     }
 
     /// Verifies generic trait bounds supply local trait-method evidence.
@@ -20214,6 +21909,75 @@ pub impl Show[Int] for Int {\n\
             "contract text: {}",
             core.contract_text()
         );
+    }
+
+    /// Verifies mutable receiver calls are explicit effectful CoreIR nodes.
+    ///
+    /// Inputs:
+    /// - A syntax-output module with a declared mutable receiver method and a
+    ///   function body that calls it as `map.put()`.
+    ///
+    /// Output:
+    /// - Test passes when formal CoreIR lowering records
+    ///   `CoreExpr::MutableReceiverCall` with a `receiver_mutation` effect
+    ///   instead of treating the call as an ordinary `Unit`-returning function.
+    ///
+    /// Transformation:
+    /// - Parses and resolves the syntax-output module, lowers it through the
+    ///   formal CoreIR path, and inspects the typed Core payload attached to the
+    ///   caller function body.
+    #[test]
+    fn syntax_output_lowering_to_core_records_mutable_receiver_call_effect() {
+        let module = parse_module_as_syntax_output(
+            "\
+module core_mutable_receiver_effect.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(): Unit ->\n\
+    map.\n\
+\n\
+pub run(map: Map): Unit ->\n\
+    map.put().\n\
+",
+        )
+        .unwrap_or_else(|err| panic!("failed to parse mutable receiver fixture: {:?}", err));
+        let resolved = resolve_syntax_module_output(&module).module;
+        let core = lower_syntax_module_output_to_core(&module, &resolved);
+        let function = core
+            .functions
+            .iter()
+            .find(|function| function.name == "run")
+            .unwrap_or_else(|| panic!("missing run function in core: {:?}", core.functions));
+
+        let Some(CoreExpr::MutableReceiverCall {
+            receiver,
+            method,
+            args,
+            effects,
+        }) = &function.clauses[0].body.core_expr
+        else {
+            panic!(
+                "expected mutable receiver call core expr, found {:?}",
+                function.clauses[0].body.core_expr
+            );
+        };
+
+        assert_eq!(**receiver, CoreExpr::Var("map".to_string()));
+        assert_eq!(method, "put");
+        assert!(args.is_empty());
+        assert_eq!(effects, &core_receiver_mutation_effect_set());
+        assert!(function.clauses[0]
+            .body
+            .core_expr
+            .as_ref()
+            .unwrap()
+            .contract_text()
+            .contains(
+                "MutableReceiverCall(Var(map).put;args=;effects=Effects(receiver_mutation))"
+            ));
     }
 
     /// Verifies CoreIR proof-readiness precedence remains stable.

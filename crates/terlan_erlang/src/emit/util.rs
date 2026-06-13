@@ -62,9 +62,21 @@ pub(super) fn lower_type_to_spec(input: &str) -> ErlType {
                 .unwrap_or_else(|| ErlType::Raw("any()".to_string()));
             return ErlType::List(Box::new(inner));
         }
+        if matches!(head, "Map" | "Set") {
+            return ErlType::Raw("map()".to_string());
+        }
         if head == "Option" {
             return ErlType::Named {
                 name: "std_core_option:typer_option".to_string(),
+                args: args
+                    .into_iter()
+                    .map(|arg| lower_type_to_spec(&arg))
+                    .collect(),
+            };
+        }
+        if head == "Result" {
+            return ErlType::Named {
+                name: "std_core_result:result".to_string(),
                 args: args
                     .into_iter()
                     .map(|arg| lower_type_to_spec(&arg))
@@ -101,6 +113,21 @@ pub(super) fn lower_type_to_spec(input: &str) -> ErlType {
         );
     }
 
+    if src.starts_with("#{") && src.ends_with('}') {
+        let inner = &src[2..src.len() - 1];
+        if inner.trim().is_empty() {
+            return ErlType::Raw("map()".to_string());
+        }
+        if let Some(fields) = split_top_level_csv(inner)
+            .into_iter()
+            .map(|field| lower_map_type_elem_to_spec(&field))
+            .collect::<Option<Vec<_>>>()
+        {
+            return ErlType::Map(fields);
+        }
+        return ErlType::Raw("map()".to_string());
+    }
+
     lower_bare_type_to_spec(&src)
 }
 
@@ -112,6 +139,27 @@ pub(super) fn lower_tuple_type_elem_to_spec(input: &str) -> ErlType {
     }
 
     lower_type_to_spec(input)
+}
+
+/// Lowers one Terlan map type field to an Erlang map field type.
+///
+/// Inputs:
+/// - `input`: one map type field such as `name := String`.
+///
+/// Output:
+/// - `Some(ErlMapTypeField)` when a top-level `:=` or `=>` separator is found.
+/// - `None` when the field is malformed.
+///
+/// Transformation:
+/// - Keeps the source key spelling and lowers the value type through the same
+///   type-spec mapper used by ordinary annotations.
+fn lower_map_type_elem_to_spec(input: &str) -> Option<ErlMapTypeField> {
+    let (key, value, required) = split_map_type_elem(input)?;
+    Some(ErlMapTypeField {
+        key: key.to_string(),
+        value: lower_type_to_spec(value),
+        required,
+    })
 }
 
 pub(super) fn lower_bare_type_to_spec(src: &str) -> ErlType {
@@ -129,6 +177,11 @@ pub(super) fn lower_bare_type_to_spec(src: &str) -> ErlType {
             name: "std_core_option:typer_option".to_string(),
             args: Vec::new(),
         }
+    } else if src == "Result" {
+        ErlType::Named {
+            name: "std_core_result:result".to_string(),
+            args: Vec::new(),
+        }
     } else if is_custom_type_name(src) {
         ErlType::Named {
             name: map_type_name(src),
@@ -141,6 +194,7 @@ pub(super) fn lower_bare_type_to_spec(src: &str) -> ErlType {
 
 pub(super) fn compact_type_application(input: &str) -> String {
     input
+        .replace("# {", "#{")
         .replace(" [", "[")
         .replace("[ ", "[")
         .replace(" ]", "]")
@@ -220,6 +274,7 @@ pub(super) fn map_type_name(name: &str) -> String {
         "Text" => "binary()".to_string(),
         "Atom" => "atom()".to_string(),
         "Bool" => "boolean()".to_string(),
+        "Unit" => "unit".to_string(),
         "Term" => "term()".to_string(),
         "Dynamic" => "dynamic()".to_string(),
         "Never" => "none()".to_string(),
@@ -274,6 +329,7 @@ pub(super) fn is_builtin_type_name(name: &str) -> bool {
             | "Text"
             | "Atom"
             | "Bool"
+            | "Unit"
             | "Term"
             | "Dynamic"
             | "Never"
@@ -319,8 +375,25 @@ pub(super) fn map_struct_name(name: &str) -> String {
     name.to_lowercase()
 }
 
+/// Parses a named generic type application.
+///
+/// Inputs:
+/// - `src`: compact Terlan type text such as `Option[Int]`.
+///
+/// Output:
+/// - `Some((name, args))` when `src` has a non-empty named head followed by
+///   bracketed type arguments.
+/// - `None` for non-generic types and list shorthand such as `[Int]`.
+///
+/// Transformation:
+/// - Splits once at the first `[` and top-level-comma splits the argument
+///   payload, deliberately rejecting empty heads so list shorthand remains
+///   available to the dedicated list-type branch.
 pub(super) fn parse_named_type_args(src: &str) -> Option<(&str, Vec<String>)> {
     if let Some((name, rest)) = src.split_once('[') {
+        if name.is_empty() {
+            return None;
+        }
         if let Some(args) = rest.strip_suffix(']') {
             return Some((name, split_top_level_csv(args)));
         }
@@ -623,6 +696,63 @@ pub(super) fn split_named_tuple_type_elem(input: &str) -> Option<(&str, &str)> {
             }
             _ => {}
         }
+    }
+
+    None
+}
+
+/// Splits one Terlan map type field at the top-level map separator.
+///
+/// Inputs:
+/// - `input`: map field source text.
+///
+/// Output:
+/// - `Some((key, value, required))` where `required` is true for `:=`.
+/// - `None` when no top-level `:=` or `=>` exists.
+///
+/// Transformation:
+/// - Scans while tracking parentheses, brackets, braces, strings, and escapes
+///   so nested type expressions do not get split accidentally.
+fn split_map_type_elem(input: &str) -> Option<(&str, &str, bool)> {
+    let mut depth_p = 0usize;
+    let mut depth_b = 0usize;
+    let mut depth_br = 0usize;
+    let mut quote = None;
+    let mut escape = false;
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
+
+    while idx < bytes.len() {
+        let ch = input[idx..].chars().next()?;
+        if let Some(quote_ch) = quote {
+            if escape {
+                escape = false;
+            } else if ch == '\\' {
+                escape = true;
+            } else if ch == quote_ch {
+                quote = None;
+            }
+            idx += ch.len_utf8();
+            continue;
+        }
+
+        match ch {
+            '\'' | '"' => quote = Some(ch),
+            '(' => depth_p += 1,
+            ')' => depth_p = depth_p.saturating_sub(1),
+            '[' => depth_b += 1,
+            ']' => depth_b = depth_b.saturating_sub(1),
+            '{' => depth_br += 1,
+            '}' => depth_br = depth_br.saturating_sub(1),
+            ':' | '=' if idx + 1 < bytes.len() && depth_p == 0 && depth_b == 0 && depth_br == 0 => {
+                let sep = &input[idx..idx + 2];
+                if sep == ":=" || sep == "=>" {
+                    return Some((input[..idx].trim(), input[idx + 2..].trim(), sep == ":="));
+                }
+            }
+            _ => {}
+        }
+        idx += ch.len_utf8();
     }
 
     None

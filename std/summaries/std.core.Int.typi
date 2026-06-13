@@ -1,62 +1,61 @@
 //! Core integer conformance helpers.
-//! 
+//!
 //! `std.core.Int` provides named operations used by stdlib trait/conformance
 //! implementations for primitive `Int`.
 
 module std.core.Int.
 
 /// Compares two `Int` values using numeric total ordering.
-/// 
+///
 /// Input: two `Int` values.
-/// Output: `Lt()` when `left` is numerically less than `right`, `Eq()` when the
-/// values are equal, and `Gt()` when `left` is numerically greater than
+/// Output: `Lt` when `left` is numerically less than `right`, `Eq` when the
+/// values are equal, and `Gt` when `left` is numerically greater than
 /// `right`.
 /// Transformation: maps the primitive integer ordering relation onto
 /// `std.core.Ordering.Comparison`.
-/// 
+///
 /// This function is the named implementation hook for compiler-known
-/// `std.core.Ordering.Ordering[Int]` conformance in 0.0.1.
-/// 
+/// `std.core.Ordering.Comparable[Int]` conformance in 0.0.1.
+///
 /// ```terlan
 /// module int_compare_example.
-/// 
+///
 /// pub demo(): std.core.Ordering.Comparison ->
-///     std.core.Int.compare(1, 2).
+///    std.core.Int.compare(1, 2).
 /// ```
 
 pub compare(left: Int, right: Int): std.core.Ordering.Comparison.
 
 /// Parses a canonical UTF-8 `String` into `Int`.
-/// 
+///
 /// Input: one `String` value.
 /// Output: `Option[Int]`, where canonical signed decimal text returns
-/// `Some(value)` and invalid text returns `None()`.
+/// `Some(value)` and invalid text returns `None`.
 /// Transformation: lowers through the compiler-owned `core.int.from_string`
 /// intrinsic and accepts only inputs where the full string is consumed.
-/// 
+///
 /// ```terlan
 /// module int_from_string_example.
-/// 
+///
 /// pub demo(): Option[Int] ->
-///     std.core.Int.from_string("42").
+///    std.core.Int.from_string("42").
 /// ```
 
 pub from_string(value: String): Option[Int].
 
 /// Renders an `Int` as its canonical UTF-8 `String`.
-/// 
+///
 /// Input: one `Int` value.
 /// Output: the canonical decimal string for the input integer.
 /// Transformation: lowers through the compiler-owned `core.int.to_string`
 /// intrinsic and returns the canonical text representation used by
 /// `std.core.String.Show[Int]`.
-/// 
+///
 /// ```terlan
 /// module int_to_string_example.
-/// 
+///
 /// pub demo(): String ->
-///     std.core.Int.to_string(42).
+///    std.core.Int.to_string(42).
 /// ```
 
 pub to_string(value: Int): String.
-

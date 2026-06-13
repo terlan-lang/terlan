@@ -1,0 +1,64 @@
+//! Portable filesystem access.
+//!
+//! `std.io.File` exposes target-neutral file operations. Backends own the
+//! runtime calls needed to implement these operations and must map backend
+//! errors into the neutral `FileError` values defined here.
+
+module std.io.File.
+
+/// Portable file error values returned by `std.io.File`.
+
+pub type FileError =
+    NotFound
+  | PermissionDenied
+  | InvalidPath
+  | Unknown.
+
+/// The supplied path cannot be represented by the selected target.
+
+pub type InvalidPath =
+    Atom["invalid_path"].
+
+/// The file path did not resolve to an existing file.
+
+pub type NotFound =
+    Atom["not_found"].
+
+/// The selected target denied access to the file.
+
+pub type PermissionDenied =
+    Atom["permission_denied"].
+
+/// The selected target reported an unclassified filesystem failure.
+
+pub type Unknown =
+    Atom["unknown"].
+
+/// Returns whether a file exists at `path`.
+///
+/// Input: one UTF-8 path string interpreted by the selected target runtime.
+/// Output: `true` when a regular file exists, otherwise `false`.
+/// Transformation: lowers through the compiler-owned `runtime.file.exists`
+/// capability and keeps backend path checks behind the portable API.
+
+pub exists(path: String): Bool.
+
+/// Reads a UTF-8 text file.
+///
+/// Input: one UTF-8 path string interpreted by the selected target runtime.
+/// Output: `Result[String, FileError]`.
+/// Transformation: lowers through the compiler-owned `runtime.file.read_text`
+/// capability. Backend file errors are normalized into `FileError` values, and
+/// successful file bytes are decoded as UTF-8 text for Terlan `String`.
+
+pub read_text(path: String): Result[String, FileError].
+
+/// Writes a UTF-8 text file.
+///
+/// Input: a UTF-8 path string and UTF-8 text content.
+/// Output: `Result[Unit, FileError]`.
+/// Transformation: lowers through the compiler-owned `runtime.file.write_text`
+/// capability. Backend file errors are normalized into `FileError` values, and a
+/// successful write returns `Unit`.
+
+pub write_text(path: String, content: String): Result[Unit, FileError].

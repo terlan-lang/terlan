@@ -22,9 +22,9 @@ use super::{
 ///
 /// Transformation:
 /// - Maps backend-neutral CoreIR literals, calls, remote calls, operators,
-///   tuples, lists, list cons cells, fixed arrays, and primitive intrinsics
-///   into the emitter's Erlang expression model without consulting source
-///   syntax.
+///   tuples, lists, list cons cells, list comprehensions, fixed arrays, and
+///   primitive intrinsics into the emitter's Erlang expression model without
+///   consulting source syntax.
 #[allow(dead_code)]
 pub(super) fn lower_core_expr_to_erlang(expr: &CoreExpr) -> Option<ErlExpr> {
     match expr {
@@ -40,6 +40,20 @@ pub(super) fn lower_core_expr_to_erlang(expr: &CoreExpr) -> Option<ErlExpr> {
             Box::new(lower_core_expr_to_erlang(head)?),
             Box::new(lower_core_expr_to_erlang(tail)?),
         )),
+        CoreExpr::ListComprehension {
+            expr,
+            pattern,
+            source,
+            guard,
+        } => Some(ErlExpr::ListComprehension {
+            expr: Box::new(lower_core_expr_to_erlang(expr)?),
+            pattern: lower_core_pattern_to_erlang(pattern)?,
+            source: Box::new(lower_core_expr_to_erlang(source)?),
+            guard: match guard.as_deref() {
+                Some(guard) => Some(Box::new(lower_core_expr_to_erlang(guard)?)),
+                None => None,
+            },
+        }),
         CoreExpr::Call { function, args } => Some(ErlExpr::Call {
             module: None,
             function: sanitize_erlang_fn_name(function),
@@ -73,7 +87,6 @@ pub(super) fn lower_core_expr_to_erlang(expr: &CoreExpr) -> Option<ErlExpr> {
         }),
         CoreExpr::Intrinsic(call) => lower_core_intrinsic_call_to_erlang(call),
         CoreExpr::Index { .. }
-        | CoreExpr::ListComprehension { .. }
         | CoreExpr::Let { .. }
         | CoreExpr::Map(_)
         | CoreExpr::RecordConstruct { .. }
@@ -84,6 +97,7 @@ pub(super) fn lower_core_expr_to_erlang(expr: &CoreExpr) -> Option<ErlExpr> {
         | CoreExpr::ConstructorChain { .. }
         | CoreExpr::RemoteFunRef { .. }
         | CoreExpr::ConstructorCall { .. }
+        | CoreExpr::MutableReceiverCall { .. }
         | CoreExpr::Case { .. }
         | CoreExpr::Receive { .. }
         | CoreExpr::Try { .. }
@@ -119,12 +133,12 @@ fn lower_core_exprs_to_erlang(args: &[CoreExpr]) -> Option<Vec<ErlExpr>> {
 /// - `patterns`: CoreIR lambda parameter patterns.
 ///
 /// Output:
-/// - Erlang patterns for the currently supported lambda parameter subset.
-/// - `None` when a parameter uses destructuring or another unsupported pattern.
+/// - Erlang patterns for the currently supported CoreIR pattern subset.
+/// - `None` when a parameter uses a pattern outside the backend subset.
 ///
 /// Transformation:
-/// - Converts direct variable and wildcard Core patterns into backend Erlang
-///   parameter patterns without introducing match helpers.
+/// - Converts supported Core patterns into backend Erlang patterns without
+///   introducing match helpers.
 fn lower_core_patterns_to_erlang(patterns: &[CorePattern]) -> Option<Vec<ErlPattern>> {
     patterns.iter().map(lower_core_pattern_to_erlang).collect()
 }
@@ -135,16 +149,27 @@ fn lower_core_patterns_to_erlang(patterns: &[CorePattern]) -> Option<Vec<ErlPatt
 /// - `pattern`: CoreIR lambda parameter pattern.
 ///
 /// Output:
-/// - `Some(ErlPattern)` for direct variable and wildcard patterns.
-/// - `None` for pattern forms outside the current CoreIR Erlang lambda subset.
+/// - `Some(ErlPattern)` for direct variable, wildcard, literal, tuple, list,
+///   and list-cons patterns.
+/// - `None` for pattern forms outside the current CoreIR Erlang subset.
 ///
 /// Transformation:
-/// - Preserves direct parameter binding names with Erlang variable hygiene and
-///   maps wildcard parameters to `_`.
+/// - Preserves direct parameter binding names with Erlang variable hygiene,
+///   maps wildcard parameters to `_`, and recursively lowers simple
+///   destructuring patterns that Erlang can represent natively.
 fn lower_core_pattern_to_erlang(pattern: &CorePattern) -> Option<ErlPattern> {
     match pattern {
         CorePattern::Var(name) => Some(ErlPattern::Var(sanitize_erlang_var(name))),
         CorePattern::Wildcard => Some(ErlPattern::Wildcard),
+        CorePattern::Int(value) => Some(ErlPattern::Int(*value)),
+        CorePattern::Float(value) => Some(ErlPattern::Float(value.clone())),
+        CorePattern::Atom(value) => Some(ErlPattern::Atom(value.clone())),
+        CorePattern::Tuple(items) => Some(ErlPattern::Tuple(lower_core_patterns_to_erlang(items)?)),
+        CorePattern::List(items) => Some(ErlPattern::List(lower_core_patterns_to_erlang(items)?)),
+        CorePattern::ListCons { head, tail } => Some(ErlPattern::ListCons(
+            Box::new(lower_core_pattern_to_erlang(head)?),
+            Box::new(lower_core_pattern_to_erlang(tail)?),
+        )),
         _ => None,
     }
 }
@@ -172,6 +197,9 @@ pub(super) fn lower_core_intrinsic_call_to_erlang(call: &CoreIntrinsicCall) -> O
         }
         CoreIntrinsicId::Runtime(capability) => match capability {
             CoreRuntimeCapability::ConsolePrintln => lower_runtime_console_println(args),
+            CoreRuntimeCapability::FileExists => lower_runtime_file_exists(args),
+            CoreRuntimeCapability::FileReadText => lower_runtime_file_read_text(args),
+            CoreRuntimeCapability::FileWriteText => lower_runtime_file_write_text(args),
         },
     }
 }
@@ -223,6 +251,31 @@ pub(super) fn lower_core_primitive_intrinsic_to_erlang(
         CorePrimitiveIntrinsic::StringReplace => lower_core_string_replace(args),
         CorePrimitiveIntrinsic::StringSplit => lower_core_string_split(args),
         CorePrimitiveIntrinsic::StringSplitOnce => lower_core_string_split_once(args),
+        CorePrimitiveIntrinsic::ListNew => lower_core_list_new(args),
+        CorePrimitiveIntrinsic::ListIsEmpty => lower_core_list_is_empty(args),
+        CorePrimitiveIntrinsic::ListLength => lower_core_list_length(args),
+        CorePrimitiveIntrinsic::ListFirst => lower_core_list_first(args),
+        CorePrimitiveIntrinsic::ListIterator => lower_core_list_iterator(args),
+        CorePrimitiveIntrinsic::ListPush => lower_core_list_push(args),
+        CorePrimitiveIntrinsic::ListClear => lower_core_list_clear(args),
+        CorePrimitiveIntrinsic::IteratorNext => lower_core_iterator_next(args),
+        CorePrimitiveIntrinsic::MapNew => lower_core_map_new(args),
+        CorePrimitiveIntrinsic::MapIsEmpty => lower_core_map_is_empty(args),
+        CorePrimitiveIntrinsic::MapSize => lower_core_map_size(args),
+        CorePrimitiveIntrinsic::MapGet => lower_core_map_get(args),
+        CorePrimitiveIntrinsic::MapContainsKey => lower_core_map_contains_key(args),
+        CorePrimitiveIntrinsic::MapPut => lower_core_map_put(args),
+        CorePrimitiveIntrinsic::MapRemove => lower_core_map_remove(args),
+        CorePrimitiveIntrinsic::MapClear => lower_core_map_clear(args),
+        CorePrimitiveIntrinsic::MapIterator => lower_core_map_iterator(args),
+        CorePrimitiveIntrinsic::SetNew => lower_core_set_new(args),
+        CorePrimitiveIntrinsic::SetIsEmpty => lower_core_set_is_empty(args),
+        CorePrimitiveIntrinsic::SetSize => lower_core_set_size(args),
+        CorePrimitiveIntrinsic::SetContains => lower_core_set_contains(args),
+        CorePrimitiveIntrinsic::SetAdd => lower_core_set_add(args),
+        CorePrimitiveIntrinsic::SetRemove => lower_core_set_remove(args),
+        CorePrimitiveIntrinsic::SetClear => lower_core_set_clear(args),
+        CorePrimitiveIntrinsic::SetIterator => lower_core_set_iterator(args),
     }
 }
 
@@ -243,6 +296,65 @@ pub(super) fn lower_runtime_console_println(args: Vec<ErlExpr>) -> Option<ErlExp
     let [text] = exact_args(args, 1)?.try_into().ok()?;
     Some(ErlExpr::Raw(format!(
         "begin io:format(\"~ts~n\", [{}]), unit end",
+        text.render()
+    )))
+}
+
+/// Lowers `runtime.file.exists` to a BEAM regular-file check.
+///
+/// Inputs:
+/// - `args`: one lowered Erlang path expression.
+///
+/// Output:
+/// - `Some(filelib:is_regular(Path))` when arity is one.
+/// - `None` for malformed arity.
+///
+/// Transformation:
+/// - Emits a target-owned BEAM filesystem query behind the portable
+///   `std.io.File.exists` API and returns Terlan's boolean representation.
+pub(super) fn lower_runtime_file_exists(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [path] = exact_args(args, 1)?.try_into().ok()?;
+    Some(erl_remote_call("filelib", "is_regular", vec![path]))
+}
+
+/// Lowers `runtime.file.read_text` to BEAM file reading.
+///
+/// Inputs:
+/// - `args`: one lowered Erlang path expression.
+///
+/// Output:
+/// - `Some(case file:read_file(Path) of ... end)` when arity is one.
+/// - `None` for malformed arity.
+///
+/// Transformation:
+/// - Reads bytes through BEAM, decodes successful values as UTF-8 text, and
+///   maps backend filesystem reasons into neutral `std.io.File.FileError`
+///   atoms before returning the `Result[String, FileError]` shape.
+pub(super) fn lower_runtime_file_read_text(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [path] = exact_args(args, 1)?.try_into().ok()?;
+    Some(ErlExpr::Raw(format!(
+        "case file:read_file({}) of\n    {{ok, Bytes}} -> {{ok, unicode:characters_to_list(Bytes, utf8)}};\n    {{error, enoent}} -> {{error, not_found}};\n    {{error, eacces}} -> {{error, permission_denied}};\n    {{error, badarg}} -> {{error, invalid_path}};\n    {{error, _}} -> {{error, unknown}}\nend",
+        path.render()
+    )))
+}
+
+/// Lowers `runtime.file.write_text` to BEAM file writing.
+///
+/// Inputs:
+/// - `args`: lowered Erlang path and text expressions.
+///
+/// Output:
+/// - `Some(case file:write_file(Path, Text) of ... end)` when arity is two.
+/// - `None` for malformed arity.
+///
+/// Transformation:
+/// - Writes text through BEAM and maps backend filesystem reasons into neutral
+///   `std.io.File.FileError` atoms before returning `Result[Unit, FileError]`.
+pub(super) fn lower_runtime_file_write_text(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [path, text] = exact_args(args, 2)?.try_into().ok()?;
+    Some(ErlExpr::Raw(format!(
+        "case file:write_file({}, {}) of\n    ok -> {{ok, unit}};\n    {{error, enoent}} -> {{error, not_found}};\n    {{error, eacces}} -> {{error, permission_denied}};\n    {{error, badarg}} -> {{error, invalid_path}};\n    {{error, _}} -> {{error, unknown}}\nend",
+        path.render(),
         text.render()
     )))
 }
@@ -968,6 +1080,473 @@ fn lower_core_string_split_once(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     })
 }
 
+/// Lowers `core.list.new` to an empty Erlang list.
+///
+/// Inputs:
+/// - `args`: intrinsic arguments, expected to be empty.
+///
+/// Output:
+/// - Empty Erlang list expression.
+///
+/// Transformation:
+/// - Hides the BEAM list representation behind the backend-neutral collection
+///   intrinsic boundary.
+fn lower_core_list_new(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    exact_args(args, 0)?;
+    Some(ErlExpr::List(vec![]))
+}
+
+/// Lowers `core.list.is_empty` to an empty-list comparison.
+///
+/// Inputs:
+/// - `args`: one list expression.
+///
+/// Output:
+/// - Boolean Erlang expression.
+///
+/// Transformation:
+/// - Compares the receiver with the canonical empty Erlang list while keeping
+///   Terlan source independent from that representation.
+fn lower_core_list_is_empty(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [list] = exact_array_args(args)?;
+    Some(erl_exact_eq(list, ErlExpr::List(vec![])))
+}
+
+/// Lowers `core.list.length` to `length/1`.
+///
+/// Inputs:
+/// - `args`: one list expression.
+///
+/// Output:
+/// - Integer Erlang expression for the number of list values.
+///
+/// Transformation:
+/// - Delegates to the BEAM list runtime while preserving the portable Terlan
+///   `List.length()` API.
+fn lower_core_list_length(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [list] = exact_array_args(args)?;
+    Some(erl_remote_call("erlang", "length", vec![list]))
+}
+
+/// Lowers `core.list.first` to a Terlan `Option` shape.
+///
+/// Inputs:
+/// - `args`: one list expression.
+///
+/// Output:
+/// - `{some, Head}` when the list is non-empty, otherwise `none`.
+///
+/// Transformation:
+/// - Converts BEAM list pattern matching into Terlan's option runtime shape.
+fn lower_core_list_first(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [list] = exact_array_args(args)?;
+    Some(ErlExpr::Case {
+        scrutinee: Box::new(list),
+        clauses: vec![
+            ErlCaseClause {
+                pattern: ErlPattern::ListCons(
+                    Box::new(ErlPattern::Var("Head".to_string())),
+                    Box::new(ErlPattern::Wildcard),
+                ),
+                guard: None,
+                body: erl_some(ErlExpr::Var("Head".to_string())),
+            },
+            ErlCaseClause {
+                pattern: ErlPattern::List(vec![]),
+                guard: None,
+                body: erl_none(),
+            },
+        ],
+    })
+}
+
+/// Lowers `core.list.iterator` to the selected BEAM iterator state.
+///
+/// Inputs:
+/// - `args`: one list expression.
+///
+/// Output:
+/// - The same Erlang list expression used as immutable traversal state.
+///
+/// Transformation:
+/// - Starts portable traversal by reusing the BEAM list representation behind
+///   the opaque `Iterator[T]` abstraction.
+fn lower_core_list_iterator(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [list] = exact_array_args(args)?;
+    Some(list)
+}
+
+/// Lowers `core.iterator.next` to one immutable state-passing traversal step.
+///
+/// Inputs:
+/// - `args`: one iterator state expression.
+///
+/// Output:
+/// - Terlan option runtime shape: `none` for exhausted traversal, or
+///   `{some, {CompilerValue, CompilerNextIterator}}` for one yielded value and
+///   the next state.
+///
+/// Transformation:
+/// - Pattern matches the backend iterator representation and returns the next
+///   state explicitly instead of mutating the current iterator.
+fn lower_core_iterator_next(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [iterator] = exact_array_args(args)?;
+    Some(ErlExpr::Case {
+        scrutinee: Box::new(iterator),
+        clauses: vec![
+            ErlCaseClause {
+                pattern: ErlPattern::ListCons(
+                    Box::new(ErlPattern::Var("_TerlanIteratorValue".to_string())),
+                    Box::new(ErlPattern::Var("_TerlanNextIterator".to_string())),
+                ),
+                guard: None,
+                body: erl_some(ErlExpr::Tuple(vec![
+                    ErlExpr::Var("_TerlanIteratorValue".to_string()),
+                    ErlExpr::Var("_TerlanNextIterator".to_string()),
+                ])),
+            },
+            ErlCaseClause {
+                pattern: ErlPattern::List(vec![]),
+                guard: None,
+                body: erl_none(),
+            },
+        ],
+    })
+}
+
+/// Lowers `core.list.push` to an append-at-end list update.
+///
+/// Inputs:
+/// - `args`: list and value expressions.
+///
+/// Output:
+/// - Updated list expression.
+///
+/// Transformation:
+/// - Returns the updated receiver value expected by the command-style mutable
+///   receiver ABI.
+fn lower_core_list_push(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [list, value] = exact_array_args(args)?;
+    Some(erl_remote_call(
+        "lists",
+        "append",
+        vec![list, ErlExpr::List(vec![value])],
+    ))
+}
+
+/// Lowers `core.list.clear` to an empty Erlang list.
+///
+/// Inputs:
+/// - `args`: one list expression.
+///
+/// Output:
+/// - Empty list expression.
+///
+/// Transformation:
+/// - Ignores the old receiver and returns the canonical empty collection
+///   representation for the BEAM backend.
+fn lower_core_list_clear(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    exact_args(args, 1)?;
+    Some(ErlExpr::List(vec![]))
+}
+
+/// Lowers `core.map.new` to an empty Erlang map.
+///
+/// Inputs:
+/// - `args`: intrinsic arguments, expected to be empty.
+///
+/// Output:
+/// - Empty Erlang map expression.
+///
+/// Transformation:
+/// - Hides the BEAM map representation behind the backend-neutral collection
+///   intrinsic boundary.
+fn lower_core_map_new(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    exact_args(args, 0)?;
+    Some(ErlExpr::Map(vec![]))
+}
+
+/// Lowers `core.map.is_empty` to a BEAM map-size comparison.
+///
+/// Inputs:
+/// - `args`: one map expression.
+///
+/// Output:
+/// - Boolean Erlang expression.
+///
+/// Transformation:
+/// - Compares `maps:size(Map)` with zero without exposing that implementation
+///   choice to Terlan source.
+fn lower_core_map_is_empty(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [map] = exact_array_args(args)?;
+    Some(erl_exact_eq(
+        erl_remote_call("maps", "size", vec![map]),
+        ErlExpr::Int(0),
+    ))
+}
+
+/// Lowers `core.map.size` to `maps:size/1`.
+///
+/// Inputs:
+/// - `args`: one map expression.
+///
+/// Output:
+/// - Integer Erlang expression for the number of key-value entries.
+///
+/// Transformation:
+/// - Delegates to the BEAM map runtime while preserving the portable Terlan
+///   `Map.size()` API.
+fn lower_core_map_size(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [map] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "size", vec![map]))
+}
+
+/// Lowers `core.map.get` to a Terlan `Option` shape around `maps:find/2`.
+///
+/// Inputs:
+/// - `args`: map and key expressions.
+///
+/// Output:
+/// - `{some, Value}` when the key exists, otherwise `none`.
+///
+/// Transformation:
+/// - Converts BEAM's `{ok, Value} | error` result into Terlan's option
+///   runtime shape.
+fn lower_core_map_get(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [map, key] = exact_array_args(args)?;
+    Some(ErlExpr::Case {
+        scrutinee: Box::new(erl_remote_call("maps", "find", vec![key, map])),
+        clauses: vec![
+            ErlCaseClause {
+                pattern: ErlPattern::Tuple(vec![
+                    ErlPattern::Atom("ok".to_string()),
+                    ErlPattern::Var("Value".to_string()),
+                ]),
+                guard: None,
+                body: erl_some(ErlExpr::Var("Value".to_string())),
+            },
+            ErlCaseClause {
+                pattern: ErlPattern::Atom("error".to_string()),
+                guard: None,
+                body: erl_none(),
+            },
+        ],
+    })
+}
+
+/// Lowers `core.map.contains_key` to `maps:is_key/2`.
+///
+/// Inputs:
+/// - `args`: map and key expressions.
+///
+/// Output:
+/// - Boolean Erlang expression.
+///
+/// Transformation:
+/// - Delegates key-presence checks to the BEAM map runtime.
+fn lower_core_map_contains_key(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [map, key] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "is_key", vec![key, map]))
+}
+
+/// Lowers `core.map.put` to `maps:put/3`.
+///
+/// Inputs:
+/// - `args`: map, key, and value expressions.
+///
+/// Output:
+/// - Updated map expression.
+///
+/// Transformation:
+/// - Returns the updated receiver value expected by the command-style mutable
+///   receiver ABI.
+fn lower_core_map_put(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [map, key, value] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "put", vec![key, value, map]))
+}
+
+/// Lowers `core.map.remove` to `maps:remove/2`.
+///
+/// Inputs:
+/// - `args`: map and key expressions.
+///
+/// Output:
+/// - Updated map expression.
+///
+/// Transformation:
+/// - Returns the updated receiver value expected by the command-style mutable
+///   receiver ABI.
+fn lower_core_map_remove(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [map, key] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "remove", vec![key, map]))
+}
+
+/// Lowers `core.map.clear` to an empty Erlang map.
+///
+/// Inputs:
+/// - `args`: one map expression.
+///
+/// Output:
+/// - Empty map expression.
+///
+/// Transformation:
+/// - Ignores the old receiver and returns the canonical empty collection
+///   representation for the BEAM backend.
+fn lower_core_map_clear(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    exact_args(args, 1)?;
+    Some(ErlExpr::Map(vec![]))
+}
+
+/// Lowers `core.map.iterator` to the selected BEAM iterator state.
+///
+/// Inputs:
+/// - `args`: one map expression.
+///
+/// Output:
+/// - A list of `{Key, Value}` tuples used as immutable traversal state.
+///
+/// Transformation:
+/// - Converts the BEAM map backing shape to `maps:to_list(Map)` so the
+///   existing portable iterator-next lowering can yield `{K, V}` entries.
+fn lower_core_map_iterator(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [map] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "to_list", vec![map]))
+}
+
+/// Lowers `core.set.new` to the BEAM set backing shape.
+///
+/// Inputs:
+/// - `args`: intrinsic arguments, expected to be empty.
+///
+/// Output:
+/// - Empty compiler-owned set expression.
+///
+/// Transformation:
+/// - Represents the first BEAM set shape as an Erlang map from value to `true`
+///   while preserving the backend-neutral Terlan `Set[T]` contract.
+fn lower_core_set_new(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    exact_args(args, 0)?;
+    Some(ErlExpr::Map(vec![]))
+}
+
+/// Lowers `core.set.is_empty` to a set-size comparison.
+///
+/// Inputs:
+/// - `args`: one set expression.
+///
+/// Output:
+/// - Boolean Erlang expression.
+///
+/// Transformation:
+/// - Observes the compiler-owned map-backed set shape without exposing it to
+///   source code.
+fn lower_core_set_is_empty(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [set] = exact_array_args(args)?;
+    Some(erl_exact_eq(
+        erl_remote_call("maps", "size", vec![set]),
+        ErlExpr::Int(0),
+    ))
+}
+
+/// Lowers `core.set.size` to a map-size call over the backing shape.
+///
+/// Inputs:
+/// - `args`: one set expression.
+///
+/// Output:
+/// - Integer Erlang expression for the number of unique values.
+///
+/// Transformation:
+/// - Uses the BEAM backing map size as the portable set cardinality.
+fn lower_core_set_size(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [set] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "size", vec![set]))
+}
+
+/// Lowers `core.set.contains` to a key-presence check.
+///
+/// Inputs:
+/// - `args`: set and value expressions.
+///
+/// Output:
+/// - Boolean Erlang expression.
+///
+/// Transformation:
+/// - Treats set membership as key presence in the compiler-owned BEAM backing
+///   shape.
+fn lower_core_set_contains(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [set, value] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "is_key", vec![value, set]))
+}
+
+/// Lowers `core.set.add` to a map insertion into the backing shape.
+///
+/// Inputs:
+/// - `args`: set and value expressions.
+///
+/// Output:
+/// - Updated set expression.
+///
+/// Transformation:
+/// - Returns the updated receiver value expected by the command-style mutable
+///   receiver ABI.
+fn lower_core_set_add(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [set, value] = exact_array_args(args)?;
+    Some(erl_remote_call(
+        "maps",
+        "put",
+        vec![value, ErlExpr::Atom("true".to_string()), set],
+    ))
+}
+
+/// Lowers `core.set.remove` to a map removal from the backing shape.
+///
+/// Inputs:
+/// - `args`: set and value expressions.
+///
+/// Output:
+/// - Updated set expression.
+///
+/// Transformation:
+/// - Returns the updated receiver value expected by the command-style mutable
+///   receiver ABI.
+fn lower_core_set_remove(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [set, value] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "remove", vec![value, set]))
+}
+
+/// Lowers `core.set.clear` to the empty BEAM set backing shape.
+///
+/// Inputs:
+/// - `args`: one set expression.
+///
+/// Output:
+/// - Empty compiler-owned set expression.
+///
+/// Transformation:
+/// - Ignores the old receiver and returns the canonical empty collection
+///   representation for the BEAM backend.
+fn lower_core_set_clear(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    exact_args(args, 1)?;
+    Some(ErlExpr::Map(vec![]))
+}
+
+/// Lowers `core.set.iterator` to the selected BEAM iterator state.
+///
+/// Inputs:
+/// - `args`: one set expression.
+///
+/// Output:
+/// - A list of set values used as immutable traversal state.
+///
+/// Transformation:
+/// - Converts the map-backed BEAM set shape to `maps:keys(Set)` so the
+///   existing portable iterator-next lowering can yield `T` values.
+fn lower_core_set_iterator(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [set] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "keys", vec![set]))
+}
+
 /// Converts Erlang string search sentinel results into booleans.
 ///
 /// Inputs:
@@ -1215,8 +1794,68 @@ fn core_intrinsic_id_from_key(key: &str) -> Option<CoreIntrinsicId> {
         "core.string.split_once" => Some(CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::StringSplitOnce,
         )),
+        "core.list.new" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew)),
+        "core.list.is_empty" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ListIsEmpty,
+        )),
+        "core.list.length" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ListLength,
+        )),
+        "core.list.first" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ListFirst,
+        )),
+        "core.list.iterator" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ListIterator,
+        )),
+        "core.list.push" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush)),
+        "core.list.clear" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ListClear,
+        )),
+        "core.iterator.next" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::IteratorNext,
+        )),
+        "core.map.new" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapNew)),
+        "core.map.is_empty" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::MapIsEmpty,
+        )),
+        "core.map.size" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapSize)),
+        "core.map.get" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapGet)),
+        "core.map.contains_key" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::MapContainsKey,
+        )),
+        "core.map.put" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapPut)),
+        "core.map.remove" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::MapRemove,
+        )),
+        "core.map.clear" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapClear)),
+        "core.map.iterator" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::MapIterator,
+        )),
+        "core.set.new" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::SetNew)),
+        "core.set.is_empty" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::SetIsEmpty,
+        )),
+        "core.set.size" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::SetSize)),
+        "core.set.contains" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::SetContains,
+        )),
+        "core.set.add" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::SetAdd)),
+        "core.set.remove" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::SetRemove,
+        )),
+        "core.set.clear" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::SetClear)),
+        "core.set.iterator" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::SetIterator,
+        )),
         "runtime.console.println" => Some(CoreIntrinsicId::Runtime(
             CoreRuntimeCapability::ConsolePrintln,
+        )),
+        "runtime.file.exists" => Some(CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileExists)),
+        "runtime.file.read_text" => Some(CoreIntrinsicId::Runtime(
+            CoreRuntimeCapability::FileReadText,
+        )),
+        "runtime.file.write_text" => Some(CoreIntrinsicId::Runtime(
+            CoreRuntimeCapability::FileWriteText,
         )),
         _ => None,
     }
@@ -1241,6 +1880,21 @@ fn core_intrinsic_return_type(id: &CoreIntrinsicId) -> CoreType {
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsolePrintln) => {
             CoreType::Named("Unit".to_string())
         }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileExists) => CoreType::Bool,
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadText) => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::String,
+                CoreType::Named("std.io.File.FileError".to_string()),
+            ],
+        },
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteText) => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Unit".to_string()),
+                CoreType::Named("std.io.File.FileError".to_string()),
+            ],
+        },
     }
 }
 
@@ -1261,7 +1915,12 @@ fn core_intrinsic_effect_set(id: &CoreIntrinsicId) -> CoreEffectSet {
         CoreIntrinsicId::Primitive(_) => CoreEffectSet {
             effects: vec!["pure".to_string()],
         },
-        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsolePrintln) => CoreEffectSet {
+        CoreIntrinsicId::Runtime(
+            CoreRuntimeCapability::ConsolePrintln
+            | CoreRuntimeCapability::FileExists
+            | CoreRuntimeCapability::FileReadText
+            | CoreRuntimeCapability::FileWriteText,
+        ) => CoreEffectSet {
             effects: vec!["io".to_string()],
         },
     }
@@ -1332,5 +1991,45 @@ fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> C
                 CoreTupleTypeElem::Type(CoreType::String),
             ])],
         },
+        CorePrimitiveIntrinsic::ListNew
+        | CorePrimitiveIntrinsic::ListIterator
+        | CorePrimitiveIntrinsic::ListPush
+        | CorePrimitiveIntrinsic::ListClear => {
+            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
+        }
+        CorePrimitiveIntrinsic::ListIsEmpty => CoreType::Bool,
+        CorePrimitiveIntrinsic::ListLength => CoreType::Int,
+        CorePrimitiveIntrinsic::ListFirst => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Named("Dynamic".to_string())],
+        },
+        CorePrimitiveIntrinsic::IteratorNext => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Named("Dynamic".to_string())],
+        },
+        CorePrimitiveIntrinsic::MapNew
+        | CorePrimitiveIntrinsic::MapPut
+        | CorePrimitiveIntrinsic::MapRemove
+        | CorePrimitiveIntrinsic::MapClear => CoreType::Named("Map".to_string()),
+        CorePrimitiveIntrinsic::MapIterator => {
+            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
+        }
+        CorePrimitiveIntrinsic::MapIsEmpty | CorePrimitiveIntrinsic::MapContainsKey => {
+            CoreType::Bool
+        }
+        CorePrimitiveIntrinsic::MapSize => CoreType::Int,
+        CorePrimitiveIntrinsic::MapGet => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Named("Dynamic".to_string())],
+        },
+        CorePrimitiveIntrinsic::SetNew
+        | CorePrimitiveIntrinsic::SetAdd
+        | CorePrimitiveIntrinsic::SetRemove
+        | CorePrimitiveIntrinsic::SetClear => CoreType::Named("Set".to_string()),
+        CorePrimitiveIntrinsic::SetIterator => {
+            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
+        }
+        CorePrimitiveIntrinsic::SetIsEmpty | CorePrimitiveIntrinsic::SetContains => CoreType::Bool,
+        CorePrimitiveIntrinsic::SetSize => CoreType::Int,
     }
 }

@@ -1,8 +1,10 @@
 std.core
 module Bool
-module Function
-module Identity
+module Equal
+module Float
+module Int
 module Option
 module Ordering
 module Result
+module String
 module Unit

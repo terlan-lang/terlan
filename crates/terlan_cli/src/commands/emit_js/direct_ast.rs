@@ -337,6 +337,12 @@ fn collect_core_expr_local_calls<'a>(
                 collect_core_expr_local_calls(arg, functions_by_name, pending);
             }
         }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            collect_core_expr_local_calls(receiver, functions_by_name, pending);
+            for arg in args {
+                collect_core_expr_local_calls(arg, functions_by_name, pending);
+            }
+        }
         CoreExpr::FunctionCall { callee, args } => {
             collect_core_expr_local_calls(callee, functions_by_name, pending);
             for arg in args {

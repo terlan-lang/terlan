@@ -8,6 +8,19 @@ Program ::= { Declaration } .
 
 Declaration ::= { Annotation } DeclarationCore .
 
+(* Public documentation uses declaration-leading block comments, written
+   `/** ... */`, with TypeDoc-style tags such as `@param`, `@returns`,
+   `@receiver`, `@mutates`, and `@example`.
+
+   Documentation blocks describe public APIs for humans and documentation
+   tooling. They are separate from `@annotation` metadata, which is consumed by
+   compiler phases.
+
+   Line comments beginning with `//` are implementation comments and are not
+   public documentation. The old `//!` and `///` public documentation forms are
+   migration debt and are not canonical Terlan source style.
+*)
+
 DeclarationCore
   ::= ModuleDecl "." 
    | ImportDecl "."
@@ -122,7 +135,7 @@ TraitImplDecl ::= [ "pub" ] "impl" TraitRef "for" TypeExpr "{" [ TraitImplMethod
    Method identity is keyed by receiver type + method name + method arity.
 *)
 MethodDecl ::= [ "pub" ] Receiver MethodFunction .
-Receiver ::= "(" LowerIdent ":" ReceiverType ")" .
+Receiver ::= "(" [ "mut" ] LowerIdent ":" ReceiverType ")" .
 ReceiverType ::= TypeName [ TypeArgs ] .
 MethodFunction
   ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
@@ -387,8 +400,10 @@ TupleExpr ::= "{" [ Expr { "," Expr } ] "}" .
 ListExpr ::= "[" [ Expr { "," Expr } ] "]" .
 ConsListExpr ::= "[" Expr "|" Expr "]" .
 FixedArrayExpr ::= "#[" [ Expr { "," Expr } ] "]" .
-ListGeneratorExpr ::= "[" Expr "|" Generator "]" .
+ListGeneratorExpr ::= "[" Expr "|" ComprehensionQualifier { "," ComprehensionQualifier } "]" .
+ComprehensionQualifier ::= Generator | ComprehensionFilter .
 Generator ::= Pattern "<-" Expr .
+ComprehensionFilter ::= Expr .
 MapExpr ::= "#{" [ MapField { "," MapField } ] "}" .
 MapField ::= MapExprKey ( "=>" | ":=" ) Expr .
 MapExprKey ::= NameRef .
@@ -401,7 +416,8 @@ TemplateName ::= NameRef .
    module unless a future explicit public-data form grants that capability.
 *)
 RecordExpr ::= TypeName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
-ReferenceCallExpr ::= QualifiedCallExpr | ScopedCallExpr .
+ReferenceCallExpr ::= TraitTargetCallExpr | QualifiedCallExpr | ScopedCallExpr .
+TraitTargetCallExpr ::= TraitRef "." LowerIdent "(" [ ExprList ] ")" .
 QualifiedCallExpr ::= QualifiedValueRef "(" [ ExprList ] ")" .
 ScopedCallExpr ::= ScopedValueRef "(" [ ExprList ] ")" .
 MethodCallSuffix ::= "." LowerIdent "(" [ ExprList ] ")" .
@@ -577,6 +593,9 @@ StringChar ::= ? any source character except unescaped terminator ? .
      Anonymous functions use lambda syntax: `(x: Int) -> x + 1`.
      The old `of`, `end`, and `fun ... end` forms are not canonical Terlan
      source syntax.
+   - Named functions and anonymous function values intentionally share arrow
+     syntax. Terlan treats named functions as declarations of function values,
+     so brace-bodied function declarations are not canonical source syntax.
    - Top-level declarations are terminated by `.`; block declarations include
      `{ ... }` before the terminating dot.
    - Source identifiers use two explicit roles:
@@ -588,9 +607,19 @@ StringChar ::= ? any source character except unescaped terminator ? .
      `f.(10)` invokes the value of `f` as a callable value. `Name(...)` remains
      named function or constructor-call syntax, while `Expr.(...)` is reserved for
      values whose type is callable.
-   - Pipe-to-call and pipe-to-function-value are distinct syntax forms:
-     `value |> f(extra)` is call insertion, while `value |> target` lowers through
-     function-value invocation as `target.(value)`.
+   - Pipes prefer receiver-method resolution:
+     `value |> method(extra)` resolves as `value.method(extra)` when `method`
+     is available for `value`. If no receiver method exists, the pipe falls back
+     to ordinary call insertion. If both are valid, semantic analysis reports an
+     ambiguity unless the call is explicitly qualified.
+     When the resolved receiver method has a `mut` receiver, the next pipe value
+     is the compiler-owned updated receiver binding, not necessarily the
+     method's declared return value. This permits mutating receiver methods such
+     as `put` or `clear` to return `Unit` while still participating in pipe
+     chains.
+   - Pipe-to-function-value remains distinct:
+     `value |> target` lowers through function-value invocation as
+     `target.(value)`.
    - Terlan source EBNF does not include Erlang interop grammar. BEAM/Erlang
      compatibility is a backend and runtime artifact obligation, not a source
      syntax obligation.
@@ -599,12 +628,14 @@ StringChar ::= ? any source character except unescaped terminator ? .
      bind these singleton shapes to named aliases, such as
      `pub type None = Atom["none"].`, and use the named alias in expressions
      and patterns.
-   - Upper-case patterns are constructor-pattern syntax: `None` or `None(...)`.
-     This syntax is only valid when `None` is a declared constructor-like
-     pattern shape, such as an explicit constructor declaration or a
-     single-shape eligible type alias.
-     `None()` is not a valid constructor pattern unless the constructor shape
-     explicitly requires one-or-more fields.
+   - Upper-case bare names in expression or pattern position may resolve to
+     declared singleton aliases, such as `None = Atom["none"]`; these are
+     values, not nullary constructor calls.
+   - Upper-case call/payload syntax, such as `Some(value)`, is constructor
+     syntax. It is valid only when the name resolves to an explicit constructor
+     declaration or a payload-bearing eligible type alias.
+     `None()` is not valid for `None = Atom["none"]` because no associated
+     values are being constructed.
      Union-style aliases do not imply constructor-pattern syntax in v0.
    - Backend variable naming constraints are backend implementation details.
      Terlan source value bindings remain lower-case; target backends rewrite

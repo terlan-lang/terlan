@@ -2111,6 +2111,63 @@ mod tests {
     }
 
     #[test]
+    fn build_command_compiles_semicolon_expression_sequence_entrypoint() {
+        let dir = make_temp_dir("semicolon_sequence_project");
+        let project_dir = dir.join("app");
+        let app_dir = project_dir.join("src").join("app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create source dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "module app.Main.\n\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"Hello Terl\");\n    println(\"Hello Terl\").\n",
+        )
+        .expect("failed to write semicolon sequence module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text = fs::read_to_string(out_dir.join("src/app_main.erl"))
+            .expect("read generated app_main.erl");
+        assert!(
+            erl_text.contains("begin io:format"),
+            "sequence should lower to an Erlang begin block:\n{}",
+            erl_text
+        );
+
+        let launcher_output = Command::new(out_dir.join("bin/app"))
+            .output()
+            .expect("run semicolon sequence launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&launcher_output.stdout),
+            "Hello Terl\nHello Terl\n"
+        );
+    }
+
+    #[test]
     fn build_command_emits_erlang_sources_and_beams_for_directory() {
         let dir = make_temp_dir("directory");
         let source_dir = dir.join("project");
@@ -2885,6 +2942,708 @@ mod tests {
         assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "true\n");
     }
 
+    /// Verifies imported std `Show` trait dispatch lowers to primitive intrinsics.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.core.String.{Show}` and calling
+    ///   `Show.to_string` for a primitive `Int` value.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints the primitive values through the trait surface.
+    ///
+    /// Transformation:
+    /// - Resolves `Show` from the shipped `std.core.String` summary, selects
+    ///   public conformance facts for primitive source types, and lowers the
+    ///   trait calls to compiler-owned conversion intrinsics instead of remote
+    ///   std wrapper calls.
+    #[test]
+    fn build_command_compiles_imported_std_show_trait_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_show_trait_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.String.{Show}.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Show.to_string(2)).\n",
+        )
+        .expect("failed to write imported std Show trait dispatch fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("erlang:integer_to_list(2)"),
+            "Show[Int] should lower through the Int primitive intrinsic: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_core_string:typer_trait_show_to_string"),
+            "imported std Show calls must not require an uncompiled std wrapper: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "2\n");
+    }
+
+    /// Verifies imported std `Equal` trait dispatch lowers to exact equality.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.core.Equal.{Equal}` and calling
+    ///   `Equal[Int].equal` for primitive `Int` values.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints `true`.
+    ///
+    /// Transformation:
+    /// - Resolves `Equal` from the shipped `std.core.Equal` summary, selects
+    ///   public conformance facts for primitive source types, and lowers the
+    ///   trait call through the formal trait dispatch path instead of exposing
+    ///   ad hoc `Bool.equal` or `String.equal` helpers.
+    #[test]
+    fn build_command_compiles_imported_std_equal_trait_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_equal_trait_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Bool.\n\
+import std.core.Equal.{Equal}.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Bool.to_string(Equal[Int].equal(2, 2))).\n",
+        )
+        .expect("failed to write imported std Equal trait dispatch fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            !erl_source.contains("std_core_bool:equal")
+                && !erl_source.contains("std_core_string:equal")
+                && !erl_source.contains("std_core_atom:equal"),
+            "Equal trait calls must not lower through removed ad hoc equality modules: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "true\n");
+    }
+
+    /// Verifies imported std `Parse` trait dispatch lowers by explicit target.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.core.String.{Parse}` and calling
+    ///   `Parse[Int].from_string` for a string literal.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints the parsed integer through the trait surface.
+    ///
+    /// Transformation:
+    /// - Resolves `Parse` from the shipped `std.core.String` summary, uses the
+    ///   explicit `[Int]` target to select the public primitive conformance,
+    ///   and lowers the parse call to the compiler-owned integer parse
+    ///   intrinsic instead of an uncompiled std wrapper call.
+    #[test]
+    fn build_command_compiles_imported_std_parse_trait_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_parse_trait_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.core.Option.{None, Some}.\n\
+import type std.core.Option.Option.\n\
+import std.core.String.{Parse}.\n\
+\n\
+pub parsed_value(value: Option[Int]): Int ->\n\
+    case value {\n\
+        None ->\n\
+            0;\n\
+        Some(parsed) ->\n\
+            parsed\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(parsed_value(Parse[Int].from_string(\"42\")))).\n",
+        )
+        .expect("failed to write imported std Parse trait dispatch fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("string:to_integer"),
+            "Parse[Int] should lower through the Int parse primitive intrinsic: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_core_string:typer_trait_parse_from_string"),
+            "imported std Parse calls must not require an uncompiled std wrapper: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "42\n");
+    }
+
+    /// Verifies imported std `Iterable` trait dispatch lowers to list traversal.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.collections.Iterable.{Iterable}` and
+    ///   calling `Iterable.iterator` for a `List[Int]` value.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints the first value yielded through the trait
+    ///   surface.
+    ///
+    /// Transformation:
+    /// - Resolves `Iterable` from the shipped `std.collections.Iterable`
+    ///   summary, selects the public `Iterable[List[T], T]` conformance, and
+    ///   lowers the trait call to the compiler-owned list iterator intrinsic
+    ///   instead of requiring an uncompiled std wrapper function.
+    #[test]
+    fn build_command_compiles_imported_std_iterable_trait_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_iterable_trait_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.core.Option.{None, Some}.\n\
+import std.collections.Iterable.{Iterable}.\n\
+import std.collections.Iterator.\n\
+import type std.collections.List.List.\n\
+\n\
+pub first(values: List[Int]): Int ->\n\
+    case Iterator.next(Iterable.iterator(values)) {\n\
+        None ->\n\
+            0;\n\
+        Some({value, _}) ->\n\
+            value\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(first([42]))).\n",
+        )
+        .expect("failed to write imported std Iterable trait dispatch fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("case Values of"),
+            "Iterable[List[T]] should lower through the list iterator intrinsic: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_collections_iterable:typer_trait_iterable_iterator"),
+            "imported std Iterable calls must not require an uncompiled std wrapper: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "42\n");
+    }
+
+    /// Verifies imported std `Enumerable` trait dispatch lowers to list each.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.collections.Enumerable.{Enumerable}` and
+    ///   calling `Enumerable.each` for a `List[String]` value.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints every list value in traversal order.
+    ///
+    /// Transformation:
+    /// - Resolves `Enumerable` from the shipped `std.collections.Enumerable`
+    ///   summary, selects the public `Enumerable[List[T], T]` conformance, and
+    ///   lowers the trait call through the same list foreach bridge as
+    ///   receiver syntax `values.each(cb)`.
+    #[test]
+    fn build_command_compiles_imported_std_enumerable_trait_each_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_enumerable_trait_each_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.collections.Enumerable.{Enumerable}.\n\
+import type std.collections.List.List.\n\
+\n\
+pub print_value(value: String): Unit ->\n\
+    println(value).\n\
+\n\
+pub main(): Unit ->\n\
+    let values = [\"Alice\", \"Bob\"];\n\
+    Enumerable.each(values, (value) -> print_value(value)).\n",
+        )
+        .expect("failed to write imported std Enumerable trait each fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("lists:foreach"),
+            "Enumerable[List[T]].each should lower through the list foreach bridge: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_collections_enumerable:typer_trait_enumerable_each"),
+            "imported std Enumerable calls must not require an uncompiled std wrapper: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&launcher_output.stdout),
+            "Alice\nBob\n"
+        );
+    }
+
+    /// Verifies imported std `Enumerable.map` lowers to list transformation.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.collections.Enumerable.{Enumerable}` and
+    ///   calling `Enumerable.map` for a `List[String]` value.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints the first mapped value.
+    ///
+    /// Transformation:
+    /// - Resolves the generic `Enumerable.map[U]` method from the embedded std
+    ///   summary, selects the public `Enumerable[List[T], T]` conformance, and
+    ///   lowers the trait call through the selected list map bridge before
+    ///   pattern matching the returned list.
+    #[test]
+    fn build_command_compiles_imported_std_enumerable_trait_map_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_enumerable_trait_map_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.collections.Enumerable.{Enumerable}.\n\
+import type std.collections.List.List.\n\
+\n\
+pub print_value(value: String): Unit ->\n\
+    println(value).\n\
+\n\
+pub main(): Unit ->\n\
+    let values = [\"Alice\", \"Bob\"];\n\
+        mapped = Enumerable.map(values, (value) -> value);\n\
+    case mapped {\n\
+        [first | _] ->\n\
+            print_value(first);\n\
+        [] ->\n\
+            println(\"empty\")\n\
+    }.\n",
+        )
+        .expect("failed to write imported std Enumerable trait map fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("lists:map"),
+            "Enumerable[List[T]].map should lower through the list map bridge: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_collections_enumerable:typer_trait_enumerable_map"),
+            "imported std Enumerable map calls must not require an uncompiled std wrapper: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "Alice\n");
+    }
+
+    /// Verifies imported std `Enumerable.filter` lowers to list filtering.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.collections.Enumerable.{Enumerable}` and
+    ///   calling `Enumerable.filter` for a `List[Int]` value.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints the first retained value.
+    ///
+    /// Transformation:
+    /// - Resolves `Enumerable.filter` from the embedded std summary, selects the
+    ///   public `Enumerable[List[T], T]` conformance, lowers the trait call
+    ///   through the selected list filter bridge, and pattern matches the
+    ///   resulting list.
+    #[test]
+    fn build_command_compiles_imported_std_enumerable_trait_filter_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_enumerable_trait_filter_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.collections.Enumerable.{Enumerable}.\n\
+import type std.collections.List.List.\n\
+\n\
+pub main(): Unit ->\n\
+    let values = [0, 2, 4];\n\
+        filtered = Enumerable.filter(values, (value) -> value > 1);\n\
+    case filtered {\n\
+        [first | _] ->\n\
+            println(Int.to_string(first));\n\
+        [] ->\n\
+            println(\"empty\")\n\
+    }.\n",
+        )
+        .expect("failed to write imported std Enumerable trait filter fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("lists:filter"),
+            "Enumerable[List[T]].filter should lower through the list filter bridge: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_collections_enumerable:typer_trait_enumerable_filter"),
+            "imported std Enumerable filter calls must not require an uncompiled std wrapper: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "2\n");
+    }
+
+    /// Verifies imported std `Enumerable.fold` lowers to list folding.
+    ///
+    /// Inputs:
+    /// - A project root without local `std/summaries` files.
+    /// - A source file importing `std.collections.Enumerable.{Enumerable}` and
+    ///   calling `Enumerable.fold` for a `List[Int]` value.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build <project> --target erlang` emits a
+    ///   launcher that prints the final accumulator.
+    ///
+    /// Transformation:
+    /// - Resolves `Enumerable.fold` from the embedded std summary, selects the
+    ///   public `Enumerable[List[T], T]` conformance, lowers the trait call
+    ///   through the selected list fold bridge, and adapts Terlan's
+    ///   accumulator-first reducer to the BEAM fold callback order.
+    #[test]
+    fn build_command_compiles_imported_std_enumerable_trait_fold_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_std_enumerable_trait_fold_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.collections.Enumerable.{Enumerable}.\n\
+import type std.collections.List.List.\n\
+\n\
+pub main(): Unit ->\n\
+    let values = [1, 2, 3];\n\
+        total = Enumerable.fold(values, 0, (acc, value) -> acc + value);\n\
+    println(Int.to_string(total)).\n",
+        )
+        .expect("failed to write imported std Enumerable trait fold fixture");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("lists:foldl"),
+            "Enumerable[List[T]].fold should lower through the list fold bridge: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_collections_enumerable:typer_trait_enumerable_fold"),
+            "imported std Enumerable fold calls must not require an uncompiled std wrapper: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generated project launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "6\n");
+    }
+
     /// Verifies selected std imports are typechecked before backend emission.
     ///
     /// Inputs:
@@ -3183,6 +3942,2163 @@ pub main(): Unit ->\n\
         assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "Ada\n");
     }
 
+    /// Verifies declaration-site trait conformance dispatch executes.
+    ///
+    /// Inputs:
+    /// - A manifest-backed `beam-thin` project.
+    /// - A local trait, a struct declaring `implements Trait[Struct]`, and a
+    ///   receiver method satisfying the required trait method.
+    ///
+    /// Output:
+    /// - Test passes when `Trait.method(value)` lowers to the matching local
+    ///   receiver-method function and the generated launcher prints the
+    ///   receiver-method result.
+    ///
+    /// Transformation:
+    /// - Compiles declaration-site trait dispatch through parse, typecheck,
+    ///   Erlang lowering, `erlc`, and launcher execution, proving the first
+    ///   P0.5e conformance execution slice is not a typechecker-only feature.
+    #[test]
+    fn build_command_compiles_declared_implements_trait_dispatch() {
+        let dir = make_temp_dir("directory_project_declared_implements_trait_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+\n\
+pub trait Show[T] {\n\
+    to_string(value: T): String.\n\
+}.\n\
+\n\
+pub struct User implements Show[User] {\n\
+    name: String\n\
+}.\n\
+\n\
+pub constructor User {\n\
+    (name: String): User -> #User{ name = name }\n\
+}.\n\
+\n\
+pub (user: User) to_string(): String ->\n\
+    user.name.\n\
+\n\
+pub stringify(user: User): String ->\n\
+    Show.to_string(user).\n\
+\n\
+pub main(): Unit ->\n\
+    println(stringify(User(\"Alice\"))).\n",
+        )
+        .expect("failed to write declaration-site trait dispatch module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text = fs::read_to_string(out_dir.join("src/app_main.erl"))
+            .expect("read generated app_main.erl");
+        assert!(
+            erl_text.contains("to_string(User)"),
+            "trait dispatch should reuse the receiver-method function:\n{}",
+            erl_text
+        );
+        assert!(
+            !erl_text.contains("show:to_string"),
+            "local trait dispatch must not emit an unresolved remote trait call:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run declaration-site trait dispatch launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "Alice\n");
+    }
+
+    /// Verifies explicit trait impl method dispatch executes.
+    ///
+    /// Inputs:
+    /// - A manifest-backed `beam-thin` project.
+    /// - A local trait, a struct, and a `pub impl Trait[Struct] for Struct`
+    ///   block containing the concrete method body.
+    ///
+    /// Output:
+    /// - Test passes when `Trait.method(value)` lowers through the generated
+    ///   typed impl wrapper and the generated launcher prints the impl result.
+    ///
+    /// Transformation:
+    /// - Compiles explicit trait impl dispatch through parse, typecheck,
+    ///   Erlang lowering, `erlc`, and launcher execution, proving P0.5e
+    ///   explicit impl bodies are no longer dropped by the backend.
+    #[test]
+    fn build_command_compiles_explicit_trait_impl_dispatch() {
+        let dir = make_temp_dir("directory_project_explicit_trait_impl_dispatch");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+\n\
+pub trait Named[T] {\n\
+    name(value: T): String.\n\
+}.\n\
+\n\
+pub struct ExternalUser {\n\
+    name: String\n\
+}.\n\
+\n\
+pub impl Named[ExternalUser] for ExternalUser {\n\
+    name(value: ExternalUser): String ->\n\
+        value.name.\n\
+}.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Named.name(#ExternalUser{name = \"Ada\"})).\n",
+        )
+        .expect("failed to write explicit trait impl dispatch module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text = fs::read_to_string(out_dir.join("src/app_main.erl"))
+            .expect("read generated app_main.erl");
+        assert!(
+            erl_text.contains("typer_trait_named_name_externaluser_dict"),
+            "explicit impl dispatch should emit a typed wrapper:\n{}",
+            erl_text
+        );
+        assert!(
+            !erl_text.contains("named:name"),
+            "explicit impl dispatch must not emit an unresolved remote trait call:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run explicit trait impl dispatch launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "Ada\n");
+    }
+
+    /// Verifies imported explicit trait impl dispatch executes.
+    ///
+    /// Inputs:
+    /// - A manifest-backed `beam-thin` project with a provider module exporting
+    ///   a trait, type, constructor, and public explicit impl.
+    /// - A consumer entrypoint importing the provider trait and type, then
+    ///   calling `Trait.method(value)`.
+    ///
+    /// Output:
+    /// - Test passes when imported trait dispatch resolves through provider
+    ///   interface conformance metadata and the generated launcher prints the
+    ///   provider impl result.
+    ///
+    /// Transformation:
+    /// - Compiles a two-module project through interface-cache resolution,
+    ///   typechecking, Erlang lowering, `erlc`, and launcher execution, proving
+    ///   P0.5e.3b has an executable non-aliased imported trait path.
+    #[test]
+    fn build_command_compiles_imported_explicit_trait_impl_dispatch() {
+        let dir = make_temp_dir("directory_project_imported_explicit_trait_impl_dispatch");
+        let project_dir = dir.join("app");
+        let dep_dir = dir.join("people");
+        let app_dir = project_dir.join("src/app");
+        let dep_src = dep_dir.join("src/people");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::create_dir_all(&dep_src).expect("failed to create dependency src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[dependencies]\npeople = { path = \"../people\" }\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            dep_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"people\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write dependency manifest fixture");
+        fs::write(
+            dep_src.join("Provider.tl"),
+            "\
+module people.Provider.\n\
+\n\
+pub trait Named[T] {\n\
+    name(value: T): String.\n\
+}.\n\
+\n\
+pub struct ExternalUser {\n\
+    name: String\n\
+}.\n\
+\n\
+pub constructor ExternalUser {\n\
+    (name: String): ExternalUser -> #ExternalUser{name = name}\n\
+}.\n\
+\n\
+pub impl Named[ExternalUser] for ExternalUser {\n\
+    name(value: ExternalUser): String ->\n\
+        value.name.\n\
+}.\n\
+\n\
+pub new_user(name: String): ExternalUser ->\n\
+    ExternalUser(name).\n",
+        )
+        .expect("failed to write imported trait provider module");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import people.Provider.{ExternalUser, Named, new_user}.\n\
+\n\
+render(user: ExternalUser): String ->\n\
+    Named.name(user).\n\
+\n\
+pub main(): Unit ->\n\
+    println(render(new_user(\"Grace\"))).\n",
+        )
+        .expect("failed to write imported trait consumer module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let main_erl =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read app_main.erl");
+        assert!(
+            main_erl.contains("people_provider:typer_trait_named_name_externaluser_dict"),
+            "imported trait dispatch should call provider typed wrapper:\n{}",
+            main_erl
+        );
+        let provider_erl = fs::read_to_string(out_dir.join("src/people_provider.erl"))
+            .expect("read people_provider.erl");
+        assert!(
+            provider_erl.contains("typer_trait_named_name_externaluser_dict/2"),
+            "public provider impl wrapper should be exported:\n{}",
+            provider_erl
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run imported explicit trait impl dispatch launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "Grace\n");
+    }
+
+    /// Verifies executable generic-bound trait method dispatch.
+    ///
+    /// Inputs:
+    /// - A manifest-backed `beam-thin` project declaring a trait, a concrete
+    ///   explicit impl, and a generic function with a trait bound.
+    /// - An entrypoint that calls the generic function with concrete `Int`
+    ///   arguments.
+    ///
+    /// Output:
+    /// - Test passes when the build succeeds, generated Erlang uses a hidden
+    ///   trait dictionary for the generic function, and the launcher prints the
+    ///   concrete impl result.
+    ///
+    /// Transformation:
+    /// - Compiles `same[A](...)[Eq[A]]` through typechecking, hidden dictionary
+    ///   ABI lowering, Erlang compilation, and launcher execution, proving
+    ///   P0.5e.4 is executable for the selected local-bound shape.
+    #[test]
+    fn build_command_compiles_generic_bound_trait_dispatch() {
+        let dir = make_temp_dir("directory_project_generic_bound_trait_dispatch");
+        let project_dir = dir.join("app");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Bool.\n\
+\n\
+pub trait Eq[A] {\n\
+    equal(left: A, right: A): Bool.\n\
+}.\n\
+\n\
+pub impl Eq[Int] for Int {\n\
+    equal(left: Int, right: Int): Bool ->\n\
+        left == right.\n\
+}.\n\
+\n\
+same[A](left: A, right: A)[Eq[A]]: Bool ->\n\
+    Eq.equal(left, right).\n\
+\n\
+pub main(): Unit ->\n\
+    println(Bool.to_string(same(2, 2))).\n",
+        )
+        .expect("failed to write generic-bound trait dispatch module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let main_erl =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read app_main.erl");
+        assert!(
+            main_erl.contains("same(_TyperTraitDicteq_a, Left, Right)"),
+            "generic function should receive hidden trait dictionary:\n{}",
+            main_erl
+        );
+        assert!(
+            main_erl.contains("apply(?MODULE, maps:get('equal', _TyperTraitDicteq_a)"),
+            "generic bound call should dispatch through hidden dictionary:\n{}",
+            main_erl
+        );
+        assert!(
+            main_erl.contains("#{'equal' => typer_trait_eq_equal_int_dict}"),
+            "concrete call should synthesize trait dictionary from typed impl:\n{}",
+            main_erl
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run generic-bound trait dispatch launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "true\n");
+    }
+
+    /// Verifies direct function-value invocation executes through builds.
+    ///
+    /// Inputs:
+    /// - A manifest-backed `beam-thin` project.
+    /// - A source module passing a named function to a higher-order function
+    ///   that invokes the value with `f.(value)`.
+    ///
+    /// Output:
+    /// - Test passes when the generated launcher prints the transformed value.
+    ///
+    /// Transformation:
+    /// - Compiles named-function-as-value capture and dedicated
+    ///   function-value invocation through parse, typecheck, Erlang lowering,
+    ///   `erlc`, and launcher execution. This proves `Name(...)` remains a
+    ///   named call while `Expr.(...)` is executable callable-value syntax.
+    #[test]
+    fn build_command_compiles_direct_function_value_invocation() {
+        let dir = make_temp_dir("directory_project_direct_function_value_invocation");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub increment(value: Int): Int ->\n\
+    value + 1.\n\
+\n\
+pub run_callback(value: Int, f: (Int) -> Int): Int ->\n\
+    f.(value).\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(run_callback(41, increment))).\n",
+        )
+        .expect("failed to write direct function-value invocation module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("run_callback(Value, F)"),
+            "higher-order function should keep callable parameter:\n{}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("(F)(Value)"),
+            "function-value invocation should lower as a callable value:\n{}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("fun increment/1"),
+            "named function should lower as a local function value:\n{}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run direct function-value invocation launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "42\n");
+    }
+
+    /// Verifies manifest builds lower receiver-method pipe syntax.
+    ///
+    /// Inputs:
+    /// - A manifest-backed `beam-thin` project.
+    /// - A package-rooted module with a receiver method and a function body
+    ///   using `receiver |> method()`.
+    ///
+    /// Output:
+    /// - Test passes when the build emits runnable BEAM-backed artifacts and
+    ///   the generated launcher prints the receiver-method result.
+    ///
+    /// Transformation:
+    /// - Compiles receiver-method pipe syntax through parse, typecheck, Erlang
+    ///   lowering, `erlc`, and launcher execution, proving the receiver-pipe
+    ///   typecheck rule has an executable immutable-method backend path.
+    #[test]
+    fn build_command_compiles_project_receiver_method_pipe_entrypoint() {
+        let dir = make_temp_dir("directory_project_receiver_method_pipe_entrypoint");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub constructor User {\n\
+    (name: String): User -> #User{ name = name }\n\
+}.\n\
+\n\
+pub (user: User) display_name(): String ->\n\
+    user.name.\n\
+\n\
+show(user: User): String ->\n\
+    user |> display_name().\n\
+\n\
+pub main(): Unit ->\n\
+    std.io.Console.println(show(User(\"Ada\"))).\n",
+        )
+        .expect("failed to write receiver-method pipe module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text = fs::read_to_string(out_dir.join("src/app_main.erl"))
+            .expect("read generated app_main.erl");
+        assert!(
+            erl_text.contains("display_name("),
+            "receiver pipe should lower through receiver-first function:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run receiver-method pipe launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "Ada\n");
+    }
+
+    /// Verifies command-style mutable receiver methods execute through builds.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project declaring a command-style mutable receiver
+    ///   method with the contextual `mut` receiver marker.
+    /// - A function sequence that calls the mutable receiver method and then an
+    ///   immutable receiver method on the same source binding.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build` emits runnable BEAM-backed artifacts
+    ///   and the launcher prints the updated receiver state.
+    ///
+    /// Transformation:
+    /// - Runs the P0.2c command-style mutable receiver ABI through parse,
+    ///   typecheck, CoreIR bridge validation, Erlang lowering, `erlc`, and
+    ///   launcher execution.
+    #[test]
+    fn build_command_compiles_command_style_mutable_receiver_method_sequence() {
+        let dir = make_temp_dir("directory_project_mutable_receiver_sequence");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+pub struct Cell {\n\
+    value: String\n\
+}.\n\
+\n\
+pub constructor Cell {\n\
+    (value: String): Cell -> #Cell{ value = value }\n\
+}.\n\
+\n\
+pub (mut cell: Cell) replace(value: String): Unit ->\n\
+    Cell(value).\n\
+\n\
+pub (cell: Cell) get(): String ->\n\
+    cell.value.\n\
+\n\
+run(cell: Cell): String ->\n\
+    cell.replace(\"new\");\n\
+    cell.get().\n\
+\n\
+pub main(): Unit ->\n\
+    std.io.Console.println(run(Cell(\"old\"))).\n",
+        )
+        .expect("failed to write mutable receiver module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text = fs::read_to_string(out_dir.join("src/app_main.erl"))
+            .expect("read generated app_main.erl");
+        assert!(
+            erl_text.contains("_TerlanMutReceiver0 = replace("),
+            "mutable receiver sequence should bind updated receiver:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run mutable receiver launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "new\n");
+    }
+
+    /// Verifies compiler-owned map intrinsics execute with mutable receivers.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project declaring a local opaque map surface with
+    ///   `@compiler.intrinsic` annotations for `new`, `put`, and `size`.
+    /// - A command-style mutable receiver method sequence that inserts one
+    ///   value and then observes the updated receiver.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build` emits runnable BEAM artifacts and the
+    ///   launcher prints `1`.
+    ///
+    /// Transformation:
+    /// - Proves the selected P0.3b map intrinsic contract can drive BEAM map
+    ///   construction, command-style receiver mutation, compiler-owned
+    ///   rebinding, and observer calls without exposing the eventual release
+    ///   `std.collections.Map` module.
+    #[test]
+    fn build_command_compiles_map_intrinsic_command_style_mutator_sequence() {
+        let dir = make_temp_dir("directory_project_map_intrinsic_mutator_sequence");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub struct Map {\n\
+    dummy: Int\n\
+}.\n\
+\n\
+@compiler.intrinsic {core.map.new}\n\
+pub new(): Map ->\n\
+    #Map{ dummy = 0 }.\n\
+\n\
+@compiler.intrinsic {core.map.put}\n\
+pub (mut map: Map) put(key: String, value: String): Unit ->\n\
+    map.\n\
+\n\
+@compiler.intrinsic {core.map.size}\n\
+pub (map: Map) size(): Int ->\n\
+    0.\n\
+\n\
+run(map: Map): Int ->\n\
+    map.put(\"key\", \"value\");\n\
+    map.size().\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(run(new()))).\n",
+        )
+        .expect("failed to write map intrinsic module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read generated erl");
+        assert!(
+            erl_text.contains("maps:put"),
+            "map put should lower through BEAM map intrinsic:\n{}",
+            erl_text
+        );
+        assert!(
+            erl_text.contains("_TerlanMutReceiver0 = maps:put"),
+            "map command mutator should use receiver rebinding:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run map intrinsic launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "1\n");
+    }
+
+    /// Verifies compiler-owned list intrinsics execute with mutable receivers.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project declaring a local nominal list surface with
+    ///   `@compiler.intrinsic` annotations for `new`, `push`, and `length`.
+    /// - A command-style mutable receiver method sequence that appends one
+    ///   value and then observes the updated receiver.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build` emits runnable BEAM artifacts and the
+    ///   launcher prints `1`.
+    ///
+    /// Transformation:
+    /// - Proves the selected P0.3b list intrinsic contract can drive BEAM list
+    ///   construction, command-style receiver mutation, compiler-owned
+    ///   rebinding, and observer calls without exposing the eventual release
+    ///   `std.collections.List` module.
+    #[test]
+    fn build_command_compiles_list_intrinsic_command_style_mutator_sequence() {
+        let dir = make_temp_dir("directory_project_list_intrinsic_mutator_sequence");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub struct List {\n\
+    dummy: Int\n\
+}.\n\
+\n\
+@compiler.intrinsic {core.list.new}\n\
+pub new(): List ->\n\
+    #List{ dummy = 0 }.\n\
+\n\
+@compiler.intrinsic {core.list.push}\n\
+pub (mut list: List) push(value: String): Unit ->\n\
+    list.\n\
+\n\
+@compiler.intrinsic {core.list.length}\n\
+pub (list: List) length(): Int ->\n\
+    0.\n\
+\n\
+run(list: List): Int ->\n\
+    list.push(\"value\");\n\
+    list.length().\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(run(new()))).\n",
+        )
+        .expect("failed to write list intrinsic module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read generated erl");
+        assert!(
+            erl_text.contains("lists:append"),
+            "list push should lower through BEAM list intrinsic:\n{}",
+            erl_text
+        );
+        assert!(
+            erl_text.contains("_TerlanMutReceiver0 = lists:append"),
+            "list command mutator should use receiver rebinding:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run list intrinsic launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "1\n");
+    }
+
+    /// Verifies compiler-owned set intrinsics execute with mutable receivers.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project declaring a local nominal set surface with
+    ///   `@compiler.intrinsic` annotations for `new`, `add`, and `size`.
+    /// - A command-style mutable receiver method sequence that adds one value
+    ///   and then observes the updated receiver.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build` emits runnable BEAM artifacts and the
+    ///   launcher prints `1`.
+    ///
+    /// Transformation:
+    /// - Proves the selected P0.3b set intrinsic contract can drive the
+    ///   compiler-owned BEAM set backing shape, command-style receiver
+    ///   mutation, compiler-owned rebinding, and observer calls without
+    ///   exposing the eventual release `std.collections.Set` module.
+    #[test]
+    fn build_command_compiles_set_intrinsic_command_style_mutator_sequence() {
+        let dir = make_temp_dir("directory_project_set_intrinsic_mutator_sequence");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub struct Set {\n\
+    dummy: Int\n\
+}.\n\
+\n\
+@compiler.intrinsic {core.set.new}\n\
+pub new(): Set ->\n\
+    #Set{ dummy = 0 }.\n\
+\n\
+@compiler.intrinsic {core.set.add}\n\
+pub (mut set: Set) add(value: String): Unit ->\n\
+    set.\n\
+\n\
+@compiler.intrinsic {core.set.size}\n\
+pub (set: Set) size(): Int ->\n\
+    0.\n\
+\n\
+run(set: Set): Int ->\n\
+    set.add(\"value\");\n\
+    set.size().\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(run(new()))).\n",
+        )
+        .expect("failed to write set intrinsic module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read generated erl");
+        assert!(
+            erl_text.contains("maps:put"),
+            "set add should lower through BEAM set backing intrinsic:\n{}",
+            erl_text
+        );
+        assert!(
+            erl_text.contains("_TerlanMutReceiver0 = maps:put"),
+            "set command mutator should use receiver rebinding:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run set intrinsic launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "1\n");
+    }
+
+    /// Verifies release std collection imports execute through embedded summaries.
+    ///
+    /// Inputs:
+    /// - A manifest-backed external project without local `std/summaries`
+    ///   files.
+    /// - Source imports for `std.collections.Map`, `std.collections.List`, and
+    ///   `std.collections.Set` module/type surfaces.
+    /// - Command-style mutable receiver calls followed by observers.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build` emits runnable BEAM artifacts and the
+    ///   launcher prints `1`, `1`, and `1`.
+    ///
+    /// Transformation:
+    /// - Proves promoted release collection summaries are embedded into the
+    ///   compiler, imported receiver mutators use compiler-owned intrinsic
+    ///   lowering, and sequence lowering rebinds updated receivers before
+    ///   observer calls.
+    #[test]
+    fn build_command_compiles_release_std_collection_receiver_mutators() {
+        let dir = make_temp_dir("directory_project_release_std_collection_mutators");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.collections.Map.\n\
+import type std.collections.Map.Map.\n\
+import std.collections.List.\n\
+import type std.collections.List.List.\n\
+import std.collections.Set.\n\
+import type std.collections.Set.Set.\n\
+\n\
+pub mapcount(users: Map[String, String]): Int ->\n\
+    users.put(\"alice\", \"Alice\");\n\
+    users.size().\n\
+\n\
+pub listcount(values: List[String]): Int ->\n\
+    values.push(\"Alice\");\n\
+    values.length().\n\
+\n\
+pub setcount(values: Set[String]): Int ->\n\
+    values.add(\"Alice\");\n\
+    values.size().\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(mapcount(Map.new())));\n\
+    println(Int.to_string(listcount(List.new())));\n\
+    println(Int.to_string(setcount(Set.new()))).\n",
+        )
+        .expect("failed to write release std collection module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_text =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read generated erl");
+        assert!(
+            erl_text.contains("_TerlanMutReceiver0 = maps:put"),
+            "map/set mutators should rebind intrinsic receiver updates:\n{}",
+            erl_text
+        );
+        assert!(
+            erl_text.contains("_TerlanMutReceiver0 = lists:append"),
+            "list mutator should rebind intrinsic receiver update:\n{}",
+            erl_text
+        );
+
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run release std collection launcher");
+        assert!(
+            launcher_output.status.success(),
+            "launcher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&launcher_output.stdout),
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&launcher_output.stdout),
+            "1\n1\n1\n"
+        );
+    }
+
+    /// Verifies explicit traversal calls execute through compiler-owned intrinsics.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project importing release `std.collections.List`,
+    ///   `std.collections.Iterator`, and `std.core.Option`.
+    /// - A function that calls `Iterator.next(values.iterator())` and pattern
+    ///   matches `None` plus `Some({value, _})`.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits Erlang source,
+    ///   a runnable BEAM artifact, and prints the first traversed list value
+    ///   from the executable.
+    ///
+    /// Transformation:
+    /// - Proves explicit source traversal now lowers via the collection receiver
+    ///   intrinsic, runs through BEAM, and stays on the compiler-owned
+    ///   `Iterator.next` state shape.
+    #[test]
+    fn build_command_compiles_source_traversal_iterator_next_legacy() {
+        let dir = make_temp_dir("directory_project_source_traversal_iterator_next_legacy");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.collections.List.\n\
+import type std.collections.List.List.\n\
+import std.collections.Iterator.\n\
+import std.core.Option.{None, Some}.\n\
+import type std.core.Option.{Option}.\n\
+\
+        pub first(values: List[Int]): Int ->\n\
+    case Iterator.next(values.iterator()) {\n\
+        None ->\n\
+            0;\n\
+        Some({value, _}) ->\n\
+            value\n\
+    }.\n\
+\
+pub main(): Unit ->\n\
+    println(Int.to_string(first([42]))).
+",
+        )
+        .expect("failed to write source traversal module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("case Values of"),
+            "iterator receiver should lower through List.iterator intrinsic: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run release traversal fixture");
+        assert!(
+            launcher_output.status.success(),
+            "traversal launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "42\n");
+    }
+
+    #[test]
+    fn build_command_compiles_source_traversal_iterator_next() {
+        let dir = make_temp_dir("directory_project_source_traversal_iterator_next");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.core.Option.{None, Some}.\n\
+import type std.core.Option.{Option}.\n\
+import std.collections.List.\n\
+import type std.collections.List.List.\n\
+import std.collections.Iterator.\n\
+import type std.collections.Iterator.Iterator.\n\
+\
+    pub first(values: List[Int]): Int ->\n\
+    case Iterator.next(List.iterator(values)) {\n\
+        None ->\n\
+            0;\n\
+        Some({value, _}) ->\n\
+            value\n\
+    }.\n\
+\
+pub main(): Unit ->\n    println(Int.to_string(first([42]))).\n",
+        )
+        .expect("failed to write source traversal module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            !erl_source.contains("std_collections_iterator:next")
+                && !erl_source.contains("std_collections_list:iterator"),
+            "explicit traversal should not use unresolved std runtime module calls: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("case Values of"),
+            "explicit traversal intrinsic should lower through iterator state case shape: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run release traversal fixture");
+        assert!(
+            launcher_output.status.success(),
+            "traversal launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "42\n");
+    }
+
+    /// Verifies list receiver traversal can call a function-valued callback.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project importing release `std.collections.List`.
+    /// - A callback function with shape `(String) -> Unit`.
+    /// - A `List[String]` receiver expression calling
+    ///   `values.each((value) -> print_value(value))`.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits Erlang source,
+    ///   a runnable BEAM artifact, and prints every list value in traversal
+    ///   order.
+    ///
+    /// Transformation:
+    /// - Forces the formal build path through source std receiver dispatch,
+    ///   lambda-to-function-value invocation, and `Iterator.each` traversal
+    ///   without mutating the original list.
+    #[test]
+    fn build_command_compiles_source_traversal_list_each_receiver_callback() {
+        let dir = make_temp_dir("directory_project_source_traversal_list_each");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.collections.List.\n\
+import type std.collections.List.List.\n\
+\n\
+pub print_value(value: String): Unit ->\n\
+    println(value).\n\
+\n\
+pub main(): Unit ->\n\
+    let values = [\"Alice\", \"Bob\"];\n\
+    values.each((value) -> print_value(value)).\n",
+        )
+        .expect("failed to write source traversal list each module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            !erl_source.contains("std_collections_list"),
+            "source traversal should not emit unresolved std list module calls: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run list each traversal fixture");
+        assert!(
+            launcher_output.status.success(),
+            "list each launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&launcher_output.stdout),
+            "Alice\nBob\n"
+        );
+    }
+
+    /// Verifies Set and Map expose traversal through the shared iterator shape.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project importing release `std.collections.Set`,
+    ///   `std.collections.Map`, `std.collections.Iterator`, and
+    ///   `std.core.Option`.
+    /// - A set traversal that yields `T`.
+    /// - A map traversal that yields `{K, V}` entries.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
+    ///   artifact that prints the first set value and first map value.
+    ///
+    /// Transformation:
+    /// - Proves `Iterable`/`Enumerable` are not list-only surfaces by forcing
+    ///   release Set and Map iterator intrinsics through `Iterator.next`,
+    ///   including nested tuple destructuring for map entries.
+    #[test]
+    fn build_command_compiles_source_traversal_set_and_map_iterators() {
+        let dir = make_temp_dir("directory_project_source_traversal_set_map_iterators");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.collections.Iterator.\n\
+import std.collections.Map.\n\
+import type std.collections.Map.Map.\n\
+import std.collections.Set.\n\
+import type std.collections.Set.Set.\n\
+import std.core.Option.{None, Some}.\n\
+\n\
+pub first_set_value(values: Set[String]): String ->\n\
+    values.add(\"Alice\");\n\
+    case Iterator.next(Set.iterator(values)) {\n\
+        None ->\n\
+            \"missing\";\n\
+        Some({value, _}) ->\n\
+            value\n\
+    }.\n\
+\n\
+pub first_map_value(values: Map[String, String]): String ->\n\
+    values.put(\"alice\", \"Alice\");\n\
+    case Iterator.next(Map.iterator(values)) {\n\
+        None ->\n\
+            \"missing\";\n\
+        Some({{_, value}, _}) ->\n\
+            value\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(first_set_value(Set.new()));\n\
+    println(first_map_value(Map.new())).\n",
+        )
+        .expect("failed to write set/map traversal module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("maps:keys") && erl_source.contains("maps:to_list"),
+            "set/map traversal should lower through BEAM map iterator intrinsics: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run set/map traversal fixture");
+        assert!(
+            launcher_output.status.success(),
+            "set/map traversal launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&launcher_output.stdout),
+            "Alice\nAlice\n"
+        );
+    }
+
+    /// Verifies executable tuple and list destructuring patterns.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project with functions that pattern match a tuple
+    ///   pair and a list-cons shape.
+    /// - A `main` function that prints the sum of tuple fields and the head of
+    ///   a non-empty list.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
+    ///   artifact that prints `7` and `5`.
+    ///
+    /// Transformation:
+    /// - Forces P0.5c data-pattern closure through the public build command,
+    ///   proving tuple destructuring, empty-list matching, and list-cons
+    ///   destructuring execute through the formal compiler path.
+    #[test]
+    fn build_command_compiles_executable_tuple_and_list_destructuring_patterns() {
+        let dir = make_temp_dir("directory_project_data_pattern_closure");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub sum(pair: {Int, Int}): Int ->\n\
+    case pair {\n\
+        {left, right} ->\n\
+            left + right\n\
+    }.\n\
+\n\
+pub head_or_zero(values: [Int]): Int ->\n\
+    case values {\n\
+        [] ->\n\
+            0;\n\
+        [head | _tail] ->\n\
+            head\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(sum({3, 4})));\n\
+    println(Int.to_string(head_or_zero([5, 6]))).\n",
+        )
+        .expect("failed to write data pattern closure module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("{Left, Right}"),
+            "tuple destructuring should lower to an Erlang tuple pattern: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("[Head|_tail]"),
+            "list-cons destructuring should lower to an Erlang cons pattern: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run data pattern closure fixture");
+        assert!(
+            launcher_output.status.success(),
+            "data pattern closure launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "7\n5\n");
+    }
+
+    /// Verifies executable map expressions and map destructuring patterns.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project with a typed map value whose required keys
+    ///   are `name` and `age`.
+    /// - A function that pattern matches the map and returns the `name` field.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
+    ///   artifact that prints `Alice`.
+    ///
+    /// Transformation:
+    /// - Forces P0.5c map data closure through the public build command,
+    ///   proving map construction, required-key matching, ignored bindings,
+    ///   and typed map specs execute through the formal compiler path.
+    #[test]
+    fn build_command_compiles_executable_map_expression_and_pattern() {
+        let dir = make_temp_dir("directory_project_map_pattern_closure");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+\n\
+pub display_name(user: #{name := String, age := Int}): String ->\n\
+    case user {\n\
+        #{name := name, age := _age} ->\n\
+            name\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(display_name(#{name := \"Alice\", age := 30})).\n",
+        )
+        .expect("failed to write map pattern closure module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("#{name:=Name, age:=_age}"),
+            "map destructuring should lower to an Erlang map pattern: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("#{name=>\"Alice\", age=>30}"),
+            "map construction should lower to an Erlang map expression: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run map pattern closure fixture");
+        assert!(
+            launcher_output.status.success(),
+            "map pattern closure launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "Alice\n");
+    }
+
+    /// Verifies executable struct-backed record construction, field access, and
+    /// record patterns.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project declaring a source-level `User` struct.
+    /// - Functions that construct `User`, read `user.name`, update a record
+    ///   field, and pattern match `#User{name = name}`.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
+    ///   artifact that prints `Alice` and `Bob`.
+    ///
+    /// Transformation:
+    /// - Forces P0.5c struct/record data closure through the public build
+    ///   command, proving source struct declarations generate record metadata
+    ///   and executable record construction/access/pattern lowering.
+    #[test]
+    fn build_command_compiles_executable_struct_record_construction_access_and_pattern() {
+        let dir = make_temp_dir("directory_project_struct_record_pattern_closure");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+\n\
+pub struct User {\n\
+    id: Int,\n\
+    name: String\n\
+}.\n\
+\n\
+pub make_user(id: Int, name: String): User ->\n\
+    #User{id = id, name = name}.\n\
+\n\
+pub display_name(user: User): String ->\n\
+    user.name.\n\
+\n\
+pub rename(user: User, name: String): User ->\n\
+    user#User{name = name}.\n\
+\n\
+pub matched_name(user: User): String ->\n\
+    case user {\n\
+        #User{name = name} ->\n\
+            name\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    let alice = make_user(1, \"Alice\");\n\
+    let bob = rename(alice, \"Bob\");\n\
+    println(display_name(alice));\n\
+    println(matched_name(bob)).\n",
+        )
+        .expect("failed to write struct record pattern closure module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("-record(user, {id, name})."),
+            "struct should emit an Erlang record declaration: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("#user{id = Id, name = Name}"),
+            "record construction should lower to an Erlang record: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("User#user.name"),
+            "field access should lower through the declared struct type: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("#user{name = Name} -> Name"),
+            "record pattern should lower to an Erlang record pattern: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run struct record pattern closure fixture");
+        assert!(
+            launcher_output.status.success(),
+            "struct record pattern closure launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&launcher_output.stdout),
+            "Alice\nBob\n"
+        );
+    }
+
+    /// Verifies executable list comprehensions with stacked boolean filters.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project with a function that filters a list of
+    ///   integers using two ordered boolean qualifiers.
+    /// - A caller that pattern matches the filtered result and prints the sum
+    ///   of the first two selected values.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
+    ///   artifact that prints `6`.
+    ///
+    /// Transformation:
+    /// - Forces P0.5c comprehension closure through the public build command,
+    ///   proving stacked filters parse, typecheck as `Bool`, lower to backend
+    ///   list-comprehension filters, and execute before generic `Iterable`
+    ///   desugaring broadens comprehension sources.
+    #[test]
+    fn build_command_compiles_executable_list_comprehension_stacked_filters() {
+        let dir = make_temp_dir("directory_project_list_comprehension_filter_closure");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub selected(values: [Int]): [Int] ->\n\
+    [value | value <- values, value > 1, value < 5].\n\
+\n\
+pub sum_first_two(values: [Int]): Int ->\n\
+    case selected(values) {\n\
+        [first | rest] ->\n\
+            case rest {\n\
+                [second | _tail] ->\n\
+                    first + second;\n\
+                [] ->\n\
+                    first\n\
+            };\n\
+        [] ->\n\
+            0\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(sum_first_two([0, 2, 4, 7]))).\n",
+        )
+        .expect("failed to write list comprehension filter closure module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("Value > 1") && erl_source.contains("Value < 5"),
+            "list comprehension should preserve both stacked filters: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run list comprehension filter closure fixture");
+        assert!(
+            launcher_output.status.success(),
+            "list comprehension filter launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "6\n");
+    }
+
+    /// Verifies executable generic iterable list-comprehension lowering.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project declaring a local `Iterable[C, T]` trait.
+    /// - A struct that implements the trait with an `iterator()` receiver
+    ///   method returning a list-backed iterator state.
+    /// - A comprehension whose source is the struct, not a raw list.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
+    ///   artifact that prints the sum of selected values.
+    ///
+    /// Transformation:
+    /// - Proves the first P0.4d generic iterable slice rewrites the
+    ///   comprehension source through the local receiver `iterator` method
+    ///   before using the existing list-backed Erlang comprehension lowering.
+    #[test]
+    fn build_command_compiles_executable_iterable_list_comprehension_source() {
+        let dir = make_temp_dir("directory_project_iterable_comprehension_source");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub type Iterator[T] = List[T].\n\
+\n\
+pub trait Iterable[C, T] {\n\
+    iterator(collection: C): Iterator[T].\n\
+}.\n\
+\n\
+pub struct IntCollection implements Iterable[IntCollection, Int] {\n\
+    values: List[Int]\n\
+}.\n\
+\n\
+pub (collection: IntCollection) iterator(): Iterator[Int] ->\n\
+    collection.values.\n\
+\n\
+pub selected(items: IntCollection): List[Int] ->\n\
+    [value | value <- items, value > 1, value < 5].\n\
+\n\
+pub sum_first_two(values: List[Int]): Int ->\n\
+    case values {\n\
+        [first | rest] ->\n\
+            case rest {\n\
+                [second | _tail] ->\n\
+                    first + second;\n\
+                [] ->\n\
+                    first\n\
+            };\n\
+        [] ->\n\
+            0\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(sum_first_two(selected(#IntCollection{values = [0, 2, 4, 7]})))).\n",
+        )
+        .expect("failed to write iterable comprehension source module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("TerlanIterator") && erl_source.contains("iterator(Items)"),
+            "iterable comprehension should bind an explicit iterator state: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("case TerlanIter")
+                && erl_source.contains("'none' -> lists:reverse")
+                && erl_source.contains("{'some', {Value, TerlanNext"),
+            "iterable comprehension should lower to explicit next-state traversal: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run iterable comprehension source fixture");
+        assert!(
+            launcher_output.status.success(),
+            "iterable comprehension launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "6\n");
+    }
+
+    /// Verifies std-facing `Option` and `Result` alias constructors execute.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project importing `None`, `Some`, `Ok`, and `Err`
+    ///   from release std summaries.
+    /// - Functions that pattern match imported singleton and payload aliases.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
+    ///   artifact that prints `3`, `0`, `4`, and `0`.
+    ///
+    /// Transformation:
+    /// - Forces P0.5c constructor/alias pattern closure through std-facing
+    ///   imports, proving release `Option` / `Result` aliases construct,
+    ///   destructure, and execute without unresolved std module calls.
+    #[test]
+    fn build_command_compiles_executable_std_option_result_alias_patterns() {
+        let dir = make_temp_dir("directory_project_std_option_result_alias_patterns");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+import std.core.Option.{None, Some}.\n\
+import type std.core.Option.{Option}.\n\
+import std.core.Result.{Err, Ok}.\n\
+import type std.core.Result.{Result}.\n\
+\n\
+pub option_value(value: Option[Int]): Int ->\n\
+    case value {\n\
+        None ->\n\
+            0;\n\
+        Some(x) ->\n\
+            x\n\
+    }.\n\
+\n\
+pub result_value(value: Result[Int, String]): Int ->\n\
+    case value {\n\
+        Ok(x) ->\n\
+            x;\n\
+        Err(_reason) ->\n\
+            0\n\
+    }.\n\
+\n\
+pub main(): Unit ->\n\
+    println(Int.to_string(option_value(Some(3))));\n\
+    println(Int.to_string(option_value(None)));\n\
+    println(Int.to_string(result_value(Ok(4))));\n\
+    println(Int.to_string(result_value(Err(\"bad\")))).\n",
+        )
+        .expect("failed to write std option/result alias pattern module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::SUCCESS);
+        let erl_source =
+            fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+        assert!(
+            erl_source.contains("{'some', 3}") && erl_source.contains("{ok, 4}"),
+            "std alias constructor calls should lower to runtime tuples: {}",
+            erl_source
+        );
+        assert!(
+            erl_source.contains("{'some', X} -> X") && erl_source.contains("{ok, X} -> X"),
+            "std alias constructor patterns should lower to runtime tuple patterns: {}",
+            erl_source
+        );
+        assert!(
+            !erl_source.contains("std_core_option:None")
+                && !erl_source.contains("std_core_option:Some")
+                && !erl_source.contains("std_core_result:Ok")
+                && !erl_source.contains("std_core_result:Err"),
+            "std alias constructors should not emit unresolved std module calls: {}",
+            erl_source
+        );
+        let executable_path = out_dir.join("bin/app");
+        let launcher_output = Command::new(&executable_path)
+            .output()
+            .expect("run std option/result alias pattern fixture");
+        assert!(
+            launcher_output.status.success(),
+            "std option/result alias launcher should exit successfully: stderr={}",
+            String::from_utf8_lossy(&launcher_output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&launcher_output.stdout),
+            "3\n0\n4\n0\n"
+        );
+    }
+
+    /// Verifies mutable receiver methods may return the receiver type.
+    ///
+    /// Inputs:
+    /// - A manifest-backed project declaring a `mut` receiver method whose
+    ///   source return type is the receiver type instead of `Unit`.
+    ///
+    /// Output:
+    /// - Test passes when `terlc build` still stops before backend emission
+    ///   because mutable lowering is unsupported, without relying on the older
+    ///   Unit-only return contract.
+    ///
+    /// Transformation:
+    /// - Runs the fluent mutable-receiver shape through the formal build path
+    ///   and proves command-style and chainable-style mutation share the same
+    ///   pre-backend unsupported boundary.
+    #[test]
+    fn build_command_rejects_mutable_receiver_method_with_receiver_return_before_backend_emission()
+    {
+        let dir = make_temp_dir("directory_project_mutable_receiver_return_rejected");
+        let project_dir = dir.join("project");
+        let app_dir = project_dir.join("src/app");
+        let out_dir = dir.join("build");
+        fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+        fs::write(
+            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        )
+        .expect("failed to write project manifest fixture");
+        fs::write(
+            app_dir.join("Main.tl"),
+            "\
+module app.Main.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(): Map ->\n\
+    map.\n\
+\n\
+pub main(): Unit ->\n\
+    std.io.Console.println(\"unused\").\n",
+        )
+        .expect("failed to write fluent mutable receiver module");
+
+        let state = CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        };
+        let cmd = CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "erlang".to_string(),
+            ],
+        };
+
+        let status = run(cmd, state);
+
+        assert_eq!(status, ExitCode::from(1));
+        assert!(
+            !out_dir.join("src/app_main.erl").exists(),
+            "fluent mutable receiver diagnostics should stop before Erlang source emission"
+        );
+        assert!(
+            !out_dir.join("bin/app").exists(),
+            "fluent mutable receiver diagnostics should stop before launcher emission"
+        );
+    }
+
     /// Verifies manifest-backed builds reject source files outside the package root.
     ///
     /// Inputs:
@@ -3266,7 +6182,7 @@ pub main(): Unit ->\n\
         .expect("failed to write project manifest fixture");
         fs::write(
             app_dir.join("Main.tl"),
-            "module app.Main.\n\npub main(): Unit ->\n    :unit.\n",
+            "module app.Main.\n\npub main(): Unit ->\n    std.io.Console.println(\"ok\").\n",
         )
         .expect("failed to write manifest source-root module");
 
@@ -3343,7 +6259,7 @@ pub main(): Unit ->\n\
         .expect("failed to write multi-root provider module");
         fs::write(
             app_dir.join("Main.tl"),
-            "module demo.Main.\n\nimport demo.Util.{one}.\n\npub main(): Unit ->\n    :unit.\n\npub value(): Int ->\n    one().\n",
+            "module demo.Main.\n\nimport demo.Util.{one}.\n\npub main(): Unit ->\n    std.io.Console.println(\"ok\").\n\npub value(): Int ->\n    one().\n",
         )
         .expect("failed to write multi-root consumer module");
 
@@ -3435,7 +6351,7 @@ pub main(): Unit ->\n\
         .expect("failed to write dependency module");
         fs::write(
             app_src.join("Main.tl"),
-            "module app.Main.\n\nimport local_utils.Util.{one}.\n\npub main(): Unit ->\n    :unit.\n\npub value(): Int ->\n    one().\n",
+            "module app.Main.\n\nimport local_utils.Util.{one}.\n\npub main(): Unit ->\n    std.io.Console.println(\"ok\").\n\npub value(): Int ->\n    one().\n",
         )
         .expect("failed to write app module");
 

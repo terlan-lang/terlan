@@ -1,0 +1,64 @@
+//! Core iterator contract.
+//!
+//! `std.collections.Iterator` defines the portable state-passing shape used by
+//! collection traversal.
+
+module std.collections.Iterator.
+
+/// Iterator represents a traversal state for values of type `T`.
+///
+/// Input: type parameter `T`.
+/// Output: an opaque traversal-state type.
+/// Transformation: hides the selected backend representation behind the
+/// portable `std.collections.Iterator` API.
+
+pub opaque type Iterator[T].
+
+/// Step represents one yielded value and the next iterator state.
+///
+/// Input: type parameter `T`.
+/// Output: a structural pair of the yielded value and next iterator state.
+/// Transformation: makes traversal state explicit and immutable at the source
+/// level.
+
+pub type Step[T] =
+    {value : T, next : Iterator[T]}.
+
+/// Applies a callback to each value yielded by an iterator.
+///
+/// Input: one iterator state and one callback from `T` to `Unit`.
+/// Output: `Unit`.
+/// Transformation: repeatedly calls `next(iterator)`. When traversal is
+/// exhausted, returns `Unit`. When a value is yielded, calls `cb.(value)` for
+/// its effect and continues with the returned next iterator state.
+///
+/// ```terlan
+/// module iterator_each_example.
+///
+/// import std.collections.Iterator.{Iterator, Step}.
+/// import std.core.Option.{None, Option, Some}.
+/// import std.core.Unit.{Unit}.
+///
+/// pub each(iterator: Iterator[T], cb: (T) -> Unit): Unit ->
+///    case next(iterator) {
+///        None ->
+///            Unit;
+///
+///        Some({value, rest}) ->
+///            let _done = cb.(value);
+///            each(rest, cb)
+///    }.
+/// ```
+
+pub each(iterator: Iterator[T], cb: (T ) -> Unit): Unit.
+
+/// Returns the next value and iterator state, or `None` when exhausted.
+///
+/// Input: one iterator state.
+/// Output: `Some({value, next})` for the next item, or `None` when traversal
+/// is complete.
+/// Transformation: lowers through the compiler-owned `core.iterator.next`
+/// intrinsic and advances traversal by returning a new iterator state rather
+/// than mutating the current value.
+
+pub next(iterator: Iterator[T]): Option[Step[T]].

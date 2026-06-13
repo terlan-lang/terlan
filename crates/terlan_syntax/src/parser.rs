@@ -319,7 +319,7 @@ impl Parser {
                     declaration_annotations.push(annotations);
                 }
                 TokenKind::LParen => {
-                    declarations.push(attach_docs(self.parse_method_decl(false)?, docs));
+                    declarations.push(attach_docs(self.parse_method_signature_decl(false)?, docs));
                     declaration_annotations.push(annotations);
                 }
                 TokenKind::Macro => {
@@ -529,13 +529,13 @@ impl Parser {
     fn parse_pub_interface_decl(&mut self) -> ParseResult<Decl> {
         self.expect_keyword(TokenKind::Pub)?;
         match self.current().kind {
-            TokenKind::Type => self.parse_type_decl(false, true),
-            TokenKind::Opaque => self.parse_type_decl(true, true),
+            TokenKind::Type => self.parse_type_interface_decl(false, true),
+            TokenKind::Opaque => self.parse_type_interface_decl(true, true),
             TokenKind::Struct => self.parse_struct_decl(true),
             TokenKind::Constructor => self.parse_constructor_decl(true),
             TokenKind::Trait => self.parse_trait_decl(true),
             TokenKind::Impl => self.parse_trait_impl_interface_decl(true),
-            TokenKind::LParen => self.parse_method_decl(true),
+            TokenKind::LParen => self.parse_method_signature_decl(true),
             TokenKind::Macro => {
                 self.bump();
                 self.parse_function_signature_decl(true, true)
@@ -693,8 +693,9 @@ impl Parser {
     /// - Parser cursor at the receiver opening parenthesis.
     ///
     /// Output:
-    /// - A formal `MethodDecl` containing receiver, parameters, return type,
-    ///   body clause, visibility, and source span.
+    /// - A formal `MethodDecl` containing receiver, optional receiver
+    ///   mutability, parameters, return type, body clause, visibility, and
+    ///   source span.
     ///
     /// Transformation:
     /// - Validates and consumes the receiver-method declaration, then stores it
@@ -705,6 +706,7 @@ impl Parser {
 
         self.expect(TokenKind::LParen)?;
         let receiver_start = self.current().start;
+        let receiver_is_mutable = self.consume_keyword("mut");
         let receiver_name = self.expect_lower_ident("expected lower-case method receiver name")?;
         self.expect(TokenKind::Colon)?;
         let receiver_type = self.parse_receiver_type_expr()?;
@@ -736,6 +738,7 @@ impl Parser {
             receiver: Param {
                 name: receiver_name,
                 annotation: receiver_type,
+                is_mutable: receiver_is_mutable,
                 span: Span::new(receiver_start, receiver_end),
             },
             name,
@@ -749,6 +752,75 @@ impl Parser {
                 span: Span::new(start, self.previous().end),
                 guard: None,
             }],
+            docs: Vec::new(),
+            span: Span::new(start, self.previous().end),
+        }))
+    }
+
+    /// Parses a bodyless receiver method signature for interface summaries.
+    ///
+    /// Inputs:
+    /// - `is_public`: whether `pub` was consumed before the receiver.
+    /// - Parser cursor at the receiver opening parenthesis in interface mode.
+    ///
+    /// Output:
+    /// - A `MethodDecl` with receiver, optional receiver mutability,
+    ///   non-receiver params, return type, visibility, and no body clauses.
+    ///
+    /// Transformation:
+    /// - Consumes the same receiver-method header as source methods, but
+    ///   terminates at `.` so `.typi` summaries can preserve receiver metadata
+    ///   without inventing receiver-first function signatures.
+    fn parse_method_signature_decl(&mut self, is_public: bool) -> ParseResult<Decl> {
+        let start = self.current().start;
+
+        self.expect(TokenKind::LParen)?;
+        let receiver_start = self.current().start;
+        let receiver_is_mutable = self.consume_keyword("mut");
+        let receiver_name = self.expect_lower_ident("expected lower-case method receiver name")?;
+        self.expect(TokenKind::Colon)?;
+        let receiver_type = self.parse_receiver_type_expr()?;
+        let receiver_end = self.previous().end;
+        self.expect(TokenKind::RParen)?;
+
+        let name = self.expect_lower_ident("expected lower-case method name")?;
+        self.consume_generic_params_if_present()?;
+        let mut generic_bounds = self.consume_angle_generic_params_if_present()?;
+        self.expect(TokenKind::LParen)?;
+        let mut params = Vec::new();
+        if !self.check(TokenKind::RParen) {
+            loop {
+                params.push(self.parse_param()?);
+                if !self.consume_if(TokenKind::Comma) {
+                    break;
+                }
+            }
+        }
+        self.expect(TokenKind::RParen)?;
+        generic_bounds.extend(self.consume_constraint_list_if_present()?);
+        self.expect(TokenKind::Colon)?;
+        if self.check(TokenKind::Dot) {
+            return Err(ParseError {
+                message: "expected return type after ':'".to_string(),
+                span: self.current().span(),
+            });
+        }
+        let return_type = self.parse_type_expr(&[TokenKind::Dot])?;
+        self.expect(TokenKind::Dot)?;
+
+        Ok(Decl::Method(MethodDecl {
+            receiver: Param {
+                name: receiver_name,
+                annotation: receiver_type,
+                is_mutable: receiver_is_mutable,
+                span: Span::new(receiver_start, receiver_end),
+            },
+            name,
+            params,
+            return_type,
+            is_public,
+            generic_bounds,
+            clauses: Vec::new(),
             docs: Vec::new(),
             span: Span::new(start, self.previous().end),
         }))
@@ -1098,7 +1170,7 @@ impl Parser {
         self.expect(TokenKind::Colon)?;
         let return_type = self.parse_type_expr(&[TokenKind::Arrow])?;
         self.expect(TokenKind::Arrow)?;
-        let body = self.parse_body_expr()?;
+        let body = self.parse_body_expr_with_clause_sep(None, true)?;
 
         Ok(ConstructorClause {
             params,
@@ -1122,7 +1194,7 @@ impl Parser {
                     span: Span::new(start, self.previous().end),
                 });
             }
-            Some(self.parse_expr()?)
+            Some(self.parse_single_expr()?)
         } else {
             None
         };
@@ -1375,6 +1447,47 @@ impl Parser {
     }
 
     fn parse_type_decl(&mut self, is_opaque: bool, is_public: bool) -> ParseResult<Decl> {
+        self.parse_type_decl_with_body_requirement(is_opaque, is_public, !is_opaque)
+    }
+
+    /// Parses a type declaration in interface mode.
+    ///
+    /// Inputs:
+    /// - `is_opaque`: whether the declaration starts with `opaque type`.
+    /// - `is_public`: whether `pub` was consumed before the declaration.
+    ///
+    /// Output:
+    /// - A `TypeDecl` whose `variants` may be empty for type-header
+    ///   summaries such as `pub type ExternalUser.`.
+    ///
+    /// Transformation:
+    /// - Reuses source type parsing while allowing bodyless public interface
+    ///   headers so generated `.typi` files can summarize exported nominal
+    ///   types without inventing structural bodies.
+    fn parse_type_interface_decl(&mut self, is_opaque: bool, is_public: bool) -> ParseResult<Decl> {
+        self.parse_type_decl_with_body_requirement(is_opaque, is_public, false)
+    }
+
+    /// Parses a type declaration with caller-selected body strictness.
+    ///
+    /// Inputs:
+    /// - `is_opaque`: whether the declaration starts with `opaque type`.
+    /// - `is_public`: declaration-site visibility.
+    /// - `body_required`: whether missing `=` is an error.
+    ///
+    /// Output:
+    /// - A structured `TypeDecl`.
+    ///
+    /// Transformation:
+    /// - Consumes the type header, optional implements clause, optional union
+    ///   body, and terminating `.`, while keeping source-mode and
+    ///   interface-mode body requirements explicit at the call site.
+    fn parse_type_decl_with_body_requirement(
+        &mut self,
+        is_opaque: bool,
+        is_public: bool,
+        body_required: bool,
+    ) -> ParseResult<Decl> {
         let start = self.current().start;
         if is_opaque {
             self.expect_keyword(TokenKind::Opaque)?;
@@ -1396,7 +1509,7 @@ impl Parser {
                 }
                 break;
             }
-        } else if !is_opaque {
+        } else if body_required {
             return Err(ParseError {
                 message: "expected `=` in type declaration".to_string(),
                 span: self.current().span(),
@@ -1630,7 +1743,7 @@ impl Parser {
 
         let consumed_arrow = self.consume_if(TokenKind::Arrow);
         if consumed_arrow {
-            let body = self.parse_body_expr()?;
+            let body = self.parse_body_expr_with_clause_sep(Some(name.as_str()), false)?;
             self.expect(TokenKind::Dot)?;
             clauses.push(FunctionClause {
                 patterns: params
@@ -1678,7 +1791,7 @@ impl Parser {
             }
             self.expect(TokenKind::RParen)?;
             self.expect(TokenKind::Arrow)?;
-            let body = self.parse_body_expr()?;
+            let body = self.parse_body_expr_with_clause_sep(Some(name.as_str()), false)?;
             clauses.push(FunctionClause {
                 patterns: clause_patterns,
                 body,
@@ -1763,7 +1876,7 @@ impl Parser {
             };
 
             self.expect(TokenKind::Arrow)?;
-            let body = self.parse_body_expr()?;
+            let body = self.parse_body_expr_with_clause_sep(Some(name.as_str()), false)?;
             clauses.push(FunctionClause {
                 patterns,
                 body,
@@ -1797,6 +1910,7 @@ impl Parser {
                         text: "Dynamic".to_string(),
                         span: Span::new(start, start),
                     },
+                    is_mutable: false,
                     span: Span::new(start, start),
                 })
                 .collect(),
@@ -1859,7 +1973,7 @@ impl Parser {
             };
 
             self.expect(TokenKind::Arrow)?;
-            let body = self.parse_body_expr()?;
+            let body = self.parse_body_expr_with_clause_sep(Some(name), false)?;
             clauses.push(FunctionClause {
                 patterns,
                 body,
@@ -1919,6 +2033,7 @@ impl Parser {
         Ok(Param {
             name,
             annotation,
+            is_mutable: false,
             span: Span::new(start, self.previous().end),
         })
     }
@@ -2139,7 +2254,10 @@ impl Parser {
             let token = self.bump();
             if matches!(
                 token.kind,
-                TokenKind::Comment | TokenKind::DocComment | TokenKind::ModuleDocComment
+                TokenKind::Comment
+                    | TokenKind::DocComment
+                    | TokenKind::ModuleDocComment
+                    | TokenKind::DocBlockComment
             ) {
                 continue;
             }
@@ -2382,6 +2500,10 @@ impl Parser {
                 self.bump();
                 self.parse_pattern()
             }
+            TokenKind::DocBlockComment => {
+                self.bump();
+                self.parse_pattern()
+            }
             _ => Err(ParseError {
                 message: format!("unexpected token {:?} in pattern", token.kind),
                 span: token.span(),
@@ -2408,7 +2530,10 @@ impl Parser {
             let token = self.bump();
             if matches!(
                 token.kind,
-                TokenKind::Comment | TokenKind::DocComment | TokenKind::ModuleDocComment
+                TokenKind::Comment
+                    | TokenKind::DocComment
+                    | TokenKind::ModuleDocComment
+                    | TokenKind::DocBlockComment
             ) {
                 continue;
             }
@@ -2449,6 +2574,19 @@ impl Parser {
     }
 
     fn parse_expr(&mut self) -> ParseResult<Expr> {
+        let first = self.parse_single_expr()?;
+        if !self.check(TokenKind::Semicolon) {
+            return Ok(first);
+        }
+
+        let mut expressions = vec![first];
+        while self.consume_if(TokenKind::Semicolon) {
+            expressions.push(self.parse_single_expr()?);
+        }
+        Ok(Expr::Sequence(expressions))
+    }
+
+    fn parse_single_expr(&mut self) -> ParseResult<Expr> {
         if self.check(TokenKind::Let) {
             return self.parse_let_expr();
         }
@@ -2506,7 +2644,7 @@ impl Parser {
     fn parse_let_binding(&mut self) -> ParseResult<LetBinding> {
         let name = self.expect_binding_name()?;
         self.expect(TokenKind::Equals)?;
-        let value = self.parse_expr()?;
+        let value = self.parse_single_expr()?;
         Ok(LetBinding { name, value })
     }
 
@@ -2529,18 +2667,66 @@ impl Parser {
     }
 
     fn parse_body_expr(&mut self) -> ParseResult<Expr> {
-        let mut expr = self.parse_expr()?;
-        if self.consume_if(TokenKind::Equals) {
-            let assigned = self.parse_body_expr()?;
-            expr = assigned;
+        self.parse_body_expr_with_clause_sep(None, false)
+    }
+
+    fn parse_body_expr_with_clause_sep(
+        &mut self,
+        clause_name: Option<&str>,
+        is_constructor_clause: bool,
+    ) -> ParseResult<Expr> {
+        let mut expr = self.parse_single_expr()?;
+        while self.consume_if(TokenKind::Equals) {
+            expr = self.parse_body_expr_with_clause_sep(clause_name, is_constructor_clause)?;
         }
-        if self.consume_if(TokenKind::Comma) {
-            let rest = self.parse_body_expr()?;
+
+        while self.consume_if(TokenKind::Comma) {
+            let rest = self.parse_body_expr_with_clause_sep(clause_name, is_constructor_clause)?;
             if !is_send_expr(&expr) {
                 expr = rest;
             }
         }
+
+        let mut expressions = Vec::new();
+        while self.check(TokenKind::Semicolon) {
+            if self.is_clause_separator_ahead(clause_name, is_constructor_clause) {
+                break;
+            }
+
+            self.bump();
+            expressions.push(self.parse_single_expr()?);
+        }
+
+        if !expressions.is_empty() {
+            let mut values = vec![expr];
+            values.append(&mut expressions);
+            expr = Expr::Sequence(values);
+        }
         Ok(expr)
+    }
+
+    fn is_clause_separator_ahead(
+        &self,
+        clause_name: Option<&str>,
+        is_constructor_clause: bool,
+    ) -> bool {
+        if !matches!(self.current().kind, TokenKind::Semicolon) {
+            return false;
+        }
+
+        let next = self.tokens.get(self.pos + 1);
+        let next_next = self.tokens.get(self.pos + 2);
+
+        if is_constructor_clause {
+            return matches!(next, Some(token) if token.kind == TokenKind::LParen);
+        }
+
+        let Some(clause_name) = clause_name else {
+            return false;
+        };
+
+        matches!(next, Some(token) if token.kind == TokenKind::Atom && token.text == clause_name)
+            && matches!(next_next, Some(token) if token.kind == TokenKind::LParen)
     }
 
     fn parse_pattern_map_field(&mut self) -> ParseResult<MapField> {
@@ -2771,7 +2957,7 @@ impl Parser {
             }
             TokenKind::Atom if token.text == "quote" => {
                 self.bump();
-                let inner = self.parse_expr()?;
+                let inner = self.parse_single_expr()?;
                 Expr::Quote(Box::new(inner))
             }
             TokenKind::Atom if token.text == "unquote" => {
@@ -2854,6 +3040,27 @@ impl Parser {
                 } else {
                     let mut dotted = vec![token.text.clone()];
                     let mut lookahead = self.pos;
+                    if token_kind == TokenKind::Var
+                        && matches!(
+                            self.tokens.get(lookahead),
+                            Some(token) if token.kind == TokenKind::LBracket
+                        )
+                    {
+                        let type_args = self.parse_required_trait_call_type_arg_text()?;
+                        self.expect(TokenKind::Dot)?;
+                        let fun =
+                            self.expect_lower_ident("expected lower-case trait method name")?;
+                        self.expect(TokenKind::LParen)?;
+                        let args = self.parse_expr_list(TokenKind::RParen)?;
+                        self.expect(TokenKind::RParen)?;
+                        return Ok(Expr::Call {
+                            callee: Box::new(Expr::Atom(fun)),
+                            args,
+                            remote: Some(format!("{}{type_args}", token.text)),
+                            is_fun_value: false,
+                        });
+                    }
+
                     while matches!(self.tokens.get(lookahead), Some(token) if token.kind == TokenKind::Dot)
                         && matches!(
                             (self.tokens.get(lookahead), self.tokens.get(lookahead + 1)),
@@ -2980,18 +3187,25 @@ impl Parser {
                         let generator = self.parse_list_generator();
                         match generator {
                             Ok((pattern, source)) => {
-                                if self.check(TokenKind::Comma) {
-                                    return Err(ParseError {
-                                        message: "multiple list comprehension generators are not supported in the formal parser path".to_string(),
-                                        span: self.current().span(),
-                                    });
+                                let mut guard = None;
+                                while self.consume_if(TokenKind::Comma) {
+                                    let qualifier_checkpoint = self.pos;
+                                    if self.parse_list_generator().is_ok() {
+                                        return Err(ParseError {
+                                            message: "multiple list comprehension generators are not supported in the formal parser path".to_string(),
+                                            span: self.current().span(),
+                                        });
+                                    }
+                                    self.pos = qualifier_checkpoint;
+                                    let filter = self.parse_expr()?;
+                                    guard = Some(combine_comprehension_filter_guard(guard, filter));
                                 }
                                 self.expect(TokenKind::RBracket)?;
                                 Expr::ListComprehension {
                                     expr: Box::new(first),
                                     pattern,
                                     source: Box::new(source),
-                                    guard: None,
+                                    guard,
                                 }
                             }
                             Err(_) => {
@@ -3145,9 +3359,9 @@ impl Parser {
                 self.expect(TokenKind::LBrace)?;
                 let mut clauses = Vec::new();
                 loop {
-                    let condition = self.parse_expr()?;
+                    let condition = self.parse_single_expr()?;
                     self.expect(TokenKind::Arrow)?;
-                    let body = self.parse_expr()?;
+                    let body = self.parse_single_expr()?;
                     clauses.push(IfClause { condition, body });
                     if self.consume_if(TokenKind::Semicolon) {
                         if self.check(TokenKind::RBrace) {
@@ -3160,7 +3374,10 @@ impl Parser {
                 self.expect(TokenKind::RBrace)?;
                 Expr::If { clauses }
             }
-            TokenKind::Comment | TokenKind::DocComment | TokenKind::ModuleDocComment => {
+            TokenKind::Comment
+            | TokenKind::DocComment
+            | TokenKind::ModuleDocComment
+            | TokenKind::DocBlockComment => {
                 self.bump();
                 self.parse_unary_expr()?
             }
@@ -3173,6 +3390,48 @@ impl Parser {
         };
 
         self.parse_expr_suffix(expr)
+    }
+
+    /// Parses explicit type arguments in a trait-targeted method call.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned at the `[` in `Trait[Type].method(...)`.
+    ///
+    /// Output:
+    /// - Bracketed type-argument text such as `[Int]` or `[List[String], T]`.
+    ///
+    /// Transformation:
+    /// - Reuses the formal type-expression parser for each comma-separated
+    ///   argument and preserves canonical spacing so syntax output and backend
+    ///   trait lookup use the same normalized qualifier text.
+    fn parse_required_trait_call_type_arg_text(&mut self) -> ParseResult<String> {
+        if !self.consume_if(TokenKind::LBracket) {
+            return Err(ParseError {
+                message: "expected trait call type arguments".to_string(),
+                span: self.current().span(),
+            });
+        }
+
+        let mut args = Vec::new();
+        if self.check(TokenKind::RBracket) {
+            return Err(ParseError {
+                message: "trait call type arguments cannot be empty".to_string(),
+                span: self.current().span(),
+            });
+        }
+
+        loop {
+            args.push(
+                self.parse_type_expr(&[TokenKind::Comma, TokenKind::RBracket])?
+                    .text,
+            );
+            if !self.consume_if(TokenKind::Comma) {
+                break;
+            }
+        }
+        self.expect(TokenKind::RBracket)?;
+
+        Ok(format!("[{}]", args.join(", ")))
     }
 
     /// Parses either a parenthesized expression or the canonical lambda syntax.
@@ -3235,6 +3494,21 @@ impl Parser {
         Ok(inner)
     }
 
+    /// Parses semicolon-separated clauses for keyword expressions.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned at the first clause pattern.
+    /// - `stops`: token kinds that close the surrounding keyword expression.
+    ///
+    /// Output:
+    /// - Ordered `CaseClause` values containing pattern, optional guard, and
+    ///   body expression payloads.
+    ///
+    /// Transformation:
+    /// - Parses each clause body as one expression so the following semicolon
+    ///   remains a clause separator rather than becoming an expression-sequence
+    ///   operator. Nested `let` expressions still own their semicolon-scoped
+    ///   binding/body syntax through `parse_single_expr`.
     fn parse_keyword_expr_clauses(&mut self, stops: &[TokenKind]) -> ParseResult<Vec<CaseClause>> {
         let mut clauses = Vec::new();
         if stops.iter().any(|stop| self.check(stop.clone())) {
@@ -3248,7 +3522,7 @@ impl Parser {
                 None
             };
             self.expect(TokenKind::Arrow)?;
-            let body = self.parse_expr()?;
+            let body = self.parse_single_expr()?;
             clauses.push(CaseClause {
                 pattern,
                 guard,
@@ -4317,13 +4591,20 @@ impl Parser {
                 span: self.current().span(),
             });
         }
+        if self.check(TokenKind::DocBlockComment) && is_module_doc_block(&self.current().text) {
+            return Err(ParseError {
+                message: "module documentation blocks (`/** ... @module ... */`) must appear before the module declaration"
+                    .to_string(),
+                span: self.current().span(),
+            });
+        }
 
         Ok(())
     }
 
     fn take_item_docs(&mut self) -> Vec<String> {
         let mut docs = Vec::new();
-        while self.check(TokenKind::DocComment) {
+        while self.check(TokenKind::DocComment) || self.check(TokenKind::DocBlockComment) {
             docs.push(self.bump().text);
         }
         docs
@@ -4331,7 +4612,7 @@ impl Parser {
 
     fn take_module_docs(&mut self) -> Vec<String> {
         let mut docs = Vec::new();
-        while self.check(TokenKind::ModuleDocComment) {
+        while self.check(TokenKind::ModuleDocComment) || self.check(TokenKind::DocBlockComment) {
             docs.push(self.bump().text);
         }
         docs
@@ -4450,6 +4731,30 @@ fn validate_import_alias_class(name: &str, alias: &str, alias_span: Span) -> Par
     Ok(())
 }
 
+/// Combines ordered list-comprehension filters into one boolean guard.
+///
+/// Inputs:
+/// - `guard`: optional accumulated guard expression from earlier filters.
+/// - `filter`: next filter expression in source order.
+///
+/// Output:
+/// - Guard expression equivalent to all filters seen so far.
+///
+/// Transformation:
+/// - Folds comma-separated comprehension filters with `and`, preserving
+///   left-to-right source order while reusing the current single-guard AST
+///   representation.
+fn combine_comprehension_filter_guard(guard: Option<Box<Expr>>, filter: Expr) -> Box<Expr> {
+    match guard {
+        Some(previous) => Box::new(Expr::BinaryOp {
+            op: BinaryOp::And,
+            left: previous,
+            right: Box::new(filter),
+        }),
+        None => Box::new(filter),
+    }
+}
+
 /// Parses a lexer integer token into its signed integer value.
 ///
 /// Inputs:
@@ -4527,6 +4832,22 @@ fn attach_docs(mut decl: Decl, docs: Vec<String>) -> Decl {
     }
 
     decl
+}
+
+/// Checks whether normalized block documentation declares module docs.
+///
+/// Inputs:
+/// - `text`: normalized public documentation block text.
+///
+/// Output:
+/// - `true` when any trimmed line starts with `@module`.
+///
+/// Transformation:
+/// - Treats the TypeDoc-style `@module` tag as the marker that a block belongs
+///   to the module declaration rather than to a following item declaration.
+fn is_module_doc_block(text: &str) -> bool {
+    text.lines()
+        .any(|line| line.trim_start().starts_with("@module"))
 }
 
 fn validate_constructor_clause_shapes(clauses: &[ConstructorClause]) -> ParseResult<()> {
@@ -4627,6 +4948,76 @@ fn invalid_runtime_type_token(input: &str) -> Option<&'static str> {
 mod tests {
     use crate::ast::{BuiltinBlockMacro, Decl, Expr, HtmlAttrValue, HtmlNode, UnaryOp};
     use crate::{parse_interface_module, parse_module, parse_terlan_expr};
+
+    /// Verifies release core collection contracts stay parseable.
+    ///
+    /// Inputs:
+    /// - Release source modules for `std.collections.Map`, `std.collections.List`, and
+    ///   `std.collections.Set`.
+    ///
+    /// Output:
+    /// - Test passes when all three release modules parse as normal source
+    ///   modules and keep their canonical module names.
+    ///
+    /// Transformation:
+    /// - Parses release contracts with compiler intrinsic annotations and
+    ///   placeholder bodies without typechecking or backend emission, proving
+    ///   the P0.3 release source shape remains grammar-stable.
+    #[test]
+    fn parses_release_core_collection_contracts() {
+        let contracts = [
+            (
+                "std.collections.Map",
+                include_str!("../../../std/collections/map.tl"),
+            ),
+            (
+                "std.collections.List",
+                include_str!("../../../std/collections/list.tl"),
+            ),
+            (
+                "std.collections.Set",
+                include_str!("../../../std/collections/set.tl"),
+            ),
+        ];
+
+        for (expected_module, source) in contracts {
+            let module = parse_module(source).expect("parse release collection contract");
+            assert_eq!(module.name, expected_module);
+        }
+    }
+
+    /// Verifies release iterator/iterable modules stay parseable.
+    ///
+    /// Inputs:
+    /// - Release source modules for `std.collections.Iterator` and
+    ///   `std.collections.Iterable`.
+    ///
+    /// Output:
+    /// - Test passes when both modules parse in source mode and keep their
+    ///   canonical module names.
+    ///
+    /// Transformation:
+    /// - Parses release traversal modules without typechecking or backend
+    ///   emission, proving P0.4b exposes traversal contracts while allowing
+    ///   source-implemented helpers such as `Iterator.each`.
+    #[test]
+    fn parses_release_traversal_contracts() {
+        let contracts = [
+            (
+                "std.collections.Iterator",
+                include_str!("../../../std/collections/iterator.tl"),
+            ),
+            (
+                "std.collections.Iterable",
+                include_str!("../../../std/collections/iterable.tl"),
+            ),
+        ];
+
+        for (expected_module, source) in contracts {
+            let module = parse_module(source).expect("parse release collection trait module");
+            assert_eq!(module.name, expected_module);
+        }
+    }
 
     #[test]
     fn formal_expr_precedence_keeps_send_above_full_pipe_chain() {
@@ -5211,6 +5602,7 @@ mod tests {
         assert_eq!(value_method.name, "value");
         assert_eq!(value_method.receiver.name, "self");
         assert_eq!(value_method.receiver.annotation.text, "Box[Int]");
+        assert!(!value_method.receiver.is_mutable);
 
         let Decl::Method(replace_method) = &module.declarations[2] else {
             panic!("expected second method");
@@ -5218,6 +5610,43 @@ mod tests {
         assert_eq!(replace_method.name, "replace");
         assert_eq!(replace_method.params.len(), 1);
         assert!(replace_method.is_public);
+        assert!(!replace_method.receiver.is_mutable);
+    }
+
+    /// Verifies mutable receiver syntax is parsed without enabling semantics.
+    ///
+    /// Inputs:
+    /// - A module with a receiver method declared as `(mut self: Box[Int])`.
+    ///
+    /// Output:
+    /// - Test passes when the method is preserved as a structured declaration
+    ///   and the receiver metadata records `is_mutable`.
+    ///
+    /// Transformation:
+    /// - Parses the contextual `mut` marker before the receiver binding and
+    ///   stores it on the receiver parameter for later semantic validation.
+    #[test]
+    fn formal_method_receiver_inventory_preserves_mutable_receiver_marker() {
+        let module = parse_module(
+            r#"
+            module methods.receiver.mutable.
+
+            struct Box {
+              value: Int
+            }.
+
+            pub (mut self: Box[Int]) replace(value: Int): Box[Int] -> self.
+            "#,
+        )
+        .expect("parse mutable method receiver inventory");
+
+        let Decl::Method(method) = &module.declarations[1] else {
+            panic!("expected mutable receiver method");
+        };
+        assert_eq!(method.name, "replace");
+        assert_eq!(method.receiver.name, "self");
+        assert_eq!(method.receiver.annotation.text, "Box[Int]");
+        assert!(method.receiver.is_mutable);
     }
 
     /// Verifies method receiver/name diagnostics required by A0.28.
@@ -5582,6 +6011,40 @@ mod tests {
             "unexpected error: {}",
             err.message
         );
+    }
+
+    #[test]
+    fn formal_list_comprehension_accepts_stacked_filters_as_guard() {
+        let expr = parse_terlan_expr("[Item | Item <- Items, Item > 0, Item < 10]")
+            .expect("stacked list comprehension filters should parse");
+
+        let Expr::ListComprehension {
+            guard: Some(guard), ..
+        } = expr
+        else {
+            panic!("expected guarded list comprehension");
+        };
+        let Expr::BinaryOp {
+            op, left, right, ..
+        } = guard.as_ref()
+        else {
+            panic!("expected combined filter guard");
+        };
+        assert!(matches!(op, crate::ast::BinaryOp::And));
+        assert!(matches!(
+            left.as_ref(),
+            Expr::BinaryOp {
+                op: crate::ast::BinaryOp::Gt,
+                ..
+            }
+        ));
+        assert!(matches!(
+            right.as_ref(),
+            Expr::BinaryOp {
+                op: crate::ast::BinaryOp::Lt,
+                ..
+            }
+        ));
     }
 
     /// Verifies collection expressions accepted by the A0.24 syntax baseline.
@@ -6169,6 +6632,61 @@ pub type Option[T] =
     }
 
     #[test]
+    fn parses_module_and_item_doc_block_comments() {
+        let source = r#"
+/**
+ * Math helpers.
+ *
+ * @module mathx
+ */
+module mathx.
+
+/**
+ * Adds one.
+ *
+ * @param x The value to increment.
+ * @returns The incremented value.
+ */
+@test
+pub add(x: Int): Int ->
+    x + 1.
+
+/**
+ * Optional value.
+ *
+ * @type T The wrapped value type.
+ */
+pub type Option[T] =
+      none
+    | {some, T}.
+"#;
+
+        let module = parse_module(source).expect("parse block docs");
+        assert_eq!(module.docs, vec!["Math helpers.\n\n@module mathx"]);
+        assert_eq!(module.declaration_annotations[0][0].path, vec!["test"]);
+        match &module.declarations[0] {
+            Decl::Function(function) => {
+                assert_eq!(
+                    function.docs,
+                    vec![
+                        "Adds one.\n\n@param x The value to increment.\n@returns The incremented value."
+                    ]
+                );
+            }
+            _ => panic!("expected documented function"),
+        }
+        match &module.declarations[1] {
+            Decl::Type(type_decl) => {
+                assert_eq!(
+                    type_decl.docs,
+                    vec!["Optional value.\n\n@type T The wrapped value type."]
+                );
+            }
+            _ => panic!("expected documented type"),
+        }
+    }
+
+    #[test]
     fn parses_public_constructor_with_varargs_and_defaults() {
         let source = r#"
 module queue.
@@ -6304,6 +6822,45 @@ pub id(X: Int): Int.
         assert_eq!(
             interface_err.message,
             "module doc comments (`//!`) must appear before the module declaration"
+        );
+    }
+
+    #[test]
+    fn rejects_misplaced_module_doc_blocks() {
+        let source = r#"
+module misplaced_doc_block.
+
+/**
+ * Late module docs.
+ *
+ * @module misplaced_doc_block
+ */
+pub id(x: Int): Int ->
+    x.
+"#;
+
+        let err = parse_module(source).expect_err("reject misplaced module doc block");
+        assert_eq!(
+            err.message,
+            "module documentation blocks (`/** ... @module ... */`) must appear before the module declaration"
+        );
+
+        let interface_source = r#"
+module misplaced_interface_doc_block.
+
+/**
+ * Late module docs.
+ *
+ * @module misplaced_interface_doc_block
+ */
+pub id(x: Int): Int.
+"#;
+
+        let interface_err = parse_interface_module(interface_source)
+            .expect_err("reject misplaced interface doc block");
+        assert_eq!(
+            interface_err.message,
+            "module documentation blocks (`/** ... @module ... */`) must appear before the module declaration"
         );
     }
 
@@ -6927,6 +7484,46 @@ pub add(): Int ->
         }
     }
 
+    /// Verifies explicit trait-target method calls parse as remote calls.
+    ///
+    /// Inputs:
+    /// - A module using `Parse[Int].from_string("42")`.
+    ///
+    /// Output:
+    /// - Test passes when the call is preserved with `Parse[Int]` as the
+    ///   remote qualifier and `from_string` as the method name.
+    ///
+    /// Transformation:
+    /// - Parses bracketed type arguments in expression qualifier position
+    ///   without introducing general postfix generic call syntax.
+    #[test]
+    fn parses_explicit_trait_target_call_expression() {
+        let source = r#"
+module traits.parse_target.
+
+pub parse(): Option[Int] ->
+    Parse[Int].from_string("42").
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        let expr = &function.clauses[0].body;
+        match expr {
+            Expr::Call {
+                callee,
+                remote: Some(module),
+                ..
+            } => {
+                assert_eq!(module, "Parse[Int]");
+                assert!(matches!(callee.as_ref(), Expr::Atom(name) if name == "from_string"));
+            }
+            _ => panic!("expected explicit trait-target call"),
+        }
+    }
+
     #[test]
     fn parses_struct_field_access_sugar() {
         let source = r#"
@@ -7175,6 +7772,35 @@ pub impl Show[Int] for Int {
         assert_eq!(impl_decl.for_type.text, "Int");
         assert_eq!(impl_decl.methods.len(), 1);
         assert!(impl_decl.methods[0].clauses.is_empty());
+    }
+
+    /// Verifies interface files may summarize public type headers.
+    ///
+    /// Inputs:
+    /// - A `.tli`-style module containing `pub type ExternalUser.`.
+    ///
+    /// Output:
+    /// - Parsed type declaration with no variants.
+    ///
+    /// Transformation:
+    /// - Exercises interface-only type parsing so generated `.typi` files can
+    ///   preserve nominal public types without requiring source-form bodies.
+    #[test]
+    fn interface_parser_accepts_bodyless_public_type_headers() {
+        let source = r#"
+module provider_iface.
+
+pub type ExternalUser.
+"#;
+
+        let module = parse_interface_module(source).expect("parse bodyless interface type");
+        assert_eq!(module.declarations.len(), 1);
+        let Decl::Type(type_decl) = &module.declarations[0] else {
+            panic!("expected type declaration");
+        };
+        assert_eq!(type_decl.name, "ExternalUser");
+        assert!(type_decl.variants.is_empty());
+        assert!(type_decl.is_public);
     }
 
     #[test]

@@ -1,0 +1,3 @@
+-module(phase_trait).
+-export([is_same/3]).
+is_same(_TyperTraitDicteq_a, Left, Right) ->

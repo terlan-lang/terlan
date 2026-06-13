@@ -8,7 +8,7 @@
 use super::*;
 use terlan_typeck::CorePrimitiveIntrinsic;
 
-struct SyntaxLowerCtx {
+pub(super) struct SyntaxLowerCtx {
     constructors: BTreeMap<String, Vec<SyntaxConstructorTarget>>,
     imported_constructor_targets: BTreeMap<String, Vec<SyntaxRemoteConstructorTarget>>,
     remote_constructor_targets: BTreeMap<String, Vec<SyntaxRemoteConstructorTarget>>,
@@ -19,8 +19,13 @@ struct SyntaxLowerCtx {
     opaque_constructors: BTreeSet<String>,
     trait_method_wrappers: BTreeMap<String, BTreeMap<String, String>>,
     typed_trait_method_wrappers: BTreeMap<String, BTreeMap<String, BTreeMap<String, String>>>,
+    generic_functions: BTreeMap<(String, usize), SyntaxGenericFunctionTarget>,
+    local_function_values: BTreeMap<String, usize>,
     imported_trait_aliases: BTreeMap<String, (String, String)>,
-    receiver_methods: BTreeMap<(String, usize), BTreeSet<String>>,
+    imported_trait_conformances: BTreeMap<String, BTreeMap<String, String>>,
+    imported_type_refs: BTreeMap<String, String>,
+    local_trait_methods: BTreeMap<String, BTreeSet<String>>,
+    receiver_methods: BTreeMap<(String, usize), BTreeMap<String, SyntaxReceiverMethodTarget>>,
     module_aliases: BTreeMap<String, String>,
     file_imports: BTreeMap<String, Vec<u8>>,
     markdown_imports: BTreeMap<String, terlan_html::MarkdownDocument>,
@@ -28,11 +33,30 @@ struct SyntaxLowerCtx {
     struct_field_types: BTreeMap<String, BTreeMap<String, String>>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone)]
+pub(super) struct SyntaxReceiverMethodTarget {
+    pub(super) mutable: bool,
+}
+
+#[derive(Debug, Clone)]
+struct SyntaxGenericFunctionTarget {
+    params: Vec<String>,
+    bounds: Vec<SyntaxGenericFunctionBound>,
+}
+
+#[derive(Debug, Clone)]
+struct SyntaxGenericFunctionBound {
+    trait_name: String,
+    type_args: Vec<String>,
+}
+
+#[derive(Clone, Default)]
 struct SyntaxLowerEnv {
     struct_locals: BTreeMap<String, String>,
     value_locals: BTreeSet<String>,
     value_types: BTreeMap<String, String>,
+    trait_bound_dicts: BTreeMap<(String, String), String>,
+    value_replacements: BTreeMap<String, ErlExpr>,
 }
 
 impl SyntaxLowerCtx {
@@ -48,7 +72,12 @@ impl SyntaxLowerCtx {
             opaque_constructors: BTreeSet::new(),
             trait_method_wrappers: BTreeMap::new(),
             typed_trait_method_wrappers: BTreeMap::new(),
+            generic_functions: BTreeMap::new(),
+            local_function_values: BTreeMap::new(),
             imported_trait_aliases: BTreeMap::new(),
+            imported_trait_conformances: BTreeMap::new(),
+            imported_type_refs: BTreeMap::new(),
+            local_trait_methods: BTreeMap::new(),
             receiver_methods: BTreeMap::new(),
             module_aliases: BTreeMap::new(),
             file_imports: BTreeMap::new(),
@@ -58,7 +87,7 @@ impl SyntaxLowerCtx {
         }
     }
 
-    fn new(
+    pub(super) fn new(
         module: &SyntaxModuleOutput,
         interfaces: &BTreeMap<String, ModuleInterface>,
         file_imports: &BTreeMap<String, Vec<u8>>,
@@ -119,6 +148,9 @@ impl SyntaxLowerCtx {
                     .collect::<Vec<_>>()
             })
             .collect();
+
+        let imported_trait_conformances = collect_imported_trait_conformances(module, interfaces);
+        let imported_type_refs = collect_imported_type_refs(module, interfaces);
 
         let imported_functions = module
             .declarations
@@ -404,6 +436,27 @@ impl SyntaxLowerCtx {
             })
             .collect();
 
+        let local_trait_methods = module
+            .declarations
+            .iter()
+            .filter_map(|decl| {
+                let SyntaxDeclarationPayload::Trait { name, methods, .. } = &decl.payload else {
+                    return None;
+                };
+                Some((
+                    name.clone(),
+                    methods
+                        .iter()
+                        .map(|method| method.name.clone())
+                        .collect::<BTreeSet<_>>(),
+                ))
+            })
+            .collect();
+
+        let typed_trait_method_wrappers = collect_syntax_typed_trait_method_wrappers(module);
+        let generic_functions = collect_syntax_generic_functions(module);
+        let local_function_values = collect_syntax_local_function_values(module);
+
         let receiver_methods = module
             .declarations
             .iter()
@@ -420,12 +473,18 @@ impl SyntaxLowerCtx {
                 Some((
                     (name.clone(), params.len()),
                     normalize_trait_type_text(&receiver.annotation.text),
+                    SyntaxReceiverMethodTarget {
+                        mutable: receiver.is_mutable,
+                    },
                 ))
             })
             .fold(
-                BTreeMap::<(String, usize), BTreeSet<String>>::new(),
-                |mut methods, (key, receiver_type)| {
-                    methods.entry(key).or_default().insert(receiver_type);
+                BTreeMap::<(String, usize), BTreeMap<String, SyntaxReceiverMethodTarget>>::new(),
+                |mut methods, (key, receiver_type, target)| {
+                    methods
+                        .entry(key)
+                        .or_default()
+                        .insert(receiver_type, target);
                     methods
                 },
             );
@@ -440,8 +499,13 @@ impl SyntaxLowerCtx {
             imported_functions,
             opaque_constructors,
             trait_method_wrappers: BTreeMap::new(),
-            typed_trait_method_wrappers: BTreeMap::new(),
+            typed_trait_method_wrappers,
+            generic_functions,
+            local_function_values,
             imported_trait_aliases,
+            imported_trait_conformances,
+            imported_type_refs,
+            local_trait_methods,
             receiver_methods,
             module_aliases,
             file_imports: file_imports.clone(),
@@ -478,6 +542,28 @@ impl SyntaxLowerCtx {
             .map(|(module, function)| (module, function))
     }
 
+    /// Resolves metadata for a bounded generic local function.
+    ///
+    /// Inputs:
+    /// - `name`: local function name used at the call site.
+    /// - `arity`: source-visible argument count, excluding hidden dictionaries.
+    ///
+    /// Output:
+    /// - Generic function metadata when the local function declares one or more
+    ///   trait bounds.
+    ///
+    /// Transformation:
+    /// - Looks up the source-visible function key captured from formal syntax
+    ///   output without exposing hidden backend dictionary parameters to source
+    ///   callers.
+    fn generic_function_target(
+        &self,
+        name: &str,
+        arity: usize,
+    ) -> Option<&SyntaxGenericFunctionTarget> {
+        self.generic_functions.get(&(name.to_string(), arity))
+    }
+
     fn alias_constructor_target(
         &self,
         name: &str,
@@ -486,6 +572,47 @@ impl SyntaxLowerCtx {
         self.alias_constructor_targets
             .get(name)
             .filter(|target| target.params.len() == arity)
+    }
+
+    /// Resolves a transparent singleton alias value by source name.
+    ///
+    /// Inputs:
+    /// - `name`: local source name from a bare variable expression.
+    ///
+    /// Output:
+    /// - The zero-payload alias target when `name` represents a singleton atom
+    ///   value such as `None` or `Unit`.
+    /// - `None` when the alias carries associated values or is not present.
+    ///
+    /// Transformation:
+    /// - Looks up the existing alias-constructor target table but restricts
+    ///   bare value lowering to targets with no parameters.
+    fn singleton_alias_value_target(&self, name: &str) -> Option<&SyntaxAliasConstructorTarget> {
+        self.alias_constructor_targets
+            .get(name)
+            .filter(|target| target.params.is_empty())
+    }
+
+    /// Resolves an alias call target for constructor syntax.
+    ///
+    /// Inputs:
+    /// - `name`: local call head.
+    /// - `arity`: number of supplied call arguments.
+    ///
+    /// Output:
+    /// - The alias target when constructor syntax carries associated values.
+    /// - `None` for zero-payload aliases so `None()` and `Unit()` do not lower.
+    ///
+    /// Transformation:
+    /// - Reuses alias target metadata while enforcing that call syntax is only
+    ///   for associated values, not singleton atom aliases.
+    fn alias_constructor_call_target(
+        &self,
+        name: &str,
+        arity: usize,
+    ) -> Option<&SyntaxAliasConstructorTarget> {
+        self.alias_constructor_target(name, arity)
+            .filter(|target| !target.params.is_empty())
     }
 
     fn remote_alias_constructor_target(
@@ -597,13 +724,87 @@ impl SyntaxLowerCtx {
             .and_then(|types| types.get(type_arg))
     }
 
+    /// Returns whether a local trait declares a method name.
+    ///
+    /// Inputs:
+    /// - `trait_name`: source-visible local trait name.
+    /// - `method`: source-visible trait method name.
+    ///
+    /// Output:
+    /// - `true` when the current module declares the trait and method.
+    ///
+    /// Transformation:
+    /// - Performs a syntax-output inventory lookup so backend lowering only
+    ///   rewrites calls that are actually trait-shaped in source.
+    fn has_local_trait_method(&self, trait_name: &str, method: &str) -> bool {
+        self.local_trait_methods
+            .get(trait_name)
+            .is_some_and(|methods| methods.contains(method))
+    }
+
+    /// Returns provider metadata for an imported trait alias.
+    ///
+    /// Inputs:
+    /// - `name`: local trait alias used as the remote call head, or the
+    ///   qualified selected-import spelling produced by module alias
+    ///   resolution.
+    ///
+    /// Output:
+    /// - Provider module and provider-local trait name when the call head
+    ///   identifies an imported trait.
+    /// - `None` when the call head is not an imported trait.
+    ///
+    /// Transformation:
+    /// - Looks up the call head directly first, then falls back to its final
+    ///   dotted segment so imports such as `std.collections.Enumerable.{Enumerable}`
+    ///   still dispatch as traits after uppercase selected-import alias
+    ///   qualification.
     fn imported_trait_alias(&self, name: &str) -> Option<(&str, &str)> {
+        let key = name.trim_matches('.').trim();
+        if let Some((module, source_name)) = self.imported_trait_aliases.get(key) {
+            return Some((module.as_str(), source_name.as_str()));
+        }
+        let key = key.rsplit('.').next().unwrap_or(key);
         self.imported_trait_aliases
-            .get(name)
+            .get(key)
             .map(|(module, source_name)| (module.as_str(), source_name.as_str()))
     }
 
-    /// Tests whether a local receiver-method declaration can handle a call.
+    /// Returns the provider-local wrapper type for an imported conformance.
+    ///
+    /// Inputs:
+    /// - `trait_name`: local imported trait name or alias used at the call site.
+    /// - `type_arg`: normalized concrete first-argument type.
+    ///
+    /// Output:
+    /// - Provider-local type key used in the remote wrapper function name.
+    /// - `None` when provider interface metadata exposes no public conformance.
+    ///
+    /// Transformation:
+    /// - Looks up by the consumer-qualified type key while returning the
+    ///   provider-local type key, because remote wrapper symbols are generated
+    ///   in the provider module's local namespace.
+    fn imported_trait_conformance_wrapper_type(
+        &self,
+        trait_name: &str,
+        type_arg: &str,
+    ) -> Option<&str> {
+        let key = trait_name.trim_matches('.').trim();
+        if let Some(wrapper) = self
+            .imported_trait_conformances
+            .get(key)
+            .and_then(|types| types.get(type_arg))
+        {
+            return Some(wrapper.as_str());
+        }
+        let key = key.rsplit('.').next().unwrap_or(key);
+        self.imported_trait_conformances
+            .get(key)
+            .and_then(|types| types.get(type_arg))
+            .map(String::as_str)
+    }
+
+    /// Returns metadata for a local receiver-method declaration.
     ///
     /// Inputs:
     /// - `receiver_type`: normalized type key inferred for the call receiver.
@@ -611,19 +812,428 @@ impl SyntaxLowerCtx {
     /// - `arity`: number of non-receiver call arguments.
     ///
     /// Output:
-    /// - `true` when the current module declares a receiver method with the
-    ///   same receiver type, method name, and non-receiver arity.
+    /// - Receiver-method metadata when the current module declares the selected
+    ///   receiver type, method name, and non-receiver arity.
+    /// - `None` when no matching receiver method exists.
     ///
     /// Transformation:
-    /// - Performs an exact lookup against the receiver-method inventory built
-    ///   from formal syntax output. This emitter-side check mirrors the
-    ///   typechecker contract without doing full type inference.
-    fn has_receiver_method(&self, receiver_type: &str, method: &str, arity: usize) -> bool {
+    /// - Performs the same exact inventory lookup as `has_receiver_method`, but
+    ///   keeps the receiver mutability bit available to backend rebinding
+    ///   lowering without reparsing declarations.
+    pub(super) fn receiver_method_target(
+        &self,
+        receiver_type: &str,
+        method: &str,
+        arity: usize,
+    ) -> Option<&SyntaxReceiverMethodTarget> {
         self.receiver_methods
             .get(&(method.to_string(), arity))
-            .map(|receivers| receivers.contains(receiver_type))
-            .unwrap_or(false)
+            .and_then(|receivers| receivers.get(receiver_type))
     }
+}
+
+/// Collects typed trait-method wrapper names for explicit impl declarations.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing zero or more
+///   `impl Trait[...] for Type` declarations.
+///
+/// Output:
+/// - Map from trait name, method name, and concrete implementation type to the
+///   generated Erlang wrapper function name.
+///
+/// Transformation:
+/// - Reads only structured syntax output, extracts the head trait name and
+///   normalized `for` type, and assigns deterministic wrapper names so
+///   `Trait.method(value)` dispatch can resolve before ordinary remote calls.
+fn collect_syntax_typed_trait_method_wrappers(
+    module: &SyntaxModuleOutput,
+) -> BTreeMap<String, BTreeMap<String, BTreeMap<String, String>>> {
+    let mut wrappers = BTreeMap::new();
+
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::TraitImpl {
+            trait_ref,
+            for_type,
+            methods,
+            ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+        let Some(trait_name) = syntax_type_head_name(&trait_ref.text) else {
+            continue;
+        };
+        let type_arg = normalize_trait_type_text(&for_type.text);
+
+        for method in methods {
+            wrappers
+                .entry(trait_name.clone())
+                .or_insert_with(BTreeMap::new)
+                .entry(method.name.clone())
+                .or_insert_with(BTreeMap::new)
+                .insert(
+                    type_arg.clone(),
+                    typed_trait_method_wrapper_name(&trait_name, &method.name, &type_arg),
+                );
+        }
+    }
+
+    wrappers
+}
+
+/// Collects bounded generic local functions.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing function declarations.
+///
+/// Output:
+/// - Map keyed by source-visible `(function name, arity)` with parameter type
+///   annotations and parsed trait bounds.
+///
+/// Transformation:
+/// - Reads `generic_bounds` from formal syntax output and stores only bounds
+///   that parse as named trait applications, enabling backend call lowering to
+///   synthesize hidden trait dictionaries for concrete local calls.
+fn collect_syntax_generic_functions(
+    module: &SyntaxModuleOutput,
+) -> BTreeMap<(String, usize), SyntaxGenericFunctionTarget> {
+    module
+        .declarations
+        .iter()
+        .filter_map(|decl| {
+            let SyntaxDeclarationPayload::Function {
+                name,
+                params,
+                generic_bounds,
+                ..
+            } = &decl.payload
+            else {
+                return None;
+            };
+            if generic_bounds.is_empty() {
+                return None;
+            }
+            let bounds = generic_bounds
+                .iter()
+                .filter_map(|bound| parse_syntax_generic_function_bound(bound))
+                .collect::<Vec<_>>();
+            if bounds.is_empty() {
+                return None;
+            }
+            Some((
+                (name.clone(), params.len()),
+                SyntaxGenericFunctionTarget {
+                    params: params
+                        .iter()
+                        .map(|param| normalize_trait_type_text(&param.annotation.text))
+                        .collect(),
+                    bounds,
+                },
+            ))
+        })
+        .collect()
+}
+
+/// Collects local functions that can be captured as first-class values.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing function declarations.
+///
+/// Output:
+/// - Map from source function name to its single source arity.
+///
+/// Transformation:
+/// - Scans non-generic local functions and keeps only names that appear with
+///   exactly one arity. Multi-clause functions with the same arity remain
+///   capturable, while overloaded names and generic-bound functions are left
+///   out so backend lowering cannot pick the wrong BEAM function reference.
+fn collect_syntax_local_function_values(module: &SyntaxModuleOutput) -> BTreeMap<String, usize> {
+    let mut arities_by_name = BTreeMap::<String, BTreeSet<usize>>::new();
+    for decl in &module.declarations {
+        let SyntaxDeclarationPayload::Function {
+            name,
+            params,
+            generic_bounds,
+            ..
+        } = &decl.payload
+        else {
+            continue;
+        };
+        if !generic_bounds.is_empty() {
+            continue;
+        }
+        arities_by_name
+            .entry(name.clone())
+            .or_default()
+            .insert(params.len());
+    }
+
+    arities_by_name
+        .into_iter()
+        .filter_map(|(name, arities)| {
+            if arities.len() == 1 {
+                arities.iter().next().copied().map(|arity| (name, arity))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Parses one generic function trait-bound reference.
+///
+/// Inputs:
+/// - `text`: source bound text such as `Eq[A]`.
+///
+/// Output:
+/// - Parsed trait head and normalized type arguments.
+///
+/// Transformation:
+/// - Splits named type application text using the backend type utility parser
+///   so bounded generic function lowering can reason about trait dictionaries
+///   without reparsing source declarations.
+fn parse_syntax_generic_function_bound(text: &str) -> Option<SyntaxGenericFunctionBound> {
+    let compact = compact_type_application(&compact_spaces(text));
+    let (trait_name, type_args) = parse_named_type_args(&compact)?;
+    Some(SyntaxGenericFunctionBound {
+        trait_name: trait_name.to_string(),
+        type_args: type_args
+            .into_iter()
+            .map(|arg| normalize_trait_type_text(&arg))
+            .collect(),
+    })
+}
+
+/// Collects imported trait conformances from provider interfaces.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing selected trait imports.
+/// - `interfaces`: provider interfaces keyed by source module name.
+///
+/// Output:
+/// - Map from local imported trait name to consumer-qualified implementation
+///   type keys and provider-local wrapper type keys.
+///
+/// Transformation:
+/// - Matches selected imports such as `import provider.{Named}` against public
+///   provider conformance facts, rewrites the trait key to the local import
+///   name or alias, stores qualified keys for call-site matching, and stores
+///   provider-local type keys for remote wrapper symbol generation.
+fn collect_imported_trait_conformances(
+    module: &SyntaxModuleOutput,
+    interfaces: &BTreeMap<String, ModuleInterface>,
+) -> BTreeMap<String, BTreeMap<String, String>> {
+    let mut conformances: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::Import {
+            import_kind: SyntaxImportKind::Module,
+            module_name,
+            items,
+            is_type: false,
+            ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+        let Some(interface) = interfaces.get(module_name) else {
+            continue;
+        };
+
+        for item in items {
+            if !interface.traits.contains_key(&item.name) {
+                continue;
+            }
+            let local_name = item.as_alias.clone().unwrap_or_else(|| item.name.clone());
+            for conformance in &interface.trait_conformances {
+                if !conformance.public {
+                    continue;
+                }
+                let Some(trait_name) = syntax_type_head_name(&conformance.trait_ref) else {
+                    continue;
+                };
+                if trait_name != item.name {
+                    continue;
+                }
+                conformances.entry(local_name.clone()).or_default().insert(
+                    qualify_imported_type_text(
+                        &normalize_trait_type_text(&conformance.for_type),
+                        &collect_interface_type_refs(interface),
+                    ),
+                    normalize_trait_type_text(&conformance.for_type),
+                );
+            }
+        }
+    }
+
+    conformances
+}
+
+/// Collects selected imported type references from provider interfaces.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing selected imports.
+/// - `interfaces`: loaded provider interfaces keyed by module name.
+///
+/// Output:
+/// - Map from local imported type name or alias to fully qualified Terlan type
+///   text such as `people.Provider.ExternalUser`.
+///
+/// Transformation:
+/// - Reads selected module imports, keeps public type and opaque type items,
+///   applies local aliases, and records the provider-qualified type identity
+///   needed by BEAM spec lowering.
+fn collect_imported_type_refs(
+    module: &SyntaxModuleOutput,
+    interfaces: &BTreeMap<String, ModuleInterface>,
+) -> BTreeMap<String, String> {
+    let mut refs = BTreeMap::new();
+
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::Import {
+            import_kind: SyntaxImportKind::Module,
+            module_name,
+            items,
+            ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+        let Some(interface) = interfaces.get(module_name) else {
+            continue;
+        };
+
+        for item in items {
+            if !interface.public_types.contains(&item.name)
+                && !interface.opaque_types.contains(&item.name)
+            {
+                continue;
+            }
+            let local_name = item.as_alias.clone().unwrap_or_else(|| item.name.clone());
+            refs.insert(local_name, format!("{}.{}", module_name, item.name));
+        }
+    }
+
+    refs
+}
+
+/// Collects provider-local type names for qualification.
+///
+/// Inputs:
+/// - `interface`: provider module interface.
+///
+/// Output:
+/// - Map from public provider type head to provider-qualified type text.
+///
+/// Transformation:
+/// - Converts interface public and opaque type sets into the same local-to-full
+///   type map used for selected imports.
+fn collect_interface_type_refs(interface: &ModuleInterface) -> BTreeMap<String, String> {
+    interface
+        .public_types
+        .iter()
+        .chain(interface.opaque_types.iter())
+        .map(|name| (name.clone(), format!("{}.{}", interface.module, name)))
+        .collect()
+}
+
+/// Lowers a syntax annotation to a BEAM spec with import-aware type names.
+///
+/// Inputs:
+/// - `text`: source annotation text.
+/// - `ctx`: syntax lowering context containing selected type imports.
+///
+/// Output:
+/// - Erlang type-spec model for the annotation.
+///
+/// Transformation:
+/// - Qualifies selected imported type heads before delegating to the ordinary
+///   BEAM type-spec lowering helper.
+fn lower_syntax_type_to_spec(text: &str, ctx: &SyntaxLowerCtx) -> ErlType {
+    lower_type_to_spec(&qualify_imported_type_text(text, &ctx.imported_type_refs))
+}
+
+/// Qualifies imported type heads inside one annotation text.
+///
+/// Inputs:
+/// - `text`: Terlan type annotation text.
+/// - `imported_type_refs`: local type names mapped to provider-qualified names.
+///
+/// Output:
+/// - Annotation text with imported heads rewritten when needed.
+///
+/// Transformation:
+/// - Handles exact imported type names and generic type applications
+///   recursively. Other type forms are returned unchanged so this helper stays
+///   conservative until the full type AST owns backend spec rendering.
+fn qualify_imported_type_text(text: &str, imported_type_refs: &BTreeMap<String, String>) -> String {
+    let normalized = normalize_trait_type_text(text);
+    if let Some(qualified) = imported_type_refs.get(&normalized) {
+        return qualified.clone();
+    }
+
+    let compact = compact_type_application(&compact_spaces(&normalized));
+    let Some((head, args)) = parse_named_type_args(&compact) else {
+        return normalized;
+    };
+    let qualified_head = imported_type_refs
+        .get(head)
+        .cloned()
+        .unwrap_or_else(|| head.to_string());
+    let qualified_args = args
+        .iter()
+        .map(|arg| qualify_imported_type_text(arg, imported_type_refs))
+        .collect::<Vec<_>>();
+    format!("{}[{}]", qualified_head, qualified_args.join(", "))
+}
+
+/// Extracts the source trait/type head from a type expression string.
+///
+/// Inputs:
+/// - `text`: syntax-output type text such as `Identity[ExternalUser]` or
+///   `std.core.Show[User]`.
+///
+/// Output:
+/// - The non-empty type head before type arguments.
+///
+/// Transformation:
+/// - Trims the type expression and keeps the prefix before the first `[` so
+///   wrapper maps use source-visible trait names rather than full type
+///   application text.
+fn syntax_type_head_name(text: &str) -> Option<String> {
+    let head = text
+        .split_once('[')
+        .map(|(head, _)| head)
+        .unwrap_or(text)
+        .trim();
+    (!head.is_empty()).then(|| head.to_string())
+}
+
+/// Splits an explicit trait-call target into trait alias and type argument.
+///
+/// Inputs:
+/// - `remote`: remote qualifier from a syntax-output call, such as `Parse[Int]`
+///   or `Show`.
+///
+/// Output:
+/// - Tuple containing the trait alias and optional normalized first type
+///   argument.
+///
+/// Transformation:
+/// - Parses the closed `Trait[Type]` shape used by explicit target calls while
+///   leaving ordinary remote qualifiers untouched. Multi-argument trait targets
+///   are preserved in the returned type text only when they can be parsed by
+///   the shared type-application helper.
+fn split_explicit_trait_call_target(remote: &str) -> (String, Option<String>) {
+    let compact = compact_type_application(&compact_spaces(remote));
+    let Some((head, args)) = parse_named_type_args(&compact) else {
+        return (remote.to_string(), None);
+    };
+    let Some(first) = args.first() else {
+        return (remote.to_string(), None);
+    };
+    (head.to_string(), Some(normalize_trait_type_text(first)))
 }
 
 #[derive(Debug, Clone)]
@@ -786,6 +1396,7 @@ fn infer_syntax_trait_dispatch_type(
         SyntaxExprKind::Int => Some("Int".to_string()),
         SyntaxExprKind::Float => Some("Float".to_string()),
         SyntaxExprKind::Binary => Some("String".to_string()),
+        SyntaxExprKind::List => Some("List".to_string()),
         SyntaxExprKind::Atom => expr.text.as_deref().and_then(|text| match text {
             "unit" => Some("Unit".to_string()),
             "lt" | "eq" | "gt" => Some("Comparison".to_string()),
@@ -839,7 +1450,32 @@ pub(super) fn lower_syntax_module_output(
             SyntaxDeclarationPayload::Trait { name, .. } => {
                 function_forms.push(ErlForm::Raw(format!("%% trait {}.\n", name)));
             }
-            SyntaxDeclarationPayload::TraitImpl { .. } => {}
+            SyntaxDeclarationPayload::TraitImpl {
+                trait_ref,
+                for_type,
+                is_public,
+                methods,
+            } => {
+                if *is_public {
+                    if let Some(trait_name) = syntax_type_head_name(&trait_ref.text) {
+                        let type_arg = normalize_trait_type_text(&for_type.text);
+                        for method in methods {
+                            exports.insert(format!(
+                                "{}/{}",
+                                typed_trait_method_wrapper_name(
+                                    &trait_name,
+                                    &method.name,
+                                    &type_arg
+                                ),
+                                method.params.len() + 1
+                            ));
+                        }
+                    }
+                }
+                function_forms.extend(lower_syntax_trait_impl_decl(
+                    decl, trait_ref, for_type, methods, &ctx,
+                )?);
+            }
             SyntaxDeclarationPayload::Config { name, text, .. } if name == "native" => {
                 for signature in extract_native_function_signatures(text) {
                     exports.insert(format!("{}/{}", signature.name, signature.arity));
@@ -919,18 +1555,20 @@ pub(super) fn lower_syntax_module_output(
             SyntaxDeclarationPayload::Function {
                 name,
                 params,
+                generic_bounds,
                 return_type,
                 is_public,
                 clauses,
                 ..
             } => {
                 if *is_public && !clauses.is_empty() {
-                    exports.insert(format!("{}/{}", name, params.len()));
+                    exports.insert(format!("{}/{}", name, params.len() + generic_bounds.len()));
                 }
                 function_forms.extend(lower_syntax_function_decl(
                     decl,
                     name,
                     params,
+                    generic_bounds,
                     return_type,
                     clauses,
                     &ctx,
@@ -974,6 +1612,7 @@ pub(super) fn lower_syntax_module_output(
 
     Some(ErlModule {
         name: map_module_name(&module.module_name),
+        docs: module.docs.clone(),
         forms,
     })
 }
@@ -1103,9 +1742,12 @@ fn lower_syntax_constructor_decl(
                 .iter()
                 .map(|param| {
                     if param.is_varargs {
-                        ErlType::List(Box::new(lower_type_to_spec(&param.annotation.text)))
+                        ErlType::List(Box::new(lower_syntax_type_to_spec(
+                            &param.annotation.text,
+                            ctx,
+                        )))
                     } else {
-                        lower_type_to_spec(&param.annotation.text)
+                        lower_syntax_type_to_spec(&param.annotation.text, ctx)
                     }
                 })
                 .collect();
@@ -1114,7 +1756,7 @@ fn lower_syntax_constructor_decl(
                     docs: Vec::new(),
                     name: function.clone(),
                     args,
-                    ret: lower_type_to_spec(&clause.return_type.text),
+                    ret: lower_syntax_type_to_spec(&clause.return_type.text, ctx),
                 }),
                 ErlForm::Function(ErlFunction {
                     docs: Vec::new(),
@@ -1139,22 +1781,29 @@ fn lower_syntax_function_decl(
     decl: &SyntaxDeclarationOutput,
     name: &str,
     params: &[SyntaxParamOutput],
+    generic_bounds: &[String],
     return_type: &SyntaxTypeOutput,
     clauses: &[SyntaxFunctionClauseOutput],
     ctx: &SyntaxLowerCtx,
 ) -> Option<Vec<ErlForm>> {
     let mut forms = Vec::new();
-    let env = lower_syntax_function_env(params, ctx);
+    let env = lower_syntax_function_env(params, ctx, generic_bounds);
+    let hidden_bound_params = generic_bound_param_names(generic_bounds);
 
     if !params.is_empty() {
         forms.push(ErlForm::Spec(ErlSpec {
             docs: decl.docs.clone(),
             name: name.to_string(),
-            args: params
+            args: hidden_bound_params
                 .iter()
-                .map(|param| lower_type_to_spec(&param.annotation.text))
+                .map(|_| ErlType::Raw("map()".to_string()))
+                .chain(
+                    params
+                        .iter()
+                        .map(|param| lower_syntax_type_to_spec(&param.annotation.text, ctx)),
+                )
                 .collect(),
-            ret: lower_type_to_spec(&return_type.text),
+            ret: lower_syntax_type_to_spec(&return_type.text, ctx),
         }));
     }
 
@@ -1170,12 +1819,19 @@ fn lower_syntax_function_decl(
             .map(|clause| {
                 let body = lower_intrinsic_annotation_body(decl, params)
                     .or_else(|| lower_syntax_expr_with_env(&clause.body, ctx, &env))?;
-                Some(ErlFunctionClause {
-                    patterns: clause
+                let mut patterns = hidden_bound_params
+                    .iter()
+                    .map(|name| ErlPattern::Var(name.clone()))
+                    .collect::<Vec<_>>();
+                patterns.extend(
+                    clause
                         .patterns
                         .iter()
                         .map(|pattern| lower_syntax_pattern(pattern, ctx))
                         .collect::<Option<Vec<_>>>()?,
+                );
+                Some(ErlFunctionClause {
+                    patterns,
                     guard: match clause.guard.as_ref() {
                         Some(guard) => Some(lower_syntax_expr_with_env(guard, ctx, &env)?),
                         None => None,
@@ -1187,6 +1843,112 @@ fn lower_syntax_function_decl(
     }));
 
     Some(forms)
+}
+
+/// Lowers an explicit trait impl declaration into typed wrapper functions.
+///
+/// Inputs:
+/// - `decl`: source declaration metadata, docs, annotations, and span.
+/// - `trait_ref`: implemented trait type expression.
+/// - `for_type`: concrete type expression after `for`.
+/// - `methods`: implementation methods declared inside the impl block.
+/// - `ctx`: syntax lowering context for method bodies.
+///
+/// Output:
+/// - Erlang spec/function forms for each impl method wrapper.
+/// - `None` when the trait head cannot be identified or a method body cannot
+///   lower through the syntax-output path.
+///
+/// Transformation:
+/// - Emits private typed dictionary-wrapper functions with a hidden first
+///   dictionary argument followed by the source method arguments. Trait call
+///   lowering can then dispatch `Trait.method(value)` to the wrapper selected
+///   by the inferred first argument type.
+fn lower_syntax_trait_impl_decl(
+    decl: &SyntaxDeclarationOutput,
+    trait_ref: &SyntaxTypeOutput,
+    for_type: &SyntaxTypeOutput,
+    methods: &[SyntaxImplMethodOutput],
+    ctx: &SyntaxLowerCtx,
+) -> Option<Vec<ErlForm>> {
+    let trait_name = syntax_type_head_name(&trait_ref.text)?;
+    let type_arg = normalize_trait_type_text(&for_type.text);
+
+    methods
+        .iter()
+        .map(|method| lower_syntax_trait_impl_method(decl, &trait_name, &type_arg, method, ctx))
+        .collect::<Option<Vec<_>>>()
+        .map(|forms| forms.into_iter().flatten().collect())
+}
+
+/// Lowers one explicit trait impl method into a typed wrapper function.
+///
+/// Inputs:
+/// - `decl`: parent impl declaration metadata.
+/// - `trait_name`: source-visible trait head.
+/// - `type_arg`: normalized concrete implementation type.
+/// - `method`: implementation method signature and clauses.
+/// - `ctx`: syntax lowering context for method expressions and patterns.
+///
+/// Output:
+/// - Erlang spec and function forms for the generated wrapper.
+///
+/// Transformation:
+/// - Prepends a hidden trait dictionary argument to the Erlang ABI while
+///   preserving the source method clauses, guards, and bodies. The dictionary
+///   argument is currently metadata-only for local explicit impl dispatch.
+fn lower_syntax_trait_impl_method(
+    decl: &SyntaxDeclarationOutput,
+    trait_name: &str,
+    type_arg: &str,
+    method: &SyntaxImplMethodOutput,
+    ctx: &SyntaxLowerCtx,
+) -> Option<Vec<ErlForm>> {
+    let wrapper_name = typed_trait_method_wrapper_name(trait_name, &method.name, type_arg);
+    let env = lower_syntax_function_env(&method.params, ctx, &[]);
+
+    Some(vec![
+        ErlForm::Spec(ErlSpec {
+            docs: decl.docs.clone(),
+            name: wrapper_name.clone(),
+            args: std::iter::once(ErlType::Raw("map()".to_string()))
+                .chain(
+                    method
+                        .params
+                        .iter()
+                        .map(|param| lower_syntax_type_to_spec(&param.annotation.text, ctx)),
+                )
+                .collect(),
+            ret: lower_syntax_type_to_spec(&method.return_type.text, ctx),
+        }),
+        ErlForm::Function(ErlFunction {
+            docs: Vec::new(),
+            name: wrapper_name,
+            clauses: method
+                .clauses
+                .iter()
+                .map(|clause| {
+                    let mut patterns = Vec::with_capacity(clause.patterns.len() + 1);
+                    patterns.push(ErlPattern::Var("_TraitDict".to_string()));
+                    patterns.extend(
+                        clause
+                            .patterns
+                            .iter()
+                            .map(|pattern| lower_syntax_pattern(pattern, ctx))
+                            .collect::<Option<Vec<_>>>()?,
+                    );
+                    Some(ErlFunctionClause {
+                        patterns,
+                        guard: match clause.guard.as_ref() {
+                            Some(guard) => Some(lower_syntax_expr_with_env(guard, ctx, &env)?),
+                            None => None,
+                        },
+                        body: lower_syntax_expr_with_env(&clause.body, ctx, &env)?,
+                    })
+                })
+                .collect::<Option<Vec<_>>>()?,
+        }),
+    ])
 }
 
 /// Lowers a syntax-output receiver method into an Erlang function.
@@ -1218,7 +1980,7 @@ fn lower_syntax_method_decl(
     ctx: &SyntaxLowerCtx,
 ) -> Option<Vec<ErlForm>> {
     let all_params = syntax_method_params(receiver, params);
-    let env = lower_syntax_function_env(&all_params, ctx);
+    let env = lower_syntax_function_env(&all_params, ctx, &[]);
     let mut forms = Vec::new();
 
     forms.push(ErlForm::Spec(ErlSpec {
@@ -1226,9 +1988,9 @@ fn lower_syntax_method_decl(
         name: name.to_string(),
         args: all_params
             .iter()
-            .map(|param| lower_type_to_spec(&param.annotation.text))
+            .map(|param| lower_syntax_type_to_spec(&param.annotation.text, ctx))
             .collect(),
-        ret: lower_type_to_spec(&return_type.text),
+        ret: lower_syntax_method_return_type_to_spec(receiver, return_type, ctx),
     }));
 
     forms.push(ErlForm::Function(ErlFunction {
@@ -1260,6 +2022,34 @@ fn lower_syntax_method_decl(
     Some(forms)
 }
 
+/// Lowers a receiver-method return annotation into the backend helper spec.
+///
+/// Inputs:
+/// - `receiver`: source receiver parameter, including the contextual `mut`
+///   marker.
+/// - `return_type`: source-visible method return type annotation.
+///
+/// Output:
+/// - Erlang type expression for the generated receiver-first helper function.
+///
+/// Transformation:
+/// - Implements the first P0.2c command-style mutable receiver ABI slice:
+///   a source method declared as `(mut receiver: T) method(...): Unit` exposes
+///   `Unit` to Terlan callers, but the backend helper returns `T` so sequence
+///   and pipe lowering can rebind the updated receiver.
+fn lower_syntax_method_return_type_to_spec(
+    receiver: &SyntaxParamOutput,
+    return_type: &SyntaxTypeOutput,
+    ctx: &SyntaxLowerCtx,
+) -> ErlType {
+    if receiver.is_mutable && compact_type_application(&compact_spaces(&return_type.text)) == "Unit"
+    {
+        lower_syntax_type_to_spec(&receiver.annotation.text, ctx)
+    } else {
+        lower_syntax_type_to_spec(&return_type.text, ctx)
+    }
+}
+
 /// Builds the receiver-first parameter list for backend method lowering.
 ///
 /// Inputs:
@@ -1281,14 +2071,52 @@ fn syntax_method_params(
         .collect()
 }
 
-fn lower_syntax_function_env(params: &[SyntaxParamOutput], ctx: &SyntaxLowerCtx) -> SyntaxLowerEnv {
+/// Builds hidden backend parameter names for generic trait bounds.
+///
+/// Inputs:
+/// - `generic_bounds`: source bound texts from a function declaration.
+///
+/// Output:
+/// - Stable Erlang variable names, one per source bound.
+///
+/// Transformation:
+/// - Parses each bound when possible and includes the trait/type shape in the
+///   hidden name for readable generated code; malformed fallback names retain
+///   deterministic positional identity.
+fn generic_bound_param_names(generic_bounds: &[String]) -> Vec<String> {
+    generic_bounds
+        .iter()
+        .enumerate()
+        .map(|(index, bound)| {
+            if let Some(parsed) = parse_syntax_generic_function_bound(bound) {
+                let suffix = std::iter::once(parsed.trait_name)
+                    .chain(parsed.type_args)
+                    .map(|part| sanitize_erlang_fn_name(&part))
+                    .collect::<Vec<_>>()
+                    .join("_");
+                format!("_TyperTraitDict{}", to_erlang_type_name(&suffix))
+            } else {
+                format!("_TyperTraitDict{}", index)
+            }
+        })
+        .collect()
+}
+
+fn lower_syntax_function_env(
+    params: &[SyntaxParamOutput],
+    ctx: &SyntaxLowerCtx,
+    generic_bounds: &[String],
+) -> SyntaxLowerEnv {
     let value_locals = params.iter().map(|param| param.name.clone()).collect();
     let value_types = params
         .iter()
         .map(|param| {
             (
                 param.name.clone(),
-                normalize_trait_type_text(&param.annotation.text),
+                qualify_imported_type_text(
+                    &normalize_trait_type_text(&param.annotation.text),
+                    &ctx.imported_type_refs,
+                ),
             )
         })
         .collect();
@@ -1299,10 +2127,23 @@ fn lower_syntax_function_env(params: &[SyntaxParamOutput], ctx: &SyntaxLowerCtx)
             Some((param.name.clone(), struct_name))
         })
         .collect();
+    let trait_bound_dicts = generic_bounds
+        .iter()
+        .zip(generic_bound_param_names(generic_bounds))
+        .filter_map(|(bound, param_name)| {
+            let bound = parse_syntax_generic_function_bound(bound)?;
+            if bound.type_args.len() != 1 {
+                return None;
+            }
+            Some(((bound.trait_name, bound.type_args[0].clone()), param_name))
+        })
+        .collect();
     SyntaxLowerEnv {
         struct_locals,
         value_locals,
         value_types,
+        trait_bound_dicts,
+        value_replacements: BTreeMap::new(),
     }
 }
 
@@ -1316,7 +2157,10 @@ fn lower_syntax_constructor_clause_env(
         .map(|param| {
             (
                 param.name.clone(),
-                normalize_trait_type_text(&param.annotation.text),
+                qualify_imported_type_text(
+                    &normalize_trait_type_text(&param.annotation.text),
+                    &ctx.imported_type_refs,
+                ),
             )
         })
         .collect();
@@ -1331,6 +2175,8 @@ fn lower_syntax_constructor_clause_env(
         struct_locals,
         value_locals,
         value_types,
+        trait_bound_dicts: BTreeMap::new(),
+        value_replacements: BTreeMap::new(),
     }
 }
 
@@ -1351,6 +2197,175 @@ fn lower_syntax_expr(expr: &SyntaxExprOutput, ctx: &SyntaxLowerCtx) -> Option<Er
     lower_syntax_expr_with_env(expr, ctx, &SyntaxLowerEnv::default())
 }
 
+#[derive(Debug, Clone)]
+enum LoweredComprehensionSource {
+    NativeList(ErlExpr),
+    IterableIterator(ErlExpr),
+}
+
+/// Classifies and lowers the source side of a list comprehension.
+///
+/// Inputs:
+/// - `source`: comprehension source expression after `<-`.
+/// - `ctx`: syntax lowering context containing local receiver-method metadata.
+/// - `env`: local value/type environment used to identify non-list iterable
+///   sources.
+///
+/// Output:
+/// - `NativeList` for lowered native list inputs.
+/// - `IterableIterator` for lowered `iterator(Source)` calls over non-list
+///   locals whose type declares a zero-argument receiver `iterator` method.
+///
+/// Transformation:
+/// - Keeps existing list-backed Erlang comprehension lowering for list sources
+///   while desugaring the first generic `Iterable` source shape into the
+///   compiler-visible iterator-producing receiver method.
+fn lower_syntax_list_comprehension_source(
+    source: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<LoweredComprehensionSource> {
+    let Some(receiver_type) = infer_syntax_trait_dispatch_type(source, env) else {
+        return lower_syntax_expr_with_env(source, ctx, env)
+            .map(LoweredComprehensionSource::NativeList);
+    };
+
+    if receiver_type_head(&receiver_type) == "List" {
+        return lower_syntax_expr_with_env(source, ctx, env)
+            .map(LoweredComprehensionSource::NativeList);
+    }
+
+    if ctx
+        .receiver_method_target(&receiver_type, "iterator", 0)
+        .is_some()
+    {
+        return Some(LoweredComprehensionSource::IterableIterator(
+            ErlExpr::Call {
+                module: None,
+                function: "iterator".to_string(),
+                args: vec![lower_syntax_expr_with_env(source, ctx, env)?],
+            },
+        ));
+    }
+
+    lower_syntax_expr_with_env(source, ctx, env).map(LoweredComprehensionSource::NativeList)
+}
+
+/// Lowers a list-comprehension expression.
+///
+/// Inputs:
+/// - `expr`: syntax-output list comprehension with yield, source, pattern, and
+///   optional guard.
+/// - `ctx`, `env`: syntax lowering context and local type environment.
+///
+/// Output:
+/// - Native Erlang list-comprehension expression for native list sources.
+/// - Explicit state-passing loop for generic iterable sources.
+///
+/// Transformation:
+/// - Preserves the existing backend-native lowering for list-backed
+///   comprehensions and rewrites iterable sources to `iterator(Source)`,
+///   repeated next-step matching, ordered guard evaluation, and reverse-order
+///   accumulation.
+fn lower_syntax_list_comprehension_expr(
+    expr: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let value = expr.children.first()?;
+    let source = expr.children.get(1)?;
+    let pattern = expr.patterns.first()?;
+    let guard = expr.children.get(2);
+    let lowered_value = lower_syntax_expr_with_env(value, ctx, env)?;
+    let lowered_pattern = lower_syntax_pattern(pattern, ctx)?;
+    let lowered_guard = match guard {
+        Some(guard) => Some(lower_syntax_expr_with_env(guard, ctx, env)?),
+        None => None,
+    };
+
+    match lower_syntax_list_comprehension_source(source, ctx, env)? {
+        LoweredComprehensionSource::NativeList(source) => Some(ErlExpr::ListComprehension {
+            expr: Box::new(lowered_value),
+            pattern: lowered_pattern,
+            source: Box::new(source),
+            guard: lowered_guard.map(Box::new),
+        }),
+        LoweredComprehensionSource::IterableIterator(iterator) => {
+            Some(lower_syntax_iterable_comprehension_loop(
+                expr,
+                iterator,
+                lowered_pattern,
+                lowered_guard,
+                lowered_value,
+            ))
+        }
+    }
+}
+
+/// Lowers a generic iterable comprehension into an explicit BEAM loop.
+///
+/// Inputs:
+/// - `expr`: original comprehension expression used only for deterministic
+///   temporary naming.
+/// - `iterator`: lowered iterator-state expression.
+/// - `pattern`: lowered generator pattern.
+/// - `guard`: optional lowered filter guard.
+/// - `value`: lowered yielded expression.
+///
+/// Output:
+/// - Raw Erlang expression implementing state-passing traversal.
+///
+/// Transformation:
+/// - Binds the initial iterator, creates a recursive local fun, repeatedly
+///   matches the iterator state as `None` or `Some({value, next})`, skips
+///   failed patterns/filters, accumulates yielded values in reverse order, and
+///   returns `lists:reverse(Acc)`.
+fn lower_syntax_iterable_comprehension_loop(
+    expr: &SyntaxExprOutput,
+    iterator: ErlExpr,
+    pattern: ErlPattern,
+    guard: Option<ErlExpr>,
+    value: ErlExpr,
+) -> ErlExpr {
+    let suffix = format!("{}_{}", expr.span.start, expr.span.end);
+    let iterator_var = format!("TerlanIterator{}", suffix);
+    let loop_var = format!("TerlanIterableLoop{}", suffix);
+    let iter_var = format!("TerlanIter{}", suffix);
+    let acc_var = format!("TerlanAcc{}", suffix);
+    let raw_value_var = format!("TerlanRawValue{}", suffix);
+    let raw_next_var = format!("TerlanRawNext{}", suffix);
+    let next_var = format!("TerlanNext{}", suffix);
+    let skipped_var = format!("_TerlanSkipped{}", suffix);
+
+    let guard = guard
+        .as_ref()
+        .map(|guard| format!(" when {}", guard.render()))
+        .unwrap_or_default();
+    let body = format!(
+        "{loop_var}({next_var}, [{value} | {acc_var}])",
+        loop_var = loop_var,
+        next_var = next_var,
+        value = value.render(),
+        acc_var = acc_var
+    );
+
+    ErlExpr::Raw(format!(
+        "begin\n    {iterator_var} = {iterator},\n    {loop_var} = fun {loop_var}({iter_var}, {acc_var}) ->\n        case (case {iter_var} of\n            [{raw_value_var}|{raw_next_var}] -> {{'some', {{{raw_value_var}, {raw_next_var}}}}};\n            [] -> 'none'\n        end) of\n            'none' -> lists:reverse({acc_var});\n            {{'some', {{{pattern}, {next_var}}}}}{guard} -> {body};\n            {{'some', {{{skipped_var}, {next_var}}}}} -> {loop_var}({next_var}, {acc_var})\n        end\n    end,\n    {loop_var}({iterator_var}, [])\nend",
+        iterator_var = iterator_var,
+        iterator = iterator.render(),
+        loop_var = loop_var,
+        iter_var = iter_var,
+        acc_var = acc_var,
+        raw_value_var = raw_value_var,
+        raw_next_var = raw_next_var,
+        pattern = pattern.render(),
+        next_var = next_var,
+        guard = guard,
+        body = body,
+        skipped_var = skipped_var,
+    ))
+}
+
 fn lower_syntax_expr_with_env(
     expr: &SyntaxExprOutput,
     ctx: &SyntaxLowerCtx,
@@ -1365,6 +2380,22 @@ fn lower_syntax_expr_with_env(
             let name = expr.text.as_deref()?;
             if is_bool_literal_name(name) {
                 return Some(ErlExpr::Atom(name.to_string()));
+            }
+            if let Some(target) = ctx.singleton_alias_value_target(name) {
+                return lower_syntax_alias_constructor_expr(target, &[], ctx, env);
+            }
+            if let Some(replacement) = env.value_replacements.get(name) {
+                return Some(replacement.clone());
+            }
+            if env.value_locals.contains(name) {
+                return Some(ErlExpr::Var(sanitize_erlang_var(name)));
+            }
+            if let Some(arity) = ctx.local_function_values.get(name) {
+                return Some(ErlExpr::Raw(format!(
+                    "fun {}/{}",
+                    sanitize_erlang_fn_name(name),
+                    arity
+                )));
             }
             Some(
                 ctx.file_imports
@@ -1410,28 +2441,14 @@ fn lower_syntax_expr_with_env(
         SyntaxExprKind::Map => Some(ErlExpr::Map(
             expr.fields
                 .iter()
-                .map(|field| lower_syntax_expr_field(field, ctx, env))
+                .map(|field| lower_syntax_map_expr_field(field, ctx, env))
                 .collect::<Option<Vec<_>>>()?,
         )),
-        SyntaxExprKind::ListComprehension => {
-            let value = expr.children.first()?;
-            let source = expr.children.get(1)?;
-            let pattern = expr.patterns.first()?;
-            Some(ErlExpr::ListComprehension {
-                expr: Box::new(lower_syntax_expr_with_env(value, ctx, env)?),
-                pattern: lower_syntax_pattern(pattern, ctx)?,
-                source: Box::new(lower_syntax_expr_with_env(source, ctx, env)?),
-                guard: match expr.children.get(2) {
-                    Some(guard) => Some(Box::new(lower_syntax_expr_with_env(guard, ctx, env)?)),
-                    None => None,
-                },
-            })
-        }
+        SyntaxExprKind::ListComprehension => lower_syntax_list_comprehension_expr(expr, ctx, env),
         SyntaxExprKind::Let => lower_syntax_let_expr(expr, ctx, env),
         SyntaxExprKind::Cast => None,
-        SyntaxExprKind::Call | SyntaxExprKind::FunctionCall => {
-            lower_syntax_call_expr(expr, ctx, env)
-        }
+        SyntaxExprKind::Call => lower_syntax_call_expr(expr, ctx, env),
+        SyntaxExprKind::FunctionCall => lower_syntax_function_value_call_expr(expr, ctx, env),
         SyntaxExprKind::Case => {
             let scrutinee = expr.children.first()?;
             Some(ErlExpr::Case {
@@ -1655,7 +2672,184 @@ fn lower_syntax_expr_with_env(
             "unquote({})",
             lower_syntax_expr_with_env(expr.children.first()?, ctx, env)?.render()
         ))),
+        SyntaxExprKind::Sequence => lower_syntax_sequence_expr(expr, ctx, env),
     }
+}
+
+/// Lowers a sequence while threading mutable receiver updates.
+///
+/// Inputs:
+/// - `expr`: syntax-output sequence expression.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Lowered Erlang expression for the sequence.
+/// - `None` when the sequence is empty or any child cannot lower.
+///
+/// Transformation:
+/// - Evaluates children left-to-right. Non-final ordinary expressions are bound
+///   to ignored temporaries to preserve effects. Non-final mutable receiver
+///   calls bind the hidden backend-updated receiver and update the local
+///   replacement environment so later source references to the receiver lower
+///   to that updated binding.
+fn lower_syntax_sequence_expr(
+    expr: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let (last, prefix) = expr.children.split_last()?;
+    let mut sequence_env = env.clone();
+    let mut bindings = Vec::new();
+
+    for (index, child) in prefix.iter().enumerate() {
+        if let Some((receiver_name, binding)) =
+            lower_syntax_mutable_receiver_update_binding(child, ctx, &sequence_env, index)
+        {
+            sequence_env
+                .value_replacements
+                .insert(receiver_name, ErlExpr::Var(binding.name.clone()));
+            bindings.push(binding);
+        } else {
+            bindings.push(ErlLetBinding {
+                name: format!("_TerlanSeqIgnored{index}"),
+                value: lower_syntax_expr_with_env(child, ctx, &sequence_env)?,
+            });
+        }
+    }
+
+    let body = if let Some((receiver_name, binding)) =
+        lower_syntax_mutable_receiver_update_binding(last, ctx, &sequence_env, bindings.len())
+    {
+        let updated_receiver = ErlExpr::Var(binding.name.clone());
+        sequence_env
+            .value_replacements
+            .insert(receiver_name, updated_receiver.clone());
+        bindings.push(binding);
+        updated_receiver
+    } else {
+        lower_syntax_expr_with_env(last, ctx, &sequence_env)?
+    };
+
+    if bindings.is_empty() {
+        Some(body)
+    } else {
+        Some(ErlExpr::Let {
+            bindings,
+            body: Box::new(body),
+        })
+    }
+}
+
+/// Builds one mutable receiver update binding from a direct method call.
+///
+/// Inputs:
+/// - `expr`: syntax-output expression that may be `receiver.method(args...)`.
+/// - `ctx`, `env`: lowering context and current replacement-aware environment.
+/// - `index`: deterministic sequence-local temporary index.
+///
+/// Output:
+/// - Receiver source name and Erlang binding for the backend-updated receiver.
+/// - `None` for non-call expressions, non-variable receivers, immutable
+///   methods, or unsupported child expressions.
+///
+/// Transformation:
+/// - Recognizes a direct mutable receiver call, lowers the call through the
+///   backend receiver-first convention, and captures its hidden updated
+///   receiver result in a deterministic temporary variable.
+fn lower_syntax_mutable_receiver_update_binding(
+    expr: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+    index: usize,
+) -> Option<(String, ErlLetBinding)> {
+    if !matches!(expr.kind, SyntaxExprKind::Call) || expr.remote.is_some() {
+        return None;
+    }
+
+    let callee = expr.children.first()?;
+    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+        return None;
+    }
+
+    let method = callee.text.as_deref()?;
+    let receiver = callee.children.first()?;
+    if !matches!(receiver.kind, SyntaxExprKind::Var) {
+        return None;
+    }
+    let receiver_name = receiver.text.clone()?;
+    let receiver_type = infer_syntax_trait_dispatch_type(receiver, env)?;
+    let arity = expr.children.len().checked_sub(1)?;
+    let receiver_target_mutable = ctx
+        .receiver_method_target(&receiver_type, method, arity)
+        .is_some_and(|target| target.mutable)
+        || is_mutating_primitive_receiver_method(&receiver_type, method, arity);
+    if !receiver_target_mutable {
+        return None;
+    }
+
+    let mut lowered_args = Vec::with_capacity(arity + 1);
+    lowered_args.push(lower_syntax_expr_with_env(receiver, ctx, env)?);
+    lowered_args.extend(
+        expr.children
+            .iter()
+            .skip(1)
+            .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+            .collect::<Option<Vec<_>>>()?,
+    );
+
+    let value = match primitive_receiver_method_intrinsic(&receiver_type, method, arity) {
+        Some(intrinsic) => lower_core_primitive_intrinsic_to_erlang(&intrinsic, lowered_args)?,
+        None => ErlExpr::Call {
+            module: None,
+            function: method.to_string(),
+            args: lowered_args,
+        },
+    };
+
+    Some((
+        receiver_name,
+        ErlLetBinding {
+            name: format!("_TerlanMutReceiver{index}"),
+            value,
+        },
+    ))
+}
+
+/// Returns whether a primitive receiver method updates its receiver binding.
+///
+/// Inputs:
+/// - `receiver_type`: inferred source type of the receiver expression.
+/// - `method`: receiver method name.
+/// - `arg_count`: number of non-receiver call arguments.
+///
+/// Output:
+/// - `true` for compiler-owned command-style collection mutators.
+/// - `false` for observers, pure primitive methods, and unsupported calls.
+///
+/// Transformation:
+/// - Extracts the nominal collection type head and matches only the selected
+///   0.0.2 mutable receiver ABI methods so sequence lowering can rebind
+///   imported std collection receivers without requiring local method bodies.
+fn is_mutating_primitive_receiver_method(
+    receiver_type: &str,
+    method: &str,
+    arg_count: usize,
+) -> bool {
+    matches!(
+        (
+            receiver_type_head(receiver_type).as_str(),
+            method,
+            arg_count
+        ),
+        ("List", "push", 1)
+            | ("List", "clear", 0)
+            | ("Map", "put", 2)
+            | ("Map", "remove", 1)
+            | ("Map", "clear", 0)
+            | ("Set", "add", 1)
+            | ("Set", "remove", 1)
+            | ("Set", "clear", 0)
+    )
 }
 
 fn resolve_syntax_field_access_struct(
@@ -1802,7 +2996,12 @@ fn lower_syntax_html_child_expr(
         return Some(ErlExpr::ListComprehension {
             expr: Box::new(lower_syntax_html_child_expr(value, ctx, env)?),
             pattern: lower_syntax_pattern(pattern, ctx)?,
-            source: Box::new(lower_syntax_expr_with_env(source, ctx, env)?),
+            source: Box::new(
+                match lower_syntax_list_comprehension_source(source, ctx, env)? {
+                    LoweredComprehensionSource::NativeList(source) => source,
+                    LoweredComprehensionSource::IterableIterator(source) => source,
+                },
+            ),
             guard: match expr.children.get(2) {
                 Some(guard) => Some(Box::new(lower_syntax_expr_with_env(guard, ctx, env)?)),
                 None => None,
@@ -2038,6 +3237,36 @@ fn lower_syntax_call_expr(
     lower_syntax_call_parts(callee, args, expr.remote.as_deref(), ctx, env)
 }
 
+/// Lowers dedicated function-value invocation syntax.
+///
+/// Inputs:
+/// - `expr`: syntax-output `FunctionCall` node created from `callee.(args)`.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang `Apply` expression that invokes the lowered callee value.
+///
+/// Transformation:
+/// - Lowers the callee as an ordinary value, including local function captures
+///   such as `fun increment/1`, lowers each argument, and emits callable-value
+///   application. This keeps `Expr.(...)` separate from named `Name(...)`
+///   calls in the backend.
+fn lower_syntax_function_value_call_expr(
+    expr: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let callee = expr.children.first()?;
+    let args = expr.children[1..]
+        .iter()
+        .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+        .collect::<Option<Vec<_>>>()?;
+    Some(ErlExpr::Apply {
+        callee: Box::new(lower_syntax_expr_with_env(callee, ctx, env)?),
+        args,
+    })
+}
+
 /// Lowers a syntax-output let expression to an Erlang scoped sequence.
 ///
 /// Inputs:
@@ -2052,8 +3281,10 @@ fn lower_syntax_call_expr(
 ///
 /// Transformation:
 /// - Converts each Terlan binding to an Erlang single-assignment variable
-///   match. When no explicit body child exists, the expression result is the
-///   final binding variable.
+///   match, extending the local lowering environment with each simple binding
+///   so later bindings and the final body can resolve receiver-method calls on
+///   local values. When no explicit body child exists, the expression result is
+///   the final binding variable.
 fn lower_syntax_let_expr(
     expr: &SyntaxExprOutput,
     ctx: &SyntaxLowerCtx,
@@ -2066,20 +3297,27 @@ fn lower_syntax_let_expr(
         return None;
     }
 
+    let mut let_env = env.clone();
     let bindings = expr
         .patterns
         .iter()
         .zip(expr.children.iter())
         .map(|(pattern, value)| {
+            let name = pattern.text.as_deref()?;
+            let lowered_value = lower_syntax_expr_with_env(value, ctx, &let_env)?;
+            if let Some(value_type) = infer_syntax_trait_dispatch_type(value, &let_env) {
+                let_env.value_types.insert(name.to_string(), value_type);
+            }
+            let_env.value_locals.insert(name.to_string());
             Some(ErlLetBinding {
-                name: sanitize_erlang_var(pattern.text.as_deref()?),
-                value: lower_syntax_expr_with_env(value, ctx, env)?,
+                name: sanitize_erlang_var(name),
+                value: lowered_value,
             })
         })
         .collect::<Option<Vec<_>>>()?;
 
     let body = match expr.children.get(expr.patterns.len()) {
-        Some(body) => lower_syntax_expr_with_env(body, ctx, env)?,
+        Some(body) => lower_syntax_expr_with_env(body, ctx, &let_env)?,
         None => ErlExpr::Var(bindings.last()?.name.clone()),
     };
 
@@ -2097,6 +3335,9 @@ fn lower_syntax_call_parts(
     env: &SyntaxLowerEnv,
 ) -> Option<ErlExpr> {
     if remote.is_none() {
+        if let Some(expr) = lower_syntax_list_each_receiver_method_call(callee, args, ctx, env) {
+            return Some(expr);
+        }
         if let Some(expr) = lower_syntax_primitive_receiver_method_call(callee, args, ctx, env) {
             return Some(expr);
         }
@@ -2132,7 +3373,7 @@ fn lower_syntax_call_parts(
         if let Some(target) = ctx.imported_constructor_target(callee_name, args.len()) {
             return lower_syntax_remote_constructor_call(target, args, ctx, env);
         }
-        if let Some(target) = ctx.alias_constructor_target(callee_name, args.len()) {
+        if let Some(target) = ctx.alias_constructor_call_target(callee_name, args.len()) {
             return lower_syntax_alias_constructor_expr(target, args, ctx, env);
         }
     } else if let Some(remote) = remote {
@@ -2152,12 +3393,51 @@ fn lower_syntax_call_parts(
         if let Some(target) = ctx.remote_alias_constructor_target(remote, callee_name, args.len()) {
             return lower_syntax_alias_constructor_expr(target, args, ctx, env);
         }
-        if let Some((module_name, source_trait_name)) = ctx.imported_trait_alias(remote) {
-            if callee_name == "to_string" {
-                if let Some(type_arg) = args
-                    .first()
-                    .and_then(|arg| infer_syntax_trait_dispatch_type(arg, env))
+        if let Some(expr) =
+            lower_syntax_local_trait_receiver_method_call(remote, callee_name, args, ctx, env)
+        {
+            return Some(expr);
+        }
+        if let Some(expr) =
+            lower_syntax_bound_trait_method_call(remote, callee_name, args, ctx, env)
+        {
+            return Some(expr);
+        }
+        let (trait_remote, explicit_trait_type_arg) = split_explicit_trait_call_target(remote);
+        if let Some((module_name, source_trait_name)) = ctx.imported_trait_alias(&trait_remote) {
+            if let Some(type_arg) = explicit_trait_type_arg
+                .clone()
+                .or_else(|| {
+                    args.first()
+                        .and_then(|arg| infer_syntax_trait_dispatch_type(arg, env))
+                })
+                .map(|type_arg| qualify_imported_type_text(&type_arg, &ctx.imported_type_refs))
+            {
+                if let Some(expr) = lower_syntax_std_trait_intrinsic_call(
+                    module_name,
+                    source_trait_name,
+                    callee_name,
+                    &type_arg,
+                    args,
+                    ctx,
+                    env,
+                ) {
+                    return Some(expr);
+                }
+                if let Some(wrapper_type_arg) =
+                    ctx.imported_trait_conformance_wrapper_type(&trait_remote, &type_arg)
                 {
+                    if let Some(expr) = lower_syntax_std_trait_intrinsic_call(
+                        module_name,
+                        source_trait_name,
+                        callee_name,
+                        wrapper_type_arg,
+                        args,
+                        ctx,
+                        env,
+                    ) {
+                        return Some(expr);
+                    }
                     let mut lowered_args = Vec::with_capacity(args.len() + 1);
                     lowered_args.push(trait_dictionary_expr(source_trait_name, callee_name));
                     lowered_args.extend(
@@ -2170,7 +3450,7 @@ fn lower_syntax_call_parts(
                         function: typed_trait_method_wrapper_name(
                             source_trait_name,
                             callee_name,
-                            &type_arg,
+                            wrapper_type_arg,
                         ),
                         args: lowered_args,
                     });
@@ -2240,6 +3520,19 @@ fn lower_syntax_call_parts(
     }
 
     if remote.is_none() {
+        if let Some(target) = ctx.generic_function_target(callee_name, args.len()) {
+            let mut lowered_args = lower_syntax_generic_bound_dictionaries(target, args, ctx, env)?;
+            lowered_args.extend(
+                args.iter()
+                    .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                    .collect::<Option<Vec<_>>>()?,
+            );
+            return Some(ErlExpr::Call {
+                module: None,
+                function: callee_name.to_string(),
+                args: lowered_args,
+            });
+        }
         if let Some((module, function)) = ctx.imported_function_target(callee_name, args.len()) {
             if let Some(expr) =
                 lower_syntax_primitive_intrinsic_call(module, function, args, ctx, env)
@@ -2265,6 +3558,366 @@ fn lower_syntax_call_parts(
     Some(ErlExpr::Call {
         module: remote.map(|module| ctx.resolve_remote_module(module)),
         function: callee_name.to_string(),
+        args: args
+            .iter()
+            .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+            .collect::<Option<Vec<_>>>()?,
+    })
+}
+
+/// Builds hidden dictionaries for a concrete bounded generic function call.
+///
+/// Inputs:
+/// - `target`: generic function metadata from the callee declaration.
+/// - `args`: source-visible call arguments.
+/// - `ctx`, `env`: syntax lowering context and caller lexical environment.
+///
+/// Output:
+/// - One Erlang dictionary expression per declared generic bound.
+/// - `None` when the concrete call cannot select a visible local impl wrapper.
+///
+/// Transformation:
+/// - Infers simple type-variable substitutions from parameter annotations and
+///   call arguments, resolves each bound to a concrete type, and creates a map
+///   from trait method atoms to local typed wrapper function atoms.
+fn lower_syntax_generic_bound_dictionaries(
+    target: &SyntaxGenericFunctionTarget,
+    args: &[SyntaxExprOutput],
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<Vec<ErlExpr>> {
+    let substitutions = infer_generic_function_type_substitutions(&target.params, args, env)?;
+    target
+        .bounds
+        .iter()
+        .map(|bound| lower_syntax_generic_bound_dictionary(bound, &substitutions, ctx))
+        .collect()
+}
+
+/// Infers generic type substitutions for a simple local generic call.
+///
+/// Inputs:
+/// - `params`: callee parameter annotation texts.
+/// - `args`: source-visible call arguments.
+/// - `env`: caller lexical environment containing inferred value types.
+///
+/// Output:
+/// - Map from type variable name to concrete inferred type key.
+///
+/// Transformation:
+/// - Handles the first executable P0.5e.4 ABI shape where a parameter
+///   annotation is a direct type variable such as `A`; more structural
+///   matching can move into this helper later without changing the ABI.
+fn infer_generic_function_type_substitutions(
+    params: &[String],
+    args: &[SyntaxExprOutput],
+    env: &SyntaxLowerEnv,
+) -> Option<BTreeMap<String, String>> {
+    if params.len() != args.len() {
+        return None;
+    }
+    let mut substitutions = BTreeMap::new();
+    for (param, arg) in params.iter().zip(args.iter()) {
+        if !is_generic_type_var(param) {
+            continue;
+        }
+        let arg_type = infer_syntax_trait_dispatch_type(arg, env)?;
+        substitutions.insert(param.clone(), arg_type);
+    }
+    Some(substitutions)
+}
+
+/// Builds one hidden dictionary for a concrete generic bound.
+///
+/// Inputs:
+/// - `bound`: parsed source trait bound.
+/// - `substitutions`: type variable substitutions inferred from call args.
+/// - `ctx`: syntax lowering context containing local trait methods and impl
+///   wrappers.
+///
+/// Output:
+/// - Erlang map expression from method atom to typed impl wrapper atom.
+///
+/// Transformation:
+/// - Resolves a one-argument trait bound such as `Eq[A]` to `Eq[Int]`, then
+///   maps every known local trait method to its concrete typed wrapper.
+fn lower_syntax_generic_bound_dictionary(
+    bound: &SyntaxGenericFunctionBound,
+    substitutions: &BTreeMap<String, String>,
+    ctx: &SyntaxLowerCtx,
+) -> Option<ErlExpr> {
+    if bound.type_args.len() != 1 {
+        return None;
+    }
+    let type_arg = substitutions
+        .get(&bound.type_args[0])
+        .cloned()
+        .unwrap_or_else(|| bound.type_args[0].clone());
+    let methods = ctx.local_trait_methods.get(&bound.trait_name)?;
+    let entries = methods
+        .iter()
+        .map(|method| {
+            let wrapper = ctx.typed_trait_method_wrapper(&bound.trait_name, method, &type_arg)?;
+            Some(format!("{} => {}", render_atom_expr(method), wrapper))
+        })
+        .collect::<Option<Vec<_>>>()?;
+    Some(ErlExpr::Raw(format!("#{{{}}}", entries.join(", "))))
+}
+
+/// Lowers a trait method call satisfied by the current function's bounds.
+///
+/// Inputs:
+/// - `trait_name`: trait qualifier from `Trait.method(...)`.
+/// - `method`: method name.
+/// - `args`: source call arguments.
+/// - `ctx`, `env`: syntax lowering context and current function environment.
+///
+/// Output:
+/// - Erlang expression that applies the function stored in the hidden bound
+///   dictionary.
+///
+/// Transformation:
+/// - Uses the first argument's inferred type key to find the matching hidden
+///   dictionary, then emits `apply(?MODULE, maps:get(Method, Dict), [Dict|Args])`
+///   so generic source code can call trait methods without knowing the concrete
+///   implementation wrapper.
+fn lower_syntax_bound_trait_method_call(
+    trait_name: &str,
+    method: &str,
+    args: &[SyntaxExprOutput],
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let type_arg = args
+        .first()
+        .and_then(|arg| infer_syntax_trait_dispatch_type(arg, env))?;
+    let dict = env
+        .trait_bound_dicts
+        .get(&(trait_name.to_string(), type_arg))?;
+    let mut rendered_args = Vec::with_capacity(args.len() + 1);
+    rendered_args.push(dict.clone());
+    rendered_args.extend(
+        args.iter()
+            .map(|arg| lower_syntax_expr_with_env(arg, ctx, env).map(|expr| expr.render()))
+            .collect::<Option<Vec<_>>>()?,
+    );
+    Some(ErlExpr::Raw(format!(
+        "apply(?MODULE, maps:get({}, {}), [{}])",
+        render_atom_expr(method),
+        dict,
+        rendered_args.join(", ")
+    )))
+}
+
+/// Lowers selected std trait conformances through primitive intrinsics.
+///
+/// Inputs:
+/// - `module_name`: provider module that owns the imported trait.
+/// - `trait_name`: source trait name from the provider module.
+/// - `method`: trait method name being called.
+/// - `type_arg`: concrete conformance type selected from interface metadata.
+/// - `args`: source-visible call arguments.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang expression for the primitive intrinsic when the imported std trait
+///   conformance is compiler-owned.
+/// - `None` for ordinary imported trait calls that should still use provider
+///   wrappers.
+///
+/// Transformation:
+/// - Keeps released std summary builds executable by mapping selected
+///   std-owned conformances onto the same closed primitive intrinsic registry
+///   used by direct std calls.
+fn lower_syntax_std_trait_intrinsic_call(
+    module_name: &str,
+    trait_name: &str,
+    method: &str,
+    type_arg: &str,
+    args: &[SyntaxExprOutput],
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    if let Some(expr) =
+        lower_syntax_std_collection_trait_bridge(module_name, trait_name, method, args, ctx, env)
+    {
+        return Some(expr);
+    }
+
+    let intrinsic =
+        std_trait_primitive_intrinsic(module_name, trait_name, method, type_arg, args.len())?;
+    let lowered_args = args
+        .iter()
+        .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+        .collect::<Option<Vec<_>>>()?;
+    lower_core_primitive_intrinsic_to_erlang(&intrinsic, lowered_args)
+}
+
+/// Lowers selected std collection trait calls through collection bridges.
+///
+/// Inputs:
+/// - `module_name`: provider module that owns the imported trait.
+/// - `trait_name`: source trait name from the provider module.
+/// - `method`: trait method name being called.
+/// - `args`: source-visible call arguments.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang expression for selected collection trait bridges.
+/// - `None` when the trait call is not a closed std collection bridge.
+///
+/// Transformation:
+/// - Reuses list-backed traversal bridges for std trait syntax so
+///   `Enumerable.each(values, cb)`, `Enumerable.map(values, cb)`,
+///   `Enumerable.filter(values, predicate)`, and
+///   `Enumerable.fold(values, initial, reducer)` preserve the same backend
+///   behavior for the selected `List[T]` conformance.
+fn lower_syntax_std_collection_trait_bridge(
+    module_name: &str,
+    trait_name: &str,
+    method: &str,
+    args: &[SyntaxExprOutput],
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    match (module_name, trait_name, method, args) {
+        ("std.collections.Enumerable", "Enumerable", "each", [collection, callback]) => {
+            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            if receiver_type_head(&collection_type) != "List" {
+                return None;
+            }
+            lower_syntax_list_each_bridge(collection, callback, ctx, env)
+        }
+        ("std.collections.Enumerable", "Enumerable", "map", [collection, callback]) => {
+            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            if receiver_type_head(&collection_type) != "List" {
+                return None;
+            }
+            lower_syntax_list_map_bridge(collection, callback, ctx, env)
+        }
+        ("std.collections.Enumerable", "Enumerable", "filter", [collection, predicate]) => {
+            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            if receiver_type_head(&collection_type) != "List" {
+                return None;
+            }
+            lower_syntax_list_filter_bridge(collection, predicate, ctx, env)
+        }
+        ("std.collections.Enumerable", "Enumerable", "fold", [collection, initial, reducer]) => {
+            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            if receiver_type_head(&collection_type) != "List" {
+                return None;
+            }
+            lower_syntax_list_fold_bridge(collection, initial, reducer, ctx, env)
+        }
+        _ => None,
+    }
+}
+
+/// Resolves a selected std trait conformance to a primitive intrinsic.
+///
+/// Inputs:
+/// - `module_name`: canonical trait provider module.
+/// - `trait_name`: trait declared by the provider module.
+/// - `method`: trait method being called.
+/// - `type_arg`: normalized concrete conformance type.
+/// - `arity`: source-visible argument count for the call.
+///
+/// Output:
+/// - Core primitive intrinsic for supported std trait conformances.
+/// - `None` for unsupported traits, methods, types, or arities.
+///
+/// Transformation:
+/// - Encodes executable std-facing conformance bridges. The bridge is
+///   intentionally closed so user traits and non-selected std traits cannot
+///   accidentally bypass provider wrapper generation.
+fn std_trait_primitive_intrinsic(
+    module_name: &str,
+    trait_name: &str,
+    method: &str,
+    type_arg: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (module_name, trait_name, method, type_arg, arity) {
+        ("std.core.String", "Show", "to_string", "Bool", 1) => {
+            Some(CorePrimitiveIntrinsic::BoolToString)
+        }
+        ("std.core.String", "Show", "to_string", "Int", 1) => {
+            Some(CorePrimitiveIntrinsic::IntToString)
+        }
+        ("std.core.String", "Show", "to_string", "Float", 1) => {
+            Some(CorePrimitiveIntrinsic::FloatToString)
+        }
+        ("std.core.String", "Show", "to_string", "String", 1) => {
+            Some(CorePrimitiveIntrinsic::StringToString)
+        }
+        ("std.core.String", "Parse", "from_string", "Bool", 1) => {
+            Some(CorePrimitiveIntrinsic::BoolFromString)
+        }
+        ("std.core.String", "Parse", "from_string", "Int", 1) => {
+            Some(CorePrimitiveIntrinsic::IntFromString)
+        }
+        ("std.core.String", "Parse", "from_string", "Float", 1) => {
+            Some(CorePrimitiveIntrinsic::FloatFromString)
+        }
+        ("std.core.String", "Parse", "from_string", "String", 1) => {
+            Some(CorePrimitiveIntrinsic::StringFromString)
+        }
+        ("std.core.Equal", "Equal", "equal", "Bool", 2)
+        | ("std.core.Equal", "Equal", "equal", "Int", 2)
+        | ("std.core.Equal", "Equal", "equal", "Float", 2)
+        | ("std.core.Equal", "Equal", "equal", "Unit", 2)
+        | ("std.core.Equal", "Equal", "equal", "Comparison", 2) => {
+            Some(CorePrimitiveIntrinsic::BoolEqual)
+        }
+        ("std.core.Equal", "Equal", "equal", "String", 2) => {
+            Some(CorePrimitiveIntrinsic::StringEqual)
+        }
+        ("std.collections.Iterable", "Iterable", "iterator", type_arg, 1)
+            if receiver_type_head(type_arg) == "List" =>
+        {
+            Some(CorePrimitiveIntrinsic::ListIterator)
+        }
+        _ => None,
+    }
+}
+
+/// Lowers declaration-site trait dispatch to a receiver-method call.
+///
+/// Inputs:
+/// - `trait_name`: remote segment from a call such as `Show.to_string(value)`.
+/// - `method`: trait method segment.
+/// - `args`: source call arguments, where the first argument is the receiver
+///   value required by the trait method.
+/// - `ctx`, `env`: syntax lowering context and local type environment.
+///
+/// Output:
+/// - `Some(ErlExpr::Call)` when a local trait declares the method and the first
+///   argument's inferred type has a matching local receiver method.
+/// - `None` when the call is not a supported declaration-site trait dispatch.
+///
+/// Transformation:
+/// - Reuses the existing receiver-method backend ABI: the trait call's first
+///   argument becomes the receiver argument to the generated Erlang function,
+///   followed by any additional trait method arguments.
+fn lower_syntax_local_trait_receiver_method_call(
+    trait_name: &str,
+    method: &str,
+    args: &[SyntaxExprOutput],
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    if !ctx.has_local_trait_method(trait_name, method) {
+        return None;
+    }
+
+    let receiver = args.first()?;
+    let receiver_type = infer_syntax_trait_dispatch_type(receiver, env)?;
+    let method_arity = args.len().checked_sub(1)?;
+    ctx.receiver_method_target(&receiver_type, method, method_arity)?;
+
+    Some(ErlExpr::Call {
+        module: None,
+        function: method.to_string(),
         args: args
             .iter()
             .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
@@ -2324,7 +3977,6 @@ fn primitive_function_intrinsic(
     arity: usize,
 ) -> Option<CorePrimitiveIntrinsic> {
     match (module, function, arity) {
-        ("std.core.Bool", "equal", 2) => Some(CorePrimitiveIntrinsic::BoolEqual),
         ("std.core.Bool", "compare", 2) => Some(CorePrimitiveIntrinsic::BoolCompare),
         ("std.core.Bool", "to_string", 1) => Some(CorePrimitiveIntrinsic::BoolToString),
         ("std.core.Bool", "from_string", 1) => Some(CorePrimitiveIntrinsic::BoolFromString),
@@ -2332,7 +3984,6 @@ fn primitive_function_intrinsic(
         ("std.core.Int", "from_string", 1) => Some(CorePrimitiveIntrinsic::IntFromString),
         ("std.core.Float", "to_string", 1) => Some(CorePrimitiveIntrinsic::FloatToString),
         ("std.core.Float", "from_string", 1) => Some(CorePrimitiveIntrinsic::FloatFromString),
-        ("std.core.String", "equal", 2) => Some(CorePrimitiveIntrinsic::StringEqual),
         ("std.core.String", "compare", 2) => Some(CorePrimitiveIntrinsic::StringCompare),
         ("std.core.String", "to_string", 1) => Some(CorePrimitiveIntrinsic::StringToString),
         ("std.core.String", "from_string", 1) => Some(CorePrimitiveIntrinsic::StringFromString),
@@ -2352,6 +4003,31 @@ fn primitive_function_intrinsic(
         ("std.core.String", "replace", 3) => Some(CorePrimitiveIntrinsic::StringReplace),
         ("std.core.String", "split", 2) => Some(CorePrimitiveIntrinsic::StringSplit),
         ("std.core.String", "split_once", 2) => Some(CorePrimitiveIntrinsic::StringSplitOnce),
+        ("std.collections.List", "new", 0) => Some(CorePrimitiveIntrinsic::ListNew),
+        ("std.collections.List", "is_empty", 1) => Some(CorePrimitiveIntrinsic::ListIsEmpty),
+        ("std.collections.List", "length", 1) => Some(CorePrimitiveIntrinsic::ListLength),
+        ("std.collections.List", "first", 1) => Some(CorePrimitiveIntrinsic::ListFirst),
+        ("std.collections.List", "iterator", 1) => Some(CorePrimitiveIntrinsic::ListIterator),
+        ("std.collections.List", "push", 2) => Some(CorePrimitiveIntrinsic::ListPush),
+        ("std.collections.List", "clear", 1) => Some(CorePrimitiveIntrinsic::ListClear),
+        ("std.collections.Iterator", "next", 1) => Some(CorePrimitiveIntrinsic::IteratorNext),
+        ("std.collections.Map", "new", 0) => Some(CorePrimitiveIntrinsic::MapNew),
+        ("std.collections.Map", "is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
+        ("std.collections.Map", "size", 1) => Some(CorePrimitiveIntrinsic::MapSize),
+        ("std.collections.Map", "get", 2) => Some(CorePrimitiveIntrinsic::MapGet),
+        ("std.collections.Map", "contains_key", 2) => Some(CorePrimitiveIntrinsic::MapContainsKey),
+        ("std.collections.Map", "put", 3) => Some(CorePrimitiveIntrinsic::MapPut),
+        ("std.collections.Map", "remove", 2) => Some(CorePrimitiveIntrinsic::MapRemove),
+        ("std.collections.Map", "clear", 1) => Some(CorePrimitiveIntrinsic::MapClear),
+        ("std.collections.Map", "iterator", 1) => Some(CorePrimitiveIntrinsic::MapIterator),
+        ("std.collections.Set", "new", 0) => Some(CorePrimitiveIntrinsic::SetNew),
+        ("std.collections.Set", "is_empty", 1) => Some(CorePrimitiveIntrinsic::SetIsEmpty),
+        ("std.collections.Set", "size", 1) => Some(CorePrimitiveIntrinsic::SetSize),
+        ("std.collections.Set", "contains", 2) => Some(CorePrimitiveIntrinsic::SetContains),
+        ("std.collections.Set", "add", 2) => Some(CorePrimitiveIntrinsic::SetAdd),
+        ("std.collections.Set", "remove", 2) => Some(CorePrimitiveIntrinsic::SetRemove),
+        ("std.collections.Set", "clear", 1) => Some(CorePrimitiveIntrinsic::SetClear),
+        ("std.collections.Set", "iterator", 1) => Some(CorePrimitiveIntrinsic::SetIterator),
         _ => None,
     }
 }
@@ -2389,8 +4065,195 @@ fn lower_syntax_runtime_capability_call(
                 .collect::<Option<Vec<_>>>()?;
             lower_runtime_console_println(lowered_args)
         }
+        ("std.io.File", "exists", 1) => {
+            let lowered_args = args
+                .iter()
+                .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                .collect::<Option<Vec<_>>>()?;
+            lower_runtime_file_exists(lowered_args)
+        }
+        ("std.io.File", "read_text", 1) => {
+            let lowered_args = args
+                .iter()
+                .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                .collect::<Option<Vec<_>>>()?;
+            lower_runtime_file_read_text(lowered_args)
+        }
+        ("std.io.File", "write_text", 2) => {
+            let lowered_args = args
+                .iter()
+                .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                .collect::<Option<Vec<_>>>()?;
+            lower_runtime_file_write_text(lowered_args)
+        }
         _ => None,
     }
+}
+
+/// Lowers the release `List.each(cb)` receiver traversal consumer.
+///
+/// Inputs:
+/// - `callee`: field-access callee from a method call expression.
+/// - `args`: expected single callback expression after the receiver.
+/// - `ctx`: syntax lowering context for lowering callback and receiver
+///   expressions.
+/// - `env`: local type environment used to prove the receiver is a `List`.
+///
+/// Output:
+/// - `Some(ErlExpr)` for `list.each(cb)` when the receiver type resolves to
+///   `List[...]`.
+/// - `None` for non-field callees, other methods, wrong arity, or non-list
+///   receivers.
+///
+/// Transformation:
+/// - Implements the source contract `Iterator.each(list.iterator(), cb)` on
+///   the BEAM backend by applying the callback over the immutable list with
+///   `lists:foreach/2`, then normalizing the result to Terlan `Unit`.
+fn lower_syntax_list_each_receiver_method_call(
+    callee: &SyntaxExprOutput,
+    args: &[SyntaxExprOutput],
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+        return None;
+    }
+    if callee.text.as_deref()? != "each" || args.len() != 1 {
+        return None;
+    }
+    let receiver = callee.children.first()?;
+    let receiver_type = infer_syntax_trait_dispatch_type(receiver, env)?;
+    if receiver_type_head(&receiver_type) != "List" {
+        return None;
+    }
+    lower_syntax_list_each_bridge(receiver, &args[0], ctx, env)
+}
+
+/// Lowers a list plus callback to the selected BEAM foreach bridge.
+///
+/// Inputs:
+/// - `receiver`: source expression that evaluates to the list being traversed.
+/// - `callback`: source expression that evaluates to a function value.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang expression that applies the callback to each list value and returns
+///   Terlan `Unit`.
+/// - `None` when either expression cannot be lowered by the syntax emitter.
+///
+/// Transformation:
+/// - Emits `lists:foreach/2` with the lowered callback and receiver, then wraps
+///   the target result as `unit` so both receiver and trait-facing `each`
+///   preserve Terlan's command-style return contract.
+fn lower_syntax_list_each_bridge(
+    receiver: &SyntaxExprOutput,
+    callback: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let lowered_receiver = lower_syntax_expr_with_env(receiver, ctx, env)?;
+    let lowered_callback = lower_syntax_expr_with_env(callback, ctx, env)?;
+    Some(ErlExpr::Raw(format!(
+        "begin lists:foreach({}, {}), unit end",
+        lowered_callback.render(),
+        lowered_receiver.render()
+    )))
+}
+
+/// Lowers a list plus callback to the selected BEAM map bridge.
+///
+/// Inputs:
+/// - `receiver`: source expression that evaluates to the list being transformed.
+/// - `callback`: source expression that evaluates to a function value.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang expression that applies the callback to each list value and returns
+///   the transformed list.
+/// - `None` when either expression cannot be lowered by the syntax emitter.
+///
+/// Transformation:
+/// - Emits `lists:map/2` with the lowered callback and receiver so
+///   `Enumerable.map(values, cb)` has a closed backend bridge while the source
+///   contract remains trait-shaped and target-neutral.
+fn lower_syntax_list_map_bridge(
+    receiver: &SyntaxExprOutput,
+    callback: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let lowered_receiver = lower_syntax_expr_with_env(receiver, ctx, env)?;
+    let lowered_callback = lower_syntax_expr_with_env(callback, ctx, env)?;
+    Some(ErlExpr::Raw(format!(
+        "lists:map({}, {})",
+        lowered_callback.render(),
+        lowered_receiver.render()
+    )))
+}
+
+/// Lowers a list plus predicate callback to the selected BEAM filter bridge.
+///
+/// Inputs:
+/// - `receiver`: source expression that evaluates to the list being filtered.
+/// - `predicate`: source expression that evaluates to a boolean callback.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang expression that keeps each list value for which the predicate
+///   returns true.
+/// - `None` when either expression cannot be lowered by the syntax emitter.
+///
+/// Transformation:
+/// - Emits `lists:filter/2` with the lowered predicate and receiver so
+///   `Enumerable.filter(values, predicate)` has a closed backend bridge while
+///   the source contract remains trait-shaped and target-neutral.
+fn lower_syntax_list_filter_bridge(
+    receiver: &SyntaxExprOutput,
+    predicate: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let lowered_receiver = lower_syntax_expr_with_env(receiver, ctx, env)?;
+    let lowered_predicate = lower_syntax_expr_with_env(predicate, ctx, env)?;
+    Some(ErlExpr::Raw(format!(
+        "lists:filter({}, {})",
+        lowered_predicate.render(),
+        lowered_receiver.render()
+    )))
+}
+
+/// Lowers a list, initial accumulator, and reducer to the BEAM fold bridge.
+///
+/// Inputs:
+/// - `receiver`: source expression that evaluates to the list being folded.
+/// - `initial`: source expression that evaluates to the initial accumulator.
+/// - `reducer`: source expression that evaluates to `(U, T) -> U`.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang expression that folds values from left to right and returns the
+///   final accumulator.
+/// - `None` when any expression cannot be lowered by the syntax emitter.
+///
+/// Transformation:
+/// - Emits `lists:foldl/3` while adapting Erlang's `(Value, Acc)` callback
+///   convention to Terlan's accumulator-first reducer shape `(Acc, Value)`.
+fn lower_syntax_list_fold_bridge(
+    receiver: &SyntaxExprOutput,
+    initial: &SyntaxExprOutput,
+    reducer: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let lowered_receiver = lower_syntax_expr_with_env(receiver, ctx, env)?;
+    let lowered_initial = lower_syntax_expr_with_env(initial, ctx, env)?;
+    let lowered_reducer = lower_syntax_expr_with_env(reducer, ctx, env)?;
+    Some(ErlExpr::Raw(format!(
+        "lists:foldl(fun(TerlanFoldValue, TerlanFoldAcc) -> ({reducer})(TerlanFoldAcc, TerlanFoldValue) end, {initial}, {receiver})",
+        reducer = lowered_reducer.render(),
+        initial = lowered_initial.render(),
+        receiver = lowered_receiver.render(),
+    )))
 }
 
 /// Lowers a local receiver-method call.
@@ -2422,9 +4285,8 @@ fn lower_syntax_receiver_method_call(
     let method = callee.text.as_deref()?;
     let receiver = callee.children.first()?;
     let receiver_type = infer_syntax_trait_dispatch_type(receiver, env)?;
-    if !ctx.has_receiver_method(&receiver_type, method, args.len()) {
-        return None;
-    }
+    let receiver_target = ctx.receiver_method_target(&receiver_type, method, args.len())?;
+    let _receiver_is_mutable = receiver_target.mutable;
 
     let mut lowered_args = Vec::with_capacity(args.len() + 1);
     lowered_args.push(lower_syntax_expr_with_env(receiver, ctx, env)?);
@@ -2500,10 +4362,14 @@ fn primitive_receiver_method_intrinsic(
     method: &str,
     arg_count: usize,
 ) -> Option<CorePrimitiveIntrinsic> {
+    if let Some(intrinsic) = collection_receiver_method_intrinsic(receiver_type, method, arg_count)
+    {
+        return Some(intrinsic);
+    }
+
     match (receiver_type, method, arg_count) {
         ("Int", "to_string", 0) => Some(CorePrimitiveIntrinsic::IntToString),
         ("Float", "to_string", 0) => Some(CorePrimitiveIntrinsic::FloatToString),
-        ("String", "equal", 1) => Some(CorePrimitiveIntrinsic::StringEqual),
         ("String", "compare", 1) => Some(CorePrimitiveIntrinsic::StringCompare),
         ("String", "to_string", 0) => Some(CorePrimitiveIntrinsic::StringToString),
         ("String", "from_string", 0) => Some(CorePrimitiveIntrinsic::StringFromString),
@@ -2524,6 +4390,76 @@ fn primitive_receiver_method_intrinsic(
         ("String", "trim_end", 0) => Some(CorePrimitiveIntrinsic::StringTrimEnd),
         _ => None,
     }
+}
+
+/// Resolves collection receiver methods to compiler-owned intrinsics.
+///
+/// Inputs:
+/// - `receiver_type`: normalized source type inferred for the receiver.
+/// - `method`: source receiver method name.
+/// - `arg_count`: number of non-receiver call arguments.
+///
+/// Output:
+/// - Core primitive intrinsic id for supported collection receiver calls.
+/// - `None` for unsupported collection types, methods, or arities.
+///
+/// Transformation:
+/// - Extracts the nominal type head from generic or qualified collection type
+///   text and maps portable receiver methods to backend-neutral collection
+///   intrinsic IDs.
+fn collection_receiver_method_intrinsic(
+    receiver_type: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (
+        receiver_type_head(receiver_type).as_str(),
+        method,
+        arg_count,
+    ) {
+        ("List", "is_empty", 0) => Some(CorePrimitiveIntrinsic::ListIsEmpty),
+        ("List", "length", 0) => Some(CorePrimitiveIntrinsic::ListLength),
+        ("List", "first", 0) => Some(CorePrimitiveIntrinsic::ListFirst),
+        ("List", "iterator", 0) => Some(CorePrimitiveIntrinsic::ListIterator),
+        ("List", "push", 1) => Some(CorePrimitiveIntrinsic::ListPush),
+        ("List", "clear", 0) => Some(CorePrimitiveIntrinsic::ListClear),
+        ("Map", "is_empty", 0) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
+        ("Map", "size", 0) => Some(CorePrimitiveIntrinsic::MapSize),
+        ("Map", "get", 1) => Some(CorePrimitiveIntrinsic::MapGet),
+        ("Map", "contains_key", 1) => Some(CorePrimitiveIntrinsic::MapContainsKey),
+        ("Map", "put", 2) => Some(CorePrimitiveIntrinsic::MapPut),
+        ("Map", "remove", 1) => Some(CorePrimitiveIntrinsic::MapRemove),
+        ("Map", "clear", 0) => Some(CorePrimitiveIntrinsic::MapClear),
+        ("Map", "iterator", 0) => Some(CorePrimitiveIntrinsic::MapIterator),
+        ("Set", "is_empty", 0) => Some(CorePrimitiveIntrinsic::SetIsEmpty),
+        ("Set", "size", 0) => Some(CorePrimitiveIntrinsic::SetSize),
+        ("Set", "contains", 1) => Some(CorePrimitiveIntrinsic::SetContains),
+        ("Set", "add", 1) => Some(CorePrimitiveIntrinsic::SetAdd),
+        ("Set", "remove", 1) => Some(CorePrimitiveIntrinsic::SetRemove),
+        ("Set", "clear", 0) => Some(CorePrimitiveIntrinsic::SetClear),
+        ("Set", "iterator", 0) => Some(CorePrimitiveIntrinsic::SetIterator),
+        _ => None,
+    }
+}
+
+/// Extracts the nominal type head from receiver type text.
+///
+/// Inputs:
+/// - `receiver_type`: normalized source type text, optionally generic or
+///   qualified.
+///
+/// Output:
+/// - Final nominal type segment without generic arguments.
+///
+/// Transformation:
+/// - Compacts type-application spacing, strips generic arguments after `[`,
+///   and keeps the segment after the final module qualifier.
+fn receiver_type_head(receiver_type: &str) -> String {
+    let compact = compact_type_application(&compact_spaces(receiver_type));
+    let head = compact
+        .split_once('[')
+        .map_or(compact.as_str(), |(head, _)| head);
+    head.rsplit('.').next().unwrap_or(head).to_string()
 }
 
 /// Extracts module/function names from method-shaped remote-call syntax.
@@ -2576,11 +4512,104 @@ fn lower_syntax_pipe_forward(
         )));
     }
 
+    if let Some(expr) = lower_syntax_mutable_receiver_pipe_forward(left, right, ctx, env) {
+        return Some(expr);
+    }
+
     let callee = right.children.first()?;
     let mut args = Vec::with_capacity(right.children.len());
     args.push(left.clone());
     args.extend(right.children.iter().skip(1).cloned());
     lower_syntax_call_parts(callee, &args, right.remote.as_deref(), ctx, env)
+}
+
+/// Lowers mutable receiver-method pipe forwarding.
+///
+/// Inputs:
+/// - `left`: source pipe receiver expression.
+/// - `right`: source call expression on the right side of `|>`.
+/// - `ctx`, `env`: syntax lowering context and lexical type environment.
+///
+/// Output:
+/// - `Some(ErlExpr::Let)` when `right` names a declared mutable receiver method
+///   for the inferred receiver type.
+/// - `None` for non-call right sides, remote calls, non-method calls,
+///   immutable receiver methods, or expressions whose receiver type cannot be
+///   inferred from the syntax lowering environment.
+///
+/// Transformation:
+/// - Rewrites `receiver |> mut_method(args...)` into a backend-local binding
+///   whose value is the hidden updated receiver returned by the lowered mutable
+///   method function. The binding result becomes the pipe expression value so
+///   later pipe steps receive the updated receiver.
+fn lower_syntax_mutable_receiver_pipe_forward(
+    left: &SyntaxExprOutput,
+    right: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    if !matches!(right.kind, SyntaxExprKind::Call) || right.remote.is_some() {
+        return None;
+    }
+
+    let callee = right.children.first()?;
+    let method = syntax_expr_name(callee)?;
+    let arity = right.children.len().checked_sub(1)?;
+    let receiver_type = infer_syntax_pipe_receiver_type(left, env)?;
+    let receiver_target = ctx.receiver_method_target(&receiver_type, method, arity)?;
+    if !receiver_target.mutable {
+        return None;
+    }
+
+    let mut lowered_args = Vec::with_capacity(arity + 1);
+    lowered_args.push(lower_syntax_expr_with_env(left, ctx, env)?);
+    lowered_args.extend(
+        right
+            .children
+            .iter()
+            .skip(1)
+            .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+            .collect::<Option<Vec<_>>>()?,
+    );
+
+    let updated_receiver = "_TerlanMutReceiver".to_string();
+    Some(ErlExpr::Let {
+        bindings: vec![ErlLetBinding {
+            name: updated_receiver.clone(),
+            value: ErlExpr::Call {
+                module: None,
+                function: method.to_string(),
+                args: lowered_args,
+            },
+        }],
+        body: Box::new(ErlExpr::Var(updated_receiver)),
+    })
+}
+
+/// Infers the receiver type that should flow through a pipe chain.
+///
+/// Inputs:
+/// - `expr`: source expression used as a pipe receiver.
+/// - `env`: lexical lowering environment containing known value types.
+///
+/// Output:
+/// - Normalized receiver type text when the receiver can be inferred.
+/// - `None` when the expression shape has no receiver-type evidence.
+///
+/// Transformation:
+/// - Reads ordinary expression receiver types through the existing trait
+///   dispatch inference helper. For nested pipe expressions, follows the left
+///   side of the pipe because mutable receiver pipe lowering preserves the
+///   original receiver type across each mutating step.
+fn infer_syntax_pipe_receiver_type(
+    expr: &SyntaxExprOutput,
+    env: &SyntaxLowerEnv,
+) -> Option<String> {
+    if matches!(expr.kind, SyntaxExprKind::BinaryOp) && expr.operator.as_deref() == Some("|>") {
+        return infer_syntax_pipe_receiver_type(expr.children.first()?, env);
+    }
+
+    infer_syntax_trait_dispatch_type(expr, env)
 }
 
 fn lower_syntax_constructor_chain(
@@ -2651,6 +4680,26 @@ fn lower_syntax_expr_field(
         key: field.key.clone(),
         value: lower_syntax_expr_with_env(&field.value, ctx, env)?,
         required: field.required,
+    })
+}
+
+/// Lowers one Terlan map-construction field to an Erlang map field.
+///
+/// Inputs are the formal syntax field, lowering context, and current
+/// expression environment. Output is a lowered Erlang map field when the value
+/// expression lowers successfully. The transformation intentionally emits
+/// associative construction (`=>`) because Erlang reserves `:=` for matching
+/// or updating existing keys, while Terlan permits `:=` in source map literals
+/// as a required-key notation.
+fn lower_syntax_map_expr_field(
+    field: &SyntaxExprFieldOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlMapField> {
+    Some(ErlMapField {
+        key: field.key.clone(),
+        value: lower_syntax_expr_with_env(&field.value, ctx, env)?,
+        required: false,
     })
 }
 

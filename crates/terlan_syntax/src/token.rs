@@ -80,6 +80,7 @@ pub enum TokenKind {
     LtMinus,
 
     Comment,
+    DocBlockComment,
     DocComment,
     ModuleDocComment,
     EOF,

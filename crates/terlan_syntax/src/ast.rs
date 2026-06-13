@@ -166,6 +166,7 @@ pub struct FunctionClause {
 pub struct Param {
     pub name: String,
     pub annotation: TypeExpr,
+    pub is_mutable: bool,
     pub span: Span,
 }
 
@@ -327,6 +328,7 @@ pub enum Expr {
     },
     Quote(Box<Expr>),
     Unquote(Box<Expr>),
+    Sequence(Vec<Expr>),
 }
 
 #[derive(Debug, Clone)]

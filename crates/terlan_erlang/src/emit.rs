@@ -6,9 +6,9 @@ use terlan_syntax::{
     SyntaxConstructorParamOutput, SyntaxDeclarationOutput, SyntaxDeclarationPayload,
     SyntaxExprFieldOutput, SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput,
     SyntaxHtmlAttrOutput, SyntaxHtmlAttrValueOutput, SyntaxHtmlElementOutput, SyntaxHtmlNodeOutput,
-    SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput, SyntaxPatternFieldOutput,
-    SyntaxPatternKind, SyntaxPatternOutput, SyntaxSourceKind, SyntaxStructFieldOutput,
-    SyntaxTypeOutput,
+    SyntaxImplMethodOutput, SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput,
+    SyntaxPatternFieldOutput, SyntaxPatternKind, SyntaxPatternOutput, SyntaxSourceKind,
+    SyntaxStructFieldOutput, SyntaxTypeOutput,
 };
 use terlan_typeck::{CoreModule, CORE_IR_SCHEMA};
 
