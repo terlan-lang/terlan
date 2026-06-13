@@ -38,7 +38,7 @@ main() ->
 
 ## Status
 
-Current version: `0.0.1`.
+Current version: `0.0.2`
 
 Terlan is in a very early experimental stage. The compiler, standard library,
 syntax, and release tooling are still changing quickly.
@@ -61,15 +61,9 @@ cargo install --path crates/terlan_cli --bin terlc --force
 terlc version
 ```
 
-The expected version is:
-
-```text
-terlc 0.0.1
-```
-
 ## Erlang/OTP
 
-Terlan 0.0.1 is validated against Erlang/OTP 29 and requires an OTP 29.x
+Terlan is validated against Erlang/OTP 29 and requires an OTP 29.x
 installation for the Erlang target. `terlc build` and `terlc test` invoke
 `erlc` and `erl`, so both commands must be available on `PATH`.
 
