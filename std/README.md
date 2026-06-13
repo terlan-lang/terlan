@@ -1,14 +1,13 @@
 # Terlan standard library layout
 
 The `std/` tree contains Terlan standard-library source, generated summaries,
-and feature-focused support code.
+and feature-focused support code. The active stdlib surface is intentionally
+focused: `std/core`, `std/collections`, `std/io`, `std/test`, and generated
+summaries under `std/summaries`.
 
-For 0.0.2, the active release stdlib surface is intentionally focused:
-`std/core`, `std/collections`, `std/io`, `std/test`, and the selected summaries under
-`std/summaries`.
-Out-of-scope proof-of-concept modules are removed from this tree. A removed
-stdlib package can return only through an accepted baseline gate with source,
-docs, summaries, and executable Terlan tests.
+Out-of-scope proof-of-concept modules do not belong in this tree. A removed or
+new stdlib package can enter the public surface only with source, docs,
+generated summaries, and executable Terlan tests.
 
 Source modules map to public Terlan modules by directory:
 
@@ -95,13 +94,12 @@ std/summaries/
 ```
 
 See `std/summaries/README.md` for `.typi` summary naming, contents, generation, and validation rules.
-The active 0.0.2 stdlib contract requires every public API to have source,
-docs, summaries, and executable Terlan tests before release.
+The active stdlib contract requires every public API to have source, docs,
+generated summaries, and executable Terlan tests before release.
 
 Rules:
 
 - Public stdlib APIs must have docs before being considered complete.
-- User-facing 0.0.2 stdlib behavior must have annotated `.tl` tests under
-  `tests/std`.
+- User-facing stdlib behavior must have annotated `.tl` tests.
 - Pure implementations define semantics; native acceleration can only be optional.
 - Expensive law checks and distributed simulations belong to explicit commands, not normal compile.
