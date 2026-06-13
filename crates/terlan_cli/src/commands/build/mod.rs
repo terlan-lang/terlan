@@ -1935,11 +1935,20 @@ mod tests {
     /// - Path to an empty directory under the process temp directory.
     ///
     /// Transformation:
-    /// - Removes any stale directory from previous runs and recreates it.
+    /// - Creates a unique directory with a readable test-name prefix so
+    ///   parallel test processes cannot remove each other's build outputs.
     fn make_temp_dir(name: &str) -> PathBuf {
         let mut path = std::env::temp_dir();
-        path.push(format!("terlan_build_command_{name}"));
-        let _ = fs::remove_dir_all(&path);
+        let unique = format!(
+            "terlan_build_command_{}_{}_{}",
+            name,
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock before unix epoch")
+                .as_nanos()
+        );
+        path.push(unique);
         fs::create_dir_all(&path).expect("failed to create temp dir");
         path
     }
