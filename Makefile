@@ -66,7 +66,7 @@ publish-preflight:
 		echo "CHANGELOG.md is missing section ## $(VERSION)"; \
 		exit 1; \
 	}
-	@grep -q 'Current version: `$(VERSION)`\.' README.md || { \
+	@grep -Eq '^Current version: `$(VERSION)`\.?$$' README.md || { \
 		echo "README.md current version is not $(VERSION)"; \
 		exit 1; \
 	}
