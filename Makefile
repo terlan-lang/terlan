@@ -39,10 +39,9 @@ release-artifact-linux:
 
 publish-preflight:
 	@echo "Preparing Terlan $(VERSION) publication preflight"
-	$(MAKE) stdlib-build-interfaces
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		changed_count=$$(git status --porcelain | wc -l | tr -d ' '); \
-		echo "publish-preflight failed: working tree is not clean after generated summary refresh"; \
+		echo "publish-preflight failed: working tree is not clean"; \
 		echo "changed files: $$changed_count"; \
 		echo "first changed files:"; \
 		git status --short | sed -n '1,20p'; \

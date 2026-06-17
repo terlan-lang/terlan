@@ -66,8 +66,8 @@ def main() -> int:
     - Exit status 1 when the std tree is missing or any source fails emission.
 
     Transformation:
-    - Scans release stdlib sources, emits `.typi` summaries into
-      `std/summaries`, and removes incidental `.erl` files from that directory.
+    - Scans release stdlib sources and emits interface artifacts into
+      `std/summaries` without deleting any existing release-owned files.
     """
 
     if not STD_DIR.is_dir():
@@ -108,16 +108,6 @@ def main() -> int:
             break
 
         pending = [source for source, _output in next_pending]
-
-    # Keep summaries tidy: Terlan `emit` writes `.erl` beside `.typi` in the same
-    # directory; stdlib interface directories should only need interface metadata.
-    for file in OUT_DIR.glob("*.erl"):
-        try:
-            file.unlink()
-        except OSError:
-            # A best-effort cleanup; summary generation should still succeed even if
-            # cleanup fails for a transient reason.
-            pass
 
     if failures:
         print("[build-stdlib-interfaces] failures:", file=sys.stderr)
