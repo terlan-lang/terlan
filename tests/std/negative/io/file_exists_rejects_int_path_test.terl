@@ -1,0 +1,5 @@
+module std.negative.io.FileExistsRejectsIntPathTest.
+
+@test
+pub file_exists_rejects_int_path(): Bool ->
+    std.io.File.exists(1).

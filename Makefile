@@ -1,11 +1,13 @@
-.PHONY: check test build release-artifact-linux publish-preflight publish validate-ebnf clean
+CARGO := cargo
+
+.PHONY: check test build release-artifact-linux publish-preflight publish validate-ebnf workspace-version-check source-extension-check clean
 
 include crates/terlan_cli/cli.mk
 include std/stdlib.mk
 
 ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
 ifndef VERSION
-$(error VERSION is required. Use: make $(firstword $(MAKECMDGOALS)) VERSION=0.0.2)
+$(error VERSION is required. Use: make $(firstword $(MAKECMDGOALS)) VERSION=0.0.3)
 endif
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
@@ -25,6 +27,12 @@ build:
 
 validate-ebnf:
 	python3 tools/validate_ebnf.py --strict
+
+workspace-version-check:
+	bash scripts/check_workspace_version_inheritance.sh
+
+source-extension-check:
+	bash scripts/check_terlan_source_extensions.sh
 
 release-artifact-linux:
 	$(MAKE) cli-release-artifact-linux
@@ -49,15 +57,11 @@ publish-preflight:
 		echo "publication must run from main; current branch is $$branch"; \
 		exit 1; \
 	fi
-	@bad=0; \
-	for manifest in crates/*/Cargo.toml; do \
-		actual=$$(sed -n 's/^version = "\(.*\)"/\1/p' "$$manifest" | head -1); \
-		if [ "$$actual" != "$(VERSION)" ]; then \
-			echo "$$manifest version $$actual != $(VERSION)"; \
-			bad=1; \
-		fi; \
-	done; \
-	if [ "$$bad" -ne 0 ]; then exit 1; fi
+	@actual=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1); \
+	if [ "$$actual" != "$(VERSION)" ]; then \
+		echo "workspace package version $$actual != $(VERSION)"; \
+		exit 1; \
+	fi
 	@grep -q 'VERSION="$${TERLAN_VERSION:-v$(VERSION)}"' install.sh || { \
 		echo "install.sh default version is not v$(VERSION)"; \
 		exit 1; \

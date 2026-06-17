@@ -1,0 +1,14 @@
+{
+  "source_module": "std.io.Path",
+  "module": "std_io_path_safe_native",
+  "scheduler": "normal",
+  "native_policy": "safe_native_optional",
+  "functions": [
+    { "name": "from_string", "arity": 1, "operation": "std.io.path.from_string" },
+    { "name": "to_string", "arity": 1, "operation": "std.io.path.to_string" },
+    { "name": "join", "arity": 2, "operation": "std.io.path.join" },
+    { "name": "file_name", "arity": 1, "operation": "std.io.path.file_name" },
+    { "name": "extension", "arity": 1, "operation": "std.io.path.extension" },
+    { "name": "parent", "arity": 1, "operation": "std.io.path.parent" },
+    { "name": "is_absolute", "arity": 1, "operation": "std.io.path.is_absolute" }]
+}

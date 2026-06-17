@@ -800,7 +800,7 @@ mod tests {
         serde_json::json!({
             "schema": PHASE_MANIFEST_SCHEMA,
             "module": "sample",
-            "source_path": "sample.tl",
+            "source_path": "sample.terl",
             "debug_trace": {
                 "module": debug_module,
                 "source_path": debug_source_path,
@@ -881,13 +881,13 @@ mod tests {
     #[test]
     fn phase_manifest_validation_accepts_debug_trace_identity() {
         let manifest =
-            phase_manifest_json_with_debug_trace("sample", "sample.tl", 4, true, "none", None);
+            phase_manifest_json_with_debug_trace("sample", "sample.terl", 4, true, "none", None);
 
         let snapshot =
             validate_phase_manifest_contents(&manifest).expect("valid debug trace manifest");
 
         assert_eq!(snapshot.debug_trace.module, "sample");
-        assert_eq!(snapshot.debug_trace.source_path, "sample.tl");
+        assert_eq!(snapshot.debug_trace.source_path, "sample.terl");
         assert_eq!(snapshot.debug_trace.core_ir_hash, 4);
         assert!(snapshot.debug_trace.core_ir_available);
         assert_eq!(snapshot.debug_trace.generated_artifact_kind, "none");
@@ -909,7 +909,7 @@ mod tests {
     #[test]
     fn phase_manifest_validation_rejects_debug_trace_module_mismatch() {
         let manifest =
-            phase_manifest_json_with_debug_trace("other", "sample.tl", 4, true, "none", None);
+            phase_manifest_json_with_debug_trace("other", "sample.terl", 4, true, "none", None);
 
         let error = match validate_phase_manifest_contents(&manifest) {
             Ok(_) => panic!("debug trace module mismatch should fail"),
@@ -937,7 +937,7 @@ mod tests {
     #[test]
     fn phase_manifest_validation_rejects_debug_trace_core_hash_mismatch() {
         let manifest =
-            phase_manifest_json_with_debug_trace("sample", "sample.tl", 5, true, "none", None);
+            phase_manifest_json_with_debug_trace("sample", "sample.terl", 5, true, "none", None);
 
         let error = match validate_phase_manifest_contents(&manifest) {
             Ok(_) => panic!("debug trace CoreIR hash mismatch should fail"),

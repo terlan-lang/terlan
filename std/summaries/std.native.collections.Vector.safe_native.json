@@ -1,0 +1,15 @@
+{
+  "source_module": "std.native.collections.Vector",
+  "module": "std_native_collections_vector_safe_native",
+  "scheduler": "normal",
+  "native_policy": "safe_native_optional",
+  "functions": [
+    { "name": "new", "arity": 0, "operation": "std.native.collections.vector.new" },
+    { "name": "from_list", "arity": 1, "operation": "std.native.collections.vector.from_list" },
+    { "name": "length", "arity": 1, "operation": "std.native.collections.vector.length" },
+    { "name": "get_at", "arity": 2, "operation": "std.native.collections.vector.get_at" },
+    { "name": "set_at", "arity": 3, "operation": "std.native.collections.vector.set_at" },
+    { "name": "swap", "arity": 3, "operation": "std.native.collections.vector.swap" },
+    { "name": "push", "arity": 2, "operation": "std.native.collections.vector.push" },
+    { "name": "to_list", "arity": 1, "operation": "std.native.collections.vector.to_list" }]
+}

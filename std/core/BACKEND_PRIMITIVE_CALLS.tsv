@@ -1,0 +1,19 @@
+# std.core backend primitive call inventory.
+#
+# Inputs:
+# - Active portable std.core Terlan source files.
+# - Backend primitive module calls still present in implemented core functions.
+#
+# Output:
+# - A tab-separated inventory consumed by
+#   std/scripts/check_core_backend_primitive_calls.sh.
+#
+# Transformation:
+# - Records each known backend primitive dependency by source path, enclosing
+#   public std.core function, and backend primitive call.
+#
+# This is a shrink-only inventory. New rows require explicit review, and the
+# long-term target is an empty inventory after primitive operations lower
+# through compiler-owned CoreIR/backend intrinsics.
+#
+# source_file<TAB>public_function<TAB>backend_call

@@ -1,0 +1,4 @@
+module a0_2_bool_ops.
+
+pub both(x: Int, y: Int): Bool ->
+    true and x > 0 or y > 0.

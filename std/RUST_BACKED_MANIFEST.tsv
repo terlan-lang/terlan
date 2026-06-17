@@ -1,0 +1,43 @@
+# Terlan Rust-backed std operation manifest.
+#
+# Inputs:
+# - Portable std modules whose first executable backend is Rust/SafeNative.
+# - `@compiler.native {operation}` annotations in those source modules.
+#
+# Output:
+# - A tab-separated operation inventory consumed by
+#   std/scripts/check_rust_backed_manifest.py.
+#
+# Transformation:
+# - Maps each portable Terlan API operation to the Rust crate that must own the
+#   future SafeNative adapter implementation.
+#
+# Format:
+# module<TAB>source<TAB>crate<TAB>operation<TAB>function<TAB>arity
+module	source	crate	operation	function	arity
+std.data.Json	std/data/json.terl	serde_json	std.data.json.parse	parse	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.stringify	stringify	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.get	get	2
+std.data.Json	std/data/json.terl	serde_json	std.data.json.as_string	as_string	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.as_int	as_int	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.as_float	as_float	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.as_bool	as_bool	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.is_null	is_null	1
+std.encoding.Base64	std/encoding/base64.terl	base64	std.encoding.base64.encode	encode	1
+std.encoding.Base64	std/encoding/base64.terl	base64	std.encoding.base64.decode	decode	1
+std.encoding.Base64	std/encoding/base64.terl	base64	std.encoding.base64.encode_url	encode_url	1
+std.encoding.Base64	std/encoding/base64.terl	base64	std.encoding.base64.decode_url	decode_url	1
+std.io.Path	std/io/path.terl	std::path	std.io.path.from_string	from_string	1
+std.io.Path	std/io/path.terl	std::path	std.io.path.to_string	to_string	1
+std.io.Path	std/io/path.terl	std::path	std.io.path.join	join	2
+std.io.Path	std/io/path.terl	std::path	std.io.path.file_name	file_name	1
+std.io.Path	std/io/path.terl	std::path	std.io.path.extension	extension	1
+std.io.Path	std/io/path.terl	std::path	std.io.path.parent	parent	1
+std.io.Path	std/io/path.terl	std::path	std.io.path.is_absolute	is_absolute	1
+std.net.Uri	std/net/uri.terl	url	std.net.uri.parse	parse	1
+std.net.Uri	std/net/uri.terl	url	std.net.uri.to_string	to_string	1
+std.net.Uri	std/net/uri.terl	url	std.net.uri.scheme	scheme	1
+std.net.Uri	std/net/uri.terl	url	std.net.uri.host	host	1
+std.net.Uri	std/net/uri.terl	url	std.net.uri.path	path	1
+std.net.Uri	std/net/uri.terl	url	std.net.uri.query	query	1
+std.net.Uri	std/net/uri.terl	url	std.net.uri.fragment	fragment	1

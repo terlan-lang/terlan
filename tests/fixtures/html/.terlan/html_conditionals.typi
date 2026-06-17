@@ -1,0 +1,8 @@
+module html_conditionals.
+
+pub type Role =
+    admin
+  | viewer.
+
+pub view(Role: Role): Html[none].
+

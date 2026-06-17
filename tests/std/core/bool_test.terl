@@ -1,0 +1,84 @@
+module std.core.BoolTest.
+
+import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import type std.core.Ordering.Comparison.
+
+pub ordering_compare(left: Bool, right: Bool): Comparison ->
+    Ordering.compare(left, right).
+
+@test
+pub equal_accepts_matching_values(): Bool ->
+    std.test.Test.assert(std.core.Bool.equal(true, true)).
+
+@test
+pub equal_rejects_different_values(): Bool ->
+    std.test.Test.assert_equal(false, std.core.Bool.equal(true, false)).
+
+@test
+pub is_true_accepts_true(): Bool ->
+    std.test.Test.assert(std.core.Bool.is_true(true)).
+
+@test
+pub is_true_rejects_false(): Bool ->
+    std.test.Test.assert_false(std.core.Bool.is_true(false)).
+
+@test
+pub is_false_accepts_false(): Bool ->
+    std.test.Test.assert(std.core.Bool.is_false(false)).
+
+@test
+pub is_false_rejects_true(): Bool ->
+    std.test.Test.assert_false(std.core.Bool.is_false(true)).
+
+@test
+pub compare_orders_false_before_true(): Bool ->
+    std.test.Test.assert_equal(Lt, std.core.Bool.compare(false, true)).
+
+@test
+pub compare_orders_true_after_false(): Bool ->
+    std.test.Test.assert_equal(Gt, std.core.Bool.compare(true, false)).
+
+@test
+pub compare_accepts_equal_false_values(): Bool ->
+    std.test.Test.assert_equal(Eq, std.core.Bool.compare(false, false)).
+
+@test
+pub compare_accepts_equal_true_values(): Bool ->
+    std.test.Test.assert_equal(Eq, std.core.Bool.compare(true, true)).
+
+@test
+pub ordering_trait_orders_false_before_true(): Bool ->
+    std.test.Test.assert_equal(Lt, ordering_compare(false, true)).
+
+@test
+pub ordering_trait_orders_true_after_false(): Bool ->
+    std.test.Test.assert_equal(Gt, ordering_compare(true, false)).
+
+@test
+pub to_string_renders_true(): Bool ->
+    std.test.Test.assert_equal("true", std.core.Bool.to_string(true)).
+
+@test
+pub to_string_renders_false(): Bool ->
+    std.test.Test.assert_equal("false", std.core.Bool.to_string(false)).
+
+@test
+pub from_string_parses_true(): Bool ->
+    std.test.Test.assert_equal(
+        true,
+        std.core.Option.with_default(std.core.Bool.from_string("true"), false)
+    ).
+
+@test
+pub from_string_parses_false(): Bool ->
+    std.test.Test.assert_equal(
+        false,
+        std.core.Option.with_default(std.core.Bool.from_string("false"), true)
+    ).
+
+@test
+pub from_string_rejects_unknown_text(): Bool ->
+    std.test.Test.assert_equal(
+        true,
+        std.core.Option.with_default(std.core.Bool.from_string("yes"), true)
+    ).

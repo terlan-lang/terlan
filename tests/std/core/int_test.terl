@@ -1,0 +1,85 @@
+module std.core.IntTest.
+
+import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import type std.core.Ordering.Comparison.
+
+pub ordering_compare(left: Int, right: Int): Comparison ->
+    Ordering.compare(left, right).
+
+@test
+pub equal_accepts_matching_integers(): Bool ->
+    std.test.Test.assert(std.core.Int.equal(42, 42)).
+
+@test
+pub equal_rejects_different_integers(): Bool ->
+    std.test.Test.assert_false(std.core.Int.equal(42, 7)).
+
+@test
+pub min_returns_smaller_integer(): Bool ->
+    std.test.Test.assert_equal(3, std.core.Int.min(3, 7)).
+
+@test
+pub min_accepts_equal_integers(): Bool ->
+    std.test.Test.assert_equal(3, std.core.Int.min(3, 3)).
+
+@test
+pub max_returns_larger_integer(): Bool ->
+    std.test.Test.assert_equal(7, std.core.Int.max(3, 7)).
+
+@test
+pub max_accepts_equal_integers(): Bool ->
+    std.test.Test.assert_equal(7, std.core.Int.max(7, 7)).
+
+@test
+pub abs_keeps_positive_integer(): Bool ->
+    std.test.Test.assert_equal(7, std.core.Int.abs(7)).
+
+@test
+pub abs_flips_negative_integer(): Bool ->
+    std.test.Test.assert_equal(7, std.core.Int.abs(-7)).
+
+@test
+pub compare_orders_smaller_integer_first(): Bool ->
+    std.test.Test.assert_equal(Lt, std.core.Int.compare(1, 2)).
+
+@test
+pub compare_orders_larger_integer_after(): Bool ->
+    std.test.Test.assert_equal(Gt, std.core.Int.compare(2, 1)).
+
+@test
+pub compare_accepts_equal_integers(): Bool ->
+    std.test.Test.assert_equal(Eq, std.core.Int.compare(-7, -7)).
+
+@test
+pub ordering_trait_orders_smaller_integer_first(): Bool ->
+    std.test.Test.assert_equal(Lt, ordering_compare(1, 2)).
+
+@test
+pub ordering_trait_orders_larger_integer_after(): Bool ->
+    std.test.Test.assert_equal(Gt, ordering_compare(2, 1)).
+
+@test
+pub to_string_renders_positive_integer(): Bool ->
+    std.test.Test.assert_equal("42", std.core.Int.to_string(42)).
+
+@test
+pub to_string_renders_negative_integer(): Bool ->
+    std.test.Test.assert_equal("-7", std.core.Int.to_string(-7)).
+
+@test
+pub from_string_parses_positive_integer(): Bool ->
+    std.test.Test.assert_equal(
+        42,
+        std.core.Option.with_default(std.core.Int.from_string("42"), 0)
+    ).
+
+@test
+pub from_string_parses_negative_integer(): Bool ->
+    std.test.Test.assert_equal(
+        -7,
+        std.core.Option.with_default(std.core.Int.from_string("-7"), 0)
+    ).
+
+@test
+pub from_string_rejects_unknown_text(): Bool ->
+    std.test.Test.assert(std.core.Option.is_none(std.core.Int.from_string("nope"))).

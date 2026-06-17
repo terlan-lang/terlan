@@ -1,0 +1,37 @@
+/**
+ * BEAM process contract.
+ *
+ * `std.beam.Process` models a typed process handle for BEAM-targeted runtime
+ * modules. It exists so supervision and native bridges can be expressed as
+ * ordinary annotated types and traits instead of source-level actor syntax.
+ */
+
+module std.beam.Process.
+
+import std.beam.Message.{Message}.
+import std.core.Unit.{Unit}.
+
+/**
+ * Process represents a typed BEAM process handle.
+ *
+ * Input: type parameter `T` describing accepted message payloads.
+ * Output: an opaque BEAM process handle.
+ * Transformation: keeps process identity target-owned while preserving a typed
+ * source contract for message routing and supervision.
+ */
+@target.erlang {process_mailbox: true}
+pub opaque type Process[T].
+
+/**
+ * ProcessLike defines the minimum typed process operations.
+ *
+ * Input: process handle type `P` and message payload type `T`.
+ * Output: a trait requiring `send` and `stop` operations.
+ * Transformation: models BEAM message delivery as receiver-style API surface
+ * instead of Terlan-specific process operators.
+ */
+@target.erlang {process_mailbox: true}
+pub trait ProcessLike[P, T] {
+    send(process: P, message: Message[T]): Unit.
+    stop(process: P): Unit.
+}.

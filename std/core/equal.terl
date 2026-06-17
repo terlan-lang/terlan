@@ -1,0 +1,111 @@
+/**
+ * Core equality trait.
+ *
+ * `std.core.Equal` defines explicit, type-directed equality for values whose
+ * equality can be represented safely and portably.
+ */
+
+module std.core.Equal.
+
+import type std.core.Ordering.Comparison.
+import type std.core.Unit.
+
+/**
+ * Describes values that can be compared for equality.
+ *
+ * Input: two values of the same type `T`.
+ * Output: `true` when the values are equal; otherwise `false`.
+ * Transformation: compares two values without changing either input. Primitive
+ * implementations delegate to Terlan's exact equality operator, while
+ * user-defined implementations may choose a domain-specific equality contract.
+ *
+ * ```terlan
+ * module equal_trait_example.
+ *
+ * pub trait Equal[T] {
+ *    equal(left: T, right: T): Bool.
+ * }.
+ * ```
+ */
+pub trait Equal[T] {
+    equal(left: T, right: T): Bool.
+}.
+
+/**
+ * Implements equality for `Bool`.
+ *
+ * Input: two `Bool` values.
+ * Output: `true` when both inputs have the same truth value.
+ * Transformation: delegates to exact Terlan equality for the closed boolean
+ * domain.
+ */
+pub impl Equal[Bool] for Bool {
+    equal(left: Bool, right: Bool): Bool ->
+        left == right.
+}.
+
+/**
+ * Implements equality for `Int`.
+ *
+ * Input: two `Int` values.
+ * Output: `true` when both inputs represent the same integer.
+ * Transformation: delegates to exact Terlan equality for the primitive integer
+ * domain.
+ */
+pub impl Equal[Int] for Int {
+    equal(left: Int, right: Int): Bool ->
+        left == right.
+}.
+
+/**
+ * Implements equality for `Float`.
+ *
+ * Input: two finite `Float` values.
+ * Output: `true` when both inputs represent the same finite floating-point
+ * value.
+ * Transformation: delegates to exact Terlan equality for the finite float
+ * domain selected by the source contract.
+ */
+pub impl Equal[Float] for Float {
+    equal(left: Float, right: Float): Bool ->
+        left == right.
+}.
+
+/**
+ * Implements equality for `String`.
+ *
+ * Input: two UTF-8 `String` values.
+ * Output: `true` when both inputs contain the same text.
+ * Transformation: delegates to exact Terlan equality for the primitive string
+ * domain.
+ */
+pub impl Equal[String] for String {
+    equal(left: String, right: String): Bool ->
+        left == right.
+}.
+
+/**
+ * Implements equality for `Unit`.
+ *
+ * Input: two `Unit` values.
+ * Output: always `true`.
+ * Transformation: maps the singleton `Unit` domain to equality without
+ * inspecting either value.
+ */
+pub impl Equal[Unit] for Unit {
+    equal(_left: Unit, _right: Unit): Bool ->
+        true.
+}.
+
+/**
+ * Implements equality for ordering comparison values.
+ *
+ * Input: two `Comparison` values.
+ * Output: `true` when both inputs are the same comparison value.
+ * Transformation: delegates to exact Terlan equality for the closed comparison
+ * domain.
+ */
+pub impl Equal[Comparison] for Comparison {
+    equal(left: Comparison, right: Comparison): Bool ->
+        left == right.
+}.

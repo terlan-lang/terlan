@@ -1,0 +1,5 @@
+module tests.test_model.QualifiedAssertionReturnTest.
+
+@test
+pub qualified_assertion_return(): std.test.Test.Assertion ->
+    std.test.Test.assert(true).

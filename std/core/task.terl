@@ -1,0 +1,124 @@
+/**
+ * Core typed asynchronous work contract.
+ *
+ * `std.core.Task` represents work that will eventually produce a value or a
+ * typed recoverable error. It is the portable source-level async surface for
+ * Terlan; target profiles decide whether the contract lowers to BEAM workers,
+ * Rust/Tokio futures, JavaScript promises, native worker commands, or an
+ * unsupported-target diagnostic.
+ */
+
+module std.core.Task.
+
+import type std.core.Error.
+import type std.core.Result.
+
+/**
+ * Task represents asynchronous work that produces `T`.
+ *
+ * Input: type parameter `T`.
+ * Output: an opaque task handle whose runtime representation is target-owned.
+ * Transformation: hides BEAM, Rust, JavaScript, or native worker mechanics
+ * behind a typed value that can be composed without source-level `async`,
+ * `await`, `go`, send, or receive syntax.
+ */
+pub opaque type Task[T].
+
+/**
+ * Creates an already-successful task.
+ *
+ * Input: one value of type `T`.
+ * Output: a `Task[T]` that is complete with that value.
+ * Transformation: wraps an immediate value in the selected target's completed
+ * task representation without starting runtime work.
+ */
+@compiler.intrinsic
+pub done[T](value: T): Task[T] ->
+    native.
+
+/**
+ * Creates an already-failed task.
+ *
+ * Input: one portable `Error`.
+ * Output: a failed `Task[T]`.
+ * Transformation: wraps a typed recoverable error in the selected target's
+ * failed task representation without throwing a target exception.
+ */
+@compiler.intrinsic
+pub failed[T](error: Error): Task[T] ->
+    native.
+
+/**
+ * Creates a lazy task from work that has not started.
+ *
+ * Input: one zero-argument function producing `T`.
+ * Output: a `Task[T]` that records the work without starting it immediately.
+ * Transformation: preserves the distinction between a lazy task and an
+ * already-running task so target profiles can enforce their scheduling model.
+ */
+@compiler.intrinsic
+pub deferred[T](work: () -> T): Task[T] ->
+    native.
+
+/**
+ * Starts runtime work immediately.
+ *
+ * Input: one zero-argument function producing `T`.
+ * Output: a `Task[T]` representing the started work.
+ * Transformation: delegates scheduling to the selected target profile. This is
+ * intentionally a named effectful function, not constructor syntax, so source
+ * code makes the start boundary explicit.
+ */
+@compiler.intrinsic
+pub spawn[T](work: () -> T): Task[T] ->
+    native.
+
+/**
+ * Maps a successful task value.
+ *
+ * Input: one task and one mapper from `T` to `U`.
+ * Output: a `Task[U]`.
+ * Transformation: composes the mapper with the task's success channel while
+ * preserving the original error channel.
+ */
+@compiler.intrinsic
+pub (task: Task[T]) map[U](mapper: (T) -> U): Task[U] ->
+    native.
+
+/**
+ * Chains a task into another task-producing computation.
+ *
+ * Input: one task and one continuation from `T` to `Task[U]`.
+ * Output: a flattened `Task[U]`.
+ * Transformation: provides monadic bind for task sequencing without forcing
+ * nested callback chains into the user-facing source.
+ */
+@compiler.intrinsic
+pub (task: Task[T]) then[U](next: (T) -> Task[U]): Task[U] ->
+    native.
+
+/**
+ * Recovers a failed task into a success value.
+ *
+ * Input: one task and one handler from `Error` to `T`.
+ * Output: a `Task[T]` that succeeds with the handler value when the original
+ * task fails.
+ * Transformation: maps the error channel into the success channel without
+ * exposing target-specific exceptions.
+ */
+@compiler.intrinsic
+pub (task: Task[T]) recover(handler: (Error) -> T): Task[T] ->
+    native.
+
+/**
+ * Joins a task into a typed result.
+ *
+ * Input: one task.
+ * Output: `Result[T, Error]`.
+ * Transformation: waits or observes according to the active target profile and
+ * returns a typed success-or-error value. Unsupported targets reject this
+ * operation before backend emission.
+ */
+@compiler.intrinsic
+pub (task: Task[T]) result(): Result[T, Error] ->
+    native.

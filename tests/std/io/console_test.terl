@@ -1,0 +1,7 @@
+module std.io.ConsoleTest.
+
+import std.core.Unit.{Unit}.
+
+@test
+pub println_returns_unit(): Bool ->
+    std.test.Test.assert_equal(Unit, std.io.Console.println("hello")).

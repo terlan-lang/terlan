@@ -1,0 +1,81 @@
+//! BEAM GenServer contract.
+//! 
+//! `std.beam.GenServer` describes the callback shape for BEAM services using
+//! Terlan traits. Default implementations and concrete runtime lowering remain
+//! target-owned; this module only exposes the typed source contract.
+
+module std.beam.GenServer.
+
+/// CallReply contains a new state and reply value.
+/// 
+/// Input: state type `State` and reply type `Reply`.
+/// Output: a structural callback result.
+/// Transformation: represents a synchronous GenServer reply without leaking the
+/// backend tuple shape used by the BEAM implementation.
+
+pub type CallReply[State, Reply] =
+    {state : State, reply : Reply}.
+
+/// ServerRef represents a running GenServer process.
+/// 
+/// Input: state, request, reply, and event type parameters.
+/// Output: an opaque BEAM-owned process handle.
+/// Transformation: hides process identity, mailbox mechanics, callback dispatch,
+/// and supervision details behind a typed receiver-method surface.
+
+pub opaque type ServerRef[State, Request, Reply, Event].
+
+/// Performs a synchronous GenServer request.
+/// 
+/// Input: one `ServerRef[...]` receiver and one request value.
+/// Output: `Result[Reply, Error]`.
+/// Transformation: sends a typed request to the server process and returns only
+/// the callback reply value, keeping state transition messages backend-owned.
+
+pub (server_ref: ServerRef[State, Request, Reply, Event]) call(request: Request): Result[Reply, Error].
+
+/// Queues an asynchronous GenServer event.
+/// 
+/// Input: one mutable `ServerRef[...]` receiver and one event value.
+/// Output: `Unit`.
+/// Transformation: records an effectful event request while hiding BEAM cast
+/// message shape behind the target runtime.
+
+pub (mut server_ref: ServerRef[State, Request, Reply, Event]) cast(event: Event): Unit.
+
+/// Starts a GenServer from an implementation value.
+/// 
+/// Input: one value whose type implements `GenServer[...]`.
+/// Output: `Result[ServerRef[State, Request, Reply, Event], Error]`.
+/// Transformation: asks the BEAM runtime to initialize typed server state and
+/// start a process-backed callback loop. The concrete callback dispatch remains
+/// target-owned.
+
+pub start(server: Server): Result[ServerRef[State, Request, Reply, Event], Error].
+
+/// Stops a running GenServer.
+/// 
+/// Input: one mutable `ServerRef[...]` receiver.
+/// Output: `Unit`.
+/// Transformation: asks the BEAM runtime to terminate the server process and
+/// release the target-owned handle.
+
+pub (mut server_ref: ServerRef[State, Request, Reply, Event]) stop(): Unit.
+
+/// GenServer defines the typed service callback surface.
+/// 
+/// Input: implementation type `Server`, state type `State`, request type
+/// `Request`, reply type `Reply`, and event type `Event`.
+/// Output: a trait requiring initialization, synchronous request handling, and
+/// asynchronous event handling. Termination has a default no-op implementation.
+/// Transformation: models BEAM service behavior as ordinary trait methods so
+/// adapters can validate implementations without special grammar.
+
+pub trait GenServer[Server, State, Request, Reply, Event] {
+    handle_call(server: Server, state: State, request: Request): Result[CallReply[State, Reply], Error].
+    handle_cast(server: Server, state: State, event: Event): Result[State, Error].
+    init(server: Server): Result[State, Error].
+    terminate(server: Server, state: State): Unit ->
+        terlan_interface_default.
+}.
+

@@ -1,64 +1,66 @@
 //! Portable test assertions.
-//!
+//! 
 //! `std.test.Test` provides Bool-returning assertions used by `terlc test` target
-//! runners.
+//! runners and generated project tests.
 
 module std.test.Test.
 
 /// Assertion is the portable result value returned by test assertions.
-///
-/// A passing assertion returns `true`; a failing assertion returns `false`.
-///
-/// ```terlan
-/// module test_assertion_type_example.
-///
-/// pub type Assertion = Bool.
-///
-/// pub pass(): Assertion ->
-///    true.
-/// ```
+/// 
+/// Input: no runtime input; this is a public type alias.
+/// Output: `Bool`, where `true` means pass and `false` means failure.
+/// Transformation: gives test helpers a stable stdlib result name without
+/// changing the runtime representation.
 
 pub type Assertion =
     Bool.
 
+/// Returns the condition as an assertion result.
+/// 
+/// Input: `condition`, the Bool expression being checked.
+/// Output: `true` when `condition` is true, otherwise `false`.
+/// Transformation: returns `condition` unchanged.
+
+pub assert(condition: Bool): Assertion.
+
 /// Returns whether the two values are exactly equal.
-///
-/// ```terlan
-/// module test_assert_equal_example.
-///
-/// pub assert_equal(left: A, right: A): Bool ->
-///    left == right.
-///
-/// pub demo(): Bool ->
-///    assert_equal(42, 42).
-/// ```
+/// 
+/// Input: `left` and `right`, two values of the same type.
+/// Output: `true` when `left == right`, otherwise `false`.
+/// Transformation: applies Terlan equality to the two inputs.
 
 pub assert_equal(left: A, right: A): Assertion.
 
-/// Returns the condition as an assertion result.
-///
-/// `assert_true` is the explicit truth assertion name used by test runners and
-/// generated diagnostics.
-///
-/// ```terlan
-/// module test_assert_true_example.
-///
-/// pub assert_true(condition: Bool): Bool ->
-///    condition.
-///
-/// pub demo(): Bool ->
-///    assert_true(true).
-/// ```
+/// Returns whether the condition is false.
+/// 
+/// Input: `condition`, the Bool expression expected to be false.
+/// Output: `true` when `condition` is false, otherwise `false`.
+/// Transformation: compares `condition` against `false`.
+
+pub assert_false(condition: Bool): Assertion.
+
+/// Returns whether the two values are not exactly equal.
+/// 
+/// Input: `left` and `right`, two values of the same type.
+/// Output: `true` when `left != right`, otherwise `false`.
+/// Transformation: applies Terlan inequality to the two inputs.
+
+pub assert_not_equal(left: A, right: A): Assertion.
+
+/// Returns the condition as an explicit truth assertion result.
+/// 
+/// Input: `condition`, the Bool expression expected to be true.
+/// Output: `true` when `condition` is true, otherwise `false`.
+/// Transformation: returns `condition` unchanged under the clearer
+/// `assert_true` name.
 
 pub assert_true(condition: Bool): Assertion.
 
 /// Returns a failing assertion result.
-///
-/// ```terlan
-/// module test_fail_example.
-///
-/// pub fail(): Bool ->
-///    false.
-/// ```
+/// 
+/// Input: no arguments.
+/// Output: always `false`.
+/// Transformation: returns the portable failing assertion value directly.
 
 pub fail(): Assertion.
+

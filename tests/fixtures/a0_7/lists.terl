@@ -1,0 +1,7 @@
+module a0_7_lists.
+
+pub values(): Dynamic ->
+    [1, 2, 3].
+
+pub first(value: Dynamic): Int ->
+    case value { [n, _] -> n; _ -> 0 }.

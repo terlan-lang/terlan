@@ -1,4 +1,5 @@
 pub(crate) mod artifacts;
+pub(crate) mod bind;
 pub(crate) mod build;
 pub(crate) mod check;
 pub(crate) mod doc;

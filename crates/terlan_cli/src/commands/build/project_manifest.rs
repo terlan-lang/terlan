@@ -37,6 +37,7 @@ pub(crate) struct ProjectManifest {
 pub(crate) struct ProjectPackage {
     pub(crate) name: String,
     pub(crate) version: String,
+    pub(crate) namespace: Option<String>,
 }
 
 /// Parsed executable artifact kind from `[build]`.
@@ -53,6 +54,7 @@ pub(crate) struct ProjectPackage {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ProjectArtifactKind {
     BeamThin,
+    Library,
 }
 
 impl ProjectArtifactKind {
@@ -70,6 +72,7 @@ impl ProjectArtifactKind {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             ProjectArtifactKind::BeamThin => "beam-thin",
+            ProjectArtifactKind::Library => "library",
         }
     }
 }
@@ -177,10 +180,39 @@ pub(crate) enum ProjectTarget {
 ///   without performing dependency resolution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ProjectDependencySource {
-    Path { path: String },
-    Hex { package: String, version: String },
-    Npm { package: String, version: String },
-    Cargo { package: String, version: String },
+    Path {
+        path: String,
+    },
+    Hex {
+        package: String,
+        version: String,
+    },
+    Npm {
+        package: String,
+        version: String,
+    },
+    Cargo {
+        package: String,
+        version: String,
+        features: Vec<String>,
+    },
+}
+
+/// Parsed dependency inline-table field value.
+///
+/// Inputs:
+/// - Produced from one manifest inline dependency table.
+///
+/// Output:
+/// - A string field or string-array field admitted by the manifest subset.
+///
+/// Transformation:
+/// - Keeps dependency field parsing typed enough for Rust feature lists without
+///   expanding the full TOML grammar into the hand-written manifest reader.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ManifestInlineValue {
+    String(String),
+    StringArray(Vec<String>),
 }
 
 /// Reads and parses a Terlan project manifest file.
@@ -220,18 +252,22 @@ pub(crate) fn read_project_manifest(path: &Path) -> Result<ProjectManifest, Stri
 /// - Applies a deliberately small TOML-like parser for the reviewed package
 ///   contract:
 ///   - `[package] name = "demo"` and `version = "0.0.1"`
+///   - optional `[package] namespace = "std.native.polars"`
 ///   - optional `[build] source_roots = ["src", "lib"]`
 ///   - optional `[build] artifact = "beam-thin"`
 ///   - `[dependencies] name = { path = "../name" }`
 ///   - `[target.erlang.dependencies] cowboy = { hex = "cowboy", version = "2.12.0" }`
 ///   - `[target.js.dependencies] zod = { npm = "zod", version = "3.25.0" }`
 ///   - `[target.rust.dependencies] serde = { cargo = "serde", version = "1.0.0" }`
+///   - optional Rust feature flags:
+///     `{ cargo = "polars", version = "0.54.4", features = ["lazy", "csv"] }`
 /// - Defaults source roots to `["src"]` and artifact to `beam-thin` when
 ///   `[build]` omits them.
 pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<ProjectManifest, String> {
     let mut section = ManifestSection::Root;
     let mut package_name = None;
     let mut package_version = None;
+    let mut package_namespace = None;
     let mut source_roots = None;
     let mut artifact = None;
     let mut dependencies = Vec::new();
@@ -264,6 +300,9 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
                 }
                 "version" => {
                     package_version = Some(parse_string(value, path, line_no)?);
+                }
+                "namespace" => {
+                    package_namespace = Some(parse_string(value, path, line_no)?);
                 }
                 _ => {
                     return Err(format!(
@@ -358,6 +397,9 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         ));
     }
     validate_package_version(&version, path)?;
+    if let Some(namespace) = package_namespace.as_deref() {
+        validate_package_namespace(namespace, path)?;
+    }
 
     let source_roots = source_roots.unwrap_or_else(|| vec!["src".to_string()]);
     if source_roots.iter().any(|root| root.trim().is_empty()) {
@@ -369,7 +411,11 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
     let artifact = artifact.unwrap_or(ProjectArtifactKind::BeamThin);
 
     Ok(ProjectManifest {
-        package: ProjectPackage { name, version },
+        package: ProjectPackage {
+            name,
+            version,
+            namespace: package_namespace,
+        },
         source_roots,
         artifact,
         dependencies,
@@ -567,8 +613,8 @@ fn split_key_value<'a>(
 /// - Supported project artifact kind.
 ///
 /// Transformation:
-/// - Parses the value as a manifest string and narrows it to the executable
-///   artifact kinds admitted by A0.42.1.
+/// - Parses the value as a manifest string and narrows it to the artifact kinds
+///   admitted by the project package contract.
 fn parse_artifact_kind(
     value: &str,
     path: &Path,
@@ -577,8 +623,9 @@ fn parse_artifact_kind(
     let parsed = parse_string(value, path, line_no)?;
     match parsed.as_str() {
         "beam-thin" => Ok(ProjectArtifactKind::BeamThin),
+        "library" => Ok(ProjectArtifactKind::Library),
         other => Err(format!(
-            "{}:{}: unsupported [build] artifact `{}`; supported artifacts: beam-thin",
+            "{}:{}: unsupported [build] artifact `{}`; supported artifacts: beam-thin, library",
             path.display(),
             line_no,
             other
@@ -599,7 +646,7 @@ fn parse_artifact_kind(
 /// - Parsed dependency metadata.
 ///
 /// Transformation:
-/// - Parses one inline string table and narrows it to the dependency source
+/// - Parses one inline manifest table and narrows it to the dependency source
 ///   kind admitted for the current scope without fetching any dependency.
 fn parse_dependency_entry(
     scope: ProjectDependencyScope,
@@ -609,7 +656,7 @@ fn parse_dependency_entry(
     line_no: usize,
 ) -> Result<ProjectDependency, String> {
     validate_dependency_alias(alias, path, line_no)?;
-    let fields = parse_inline_string_table(value, path, line_no)?;
+    let fields = parse_inline_table(value, path, line_no)?;
     let source = parse_dependency_source(scope, &fields, path, line_no)?;
     Ok(ProjectDependency {
         alias: alias.to_string(),
@@ -622,7 +669,7 @@ fn parse_dependency_entry(
 ///
 /// Inputs:
 /// - `scope`: dependency scope from the current manifest section.
-/// - `fields`: parsed inline-table string fields.
+/// - `fields`: parsed inline-table fields.
 /// - `path`: manifest path used in diagnostics.
 /// - `line_no`: 1-based line number used in diagnostics.
 ///
@@ -634,10 +681,11 @@ fn parse_dependency_entry(
 ///   - `[dependencies]` accepts only `{ path = "..." }`.
 ///   - `[target.erlang.dependencies]` accepts `{ hex = "...", version = "..." }`.
 ///   - `[target.js.dependencies]` accepts `{ npm = "...", version = "..." }`.
-///   - `[target.rust.dependencies]` accepts `{ cargo = "...", version = "..." }`.
+///   - `[target.rust.dependencies]` accepts `{ cargo = "...", version = "...",
+///     features = ["..."] }`, with `features` optional.
 fn parse_dependency_source(
     scope: ProjectDependencyScope,
-    fields: &BTreeMap<String, String>,
+    fields: &BTreeMap<String, ManifestInlineValue>,
     path: &Path,
     line_no: usize,
 ) -> Result<ProjectDependencySource, String> {
@@ -652,8 +700,7 @@ fn parse_dependency_source(
                 .map(|(package, version)| ProjectDependencySource::Npm { package, version })
         }
         ProjectDependencyScope::Target(ProjectTarget::Rust) => {
-            parse_registry_dependency_source("cargo", fields, path, line_no)
-                .map(|(package, version)| ProjectDependencySource::Cargo { package, version })
+            parse_cargo_dependency_source(fields, path, line_no)
         }
     }
 }
@@ -672,7 +719,7 @@ fn parse_dependency_source(
 /// - Requires exactly one `path` field and rejects version/source registry
 ///   metadata in portable local dependency sections.
 fn parse_path_dependency_source(
-    fields: &BTreeMap<String, String>,
+    fields: &BTreeMap<String, ManifestInlineValue>,
     path: &Path,
     line_no: usize,
 ) -> Result<ProjectDependencySource, String> {
@@ -683,10 +730,7 @@ fn parse_path_dependency_source(
             line_no
         ));
     }
-    let dependency_path = fields
-        .get("path")
-        .expect("contains_key checked before get")
-        .clone();
+    let dependency_path = expect_inline_string_field(fields, "path", path, line_no)?;
     if dependency_path.trim().is_empty() {
         return Err(format!(
             "{}:{}: dependency path cannot be empty",
@@ -717,7 +761,7 @@ fn parse_path_dependency_source(
 ///   target-package-manager options it cannot validate yet.
 fn parse_registry_dependency_source(
     source_key: &str,
-    fields: &BTreeMap<String, String>,
+    fields: &BTreeMap<String, ManifestInlineValue>,
     path: &Path,
     line_no: usize,
 ) -> Result<(String, String), String> {
@@ -729,14 +773,8 @@ fn parse_registry_dependency_source(
             source_key
         ));
     }
-    let package = fields
-        .get(source_key)
-        .expect("contains_key checked before get")
-        .clone();
-    let version = fields
-        .get("version")
-        .expect("contains_key checked before get")
-        .clone();
+    let package = expect_inline_string_field(fields, source_key, path, line_no)?;
+    let version = expect_inline_string_field(fields, "version", path, line_no)?;
     if package.trim().is_empty() {
         return Err(format!(
             "{}:{}: target dependency package name cannot be empty",
@@ -754,7 +792,138 @@ fn parse_registry_dependency_source(
     Ok((package, version))
 }
 
-/// Parses a one-line manifest inline table with string values.
+/// Parses Rust Cargo dependency source fields.
+///
+/// Inputs:
+/// - `fields`: parsed dependency inline-table fields.
+/// - `path`: manifest path used in diagnostics.
+/// - `line_no`: 1-based line number used in diagnostics.
+///
+/// Output:
+/// - Cargo package name, version, and optional feature list.
+///
+/// Transformation:
+/// - Accepts the same package/version fields as other registry dependencies,
+///   plus an optional `features = ["..."]` list needed by native Rust package
+///   probes such as Polars.
+fn parse_cargo_dependency_source(
+    fields: &BTreeMap<String, ManifestInlineValue>,
+    path: &Path,
+    line_no: usize,
+) -> Result<ProjectDependencySource, String> {
+    let has_required = fields.contains_key("cargo") && fields.contains_key("version");
+    let has_only_allowed = fields
+        .keys()
+        .all(|key| matches!(key.as_str(), "cargo" | "version" | "features"));
+    if !has_required || !has_only_allowed {
+        return Err(format!(
+            "{}:{}: target rust dependency entries must use {{ cargo = \"...\", version = \"...\" }} with optional features = [\"...\"]",
+            path.display(),
+            line_no
+        ));
+    }
+    let package = expect_inline_string_field(fields, "cargo", path, line_no)?;
+    let version = expect_inline_string_field(fields, "version", path, line_no)?;
+    let features = if fields.contains_key("features") {
+        expect_inline_string_array_field(fields, "features", path, line_no)?
+    } else {
+        Vec::new()
+    };
+    if package.trim().is_empty() {
+        return Err(format!(
+            "{}:{}: target dependency package name cannot be empty",
+            path.display(),
+            line_no
+        ));
+    }
+    if version.trim().is_empty() {
+        return Err(format!(
+            "{}:{}: target dependency version cannot be empty",
+            path.display(),
+            line_no
+        ));
+    }
+    Ok(ProjectDependencySource::Cargo {
+        package,
+        version,
+        features,
+    })
+}
+
+/// Returns a dependency inline-table string field.
+///
+/// Inputs:
+/// - `fields`: parsed inline-table fields.
+/// - `key`: field name expected to contain a string.
+/// - `path`: manifest path used in diagnostics.
+/// - `line_no`: 1-based line number used in diagnostics.
+///
+/// Output:
+/// - Field string value.
+///
+/// Transformation:
+/// - Rejects string-array values where the dependency contract requires a
+///   scalar string.
+fn expect_inline_string_field(
+    fields: &BTreeMap<String, ManifestInlineValue>,
+    key: &str,
+    path: &Path,
+    line_no: usize,
+) -> Result<String, String> {
+    match fields.get(key) {
+        Some(ManifestInlineValue::String(value)) => Ok(value.clone()),
+        Some(ManifestInlineValue::StringArray(_)) => Err(format!(
+            "{}:{}: project dependency field `{}` must be a string",
+            path.display(),
+            line_no,
+            key
+        )),
+        None => Err(format!(
+            "{}:{}: project dependency field `{}` is missing",
+            path.display(),
+            line_no,
+            key
+        )),
+    }
+}
+
+/// Returns a dependency inline-table string-array field.
+///
+/// Inputs:
+/// - `fields`: parsed inline-table fields.
+/// - `key`: field name expected to contain an array of strings.
+/// - `path`: manifest path used in diagnostics.
+/// - `line_no`: 1-based line number used in diagnostics.
+///
+/// Output:
+/// - Field string-array value.
+///
+/// Transformation:
+/// - Rejects scalar values where the dependency contract requires a list.
+fn expect_inline_string_array_field(
+    fields: &BTreeMap<String, ManifestInlineValue>,
+    key: &str,
+    path: &Path,
+    line_no: usize,
+) -> Result<Vec<String>, String> {
+    match fields.get(key) {
+        Some(ManifestInlineValue::StringArray(value)) => Ok(value.clone()),
+        Some(ManifestInlineValue::String(_)) => Err(format!(
+            "{}:{}: project dependency field `{}` must be an array of strings",
+            path.display(),
+            line_no,
+            key
+        )),
+        None => Err(format!(
+            "{}:{}: project dependency field `{}` is missing",
+            path.display(),
+            line_no,
+            key
+        )),
+    }
+}
+
+/// Parses a one-line manifest inline table.
 ///
 /// Inputs:
 /// - `value`: trimmed inline-table source text.
@@ -762,16 +931,16 @@ fn parse_registry_dependency_source(
 /// - `line_no`: 1-based line number used in diagnostics.
 ///
 /// Output:
-/// - Ordered map of string fields.
+/// - Ordered map of typed fields.
 ///
 /// Transformation:
-/// - Parses the reviewed `{ key = "value", ... }` subset and rejects duplicate
-///   keys, empty fields, and non-string values.
-fn parse_inline_string_table(
+/// - Parses the reviewed `{ key = "value", features = ["..."] }` subset and
+///   rejects duplicate keys, empty fields, and unsupported values.
+fn parse_inline_table(
     value: &str,
     path: &Path,
     line_no: usize,
-) -> Result<BTreeMap<String, String>, String> {
+) -> Result<BTreeMap<String, ManifestInlineValue>, String> {
     let inner = value
         .strip_prefix('{')
         .and_then(|text| text.strip_suffix('}'))
@@ -793,7 +962,10 @@ fn parse_inline_string_table(
                 key
             ));
         }
-        fields.insert(key.to_string(), parse_string(value, path, line_no)?);
+        fields.insert(
+            key.to_string(),
+            parse_inline_value(value.trim(), path, line_no)?,
+        );
     }
     if fields.is_empty() {
         return Err(format!(
@@ -803,6 +975,31 @@ fn parse_inline_string_table(
         ));
     }
     Ok(fields)
+}
+
+/// Parses one inline-table value.
+///
+/// Inputs:
+/// - `value`: trimmed field value source.
+/// - `path`: manifest path used in diagnostics.
+/// - `line_no`: 1-based line number used in diagnostics.
+///
+/// Output:
+/// - String or string-array inline value.
+///
+/// Transformation:
+/// - Keeps the dependency table grammar intentionally small while admitting
+///   Rust feature lists for target-native package metadata.
+fn parse_inline_value(
+    value: &str,
+    path: &Path,
+    line_no: usize,
+) -> Result<ManifestInlineValue, String> {
+    if value.starts_with('[') {
+        parse_string_array(value, path, line_no).map(ManifestInlineValue::StringArray)
+    } else {
+        parse_string(value, path, line_no).map(ManifestInlineValue::String)
+    }
 }
 
 /// Validates a dependency alias key.
@@ -878,6 +1075,78 @@ fn validate_package_name(name: &str, path: &Path) -> Result<(), String> {
         return Err(format!(
             "{}: project manifest [package] name may contain only lowercase ASCII letters, digits, `_`, or `-`",
             path.display()
+        ));
+    }
+    Ok(())
+}
+
+/// Validates an optional package namespace.
+///
+/// Inputs:
+/// - `namespace`: parsed `[package] namespace` value.
+/// - `path`: manifest path used in diagnostics.
+///
+/// Output:
+/// - `Ok(())` when the namespace is a dot-separated lowercase module prefix.
+/// - `Err(String)` when the namespace cannot be mapped onto source layout.
+///
+/// Transformation:
+/// - Keeps first-party package namespace grants explicit without weakening
+///   package names. Every namespace segment must be a source-path-compatible
+///   lower-case module segment.
+fn validate_package_namespace(namespace: &str, path: &Path) -> Result<(), String> {
+    if namespace.trim().is_empty() {
+        return Err(format!(
+            "{}: project manifest [package] namespace cannot be empty",
+            path.display()
+        ));
+    }
+    for segment in namespace.split('.') {
+        validate_package_namespace_segment(segment, namespace, path)?;
+    }
+    Ok(())
+}
+
+/// Validates one package namespace segment.
+///
+/// Inputs:
+/// - `segment`: one dot-separated namespace segment.
+/// - `namespace`: full namespace used in diagnostics.
+/// - `path`: manifest path used in diagnostics.
+///
+/// Output:
+/// - `Ok(())` when the segment is accepted.
+/// - `Err(String)` when the segment is empty or contains unsupported
+///   characters.
+///
+/// Transformation:
+/// - Applies the same lowercase source-path character policy as package roots,
+///   but disallows `-` because namespace segments are Terlan module segments.
+fn validate_package_namespace_segment(
+    segment: &str,
+    namespace: &str,
+    path: &Path,
+) -> Result<(), String> {
+    let mut chars = segment.chars();
+    let Some(first) = chars.next() else {
+        return Err(format!(
+            "{}: project manifest [package] namespace `{}` contains an empty segment",
+            path.display(),
+            namespace
+        ));
+    };
+    if !first.is_ascii_lowercase() {
+        return Err(format!(
+            "{}: project manifest [package] namespace `{}` segments must start with a lowercase ASCII letter",
+            path.display(),
+            namespace
+        ));
+    }
+    if chars.any(|ch| !(ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_')) {
+        return Err(format!(
+            "{}: project manifest [package] namespace `{}` segments may contain only lowercase ASCII letters, digits, or `_`",
+            path.display(),
+            namespace
         ));
     }
     Ok(())
@@ -1005,7 +1274,8 @@ fn parse_string_array(value: &str, path: &Path, line_no: usize) -> Result<Vec<St
 /// - Slices for each array entry.
 ///
 /// Transformation:
-/// - Splits on commas outside strings and rejects trailing empty entries.
+/// - Splits on commas outside strings and nested array brackets, then rejects
+///   trailing empty entries.
 fn split_array_items<'a>(
     inner: &'a str,
     path: &Path,
@@ -1015,6 +1285,7 @@ fn split_array_items<'a>(
     let mut start = 0;
     let mut in_string = false;
     let mut escaped = false;
+    let mut bracket_depth = 0usize;
     for (index, ch) in inner.char_indices() {
         if escaped {
             escaped = false;
@@ -1023,7 +1294,17 @@ fn split_array_items<'a>(
         match ch {
             '\\' if in_string => escaped = true,
             '"' => in_string = !in_string,
-            ',' if !in_string => {
+            '[' if !in_string => bracket_depth += 1,
+            ']' if !in_string => {
+                bracket_depth = bracket_depth.checked_sub(1).ok_or_else(|| {
+                    format!(
+                        "{}:{}: project manifest string array has an unmatched closing bracket",
+                        path.display(),
+                        line_no
+                    )
+                })?;
+            }
+            ',' if !in_string && bracket_depth == 0 => {
                 let item = inner[start..index].trim();
                 if item.is_empty() {
                     return Err(format!(
@@ -1041,6 +1322,13 @@ fn split_array_items<'a>(
     if in_string {
         return Err(format!(
             "{}:{}: project manifest string array has an unterminated string",
+            path.display(),
+            line_no
+        ));
+    }
+    if bracket_depth != 0 {
+        return Err(format!(
+            "{}:{}: project manifest string array has an unclosed nested array",
             path.display(),
             line_no
         ));
@@ -1128,8 +1416,35 @@ mod tests {
 
         assert_eq!(parsed.package.name, "demo");
         assert_eq!(parsed.package.version, "0.0.1");
+        assert_eq!(parsed.package.namespace, None);
         assert_eq!(parsed.source_roots, vec!["src"]);
         assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
+    }
+
+    #[test]
+    fn project_manifest_parses_package_namespace() {
+        let parsed = parse_project_manifest(
+            "[package]\nname = \"std-native-polars\"\nversion = \"0.0.3\"\nnamespace = \"std.native.polars\"\n",
+            &manifest_path(),
+        )
+        .expect("manifest should parse package namespace");
+
+        assert_eq!(parsed.package.name, "std-native-polars");
+        assert_eq!(
+            parsed.package.namespace.as_deref(),
+            Some("std.native.polars")
+        );
+    }
+
+    #[test]
+    fn project_manifest_rejects_invalid_package_namespace() {
+        let err = parse_project_manifest(
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\nnamespace = \"std.Native\"\n",
+            &manifest_path(),
+        )
+        .expect_err("manifest should reject invalid package namespace");
+
+        assert!(err.contains("namespace `std.Native` segments must start"));
     }
 
     #[test]
@@ -1144,6 +1459,17 @@ mod tests {
         assert_eq!(parsed.package.version, "0.0.1");
         assert_eq!(parsed.source_roots, vec!["src", "lib"]);
         assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
+    }
+
+    #[test]
+    fn project_manifest_parses_library_artifact_kind() {
+        let parsed = parse_project_manifest(
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"library\"\n",
+            &manifest_path(),
+        )
+        .expect("manifest should parse library artifact kind");
+
+        assert_eq!(parsed.artifact, ProjectArtifactKind::Library);
     }
 
     #[test]
@@ -1257,7 +1583,30 @@ mod tests {
                 scope: ProjectDependencyScope::Target(ProjectTarget::Rust),
                 source: ProjectDependencySource::Cargo {
                     package: "serde".to_string(),
-                    version: "1.0.0".to_string()
+                    version: "1.0.0".to_string(),
+                    features: Vec::new()
+                },
+            }
+        );
+    }
+
+    #[test]
+    fn project_manifest_parses_rust_dependency_feature_metadata() {
+        let parsed = parse_project_manifest(
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.rust.dependencies]\npolars = { cargo = \"polars\", version = \"0.54.4\", features = [\"lazy\", \"csv\", \"strings\"] }\n",
+            &manifest_path(),
+        )
+        .expect("manifest should parse Rust dependency feature metadata");
+
+        assert_eq!(
+            parsed.dependencies[0],
+            ProjectDependency {
+                alias: "polars".to_string(),
+                scope: ProjectDependencyScope::Target(ProjectTarget::Rust),
+                source: ProjectDependencySource::Cargo {
+                    package: "polars".to_string(),
+                    version: "0.54.4".to_string(),
+                    features: vec!["lazy".to_string(), "csv".to_string(), "strings".to_string()]
                 },
             }
         );

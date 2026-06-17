@@ -1,0 +1,36 @@
+/**
+ * BEAM backpressure contract.
+ *
+ * `std.beam.Backpressure` defines the credit accounting surface used by
+ * supervised native bridges. The implementation is target-owned; Terlan source
+ * only depends on the typed trait contract.
+ */
+
+module std.beam.Backpressure.
+
+import std.core.Unit.{Unit}.
+
+/**
+ * Credit represents available work capacity.
+ *
+ * Input: no type parameters.
+ * Output: an integer-backed credit count.
+ * Transformation: gives BEAM/native bridge contracts a named type alias for
+ * capacity accounting without exposing scheduler internals.
+ */
+pub type Credit = Int.
+
+/**
+ * Backpressure defines credit-based flow-control operations.
+ *
+ * Input: resource or process type `P`.
+ * Output: a trait requiring observation, request, and release operations.
+ * Transformation: lets SafeNative bridges prove they own a flow-control
+ * contract before they are admitted as BEAM-supervised runtime adapters.
+ */
+@target.erlang {process_mailbox: true}
+pub trait Backpressure[P] {
+    available(process: P): Credit.
+    request(process: P, credits: Credit): Unit.
+    release(process: P, credits: Credit): Unit.
+}.

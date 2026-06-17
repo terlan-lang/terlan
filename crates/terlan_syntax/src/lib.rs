@@ -1,24 +1,22 @@
-pub mod ast;
 pub mod ebnf;
 pub mod formatter;
 pub mod lexer;
 pub mod native;
-pub mod parser;
-pub mod parser_contract;
+mod parse_tree;
+mod parser;
+mod parser_contract;
 pub mod span;
 pub mod syntax_contract;
 pub mod syntax_output;
 pub mod token;
 
-pub use ast::*;
 pub use ebnf::*;
-pub use formatter::format_module;
+pub use formatter::{format_interface_source_module, format_source_module};
 pub use lexer::*;
 pub use native::*;
-pub use parser::{
-    parse_interface_module, parse_module, parse_terlan_expr, ParseResult, ParserError,
-};
-pub use parser_contract::{parse_interface_module_as_contract, parse_module_as_contract};
+#[cfg(test)]
+pub(crate) use parser::{parse_interface_module, parse_module, parse_terlan_expr};
+pub use parser::{ParseResult, ParserError};
 pub use span::Span;
 pub use syntax_contract::{
     cached_canonical_terlan_syntax_contract, cached_canonical_terlan_syntax_contract_artifact,

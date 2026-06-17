@@ -25,8 +25,8 @@ struct InitArgs {
 /// Transformation:
 /// - Resolves the package name and target directory, validates the package
 ///   identity, writes `terlan.toml`, and writes a target-neutral
-///   `src/<package_root>/Main.tl` hello-world module plus a sample
-///   `tests/<package_root>/main_test.tl` test module.
+///   `src/<package_root>/Main.terl` hello-world module plus a sample
+///   `tests/<package_root>/main_test.terl` test module.
 pub(crate) fn run(cmd: CliCommand) -> ExitCode {
     let args = match parse_init_args(&cmd.args) {
         Ok(args) => args,
@@ -44,10 +44,7 @@ pub(crate) fn run(cmd: CliCommand) -> ExitCode {
             println!("  cd {}", args.target_dir.display());
             println!("  terlc build");
             println!("  ./_build/bin/{}", args.package_name);
-            println!(
-                "  terlc test tests/{}/main_test.tl",
-                source_package_root(&args.package_name)
-            );
+            println!("  terlc test");
             ExitCode::SUCCESS
         }
         Err(message) => {
@@ -169,7 +166,7 @@ fn source_package_root(package_name: &str) -> String {
 /// Transformation:
 /// - Refuses existing project directories, creates the target directory and
 ///   package source/test directories, then writes deterministic 0.0.1
-///   `terlan.toml`, `Main.tl`, and `main_test.tl` files.
+///   `terlan.toml`, `Main.terl`, and `main_test.terl` files.
 fn write_project(args: &InitArgs) -> Result<(), String> {
     let source_root = source_package_root(&args.package_name);
     let manifest_path = args.target_dir.join("terlan.toml");
@@ -177,35 +174,40 @@ fn write_project(args: &InitArgs) -> Result<(), String> {
         .target_dir
         .join("src")
         .join(&source_root)
-        .join("Main.tl");
+        .join("Main.terl");
     let test_path = args
         .target_dir
         .join("tests")
         .join(&source_root)
-        .join("main_test.tl");
+        .join("main_test.terl");
 
     refuse_existing_project_dir(&args.target_dir)?;
 
-    fs::create_dir_all(main_path.parent().expect("Main.tl always has parent")).map_err(|err| {
-        format!(
-            "cannot create source directory {}: {err}",
-            main_path
-                .parent()
-                .expect("Main.tl always has parent")
-                .display()
-        )
-    })?;
-    fs::create_dir_all(test_path.parent().expect("main_test.tl always has parent")).map_err(
+    fs::create_dir_all(main_path.parent().expect("Main.terl always has parent")).map_err(
         |err| {
             format!(
-                "cannot create test directory {}: {err}",
-                test_path
+                "cannot create source directory {}: {err}",
+                main_path
                     .parent()
-                    .expect("main_test.tl always has parent")
+                    .expect("Main.terl always has parent")
                     .display()
             )
         },
     )?;
+    fs::create_dir_all(
+        test_path
+            .parent()
+            .expect("main_test.terl always has parent"),
+    )
+    .map_err(|err| {
+        format!(
+            "cannot create test directory {}: {err}",
+            test_path
+                .parent()
+                .expect("main_test.terl always has parent")
+                .display()
+        )
+    })?;
 
     fs::write(&manifest_path, render_manifest(&args.package_name))
         .map_err(|err| format!("cannot write {}: {err}", manifest_path.display()))?;
@@ -259,14 +261,14 @@ fn render_manifest(package_name: &str) -> String {
 /// - `source_root`: source package root after package-name normalization.
 ///
 /// Output:
-/// - Complete `src/<package_root>/Main.tl` text.
+/// - Complete `src/<package_root>/Main.terl` text.
 ///
 /// Transformation:
 /// - Emits the 0.0.1 entrypoint shape `<package_root>.Main.main(): Unit` using
-///   portable `std.io.Console.println`.
+///   an explicit import for portable `std.io.Console.println`.
 fn render_main_module(source_root: &str) -> String {
     format!(
-        "module {source_root}.Main.\n\npub main(): Unit ->\n    std.io.Console.println(\"hello from Terlan\").\n"
+        "module {source_root}.Main.\n\nimport std.io.Console.{{println}}.\n\npub main(): Unit ->\n    println(\"hello from Terlan\").\n"
     )
 }
 
@@ -276,7 +278,7 @@ fn render_main_module(source_root: &str) -> String {
 /// - `source_root`: source package root after package-name normalization.
 ///
 /// Output:
-/// - Complete `tests/<package_root>/main_test.tl` text.
+/// - Complete `tests/<package_root>/main_test.terl` text.
 ///
 /// Transformation:
 /// - Emits one annotation-based 0.0.1 test using `std.test.Test` and a
@@ -360,11 +362,11 @@ mod tests {
             render_manifest("hello")
         );
         assert_eq!(
-            fs::read_to_string(dir.join("src/hello/Main.tl")).expect("main module"),
+            fs::read_to_string(dir.join("src/hello/Main.terl")).expect("main module"),
             render_main_module("hello")
         );
         assert_eq!(
-            fs::read_to_string(dir.join("tests/hello/main_test.tl")).expect("test module"),
+            fs::read_to_string(dir.join("tests/hello/main_test.terl")).expect("test module"),
             render_test_module("hello")
         );
         fs::remove_dir_all(dir).expect("cleanup");
@@ -380,14 +382,16 @@ mod tests {
 
         write_project(&args).expect("write project");
 
-        assert!(dir.join("src/hello_app/Main.tl").exists());
-        assert!(dir.join("tests/hello_app/main_test.tl").exists());
-        assert!(fs::read_to_string(dir.join("src/hello_app/Main.tl"))
+        assert!(dir.join("src/hello_app/Main.terl").exists());
+        assert!(dir.join("tests/hello_app/main_test.terl").exists());
+        assert!(fs::read_to_string(dir.join("src/hello_app/Main.terl"))
             .expect("main module")
             .contains("module hello_app.Main."));
-        assert!(fs::read_to_string(dir.join("tests/hello_app/main_test.tl"))
-            .expect("test module")
-            .contains("module hello_app.MainTest."));
+        assert!(
+            fs::read_to_string(dir.join("tests/hello_app/main_test.terl"))
+                .expect("test module")
+                .contains("module hello_app.MainTest.")
+        );
         fs::remove_dir_all(dir).expect("cleanup");
     }
 

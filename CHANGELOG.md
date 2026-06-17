@@ -2,6 +2,23 @@
 
 All notable release-facing changes to Terlan are tracked here.
 
+## 0.0.3
+
+- Promote `.terl` as the canonical Terlan source extension and `.terli` as the
+  interface extension.
+- Harden `terlc init`, `terlc build`, `terlc test`, `terlc repl`, command help,
+  version reporting, and installed-compiler smoke coverage.
+- Add REPL-backed documentation validation and generated stdlib documentation.
+- Expand implicit prelude support for core types and target-neutral type
+  introspection.
+- Add typed `std.core.Error`, derive-aware error inheritance, and broader
+  `Option`, `Result`, `Equal`, `Ordering`, `Atom`, `Unit`, and `String`
+  coverage.
+- Expand `std.collections` contracts and tests for `List`, `Map`, `Set`,
+  `Iterable`, `Iterator`, `Enumerable`, and indexed access traits.
+- Add SafeNative metadata, runtime-bridge contracts, and native package binding
+  probes for Rust-backed packages.
+
 ## 0.0.2
 
 - Publish the 0.0.2 language-feature and base-standard-library release.

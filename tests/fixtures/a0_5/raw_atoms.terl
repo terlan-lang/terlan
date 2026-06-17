@@ -1,0 +1,7 @@
+module a0_5_raw_atoms.
+
+pub none(): Dynamic ->
+    :none.
+
+pub is_none(x: Dynamic): Bool ->
+    case x { :none -> true; _ -> false }.

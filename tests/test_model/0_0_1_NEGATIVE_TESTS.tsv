@@ -1,0 +1,6 @@
+# fixture	expected
+tests/test_model/negative/no_test_declarations_test.terl	no @test declarations found
+tests/test_model/negative/production_module_with_annotation.terl	terlc test requires a *_test.terl source file for 0.0.1
+tests/test_model/negative/parameter_test.terl	@test function has_parameter must have zero parameters
+tests/test_model/negative/return_type_test.terl	@test function returns_int must return Bool or std.test.Test.Assertion, got Int
+tests/test_model/negative/type_annotation_test.terl	@test cannot annotate TypeDecl

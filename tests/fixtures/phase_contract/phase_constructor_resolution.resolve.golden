@@ -1,0 +1,9 @@
+module=phase_constructor_resolution
+diagnostics=0
+function_symbols=1
+fn=make/0 public=true exported=true return=Dynamic
+local_types=
+imported_types=
+imported_traits=
+interface_map=std.beam.Agent,std.beam.Backpressure,std.beam.GenServer,std.beam.Message,std.beam.NativeBridge,std.beam.Process,std.beam.Supervisor,std.beam.Task,std.collections.Enumerable,std.collections.Index,std.collections.Iterable,std.collections.Iterator,std.collections.List,std.collections.Map,std.collections.Set,std.core.Atom,std.core.Bool,std.core.Equal,std.core.Error,std.core.Float,std.core.Int,std.core.Option,std.core.Ordering,std.core.Result,std.core.String,std.core.Task,std.core.Unit,std.data.Json,std.encoding.Base64,std.io.Console,std.io.File,std.io.Path,std.native.collections.Vector,std.net.Uri,std.test.Test
+interface_functions=1

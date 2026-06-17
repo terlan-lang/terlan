@@ -1,0 +1,49 @@
+# Terlan stdlib release manifest.
+#
+# Inputs:
+# - Public release-owned standard-library modules under std/.
+# - Generated interface summaries under std/summaries/.
+# - Generated documentation pages from `terlc doc std`.
+# - Exact per-API release tests in tests/std/RELEASE_API_TESTS.tsv.
+#
+# Output:
+# - A tab-separated manifest consumed by std/scripts/check_release_manifest.py.
+#
+# Transformation:
+# - Ties each release-owned std module to its source, summary, generated docs,
+#   and exact API-test manifest. The API-test manifest rows provide per-API
+#   test coverage, while each row here proves the owning module has source,
+#   summary, and documentation coverage.
+#
+# Format:
+# kind<TAB>id<TAB>source<TAB>summary<TAB>tests<TAB>docs
+kind	id	source	summary	tests	docs
+api_manifest	std.release_api_tests	std	tests/std/RELEASE_API_TESTS.tsv	tests/std/RELEASE_API_TESTS.tsv	std
+module	std.collections.Enumerable	std/collections/enumerable.terl	std/summaries/std.collections.Enumerable.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Enumerable.html
+module	std.collections.Index	std/collections/index.terl	std/summaries/std.collections.Index.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Index.html
+module	std.collections.Iterable	std/collections/iterable.terl	std/summaries/std.collections.Iterable.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Iterable.html
+module	std.collections.Iterator	std/collections/iterator.terl	std/summaries/std.collections.Iterator.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Iterator.html
+module	std.collections.List	std/collections/list.terl	std/summaries/std.collections.List.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.List.html
+module	std.collections.Map	std/collections/map.terl	std/summaries/std.collections.Map.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Map.html
+module	std.collections.Set	std/collections/set.terl	std/summaries/std.collections.Set.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Set.html
+module	std.data.Json	std/data/json.terl	std/summaries/std.data.Json.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Json.html
+module	std.encoding.Base64	std/encoding/base64.terl	std/summaries/std.encoding.Base64.typi	tests/std/RELEASE_API_TESTS.tsv	std.encoding.Base64.html
+module	std.beam.Task	std/beam/task.terl	std/summaries/std.beam.Task.typi	tests/std/RELEASE_API_TESTS.tsv	std.beam.Task.html
+module	std.core.Atom	std/core/atom.terl	std/summaries/std.core.Atom.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Atom.html
+module	std.core.Bool	std/core/bool.terl	std/summaries/std.core.Bool.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Bool.html
+module	std.core.Equal	std/core/equal.terl	std/summaries/std.core.Equal.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Equal.html
+module	std.core.Error	std/core/error.terl	std/summaries/std.core.Error.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Error.html
+module	std.core.Float	std/core/float.terl	std/summaries/std.core.Float.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Float.html
+module	std.core.Int	std/core/int.terl	std/summaries/std.core.Int.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Int.html
+module	std.core.Option	std/core/option.terl	std/summaries/std.core.Option.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Option.html
+module	std.core.Ordering	std/core/ordering.terl	std/summaries/std.core.Ordering.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Ordering.html
+module	std.core.Result	std/core/result.terl	std/summaries/std.core.Result.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Result.html
+module	std.core.String	std/core/string.terl	std/summaries/std.core.String.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.String.html
+module	std.core.Task	std/core/task.terl	std/summaries/std.core.Task.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Task.html
+module	std.core.Unit	std/core/unit.terl	std/summaries/std.core.Unit.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Unit.html
+module	std.io.Console	std/io/console.terl	std/summaries/std.io.Console.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Console.html
+module	std.io.File	std/io/file.terl	std/summaries/std.io.File.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.File.html
+module	std.io.Path	std/io/path.terl	std/summaries/std.io.Path.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Path.html
+module	std.net.Uri	std/net/uri.terl	std/summaries/std.net.Uri.typi	tests/std/RELEASE_API_TESTS.tsv	std.net.Uri.html
+module	std.native.collections.Vector	std/native/collections/vector.terl	std/summaries/std.native.collections.Vector.typi	tests/std/RELEASE_API_TESTS.tsv	std.native.collections.Vector.html
+module	std.test.Test	std/test/test.terl	std/summaries/std.test.Test.typi	tests/std/RELEASE_API_TESTS.tsv	std.test.Test.html

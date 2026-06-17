@@ -1,0 +1,34 @@
+/**
+ * BEAM message contract.
+ *
+ * `std.beam.Message` models typed payloads that can cross BEAM process
+ * boundaries. It is a target-gated runtime contract and is not part of
+ * portable `std.core`.
+ */
+
+module std.beam.Message.
+
+/**
+ * Message represents one typed BEAM process message.
+ *
+ * Input: type parameter `T`.
+ * Output: an opaque message wrapper owned by the BEAM target runtime.
+ * Transformation: keeps source-level message payloads typed while leaving the
+ * concrete mailbox representation to the BEAM backend.
+ */
+@target.erlang {process_mailbox: true}
+pub opaque type Message[T].
+
+/**
+ * MessageCodec defines conversion between source values and BEAM messages.
+ *
+ * Input: source payload type `T`.
+ * Output: a trait requiring wrapping and unwrapping operations for `Message[T]`.
+ * Transformation: gives BEAM adapters an ordinary trait surface for message
+ * encoding without adding send/receive grammar to Terlan source.
+ */
+@target.erlang {process_mailbox: true}
+pub trait MessageCodec[T] {
+    wrap(value: T): Message[T].
+    unwrap(message: Message[T]): T.
+}.

@@ -1,0 +1,4 @@
+module bad.
+
+pub bad(X: Int): Binary ->
+    X + 1.

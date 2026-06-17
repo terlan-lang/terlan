@@ -1,0 +1,51 @@
+module std.core.AtomTest.
+
+pub type Ready =
+    Atom["ready"].
+
+pub type Done =
+    Atom["done"].
+
+pub type Status =
+      Ready
+    | Done.
+
+/**
+ *Returns the ready test status.
+ *
+ *Input: no runtime input.
+ *Output: `Status` containing `Ready`.
+ *Transformation: widens the singleton `Ready` alias into the local `Status`
+ *union so equality helpers can compare values from the same static domain.
+ */
+pub ready_status(): Status ->
+    Ready.
+
+/**
+ *Returns the done test status.
+ *
+ *Input: no runtime input.
+ *Output: `Status` containing `Done`.
+ *Transformation: widens the singleton `Done` alias into the local `Status`
+ *union so equality helpers can compare values from the same static domain.
+ */
+pub done_status(): Status ->
+    Done.
+
+@test
+pub equal_accepts_matching_atom_aliases(): Bool ->
+    std.test.Test.assert(std.core.Atom.equal(Ready, Ready)).
+
+@test
+pub equal_rejects_different_atom_aliases(): Bool ->
+    std.test.Test.assert_equal(
+        false,
+        std.core.Atom.equal(ready_status(), done_status())
+    ).
+
+@test
+pub to_string_renders_atom_alias_payload(): Bool ->
+    std.test.Test.assert_equal(
+        "ready",
+        std.core.Atom.to_string(Ready)
+    ).

@@ -1,0 +1,8 @@
+module=html_interpolation
+syntax_contract_schema=terlang-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:bbc2bff7cdefae6c
+source_hash=16243418007874658711
+interface_hash=8533944776903081239
+interface_doc_hash=2354552069350700434
+deps=0

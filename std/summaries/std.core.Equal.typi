@@ -1,21 +1,21 @@
 //! Core equality trait.
-//!
+//! 
 //! `std.core.Equal` defines explicit, type-directed equality for values whose
 //! equality can be represented safely and portably.
 
 module std.core.Equal.
 
 /// Describes values that can be compared for equality.
-///
+/// 
 /// Input: two values of the same type `T`.
 /// Output: `true` when the values are equal; otherwise `false`.
 /// Transformation: compares two values without changing either input. Primitive
 /// implementations delegate to Terlan's exact equality operator, while
 /// user-defined implementations may choose a domain-specific equality contract.
-///
+/// 
 /// ```terlan
 /// module equal_trait_example.
-///
+/// 
 /// pub trait Equal[T] {
 ///    equal(left: T, right: T): Bool.
 /// }.
@@ -42,3 +42,4 @@ pub impl Equal[String] for String {
 
 pub impl Equal[Unit] for Unit {
 }.
+

@@ -1,0 +1,4 @@
+module a0_16_fun_call.
+
+pub apply(value: Int, f: (Int) -> Int): Int ->
+    f.(value).

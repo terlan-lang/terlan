@@ -1,0 +1,5 @@
+module tests.test_model.ParameterTest.
+
+@test
+pub has_parameter(value: Bool): Bool ->
+    value.

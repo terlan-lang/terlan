@@ -1,0 +1,5 @@
+module tests.test_model.ReturnTypeTest.
+
+@test
+pub returns_int(): Int ->
+    1.

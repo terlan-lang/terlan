@@ -1,0 +1,89 @@
+//! Native vector collection contract.
+//! 
+//! `std.native.collections.Vector` is a machine-oriented indexed collection
+//! surface. It is not part of portable `std.collections`; targets must provide
+//! an indexed-storage capability before this module can execute.
+
+module std.native.collections.Vector.
+
+/// Vector represents a native indexed collection.
+/// 
+/// Input: type parameter `T`.
+/// Output: an opaque native vector handle.
+/// Transformation: keeps algorithm-friendly indexed storage target-specific
+/// while preserving a typed Terlan surface for compile-time validation.
+
+pub opaque type Vector[T].
+
+/// Creates a native vector from a portable list.
+/// 
+/// Input: one `List[T]`.
+/// Output: a `Vector[T]` containing the list values in order.
+/// Transformation: copies or transfers values into the target-native indexed
+/// storage representation.
+
+pub from_list(values: List[T]): Vector[T].
+
+/// Returns the value at an index.
+/// 
+/// Input: one `Vector[T]` receiver and one `Int` index.
+/// Output: the value at that index.
+/// Transformation: provides the receiver-method body for
+/// `IndexGet[Vector[T], Int, T]` and backs bracket read syntax.
+
+pub (vector: Vector[T]) get_at(index: Int): T.
+
+/// Returns the number of values in a vector.
+/// 
+/// Input: one `Vector[T]`.
+/// Output: the current vector length.
+/// Transformation: observes the native indexed-storage length without changing
+/// the vector contents.
+
+pub (vector: Vector[T]) length(): Int.
+
+/// Creates an empty native vector.
+/// 
+/// Input: no value input.
+/// Output: an empty `Vector[T]`.
+/// Transformation: requires a target-native vector allocation capability.
+
+pub new(): Vector[T].
+
+/// Appends a value to the end of a vector.
+/// 
+/// Input: one mutable `Vector[T]` receiver and one value.
+/// Output: `Unit`.
+/// Transformation: updates the vector binding through the mutable receiver ABI.
+
+pub (mut vector: Vector[T]) push(value: T): Unit.
+
+/// Replaces the value at an index.
+/// 
+/// Input: one mutable `Vector[T]` receiver, one `Int` index, and one value.
+/// Output: `Unit`.
+/// Transformation: updates the vector binding through the mutable receiver ABI
+/// and backs bracket assignment syntax.
+
+pub (mut vector: Vector[T]) set_at(index: Int, value: T): Unit.
+
+/// Swaps two values by index.
+/// 
+/// Input: one mutable `Vector[T]` receiver and two `Int` indices.
+/// Output: `Unit`.
+/// Transformation: updates the vector binding through the mutable receiver ABI.
+
+pub (mut vector: Vector[T]) swap(left: Int, right: Int): Unit.
+
+/// Converts a native vector into a portable list.
+/// 
+/// Input: one `Vector[T]`.
+/// Output: a `List[T]` containing the vector values in order.
+/// Transformation: copies or transfers target-native indexed storage into the
+/// portable collection representation.
+
+pub (vector: Vector[T]) to_list(): List[T].
+
+pub impl IndexGet[Vector[T], Int, T] for Vector[T] {
+}.
+

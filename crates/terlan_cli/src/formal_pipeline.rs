@@ -30,15 +30,14 @@ use crate::DiagnosticFormat;
 ///   `compile_syntax_module_through_phases_with_diagnostics_for_profile`.
 ///
 /// Output:
-/// - Formal syntax output, loaded dependency interfaces, and resolved HIR.
+/// - Formal syntax output, loaded dependency interfaces, and CoreIR.
 ///
 /// Transformation:
-/// - Carries the parse, interface loading, and resolve artifacts that downstream
-///   commands need for backend-agnostic emission and validation.
+/// - Carries the parse, interface loading, and lowered CoreIR artifacts that
+///   downstream commands need for backend-agnostic emission and validation.
 pub(crate) struct CheckedSyntaxModuleArtifacts {
     pub(crate) syntax_output: SyntaxModuleOutput,
     pub(crate) interfaces: HashMap<String, ModuleInterface>,
-    pub(crate) resolved: terlan_hir::ResolvedModule,
     pub(crate) core: terlan_typeck::CoreModule,
 }
 
@@ -131,8 +130,18 @@ fn parse_embedded_std_interface(summary: &str) -> Option<(String, ModuleInterfac
 }
 
 const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
+    include_str!("../../../std/summaries/std.beam.Agent.typi"),
+    include_str!("../../../std/summaries/std.beam.Backpressure.typi"),
+    include_str!("../../../std/summaries/std.beam.GenServer.typi"),
+    include_str!("../../../std/summaries/std.beam.Message.typi"),
+    include_str!("../../../std/summaries/std.beam.NativeBridge.typi"),
+    include_str!("../../../std/summaries/std.beam.Process.typi"),
+    include_str!("../../../std/summaries/std.beam.Supervisor.typi"),
+    include_str!("../../../std/summaries/std.beam.Task.typi"),
+    include_str!("../../../std/summaries/std.core.Atom.typi"),
     include_str!("../../../std/summaries/std.core.Bool.typi"),
     include_str!("../../../std/summaries/std.core.Equal.typi"),
+    include_str!("../../../std/summaries/std.core.Error.typi"),
     include_str!("../../../std/summaries/std.core.Float.typi"),
     include_str!("../../../std/summaries/std.core.Int.typi"),
     include_str!("../../../std/summaries/std.collections.Enumerable.typi"),
@@ -140,19 +149,23 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.collections.Iterator.typi"),
     include_str!("../../../std/summaries/std.collections.List.typi"),
     include_str!("../../../std/summaries/std.collections.Map.typi"),
-    include_str!("../../../std/summaries/std.collections.typi"),
+    include_str!("../../../std/summaries/std.data.Json.typi"),
+    include_str!("../../../std/summaries/std.encoding.Base64.typi"),
+    include_str!("../../../std/summaries/std.native.collections.Vector.typi"),
     include_str!("../../../std/summaries/std.core.Option.typi"),
     include_str!("../../../std/summaries/std.core.Ordering.typi"),
     include_str!("../../../std/summaries/std.core.Result.typi"),
     include_str!("../../../std/summaries/std.collections.Set.typi"),
     include_str!("../../../std/summaries/std.core.String.typi"),
+    include_str!("../../../std/summaries/std.core.Task.typi"),
     include_str!("../../../std/summaries/std.core.Unit.typi"),
     include_str!("../../../std/summaries/std.core.typi"),
     include_str!("../../../std/summaries/std.io.Console.typi"),
     include_str!("../../../std/summaries/std.io.File.typi"),
+    include_str!("../../../std/summaries/std.io.Path.typi"),
     include_str!("../../../std/summaries/std.io.typi"),
+    include_str!("../../../std/summaries/std.net.Uri.typi"),
     include_str!("../../../std/summaries/std.test.Test.typi"),
-    include_str!("../../../std/summaries/std.test.typi"),
 ];
 
 /// Lists Terlan implementation sources under a directory.
@@ -161,7 +174,7 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
 /// - `dir`: source root directory to scan.
 ///
 /// Output:
-/// - Sorted recursive `.tl` source paths, or a user-facing directory read
+/// - Sorted recursive `.terl` source paths, or a user-facing directory read
 ///   error.
 ///
 /// Transformation:
@@ -179,7 +192,7 @@ pub(crate) fn terlan_sources_in_dir(dir: &Path) -> Result<Vec<PathBuf>, String> 
 ///
 /// Inputs:
 /// - `dir`: directory currently being scanned.
-/// - `files`: mutable collection of discovered `.tl` source paths.
+/// - `files`: mutable collection of discovered `.terl` source paths.
 ///
 /// Output:
 /// - `Ok(())` when the directory and all nested directories are scanned.
@@ -187,7 +200,7 @@ pub(crate) fn terlan_sources_in_dir(dir: &Path) -> Result<Vec<PathBuf>, String> 
 ///
 /// Transformation:
 /// - Reads one directory level, sorts child paths for stable traversal, appends
-///   `.tl` files, and recurses into child directories without following
+///   `.terl` files, and recurses into child directories without following
 ///   symlinked directories.
 fn collect_terlan_sources_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
     let entries = fs::read_dir(dir)
@@ -208,7 +221,8 @@ fn collect_terlan_sources_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Res
     for (path, file_type) in children {
         if file_type.is_dir() {
             collect_terlan_sources_recursive(&path, files)?;
-        } else if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("tl")
+        } else if file_type.is_file()
+            && path.extension().and_then(|ext| ext.to_str()) == Some("terl")
         {
             files.push(path);
         }
@@ -288,7 +302,7 @@ fn syntax_expr_uses_remote_module(expr: &SyntaxExprOutput, modules: &BTreeSet<St
 /// Parses source text into formal syntax output.
 ///
 /// Inputs:
-/// - `path`: source path used to distinguish `.tl` and `.tli` grammars.
+/// - `path`: source path used to distinguish `.terl` and `.terli` grammars.
 /// - `source`: source text to parse.
 ///
 /// Output:
@@ -301,7 +315,7 @@ pub(crate) fn parse_source_as_syntax_output(
     path: &str,
     source: &str,
 ) -> terlan_syntax::ebnf::EbnfCompileResult<terlan_syntax::SyntaxModuleOutput> {
-    if path.ends_with(".tli") {
+    if path.ends_with(".terli") {
         parse_interface_module_as_syntax_output(source)
     } else {
         parse_module_as_syntax_output(source)
@@ -583,7 +597,6 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
         result.artifacts = Some(CheckedSyntaxModuleArtifacts {
             syntax_output,
             interfaces,
-            resolved,
             core,
         });
         return result;
@@ -700,7 +713,7 @@ pub f(): Float ->
 ";
 
         let result = compile_syntax_module_through_phases_with_diagnostics_for_profile(
-            "src/target_profile_accept.tl",
+            "src/target_profile_accept.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -723,7 +736,7 @@ pub f(): Float ->
 ";
 
         let result = compile_syntax_module_through_phases_with_diagnostics_for_profile(
-            "src/target_profile_reject.tl",
+            "src/target_profile_reject.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -758,7 +771,7 @@ pub f(x: Int, y: Int): Int ->
 ";
 
         let result = compile_syntax_module_through_phases_with_diagnostics_for_profile(
-            "src/target_profile_core_v0_accept.tl",
+            "src/target_profile_core_v0_accept.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -794,7 +807,7 @@ pub f(): Map ->
 ";
 
         let result = compile_syntax_module_through_phases_with_diagnostics_for_profile(
-            "src/target_profile_core_v0_reject.tl",
+            "src/target_profile_core_v0_reject.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -811,5 +824,375 @@ pub f(): Map ->
                 .any(|diagnostic| diagnostic.code == "target_profile_unsupported"),
             "Core v0 profile should report target-profile violations"
         );
+    }
+
+    /// Verifies native vector interface summaries are embedded with stdlib.
+    ///
+    /// Inputs:
+    /// - Empty interface map.
+    ///
+    /// Output:
+    /// - Test passes when `std.native.collections.Vector` is loaded from the
+    ///   compiler-embedded std summary list.
+    ///
+    /// Transformation:
+    /// - Exercises normal embedded summary parsing so native std modules are
+    ///   available for import resolution before target-capability diagnostics
+    ///   decide whether the active backend may compile them.
+    #[test]
+    fn embedded_std_interfaces_include_native_vector_contract() {
+        let mut interfaces = HashMap::new();
+
+        load_embedded_std_interfaces(&mut interfaces);
+
+        let interface = interfaces
+            .get("std.native.collections.Vector")
+            .expect("embedded native vector interface");
+        assert!(interface.opaque_types.contains("Vector"));
+        assert!(interface.functions.contains_key(&("new".to_string(), 0)));
+        let length = interface
+            .functions
+            .get(&("length".to_string(), 1))
+            .expect("Vector.length receiver method");
+        assert!(length.receiver_method);
+        assert!(!length.receiver_mutable);
+        let set_at = interface
+            .functions
+            .get(&("set_at".to_string(), 3))
+            .expect("Vector.set_at mutable receiver method");
+        assert!(set_at.receiver_method);
+        assert!(set_at.receiver_mutable);
+    }
+
+    /// Verifies embedded std summaries include the portable task contract.
+    ///
+    /// Inputs:
+    /// - Compiler-embedded std interface summaries.
+    ///
+    /// Output:
+    /// - Test passes when `std.core.Task` is loaded from the embedded summary
+    ///   list with its opaque type and receiver composition methods.
+    ///
+    /// Transformation:
+    /// - Exercises normal embedded summary parsing so project imports can
+    ///   resolve the typed async contract before target profiles decide whether
+    ///   a backend can execute it.
+    #[test]
+    fn embedded_std_interfaces_include_core_task_contract() {
+        let mut interfaces = HashMap::new();
+
+        load_embedded_std_interfaces(&mut interfaces);
+
+        let interface = interfaces
+            .get("std.core.Task")
+            .expect("embedded core task interface");
+        assert!(interface.opaque_types.contains("Task"));
+        assert!(interface.functions.contains_key(&("done".to_string(), 1)));
+        assert!(interface.functions.contains_key(&("spawn".to_string(), 1)));
+        let then = interface
+            .functions
+            .get(&("then".to_string(), 2))
+            .expect("Task.then receiver method");
+        assert!(then.receiver_method);
+        assert!(!then.receiver_mutable);
+        let result = interface
+            .functions
+            .get(&("result".to_string(), 1))
+            .expect("Task.result receiver method");
+        assert!(result.receiver_method);
+    }
+
+    /// Verifies embedded std summaries include the portable JSON contract.
+    ///
+    /// Inputs:
+    /// - Compiler-embedded std interface summaries.
+    ///
+    /// Output:
+    /// - Test passes when `std.data.Json` is loaded from the embedded summary
+    ///   list with its opaque type, derived error type, and receiver accessors.
+    ///
+    /// Transformation:
+    /// - Exercises normal embedded summary parsing so project imports can
+    ///   resolve the JSON API before target profiles decide whether a backend
+    ///   can execute the Rust/SafeNative implementation.
+    #[test]
+    fn embedded_std_interfaces_include_data_json_contract() {
+        let mut interfaces = HashMap::new();
+
+        load_embedded_std_interfaces(&mut interfaces);
+
+        let interface = interfaces
+            .get("std.data.Json")
+            .expect("embedded data json interface");
+        assert!(interface.opaque_types.contains("Json"));
+        assert!(interface.public_types.contains("JsonError"));
+        assert!(interface.functions.contains_key(&("parse".to_string(), 1)));
+        assert!(interface
+            .functions
+            .contains_key(&("stringify".to_string(), 1)));
+        let get = interface
+            .functions
+            .get(&("get".to_string(), 2))
+            .expect("Json.get receiver method");
+        assert!(get.receiver_method);
+        assert!(!get.receiver_mutable);
+        let is_null = interface
+            .functions
+            .get(&("is_null".to_string(), 1))
+            .expect("Json.is_null receiver method");
+        assert!(is_null.receiver_method);
+        assert!(!is_null.receiver_mutable);
+    }
+
+    /// Verifies embedded std summaries include Rust-backed web/data utilities.
+    ///
+    /// Inputs:
+    /// - Compiler-embedded std interface summaries.
+    ///
+    /// Output:
+    /// - Test passes when `std.encoding.Base64`, `std.io.Path`, and
+    ///   `std.net.Uri` are loaded from the embedded summary list with their
+    ///   public contract surfaces.
+    ///
+    /// Transformation:
+    /// - Exercises normal embedded summary parsing so project imports can
+    ///   resolve portable web/data utility APIs before target profiles decide
+    ///   whether a backend can execute their Rust/SafeNative implementations.
+    #[test]
+    fn embedded_std_interfaces_include_web_data_utility_contracts() {
+        let mut interfaces = HashMap::new();
+
+        load_embedded_std_interfaces(&mut interfaces);
+
+        let base64 = interfaces
+            .get("std.encoding.Base64")
+            .expect("embedded Base64 interface");
+        assert!(base64.public_types.contains("Base64Error"));
+        assert!(base64.functions.contains_key(&("encode".to_string(), 1)));
+        assert!(base64.functions.contains_key(&("decode".to_string(), 1)));
+
+        let path = interfaces
+            .get("std.io.Path")
+            .expect("embedded Path interface");
+        assert!(path.opaque_types.contains("Path"));
+        assert!(path.public_types.contains("PathError"));
+        assert!(path.functions.contains_key(&("from_string".to_string(), 1)));
+        let join = path
+            .functions
+            .get(&("join".to_string(), 2))
+            .expect("Path.join receiver method");
+        assert!(join.receiver_method);
+
+        let uri = interfaces
+            .get("std.net.Uri")
+            .expect("embedded Uri interface");
+        assert!(uri.opaque_types.contains("Uri"));
+        assert!(uri.public_types.contains("UriError"));
+        assert!(uri.functions.contains_key(&("parse".to_string(), 1)));
+        let host = uri
+            .functions
+            .get(&("host".to_string(), 1))
+            .expect("Uri.host receiver method");
+        assert!(host.receiver_method);
+    }
+
+    /// Verifies embedded std summaries include the BEAM bridge contracts.
+    ///
+    /// Inputs:
+    /// - Compiler-embedded std interface summaries.
+    ///
+    /// Output:
+    /// - Test passes when the first BEAM bridge and Agent contract modules are
+    ///   loaded from the embedded summary list with their target-gated types,
+    ///   traits, and receiver methods.
+    ///
+    /// Transformation:
+    /// - Exercises normal embedded summary parsing so BEAM supervision,
+    ///   process, message, backpressure, and native-bridge contracts can be
+    ///   resolved without adding BEAM-specific grammar to Terlan source.
+    #[test]
+    fn embedded_std_interfaces_include_beam_bridge_contracts() {
+        let mut interfaces = HashMap::new();
+
+        load_embedded_std_interfaces(&mut interfaces);
+
+        let agent = interfaces
+            .get("std.beam.Agent")
+            .expect("embedded BEAM Agent interface");
+        assert!(agent.opaque_types.contains("Agent"));
+        assert!(agent.functions.contains_key(&("start".to_string(), 1)));
+        let get = agent
+            .functions
+            .get(&("get".to_string(), 1))
+            .expect("Agent.get receiver method");
+        assert!(get.receiver_method);
+        assert!(!get.receiver_mutable);
+        let update = agent
+            .functions
+            .get(&("update".to_string(), 2))
+            .expect("Agent.update mutable receiver method");
+        assert!(update.receiver_method);
+        assert!(update.receiver_mutable);
+        let get_and_update = agent
+            .functions
+            .get(&("get_and_update".to_string(), 2))
+            .expect("Agent.get_and_update receiver method");
+        assert!(get_and_update.receiver_method);
+        assert!(!get_and_update.receiver_mutable);
+
+        let process = interfaces
+            .get("std.beam.Process")
+            .expect("embedded BEAM process interface");
+        assert!(process.opaque_types.contains("Process"));
+        let process_like = process
+            .traits
+            .get("ProcessLike")
+            .expect("embedded ProcessLike trait contract");
+        assert!(process_like.methods.contains_key("send"));
+        assert!(process_like.methods.contains_key("stop"));
+
+        let message = interfaces
+            .get("std.beam.Message")
+            .expect("embedded BEAM message interface");
+        assert!(message.opaque_types.contains("Message"));
+        let message_codec = message
+            .traits
+            .get("MessageCodec")
+            .expect("embedded MessageCodec trait contract");
+        assert!(message_codec.methods.contains_key("wrap"));
+        assert!(message_codec.methods.contains_key("unwrap"));
+
+        let backpressure = interfaces
+            .get("std.beam.Backpressure")
+            .expect("embedded BEAM backpressure interface");
+        assert!(backpressure.public_types.contains("Credit"));
+        let backpressure_trait = backpressure
+            .traits
+            .get("Backpressure")
+            .expect("embedded Backpressure trait contract");
+        assert!(backpressure_trait.methods.contains_key("available"));
+        assert!(backpressure_trait.methods.contains_key("request"));
+        assert!(backpressure_trait.methods.contains_key("release"));
+
+        let supervisor = interfaces
+            .get("std.beam.Supervisor")
+            .expect("embedded BEAM supervisor interface");
+        assert!(supervisor.opaque_types.contains("Supervisor"));
+        assert!(supervisor.opaque_types.contains("ChildSpec"));
+        assert!(supervisor
+            .functions
+            .contains_key(&("child_spec".to_string(), 1)));
+        let supervisor_start = supervisor
+            .functions
+            .get(&("start".to_string(), 2))
+            .expect("Supervisor.start receiver method");
+        assert!(supervisor_start.receiver_method);
+        assert!(!supervisor_start.receiver_mutable);
+        let supervisor_stop = supervisor
+            .functions
+            .get(&("stop".to_string(), 2))
+            .expect("Supervisor.stop mutable receiver method");
+        assert!(supervisor_stop.receiver_method);
+        assert!(supervisor_stop.receiver_mutable);
+        assert!(supervisor.traits.contains_key("Supervised"));
+
+        let gen_server = interfaces
+            .get("std.beam.GenServer")
+            .expect("embedded BEAM GenServer interface");
+        assert!(gen_server.public_types.contains("CallReply"));
+        assert!(gen_server.opaque_types.contains("ServerRef"));
+        assert!(gen_server.functions.contains_key(&("start".to_string(), 1)));
+        let call = gen_server
+            .functions
+            .get(&("call".to_string(), 2))
+            .expect("GenServer.call receiver method");
+        assert!(call.receiver_method);
+        assert!(!call.receiver_mutable);
+        let cast = gen_server
+            .functions
+            .get(&("cast".to_string(), 2))
+            .expect("GenServer.cast mutable receiver method");
+        assert!(cast.receiver_method);
+        assert!(cast.receiver_mutable);
+        let stop = gen_server
+            .functions
+            .get(&("stop".to_string(), 1))
+            .expect("GenServer.stop mutable receiver method");
+        assert!(stop.receiver_method);
+        assert!(stop.receiver_mutable);
+        let gen_server_trait = gen_server
+            .traits
+            .get("GenServer")
+            .expect("embedded GenServer trait contract");
+        assert!(gen_server_trait.methods.contains_key("init"));
+        assert!(gen_server_trait.methods.contains_key("handle_call"));
+        assert!(gen_server_trait.methods.contains_key("handle_cast"));
+        assert!(
+            gen_server_trait
+                .methods
+                .get("terminate")
+                .expect("GenServer terminate callback")
+                .has_default
+        );
+
+        let native_bridge = interfaces
+            .get("std.beam.NativeBridge")
+            .expect("embedded BEAM native bridge interface");
+        assert!(native_bridge.opaque_types.contains("NativeBridge"));
+        assert!(native_bridge
+            .functions
+            .contains_key(&("start".to_string(), 1)));
+        let native_call = native_bridge
+            .functions
+            .get(&("call".to_string(), 2))
+            .expect("NativeBridge.call receiver method");
+        assert!(native_call.receiver_method);
+        assert!(!native_call.receiver_mutable);
+        let dispose = native_bridge
+            .functions
+            .get(&("dispose".to_string(), 1))
+            .expect("NativeBridge.dispose mutable receiver method");
+        assert!(dispose.receiver_method);
+        assert!(dispose.receiver_mutable);
+        let native_stop = native_bridge
+            .functions
+            .get(&("stop".to_string(), 1))
+            .expect("NativeBridge.stop mutable receiver method");
+        assert!(native_stop.receiver_method);
+        assert!(native_stop.receiver_mutable);
+        let native_bridge_runtime = native_bridge
+            .traits
+            .get("NativeBridgeRuntime")
+            .expect("embedded NativeBridgeRuntime trait contract");
+        assert!(native_bridge_runtime
+            .super_traits
+            .contains(&"Supervised[NativeBridge[Resource]]".to_string()));
+        assert!(native_bridge_runtime
+            .super_traits
+            .contains(&"Backpressure[NativeBridge[Resource]]".to_string()));
+        assert!(native_bridge_runtime
+            .super_traits
+            .contains(&"MessageCodec[Command]".to_string()));
+        assert!(native_bridge_runtime
+            .super_traits
+            .contains(&"MessageCodec[Reply]".to_string()));
+
+        let task = interfaces
+            .get("std.beam.Task")
+            .expect("embedded BEAM Task interface");
+        assert!(task.opaque_types.contains("Task"));
+        assert!(task.functions.contains_key(&("start".to_string(), 1)));
+        let result = task
+            .functions
+            .get(&("result".to_string(), 1))
+            .expect("Task.result receiver method");
+        assert!(result.receiver_method);
+        assert!(!result.receiver_mutable);
+        let cancel = task
+            .functions
+            .get(&("cancel".to_string(), 1))
+            .expect("Task.cancel mutable receiver method");
+        assert!(cancel.receiver_method);
+        assert!(cancel.receiver_mutable);
     }
 }

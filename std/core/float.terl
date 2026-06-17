@@ -1,0 +1,179 @@
+/**
+ *Core float conformance helpers.
+ *
+ *`std.core.Float` provides named operations used by stdlib trait/conformance
+ *implementations for primitive `Float`.
+ */
+
+module std.core.Float.
+
+import std.core.Option.{None, Some}.
+import type std.core.Option.
+import std.core.Ordering.{Eq, Gt, Lt}.
+
+/**
+ * Returns whether two finite `Float` values are equal.
+ *
+ * Input: two supported finite `Float` values.
+ * Output: `true` when both inputs represent the same finite floating-point
+ * value; otherwise `false`.
+ * Transformation: delegates to exact Terlan equality for the finite float
+ * domain selected by the source contract without changing either input.
+ *
+ * ```terlan
+ * module float_equal_example.
+ *
+ * pub demo(): Bool ->
+ *     std.core.Float.equal(1.5, 1.5).
+ * ```
+ */
+pub equal(left: Float, right: Float): Bool ->
+    left == right.
+
+/**
+ * Returns the smaller of two finite `Float` values.
+ *
+ * Input: two supported finite `Float` values.
+ * Output: `left` when it is less than or equal to `right`; otherwise `right`.
+ * Transformation: compares the two inputs with primitive finite-float
+ * ordering and returns one original input unchanged.
+ *
+ * ```terlan
+ * module float_min_example.
+ *
+ * pub demo(): Float ->
+ *     std.core.Float.min(1.5, 2.25).
+ * ```
+ */
+pub min(left: Float, right: Float): Float ->
+    case left <= right {
+        true ->
+            left;
+
+        false ->
+            right
+    }.
+
+/**
+ * Returns the larger of two finite `Float` values.
+ *
+ * Input: two supported finite `Float` values.
+ * Output: `left` when it is greater than or equal to `right`; otherwise
+ * `right`.
+ * Transformation: compares the two inputs with primitive finite-float
+ * ordering and returns one original input unchanged.
+ *
+ * ```terlan
+ * module float_max_example.
+ *
+ * pub demo(): Float ->
+ *     std.core.Float.max(2.25, 1.5).
+ * ```
+ */
+pub max(left: Float, right: Float): Float ->
+    case left >= right {
+        true ->
+            left;
+
+        false ->
+            right
+    }.
+
+/**
+ * Returns the absolute value of a finite `Float`.
+ *
+ * Input: one supported finite `Float` value.
+ * Output: the non-negative magnitude of the input.
+ * Transformation: returns the input unchanged when it is non-negative;
+ * otherwise subtracts it from zero.
+ *
+ * ```terlan
+ * module float_abs_example.
+ *
+ * pub demo(): Float ->
+ *     std.core.Float.abs(-2.25).
+ * ```
+ */
+pub abs(value: Float): Float ->
+    case value < 0.0 {
+        true ->
+            0.0 - value;
+
+        false ->
+            value
+    }.
+
+/**
+ *Compares two supported finite `Float` values using numeric ordering.
+ *
+ *Input: two supported finite `Float` values.
+ *Output: `Lt` when `left` is numerically less than `right`, `Eq` when the
+ *values are equal, and `Gt` when `left` is numerically greater than
+ *`right`.
+ *Transformation: maps the selected finite float ordering relation onto
+ *`std.core.Ordering.Comparison`.
+ *
+ *This function is the named implementation hook for compiler-known
+ *`std.core.Ordering.Ordering[Float]` conformance in 0.0.1. Non-finite values
+ *are outside the 0.0.1 source contract.
+ *
+ *```terlan
+ *module float_compare_example.
+ *
+ *pub demo(): std.core.Ordering.Comparison ->
+ *    std.core.Float.compare(1.5, 2.5).
+ *```
+ */
+pub compare(left: Float, right: Float): std.core.Ordering.Comparison ->
+    case left == right {
+        true ->
+            Eq;
+
+        false ->
+            case left < right {
+                true ->
+                    Lt;
+
+                false ->
+                    Gt
+            }
+    }.
+
+/**
+ *Renders a finite `Float` as its canonical UTF-8 `String`.
+ *
+ *Input: one supported finite `Float` value.
+ *Output: the compact decimal string for the input float.
+ *Transformation: lowers through the compiler-owned `core.float.to_string`
+ *intrinsic with compact decimal formatting for `std.core.String.Show[Float]`.
+ *
+ *```terlan
+ *module float_to_string_example.
+ *
+ *pub demo(): String ->
+ *    std.core.Float.to_string(1.5).
+ *```
+ */
+@compiler.intrinsic
+pub to_string(value: Float): String ->
+    "".
+
+/**
+ *Parses a canonical UTF-8 `String` into `Float`.
+ *
+ *Input: one `String` value.
+ *Output: `Option[Float]`, where supported finite decimal float text returns
+ *`Some(value)` and invalid text returns `None`.
+ *Transformation: lowers through the compiler-owned `core.float.from_string`
+ *intrinsic and accepts only inputs where the full string is consumed.
+ *
+ *```terlan
+ *module float_from_string_example.
+ *
+ *pub demo(): Option[Float] ->
+ *    std.core.Float.from_string("1.5").
+ *```
+ */
+@compiler.intrinsic
+pub from_string(value: String): Option[Float] ->
+    None.

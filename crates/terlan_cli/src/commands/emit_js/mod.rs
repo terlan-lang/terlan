@@ -170,7 +170,7 @@ hidden(A: Int): Int ->
     A.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_surface.tl",
+            "js_core_surface.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -208,7 +208,7 @@ pub quotient(A: Int, B: Int): Int ->
     A div B.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_surface_div.tl",
+            "js_core_surface_div.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -249,7 +249,7 @@ pub piped(): Int ->
     1 |> add(2).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_surface_pipe_forward.tl",
+            "js_core_surface_pipe_forward.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -291,7 +291,7 @@ pub classify(value: Int): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_surface_integer_case.tl",
+            "js_core_surface_integer_case.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -332,7 +332,7 @@ pub classify(value: Float): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_surface_float_case.tl",
+            "js_core_surface_float_case.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -375,7 +375,7 @@ pub classify(flag: Bool): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_surface_bool_case.tl",
+            "js_core_surface_bool_case.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -434,7 +434,7 @@ pub add(A: Int, B: Int): Int ->
     A + B.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_oxc_facade.tl",
+            "js_core_oxc_facade.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -491,7 +491,7 @@ pub add(A: Int, B: Int): Int ->
     A + B.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_ast.tl",
+            "js_core_direct_ast.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -528,7 +528,7 @@ pub answer(): Int ->
     42.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_int.tl",
+            "js_core_direct_int.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -566,7 +566,7 @@ pub ratio(): Float ->
     1.5.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_float.tl",
+            "js_core_direct_float.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -606,7 +606,7 @@ pub status(): Atom ->
     :ok.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_strings.tl",
+            "js_core_direct_strings.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -653,7 +653,7 @@ pub no(): Bool ->
     false.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_bools.tl",
+            "js_core_direct_bools.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -693,7 +693,7 @@ pub choose(flag: Bool): Int ->
     if { flag -> 1; true -> 0 }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_total_if.tl",
+            "js_core_direct_total_if.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -732,7 +732,7 @@ pub choose(flag: Bool): Int ->
     if { flag -> 1 }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_partial_if_fallback.tl",
+            "js_core_partial_if_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -780,7 +780,7 @@ pub choose(status: Atom): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_literal_case.tl",
+            "js_core_direct_literal_case.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -822,7 +822,7 @@ pub classify(value: Int): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_integer_case.tl",
+            "js_core_direct_integer_case.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -864,7 +864,7 @@ pub classify(value: Float): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_float_case.tl",
+            "js_core_direct_float_case.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -908,7 +908,7 @@ pub classify(flag: Bool): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_bool_case.tl",
+            "js_core_direct_bool_case.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -949,7 +949,7 @@ pub choose(status: Atom): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_partial_case_fallback.tl",
+            "js_core_partial_case_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -996,7 +996,7 @@ pub choose(status: Atom, flag: Bool): Int ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_guarded_case_fallback.tl",
+            "js_core_guarded_case_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1043,7 +1043,7 @@ pub first(value: Dynamic): Dynamic ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_destructuring_case_fallback.tl",
+            "js_core_destructuring_case_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1086,7 +1086,7 @@ pub id_fun(): Term ->
     (x) -> x.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_lambda.tl",
+            "js_core_direct_lambda.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1125,7 +1125,7 @@ pub values(items: List[Int]): List[Int] ->
     [value | value <- items].
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_list_comprehension.tl",
+            "js_core_direct_list_comprehension.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1166,7 +1166,7 @@ pub firsts(items: List[{Int, Int}]): List[Int] ->
     [left | {left, _right} <- items].
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_list_comprehension_destructuring_fallback.tl",
+            "js_core_list_comprehension_destructuring_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1210,7 +1210,7 @@ pub call_remote(): Int ->
     erlang.abs(1).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_remote_call_fallback.tl",
+            "js_core_remote_call_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1255,7 +1255,7 @@ pub reference(): Dynamic ->
     fun erlang:abs/1.
 ";
         let result = compile_syntax_module_through_phases_with_profile(
-            "js_core_remote_fun_ref_fallback.tl",
+            "js_core_remote_fun_ref_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1295,7 +1295,7 @@ pub make(): Dynamic ->
     Ok(1).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_constructor_call_fallback.tl",
+            "js_core_constructor_call_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1343,7 +1343,7 @@ pub make(id: Int, name: Binary): Dynamic ->
     User(id, name) with Admin { id = id, name = name }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_constructor_chain_fallback.tl",
+            "js_core_constructor_chain_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1358,53 +1358,6 @@ pub make(id: Int, name: Binary): Dynamic ->
             .expect("fallback Oxc backend emits bootstrap JS");
 
         assert!(js.contains("export function make(id, name)"));
-        assert!(
-            js.contains("throw new Error(\"Terlan JS backend stub\")"),
-            "{js}"
-        );
-    }
-
-    /// Verifies that receive expressions stay outside the direct JS backend
-    /// subset until mailbox semantics are selected.
-    ///
-    /// Inputs:
-    /// - A checked Terlan module with a public function returning a `receive`
-    ///   expression with an `after` timeout clause.
-    ///
-    /// Output:
-    /// - Assertions over direct-AST rejection and fallback JavaScript source.
-    ///
-    /// Transformation:
-    /// - Compiles source through the formal pipeline, verifies the direct Oxc
-    ///   AST emitter declines `CoreExpr::Receive`, then checks the
-    ///   command-facing facade preserves the JS stub fallback.
-    #[test]
-    fn emit_core_module_with_oxc_codegen_falls_back_for_receive_expr() {
-        let source = "\
-module js_core_receive_fallback.
-
-pub wait(): Dynamic ->
-    receive {
-        value -> value;
-    after 0 -> :timeout
-    }.
-";
-        let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_receive_fallback.tl",
-            source,
-            DiagnosticFormat::default(),
-            None,
-            NativePolicy::default(),
-            TargetProfile::default(),
-        )
-        .expect("compile source to CoreIR");
-
-        assert!(oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).is_none());
-
-        let js = oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core)
-            .expect("fallback Oxc backend emits bootstrap JS");
-
-        assert!(js.contains("export function wait()"));
         assert!(
             js.contains("throw new Error(\"Terlan JS backend stub\")"),
             "{js}"
@@ -1440,7 +1393,7 @@ pub run(): Dynamic ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_try_fallback.tl",
+            "js_core_try_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1455,50 +1408,6 @@ pub run(): Dynamic ->
             .expect("fallback Oxc backend emits bootstrap JS");
 
         assert!(js.contains("export function run()"));
-        assert!(
-            js.contains("throw new Error(\"Terlan JS backend stub\")"),
-            "{js}"
-        );
-    }
-
-    /// Verifies that message-send expressions stay outside the direct JS
-    /// backend subset until process/mailbox semantics are selected.
-    ///
-    /// Inputs:
-    /// - A checked Terlan module with a public function returning
-    ///   `target ! message`.
-    ///
-    /// Output:
-    /// - Assertions over direct-AST rejection and fallback JavaScript source.
-    ///
-    /// Transformation:
-    /// - Compiles source through the formal pipeline, verifies the direct Oxc
-    ///   AST emitter declines `CoreExpr::BinaryOp` with the `!` operator, then
-    ///   checks the command-facing facade preserves the JS stub fallback.
-    #[test]
-    fn emit_core_module_with_oxc_codegen_falls_back_for_send_expr() {
-        let source = "\
-module js_core_send_fallback.
-
-pub send_it(target: Dynamic, message: Dynamic): Atom ->
-    target ! message.
-";
-        let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_send_fallback.tl",
-            source,
-            DiagnosticFormat::default(),
-            None,
-            NativePolicy::default(),
-            TargetProfile::default(),
-        )
-        .expect("compile source to CoreIR");
-
-        assert!(oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).is_none());
-
-        let js = oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core)
-            .expect("fallback Oxc backend emits bootstrap JS");
-
-        assert!(js.contains("export function send_it(target, message)"));
         assert!(
             js.contains("throw new Error(\"Terlan JS backend stub\")"),
             "{js}"
@@ -1527,7 +1436,7 @@ pub quoted(): Ast[Int] ->
     quote 1.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_quote_fallback.tl",
+            "js_core_quote_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1571,7 +1480,7 @@ pub unquoted(value: Int): Int ->
     unquote(value).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_unquote_fallback.tl",
+            "js_core_unquote_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1615,7 +1524,7 @@ pub view(): Html[Dynamic] ->
     html { <main>Hello</main> }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_html_block_fallback.tl",
+            "js_core_html_block_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1663,7 +1572,7 @@ pub fixed(): FixedArray[2, Int] ->
     #[5, 6].
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_arrays.tl",
+            "js_core_direct_arrays.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1704,7 +1613,7 @@ pub negate(value: Int): Int ->
     -value.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_unary.tl",
+            "js_core_direct_unary.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1744,7 +1653,7 @@ pub prepend(head: Int, tail: List[Int]): List[Int] ->
     [head | tail].
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_list_cons.tl",
+            "js_core_direct_list_cons.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1760,21 +1669,22 @@ pub prepend(head: Int, tail: List[Int]): List[Int] ->
         assert!(js.contains("return [head, ...tail];"), "{js}");
     }
 
-    /// Verifies that direct Oxc AST lowering handles index expressions.
+    /// Verifies that source index expressions currently fall back in Oxc JS.
     ///
     /// Inputs:
     /// - A checked Terlan module with one public fixed-array indexing
     ///   function.
     ///
     /// Output:
-    /// - Assertions over Oxc-printed JavaScript source.
+    /// - Assertions over direct-AST rejection and fallback JavaScript source.
     ///
     /// Transformation:
-    /// - Compiles source through the formal pipeline, passes its `CoreModule`
-    ///   into the direct Oxc AST emitter, and checks that CoreIR indexing
-    ///   becomes JavaScript computed member access.
+    /// - Compiles source through the formal pipeline, which lowers bracket
+    ///   source syntax through `IndexGet.get_at`, verifies direct Oxc emission
+    ///   declines that trait-backed call, then checks the public Oxc facade
+    ///   returns the JS stub fallback.
     #[test]
-    fn emit_core_module_with_direct_oxc_ast_handles_index_expr() {
+    fn emit_core_module_with_oxc_codegen_falls_back_for_index_trait_call() {
         let source = "\
 module js_core_direct_index.
 
@@ -1782,7 +1692,7 @@ pub first(items: FixedArray[2, Int]): Int ->
     items[0].
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_index.tl",
+            "js_core_direct_index.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1791,11 +1701,16 @@ pub first(items: FixedArray[2, Int]): Int ->
         )
         .expect("compile source to CoreIR");
 
-        let js = oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core)
-            .expect("direct Oxc AST emits index CoreIR");
+        assert!(oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).is_none());
+
+        let js = oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core)
+            .expect("fallback Oxc backend emits bootstrap JS");
 
         assert!(js.contains("export function first(items)"));
-        assert!(js.contains("return items[0];"), "{js}");
+        assert!(
+            js.contains("throw new Error(\"Terlan JS backend stub\")"),
+            "{js}"
+        );
     }
 
     /// Verifies that direct Oxc AST lowering handles identifier-key map
@@ -1821,7 +1736,7 @@ pub point(): Term ->
     #{x => 1, y => 2}.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_map.tl",
+            "js_core_direct_map.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1865,7 +1780,7 @@ pub read(point: Point): Int ->
     point.x.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_field.tl",
+            "js_core_direct_field.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1907,7 +1822,7 @@ pub make(): Point ->
     #Point { x = 1 }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_record_construct.tl",
+            "js_core_direct_record_construct.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1951,7 +1866,7 @@ pub read(point: Point): Int ->
     point#Point.x.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_record_access.tl",
+            "js_core_direct_record_access.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -1995,7 +1910,7 @@ pub set_x(point: Point): Point ->
     point#Point { x = 1, y = point.y }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_record_update.tl",
+            "js_core_direct_record_update.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2042,13 +1957,13 @@ pub set_x(point: Point): Point ->
         ));
         let template_dir = dir.join("templates");
         fs::create_dir_all(&template_dir).expect("create template dir");
-        fs::write(template_dir.join("page.tl.html"), "<h1>{title}</h1>").expect("write template");
-        let source_path = dir.join("js_core_direct_template_instantiate.tl");
+        fs::write(template_dir.join("page.terl.html"), "<h1>{title}</h1>").expect("write template");
+        let source_path = dir.join("js_core_direct_template_instantiate.terl");
         let source_path = source_path.to_string_lossy().to_string();
         let source = "\
 module js_core_direct_template_instantiate.
 
-template Page from \"./templates/page.tl.html\" {
+template Page from \"./templates/page.terl.html\" {
     title: Binary
 }.
 
@@ -2131,7 +2046,7 @@ pub greater_than_or_equal(x: Int, y: Int): Bool ->
     x >= y.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_binary_ops.tl",
+            "js_core_direct_binary_ops.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2182,7 +2097,7 @@ pub call_it(): Int ->
     identity(1).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_named_call.tl",
+            "js_core_direct_named_call.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2223,7 +2138,7 @@ pub apply(value: Int, f: (Int) -> Int): Int ->
     f.(value).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_function_value_call.tl",
+            "js_core_direct_function_value_call.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2261,7 +2176,7 @@ pub has_needle(): Bool ->
     \"hello\".contains(\"ell\").
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_string_contains_intrinsic.tl",
+            "js_core_direct_string_contains_intrinsic.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2300,7 +2215,7 @@ pub has_prefix(): Bool ->
     \"hello\".starts_with(\"he\").
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_string_starts_with_intrinsic.tl",
+            "js_core_direct_string_starts_with_intrinsic.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2339,7 +2254,7 @@ pub len(): Int ->
     \"hello\".length().
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_string_length_intrinsic.tl",
+            "js_core_direct_string_length_intrinsic.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2382,7 +2297,7 @@ pub piped(): Int ->
     1 |> add(2).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_pipe_forward.tl",
+            "js_core_direct_pipe_forward.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2425,7 +2340,7 @@ pub call_it(): Int ->
     identity(1).
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_facade_named_call.tl",
+            "js_core_facade_named_call.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2471,7 +2386,7 @@ pub answer(): Int ->
     42.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_direct_reachable.tl",
+            "js_core_direct_reachable.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2517,7 +2432,7 @@ pub answer(): Int ->
     42.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_facade_reachable.tl",
+            "js_core_facade_reachable.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2560,7 +2475,7 @@ pub choose(status: Atom): Atom ->
     }.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_binding_case_fallback.tl",
+            "js_core_binding_case_fallback.terl",
             source,
             DiagnosticFormat::default(),
             None,
@@ -2611,7 +2526,7 @@ hidden(A: Int): Int ->
     A.
 ";
         let artifacts = compile_syntax_module_through_phases_with_profile(
-            "js_core_declarations.tl",
+            "js_core_declarations.terl",
             source,
             DiagnosticFormat::default(),
             None,

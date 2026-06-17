@@ -1,0 +1,10 @@
+module html_invalid_attributes.
+
+pub view(Count: Int, Label: Binary): Html[none] ->
+    html {
+        <main>
+            <a href={Count}>Bad href</a>
+            <button disabled={Label}>Bad disabled</button>
+            <div class={[Count]}>Bad class</div>
+        </main>
+    }.

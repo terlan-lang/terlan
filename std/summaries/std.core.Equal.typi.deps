@@ -1,10 +1,9 @@
 module=std.core.Equal
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:7c98039801b93422
-source_hash=12889671803935985515
-interface_hash=17901832156812858731
-interface_doc_hash=11900073280897069753
-deps=2
-std.core.Ordering=3854043757064969709
-std.core.Unit=9561744969949975774
+syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+source_hash=8092798199322558533
+interface_hash=18324351519483319625
+interface_doc_hash=14141619417632973155
+deps=1
+std.core.Ordering=13589876833161759158

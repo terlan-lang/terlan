@@ -1,0 +1,4 @@
+module a0_21_backend_specific_remote_fun_ref.
+
+pub reference(): Dynamic ->
+    fun erlang:abs/1.

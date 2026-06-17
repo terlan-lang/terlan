@@ -1,0 +1,9 @@
+module a0_15_constructor_extension.
+
+pub constructor User {
+    (id: Int, name: Binary): Dynamic ->
+        id
+}.
+
+pub build(id: Int, name: Binary): Dynamic ->
+    User(id, name) with Admin { id = id, name = name }.

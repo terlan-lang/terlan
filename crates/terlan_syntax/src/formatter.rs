@@ -1,24 +1,59 @@
-use crate::ast::{
-    BinaryOp, CaseClause, ConstructorDecl, ConstructorParam, Decl, ExportDecl, Expr,
-    FunctionClause, FunctionDecl, HtmlAttr, HtmlAttrValue, HtmlNode, ImportDecl, ImportKind,
-    MapExprField, MapField, MethodDecl, Module, Param, Pattern, StructDecl, StructFieldDecl,
-    TemplateDecl, TraitDecl, TraitImplDecl, TypeDecl, TypeExpr, UnaryOp, UnsupportedDecl,
+use crate::parse_tree::{
+    AnnotationKeyOption, AnnotationSchemaDecl, AnnotationSchemaEntry, AnnotationValue, BinaryOp,
+    CaseClause, ConstructorDecl, ConstructorParam, Decl, ExportDecl, Expr, FunctionClause,
+    FunctionDecl, HtmlAttr, HtmlAttrValue, HtmlNode, ImportDecl, ImportKind, MapExprField,
+    MapField, MethodDecl, Module, Param, Pattern, StructDecl, StructFieldDecl, TemplateDecl,
+    TraitDecl, TraitImplDecl, TypeDecl, TypeExpr, UnaryOp, UnsupportedDecl,
 };
+use crate::parser::{parse_interface_module, parse_module, ParseError};
 
-/// Formats a parsed Terlan module or interface AST back into source text.
+/// Formats canonical Terlan source text.
 ///
 /// Inputs:
-/// - `module`: parsed AST from either the canonical `.tl` source parser or the
-///   `.tli` interface parser.
+/// - `source`: raw `.terl` module text.
+///
+/// Output:
+/// - Pretty-printed Terlan source on success.
+/// - `ParseError` when the source cannot be parsed as a canonical module.
+///
+/// Transformation:
+/// - Parses the source into the parser's private parse tree and immediately
+///   renders it back to canonical source text. The parse tree is not exposed to
+///   callers.
+pub fn format_source_module(source: &str) -> Result<String, ParseError> {
+    parse_module(source).map(|module| format_module(&module))
+}
+
+/// Formats canonical Terlan interface text.
+///
+/// Inputs:
+/// - `source`: raw `.terli` interface summary text.
+///
+/// Output:
+/// - Pretty-printed interface text on success.
+/// - `ParseError` when the source cannot be parsed as an interface module.
+///
+/// Transformation:
+/// - Parses interface-only declaration forms such as export summaries into the
+///   parser's private parse tree and renders them without exposing that tree.
+pub fn format_interface_source_module(source: &str) -> Result<String, ParseError> {
+    parse_interface_module(source).map(|module| format_module(&module))
+}
+
+/// Formats a parsed Terlan module or interface parse tree back into source text.
+///
+/// Inputs:
+/// - `module`: parsed parse tree from either the canonical `.terl` source parser or the
+///   `.terli` interface parser.
 ///
 /// Output:
 /// - Pretty-printed Terlan text with a module header and formatted declarations.
 ///
 /// Transformation:
 /// - Walks declarations in source order and delegates each declaration to the
-///   matching formatter. Normal `.tl` parsing rejects `Decl::Export`; if export
-///   declarations appear here they are interface summaries from `.tli` parsing.
-pub fn format_module(module: &Module) -> String {
+///   matching formatter. Normal `.terl` parsing rejects `Decl::Export`; if export
+///   declarations appear here they are interface summaries from `.terli` parsing.
+pub(crate) fn format_module(module: &Module) -> String {
     let mut out = String::new();
     out.push_str("module ");
     out.push_str(&module.name);
@@ -38,14 +73,14 @@ pub fn format_module(module: &Module) -> String {
 /// Formats one parsed declaration.
 ///
 /// Inputs:
-/// - `decl`: AST declaration to format.
+/// - `decl`: parse tree declaration to format.
 ///
 /// Output:
 /// - Declaration source text including its terminating period or block terminator.
 ///
 /// Transformation:
 /// - Dispatches by declaration variant. `Decl::Export` is retained only so
-///   interface modules can round-trip export summaries; canonical `.tl` source
+///   interface modules can round-trip export summaries; canonical `.terl` source
 ///   uses declaration-site `pub`.
 fn format_decl(decl: &Decl) -> String {
     match decl {
@@ -56,10 +91,163 @@ fn format_decl(decl: &Decl) -> String {
         Decl::Method(method) => format_method(method),
         Decl::Trait(trait_decl) => format_trait_decl(trait_decl),
         Decl::TraitImpl(trait_impl_decl) => format_trait_impl_decl(trait_impl_decl),
+        Decl::AnnotationSchema(annotation_schema_decl) => {
+            format_annotation_schema_decl(annotation_schema_decl)
+        }
         Decl::Template(template_decl) => format_template_decl(template_decl),
         Decl::Struct(struct_decl) => format_struct_decl(struct_decl),
         Decl::Constructor(constructor) => format_constructor_decl(constructor),
         Decl::Raw(raw) => format_raw_decl(raw),
+    }
+}
+
+/// Formats an annotation schema declaration.
+///
+/// Inputs:
+/// - `schema`: parsed annotation schema declaration.
+///
+/// Output:
+/// - Terlan source text for the schema declaration.
+///
+/// Transformation:
+/// - Emits the path and each schema entry in declaration order, preserving
+///   public visibility and terminating the declaration with `.`.
+fn format_annotation_schema_decl(schema: &AnnotationSchemaDecl) -> String {
+    let mut out = String::new();
+    if schema.is_public {
+        out.push_str("pub ");
+    }
+    out.push_str("annotation ");
+    out.push_str(&schema.path.join("."));
+    out.push_str(" {\n");
+    for entry in &schema.entries {
+        out.push_str("    ");
+        out.push_str(&format_annotation_schema_entry(entry));
+        out.push('\n');
+    }
+    out.push_str("}.");
+    out
+}
+
+/// Formats one annotation schema body entry.
+///
+/// Inputs:
+/// - `entry`: parsed schema entry.
+///
+/// Output:
+/// - Source text for the entry including its terminating semicolon.
+///
+/// Transformation:
+/// - Converts target-set and key-schema entries into the canonical block body
+///   spelling used by the formatter.
+fn format_annotation_schema_entry(entry: &AnnotationSchemaEntry) -> String {
+    match entry {
+        AnnotationSchemaEntry::AppliesTo { targets, .. } => {
+            format!("applies_to: {};", format_annotation_targets(targets))
+        }
+        AnnotationSchemaEntry::Key {
+            key,
+            value_type,
+            options,
+            ..
+        } => {
+            let mut out = format!("{}: {}", key.join("."), value_type.text);
+            if !options.is_empty() {
+                out.push_str(" { ");
+                out.push_str(
+                    &options
+                        .iter()
+                        .map(format_annotation_key_option)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                );
+                out.push_str(" }");
+            }
+            out.push(';');
+            out
+        }
+    }
+}
+
+/// Formats one annotation key option.
+///
+/// Inputs:
+/// - `option`: parsed schema key option.
+///
+/// Output:
+/// - Source text for the option without a trailing separator.
+///
+/// Transformation:
+/// - Converts typed option values back to their schema-block spelling.
+fn format_annotation_key_option(option: &AnnotationKeyOption) -> String {
+    match option {
+        AnnotationKeyOption::Required { value, .. } => format!("required: {value}"),
+        AnnotationKeyOption::Repeatable { value, .. } => format!("repeatable: {value}"),
+        AnnotationKeyOption::Default { value, .. } => {
+            format!("default: {}", format_annotation_value(value))
+        }
+        AnnotationKeyOption::AppliesTo { targets, .. } => {
+            format!("applies_to: {}", format_annotation_targets(targets))
+        }
+    }
+}
+
+/// Formats a target set in schema syntax.
+///
+/// Inputs:
+/// - `targets`: one or more declaration target names.
+///
+/// Output:
+/// - A single target or bracketed target list.
+///
+/// Transformation:
+/// - Keeps single-target schemas compact and formats multiple targets as a
+///   comma-separated list.
+fn format_annotation_targets(targets: &[String]) -> String {
+    if targets.len() == 1 {
+        return targets[0].clone();
+    }
+    format!("[{}]", targets.join(", "))
+}
+
+/// Formats an annotation metadata value.
+///
+/// Inputs:
+/// - `value`: parsed annotation metadata value.
+///
+/// Output:
+/// - Source text for the value.
+///
+/// Transformation:
+/// - Recursively formats lists and objects while preserving literal text for
+///   numeric and string values.
+fn format_annotation_value(value: &AnnotationValue) -> String {
+    match value {
+        AnnotationValue::Name(segments) => segments.join("."),
+        AnnotationValue::Bool(value) => value.to_string(),
+        AnnotationValue::Int(text)
+        | AnnotationValue::Float(text)
+        | AnnotationValue::String(text) => text.clone(),
+        AnnotationValue::List(values) => format!(
+            "[{}]",
+            values
+                .iter()
+                .map(format_annotation_value)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        AnnotationValue::Object(entries) => format!(
+            "{{ {} }}",
+            entries
+                .iter()
+                .map(|entry| format!(
+                    "{}: {}",
+                    entry.key.join("."),
+                    format_annotation_value(&entry.value)
+                ))
+                .collect::<Vec<_>>()
+                .join("; ")
+        ),
     }
 }
 
@@ -91,6 +279,11 @@ fn format_import(import: &ImportDecl) -> String {
     out.push('.');
 
     if import.items.len() == 1 {
+        if import.is_type && is_redundant_default_type_import(import) {
+            out.push_str(&import.module_name);
+            out.push('.');
+            return out;
+        }
         out.push(' ');
         out.push_str(&format_import_item(&import.items[0]));
     } else {
@@ -111,7 +304,19 @@ fn format_import(import: &ImportDecl) -> String {
     out
 }
 
-fn format_import_item(item: &crate::ast::ImportItem) -> String {
+fn is_redundant_default_type_import(import: &ImportDecl) -> bool {
+    let Some(item) = import.items.first() else {
+        return false;
+    };
+    item.as_alias.is_none()
+        && import
+            .module_name
+            .rsplit('.')
+            .next()
+            .is_some_and(|last_segment| last_segment == item.name)
+}
+
+fn format_import_item(item: &crate::parse_tree::ImportItem) -> String {
     let mut text = String::from(&item.name);
     if let Some(alias) = &item.as_alias {
         text.push(' ');
@@ -167,7 +372,7 @@ fn escape_string(value: &str) -> String {
 /// - `export`: interface export summary containing `name/arity` entries.
 ///
 /// Output:
-/// - `.tli` export summary source text.
+/// - `.terli` export summary source text.
 ///
 /// Transformation:
 /// - Joins export items as `name/arity` entries. This is intentionally an
@@ -604,12 +809,6 @@ fn format_pattern(pattern: &Pattern) -> String {
                 .join(", ");
             format!("#{}{{{}}}", name, body)
         }
-        Pattern::MapField(key, value, required) => {
-            let sep = if *required { ":=" } else { "=>" };
-            format!("{}{}{}", key, sep, format_pattern(value))
-        }
-        Pattern::Ignore => "_".to_string(),
-        Pattern::Placeholder => "_".to_string(),
     }
 }
 
@@ -645,6 +844,10 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Int(value) => value.to_string(),
         Expr::Float(value) => value.to_string(),
         Expr::Atom(value) => value.clone(),
+        Expr::AtomLiteral(value) => format!(
+            "Atom[\"{}\"]",
+            value.replace('\\', "\\\\").replace('"', "\\\"")
+        ),
         Expr::Binary(value) => value.clone(),
         Expr::Var(name) => name.clone(),
         Expr::Tuple(items) => {
@@ -677,6 +880,16 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Index(value, index) => {
             format!("{}[{}]", format_expr(value, 0), format_expr(index, 0))
         }
+        Expr::IndexAssign {
+            collection,
+            index,
+            value,
+        } => format!(
+            "{}[{}] = {}",
+            format_expr(collection, 0),
+            format_expr(index, 0),
+            format_expr(value, 0)
+        ),
         Expr::Map(fields) => {
             if fields.is_empty() {
                 "#{}".to_string()
@@ -786,32 +999,6 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
             out.push('}');
             out
         }
-        Expr::Receive {
-            clauses,
-            after_clause,
-        } => {
-            let mut out = String::from("receive {\n");
-            for (i, clause) in clauses.iter().enumerate() {
-                out.push_str(&spacing);
-                out.push_str(&format_case_clause(clause));
-                if i + 1 < clauses.len() {
-                    out.push(';');
-                }
-                out.push('\n');
-            }
-            if let Some(after) = after_clause {
-                out.push_str("after ");
-                out.push_str(&spacing);
-                out.push_str(&format!(
-                    "{} -> {}\n",
-                    format_expr(&after.trigger, indent + 1),
-                    format_expr(&after.body, indent + 1)
-                ));
-            }
-            out.push_str(&spacing);
-            out.push('}');
-            out
-        }
         Expr::Try {
             body,
             of_clauses,
@@ -887,13 +1074,6 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
                 )
             })
             .unwrap_or_else(|| "() -> {}".to_string()),
-        Expr::RemoteFunRef {
-            module,
-            function,
-            arity,
-        } => {
-            format!("fun {}:{}/{}", module, function, arity)
-        }
         Expr::MacroCall { name, args } if args.is_empty() => format!("?{}", name),
         Expr::MacroCall { name, args } => format!(
             "?{}({})",
@@ -995,11 +1175,8 @@ fn op_text(op: &BinaryOp) -> &'static str {
         BinaryOp::Sub => "-",
         BinaryOp::Mul => "*",
         BinaryOp::Div => "/",
-        BinaryOp::Eq => "==",
         BinaryOp::EqEq => "==",
-        BinaryOp::EqEqEq => "==",
         BinaryOp::NotEq => "!=",
-        BinaryOp::NotEqEq => "=/=",
         BinaryOp::Lt => "<",
         BinaryOp::Gt => ">",
         BinaryOp::LtEq => "<=",
@@ -1009,7 +1186,6 @@ fn op_text(op: &BinaryOp) -> &'static str {
         BinaryOp::And => "and",
         BinaryOp::Or => "or",
         BinaryOp::PipeForward => "|>",
-        BinaryOp::Send => "!",
     }
 }
 
@@ -1053,7 +1229,7 @@ mod tests {
     /// Verifies source modules cannot reach formatter export-list normalization.
     ///
     /// Inputs:
-    /// - A canonical `.tl` module string containing removed source `export`
+    /// - A canonical `.terl` module string containing removed source `export`
     ///   syntax.
     ///
     /// Output:
@@ -1082,13 +1258,13 @@ export ghost/1.
     /// shared formatter.
     ///
     /// Inputs:
-    /// - A `.tli` interface string containing an export summary.
+    /// - A `.terli` interface string containing an export summary.
     ///
     /// Output:
     /// - Formatted interface text preserving `export ghost/1.`.
     ///
     /// Transformation:
-    /// - Parses with the interface parser and formats the resulting AST, using
+    /// - Parses with the interface parser and formats the resulting parse tree, using
     ///   the shared declaration formatter's interface-only export branch.
     #[test]
     fn formatter_preserves_interface_export_summaries() {
@@ -1130,13 +1306,13 @@ pub view(Name: Text): Html[none] ->
             r#"
 module file_import_fmt.
 
-import file "./templates/user_card.tl.html" as UserCard.
+import file "./templates/user_card.terl.html" as UserCard.
 "#,
         )
         .expect("parse module");
 
         let output = format_module(&module);
-        assert!(output.contains(r#"import file "./templates/user_card.tl.html" as UserCard."#));
+        assert!(output.contains(r#"import file "./templates/user_card.terl.html" as UserCard."#));
     }
 
     #[test]
@@ -1175,7 +1351,7 @@ import markdown "./posts/hello.md" as HelloPost.
             r#"
 module template_fmt.
 
-template Page from "./templates/page.tl.html" {
+template Page from "./templates/page.terl.html" {
     title: Text,
     user: User
 }.
@@ -1185,7 +1361,7 @@ template Page from "./templates/page.tl.html" {
 
         let output = format_module(&module);
         assert!(output.contains(
-            "template Page from \"./templates/page.tl.html\" {\n    title: Text,\n    user: User\n}."
+            "template Page from \"./templates/page.terl.html\" {\n    title: Text,\n    user: User\n}."
         ));
     }
 

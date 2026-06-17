@@ -1,0 +1,4 @@
+module a0_14_lambda.
+
+pub id_fun(): Term ->
+    (x) -> x.

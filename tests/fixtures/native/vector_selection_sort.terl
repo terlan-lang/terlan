@@ -1,0 +1,67 @@
+/**
+ * Native vector selection-sort probe.
+ *
+ * This fixture is a language and std-contract probe, not an Erlang runtime
+ * fixture. It validates that algorithm-oriented code can be written against
+ * `std.native.collections.Vector` while native execution remains gated behind
+ * the Rust/native target capability.
+ */
+
+module native.VectorSelectionSort.
+
+import std.native.collections.Vector.
+
+/**
+ * Sorts a native vector in ascending order.
+ *
+ * Input: one native `Vector[Int]`.
+ * Output: the same vector value after target-native indexed mutation.
+ * Transformation: repeatedly finds the minimum remaining value and swaps it
+ * into the current position.
+ */
+pub selection_sort(values: Vector[Int]): Vector[Int] ->
+    let n = values.length();
+    selection_pass(values, 0, n).
+
+/**
+ * Runs one recursive selection-sort pass.
+ *
+ * Input: a native vector, current index, and vector length.
+ * Output: the vector after all positions from `i` onward are processed.
+ * Transformation: stops at the final index; otherwise finds the minimum index,
+ * updates the current slot, and recurses to the next position.
+ */
+pub selection_pass(values: Vector[Int], i: Int, n: Int): Vector[Int] ->
+    if {
+        i >= n - 1 ->
+            values;
+
+        true ->
+            let min_index = find_min_index(values, i, i + 1, n);
+                min_value = values[min_index];
+                current_value = values[i];
+            values[i] = min_value;
+            values[min_index] = current_value;
+            selection_pass(values, i + 1, n)
+    }.
+
+/**
+ * Finds the index of the minimum value in a suffix.
+ *
+ * Input: a native vector, current minimum index, cursor index, and vector
+ * length.
+ * Output: the index of the minimum value from `j` to the end of the vector.
+ * Transformation: compares indexed values through `IndexGet`-backed bracket
+ * reads and recurses until the cursor reaches the vector length.
+ */
+pub find_min_index(values: Vector[Int], min_index: Int, j: Int, n: Int): Int ->
+    if {
+        j >= n ->
+            min_index;
+
+        values[j] < values[min_index] ->
+            find_min_index(values, j, j + 1, n);
+
+        true ->
+            find_min_index(values, min_index, j + 1, n)
+    }.

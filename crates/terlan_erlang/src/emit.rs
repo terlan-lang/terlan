@@ -12,6 +12,7 @@ use terlan_syntax::{
 };
 use terlan_typeck::{CoreModule, CORE_IR_SCHEMA};
 
+mod beam_process;
 mod core;
 mod erl;
 mod runtime;
@@ -176,4 +177,26 @@ fn unsupported_direct_syntax_emit_message(module: &SyntaxModuleOutput) -> String
 }
 
 #[cfg(test)]
-mod tests;
+#[path = "emit/core_emit_test.rs"]
+mod core_emit_test;
+#[cfg(test)]
+#[path = "emit_test.rs"]
+mod emit_test;
+#[cfg(test)]
+#[path = "emit/html_emit_test.rs"]
+mod html_emit_test;
+#[cfg(test)]
+#[path = "emit/intrinsic_emit_test.rs"]
+mod intrinsic_emit_test;
+#[cfg(test)]
+#[path = "emit/runtime_emit_test.rs"]
+mod runtime_emit_test;
+#[cfg(test)]
+#[path = "emit/syntax_constructor_emit_test.rs"]
+mod syntax_constructor_emit_test;
+#[cfg(test)]
+#[path = "emit/syntax_emit_test.rs"]
+mod syntax_emit_test;
+#[cfg(test)]
+#[path = "emit/test_support.rs"]
+mod test_support;

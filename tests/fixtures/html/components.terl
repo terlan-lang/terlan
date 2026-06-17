@@ -1,0 +1,24 @@
+module html_components.
+
+pub type Msg.
+
+pub layout(Title: Text, Body: Html[Msg]): Html[Msg] ->
+    html {
+        <main>
+            <h1>{Title}</h1>
+            {Body}
+        </main>
+    }.
+
+pub user_card(Name: Text): Html[Msg] ->
+    html {
+        <section>
+            <h2>{Name}</h2>
+        </section>
+    }.
+
+pub page(Name: Text): Html[Msg] ->
+    html {
+        <Layout title="Profile" body={user_card(Name)} />
+        <UserCard name={Name} />
+    }.

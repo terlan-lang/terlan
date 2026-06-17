@@ -1,0 +1,126 @@
+/**
+ * Portable lexical path contract.
+ *
+ * `std.io.Path` exposes path parsing, rendering, and lexical component helpers
+ * through a target-neutral Terlan API. Its first backend is Rust/SafeNative
+ * with `std::path`; source code sees only `Path`, `PathError`, `Option`, and
+ * `Result`.
+ */
+
+module std.io.Path.
+
+import type std.core.Error.
+import type std.core.Option.
+import type std.core.Result.
+
+/**
+ * Path represents a lexical filesystem path value.
+ *
+ * Input: no type parameter.
+ * Output: an opaque path handle whose runtime representation is target-owned.
+ * Transformation: hides platform path parsing and normalization behind a
+ * stable portable API without performing filesystem IO.
+ */
+pub opaque type Path.
+
+/**
+ * PathError is the portable error returned by path operations.
+ *
+ * Input: inherits the neutral `code` and `message` fields from
+ * `std.core.Error.Error` and adds the byte offset reported by the parser when
+ * available.
+ * Output: a typed error value usable anywhere `Error`-derived values are
+ * accepted.
+ * Transformation: maps backend path parsing failures into a portable data
+ * shape without exposing target-specific exception values.
+ */
+pub struct PathError derives Error {
+    offset: Int
+}.
+
+/**
+ * Parses text into a lexical path.
+ *
+ * Input: one UTF-8 string containing path text.
+ * Output: `Ok(path)` when the target can represent the path, otherwise
+ * `Err(PathError)`.
+ * Transformation: delegates path parsing to the selected target path
+ * capability without touching the filesystem.
+ */
+@compiler.native {std.io.path.from_string}
+pub from_string(text: String): Result[Path, PathError] ->
+    native.
+
+/**
+ * Renders a path as text.
+ *
+ * Input: one `Path`.
+ * Output: the target-normalized path text.
+ * Transformation: delegates path rendering to the selected target path
+ * capability without touching the filesystem.
+ */
+@compiler.native {std.io.path.to_string}
+pub (path: Path) to_string(): String ->
+    native.
+
+/**
+ * Joins a child path segment to a base path.
+ *
+ * Input: one base `Path` receiver and one child segment string.
+ * Output: `Ok(path)` when the joined path can be represented, otherwise
+ * `Err(PathError)`.
+ * Transformation: performs lexical target path joining without filesystem IO.
+ */
+@compiler.native {std.io.path.join}
+pub (path: Path) join(child: String): Result[Path, PathError] ->
+    native.
+
+/**
+ * Returns the final path component when present.
+ *
+ * Input: one `Path`.
+ * Output: `Some(name)` when the path has a final component, otherwise `None`.
+ * Transformation: reads lexical path components without touching the
+ * filesystem.
+ */
+@compiler.native {std.io.path.file_name}
+pub (path: Path) file_name(): Option[String] ->
+    native.
+
+/**
+ * Returns the file extension when present.
+ *
+ * Input: one `Path`.
+ * Output: `Some(extension)` when the final component has an extension,
+ * otherwise `None`.
+ * Transformation: reads lexical path components without touching the
+ * filesystem.
+ */
+@compiler.native {std.io.path.extension}
+pub (path: Path) extension(): Option[String] ->
+    native.
+
+/**
+ * Returns the parent path when present.
+ *
+ * Input: one `Path`.
+ * Output: `Some(parent)` when the path has a parent component, otherwise
+ * `None`.
+ * Transformation: reads lexical path components without touching the
+ * filesystem.
+ */
+@compiler.native {std.io.path.parent}
+pub (path: Path) parent(): Option[Path] ->
+    native.
+
+/**
+ * Returns whether a path is absolute.
+ *
+ * Input: one `Path`.
+ * Output: `true` when the path is absolute for the selected target path
+ * semantics, otherwise `false`.
+ * Transformation: classifies the lexical path without touching the filesystem.
+ */
+@compiler.native {std.io.path.is_absolute}
+pub (path: Path) is_absolute(): Bool ->
+    native.

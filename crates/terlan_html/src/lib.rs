@@ -8,8 +8,8 @@ use html5ever::tokenizer::{
 };
 use html5ever::TokenizerResult;
 
-pub const TERLAN_HTML_TEMPLATE_SUFFIX: &str = ".tl.html";
-pub const TERLAN_MARKDOWN_TEMPLATE_SUFFIX: &str = ".tl.md";
+pub const TERLAN_HTML_TEMPLATE_SUFFIX: &str = ".terl.html";
+pub const TERLAN_MARKDOWN_TEMPLATE_SUFFIX: &str = ".terl.md";
 pub const TERLAN_TEMPLATE_SUFFIX: &str = TERLAN_HTML_TEMPLATE_SUFFIX;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -669,27 +669,27 @@ mod tests {
 
     #[test]
     fn detects_terlan_template_paths() {
-        assert!(is_terlan_template_path("templates/user_card.tl.html"));
-        assert!(is_terlan_template_path("templates/user_card.tl.md"));
+        assert!(is_terlan_template_path("templates/user_card.terl.html"));
+        assert!(is_terlan_template_path("templates/user_card.terl.md"));
         assert!(!is_terlan_template_path("templates/user_card.html"));
         assert!(!is_terlan_template_path("templates/user_card.md"));
     }
 
     #[test]
     fn derives_template_tag_from_underscore_filename() {
-        let tag = template_tag_from_path("templates/user_card.tl.html").unwrap();
+        let tag = template_tag_from_path("templates/user_card.terl.html").unwrap();
         assert_eq!(tag, "user-card");
     }
 
     #[test]
     fn derives_template_tag_from_markdown_template_filename() {
-        let tag = template_tag_from_path("templates/welcome_content.tl.md").unwrap();
+        let tag = template_tag_from_path("templates/welcome_content.terl.md").unwrap();
         assert_eq!(tag, "welcome-content");
     }
 
     #[test]
     fn derives_template_tag_from_kebab_filename() {
-        let tag = template_tag_from_path("templates/main-layout.tl.html").unwrap();
+        let tag = template_tag_from_path("templates/main-layout.terl.html").unwrap();
         assert_eq!(tag, "main-layout");
     }
 
@@ -698,12 +698,12 @@ mod tests {
         let diagnostic = template_tag_from_path("templates/user_card.html").unwrap_err();
         assert!(diagnostic
             .message
-            .contains("template filename must end with `.tl.html` or `.tl.md`"));
+            .contains("template filename must end with `.terl.html` or `.terl.md`"));
     }
 
     #[test]
     fn rejects_invalid_template_filename_characters() {
-        let diagnostic = template_tag_from_path("templates/user.card.tl.html").unwrap_err();
+        let diagnostic = template_tag_from_path("templates/user.card.terl.html").unwrap_err();
         assert!(diagnostic
             .message
             .contains("invalid template filename character"));
@@ -712,7 +712,8 @@ mod tests {
     #[test]
     fn builds_template_with_registered_tag() {
         let template =
-            HtmlTemplate::from_terlan_template_path("templates/user_card.tl.html", vec![]).unwrap();
+            HtmlTemplate::from_terlan_template_path("templates/user_card.terl.html", vec![])
+                .unwrap();
 
         assert_eq!(template.tag_name.as_deref(), Some("user-card"));
     }
@@ -721,7 +722,7 @@ mod tests {
     fn parses_static_template_text_and_elements() {
         let template = parse_html_template(
             "<article class=\"card\"><h1>Hello</h1><p>World</p></article>",
-            "templates/user_card.tl.html",
+            "templates/user_card.terl.html",
         )
         .unwrap();
 
@@ -754,7 +755,7 @@ mod tests {
     fn parses_template_comments_and_doctype() {
         let template = parse_html_template(
             "<!doctype html><!-- note --><main></main>",
-            "templates/page_shell.tl.html",
+            "templates/page_shell.terl.html",
         )
         .unwrap();
 
@@ -776,7 +777,7 @@ mod tests {
     fn parses_markdown_templates_as_named_html_templates() {
         let template = parse_template(
             "# Hello {name}\n\nThis came from **Markdown**.\n",
-            "templates/welcome_content.tl.md",
+            "templates/welcome_content.terl.md",
         )
         .unwrap();
 
@@ -822,7 +823,7 @@ mod tests {
     fn reports_template_parse_errors_with_path() {
         let diagnostics = parse_html_template(
             "<article><h1>Broken</article>",
-            "templates/bad_card.tl.html",
+            "templates/bad_card.terl.html",
         )
         .unwrap_err();
 
@@ -832,14 +833,14 @@ mod tests {
         assert!(diagnostics
             .iter()
             .all(|diagnostic| diagnostic.path.as_deref()
-                == Some(Path::new("templates/bad_card.tl.html"))));
+                == Some(Path::new("templates/bad_card.terl.html"))));
     }
 
     #[test]
     fn parses_text_interpolation_slots() {
         let template = parse_html_template(
             "<p>Hello {user.name}</p>",
-            "templates/user_greeting.tl.html",
+            "templates/user_greeting.terl.html",
         )
         .unwrap();
 
@@ -865,9 +866,11 @@ mod tests {
 
     #[test]
     fn parses_attribute_interpolation_slots() {
-        let template =
-            parse_html_template("<a href=\"{url}\">Link</a>", "templates/link_card.tl.html")
-                .unwrap();
+        let template = parse_html_template(
+            "<a href=\"{url}\">Link</a>",
+            "templates/link_card.terl.html",
+        )
+        .unwrap();
 
         assert_eq!(
             template.nodes,
@@ -892,7 +895,7 @@ mod tests {
     #[test]
     fn rejects_invalid_interpolation_syntax() {
         let diagnostics =
-            parse_html_template("<p>Hello {}</p>", "templates/bad_slot.tl.html").unwrap_err();
+            parse_html_template("<p>Hello {}</p>", "templates/bad_slot.terl.html").unwrap_err();
 
         assert!(diagnostics.iter().any(|diagnostic| diagnostic
             .message
@@ -903,7 +906,7 @@ mod tests {
     fn does_not_parse_interpolation_inside_script_or_style_text() {
         let template = parse_html_template(
             "<script>let value = {raw};</script><style>.x { color: red; }</style>",
-            "templates/raw_text.tl.html",
+            "templates/raw_text.terl.html",
         )
         .unwrap();
 

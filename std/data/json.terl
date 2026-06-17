@@ -1,0 +1,138 @@
+/**
+ * Portable JSON value contract.
+ *
+ * `std.data.Json` exposes JSON parsing, rendering, and typed accessors through
+ * a target-neutral Terlan API. Its first backend is Rust/SafeNative with
+ * `serde_json`, but source code sees only `Json`, `JsonError`, and `Result`.
+ */
+
+module std.data.Json.
+
+import type std.core.Error.
+import type std.core.Result.
+
+/**
+ * Json represents a parsed JSON value.
+ *
+ * Input: no type parameter.
+ * Output: an opaque JSON handle whose runtime representation is target-owned.
+ * Transformation: hides the selected target JSON representation behind a
+ * stable portable API so application code does not depend on backend parser
+ * internals.
+ */
+pub opaque type Json.
+
+/**
+ * JsonError is the portable error returned by JSON operations.
+ *
+ * Input: inherits the neutral `code` and `message` fields from
+ * `std.core.Error.Error` and adds the byte offset reported by the parser when
+ * available.
+ * Output: a typed error value usable anywhere `Error`-derived values are
+ * accepted.
+ * Transformation: maps backend parser and accessor failures into a portable
+ * data shape without exposing target-specific exception values.
+ */
+pub struct JsonError derives Error {
+    offset: Int
+}.
+
+/**
+ * Parses text into a JSON value.
+ *
+ * Input: one UTF-8 string containing JSON source text.
+ * Output: `Ok(json)` when parsing succeeds, otherwise `Err(JsonError)`.
+ * Transformation: delegates parsing to the selected target JSON capability and
+ * maps parser failures into `JsonError`.
+ */
+@compiler.native {std.data.json.parse}
+pub parse(text: String): Result[Json, JsonError] ->
+    native.
+
+/**
+ * Renders a JSON value as text.
+ *
+ * Input: one `Json` value.
+ * Output: `Ok(text)` when rendering succeeds, otherwise `Err(JsonError)`.
+ * Transformation: delegates serialization to the selected target JSON
+ * capability while preserving the portable `String` output contract.
+ */
+@compiler.native {std.data.json.stringify}
+pub stringify(json: Json): Result[String, JsonError] ->
+    native.
+
+/**
+ * Reads an object member by key.
+ *
+ * Input: one `Json` receiver and one UTF-8 object key.
+ * Output: `Ok(value)` when the receiver is an object containing the key,
+ * otherwise `Err(JsonError)`.
+ * Transformation: performs a typed JSON object lookup without exposing the
+ * backend object representation.
+ */
+@compiler.native {std.data.json.get}
+pub (json: Json) get(key: String): Result[Json, JsonError] ->
+    native.
+
+/**
+ * Reads a JSON string value.
+ *
+ * Input: one `Json` receiver.
+ * Output: `Ok(value)` when the receiver is a JSON string, otherwise
+ * `Err(JsonError)`.
+ * Transformation: validates the JSON value kind before converting it to the
+ * portable `String` type.
+ */
+@compiler.native {std.data.json.as_string}
+pub (json: Json) as_string(): Result[String, JsonError] ->
+    native.
+
+/**
+ * Reads a JSON integer value.
+ *
+ * Input: one `Json` receiver.
+ * Output: `Ok(value)` when the receiver is a JSON integer representable as
+ * `Int`, otherwise `Err(JsonError)`.
+ * Transformation: validates the JSON value kind and numeric range before
+ * converting it to the portable `Int` type.
+ */
+@compiler.native {std.data.json.as_int}
+pub (json: Json) as_int(): Result[Int, JsonError] ->
+    native.
+
+/**
+ * Reads a JSON floating-point value.
+ *
+ * Input: one `Json` receiver.
+ * Output: `Ok(value)` when the receiver is a JSON number representable as
+ * `Float`, otherwise `Err(JsonError)`.
+ * Transformation: validates the JSON value kind before converting it to the
+ * portable `Float` type.
+ */
+@compiler.native {std.data.json.as_float}
+pub (json: Json) as_float(): Result[Float, JsonError] ->
+    native.
+
+/**
+ * Reads a JSON boolean value.
+ *
+ * Input: one `Json` receiver.
+ * Output: `Ok(value)` when the receiver is a JSON boolean, otherwise
+ * `Err(JsonError)`.
+ * Transformation: validates the JSON value kind before converting it to the
+ * portable `Bool` type.
+ */
+@compiler.native {std.data.json.as_bool}
+pub (json: Json) as_bool(): Result[Bool, JsonError] ->
+    native.
+
+/**
+ * Returns whether a JSON value is null.
+ *
+ * Input: one `Json` receiver.
+ * Output: `true` when the receiver is JSON null, otherwise `false`.
+ * Transformation: observes the JSON value kind without changing the receiver.
+ */
+@compiler.native {std.data.json.is_null}
+pub (json: Json) is_null(): Bool ->
+    native.

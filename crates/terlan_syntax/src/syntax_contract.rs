@@ -248,8 +248,80 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
     require_rule_reference(contract, "Declaration", "DeclarationCore", &mut diagnostics);
     require_rule_reference(
         contract,
-        "AnnotationArgs",
-        "MetadataBlock",
+        "DeclarationCore",
+        "AnnotationSchemaDecl",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationBlock",
+        "AnnotationItem",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationItem",
+        "AnnotationEntry",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationItem",
+        "AnnotationValue",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationEntry",
+        "AnnotationValue",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationValue",
+        "AnnotationQualifiedName",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationValue",
+        "AnnotationList",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationValue",
+        "AnnotationObject",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationSchemaDecl",
+        "AnnotationSchemaEntry",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationSchemaEntry",
+        "AnnotationKeySchema",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationKeySchema",
+        "AnnotationValueType",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationKeySchema",
+        "AnnotationKeyOptions",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "AnnotationKeyOption",
+        "AnnotationTargetSet",
         &mut diagnostics,
     );
     require_rule_reference(contract, "DeclarationCore", "ConfigDecl", &mut diagnostics);
@@ -261,12 +333,15 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
     );
     require_rule_reference(contract, "ConfigDecl", "MetadataBlock", &mut diagnostics);
     require_rule_reference(contract, "Expr", "LetExpr", &mut diagnostics);
-    require_rule_reference(contract, "Expr", "SendExpr", &mut diagnostics);
+    require_rule_reference(contract, "Expr", "AssignExpr", &mut diagnostics);
+    require_rule_reference(contract, "AssignExpr", "IndexAssignExpr", &mut diagnostics);
+    require_rule_reference(contract, "AssignExpr", "PipeExpr", &mut diagnostics);
+    require_rule_reference(contract, "IndexAssignExpr", "PostfixExpr", &mut diagnostics);
+    require_rule_reference(contract, "IndexAssignExpr", "Expr", &mut diagnostics);
     require_rule_reference(contract, "LetExpr", "LetBinding", &mut diagnostics);
     require_rule_reference(contract, "LetExpr", "Expr", &mut diagnostics);
     require_rule_reference(contract, "LetBinding", "Binding", &mut diagnostics);
     require_rule_reference(contract, "LetBinding", "Expr", &mut diagnostics);
-    require_rule_reference(contract, "SendExpr", "PipeExpr", &mut diagnostics);
     require_rule_reference(contract, "PipeExpr", "OrExpr", &mut diagnostics);
     require_rule_reference(contract, "OrExpr", "AndExpr", &mut diagnostics);
     require_rule_reference(contract, "OrExpr", "OrOp", &mut diagnostics);
@@ -281,7 +356,6 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
     require_rule_reference(contract, "PostfixExpr", "PrimaryExpr", &mut diagnostics);
     require_rule_reference(contract, "PrimaryExpr", "CaseExpr", &mut diagnostics);
     require_rule_reference(contract, "PrimaryExpr", "LambdaExpr", &mut diagnostics);
-    require_rule_reference(contract, "PrimaryExpr", "ReceiveExpr", &mut diagnostics);
     require_rule_reference(contract, "PrimaryExpr", "TryExpr", &mut diagnostics);
     require_rule_reference(contract, "PrimaryExpr", "IfExpr", &mut diagnostics);
     require_rule_reference(contract, "CallExpr", "NameRef", &mut diagnostics);
@@ -299,6 +373,18 @@ const REQUIRED_SYNTAX_RULES: &[&str] = &[
     "Declaration",
     "DeclarationCore",
     "Annotation",
+    "AnnotationBlock",
+    "AnnotationItem",
+    "AnnotationEntry",
+    "AnnotationValue",
+    "AnnotationQualifiedName",
+    "AnnotationList",
+    "AnnotationObject",
+    "AnnotationSchemaDecl",
+    "AnnotationKeySchema",
+    "AnnotationKeyOptions",
+    "AnnotationTargetSet",
+    "AnnotationValueType",
     "ModuleDecl",
     "ImportDecl",
     "TypeDecl",
@@ -533,14 +619,14 @@ mod tests {
     }
 
     #[test]
-    fn canonical_contract_artifact_matches_expected_summary() {
+    fn canonical_contract_artifact_matches_golden_summary() {
         let artifact =
             cached_canonical_terlan_syntax_contract_artifact().expect("syntax contract artifact");
         let actual = SyntaxContractArtifactSummary::from_artifact(&artifact);
         let expected = serde_json::from_str::<SyntaxContractArtifactSummary>(include_str!(
             "../../../docs/grammar/fixtures/contract/terlan_syntax_contract_artifact_summary.json"
         ))
-        .expect("parse expected artifact summary");
+        .expect("parse golden artifact summary");
 
         assert_eq!(actual, expected);
     }
@@ -565,7 +651,7 @@ mod tests {
             .any(|diagnostic| diagnostic.message.contains("entry rule")));
         assert!(diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.message == "syntax rule Expr must reference SendExpr"));
+            .any(|diagnostic| diagnostic.message == "syntax rule Expr must reference AssignExpr"));
     }
 
     #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

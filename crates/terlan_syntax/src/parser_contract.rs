@@ -1,27 +1,32 @@
 use std::collections::HashSet;
 
+#[cfg(test)]
 use crate::{
-    ast::{Decl, Module},
-    ebnf::{
-        EbnfCompileError, EbnfCompileResult, EbnfGrammarContract, EbnfGrammarExpr,
-        EbnfGrammarExprKind, EbnfGrammarRule,
-    },
+    ebnf::EbnfCompileError,
     parser::{parse_interface_module, parse_module},
+};
+use crate::{
+    ebnf::{
+        EbnfCompileResult, EbnfGrammarContract, EbnfGrammarExpr, EbnfGrammarExprKind,
+        EbnfGrammarRule,
+    },
+    parse_tree::{Decl, Module},
     span::Span,
 };
 
+#[cfg(test)]
 #[derive(Debug, Clone, Copy)]
-pub enum ContractMode {
-    /// Parse and contract-check canonical `.tl` source modules.
+enum ContractMode {
+    /// Parse and contract-check canonical `.terl` source modules.
     Module,
-    /// Parse and contract-check `.tli` interface summaries.
+    /// Parse and contract-check `.terli` interface summaries.
     Interface,
 }
 
 /// Convert parser output into a first-pass compiler contract tree.
 ///
 /// Inputs:
-/// - `input`: canonical `.tl` source text.
+/// - `input`: canonical `.terl` source text.
 ///
 /// Output:
 /// - `EbnfGrammarContract` when the source parses as a normal module.
@@ -30,14 +35,15 @@ pub enum ContractMode {
 /// Transformation:
 /// - Parses through the normal source parser, then projects declaration classes
 ///   into the lossy EBNF grammar contract shape for parser migration workstreams.
-pub fn parse_module_as_contract(input: &str) -> EbnfCompileResult<EbnfGrammarContract> {
+#[cfg(test)]
+fn parse_module_as_contract(input: &str) -> EbnfCompileResult<EbnfGrammarContract> {
     parse_module_as_contract_mode(input, ContractMode::Module)
 }
 
 /// Parse interface modules into the shared contract tree.
 ///
 /// Inputs:
-/// - `input`: `.tli` interface text.
+/// - `input`: `.terli` interface text.
 ///
 /// Output:
 /// - `EbnfGrammarContract` when the interface parses.
@@ -47,7 +53,8 @@ pub fn parse_module_as_contract(input: &str) -> EbnfCompileResult<EbnfGrammarCon
 /// - Parses through the interface parser, preserving interface-only summaries
 ///   such as `ExportDecl`, then projects declarations into the shared contract
 ///   shape used by formal parser migration checks.
-pub fn parse_interface_module_as_contract(input: &str) -> EbnfCompileResult<EbnfGrammarContract> {
+#[cfg(test)]
+fn parse_interface_module_as_contract(input: &str) -> EbnfCompileResult<EbnfGrammarContract> {
     parse_module_as_contract_mode(input, ContractMode::Interface)
 }
 
@@ -55,14 +62,15 @@ pub fn parse_interface_module_as_contract(input: &str) -> EbnfCompileResult<Ebnf
 ///
 /// Inputs:
 /// - `input`: raw source text.
-/// - `mode`: whether to parse as canonical `.tl` source or `.tli` interface text.
+/// - `mode`: whether to parse as canonical `.terl` source or `.terli` interface text.
 ///
 /// Output:
 /// - Contract tree on success, or parse/serialization error on failure.
 ///
 /// Transformation:
 /// - Selects the appropriate parser entrypoint, maps parser diagnostics into
-///   EBNF compile diagnostics, and delegates AST-to-contract projection.
+///   EBNF compile diagnostics, and delegates parse-tree-to-contract projection.
+#[cfg(test)]
 fn parse_module_as_contract_mode(
     input: &str,
     mode: ContractMode,
@@ -78,10 +86,10 @@ fn parse_module_as_contract_mode(
     module_as_contract(&module)
 }
 
-/// Converts a parsed module AST into a lossy EBNF grammar contract.
+/// Converts a parsed module parse tree into a lossy EBNF grammar contract.
 ///
 /// Inputs:
-/// - `module`: parsed module or interface AST.
+/// - `module`: parsed module or interface parse tree.
 ///
 /// Output:
 /// - `EbnfGrammarContract` containing module metadata and declaration classes.
@@ -204,13 +212,13 @@ fn push_terminal_rule(
 /// Returns the source span for a parsed declaration.
 ///
 /// Inputs:
-/// - `declaration`: AST declaration from a parsed module or interface.
+/// - `declaration`: parse tree declaration from a parsed module or interface.
 ///
 /// Output:
 /// - The declaration's source span.
 ///
 /// Transformation:
-/// - Dispatches across declaration variants without changing the AST.
+/// - Dispatches across declaration variants without changing the parse tree.
 pub(crate) fn decl_span(declaration: &Decl) -> Span {
     match declaration {
         Decl::Import(decl) => decl.span,
@@ -222,6 +230,7 @@ pub(crate) fn decl_span(declaration: &Decl) -> Span {
         Decl::Method(decl) => decl.span,
         Decl::Trait(decl) => decl.span,
         Decl::TraitImpl(decl) => decl.span,
+        Decl::AnnotationSchema(decl) => decl.span,
         Decl::Template(decl) => decl.span,
         Decl::Raw(decl) => decl.span,
     }
@@ -230,7 +239,7 @@ pub(crate) fn decl_span(declaration: &Decl) -> Span {
 /// Maps a parsed declaration into the formal contract declaration class name.
 ///
 /// Inputs:
-/// - `declaration`: AST declaration from a parsed module or interface.
+/// - `declaration`: parse tree declaration from a parsed module or interface.
 ///
 /// Output:
 /// - Stable EBNF declaration class name.
@@ -251,6 +260,7 @@ pub(crate) fn contract_decl_class(declaration: &Decl) -> &'static str {
         Decl::Method(_) => "MethodDecl",
         Decl::Trait(_) => "TraitDecl",
         Decl::TraitImpl(_) => "TraitImplDecl",
+        Decl::AnnotationSchema(_) => "AnnotationSchemaDecl",
         Decl::Template(_) => "TemplateDecl",
         Decl::Raw(raw) if is_config_decl_kind(&raw.kind) => "ConfigDecl",
         Decl::Raw(_) => "RawDecl",
@@ -266,7 +276,7 @@ pub(crate) fn contract_decl_class(declaration: &Decl) -> &'static str {
 /// - `true` for the source-level config declaration heads.
 ///
 /// Transformation:
-/// - Classifies transitional raw placeholders without changing the main AST,
+/// - Classifies transitional raw placeholders without changing the main parse tree,
 ///   allowing parser-contract output to follow the canonical `ConfigDecl` rule.
 fn is_config_decl_kind(kind: &str) -> bool {
     matches!(kind, "target" | "native" | "machine" | "static")
@@ -330,7 +340,7 @@ mod tests {
     /// declarations.
     ///
     /// Inputs:
-    /// - `.tl` module source containing removed source-mode `export` syntax.
+    /// - `.terl` module source containing removed source-mode `export` syntax.
     ///
     /// Output:
     /// - Parse diagnostic from the normal source parser.
@@ -378,8 +388,8 @@ mod tests {
 
     #[test]
     fn module_decl_class_mapping_is_stable() {
-        use crate::ast::Decl;
-        let class = contract_decl_class(&Decl::Raw(crate::ast::UnsupportedDecl {
+        use crate::parse_tree::Decl;
+        let class = contract_decl_class(&Decl::Raw(crate::parse_tree::UnsupportedDecl {
             kind: "target".into(),
             text: "{}".into(),
             docs: vec![],

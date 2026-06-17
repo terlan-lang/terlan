@@ -1,0 +1,9 @@
+module tests.test_model.MultipleBoolReturnTest.
+
+@test
+pub first_passes(): Bool ->
+    true.
+
+@test
+pub second_passes(): Bool ->
+    std.test.Test.assert(true).

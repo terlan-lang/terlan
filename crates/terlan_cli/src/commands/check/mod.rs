@@ -38,7 +38,7 @@ use crate::{formal_pipeline::CheckedSyntaxModuleArtifacts, CliCommand, CliState}
 /// Transformation:
 /// - Parses check-local arguments, delegates directory checks to the existing
 ///   directory checker, and runs single-file sources through the formal compile
-///   phase pipeline with optional phase-manifest and cache-interface emission.
+///   phase pipeline with optional phase-manifest emission.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     let (path, phase_manifest_path) = match parse_check_args(&cmd.args) {
         Ok(result) => result,
@@ -240,107 +240,23 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         return compile.exit_code;
     }
 
-    let artifacts = compile
+    let CheckedSyntaxModuleArtifacts { syntax_output, .. } = compile
         .artifacts
         .expect("compile module should produce artifacts on success");
-    if let Some(cache_dir) = state.cache_dir.as_deref() {
-        if let Err(err) = write_single_file_interface_cache(
-            cache_dir,
-            &path,
-            source_hash,
-            &artifacts,
-            state.incremental,
-        ) {
-            eprintln!("{}", err);
-            return ExitCode::from(1);
-        }
-    }
 
     if state.trace_invalidation {
-        println!("CHECK {}", artifacts.syntax_output.module_name);
+        println!("CHECK {}", syntax_output.module_name);
         if let Some(cache_dir) = state.cache_dir.as_deref() {
-            let interface_target =
-                cache_dir.join(format!("{}.typi", artifacts.syntax_output.module_name));
+            let interface_target = cache_dir.join(format!("{}.typi", syntax_output.module_name));
             if interface_target.exists() {
-                println!(
-                    "INTERFACE_CACHE_HIT {}",
-                    artifacts.syntax_output.module_name
-                );
+                println!("INTERFACE_CACHE_HIT {}", syntax_output.module_name);
             } else {
-                println!(
-                    "INTERFACE_CACHE_MISS {}",
-                    artifacts.syntax_output.module_name
-                );
+                println!("INTERFACE_CACHE_MISS {}", syntax_output.module_name);
             }
         }
     }
 
     ExitCode::SUCCESS
-}
-
-/// Writes generated interface cache files for one successfully checked source.
-///
-/// Inputs:
-/// - `cache_dir`: target directory for generated `.typi` and `.typi.deps`
-///   files.
-/// - `path`: source path used for dependency-manifest path-sensitive hashes.
-/// - `source_hash`: stable hash of the checked source text.
-/// - `artifacts`: successful formal pipeline output for the checked source.
-/// - `incremental`: whether unchanged cache files may be left untouched.
-///
-/// Output:
-/// - `Ok(())` when both cache files are written or already current.
-/// - `Err(String)` when syntax-contract identity lookup, directory creation,
-///   or cache-file writing fails.
-///
-/// Transformation:
-/// - Projects the formal module interface into `.typi` text and writes a
-///   matching dependency manifest so single-file checks can serve as the
-///   canonical stdlib summary generator without weakening directory layout
-///   validation.
-fn write_single_file_interface_cache(
-    cache_dir: &Path,
-    path: &str,
-    source_hash: u64,
-    artifacts: &CheckedSyntaxModuleArtifacts,
-    incremental: bool,
-) -> Result<(), String> {
-    fs::create_dir_all(cache_dir)
-        .map_err(|err| format!("cannot create cache directory: {}", err))?;
-    let syntax_contract_identity = current_syntax_contract_identity()?;
-    let module_name = &artifacts.syntax_output.module_name;
-    let interface = &artifacts.core.interface;
-    let interface_text = interface.to_terlan_interface_text();
-    let interface_target = cache_dir.join(format!("{module_name}.typi"));
-    crate::support::write_if_changed_or_forced(
-        &interface_target,
-        interface_text.as_bytes(),
-        incremental,
-    )
-    .map_err(|err| format!("failed to write interface output: {}", err))?;
-
-    let dependency_hashes = collect_syntax_dependency_hashes(
-        &artifacts.syntax_output,
-        &artifacts.interfaces,
-        Some(Path::new(path)),
-        None,
-    );
-    let manifest = DependencyManifest {
-        module: module_name.clone(),
-        syntax_contract_identity,
-        source_hash,
-        interface_hash: fingerprint(interface.to_terlan_interface_type_text().as_bytes()),
-        interface_doc_hash: fingerprint(interface.to_terlan_interface_doc_text().as_bytes()),
-        dependencies: dependency_hashes,
-    };
-    let manifest_target = cache_dir.join(format!("{module_name}.typi.deps"));
-    crate::support::write_if_changed_or_forced(
-        &manifest_target,
-        manifest.encode().as_bytes(),
-        incremental,
-    )
-    .map_err(|err| format!("failed to write dependency manifest: {}", err))?;
-    Ok(())
 }
 
 /// Parses command-local flags for `check`.
@@ -390,7 +306,7 @@ pub(crate) fn parse_check_args(args: &[String]) -> Result<(String, Option<PathBu
 /// Executes directory checking with incremental interface cache support.
 ///
 /// Inputs:
-/// - `path`: directory path to scan for `.tl` source files.
+/// - `path`: directory path to scan for `.terl` source files.
 /// - `state`: parsed global CLI state, including cache, incremental mode,
 ///   diagnostic format, native policy, and invalidation tracing.
 /// - `phase_manifest_path`: optional manifest file or directory path.
@@ -969,16 +885,16 @@ pub(crate) fn run_check_dir(
 ///
 /// Inputs:
 /// - `root`: source root passed to `terlc check <dir>`.
-/// - `file`: discovered `.tl` source file under `root`.
+/// - `file`: discovered `.terl` source file under `root`.
 /// - `module_name`: parsed Terlan module declaration.
 ///
 /// Output:
 /// - `Ok(())` when the path stem maps exactly to the declared module.
 /// - `Err(message)` when the file is outside the root, contains non-UTF-8 path
-///   segments, has no `.tl` stem, or declares a different module.
+///   segments, has no `.terl` stem, or declares a different module.
 ///
 /// Transformation:
-/// - Strips the source root and `.tl` extension, converts path separators into
+/// - Strips the source root and `.terl` extension, converts path separators into
 ///   dots, and compares that expected module identity with the parsed module
 ///   declaration.
 fn validate_directory_module_layout(
@@ -1003,12 +919,12 @@ fn validate_directory_module_layout(
 /// - `file`: implementation source path.
 ///
 /// Output:
-/// - Dotted module name implied by the relative `.tl` path.
+/// - Dotted module name implied by the relative `.terl` path.
 /// - `Err(message)` when the path cannot be represented as canonical source
 ///   layout input.
 ///
 /// Transformation:
-/// - Removes the source root prefix, drops the `.tl` extension from the final
+/// - Removes the source root prefix, drops the `.terl` extension from the final
 ///   path segment, validates UTF-8 path segments, and joins all relative
 ///   segments with dots.
 fn expected_module_name_for_source_path(root: &Path, file: &Path) -> Result<String, String> {
@@ -1032,13 +948,13 @@ fn expected_module_name_for_source_path(root: &Path, file: &Path) -> Result<Stri
     let last = segments
         .last_mut()
         .ok_or_else(|| format!("source path `{}` has no module file name", file.display()))?;
-    if !last.ends_with(".tl") {
+    if !last.ends_with(".terl") {
         return Err(format!(
             "source path `{}` is not a Terlan implementation source",
             file.display()
         ));
     }
-    last.truncate(last.len() - ".tl".len());
+    last.truncate(last.len() - ".terl".len());
     if segments.iter().any(|segment| segment.is_empty()) {
         return Err(format!(
             "source path `{}` contains an empty module segment",

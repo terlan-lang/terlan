@@ -20,7 +20,7 @@ use crate::{support::write_if_changed_or_forced, CliState};
 ///   failures.
 ///
 /// Transformation:
-/// - Reads one `.tli` source, parses it through the formal syntax-output
+/// - Reads one `.terli` source, parses it through the formal syntax-output
 ///   interface path, converts that output to Terlan interface text, and writes
 ///   `<module>.typi` into the configured output directory.
 pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {

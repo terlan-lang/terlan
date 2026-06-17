@@ -1,20 +1,15 @@
 //! Core iterable trait.
-//!
+//! 
 //! `std.collections.Iterable` is the portable contract used by collection traversal.
 
 module std.collections.Iterable.
 
 /// Iterable connects a collection type `C` to the item type `T` it yields.
-///
+/// 
 /// Input: collection type `C` and yielded item type `T`.
 /// Output: a trait requiring an `iterator(collection)` method.
 /// Transformation: exposes traversal as explicit state creation instead of
 /// depending on a platform-native iterator protocol.
-///
-/// Release item shapes:
-/// - `List[T]` yields `T`.
-/// - `Set[T]` yields `T`.
-/// - `Map[K, V]` yields `{K, V}`.
 
 pub trait Iterable[C, T] {
     iterator(collection: C): Iterator[T].
@@ -28,3 +23,4 @@ pub impl Iterable[Map[K, V], {K, V}] for Map[K, V] {
 
 pub impl Iterable[Set[T], T] for Set[T] {
 }.
+

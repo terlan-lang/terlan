@@ -1,0 +1,9 @@
+module a0_12_constructor_call.
+
+pub constructor Ok {
+    (Value: Int): Dynamic ->
+        Value
+}.
+
+pub make(): Dynamic ->
+    Ok(1).

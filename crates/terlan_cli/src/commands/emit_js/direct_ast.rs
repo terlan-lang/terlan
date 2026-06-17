@@ -358,21 +358,6 @@ fn collect_core_expr_local_calls<'a>(
                 collect_core_expr_local_calls(&clause.body, functions_by_name, pending);
             }
         }
-        CoreExpr::Receive {
-            clauses,
-            after_clause,
-        } => {
-            for clause in clauses {
-                if let Some(guard) = clause.guard.as_ref() {
-                    collect_core_expr_local_calls(guard, functions_by_name, pending);
-                }
-                collect_core_expr_local_calls(&clause.body, functions_by_name, pending);
-            }
-            if let Some(after_clause) = after_clause.as_ref() {
-                collect_core_expr_local_calls(&after_clause.trigger, functions_by_name, pending);
-                collect_core_expr_local_calls(&after_clause.body, functions_by_name, pending);
-            }
-        }
         CoreExpr::Try {
             body,
             of_clauses,

@@ -1,11 +1,11 @@
 //! Core set collection contract.
-//!
+//! 
 //! `std.collections.Set` is the portable unique-value collection surface.
 
 module std.collections.Set.
 
 /// Set represents a collection of unique values.
-///
+/// 
 /// Input: type parameter `T`.
 /// Output: an opaque unique-value collection type.
 /// Transformation: hides the selected backend representation behind the
@@ -14,54 +14,54 @@ module std.collections.Set.
 pub opaque type Set[T].
 
 /// Adds a value to a set.
-///
+/// 
 /// Input: a mutable `Set[T]` receiver and one value of type `T`.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.set.add`
 /// intrinsic and updates the receiver binding in source order. Pipe chains
 /// continue with the updated receiver.
 
-pub add(set: Set[T], value: T): Unit.
+pub (mut set: Set[T]) add(value: T): Unit.
 
 /// Removes every value from a set.
-///
+/// 
 /// Input: a mutable `Set[T]` receiver.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.set.clear`
 /// intrinsic and updates the receiver binding so it becomes empty.
 
-pub clear(set: Set[T]): Unit.
+pub (mut set: Set[T]) clear(): Unit.
 
 /// Returns whether a value exists in a set.
-///
+/// 
 /// Input: one `Set[T]` receiver and one value of type `T`.
 /// Output: `true` when the value exists; otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.set.contains`
 /// intrinsic and observes the receiver without changing its contents.
 
-pub contains(set: Set[T], value: T): Bool.
+pub (set: Set[T]) contains(value: T): Bool.
 
 /// Returns whether a set contains no values.
-///
+/// 
 /// Input: one `Set[T]`.
 /// Output: `true` when the set is empty; otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.set.is_empty`
 /// intrinsic and observes the receiver without changing its contents.
 
-pub is_empty(set: Set[T]): Bool.
+pub (set: Set[T]) is_empty(): Bool.
 
-/// Returns an iterator over set values.
-///
+/// Creates an iterator over set values.
+/// 
 /// Input: one `Set[T]`.
-/// Output: an `Iterator[T]` that yields each unique value.
+/// Output: an `Iterator[T]` yielding each unique value.
 /// Transformation: lowers through the compiler-owned `core.set.iterator`
-/// intrinsic. Backends choose their native set traversal representation, but
-/// portable Terlan observes values as `T`.
+/// intrinsic. Backends choose their own traversal order and representation while
+/// preserving the portable value-yielding contract.
 
-pub iterator(set: Set[T]): Iterator[T].
+pub (set: Set[T]) iterator(): Iterator[T].
 
 /// Creates an empty set.
-///
+/// 
 /// Input: no value input.
 /// Output: an empty `Set[T]`.
 /// Transformation: lowers through the compiler-owned `core.set.new`
@@ -70,19 +70,20 @@ pub iterator(set: Set[T]): Iterator[T].
 pub new(): Set[T].
 
 /// Removes a value from a set.
-///
+/// 
 /// Input: a mutable `Set[T]` receiver and one value of type `T`.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.set.remove`
 /// intrinsic and updates the receiver binding in source order.
 
-pub remove(set: Set[T], value: T): Unit.
+pub (mut set: Set[T]) remove(value: T): Unit.
 
 /// Returns the number of unique values in a set.
-///
+/// 
 /// Input: one `Set[T]`.
 /// Output: the number of unique values currently visible in the set.
 /// Transformation: lowers through the compiler-owned `core.set.size`
 /// intrinsic and observes the receiver without changing its contents.
 
-pub size(set: Set[T]): Int.
+pub (set: Set[T]) size(): Int.
+

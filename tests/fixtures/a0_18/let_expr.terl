@@ -1,0 +1,7 @@
+module a0_18_let_expr.
+
+pub calc(x: Int): Int ->
+    let y = x + 1; z = y * 2; z + y.
+
+pub final_value(x: Int): Int ->
+    let y = x + 1; z = y * 2; z.

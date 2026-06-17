@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-VERSION="${TERLAN_VERSION:-v0.0.2}"
+VERSION="${TERLAN_VERSION:-v0.0.3}"
 INSTALL_DIR="${TERLAN_INSTALL_DIR:-/usr/local/bin}"
 ARTIFACT="terlc-linux-x86_64.tar.gz"
 URL="https://github.com/terlan-lang/terlan/releases/download/${VERSION}/${ARTIFACT}"

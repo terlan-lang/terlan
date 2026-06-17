@@ -1,0 +1,7 @@
+module a0_20_qualified_calls.
+
+pub qualified(): Dynamic ->
+    std.core.Math.add(1, 2).
+
+pub scoped(): Dynamic ->
+    User.default().

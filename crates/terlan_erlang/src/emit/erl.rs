@@ -107,7 +107,6 @@ impl ErlTypeDecl {
 
 #[derive(Debug, Clone)]
 pub(super) struct ErlRecordDecl {
-    pub(super) docs: Vec<String>,
     pub(super) name: String,
     pub(super) fields: Vec<ErlRecordField>,
 }
@@ -115,14 +114,13 @@ pub(super) struct ErlRecordDecl {
 impl ErlRecordDecl {
     /// Renders an Erlang record declaration.
     ///
-    /// Input is a record name, docs, and ordered fields. Output is a `-record`
-    /// form. The transformation preserves field order and renders an empty
-    /// record body when no fields are present.
+    /// Input is a record name and ordered fields. Output is a `-record` form.
+    /// The transformation preserves field order, renders an empty record body
+    /// when no fields are present, and intentionally leaves source docs out of
+    /// native Erlang `-doc` attributes because records do not consume them.
     pub(super) fn render(&self) -> String {
-        let mut out = render_doc_attribute("doc", &self.docs);
         if self.fields.is_empty() {
-            out.push_str(&format!("-record({}, {{}}).\n\n", self.name));
-            return out;
+            return format!("-record({}, {{}}).\n\n", self.name);
         }
 
         let fields = self
@@ -131,8 +129,7 @@ impl ErlRecordDecl {
             .map(ErlRecordField::render)
             .collect::<Vec<_>>()
             .join(", ");
-        out.push_str(&format!("-record({}, {{{}}}).\n\n", self.name, fields));
-        out
+        format!("-record({}, {{{}}}).\n\n", self.name, fields)
     }
 }
 
@@ -556,10 +553,6 @@ pub(super) enum ErlExpr {
         scrutinee: Box<ErlExpr>,
         clauses: Vec<ErlCaseClause>,
     },
-    Receive {
-        clauses: Vec<ErlCaseClause>,
-        after_clause: Option<ErlTryAfterClause>,
-    },
     Try {
         body: Box<ErlExpr>,
         of_clauses: Vec<ErlCaseClause>,
@@ -710,26 +703,6 @@ impl ErlExpr {
                 for (idx, clause) in clauses.iter().enumerate() {
                     let suffix = if idx + 1 == clauses.len() { "" } else { ";" };
                     out.push_str(&format!("    {}{}\n", clause.render(), suffix));
-                }
-                out.push_str("end");
-                out
-            }
-            ErlExpr::Receive {
-                clauses,
-                after_clause,
-            } => {
-                let mut out = String::from("receive\n");
-                for (idx, clause) in clauses.iter().enumerate() {
-                    let suffix = if idx + 1 == clauses.len() { "" } else { ";" };
-                    out.push_str(&format!("    {}{}\n", clause.render(), suffix));
-                }
-                if let Some(after) = after_clause {
-                    out.push_str("after\n");
-                    out.push_str(&format!(
-                        "    {} -> {}\n",
-                        after.trigger.render(),
-                        after.body.render()
-                    ));
                 }
                 out.push_str("end");
                 out
@@ -1094,7 +1067,7 @@ pub(super) fn render_atom_expr(name: &str) -> String {
 /// allowlist. The transformation is a pure membership check used before quoted
 /// atom rendering.
 fn is_atom_keyword(name: &str) -> bool {
-    matches!(name, "true" | "false" | "ok" | "error" | "nil")
+    matches!(name, "true" | "false" | "ok" | "error" | "nil" | "unit")
 }
 
 /// Escapes atom text for single-quoted Erlang atom syntax.

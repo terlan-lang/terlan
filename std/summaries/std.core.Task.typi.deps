@@ -1,0 +1,8 @@
+module=std.core.Task
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+source_hash=3180655249422892505
+interface_hash=11662396165969596363
+interface_doc_hash=3168640350115603901
+deps=0

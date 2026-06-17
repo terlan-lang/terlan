@@ -1,0 +1,8 @@
+module std.negative.io.FileDeleteRejectsIntPathTest.
+
+@test
+pub file_delete_rejects_int_path(): Bool ->
+    case std.io.File.delete(1) {
+        _ ->
+            true
+    }.

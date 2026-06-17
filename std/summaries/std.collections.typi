@@ -1,7 +1,0 @@
-std.collections
-module Enumerable
-module Iterable
-module Iterator
-module List
-module Map
-module Set

@@ -1,10 +1,10 @@
 module=std.core.String
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:7c98039801b93422
-source_hash=7534767618032071622
-interface_hash=15506795586313850448
-interface_doc_hash=9139875053878520911
+syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+source_hash=6228769846763182979
+interface_hash=2566722329856770376
+interface_doc_hash=4997409510673614841
 deps=2
-std.core.Option=7710729503108467427
-std.core.Ordering=3854043757064969709
+std.core.Option=13931217690144146040
+std.core.Ordering=13589876833161759158

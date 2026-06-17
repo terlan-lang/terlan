@@ -536,7 +536,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/opened.tl","languageId":"terlan","version":1,"text":"module opened.\n"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/opened.terl","languageId":"terlan","version":1,"text":"module opened.\n"}}}"#,
         )
         .await?;
         let open_message = timeout(
@@ -545,7 +545,7 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "open diagnostics timeout"))??;
-        assert_clear_diagnostic_message(&open_message, "file:///tmp/opened.tl", 1);
+        assert_clear_diagnostic_message(&open_message, "file:///tmp/opened.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
@@ -603,7 +603,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/diag.tl","languageId":"terlan","version":1,"text":"module broken"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/diag.terl","languageId":"terlan","version":1,"text":"module broken"}}}"#,
         )
         .await?;
 
@@ -613,7 +613,7 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "diagnostics message timeout"))??;
-        assert_parse_diagnostic_message(&publish_message, "file:///tmp/diag.tl", 1);
+        assert_parse_diagnostic_message(&publish_message, "file:///tmp/diag.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
@@ -671,7 +671,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/diag.tl","languageId":"terlan","version":1,"text":"module broken"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/diag.terl","languageId":"terlan","version":1,"text":"module broken"}}}"#,
         )
         .await?;
 
@@ -681,11 +681,11 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "diagnostics message timeout"))??;
-        assert_parse_diagnostic_message(&parse_message, "file:///tmp/diag.tl", 1);
+        assert_parse_diagnostic_message(&parse_message, "file:///tmp/diag.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/diag.tl","version":2},"contentChanges":[{"text":"module fixed.\n"}]}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/diag.terl","version":2},"contentChanges":[{"text":"module fixed.\n"}]}}"#,
         )
         .await?;
 
@@ -695,7 +695,7 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "diagnostics clear timeout"))??;
-        assert_clear_diagnostic_message(&clear_message, "file:///tmp/diag.tl", 2);
+        assert_clear_diagnostic_message(&clear_message, "file:///tmp/diag.terl", 2);
 
         write_lsp_message(
             &mut client_to_server,
@@ -753,7 +753,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/type-diag.tl","languageId":"terlan","version":1,"text":"module type_diag.\n\npub bad(X: Int): Binary ->\n    X + 1.\n"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/type-diag.terl","languageId":"terlan","version":1,"text":"module type_diag.\n\npub bad(X: Int): Binary ->\n    X + 1.\n"}}}"#,
         )
         .await?;
 
@@ -763,7 +763,7 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "type diagnostics timeout"))??;
-        assert_type_diagnostic_message(&publish_message, "file:///tmp/type-diag.tl", 1);
+        assert_type_diagnostic_message(&publish_message, "file:///tmp/type-diag.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
@@ -821,7 +821,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/type-warning.tl","languageId":"terlan","version":1,"text":"module type_warning.\n\npub type OptionInt =\n      none\n    | {some, Int}.\n\npub unwrap(M: OptionInt): Int.\n\nunwrap({some, X}) ->\n    X.\n"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/type-warning.terl","languageId":"terlan","version":1,"text":"module type_warning.\n\npub type OptionInt =\n      none\n    | {some, Int}.\n\npub unwrap(M: OptionInt): Int.\n\nunwrap({some, X}) ->\n    X.\n"}}}"#,
         )
         .await?;
 
@@ -831,7 +831,7 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "type warning timeout"))??;
-        assert_type_warning_message(&publish_message, "file:///tmp/type-warning.tl", 1);
+        assert_type_warning_message(&publish_message, "file:///tmp/type-warning.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
@@ -889,7 +889,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/change-diag.tl","languageId":"terlan","version":1,"text":"module change_diag.\n"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/change-diag.terl","languageId":"terlan","version":1,"text":"module change_diag.\n"}}}"#,
         )
         .await?;
 
@@ -899,11 +899,11 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "open diagnostics timeout"))??;
-        assert_clear_diagnostic_message(&open_message, "file:///tmp/change-diag.tl", 1);
+        assert_clear_diagnostic_message(&open_message, "file:///tmp/change-diag.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/change-diag.tl","version":2},"contentChanges":[{"text":"module broken"}]}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/change-diag.terl","version":2},"contentChanges":[{"text":"module broken"}]}}"#,
         )
         .await?;
 
@@ -913,7 +913,7 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "change diagnostics timeout"))??;
-        assert_parse_diagnostic_message(&change_message, "file:///tmp/change-diag.tl", 2);
+        assert_parse_diagnostic_message(&change_message, "file:///tmp/change-diag.terl", 2);
 
         write_lsp_message(
             &mut client_to_server,
@@ -971,7 +971,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/changed.tl","languageId":"terlan","version":1,"text":"module changed.\n"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/changed.terl","languageId":"terlan","version":1,"text":"module changed.\n"}}}"#,
         )
         .await?;
         let open_message = timeout(
@@ -980,11 +980,11 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "open diagnostics timeout"))??;
-        assert_clear_diagnostic_message(&open_message, "file:///tmp/changed.tl", 1);
+        assert_clear_diagnostic_message(&open_message, "file:///tmp/changed.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/changed.tl","version":2},"contentChanges":[{"text":"module changed.\n"}]}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/changed.terl","version":2},"contentChanges":[{"text":"module changed.\n"}]}}"#,
         )
         .await?;
         let change_message = timeout(
@@ -993,7 +993,7 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "change diagnostics timeout"))??;
-        assert_clear_diagnostic_message(&change_message, "file:///tmp/changed.tl", 2);
+        assert_clear_diagnostic_message(&change_message, "file:///tmp/changed.terl", 2);
 
         write_lsp_message(
             &mut client_to_server,
@@ -1051,7 +1051,7 @@ mod tests {
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/closed.tl","languageId":"terlan","version":1,"text":"module closed.\n"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/closed.terl","languageId":"terlan","version":1,"text":"module closed.\n"}}}"#,
         )
         .await?;
         let open_message = timeout(
@@ -1060,11 +1060,11 @@ mod tests {
         )
         .await
         .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "open diagnostics timeout"))??;
-        assert_clear_diagnostic_message(&open_message, "file:///tmp/closed.tl", 1);
+        assert_clear_diagnostic_message(&open_message, "file:///tmp/closed.terl", 1);
 
         write_lsp_message(
             &mut client_to_server,
-            r#"{"jsonrpc":"2.0","method":"textDocument/didClose","params":{"textDocument":{"uri":"file:///tmp/closed.tl"}}}"#,
+            r#"{"jsonrpc":"2.0","method":"textDocument/didClose","params":{"textDocument":{"uri":"file:///tmp/closed.terl"}}}"#,
         )
         .await?;
 
@@ -1095,8 +1095,8 @@ mod tests {
     #[test]
     fn track_open_documents() {
         let store = OpenDocuments::default();
-        let uri_one = Url::parse("file:///tmp/module_one.tl").expect("uri");
-        let uri_two = Url::parse("file:///tmp/module_two.tl").expect("uri");
+        let uri_one = Url::parse("file:///tmp/module_one.terl").expect("uri");
+        let uri_two = Url::parse("file:///tmp/module_two.terl").expect("uri");
 
         assert!(!store.is_open(&uri_one));
         assert_eq!(store.count(), 0);
@@ -1177,7 +1177,7 @@ mod tests {
         .expect("write interface");
 
         let store = OpenDocuments::default();
-        let uri = Url::from_file_path(temp_dir.join("consumer.tl")).expect("file uri");
+        let uri = Url::from_file_path(temp_dir.join("consumer.terl")).expect("file uri");
         store.open(
             uri.clone(),
             "module consumer.\n\nimport type provider.{Item}.\n".to_string(),

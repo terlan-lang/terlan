@@ -1,0 +1,16 @@
+module std.core.OrderingTraitTest.
+
+import std.core.Ordering.
+import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import type std.core.Ordering.Comparison.
+
+pub ordering_compare(left: Comparison, right: Comparison): Comparison ->
+    Ordering.compare(left, right).
+
+@test
+pub ordering_trait_orders_lt_before_eq(): Bool ->
+    std.test.Test.assert_equal(Lt, ordering_compare(Lt, Eq)).
+
+@test
+pub ordering_trait_orders_gt_after_eq(): Bool ->
+    std.test.Test.assert_equal(Gt, ordering_compare(Gt, Eq)).

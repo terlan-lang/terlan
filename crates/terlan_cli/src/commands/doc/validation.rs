@@ -72,6 +72,63 @@ pub(crate) struct DoctestError {
     pub(crate) len: usize,
 }
 
+/// Execution mode for a REPL-backed documentation example.
+///
+/// Inputs:
+/// - Parsed from `@example`, `@example ignore`, `@example error`, or
+///   `@example target <name>` tags.
+///
+/// Output:
+/// - Mode used by later doctest validation to run, skip, expect a diagnostic,
+///   or run only for a named target profile.
+///
+/// Transformation:
+/// - Keeps source documentation intent explicit without overloading prompt
+///   syntax.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum ReplDocExampleMode {
+    Run,
+    Ignore,
+    Error,
+    Target(String),
+}
+
+/// One REPL input plus expected output lines from a documentation example.
+///
+/// Inputs:
+/// - Parsed from prompt lines beginning with `>`.
+///
+/// Output:
+/// - Prompt input and zero or more expected output lines.
+///
+/// Transformation:
+/// - Separates REPL source from expected display text so validation can run
+///   the prompt and compare output deterministically.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ReplDocEntry {
+    pub(crate) input: String,
+    pub(crate) expected_output: Vec<String>,
+}
+
+/// Parsed REPL-backed documentation example.
+///
+/// Inputs:
+/// - Produced by scanning syntax-output documentation blocks for `@example`.
+///
+/// Output:
+/// - Example mode, entries, and approximate source span for diagnostics.
+///
+/// Transformation:
+/// - Converts human-facing documentation into a typed prompt/expected-output
+///   model consumed by later `doc --check` validation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ReplDocExample {
+    pub(crate) mode: ReplDocExampleMode,
+    pub(crate) entries: Vec<ReplDocEntry>,
+    pub(crate) offset: usize,
+    pub(crate) len: usize,
+}
+
 /// Parsed documentation code block extracted from syntax-output doc lines.
 ///
 /// Inputs:
@@ -95,7 +152,7 @@ struct DocCodeBlock {
 /// - `input`: file or directory path passed to `terlc doc`.
 ///
 /// Output:
-/// - A sorted list of `.tl` files for directories, or the input file path.
+/// - A sorted list of `.terl` files for directories, or the input file path.
 ///
 /// Transformation:
 /// - Delegates directory scanning to the shared Terlan source discovery helper.
@@ -153,6 +210,153 @@ pub(crate) fn validate_syntax_module_doc_fences(
     Ok(())
 }
 
+/// Extracts REPL-backed examples from syntax-output documentation blocks.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing preserved documentation.
+/// - `source`: original source text used for approximate example offsets.
+///
+/// Output:
+/// - Ordered REPL documentation examples from module, declaration, field, and
+///   trait-method docs.
+///
+/// Transformation:
+/// - Scans `@example` tags, recognizes prompt lines beginning with `>`, and
+///   attaches following non-tag output lines to the most recent prompt.
+pub(crate) fn extract_repl_doc_examples(
+    module: &SyntaxModuleOutput,
+    source: &str,
+) -> Vec<ReplDocExample> {
+    let mut examples = Vec::new();
+    for docs in syntax_module_doc_blocks(module) {
+        examples.extend(repl_doc_examples_from_docs(docs, source));
+    }
+    examples
+}
+
+/// Validates REPL-backed documentation examples.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing preserved documentation.
+/// - `source`: original source text used for diagnostic offsets.
+/// - `diagnostic_format`: diagnostic mode used by compiler phases.
+/// - `native_policy`: native-code policy enforced during compilation.
+/// - `target_profile`: target-profile gate enforced during compilation.
+///
+/// Output:
+/// - `Ok(())` when all runnable examples match their expected output, all
+///   expected-error examples fail, and target-gated examples are either skipped
+///   for non-matching targets or validated for matching targets.
+/// - `Err(DoctestError)` for the first example extraction or validation
+///   failure.
+///
+/// Transformation:
+/// - Extracts `@example` prompt blocks, executes them through the non-
+///   interactive REPL helper, skips ignored or non-matching target examples,
+///   and compares line output.
+pub(crate) fn validate_repl_doc_examples(
+    module: &SyntaxModuleOutput,
+    source: &str,
+    diagnostic_format: crate::DiagnosticFormat,
+    native_policy: crate::validation::native_policy::NativePolicy,
+    target_profile: crate::validation::target_profile::TargetProfile,
+) -> Result<(), DoctestError> {
+    for example in extract_repl_doc_examples(module, source) {
+        if example.mode == ReplDocExampleMode::Ignore {
+            continue;
+        }
+        if let ReplDocExampleMode::Target(target) = &example.mode {
+            if !repl_doc_example_target_matches(target, target_profile) {
+                continue;
+            }
+        }
+        let inputs = example
+            .entries
+            .iter()
+            .map(|entry| entry.input.clone())
+            .collect::<Vec<_>>();
+        if example.mode == ReplDocExampleMode::Error {
+            match crate::commands::repl::evaluate_repl_prompt_inputs(
+                &inputs,
+                diagnostic_format,
+                native_policy,
+                target_profile,
+            ) {
+                Ok(_) => {
+                    return Err(DoctestError {
+                        message: "expected REPL doc example to fail".to_string(),
+                        offset: example.offset,
+                        len: example.len,
+                    })
+                }
+                Err(message) => {
+                    let expected = example
+                        .entries
+                        .iter()
+                        .flat_map(|entry| entry.expected_output.iter())
+                        .collect::<Vec<_>>();
+                    if expected.is_empty() || expected.iter().all(|line| message.contains(*line)) {
+                        continue;
+                    }
+                    return Err(DoctestError {
+                        message: format!(
+                            "REPL doc error example mismatch: expected {:?}, got {:?}",
+                            expected, message
+                        ),
+                        offset: example.offset,
+                        len: example.len,
+                    });
+                }
+            }
+        }
+
+        let actual = crate::commands::repl::evaluate_repl_prompt_inputs(
+            &inputs,
+            diagnostic_format,
+            native_policy,
+            target_profile,
+        )
+        .map_err(|message| DoctestError {
+            message: format!("REPL doc example failed: {message}"),
+            offset: example.offset,
+            len: example.len,
+        })?;
+        for (entry, actual_output) in example.entries.iter().zip(actual) {
+            if entry.expected_output != actual_output {
+                return Err(DoctestError {
+                    message: format!(
+                        "REPL doc example output mismatch: expected {:?}, got {:?}",
+                        entry.expected_output, actual_output
+                    ),
+                    offset: example.offset,
+                    len: example.len,
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Returns whether a target-gated documentation example should run.
+///
+/// Inputs:
+/// - `target`: normalized target label from `@example target <name>`.
+/// - `target_profile`: active compiler target profile for `doc --check`.
+///
+/// Output:
+/// - `true` when the target label applies to the active profile.
+///
+/// Transformation:
+/// - Treats `erlang` as the family label for all Erlang release profiles and
+///   otherwise requires an exact profile-name match.
+fn repl_doc_example_target_matches(
+    target: &str,
+    target_profile: crate::validation::target_profile::TargetProfile,
+) -> bool {
+    let profile = target_profile.as_str();
+    target == profile || (target == "erlang" && profile.ends_with("erlang"))
+}
+
 /// Returns all documentation blocks attached to a syntax-output module.
 ///
 /// Inputs:
@@ -186,12 +390,141 @@ fn syntax_module_doc_blocks(module: &SyntaxModuleOutput) -> Vec<&[String]> {
             | SyntaxDeclarationPayload::Constructor { .. }
             | SyntaxDeclarationPayload::Function { .. }
             | SyntaxDeclarationPayload::Method { .. }
+            | SyntaxDeclarationPayload::AnnotationSchema { .. }
             | SyntaxDeclarationPayload::Template { .. }
             | SyntaxDeclarationPayload::Config { .. }
             | SyntaxDeclarationPayload::Raw { .. } => {}
         }
     }
     blocks
+}
+
+/// Extracts REPL examples from one documentation block.
+///
+/// Inputs:
+/// - `docs`: documentation lines attached to one syntax item.
+/// - `source`: original source text used for approximate example offsets.
+///
+/// Output:
+/// - Ordered examples found in this doc block.
+///
+/// Transformation:
+/// - Flattens lexer-preserved block docs into lines, then parses `@example`
+///   sections until the next documentation tag or example tag.
+fn repl_doc_examples_from_docs(docs: &[String], source: &str) -> Vec<ReplDocExample> {
+    let mut examples = Vec::new();
+    let mut active: Option<ReplDocExample> = None;
+    let mut current_entry: Option<ReplDocEntry> = None;
+
+    for line in docs.iter().flat_map(|doc| doc.lines()) {
+        let trimmed = line.trim();
+        if let Some(mode) = repl_doc_example_mode(trimmed) {
+            finish_repl_doc_entry(&mut active, &mut current_entry);
+            if let Some(example) = active.take() {
+                examples.push(example);
+            }
+            let offset = source.find(trimmed).unwrap_or(0);
+            active = Some(ReplDocExample {
+                mode,
+                entries: Vec::new(),
+                offset,
+                len: trimmed.len().max(1),
+            });
+            continue;
+        }
+
+        if active.is_none() {
+            continue;
+        }
+        if trimmed.starts_with('@') {
+            finish_repl_doc_entry(&mut active, &mut current_entry);
+            if let Some(example) = active.take() {
+                examples.push(example);
+            }
+            continue;
+        }
+        if trimmed.starts_with("```") || trimmed.is_empty() {
+            continue;
+        }
+        if let Some(input) = trimmed.strip_prefix("> ") {
+            finish_repl_doc_entry(&mut active, &mut current_entry);
+            current_entry = Some(ReplDocEntry {
+                input: input.trim().to_string(),
+                expected_output: Vec::new(),
+            });
+            if let Some(example) = active.as_mut() {
+                example.len = example.len.saturating_add(line.len() + 1);
+            }
+        } else if let Some(entry) = current_entry.as_mut() {
+            entry.expected_output.push(trimmed.to_string());
+            if let Some(example) = active.as_mut() {
+                example.len = example.len.saturating_add(line.len() + 1);
+            }
+        }
+    }
+
+    finish_repl_doc_entry(&mut active, &mut current_entry);
+    if let Some(example) = active {
+        examples.push(example);
+    }
+    examples
+}
+
+/// Parses a documentation example tag into an execution mode.
+///
+/// Inputs:
+/// - `line`: trimmed documentation line.
+///
+/// Output:
+/// - Example mode for recognized `@example` lines.
+/// - `None` for non-example documentation lines.
+///
+/// Transformation:
+/// - Treats bare `@example` as runnable, `@example ignore` as skipped,
+///   `@example error` as an expected diagnostic example, and
+///   `@example target <name>` as runnable only for the matching target profile.
+fn repl_doc_example_mode(line: &str) -> Option<ReplDocExampleMode> {
+    let rest = line.strip_prefix("@example")?.trim();
+    if rest.is_empty() {
+        return Some(ReplDocExampleMode::Run);
+    }
+    if rest == "ignore" {
+        return Some(ReplDocExampleMode::Ignore);
+    }
+    if rest == "error" {
+        return Some(ReplDocExampleMode::Error);
+    }
+    if let Some(target) = rest.strip_prefix("target ") {
+        let target = target.trim();
+        if !target.is_empty()
+            && target
+                .chars()
+                .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-' || ch == '.')
+        {
+            return Some(ReplDocExampleMode::Target(target.to_string()));
+        }
+    }
+    None
+}
+
+/// Finalizes the current prompt entry into an active example.
+///
+/// Inputs:
+/// - `active`: example currently being parsed.
+/// - `current_entry`: prompt entry currently collecting output.
+///
+/// Output:
+/// - No return value.
+///
+/// Transformation:
+/// - Moves the current entry into the active example when both exist.
+fn finish_repl_doc_entry(
+    active: &mut Option<ReplDocExample>,
+    current_entry: &mut Option<ReplDocEntry>,
+) {
+    if let (Some(example), Some(entry)) = (active.as_mut(), current_entry.take()) {
+        example.entries.push(entry);
+    }
 }
 
 /// Builds the set of valid local documentation anchors for a module.
@@ -282,7 +615,9 @@ fn syntax_module_doc_anchors(module: &SyntaxModuleOutput) -> BTreeSet<String> {
             SyntaxDeclarationPayload::Constructor { name, .. } => {
                 insert_doc_anchor(&mut anchors, name)
             }
-            SyntaxDeclarationPayload::Import { .. } | SyntaxDeclarationPayload::Export { .. } => {}
+            SyntaxDeclarationPayload::AnnotationSchema { .. }
+            | SyntaxDeclarationPayload::Import { .. }
+            | SyntaxDeclarationPayload::Export { .. } => {}
         }
     }
     anchors
@@ -563,6 +898,7 @@ pub(crate) fn validate_syntax_missing_docs(
             )?,
             SyntaxDeclarationPayload::Import { .. }
             | SyntaxDeclarationPayload::Export { .. }
+            | SyntaxDeclarationPayload::AnnotationSchema { .. }
             | SyntaxDeclarationPayload::Config { .. }
             | SyntaxDeclarationPayload::Raw { .. }
             | SyntaxDeclarationPayload::Template { .. } => {}
@@ -899,5 +1235,311 @@ fn doctest_module_name(module_name: &str) -> String {
         "doctest".to_string()
     } else {
         normalized
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_repl_doc_examples, validate_repl_doc_examples, ReplDocExampleMode};
+    use crate::validation::native_policy::NativePolicy;
+    use crate::validation::target_profile::TargetProfile;
+
+    /// Verifies `@example` tags are extracted from preserved block docs.
+    ///
+    /// Inputs:
+    /// - One parsed module containing runnable, ignored, error, and target
+    ///   examples.
+    ///
+    /// Output:
+    /// - Four typed REPL examples with modes, prompt input, and expected
+    ///   output.
+    ///
+    /// Transformation:
+    /// - Parses source through the formal syntax-output path, then extracts
+    ///   REPL prompt examples from block documentation.
+    #[test]
+    fn extracts_repl_doc_examples_from_block_docs() {
+        let source = r#"module doc_examples.
+
+/**
+ * Adds one.
+ *
+ * @example
+ * > 1 + 2.
+ * 3
+ *
+ * @example ignore
+ * > expensive().
+ * skipped
+ *
+ * @example error
+ * > missing.
+ * error[resolve_error]: unknown name
+ *
+ * @example target rust
+ * > native_only().
+ */
+pub add(x: Int): Int ->
+    x + 1.
+"#;
+        let module = terlan_syntax::parse_module_as_syntax_output(source).expect("parse module");
+
+        let examples = extract_repl_doc_examples(&module, source);
+
+        assert_eq!(examples.len(), 4);
+        assert_eq!(examples[0].mode, ReplDocExampleMode::Run);
+        assert_eq!(examples[0].entries[0].input, "1 + 2.");
+        assert_eq!(examples[0].entries[0].expected_output, vec!["3"]);
+        assert_eq!(examples[1].mode, ReplDocExampleMode::Ignore);
+        assert_eq!(examples[1].entries[0].input, "expensive().");
+        assert_eq!(examples[2].mode, ReplDocExampleMode::Error);
+        assert_eq!(examples[2].entries[0].input, "missing.");
+        assert_eq!(
+            examples[2].entries[0].expected_output,
+            vec!["error[resolve_error]: unknown name"]
+        );
+        assert_eq!(
+            examples[3].mode,
+            ReplDocExampleMode::Target("rust".to_string())
+        );
+        assert_eq!(examples[3].entries[0].input, "native_only().");
+    }
+
+    /// Verifies fenced prompt examples stop before later doc tags.
+    ///
+    /// Inputs:
+    /// - One parsed module containing an `@example` block wrapped in a text
+    ///   fence followed by `@param`.
+    ///
+    /// Output:
+    /// - One example whose expected output excludes fence delimiters and the
+    ///   later parameter documentation.
+    ///
+    /// Transformation:
+    /// - Confirms the extractor accepts docs-friendly fenced prompt examples
+    ///   while preserving tag boundaries for later documentation metadata.
+    #[test]
+    fn extracts_fenced_repl_doc_example_until_next_tag() {
+        let source = r#"module doc_examples.
+
+/**
+ * Adds one.
+ *
+ * @example
+ * ```text
+ * > 2 + 2.
+ * 4
+ * ```
+ *
+ * @param x The value.
+ */
+pub add(x: Int): Int ->
+    x + 1.
+"#;
+        let module = terlan_syntax::parse_module_as_syntax_output(source).expect("parse module");
+
+        let examples = extract_repl_doc_examples(&module, source);
+
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0].mode, ReplDocExampleMode::Run);
+        assert_eq!(examples[0].entries.len(), 1);
+        assert_eq!(examples[0].entries[0].input, "2 + 2.");
+        assert_eq!(examples[0].entries[0].expected_output, vec!["4"]);
+    }
+
+    /// Verifies runnable REPL doc examples execute through REPL semantics.
+    ///
+    /// Inputs:
+    /// - One parsed module with an example that imports `println` and calls it.
+    ///
+    /// Output:
+    /// - Successful validation when expected output includes import `Unit`,
+    ///   printed console output, and final expression `Unit`.
+    ///
+    /// Transformation:
+    /// - Extracts prompt entries and runs them through the non-interactive REPL
+    ///   validator used by `terlc doc --check`.
+    #[test]
+    fn validates_runnable_repl_doc_example_output() {
+        let source = r#"module doc_examples.
+
+/**
+ * Prints a greeting.
+ *
+ * @example
+ * > import std.io.Console.{println}.
+ * Unit
+ * > println("hello").
+ * hello
+ * Unit
+ */
+pub greet(): Unit ->
+    Unit.
+"#;
+        let module = terlan_syntax::parse_module_as_syntax_output(source).expect("parse module");
+
+        validate_repl_doc_examples(
+            &module,
+            source,
+            crate::DiagnosticFormat::default(),
+            NativePolicy::SafeNativeOptional,
+            TargetProfile::Erlang,
+        )
+        .expect("validate examples");
+    }
+
+    /// Verifies runnable REPL doc examples fail on output mismatch.
+    ///
+    /// Inputs:
+    /// - One parsed module whose example expects the wrong arithmetic result.
+    ///
+    /// Output:
+    /// - `DoctestError` describing the output mismatch.
+    ///
+    /// Transformation:
+    /// - Runs the prompt through the same validation path as successful
+    ///   examples, then compares actual and expected output lines.
+    #[test]
+    fn rejects_runnable_repl_doc_example_output_mismatch() {
+        let source = r#"module doc_examples.
+
+/**
+ * Adds numbers.
+ *
+ * @example
+ * > 1 + 2.
+ * 4
+ */
+pub add(x: Int): Int ->
+    x + 1.
+"#;
+        let module = terlan_syntax::parse_module_as_syntax_output(source).expect("parse module");
+
+        let error = validate_repl_doc_examples(
+            &module,
+            source,
+            crate::DiagnosticFormat::default(),
+            NativePolicy::SafeNativeOptional,
+            TargetProfile::Erlang,
+        )
+        .expect_err("reject mismatch");
+
+        assert!(error.message.contains("output mismatch"));
+    }
+
+    /// Verifies expected-error examples match returned diagnostic text.
+    ///
+    /// Inputs:
+    /// - One parsed module with an `@example error` block expecting
+    ///   `resolve_error`.
+    ///
+    /// Output:
+    /// - Successful validation when the REPL prompt fails with matching
+    ///   diagnostic content.
+    ///
+    /// Transformation:
+    /// - Executes the prompt through REPL-backed validation and compares the
+    ///   returned compiler diagnostic text against the expected example output.
+    #[test]
+    fn validates_expected_error_repl_doc_example() {
+        let source = r#"module doc_examples.
+
+/**
+ * Demonstrates an unresolved name.
+ *
+ * @example error
+ * > missing_value.
+ * unknown REPL variable
+ */
+pub value(): Int ->
+    1.
+"#;
+        let module = terlan_syntax::parse_module_as_syntax_output(source).expect("parse module");
+
+        validate_repl_doc_examples(
+            &module,
+            source,
+            crate::DiagnosticFormat::default(),
+            NativePolicy::SafeNativeOptional,
+            TargetProfile::Erlang,
+        )
+        .expect("validate expected error");
+    }
+
+    /// Verifies target-gated examples are skipped for non-matching targets.
+    ///
+    /// Inputs:
+    /// - One parsed module with a Rust-only prompt that would fail under the
+    ///   current REPL if it were executed.
+    ///
+    /// Output:
+    /// - Successful validation under the Erlang profile.
+    ///
+    /// Transformation:
+    /// - Confirms `@example target rust` is classified separately from generic
+    ///   ignored examples and is skipped by target-profile matching.
+    #[test]
+    fn skips_non_matching_target_repl_doc_example() {
+        let source = r#"module doc_examples.
+
+/**
+ * Demonstrates a native-only example.
+ *
+ * @example target rust
+ * > native_only_call().
+ */
+pub value(): Int ->
+    1.
+"#;
+        let module = terlan_syntax::parse_module_as_syntax_output(source).expect("parse module");
+
+        validate_repl_doc_examples(
+            &module,
+            source,
+            crate::DiagnosticFormat::default(),
+            NativePolicy::SafeNativeOptional,
+            TargetProfile::Erlang,
+        )
+        .expect("skip non-matching target example");
+    }
+
+    /// Verifies expected-error examples reject mismatched diagnostic text.
+    ///
+    /// Inputs:
+    /// - One parsed module with an `@example error` block expecting the wrong
+    ///   diagnostic code.
+    ///
+    /// Output:
+    /// - `DoctestError` describing the expected-error mismatch.
+    ///
+    /// Transformation:
+    /// - Executes the prompt through REPL-backed validation and requires the
+    ///   expected output text to appear in the returned diagnostic.
+    #[test]
+    fn rejects_expected_error_repl_doc_example_mismatch() {
+        let source = r#"module doc_examples.
+
+/**
+ * Demonstrates an unresolved name.
+ *
+ * @example error
+ * > missing_value.
+ * type_error
+ */
+pub value(): Int ->
+    1.
+"#;
+        let module = terlan_syntax::parse_module_as_syntax_output(source).expect("parse module");
+
+        let error = validate_repl_doc_examples(
+            &module,
+            source,
+            crate::DiagnosticFormat::default(),
+            NativePolicy::SafeNativeOptional,
+            TargetProfile::Erlang,
+        )
+        .expect_err("reject expected-error mismatch");
+
+        assert!(error.message.contains("error example mismatch"));
     }
 }

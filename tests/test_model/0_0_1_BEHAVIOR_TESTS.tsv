@@ -1,0 +1,8 @@
+# behavior	fixture	expected-output-fragments
+positive	tests/test_model/positive/bool_return_test.terl	running 1 tests|test bool_return ... ok|test result: ok. 1 passed; 0 failed
+positive	tests/test_model/positive/assertion_return_test.terl	running 1 tests|test assertion_return ... ok|test result: ok. 1 passed; 0 failed
+positive	tests/test_model/positive/qualified_assertion_return_test.terl	running 1 tests|test qualified_assertion_return ... ok|test result: ok. 1 passed; 0 failed
+positive	tests/test_model/positive/multiple_bool_return_test.terl	running 2 tests|test first_passes ... ok|test second_passes ... ok|test result: ok. 2 passed; 0 failed
+positive	tests/test_model/positive/private_test.terl	running 1 tests|test hidden ... ok|test result: ok. 1 passed; 0 failed
+runtime_failure	tests/test_model/runtime/failing_bool_test.terl	running 1 tests|test failing_bool ... FAILED|assertion returned false|test result: FAILED. 0 passed; 1 failed
+runtime_failure	tests/test_model/runtime/mixed_pass_fail_test.terl	running 2 tests|test passing_test ... ok|test failing_test ... FAILED|assertion returned false|test result: FAILED. 1 passed; 1 failed

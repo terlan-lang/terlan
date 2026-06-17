@@ -1,22 +1,17 @@
 //! Core enumerable trait.
-//!
+//! 
 //! `std.collections.Enumerable` is the portable contract for user-facing
 //! collection consumption operations.
 
 module std.collections.Enumerable.
 
 /// Enumerable connects a collection type `C` to the item type `T` it contains.
-///
+/// 
 /// Input: collection type `C` and contained item type `T`.
 /// Output: a trait requiring effectful consumption and value transformation
 /// methods.
 /// Transformation: exposes collection behavior through callbacks while leaving
 /// traversal-state creation to `std.collections.Iterable`.
-///
-/// Release item shapes:
-/// - `List[T]` yields `T`.
-/// - `Set[T]` yields `T`.
-/// - `Map[K, V]` yields `{K, V}`.
 
 pub trait Enumerable[C, T] {
     each(collection: C, cb: (T ) -> Unit): Unit.
@@ -33,3 +28,4 @@ pub impl Enumerable[Map[K, V], {K, V}] for Map[K, V] {
 
 pub impl Enumerable[Set[T], T] for Set[T] {
 }.
+

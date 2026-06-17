@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "entry_rule": "SyntaxSpec",
-  "rule_count": 179,
+  "rule_count": 197,
   "key_rules": [
     {
       "name": "SyntaxSpec",
@@ -28,16 +28,40 @@
       "kind": "sequence"
     },
     {
+      "name": "AnnotationBlock",
+      "id": "rule:AnnotationBlock",
+      "expr_id": "rule:AnnotationBlock/expr",
+      "kind": "sequence"
+    },
+    {
+      "name": "AnnotationItem",
+      "id": "rule:AnnotationItem",
+      "expr_id": "rule:AnnotationItem/expr",
+      "kind": "alternation"
+    },
+    {
+      "name": "AnnotationEntry",
+      "id": "rule:AnnotationEntry",
+      "expr_id": "rule:AnnotationEntry/expr",
+      "kind": "sequence"
+    },
+    {
+      "name": "AnnotationValue",
+      "id": "rule:AnnotationValue",
+      "expr_id": "rule:AnnotationValue/expr",
+      "kind": "alternation"
+    },
+    {
+      "name": "AnnotationSchemaDecl",
+      "id": "rule:AnnotationSchemaDecl",
+      "expr_id": "rule:AnnotationSchemaDecl/expr",
+      "kind": "sequence"
+    },
+    {
       "name": "Expr",
       "id": "rule:Expr",
       "expr_id": "rule:Expr/expr",
       "kind": "alternation"
-    },
-    {
-      "name": "SendExpr",
-      "id": "rule:SendExpr",
-      "expr_id": "rule:SendExpr/expr",
-      "kind": "sequence"
     },
     {
       "name": "PipeExpr",

@@ -1,0 +1,8 @@
+module std.negative.io.FileWriteTextRejectsIntContentTest.
+
+@test
+pub file_write_text_rejects_int_content(): Bool ->
+    case std.io.File.write_text("target/terlan-negative-file-test.txt", 1) {
+        _ ->
+            true
+    }.

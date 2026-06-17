@@ -1,0 +1,7 @@
+module tests.test_model.AssertionReturnTest.
+
+import type std.test.Test.Assertion.
+
+@test
+pub assertion_return(): Assertion ->
+    std.test.Test.assert(true).

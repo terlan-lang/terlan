@@ -1,4 +1,5 @@
 std.core
+module Atom
 module Bool
 module Equal
 module Float
@@ -7,4 +8,5 @@ module Option
 module Ordering
 module Result
 module String
+module Task
 module Unit

@@ -1,0 +1,4 @@
+module mathx.
+
+pub add(X: Int): Int ->
+    X + 1.

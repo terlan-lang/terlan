@@ -770,7 +770,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_terlan_ebnf_contract_matches_expected_summary() {
+    fn canonical_terlan_ebnf_contract_matches_golden_summary() {
         let output = compile_ebnf_contract(include_str!(
             "../../../docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
         ))
@@ -780,7 +780,7 @@ mod tests {
         let expected = serde_json::from_str::<ContractSummary>(include_str!(
             "../../../docs/grammar/fixtures/contract/terlan_syntax_spec_contract_summary.json"
         ))
-        .expect("parse expected contract summary");
+        .expect("parse golden contract summary");
 
         assert_eq!(actual, expected);
     }
@@ -838,8 +838,12 @@ mod tests {
                 "Declaration",
                 "DeclarationCore",
                 "Annotation",
+                "AnnotationBlock",
+                "AnnotationItem",
+                "AnnotationEntry",
+                "AnnotationValue",
+                "AnnotationSchemaDecl",
                 "Expr",
-                "SendExpr",
                 "PipeExpr",
                 "OrExpr",
                 "AndExpr",

@@ -1,0 +1,5 @@
+module std.negative.io.ConsolePrintlnRejectsIntTest.
+
+@test
+pub console_println_rejects_int(): Bool ->
+    std.io.Console.println(1) == Unit.

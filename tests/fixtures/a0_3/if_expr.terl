@@ -1,0 +1,4 @@
+module a0_3_if_expr.
+
+pub choose(x: Int): Int ->
+    if { x > 0 -> x; true -> 0 }.

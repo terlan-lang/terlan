@@ -1,0 +1,7 @@
+module a0_19_index_access.
+
+pub first_pair_value(): Dynamic ->
+    {10, 20}[0].
+
+pub nested_pair_value(): Dynamic ->
+    let pair = {30, 40}; pair[1].

@@ -1,0 +1,4 @@
+module a0_1_arithmetic.
+
+pub bigger(x: Int, y: Int): Bool ->
+    x * 2 - 1 > y.

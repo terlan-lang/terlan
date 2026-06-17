@@ -1,0 +1,88 @@
+module std.io.FileTest.
+
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.{Unit}.
+import std.io.File.{NotFound, code, message, path}.
+import type std.io.File.FileError.
+
+@test
+pub exists_rejects_missing_file(): Bool ->
+    std.test.Test.assert_equal(false, std.io.File.exists("missing-terlan-test-file.txt")).
+
+@test
+pub read_text_reports_missing_file(): Bool ->
+    case std.io.File.read_text("missing-terlan-test-file.txt") {
+        Err(reason) ->
+            std.test.Test.assert_equal(NotFound, code(reason));
+
+        _ ->
+            false
+    }.
+
+@test
+pub read_text_reports_missing_file_message(): Bool ->
+    case std.io.File.read_text("missing-terlan-test-file.txt") {
+        Err(reason) ->
+            std.test.Test.assert_equal("file not found", message(reason));
+
+        _ ->
+            false
+    }.
+
+@test
+pub read_text_reports_missing_file_path(): Bool ->
+    case std.io.File.read_text("missing-terlan-test-file.txt") {
+        Err(reason) ->
+            std.test.Test.assert_equal("missing-terlan-test-file.txt", path(reason));
+
+        _ ->
+            false
+    }.
+
+@test
+pub write_text_and_read_text_roundtrip(): Bool ->
+    let write = std.io.File.write_text("target/terlan-file-test.txt", "hello file");
+        read = std.io.File.read_text("target/terlan-file-test.txt");
+    case {write, read} {
+        {Ok(Unit), Ok(value)} ->
+            std.test.Test.assert_equal("hello file", value);
+
+        _ ->
+            false
+    }.
+
+@test
+pub append_text_extends_existing_file(): Bool ->
+    let write = std.io.File.write_text("target/terlan-file-append-test.txt", "hello");
+        append = std.io.File.append_text("target/terlan-file-append-test.txt", " file");
+        read = std.io.File.read_text("target/terlan-file-append-test.txt");
+    case {write, append, read} {
+        {Ok(Unit), Ok(Unit), Ok(value)} ->
+            std.test.Test.assert_equal("hello file", value);
+
+        _ ->
+            false
+    }.
+
+@test
+pub delete_removes_existing_file(): Bool ->
+    let write = std.io.File.write_text("target/terlan-file-delete-test.txt", "delete me");
+        delete = std.io.File.delete("target/terlan-file-delete-test.txt");
+        exists = std.io.File.exists("target/terlan-file-delete-test.txt");
+    case {write, delete, exists} {
+        {Ok(Unit), Ok(Unit), false} ->
+            true;
+
+        _ ->
+            false
+    }.
+
+@test
+pub delete_reports_missing_file(): Bool ->
+    case std.io.File.delete("missing-terlan-delete-test-file.txt") {
+        Err(reason) ->
+            std.test.Test.assert_equal(NotFound, code(reason));
+
+        _ ->
+            false
+    }.

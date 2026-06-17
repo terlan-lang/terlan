@@ -1,0 +1,5 @@
+module std.test.Test.AssertRejectsStringArgumentTest.
+
+@test
+pub assert_rejects_string_argument(): Bool ->
+    std.test.Test.assert("not bool").

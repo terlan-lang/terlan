@@ -1,0 +1,4 @@
+module a0_4_case_expr.
+
+pub choose(x: Int): Int ->
+    case x { 0 -> 0; n -> n }.

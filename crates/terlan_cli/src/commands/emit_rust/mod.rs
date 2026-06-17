@@ -587,7 +587,7 @@ pub add(x: Int, y: Int): Int ->
 hidden(x: Int): Int ->
     x.
 ";
-        let rust = compile_source_to_rust_probe("rust_core_surface.tl", source);
+        let rust = compile_source_to_rust_probe("rust_core_surface.terl", source);
 
         assert!(rust.contains("pub fn add(x: i64, y: i64) -> i64"), "{rust}");
         assert!(rust.contains("fn hidden(x: i64) -> i64"), "{rust}");
@@ -616,7 +616,7 @@ pub add(x: Int, y: Int): Int ->
 pub piped(): Int ->
     1 |> add(2).
 ";
-        let rust = compile_source_to_rust_probe("rust_core_surface_pipe.tl", source);
+        let rust = compile_source_to_rust_probe("rust_core_surface_pipe.terl", source);
 
         assert!(rust.contains("pub fn piped() -> i64"), "{rust}");
         assert!(rust.contains("add(1, 2)"), "{rust}");
@@ -694,7 +694,7 @@ module rust_core_surface_string_intrinsic.
 pub has_needle(): Bool ->
     \"hello\".contains(\"ell\").
 ";
-        let rust = compile_source_to_rust_probe("rust_core_surface_string_intrinsic.tl", source);
+        let rust = compile_source_to_rust_probe("rust_core_surface_string_intrinsic.terl", source);
 
         assert!(rust.contains(".contains("), "{rust}");
         assert!(rust.contains(".as_str()"), "{rust}");
@@ -724,7 +724,7 @@ pub has_prefix(): Bool ->
     \"hello\".starts_with(\"he\").
 ";
         let rust = compile_source_to_rust_probe(
-            "rust_core_surface_string_starts_with_intrinsic.tl",
+            "rust_core_surface_string_starts_with_intrinsic.terl",
             source,
         );
 
@@ -757,7 +757,7 @@ pub len(): Int ->
     \"hello\".length().
 ";
         let rust =
-            compile_source_to_rust_probe("rust_core_surface_string_length_intrinsic.tl", source);
+            compile_source_to_rust_probe("rust_core_surface_string_length_intrinsic.terl", source);
 
         assert!(rust.contains(".chars().count() as i64"), "{rust}");
         assert_rust_probe_compiles(&rust);
@@ -924,6 +924,7 @@ pub len(): Int ->
             opaque_types: HashSet::new(),
             type_params: HashMap::new(),
             type_bodies: HashMap::new(),
+            struct_fields: HashMap::new(),
             type_docs: HashMap::new(),
             traits: HashMap::new(),
             trait_conformances: Vec::new(),

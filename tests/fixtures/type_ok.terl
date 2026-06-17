@@ -1,0 +1,4 @@
+module id.
+
+pub id(X: Int): Int ->
+    X.

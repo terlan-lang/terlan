@@ -6,6 +6,11 @@ members = [
   "crates/terlan_hir",
   "crates/terlan_typeck",
   "crates/terlan_erlang",
+  "crates/terlan_safenative",
   "crates/terlan_cli",
   "crates/terlan_lsp",
 ]
+
+[workspace.package]
+version = "0.0.3"
+edition = "2021"

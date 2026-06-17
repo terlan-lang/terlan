@@ -1,0 +1,7 @@
+module a0_6_tuples.
+
+pub pair(x: Int): Dynamic ->
+    {x, :none}.
+
+pub first(value: Dynamic): Int ->
+    case value { {n, :none} -> n; _ -> 0 }.

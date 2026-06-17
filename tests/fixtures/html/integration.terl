@@ -1,0 +1,28 @@
+module html_integration.
+
+pub type User =
+    {user, Int, Text}.
+
+pub user_id(User: User): Int ->
+    case User {
+        {user, Id, _} -> Id
+    }.
+
+pub user_name(User: User): Text ->
+    case User {
+        {user, _, Name} -> Name
+    }.
+
+pub view(Users: List[User], Name: Text, Saving: Bool): Html[Never] ->
+    html {
+        <main class={["page", "active"]}>
+            <input name="name" value={Name} />
+            <button disabled={Saving}>Save</button>
+            {Html.raw(<<"<hr>">>)}
+            <ul>
+                {for User <- Users {
+                    <li>{user_name(User)}</li>
+                }}
+            </ul>
+        </main>
+    }.

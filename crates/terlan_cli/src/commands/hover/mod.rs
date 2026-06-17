@@ -124,10 +124,10 @@ type HoverParseResult = Result<SyntaxModuleOutput, (String, std::ops::Range<usiz
 /// - Parsed syntax-output module or parser error.
 ///
 /// Transformation:
-/// - Dispatches `.tli` files to interface parsing and other files to source
+/// - Dispatches `.terli` files to interface parsing and other files to source
 ///   module parsing.
 fn parse_source(path: &str, source: &str) -> HoverParseResult {
-    if path.ends_with(".tli") {
+    if path.ends_with(".terli") {
         parse_interface_module_as_syntax_output(source)
     } else {
         parse_module_as_syntax_output(source)

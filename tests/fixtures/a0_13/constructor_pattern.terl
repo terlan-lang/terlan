@@ -1,0 +1,11 @@
+module a0_13_constructor_pattern.
+
+pub constructor Some {
+    (value: Dynamic): Dynamic ->
+        {:some, value}
+}.
+
+pub unwrap(input: Dynamic): Dynamic ->
+    case input {
+        Some(value) -> value
+    }.

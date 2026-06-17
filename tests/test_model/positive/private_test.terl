@@ -1,0 +1,5 @@
+module tests.test_model.PrivateTest.
+
+@test
+hidden(): Bool ->
+    true.

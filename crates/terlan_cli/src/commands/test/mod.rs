@@ -252,7 +252,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 ///   command verb.
 ///
 /// Output:
-/// - `Ok(TestArgs)` for exactly one source path, optional `--target erlang`,
+/// - `Ok(TestArgs)` for zero or one source path, optional `--target erlang`,
 ///   optional `--emit-test-manifest <path>`, and optional
 ///   `--emit-test-result-manifest <path>`.
 /// - `Err(message)` for malformed flags, unsupported targets, or wrong arity.
@@ -311,11 +311,8 @@ fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
         }
     }
 
-    let Some(path) = path else {
-        return Err("missing or extra path argument".to_string());
-    };
     Ok(TestArgs {
-        path,
+        path: path.unwrap_or_else(|| "tests".to_string()),
         target,
         emit_test_manifest,
         emit_test_result_manifest,
@@ -346,8 +343,11 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
     }
 
     let path = args.path.as_str();
+    if Path::new(path).is_dir() {
+        return run_erlang_test_directory(args, state);
+    }
     if !is_test_source_path(path) {
-        eprintln!("terlc test requires a *_test.tl source file for 0.0.1: {path}");
+        eprintln!("terlc test requires a *_test.terl source file for 0.0.1: {path}");
         return ExitCode::from(1);
     }
 
@@ -456,6 +456,94 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
         return ExitCode::from(1);
     }
     ExitCode::SUCCESS
+}
+
+/// Executes all test modules below one directory through the Erlang runner.
+///
+/// Inputs:
+/// - `args`: parsed test arguments whose path is a directory.
+/// - `state`: global CLI state used for formal compilation and execution.
+///
+/// Output:
+/// - `ExitCode::SUCCESS` when every discovered test file passes.
+/// - `ExitCode::from(1)` when discovery fails, no test files exist, manifest
+///   flags are used with a directory, or any test file fails.
+///
+/// Transformation:
+/// - Recursively discovers `*_test.terl` files in deterministic order, then
+///   delegates each file to the existing single-file runner and aggregates the
+///   command exit status without inventing a directory-level manifest format.
+fn run_erlang_test_directory(args: &TestArgs, state: CliState) -> ExitCode {
+    if args.emit_test_manifest.is_some() || args.emit_test_result_manifest.is_some() {
+        eprintln!("test manifest output is only supported for a single *_test.terl file");
+        return ExitCode::from(1);
+    }
+
+    let mut files = Vec::new();
+    if let Err(message) = collect_test_files(Path::new(&args.path), &mut files) {
+        eprintln!("{message}");
+        return ExitCode::from(1);
+    }
+    files.sort();
+    if files.is_empty() {
+        eprintln!("no *_test.terl files found in {}", args.path);
+        return ExitCode::from(1);
+    }
+
+    let mut failed = false;
+    for file in files {
+        let file_args = TestArgs {
+            path: file.to_string_lossy().into_owned(),
+            target: args.target,
+            emit_test_manifest: None,
+            emit_test_result_manifest: None,
+        };
+        if run_erlang_tests(&file_args, state.clone()) != ExitCode::SUCCESS {
+            failed = true;
+        }
+    }
+
+    if failed {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+/// Collects test source files below a directory.
+///
+/// Inputs:
+/// - `dir`: directory to traverse.
+/// - `files`: accumulator for discovered test files.
+///
+/// Output:
+/// - `Ok(())` when traversal succeeds.
+/// - `Err(message)` when the directory cannot be read.
+///
+/// Transformation:
+/// - Recursively walks the directory tree and records only files accepted by
+///   the `*_test.terl` source layout predicate.
+fn collect_test_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
+    for entry in fs::read_dir(dir)
+        .map_err(|err| format!("failed to read test directory {}: {err}", dir.display()))?
+    {
+        let entry = entry.map_err(|err| {
+            format!(
+                "failed to read test directory entry in {}: {err}",
+                dir.display()
+            )
+        })?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_test_files(&path, files)?;
+        } else if path
+            .to_str()
+            .is_some_and(|path_text| is_test_source_path(path_text))
+        {
+            files.push(path);
+        }
+    }
+    Ok(())
 }
 
 /// Writes a source-level test manifest.
@@ -591,16 +679,16 @@ fn write_test_result_manifest(
 /// - `path`: user-provided source path passed to `terlc test`.
 ///
 /// Output:
-/// - `true` when the file name ends in `_test.tl`.
+/// - `true` when the file name ends in `_test.terl`.
 ///
 /// Transformation:
 /// - Reads only the final path component and compares its suffix, preserving
-///   the documented 0.0.1 rule that tests live in separate `*_test.tl` files.
+///   the documented 0.0.1 rule that tests live in separate `*_test.terl` files.
 fn is_test_source_path(path: &str) -> bool {
     Path::new(path)
         .file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.ends_with("_test.tl"))
+        .is_some_and(|name| name.ends_with("_test.terl"))
 }
 
 /// Discovers valid `@test` function declarations.
@@ -790,52 +878,88 @@ fn emit_and_compile_release_support_modules(
 fn release_support_modules() -> &'static [ReleaseSupportModule] {
     &[
         ReleaseSupportModule {
-            path: "std/test/test.tl",
-            source: include_str!("../../../../../std/test/test.tl"),
+            path: "std/test/test.terl",
+            source: include_str!("../../../../../std/test/test.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/bool.tl",
-            source: include_str!("../../../../../std/core/bool.tl"),
+            path: "std/core/atom.terl",
+            source: include_str!("../../../../../std/core/atom.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/equal.tl",
-            source: include_str!("../../../../../std/core/equal.tl"),
+            path: "std/core/bool.terl",
+            source: include_str!("../../../../../std/core/bool.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/unit.tl",
-            source: include_str!("../../../../../std/core/unit.tl"),
+            path: "std/core/unit.terl",
+            source: include_str!("../../../../../std/core/unit.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/ordering.tl",
-            source: include_str!("../../../../../std/core/ordering.tl"),
+            path: "std/core/ordering.terl",
+            source: include_str!("../../../../../std/core/ordering.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/int.tl",
-            source: include_str!("../../../../../std/core/int.tl"),
+            path: "std/core/int.terl",
+            source: include_str!("../../../../../std/core/int.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/float.tl",
-            source: include_str!("../../../../../std/core/float.tl"),
+            path: "std/core/float.terl",
+            source: include_str!("../../../../../std/core/float.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/option.tl",
-            source: include_str!("../../../../../std/core/option.tl"),
+            path: "std/core/option.terl",
+            source: include_str!("../../../../../std/core/option.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/result.tl",
-            source: include_str!("../../../../../std/core/result.tl"),
+            path: "std/core/result.terl",
+            source: include_str!("../../../../../std/core/result.terl"),
         },
         ReleaseSupportModule {
-            path: "std/core/string.tl",
-            source: include_str!("../../../../../std/core/string.tl"),
+            path: "std/core/error.terl",
+            source: include_str!("../../../../../std/core/error.terl"),
         },
         ReleaseSupportModule {
-            path: "std/io/console.tl",
-            source: include_str!("../../../../../std/io/console.tl"),
+            path: "std/core/equal.terl",
+            source: include_str!("../../../../../std/core/equal.terl"),
         },
         ReleaseSupportModule {
-            path: "std/io/file.tl",
-            source: include_str!("../../../../../std/io/file.tl"),
+            path: "std/core/string.terl",
+            source: include_str!("../../../../../std/core/string.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/io/console.terl",
+            source: include_str!("../../../../../std/io/console.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/io/file.terl",
+            source: include_str!("../../../../../std/io/file.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/collections/iterator.terl",
+            source: include_str!("../../../../../std/collections/iterator.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/collections/index.terl",
+            source: include_str!("../../../../../std/collections/index.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/collections/list.terl",
+            source: include_str!("../../../../../std/collections/list.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/collections/map.terl",
+            source: include_str!("../../../../../std/collections/map.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/collections/set.terl",
+            source: include_str!("../../../../../std/collections/set.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/collections/iterable.terl",
+            source: include_str!("../../../../../std/collections/iterable.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/collections/enumerable.terl",
+            source: include_str!("../../../../../std/collections/enumerable.terl"),
         },
     ]
 }
@@ -1241,8 +1365,29 @@ mod tests {
 
     #[test]
     fn parse_test_args_accepts_default_erlang_target() {
-        let parsed = parse_test_args(&args(&["tests/sample.tl"])).expect("test args");
-        assert_eq!(parsed.path, "tests/sample.tl");
+        let parsed = parse_test_args(&args(&["tests/sample.terl"])).expect("test args");
+        assert_eq!(parsed.path, "tests/sample.terl");
+        assert_eq!(parsed.target, TestTarget::Erlang);
+        assert_eq!(parsed.emit_test_manifest, None);
+        assert_eq!(parsed.emit_test_result_manifest, None);
+    }
+
+    /// Verifies no-argument `terlc test` targets the project test tree.
+    ///
+    /// Inputs:
+    /// - Empty command-local argument vector.
+    ///
+    /// Output:
+    /// - Parsed args with path `tests` and default Erlang target.
+    ///
+    /// Transformation:
+    /// - Exercises the project-default CLI contract without touching the
+    ///   filesystem.
+    #[test]
+    fn parse_test_args_defaults_to_tests_directory() {
+        let parsed = parse_test_args(&[]).expect("test args");
+
+        assert_eq!(parsed.path, "tests");
         assert_eq!(parsed.target, TestTarget::Erlang);
         assert_eq!(parsed.emit_test_manifest, None);
         assert_eq!(parsed.emit_test_result_manifest, None);
@@ -1250,9 +1395,9 @@ mod tests {
 
     #[test]
     fn parse_test_args_accepts_explicit_erlang_target() {
-        let parsed =
-            parse_test_args(&args(&["tests/sample.tl", "--target", "erlang"])).expect("test args");
-        assert_eq!(parsed.path, "tests/sample.tl");
+        let parsed = parse_test_args(&args(&["tests/sample.terl", "--target", "erlang"]))
+            .expect("test args");
+        assert_eq!(parsed.path, "tests/sample.terl");
         assert_eq!(parsed.target, TestTarget::Erlang);
         assert_eq!(parsed.emit_test_manifest, None);
         assert_eq!(parsed.emit_test_result_manifest, None);
@@ -1271,12 +1416,12 @@ mod tests {
     #[test]
     fn parse_test_args_accepts_test_manifest_path() {
         let parsed = parse_test_args(&args(&[
-            "tests/sample_test.tl",
+            "tests/sample_test.terl",
             "--emit-test-manifest",
             "target/sample.test-manifest.json",
         ]))
         .expect("test args");
-        assert_eq!(parsed.path, "tests/sample_test.tl");
+        assert_eq!(parsed.path, "tests/sample_test.terl");
         assert_eq!(
             parsed.emit_test_manifest,
             Some(PathBuf::from("target/sample.test-manifest.json"))
@@ -1296,7 +1441,7 @@ mod tests {
     #[test]
     fn parse_test_args_rejects_duplicate_test_manifest_path() {
         let error = parse_test_args(&args(&[
-            "tests/sample_test.tl",
+            "tests/sample_test.terl",
             "--emit-test-manifest",
             "target/one.json",
             "--emit-test-manifest",
@@ -1320,12 +1465,12 @@ mod tests {
     #[test]
     fn parse_test_args_accepts_test_result_manifest_path() {
         let parsed = parse_test_args(&args(&[
-            "tests/sample_test.tl",
+            "tests/sample_test.terl",
             "--emit-test-result-manifest",
             "target/sample.test-results.json",
         ]))
         .expect("test args");
-        assert_eq!(parsed.path, "tests/sample_test.tl");
+        assert_eq!(parsed.path, "tests/sample_test.terl");
         assert_eq!(
             parsed.emit_test_result_manifest,
             Some(PathBuf::from("target/sample.test-results.json"))
@@ -1345,7 +1490,7 @@ mod tests {
     #[test]
     fn parse_test_args_rejects_duplicate_test_result_manifest_path() {
         let error = parse_test_args(&args(&[
-            "tests/sample_test.tl",
+            "tests/sample_test.terl",
             "--emit-test-result-manifest",
             "target/one.json",
             "--emit-test-result-manifest",
@@ -1358,7 +1503,7 @@ mod tests {
     #[test]
     fn parse_test_args_rejects_unsupported_target() {
         let error =
-            parse_test_args(&args(&["tests/sample.tl", "--target", "js"])).expect_err("error");
+            parse_test_args(&args(&["tests/sample.terl", "--target", "js"])).expect_err("error");
         assert_eq!(error, "unsupported test target: js");
     }
 
@@ -1380,10 +1525,55 @@ mod tests {
         }));
     }
 
+    /// Verifies recursive directory discovery finds only test source files.
+    ///
+    /// Inputs:
+    /// - A temporary directory containing nested test and non-test `.terl` files.
+    ///
+    /// Output:
+    /// - Discovered path list containing only `*_test.terl` files.
+    ///
+    /// Transformation:
+    /// - Walks the directory through `collect_test_files`, then removes the
+    ///   temporary fixture tree.
+    #[test]
+    fn collect_test_files_finds_only_test_sources() {
+        let root = std::env::temp_dir().join(format!(
+            "terlan_collect_test_files_{}_{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time")
+                .as_nanos()
+        ));
+        fs::create_dir_all(root.join("std/core")).expect("create nested test dir");
+        fs::create_dir_all(root.join("helpers")).expect("create helper dir");
+        fs::write(
+            root.join("std/core/bool_test.terl"),
+            "module std.core.BoolTest.\n",
+        )
+        .expect("write bool test");
+        fs::write(root.join("helpers/helper.terl"), "module helpers.Helper.\n")
+            .expect("write non-test source");
+        fs::write(root.join("readme.md"), "# ignored\n").expect("write ignored markdown");
+
+        let mut files = Vec::new();
+        collect_test_files(&root, &mut files).expect("collect tests");
+        files.sort();
+        let paths = files
+            .iter()
+            .map(|path| path.to_string_lossy().replace('\\', "/"))
+            .collect::<Vec<_>>();
+        let _ = fs::remove_dir_all(&root);
+
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].ends_with("std/core/bool_test.terl"));
+    }
+
     #[test]
     fn test_source_path_requires_test_suffix() {
-        assert!(is_test_source_path("tests/std/core/bool_test.tl"));
-        assert!(!is_test_source_path("std/core/bool.tl"));
+        assert!(is_test_source_path("tests/std/core/bool_test.terl"));
+        assert!(!is_test_source_path("std/core/bool.terl"));
         assert!(!is_test_source_path("tests/std/core/bool_test.md"));
     }
 
@@ -1404,10 +1594,11 @@ mod tests {
         let modules = release_support_modules();
 
         assert!(modules.iter().any(|module| {
-            module.path == "std/test/test.tl" && module.source.contains("module std.test.Test.")
+            module.path == "std/test/test.terl" && module.source.contains("module std.test.Test.")
         }));
         assert!(modules.iter().any(|module| {
-            module.path == "std/core/string.tl" && module.source.contains("module std.core.String.")
+            module.path == "std/core/string.terl"
+                && module.source.contains("module std.core.String.")
         }));
     }
 
@@ -1434,7 +1625,7 @@ mod tests {
         ));
         write_test_manifest(
             &path,
-            "tests/sample_test.tl",
+            "tests/sample_test.terl",
             "tests.SampleTest",
             "erlang",
             "erlang",
@@ -1451,7 +1642,7 @@ mod tests {
                 .expect("manifest json");
         let _ = fs::remove_file(&path);
 
-        assert_eq!(json["source_path"], "tests/sample_test.tl");
+        assert_eq!(json["source_path"], "tests/sample_test.terl");
         assert_eq!(json["module_name"], "tests.SampleTest");
         assert_eq!(json["target"], "erlang");
         assert_eq!(json["target_profile"], "erlang");
@@ -1503,7 +1694,7 @@ mod tests {
         };
         write_test_result_manifest(
             &path,
-            "tests/sample_test.tl",
+            "tests/sample_test.terl",
             "tests.SampleTest",
             "erlang",
             "erlang",
@@ -1516,7 +1707,7 @@ mod tests {
                 .expect("manifest json");
         let _ = fs::remove_file(&path);
 
-        assert_eq!(json["source_path"], "tests/sample_test.tl");
+        assert_eq!(json["source_path"], "tests/sample_test.terl");
         assert_eq!(json["passed"], 1);
         assert_eq!(json["failed"], 1);
         assert_eq!(json["tests"][0]["name"], "passes");

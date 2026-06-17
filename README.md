@@ -38,7 +38,7 @@ main() ->
 
 ## Status
 
-Current version: `0.0.2`
+Current version: `0.0.3`
 
 Terlan is in a very early experimental stage. The compiler, standard library,
 syntax, and release tooling are still changing quickly.
@@ -129,13 +129,13 @@ hello from Terlan
 `terlc init` creates a sample test file:
 
 ```text
-tests/hello/main_test.tl
+tests/hello/main_test.terl
 ```
 
 Run it with:
 
 ```sh
-terlc test tests/hello/main_test.tl
+terlc test tests/hello/main_test.terl
 ```
 
 Expected output:
@@ -148,11 +148,5 @@ test result: ok. 1 passed; 0 failed
 
 ## Current Scope
 
-0.0.2 expands Terlan from the first usable-program milestone into a
-language-feature and base-standard-library milestone. It supports simple
-Terlan programs, manifest-backed BEAM builds, runnable `_build/bin/<package>`
-launchers, Terlan test files executed through the Erlang target, receiver
-methods, trait conformance, function-value calls, semicolon-separated
-expression sequencing, generated stdlib interface summaries, and an initial
-portable standard-library surface for core values, collections, console I/O,
-and text file I/O.
+0.0.3 expands Terlan from the base language and standard-library milestone into
+a CLI, documentation, native-boundary, and release-hardening milestone.

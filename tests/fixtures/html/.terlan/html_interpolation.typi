@@ -1,0 +1,9 @@
+module html_interpolation.
+
+pub type User =
+    {user, Int, Text}.
+
+pub title(User: User): Text.
+
+pub view(User: User): Html[none].
+

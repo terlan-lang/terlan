@@ -1,0 +1,98 @@
+/**
+ * BEAM Agent contract.
+ *
+ * `std.beam.Agent` models a supervised process that owns one typed state value.
+ * It is a BEAM convenience wrapper built on the same ordinary type and method
+ * rules as the rest of Terlan; it is not a portable mutable reference.
+ */
+
+module std.beam.Agent.
+
+import std.core.Result.{Result}.
+import std.core.Error.{Error}.
+import std.core.Unit.{Unit}.
+
+/**
+ * Agent represents a supervised typed state process.
+ *
+ * Input: type parameter `T`.
+ * Output: an opaque BEAM-owned process handle.
+ * Transformation: hides process identity, mailbox mechanics, and supervision
+ * details behind a typed receiver-method surface.
+ */
+@target.erlang {process_mailbox: true}
+pub opaque type Agent[T].
+
+/**
+ * Starts an agent with an initial value.
+ *
+ * Input: one initial state value of type `T`.
+ * Output: `Result[Agent[T], Error]`.
+ * Transformation: asks the BEAM runtime to start a supervised state process and
+ * normalizes startup failure into the standard typed error channel.
+ */
+@target.erlang {process_mailbox: true}
+pub start[T](initial: T): Result[Agent[T], Error] ->
+    native.
+
+/**
+ * Reads the current state.
+ *
+ * Input: one `Agent[T]` receiver.
+ * Output: the current state value.
+ * Transformation: performs a typed synchronous state read without exposing a
+ * process message or reply tuple in Terlan source.
+ */
+@target.erlang {process_mailbox: true}
+pub (agent: Agent[T]) get(): T ->
+    native.
+
+/**
+ * Replaces state by applying a writer function.
+ *
+ * Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
+ * Output: `Unit`.
+ * Transformation: updates the agent state through receiver mutability while
+ * preserving BEAM process ownership behind the target runtime.
+ */
+@target.erlang {process_mailbox: true}
+pub (mut agent: Agent[T]) update(writer: (T) -> T): Unit ->
+    native.
+
+/**
+ * Updates state and returns a derived value.
+ *
+ * Input: one `Agent[T]` receiver and one writer from `T` to a named
+ * `{state, value}` pair.
+ * Output: the derived value.
+ * Transformation: performs a single state transition and read through the
+ * BEAM-owned process. The receiver handle remains stable; the target runtime
+ * owns the state transition.
+ */
+@target.erlang {process_mailbox: true}
+pub (agent: Agent[T]) get_and_update[U](writer: (T) -> {state: T, value: U}): U ->
+    native.
+
+/**
+ * Queues an asynchronous state update.
+ *
+ * Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
+ * Output: `Unit`.
+ * Transformation: records an effectful state update request without exposing
+ * BEAM cast messages in Terlan source.
+ */
+@target.erlang {process_mailbox: true}
+pub (mut agent: Agent[T]) cast(writer: (T) -> T): Unit ->
+    native.
+
+/**
+ * Stops the agent.
+ *
+ * Input: one mutable `Agent[T]` receiver.
+ * Output: `Unit`.
+ * Transformation: asks the BEAM runtime to terminate the supervised state
+ * process and release the target-owned handle.
+ */
+@target.erlang {process_mailbox: true}
+pub (mut agent: Agent[T]) stop(): Unit ->
+    native.

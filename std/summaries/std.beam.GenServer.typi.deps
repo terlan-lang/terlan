@@ -1,0 +1,11 @@
+module=std.beam.GenServer
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+source_hash=12084493712661075675
+interface_hash=3899908214911938591
+interface_doc_hash=7312759153914206977
+deps=3
+std.core.Error=9899337511333859675
+std.core.Result=9304271609900710313
+std.core.Unit=9706956153418545572

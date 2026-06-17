@@ -1,0 +1,4 @@
+module tests.test_model.TypeAnnotationTest.
+
+@test
+pub type Value = Bool.

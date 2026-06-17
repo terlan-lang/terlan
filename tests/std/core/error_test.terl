@@ -1,0 +1,22 @@
+module std.core.ErrorTest.
+
+import std.core.Error.{code, message, new, to_string}.
+import type std.core.Error.
+
+pub type Invalid =
+    Atom["invalid"].
+
+pub sample_error(): Error ->
+    new(Invalid, "invalid input").
+
+@test
+pub new_populates_error_code(): Bool ->
+    std.test.Test.assert_equal(Invalid, code(sample_error())).
+
+@test
+pub new_populates_error_message(): Bool ->
+    std.test.Test.assert_equal("invalid input", message(sample_error())).
+
+@test
+pub to_string_returns_error_message(): Bool ->
+    std.test.Test.assert_equal("invalid input", to_string(sample_error())).

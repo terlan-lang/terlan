@@ -1,0 +1,21 @@
+module std.core.TaskTest.
+
+import std.core.Task.
+import std.core.Result.{Ok}.
+import type std.core.Error.
+import type std.core.Result.
+import type std.core.Task.
+
+pub completed_task(): Task[Int] ->
+    Task.done(7).
+
+pub observe(task: Task[Int]): Result[Int, Error] ->
+    task.result().
+
+@test
+pub done_creates_completed_task_result(): Bool ->
+    std.test.Test.assert_equal(Ok(7), observe(Task.done(7))).
+
+@test
+pub result_observes_completed_task(): Bool ->
+    std.test.Test.assert_equal(Ok(7), observe(completed_task())).

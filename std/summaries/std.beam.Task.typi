@@ -1,0 +1,45 @@
+//! BEAM Task contract.
+//! 
+//! `std.beam.Task` models a BEAM-targeted supervised process that performs one
+//! unit of typed work. It is distinct from the portable `std.core.Task`
+//! contract: this module is explicitly tied to BEAM process ownership and is
+//! resolved only by BEAM-capable target profiles.
+
+module std.beam.Task.
+
+/// Task represents a supervised BEAM work process.
+/// 
+/// Input: type parameter `T`.
+/// Output: an opaque BEAM-owned process handle that eventually produces `T`.
+/// Transformation: keeps process identity, mailbox mechanics, and supervision
+/// target-owned while exposing a typed task handle to Terlan source.
+
+pub opaque type Task[T].
+
+/// Cancels the task.
+/// 
+/// Input: one mutable `Task[T]` receiver.
+/// Output: `Unit`.
+/// Transformation: asks the BEAM runtime to stop the supervised work process
+/// while keeping shutdown mechanics behind the target-owned runtime surface.
+
+pub (mut task: Task[T]) cancel(): Unit.
+
+/// Reads the task result.
+/// 
+/// Input: one `Task[T]` receiver.
+/// Output: `Result[T, Error]`.
+/// Transformation: waits for or observes the supervised work result through a
+/// typed success-or-error value without exposing BEAM monitor messages.
+
+pub (task: Task[T]) result(): Result[T, Error].
+
+/// Starts supervised BEAM work immediately.
+/// 
+/// Input: one zero-argument function producing `T`.
+/// Output: `Result[Task[T], Error]`.
+/// Transformation: asks the BEAM runtime to spawn supervised work and
+/// normalizes startup failure into the standard typed error channel.
+
+pub start(work: () -> T): Result[Task[T], Error].
+

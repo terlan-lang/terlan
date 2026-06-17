@@ -1,0 +1,15 @@
+module html_conditionals.
+
+pub type Role =
+      admin
+    | viewer.
+
+pub view(Role: Role): Html[none] ->
+    html {
+        <div>
+            {case Role {
+                admin -> <span class="admin">Admin</span>;
+                viewer -> <span>Viewer</span>
+            }}
+        </div>
+    }.

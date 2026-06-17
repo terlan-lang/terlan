@@ -1,0 +1,4 @@
+module a0_11_unary_neg.
+
+pub negate(value: Int): Int ->
+    -value.

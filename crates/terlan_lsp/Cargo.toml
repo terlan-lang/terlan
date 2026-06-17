@@ -1,7 +1,7 @@
 [package]
 name = "terlan_lsp"
-version = "0.0.2"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }

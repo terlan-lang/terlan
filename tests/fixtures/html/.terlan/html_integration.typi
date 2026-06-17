@@ -1,0 +1,11 @@
+module html_integration.
+
+pub type User =
+    {user, Int, Text}.
+
+pub user_id(User: User): Int.
+
+pub user_name(User: User): Text.
+
+pub view(Users: List[User], Name: Text, Saving: Bool): Html[Never].
+

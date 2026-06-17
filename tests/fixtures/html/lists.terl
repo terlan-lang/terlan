@@ -1,0 +1,18 @@
+module html_lists.
+
+pub type User =
+    {name, Text}.
+
+pub user_name(User: User): Text ->
+    case User {
+        {name, Name} -> Name
+    }.
+
+pub body(Users: List[User]): Html[none] ->
+    html {
+        <ul>
+            {for User <- Users {
+                <li>{user_name(User)}</li>
+            }}
+        </ul>
+    }.

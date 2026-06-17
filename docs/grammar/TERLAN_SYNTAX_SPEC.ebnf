@@ -30,23 +30,91 @@ DeclarationCore
    | ConstructorDecl "."
    | TraitDecl "."
    | TraitImplDecl "."
+   | AnnotationSchemaDecl "."
    | TemplateDecl "."
    | ConfigDecl "."
    | FunctionDecl "."
    | MethodDecl "."
    .
 
-Annotation ::= "@" AnnotationPath [ AnnotationSubject ] [ AnnotationArgs ] .
-AnnotationPath ::= LowerIdent { "." LowerIdent } .
-AnnotationSubject
+Annotation ::= "@" AnnotationPath [ AnnotationBlock ] .
+AnnotationPath ::= AnnotationName { "." AnnotationName } .
+AnnotationName ::= LowerIdent | "native" | "target" | "machine" | "static" .
+AnnotationBlock ::= "{" [ AnnotationItem { ";" AnnotationItem } [ ";" ] ] "}" .
+AnnotationItem ::= AnnotationEntry | AnnotationValue .
+AnnotationEntry ::= AnnotationKey ":" AnnotationValue .
+AnnotationKey ::= LowerIdent { "." LowerIdent } .
+AnnotationValue
   ::= AnnotationQualifiedName
    | ConfigBool
    | Int
    | Float
    | StringLiteral
+   | AnnotationList
+   | AnnotationObject
    .
 AnnotationQualifiedName ::= NameRef { "." NameRef } .
-AnnotationArgs ::= MetadataBlock .
+AnnotationList ::= "[" [ AnnotationValue { "," AnnotationValue } [ "," ] ] "]" .
+AnnotationObject ::= "{" [ AnnotationEntry { ";" AnnotationEntry } [ ";" ] ] "}" .
+
+(* Annotation values are typed compiler metadata, not runtime expressions.
+   Compiler-known annotation paths define schemas that are checked after parse:
+   required keys, optional keys, key spelling, value type, repeatability, and
+   valid declaration target. Unknown annotation paths are preserved for macro or
+   target-profile phases, but a profile may reject them before lowering.
+   Schemas are strict where metadata affects correctness and loose where
+   strictness would duplicate declaration identity.
+   Marker annotations without blocks are valid when the annotation schema does
+   not require keys. Schemas should not force declarations to repeat identity
+   information already implied by module path, declaration name, arity, receiver
+   shape, or type signature.
+   Annotation schema validation is a compile-time gate. A declaration with
+   missing required keys, unknown keys, wrong value types, duplicate
+   non-repeatable keys, or an annotation/key applied to an invalid declaration
+   kind is rejected before semantic lowering, CoreIR, or backend emission.
+*)
+
+AnnotationSchemaDecl ::= [ "pub" ] "annotation" AnnotationPath "{" { AnnotationSchemaEntry } "}" .
+AnnotationSchemaEntry
+  ::= AnnotationAppliesEntry
+   | AnnotationKeySchema
+   .
+AnnotationAppliesEntry ::= "applies_to" ":" AnnotationTargetSet ";" .
+AnnotationKeySchema ::= AnnotationKey ":" AnnotationValueType [ AnnotationKeyOptions ] ";" .
+AnnotationKeyOptions ::= "{" [ AnnotationKeyOption { ";" AnnotationKeyOption } [ ";" ] ] "}" .
+AnnotationKeyOption
+  ::= "required" ":" ConfigBool
+   | "repeatable" ":" ConfigBool
+   | "default" ":" AnnotationValue
+   | "applies_to" ":" AnnotationTargetSet
+   .
+AnnotationTargetSet ::= AnnotationTarget | "[" AnnotationTarget { "," AnnotationTarget } [ "," ] "]" .
+AnnotationTarget
+  ::= "module"
+   | "import"
+   | "type"
+   | "opaque_type"
+   | "struct"
+   | "constructor"
+   | "trait"
+   | "impl"
+   | "function"
+   | "method"
+   | "template"
+   | "config"
+   .
+AnnotationValueType
+  ::= TypeRef
+   | "Bool"
+   | "Int"
+   | "Float"
+   | "String"
+   | "Name"
+   | "Type"
+   | "[" AnnotationValueType "]"
+   | "{" [ AnnotationObjectTypeEntry { ";" AnnotationObjectTypeEntry } [ ";" ] ] "}"
+   .
+AnnotationObjectTypeEntry ::= AnnotationKey ":" AnnotationValueType .
 
 (* Terlan source uses declaration-site visibility.
 
@@ -86,6 +154,11 @@ OpaqueTypeDecl ::= [ "pub" ] "opaque" "type" TypeName [ TypeParams ] [ Implement
    Derivation does not create subtyping, runtime parent objects, implicit coercions, virtual dispatch, or true inheritance.
    Field conflicts are errors.
    Method conflicts are errors unless an override rule is later introduced.
+   Traits are not derived with `derives`; trait conformance is expressed with
+   `implements` or explicit `impl` declarations.
+   Standard-library domain error types derive from `std.core.Error`, so
+   `pub struct FileError derives Error { ... }.` is struct derivation, not a
+   trait derivation request.
 
    Struct visibility and construction authority are separate.
 
@@ -158,7 +231,12 @@ MethodFunction
     semantic resolution may allow `app.user.User` to refer to that primary type
     without spelling `app.user.User.User`. This is not parser behavior: the
     grammar preserves the path, and the resolver decides whether a primary type
-    exists and is visible.
+    exists and is visible. The same rule applies to imports: `import
+    std.core.Task.` binds the module call head `Task` and imports the primary
+    type `std.core.Task.Task` when that module exists and publicly exports
+    `Task`; aliases such as `import std.core.Task as AsyncTask.` bind the same
+    provider type under the local alias. `import type std.core.Task.` is also
+    valid when only the primary type should be imported.
 
     The Erlang backend lowers `std.core.Bool` to the Erlang-safe module atom
     `std_core_bool`; that mapping is a target artifact decision, not source
@@ -232,8 +310,9 @@ ConfigName
    | "machine"
    | "static"
    .
-ConfigTarget ::= ConfigPath .
+ConfigTarget ::= ConfigPath [ "with" ConfigFlag { "," ConfigFlag } ] .
 ConfigPath ::= LowerIdent { "." LowerIdent } .
+ConfigFlag ::= LowerIdent .
 MetadataBlock ::= "{" [ ConfigEntry { ";" ConfigEntry } [ ";" ] ] "}" .
 ConfigEntry ::= ConfigKey ":" ConfigValue .
 ConfigKey ::= LowerIdent { "." LowerIdent } .
@@ -271,6 +350,56 @@ RawMacroExpr ::= RawMacroName RawBlock .
 RawMacroName ::= LowerIdent .
 HtmlBlockExpr ::= "html" RawBlock .
 
+(* SafeNative metadata is expressed through ordinary annotations on ordinary
+   declarations.
+
+   Example:
+
+     @native {
+       adapter: "std_native_vector";
+       runtime: "rust_tokio";
+     }
+     pub opaque type Vector[T].
+
+     @native { worker: true; }
+     pub new[T](): Vector[T].
+
+     @native { worker: true; }
+     pub (mut vector: Vector[T]) push(value: T): Unit.
+
+     pub annotation native {
+       applies_to: [opaque_type, function, method];
+
+       adapter: String {
+         applies_to: opaque_type;
+       };
+
+       runtime: String {
+         applies_to: opaque_type;
+       };
+
+       worker: Bool {
+         applies_to: [function, method];
+         default: true;
+       };
+     }.
+
+   Compiler-owned Rust-backed std operations use the narrower annotation form:
+
+     @compiler.native {std.data.json.parse}
+     pub parse(text: String): Result[Json, JsonError] ->
+       native.
+
+   This records a stable compiler-owned operation id. It is not a general user
+   extension surface and must be checked against the Rust-backed std operation
+   manifest before runtime adapters are implemented.
+
+   Source-level `#[native(...)]`, `#[nif(...)]`, and `native core module`
+   blocks are not canonical Terlan syntax. Native implementation details are
+   backend package metadata and runtime-adapter concerns, not separate source
+   grammar.
+*)
+
 TypeName ::= UpperIdent .
 TypeParams ::= "[" TypeVar { "," TypeVar } "]" .
 
@@ -278,7 +407,7 @@ StructBody ::= "{" [ StructField { "," StructField } ] "}" .
 StructField ::= LowerIdent ":" TypeExpr [ "=" Expr ] .
 ConstructorClause ::= "(" [ ParamList ] ")" ":" TypeExpr "->" Expr .
 ParamList ::= Param { "," Param } .
-Param ::= LowerIdent ":" TypeExpr [ "=" Expr ] | "..." LowerIdent ":" TypeExpr .
+Param ::= [ "mut" ] LowerIdent ":" TypeExpr [ "=" Expr ] | "..." LowerIdent ":" TypeExpr .
 TypedFunction ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
 ClauseFunction ::= LowerIdent [ TypeParams ] "(" [ PatternList ] ")" [ "when" Expr ] "->" Expr { ";" LowerIdent "(" [ PatternList ] ")" [ "when" Expr ] "->" Expr } .
 PatternList ::= Pattern { "," Pattern } .
@@ -310,7 +439,7 @@ AtomTypeLiteral ::= "Atom" "[" StringLiteral "]" .
 ConstraintList ::= "[" Constraint { "," Constraint } "]" .
 Constraint ::= TraitRef .
 
-Expr ::= LetExpr | SendExpr .
+Expr ::= LetExpr | AssignExpr .
 
 (* A let expression is a semicolon-separated binding sequence with a required
    final result expression.
@@ -326,11 +455,12 @@ Expr ::= LetExpr | SendExpr .
 *)
 LetExpr ::= "let" LetBinding { ";" LetBinding } ";" Expr .
 LetBinding ::= Binding "=" Expr .
+AssignExpr ::= IndexAssignExpr | PipeExpr .
+IndexAssignExpr ::= PostfixExpr "[" Expr "]" "=" Expr .
 
 CaseExpr ::= "case" Expr "{" [ Clause { ";" Clause } [ ";" ] ] "}" .
 Clause ::= PatternList [ "when" Expr ] "->" Expr .
 LambdaExpr ::= "(" [ PatternList ] ")" "->" Expr .
-ReceiveExpr ::= "receive" "{" [ Clause { ";" Clause } [ ";" ] ] [ "after" Expr "->" Expr ] "}" .
 TryExpr ::= "try" Expr "{" [ Clause { ";" Clause } [ ";" ] ] [ "catch" CatchClause { ";" CatchClause } [ ";" ] ] [ "after" Expr "->" Expr ] "}" .
 (* If expressions are clause-based and do not use an `else` keyword.
 
@@ -350,7 +480,6 @@ CatchClause ::= PatternList [ "when" Expr ] "->" Expr .
 IfClause ::= Expr "->" Expr .
 QuoteExpr ::= "quote" Expr .
 UnquoteExpr ::= "unquote" "(" Expr ")" .
-SendExpr ::= PipeExpr { "!" PipeExpr } .
 PipeExpr ::= OrExpr { "|>" OrExpr } .
 OrExpr ::= AndExpr { OrOp AndExpr } .
 AndExpr ::= CmpExpr { AndOp CmpExpr } .
@@ -368,7 +497,8 @@ CmpOp ::= "==" | "!=" | ">=" | ">" | "<=" | "<" .
 PostfixExpr ::= PrimaryExpr { PostfixSuffix } .
 PostfixSuffix ::= MethodCallSuffix | FieldSuffix | IndexSuffix | FunCallSuffix .
 PrimaryExpr
-  ::= CallExpr
+  ::= AtomLiteralExpr
+   | CallExpr
    | Binding
    | Int
    | Float
@@ -385,7 +515,6 @@ PrimaryExpr
    | CaseExpr
    | ListGeneratorExpr
    | LambdaExpr
-   | ReceiveExpr
    | TryExpr
    | IfExpr
    | QuoteExpr
@@ -396,6 +525,7 @@ PrimaryExpr
    | RawMacroExpr 
    | ConstructorChainExpr .
 
+AtomLiteralExpr ::= "Atom" "[" StringLiteral "]" .
 TupleExpr ::= "{" [ Expr { "," Expr } ] "}" .
 ListExpr ::= "[" [ Expr { "," Expr } ] "]" .
 ConsListExpr ::= "[" Expr "|" Expr "]" .
@@ -406,7 +536,7 @@ Generator ::= Pattern "<-" Expr .
 ComprehensionFilter ::= Expr .
 MapExpr ::= "#{" [ MapField { "," MapField } ] "}" .
 MapField ::= MapExprKey ( "=>" | ":=" ) Expr .
-MapExprKey ::= NameRef .
+MapExprKey ::= Expr .
 TemplateInstantiateExpr ::= TemplateName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
 TemplateName ::= NameRef .
 (* RecordExpr is raw struct construction syntax.
@@ -432,8 +562,10 @@ PrimaryPattern
   ::= "_"
    | Binding
    | ConstructorPattern
+   | AtomLiteralExpr
    | Int
    | Float
+   | StringLiteral
    | TuplePattern
    | ListPattern
    | MapPattern
@@ -443,7 +575,7 @@ TuplePattern ::= "{" [ Pattern { "," Pattern } ] "}" .
 ConstructorPattern ::= ConstructorAtom [ "(" PatternList1 ")" ] .
 MapPattern ::= "#{" [ PatternMapField { "," PatternMapField } ] "}" .
 PatternMapField ::= MapPatternKey ( "=>" | ":=" ) Pattern .
-MapPatternKey ::= NameRef .
+MapPatternKey ::= Expr .
 
 BinarySegment ::= Expr [ ":" Expr ] [ "/" BinarySegmentType { "-" BinarySegmentType } ] .
 BinarySegmentType ::= "integer" | "float" | "binary" | "bytes" | "bitstring" | "bits" | "utf8" | "utf16" | "utf32" | "signed" | "unsigned" | "big" | "little" | "native" .
@@ -466,6 +598,7 @@ ReservedWord
    | "constructor"
    | "trait"
    | "impl"
+   | "annotation"
    | "implements"
    | "for"
    | "extends"
@@ -484,8 +617,6 @@ ReservedWord
    | "macro"
    | "case"
    | "let"
-   | "receive"
-   | "receives"
    | "if"
    | "try"
    | "catch"
@@ -565,31 +696,48 @@ StringChar ::= ? any source character except unescaped terminator ? .
    - RawText is opaque in first pass and must be preserved with span text by maintained parser implementations.
    - Template raw declarations are explicit declarations with a dedicated
      production.
-   - Metadata blocks are declarative key/value blocks used by annotations and
-     top-level config declarations. They are not expression blocks, raw macro
-     bodies, or target-language snippets.
+   - Metadata blocks are declarative key/value blocks used by top-level config
+     declarations. They are not expression blocks, raw macro bodies, or
+     target-language snippets.
    - Config declarations are optional structured capability/configuration
      blocks. `target erlang { otp_application: true; process_mailbox: enabled }.`
      is syntax only; selected target-profile validation decides whether each
      entry is supported. Config declarations are not required in every file. Config
      values are not Terlan runtime expressions and config symbols are not
      runtime atoms.
-   - Annotations are structured compiler metadata attached to declarations.
-     `@java.annotation Deprecated` and
-     `@java.annotation Table { name: "users" }` are target-scoped metadata, not
-     runtime expressions. Macros may consume or produce annotations, but
-     annotations remain a distinct metadata channel through compiler phases.
-     Value-producing language forms, such as `html { ... }`, must remain
-     expressions or declarations rather than annotations.
+   - Annotations are typed compiler metadata attached to declarations.
+     `@java { annotation: Deprecated; }` and
+     `@java { annotation: Table; name: "users"; }` are target-scoped metadata,
+     not runtime expressions. Compiler-known annotations are schema-checked for
+     required keys, optional keys, value types, and valid declaration targets.
+     Annotation schemas declare the legal keys, key value types, key-level
+     options such as `required`, `repeatable`, and `default`, and the
+     declaration kinds each key may be applied to. Annotation schema validation
+     is a compile-time gate and runs before semantic lowering, CoreIR, or
+     backend emission.
+     Macros may consume or produce annotations, but annotations remain a
+     distinct metadata channel through compiler phases. Value-producing language
+     forms, such as `html { ... }`, must remain expressions or declarations
+     rather than annotations.
    - Raw pointer syntax is not part of ordinary Terlan source mode. Native
      memory work is expressed through typed abstractions such as fixed arrays,
      buffers, resources, opaque native handles, and explicit FFI/native
      boundaries. Target backends own pointer lowering after target-profile
      validation.
+   - SafeNative source metadata uses ordinary `@native { ... }` contract-block
+     annotations on ordinary declarations. Compiler-owned Rust-backed std
+     operations use `@compiler.native {operation}`. Source-level
+     `#[native(...)]`, `#[nif(...)]`, and `native core module` blocks are not
+     canonical Terlan syntax; NIFs are a backend implementation detail or later
+     audited optimization tier.
    - Keyword expressions use brace bodies: `case value { ... }`,
-     `receive { ... }`, `try expr { ... }`, and `if { ... }`.
+     `try expr { ... }`, and `if { ... }`.
      `if` is clause-based and has no `else` keyword; use a final `_ -> ...`
      branch for fallback behavior.
+     Process send/receive semantics are not core Terlan syntax.
+     Target-specific messaging behavior is modeled with ordinary annotated
+     traits and types, such as BEAM-scoped traits consumed by the BEAM target
+     profile.
      Anonymous functions use lambda syntax: `(x: Int) -> x + 1`.
      The old `of`, `end`, and `fun ... end` forms are not canonical Terlan
      source syntax.
@@ -624,10 +772,10 @@ StringChar ::= ? any source character except unescaped terminator ? .
      compatibility is a backend and runtime artifact obligation, not a source
      syntax obligation.
    - `Atom["name"]` is the language-neutral primitive for stable symbolic
-     singleton values. It is a type-position literal. Source programs should
-     bind these singleton shapes to named aliases, such as
-     `pub type None = Atom["none"].`, and use the named alias in expressions
-     and patterns.
+     singleton values. It is valid in type and expression position. Source
+     programs should usually bind public singleton shapes to named aliases,
+     such as `pub type None = Atom["none"].`, and use the named alias in
+     domain expressions and patterns.
    - Upper-case bare names in expression or pattern position may resolve to
      declared singleton aliases, such as `None = Atom["none"]`; these are
      values, not nullary constructor calls.

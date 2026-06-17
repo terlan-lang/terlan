@@ -1,0 +1,5 @@
+module tests.test_model.ProductionModuleWithAnnotation.
+
+@test
+pub should_not_live_in_production_source(): Bool ->
+    true.

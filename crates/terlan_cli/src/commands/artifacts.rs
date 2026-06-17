@@ -645,13 +645,13 @@ mod tests {
     fn collect_syntax_template_frontend_inputs_preserves_normalized_template_metadata() {
         let dir = temp_artifact_dir("template-frontend-input");
         fs::create_dir_all(&dir).expect("create temp artifact dir");
-        let source_path = dir.join("page_test.tl");
-        let template_path = dir.join("page.tl.html");
+        let source_path = dir.join("page_test.terl");
+        let template_path = dir.join("page.terl.html");
         fs::write(
             &source_path,
             r#"module page_test.
 
-template Page from "page.tl.html" {
+template Page from "page.terl.html" {
   title: String
 }.
 "#,
@@ -671,7 +671,7 @@ template Page from "page.tl.html" {
         assert_eq!(collected.inputs.len(), 1);
         let input = &collected.inputs[0];
         assert_eq!(input.name, "Page");
-        assert_eq!(input.source_path, "page.tl.html");
+        assert_eq!(input.source_path, "page.terl.html");
         assert_eq!(input.resolved_path, template_path);
         assert_eq!(input.props.len(), 1);
         assert_eq!(input.props[0].name, "title");

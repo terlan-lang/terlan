@@ -1,0 +1,9 @@
+module tests.test_model.MixedPassFailTest.
+
+@test
+pub passing_test(): Bool ->
+    true.
+
+@test
+pub failing_test(): Bool ->
+    false.

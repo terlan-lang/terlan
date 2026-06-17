@@ -1,0 +1,2 @@
+-record(error, {code, message}).
+

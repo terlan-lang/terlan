@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use terlan_syntax::{
-    format_module, parse_interface_module, parse_interface_module_as_syntax_output, parse_module,
+    format_interface_source_module, format_source_module, parse_interface_module_as_syntax_output,
     parse_module_as_syntax_output,
 };
 
@@ -18,7 +18,7 @@ use terlan_syntax::{
 /// Transformation:
 /// - Reads a single file path, parses it as a module/interface depending on
 ///   extension using formal syntax-output parsing, and prints the canonical
-///   formatter output built from the AST module AST.
+///   formatter output.
 pub(crate) fn run(args: &[String]) -> ExitCode {
     if args.len() != 1 {
         eprintln!("missing or extra path argument");
@@ -57,26 +57,21 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
 /// - `String` parse error message on malformed syntax.
 ///
 /// Transformation:
-/// - Parses `.tli` sources with `parse_interface_module_as_syntax_output`, and all
+/// - Parses `.terli` sources with `parse_interface_module_as_syntax_output`, and all
 ///   others with `parse_module_as_syntax_output`.
-/// - Uses the AST module parser only to obtain formatter input for now.
 fn parse_source(path: &str, source: &str) -> Result<String, String> {
-    if path.ends_with(".tli") {
+    if path.ends_with(".terli") {
         parse_interface_module_as_syntax_output(source).map_err(|error| match error {
             terlan_syntax::EbnfCompileError::Parse(message, _) => message,
             terlan_syntax::EbnfCompileError::Serialize(message) => message,
         })?;
-        parse_interface_module(source)
-            .map_err(|error| error.message)
-            .map(|module| format_module(&module))
+        format_interface_source_module(source).map_err(|error| error.message)
     } else {
         parse_module_as_syntax_output(source).map_err(|error| match error {
             terlan_syntax::EbnfCompileError::Parse(message, _) => message,
             terlan_syntax::EbnfCompileError::Serialize(message) => message,
         })?;
-        parse_module(source)
-            .map_err(|error| error.message)
-            .map(|module| format_module(&module))
+        format_source_module(source).map_err(|error| error.message)
     }
 }
 
@@ -88,18 +83,18 @@ mod tests {
     /// visibility instead of normalizing removed export-list syntax.
     ///
     /// Inputs:
-    /// - A `.tl` path and source containing a source-mode `export` declaration.
+    /// - A `.terl` path and source containing a source-mode `export` declaration.
     ///
     /// Output:
     /// - A parse error containing the canonical source-export diagnostic.
     ///
     /// Transformation:
-    /// - Routes the source through the same formal syntax-output parser and AST
+    /// - Routes the source through the same formal syntax-output parser and parse tree
     ///   formatter preparation used by the CLI command.
     #[test]
     fn fmt_rejects_source_export_declarations() {
         let error = parse_source(
-            "sample.tl",
+            "sample.terl",
             r#"
 module sample.
 export add/1.
@@ -111,22 +106,22 @@ add(x: Int): Int -> x.
         assert!(error.contains("source export declarations are not part of canonical Terlan"));
     }
 
-    /// Verifies that `terlc fmt` still treats `.tli` export summaries as
+    /// Verifies that `terlc fmt` still treats `.terli` export summaries as
     /// interface metadata rather than source module visibility.
     ///
     /// Inputs:
-    /// - A `.tli` path and interface source containing an export summary.
+    /// - A `.terli` path and interface source containing an export summary.
     ///
     /// Output:
     /// - Formatted interface text preserving the export summary.
     ///
     /// Transformation:
     /// - Selects interface parsing by extension, validates the formal
-    ///   syntax-output path, then formats the AST interface module.
+    ///   syntax-output path, then formats the parse tree interface module.
     #[test]
     fn fmt_preserves_interface_export_summaries() {
         let formatted = parse_source(
-            "sample.tli",
+            "sample.terli",
             r#"
 module sample.
 export add/1.
@@ -135,5 +130,64 @@ export add/1.
         .expect("interface export summaries remain valid formatter input");
 
         assert!(formatted.contains("export add/1."));
+    }
+
+    /// Verifies `terlc fmt` canonicalizes noisy default-export type imports.
+    ///
+    /// Inputs:
+    /// - A source module importing `std.core.Error.Error`, where the final path
+    ///   segment repeats the imported type name.
+    ///
+    /// Output:
+    /// - Formatted source using `import type std.core.Error.`.
+    ///
+    /// Transformation:
+    /// - Parses through the formal syntax-output path, formats through the
+    ///   source formatter, and applies the default-export import shorthand only
+    ///   when the selected type has no alias.
+    #[test]
+    fn fmt_collapses_redundant_default_type_import() {
+        let formatted = parse_source(
+            "sample.terl",
+            r#"
+module sample.
+
+import type std.core.Error.Error.
+
+pub value(error: Error): Error -> error.
+"#,
+        )
+        .expect("redundant default type import should format");
+
+        assert!(formatted.contains("import type std.core.Error."));
+        assert!(!formatted.contains("import type std.core.Error.Error."));
+    }
+
+    /// Verifies `terlc fmt` keeps aliased default-export type imports explicit.
+    ///
+    /// Inputs:
+    /// - A source module importing `std.core.Error.Error as CoreError`.
+    ///
+    /// Output:
+    /// - Formatted source preserving the selected import and alias.
+    ///
+    /// Transformation:
+    /// - Guards against collapsing aliased imports because the shorthand cannot
+    ///   represent a caller-selected local name.
+    #[test]
+    fn fmt_preserves_aliased_default_type_import() {
+        let formatted = parse_source(
+            "sample.terl",
+            r#"
+module sample.
+
+import type std.core.Error.Error as CoreError.
+
+pub value(error: CoreError): CoreError -> error.
+"#,
+        )
+        .expect("aliased default type import should format");
+
+        assert!(formatted.contains("import type std.core.Error. Error as CoreError."));
     }
 }

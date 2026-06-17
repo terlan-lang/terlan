@@ -1,0 +1,25 @@
+module std.test.Test.AssertionsTest.
+
+@test
+pub assert_accepts_true(): Bool ->
+    std.test.Test.assert(true).
+
+@test
+pub assert_true_accepts_true(): Bool ->
+    std.test.Test.assert_true(true).
+
+@test
+pub assert_false_accepts_false(): Bool ->
+    std.test.Test.assert_false(false).
+
+@test
+pub assert_equal_accepts_equal_values(): Bool ->
+    std.test.Test.assert_equal(42, 42).
+
+@test
+pub assert_not_equal_accepts_different_values(): Bool ->
+    std.test.Test.assert_not_equal(42, 7).
+
+@test
+pub fail_returns_false(): Bool ->
+    std.test.Test.fail() == false.

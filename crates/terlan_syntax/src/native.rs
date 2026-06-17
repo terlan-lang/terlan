@@ -28,7 +28,7 @@ pub fn extract_native_scheduler(source: &str) -> Option<String> {
     let (_, block) = extract_native_block_and_source(source)?;
     let block = normalize_native_spacing(block);
     block.lines().map(|line| line.trim()).find_map(|trimmed| {
-        trimmed.strip_prefix("#[nif(").and_then(|rest| {
+        trimmed.strip_prefix("#[native(").and_then(|rest| {
             rest.strip_suffix(")]")
                 .map(|scheduler| scheduler.trim().to_string())
                 .filter(|scheduler| !scheduler.is_empty())
@@ -45,7 +45,7 @@ pub fn extract_native_function_signatures(source: &str) -> Vec<NativeFunctionSig
     let mut i = 0usize;
     let mut signatures = Vec::new();
 
-    while let Some(attr_pos) = block[i..].find("#[nif(") {
+    while let Some(attr_pos) = block[i..].find("#[native(") {
         let attr_pos = i + attr_pos;
         let Some(attr_end) = block[attr_pos..]
             .find(")]")
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn parses_native_block_signatures_and_types() {
-        let source = "native core module VecNative {\n    #[nif(normal)]\n    empty[T](): Vec[T].\n\n    #[nif(normal)]\n    push[T](V: Vec[T], Item: T): Vec[T].\n}";
+        let source = "native core module VecNative {\n    #[native(normal)]\n    empty[T](): Vec[T].\n\n    #[native(normal)]\n    push[T](V: Vec[T], Item: T): Vec[T].\n}";
 
         assert_eq!(
             extract_native_module_name(source).as_deref(),
@@ -323,7 +323,7 @@ mod tests {
 
     #[test]
     fn parses_native_signatures_from_block_without_newlines() {
-        let source = "native core module VecNative { #[nif(normal)] empty[T](): Vec[T]. #[nif(normal)] push[T](V: Vec[T], Item: T): Vec[T]. }";
+        let source = "native core module VecNative { #[native(normal)] empty[T](): Vec[T]. #[native(normal)] push[T](V: Vec[T], Item: T): Vec[T]. }";
 
         let signatures = extract_native_function_signatures(source);
         assert_eq!(signatures.len(), 2);

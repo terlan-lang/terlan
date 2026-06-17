@@ -1,0 +1,62 @@
+//! Portable Base64 encoding contract.
+//! 
+//! `std.encoding.Base64` exposes text-oriented Base64 helpers through a
+//! target-neutral Terlan API. Its first backend is Rust/SafeNative with the
+//! `base64` crate; source code sees only `String`, `Base64Error`, and `Result`.
+
+module std.encoding.Base64.
+
+/// Base64Error is the portable error returned by Base64 decoding operations.
+/// 
+/// Input: inherits the neutral `code` and `message` fields from
+/// `std.core.Error.Error` and adds the byte offset reported by the decoder when
+/// available.
+/// Output: a typed error value usable anywhere `Error`-derived values are
+/// accepted.
+/// Transformation: maps backend decoder failures into a portable data shape
+/// without exposing target-specific exception values.
+
+pub struct Base64Error {
+    code: Atom,
+    message: String,
+    offset: Int
+}.
+
+/// Decodes standard Base64 text into UTF-8 text.
+/// 
+/// Input: one Base64 `String`.
+/// Output: `Ok(text)` when decoding succeeds and the result is valid UTF-8,
+/// otherwise `Err(Base64Error)`.
+/// Transformation: delegates decoding to the selected target Base64 capability
+/// and maps invalid input into `Base64Error`.
+
+pub decode(text: String): Result[String, Base64Error].
+
+/// Decodes URL-safe Base64 text into UTF-8 text.
+/// 
+/// Input: one URL-safe Base64 `String`.
+/// Output: `Ok(text)` when decoding succeeds and the result is valid UTF-8,
+/// otherwise `Err(Base64Error)`.
+/// Transformation: delegates URL-safe decoding to the selected target Base64
+/// capability and maps invalid input into `Base64Error`.
+
+pub decode_url(text: String): Result[String, Base64Error].
+
+/// Encodes UTF-8 text with the standard Base64 alphabet.
+/// 
+/// Input: one UTF-8 `String`.
+/// Output: Base64 text using the standard alphabet with padding.
+/// Transformation: delegates encoding to the selected target Base64 capability.
+
+pub encode(text: String): String.
+
+/// Encodes UTF-8 text with the URL-safe Base64 alphabet.
+/// 
+/// Input: one UTF-8 `String`.
+/// Output: Base64 text using the URL-safe alphabet without relying on a
+/// backend-specific encoder surface.
+/// Transformation: delegates URL-safe encoding to the selected target Base64
+/// capability.
+
+pub encode_url(text: String): String.
+

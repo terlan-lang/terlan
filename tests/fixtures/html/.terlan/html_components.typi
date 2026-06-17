@@ -1,0 +1,10 @@
+module html_components.
+
+pub type Msg.
+
+pub layout(Title: Text, Body: Html[Msg]): Html[Msg].
+
+pub page(Name: Text): Html[Msg].
+
+pub user_card(Name: Text): Html[Msg].
+
