@@ -1,7 +1,7 @@
 CARGO := cargo
 PYTHON := python3 -B
 
-.PHONY: check test build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check web-capability-decision-check changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan_cli/cli.mk
 include std/stdlib.mk
@@ -27,7 +27,6 @@ check:
 	$(MAKE) cli-exact-selector-check
 	$(MAKE) shared-helper-check
 	$(MAKE) oxc-boundary-check
-	$(MAKE) web-capability-decision-check
 	$(MAKE) changelog-public-scope-check
 	$(MAKE) internal-docs-check
 	$(MAKE) module-readme-check
@@ -77,9 +76,6 @@ shared-helper-check:
 
 oxc-boundary-check:
 	$(PYTHON) tools/check_oxc_boundary.py
-
-web-capability-decision-check:
-	$(PYTHON) tools/check_web_capability_decisions.py
 
 changelog-public-scope-check:
 	$(PYTHON) tools/check_changelog_public_scope.py

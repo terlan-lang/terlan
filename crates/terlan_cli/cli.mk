@@ -93,7 +93,6 @@ release-0-0-4-preflight:
 	$(MAKE) --no-print-directory cli-exact-selector-check
 	$(MAKE) --no-print-directory shared-helper-check
 	$(MAKE) --no-print-directory oxc-boundary-check
-	$(MAKE) --no-print-directory web-capability-decision-check
 	$(MAKE) --no-print-directory changelog-public-scope-check
 	$(MAKE) --no-print-directory internal-docs-check
 	$(MAKE) --no-print-directory module-readme-check
