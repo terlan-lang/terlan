@@ -3,12 +3,33 @@ use crate::{
     token::{Token, TokenKind},
 };
 
+/// Lexical diagnostic emitted before parsing.
+///
+/// Inputs:
+/// - Invalid source character sequences or unterminated lexical forms.
+///
+/// Output:
+/// - User-facing error message and source span.
+///
+/// Transformation:
+/// - Packages lexer failures in a parser-independent shape.
 #[derive(Debug, Clone)]
 pub struct LexError {
     pub message: String,
     pub span: Span,
 }
 
+/// Tokenizes Terlan source text.
+///
+/// Inputs:
+/// - `input`: complete source text for one module or snippet.
+///
+/// Output:
+/// - Ordered tokens ending in `EOF`, or collected lexical errors.
+///
+/// Transformation:
+/// - Scans comments, docs, strings, binaries, operators, identifiers,
+///   keywords, and literals into parser tokens while preserving source spans.
 pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
     let chars: Vec<char> = input.chars().collect();
     let mut tokens = Vec::new();
@@ -342,6 +363,19 @@ fn prefixed_integer_literal_end(chars: &[char], start: usize) -> Option<usize> {
     (end > start + 2).then_some(end)
 }
 
+/// Matches multi-character punctuation and operator tokens.
+///
+/// Inputs:
+/// - `chars`: complete source as characters.
+/// - `i`: current scan index.
+///
+/// Output:
+/// - Token kind, token text, and exclusive end index when a multi-character
+///   token starts at `i`.
+///
+/// Transformation:
+/// - Recognizes longest special cases first, then the stable two-character
+///   operator set used by the parser.
 fn match_two_char_token(chars: &[char], i: usize) -> Option<(TokenKind, String, usize)> {
     if i + 1 >= chars.len() {
         return None;
@@ -375,6 +409,18 @@ fn match_two_char_token(chars: &[char], i: usize) -> Option<(TokenKind, String, 
     }
 }
 
+/// Parses a double-quoted string literal.
+///
+/// Inputs:
+/// - `chars`: complete source as characters.
+/// - `start`: index of the opening quote.
+///
+/// Output:
+/// - Exact string literal text and exclusive end index, or `None` if
+///   unterminated.
+///
+/// Transformation:
+/// - Scans through escaped characters without interpreting escape semantics.
 fn parse_string(chars: &[char], start: usize) -> Option<(String, usize)> {
     let mut i = start + 1;
     while i < chars.len() {
@@ -391,6 +437,17 @@ fn parse_string(chars: &[char], start: usize) -> Option<(String, usize)> {
     None
 }
 
+/// Parses a single-quoted string/atom-compatible literal.
+///
+/// Inputs:
+/// - `chars`: complete source as characters.
+/// - `start`: index of the opening quote.
+///
+/// Output:
+/// - Exact literal text and exclusive end index, or `None` if unterminated.
+///
+/// Transformation:
+/// - Preserves source text and skips escaped characters without decoding them.
 fn parse_single_quoted(chars: &[char], start: usize) -> Option<(String, usize)> {
     let mut i = start + 1;
     while i < chars.len() {
@@ -407,6 +464,19 @@ fn parse_single_quoted(chars: &[char], start: usize) -> Option<(String, usize)> 
     None
 }
 
+/// Parses a `<<...>>` binary literal token.
+///
+/// Inputs:
+/// - `chars`: complete source as characters.
+/// - `start`: index of the first `<`.
+///
+/// Output:
+/// - Exact binary literal text and exclusive end index, or `None` when the
+///   literal is malformed or unterminated.
+///
+/// Transformation:
+/// - Scans to the matching `>>` while allowing quoted string segments inside
+///   the binary payload.
 fn parse_binary(chars: &[char], start: usize) -> Option<(String, usize)> {
     if chars[start] != '<' || start + 1 >= chars.len() || chars[start + 1] != '<' {
         return None;
@@ -477,6 +547,17 @@ fn doc_block_contains_nested_doc_start(text: &str) -> bool {
         .is_some_and(|inner| inner.contains("/**"))
 }
 
+/// Normalizes one line documentation comment body.
+///
+/// Inputs:
+/// - `chars`: characters after the `///` or `//!` marker up to newline.
+///
+/// Output:
+/// - Documentation text with one leading space removed when present.
+///
+/// Transformation:
+/// - Applies TypeDoc-style spacing so `/// Text` becomes `Text` while keeping
+///   other content intact.
 fn normalize_doc_comment_text(chars: &[char]) -> String {
     let text = chars.iter().collect::<String>();
     text.strip_prefix(' ').unwrap_or(&text).to_string()
@@ -522,137 +603,34 @@ fn normalize_doc_block_comment_text(text: &str) -> String {
     lines.join("\n")
 }
 
+/// Returns whether a character can start a Terlan identifier token.
+///
+/// Inputs:
+/// - `ch`: candidate source character.
+///
+/// Output:
+/// - `true` for ASCII letters and underscore.
+///
+/// Transformation:
+/// - Encodes the current lexer-level identifier start rule.
 fn is_ident_start(ch: char) -> bool {
     ch.is_ascii_alphabetic() || ch == '_'
 }
 
+/// Returns whether a character can continue a Terlan identifier token.
+///
+/// Inputs:
+/// - `ch`: candidate source character.
+///
+/// Output:
+/// - `true` for ASCII letters, digits, and underscore.
+///
+/// Transformation:
+/// - Encodes the current lexer-level identifier continuation rule.
 fn is_ident_continue(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
 }
 
 #[cfg(test)]
-mod tests {
-    use super::lex;
-    use crate::token::TokenKind;
-
-    #[test]
-    fn module_decl_dot_is_a_separator_not_identifier_char() {
-        let src = "module mathx.\n";
-        let tokens = lex(src).expect("lexer should parse module declaration");
-        assert_eq!(tokens[0].text, "module");
-        assert_eq!(tokens[1].text, "mathx");
-        assert_eq!(tokens[2].text, ".");
-        assert_eq!(tokens[3].text, "");
-        assert_eq!(tokens[3].kind, TokenKind::EOF);
-    }
-
-    #[test]
-    fn doc_comments_are_distinct_tokens() {
-        let src = "//! Module docs.\n/// Adds one.\nmodule mathx.\n";
-        let tokens = lex(src).expect("lexer should parse doc comments");
-        assert_eq!(tokens[0].kind, TokenKind::ModuleDocComment);
-        assert_eq!(tokens[0].text, "Module docs.");
-        assert_eq!(tokens[1].kind, TokenKind::DocComment);
-        assert_eq!(tokens[1].text, "Adds one.");
-    }
-
-    #[test]
-    fn doc_block_comments_are_public_doc_tokens() {
-        let src = "/**\n * Adds one.\n *\n * @param x The value.\n * @returns The incremented value.\n */\nmodule mathx.\n";
-        let tokens = lex(src).expect("lexer should parse doc block comments");
-        assert_eq!(tokens[0].kind, TokenKind::DocBlockComment);
-        assert_eq!(
-            tokens[0].text,
-            "Adds one.\n\n@param x The value.\n@returns The incremented value."
-        );
-    }
-
-    #[test]
-    fn line_and_block_comments_are_not_public_docs() {
-        let src = "// implementation note\n/* implementation block */\nmodule mathx.\n";
-        let tokens = lex(src).expect("lexer should parse implementation comments");
-        assert_eq!(tokens[0].kind, TokenKind::Comment);
-        assert_eq!(tokens[1].kind, TokenKind::Comment);
-        assert_eq!(tokens[2].kind, TokenKind::Module);
-    }
-
-    #[test]
-    fn rejects_unterminated_doc_block_comments() {
-        let errors = lex("/** missing close").expect_err("unterminated doc block");
-        assert_eq!(
-            errors[0].message,
-            "unterminated documentation block comment"
-        );
-    }
-
-    #[test]
-    fn rejects_nested_doc_block_comments() {
-        let errors = lex("/** Outer /** Inner */ Outer */").expect_err("nested doc block");
-        assert_eq!(
-            errors[0].message,
-            "nested documentation block comments are not supported"
-        );
-    }
-
-    /// Verifies that exact inequality is tokenized as one comparison operator.
-    ///
-    /// Inputs:
-    /// - A source fragment containing `=/=`.
-    ///
-    /// Output:
-    /// - Test passes when the lexer emits `TokenKind::NotEqEq` for the exact
-    ///   inequality operator.
-    ///
-    /// Transformation:
-    /// - Runs the lexer over a short comparison expression and inspects the
-    ///   middle token, guarding against splitting `=/=` into `=` plus `/=`.
-    #[test]
-    fn exact_inequality_is_one_token() {
-        let tokens = lex("x =/= y").expect("lexer should parse exact inequality");
-
-        assert_eq!(tokens[1].kind, TokenKind::NotEqEq);
-        assert_eq!(tokens[1].text, "=/=");
-    }
-
-    /// Verifies that canonical inequality is tokenized as one comparison operator.
-    ///
-    /// Inputs:
-    /// - A source fragment containing `!=`.
-    ///
-    /// Output:
-    /// - Test passes when the lexer emits `TokenKind::NotEq` for the canonical
-    ///   inequality operator.
-    ///
-    /// Transformation:
-    /// - Runs the lexer over a short comparison expression and inspects the
-    ///   middle token, guarding against treating `!` as unary syntax before `=`.
-    #[test]
-    fn canonical_inequality_is_one_token() {
-        let tokens = lex("x != y").expect("lexer should parse canonical inequality");
-
-        assert_eq!(tokens[1].kind, TokenKind::NotEq);
-        assert_eq!(tokens[1].text, "!=");
-    }
-
-    /// Verifies that symbolic boolean operators tokenize as boolean operators.
-    ///
-    /// Inputs:
-    /// - A source fragment containing `&&` and `||`.
-    ///
-    /// Output:
-    /// - Test passes when `&&` emits `TokenKind::And` and `||` emits
-    ///   `TokenKind::Or`.
-    ///
-    /// Transformation:
-    /// - Runs the lexer over a short boolean expression and inspects the
-    ///   operator tokens, guarding against treating `||` as a list/type pipe.
-    #[test]
-    fn symbolic_boolean_operators_are_boolean_tokens() {
-        let tokens = lex("a && b || c").expect("lexer should parse symbolic boolean operators");
-
-        assert_eq!(tokens[1].kind, TokenKind::And);
-        assert_eq!(tokens[1].text, "&&");
-        assert_eq!(tokens[3].kind, TokenKind::Or);
-        assert_eq!(tokens[3].text, "||");
-    }
-}
+#[path = "lexer_test.rs"]
+mod lexer_test;

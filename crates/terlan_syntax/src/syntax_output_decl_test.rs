@@ -337,6 +337,115 @@ mod tests {
         );
     }
 
+    /// Verifies JS target annotations accept generated-binding metadata.
+    ///
+    /// Inputs:
+    /// - A function declaration annotated with JS source-name, module,
+    ///   namespace, global, and profile metadata.
+    ///
+    /// Output:
+    /// - Test passes when syntax output preserves the typed annotation entries.
+    ///
+    /// Transformation:
+    /// - Exercises the compiler-known JS annotation schema that generated
+    ///   `std.js` bindings use before CoreIR or backend emission.
+    #[test]
+    fn syntax_output_accepts_target_js_annotation_metadata() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module js_target_annotation_output.
+
+            @target.js {
+              name: "querySelector";
+              source_module: "dom";
+              namespace: "web.dom";
+              global: true;
+              profile: "browser"
+            }
+            pub query_selector(selector: String): String -> selector.
+            "#,
+        )
+        .expect("target js annotation syntax output");
+
+        let annotations = &output.declarations[0].annotations;
+        assert_eq!(annotations.len(), 1);
+        assert_eq!(annotations[0].path, vec!["target", "js"]);
+        assert_eq!(annotations[0].entries.len(), 5);
+        assert!(annotations[0].values.is_empty());
+        assert_eq!(annotations[0].entries[0].key, vec!["name"]);
+        assert_eq!(
+            annotations[0].entries[0].value,
+            SyntaxAnnotationValueOutput::String {
+                text: "\"querySelector\"".to_string()
+            }
+        );
+        assert_eq!(annotations[0].entries[3].key, vec!["global"]);
+        assert_eq!(
+            annotations[0].entries[3].value,
+            SyntaxAnnotationValueOutput::Bool { value: true }
+        );
+    }
+
+    /// Verifies JS target annotations reject unknown keys.
+    ///
+    /// Inputs:
+    /// - A function declaration annotated with an undeclared JS target key.
+    ///
+    /// Output:
+    /// - Test passes when syntax output reports a stable schema diagnostic.
+    ///
+    /// Transformation:
+    /// - Prevents generated JS metadata from silently accepting misspelled keys
+    ///   that backend emission would otherwise interpret inconsistently.
+    #[test]
+    fn syntax_output_rejects_unknown_target_js_key() {
+        let error = parse_module_as_syntax_output(
+            r#"
+            module bad_target_js_key.
+
+            @target.js { source: "querySelector" }
+            pub query_selector(selector: String): String -> selector.
+            "#,
+        )
+        .expect_err("@target.js should reject unknown keys");
+
+        let message = format!("{error:?}");
+        assert!(
+            message.contains("@target.js has unknown key `source`"),
+            "unexpected diagnostic: {message}"
+        );
+    }
+
+    /// Verifies JS target annotations reject wrong value types.
+    ///
+    /// Inputs:
+    /// - A function declaration whose JS `name` metadata is a boolean.
+    ///
+    /// Output:
+    /// - Test passes when syntax output reports the expected value type.
+    ///
+    /// Transformation:
+    /// - Keeps generated binding metadata typed instead of backend-owned
+    ///   stringly configuration.
+    #[test]
+    fn syntax_output_rejects_target_js_wrong_value_type() {
+        let error = parse_module_as_syntax_output(
+            r#"
+            module bad_target_js_type.
+
+            @target.js { name: true }
+            pub query_selector(selector: String): String -> selector.
+            "#,
+        )
+        .expect_err("@target.js should reject wrong value types");
+
+        let message = format!("{error:?}");
+        assert!(
+            message.contains("annotation key `name` expects name or String"),
+            "unexpected diagnostic: {message}"
+        );
+    }
+
     /// Verifies native annotations accept the current typed metadata shape.
     ///
     /// Inputs:

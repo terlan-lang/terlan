@@ -8,7 +8,17 @@ use terlan_syntax::{
     SyntaxSourceKind,
 };
 
+mod interface_render;
+
+use interface_render::normalize_type_text;
+
 #[derive(Debug, Clone)]
+/// Public module interface used by downstream resolver/typecheck phases.
+///
+/// Inputs: syntax-output module or `.terli`/`.typi` summary. Output: importable
+/// module surface. Transformation: strips implementation bodies while
+/// preserving exported types, constructors, functions, traits, conformances,
+/// docs, and overload metadata.
 pub struct ModuleInterface {
     pub module: String,
     pub docs: Vec<String>,
@@ -23,6 +33,7 @@ pub struct ModuleInterface {
     pub trait_conformances: Vec<TraitConformanceSignature>,
     pub constructors: HashMap<String, Vec<ConstructorSignature>>,
     pub functions: HashMap<(String, usize), FunctionSignature>,
+    pub function_overloads: HashMap<(String, usize), Vec<FunctionSignature>>,
 }
 
 /// Public field signature for a struct exported through a module interface.
@@ -44,6 +55,11 @@ pub struct StructFieldSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Constructor signature exported through a module interface.
+///
+/// Inputs: syntax-output constructor clause. Output: callable constructor
+/// signature. Transformation: records fixed parameters, optional vararg,
+/// return type, body summary, arity policy, visibility, and docs.
 pub struct ConstructorSignature {
     pub name: String,
     pub params: Vec<ParamSignature>,
@@ -57,6 +73,11 @@ pub struct ConstructorSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Function or receiver-method signature exported through an interface.
+///
+/// Inputs: syntax-output function, method, or native config signature. Output:
+/// callable signature metadata. Transformation: records normalized parameter
+/// and return annotations plus receiver/visibility/doc metadata.
 pub struct FunctionSignature {
     pub name: String,
     pub params: Vec<ParamSignature>,
@@ -68,6 +89,11 @@ pub struct FunctionSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Trait signature exported through an interface.
+///
+/// Inputs: public syntax-output trait declaration. Output: trait methods and
+/// inheritance metadata. Transformation: keeps type params, super traits,
+/// method signatures, and docs without implementation bodies.
 pub struct TraitSignature {
     pub name: String,
     pub type_params: Vec<String>,
@@ -77,6 +103,11 @@ pub struct TraitSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Trait method signature exported through an interface.
+///
+/// Inputs: syntax-output trait method declaration. Output: method signature.
+/// Transformation: records params, return type, generic bounds, default-body
+/// availability, and docs.
 pub struct TraitMethodSignature {
     pub params: Vec<ParamSignature>,
     pub return_type: String,
@@ -86,6 +117,11 @@ pub struct TraitMethodSignature {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// Trait conformance fact exported through an interface.
+///
+/// Inputs: declaration-site `implements` or explicit impl declaration. Output:
+/// normalized conformance metadata. Transformation: records trait, owner type,
+/// source category, and visibility for imported conformance checks.
 pub struct TraitConformanceSignature {
     pub trait_ref: String,
     pub for_type: String,
@@ -94,12 +130,22 @@ pub struct TraitConformanceSignature {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// Source form that introduced a trait conformance.
+///
+/// Inputs: syntax declaration kind. Output: implements or explicit-impl tag.
+/// Transformation: classifies conformance provenance without affecting backend
+/// lowering.
 pub enum TraitConformanceSource {
     Implements,
     ExplicitImpl,
 }
 
 #[derive(Debug, Clone)]
+/// Parameter signature used by HIR interfaces.
+///
+/// Inputs: syntax-output parameter. Output: name, normalized annotation, and
+/// mutability flag. Transformation: removes spans/defaults and preserves
+/// callable type shape.
 pub struct ParamSignature {
     pub name: String,
     pub annotation: String,
@@ -107,12 +153,21 @@ pub struct ParamSignature {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Visibility of a type name in HIR.
+///
+/// Inputs: declaration visibility. Output: public or private tag.
+/// Transformation: normalizes source visibility for import and export checks.
 pub enum TypeVisibility {
     Public,
     Private,
 }
 
 #[derive(Debug, Clone)]
+/// Function symbol resolved in the current module.
+///
+/// Inputs: syntax-output function or method declaration. Output: local symbol
+/// table entry. Transformation: records callable shape, export/public flags,
+/// docs, and source span for duplicate/export diagnostics.
 pub struct FunctionSymbol {
     pub name: String,
     pub arity: usize,
@@ -127,6 +182,11 @@ pub struct FunctionSymbol {
 }
 
 #[derive(Debug, Clone)]
+/// Imported type or trait item resolved from an interface.
+///
+/// Inputs: import item and provider interface. Output: local import binding.
+/// Transformation: records local alias, provider module/name, visibility, and
+/// source span for duplicate diagnostics.
 pub struct ImportedItem {
     pub local_name: String,
     pub source_module: String,
@@ -136,6 +196,11 @@ pub struct ImportedItem {
 }
 
 #[derive(Debug, Clone)]
+/// Fully resolved module summary.
+///
+/// Inputs: syntax-output module plus visible interfaces. Output: local symbols,
+/// imports, generated interface, and diagnostics. Transformation: resolves
+/// imports/exports/types/functions while preserving loaded interface metadata.
 pub struct ResolvedModule {
     pub name: String,
     pub function_symbols: HashMap<(String, usize), FunctionSymbol>,
@@ -148,21 +213,39 @@ pub struct ResolvedModule {
 }
 
 #[derive(Debug, Clone)]
+/// HIR diagnostic.
+///
+/// Inputs: resolver error condition. Output: span/message diagnostic.
+/// Transformation: attaches HIR messages to source spans for later display.
 pub struct Diagnostic {
     pub span: Span,
     pub message: String,
 }
 
 #[derive(Debug)]
+/// Resolver result wrapper.
+///
+/// Inputs: syntax-output module resolution. Output: resolved module.
+/// Transformation: packages the resolved module for callers while leaving room
+/// for future resolver metadata.
 pub struct ResolveResult {
     pub module: ResolvedModule,
 }
 
+/// Resolves syntax output using built-in interfaces only.
+///
+/// Inputs: syntax-output module. Output: resolver result. Transformation:
+/// loads built-in interfaces and delegates to the interface-aware resolver.
 pub fn resolve_syntax_module_output(module: &SyntaxModuleOutput) -> ResolveResult {
     let interfaces = builtin_interfaces();
     resolve_syntax_module_output_with_interfaces(module, &interfaces)
 }
 
+/// Resolves syntax output with explicit external interfaces.
+///
+/// Inputs: syntax-output module and external interface map. Output: resolver
+/// result. Transformation: merges built-ins with external interfaces, resolves
+/// imports/types/functions/exports, and builds the module interface.
 pub fn resolve_syntax_module_output_with_interfaces(
     module: &SyntaxModuleOutput,
     external_interfaces: &HashMap<String, ModuleInterface>,
@@ -313,18 +396,18 @@ pub fn resolve_syntax_module_output_with_interfaces(
 
     let mut interface = syntax_module_output_to_interface(module);
     for symbol in function_symbols.values() {
-        interface.functions.insert(
-            (symbol.name.clone(), symbol.arity),
-            FunctionSignature {
-                name: symbol.name.clone(),
-                params: symbol.params.clone(),
-                return_type: symbol.return_type.clone(),
-                receiver_method: symbol.receiver_method,
-                receiver_mutable: symbol.receiver_mutable,
-                public: symbol.public,
-                docs: symbol.docs.clone(),
-            },
-        );
+        let signature = FunctionSignature {
+            name: symbol.name.clone(),
+            params: symbol.params.clone(),
+            return_type: symbol.return_type.clone(),
+            receiver_method: symbol.receiver_method,
+            receiver_mutable: symbol.receiver_mutable,
+            public: symbol.public,
+            docs: symbol.docs.clone(),
+        };
+        let key = (symbol.name.clone(), symbol.arity);
+        interface.functions.insert(key.clone(), signature.clone());
+        interface.function_overloads.insert(key, vec![signature]);
     }
 
     interface.public_types = exported_types;
@@ -347,6 +430,11 @@ pub fn resolve_syntax_module_output_with_interfaces(
     }
 }
 
+/// Parses one interface file into a module interface.
+///
+/// Inputs: path to `.terli` or `.typi`. Output: module name plus interface when
+/// parsing succeeds. Transformation: reads source, parses interface syntax
+/// output, and converts it to an interface summary.
 pub fn parse_interface_file(path: &Path) -> Option<(String, ModuleInterface)> {
     let content = fs::read_to_string(path).ok()?;
     let parsed = terlan_syntax::parse_interface_module_as_syntax_output(&content).ok()?;
@@ -355,6 +443,11 @@ pub fn parse_interface_file(path: &Path) -> Option<(String, ModuleInterface)> {
     Some((module_name, interface))
 }
 
+/// Loads interface summaries from one directory.
+///
+/// Inputs: directory path and accumulator. Output: accumulator is updated.
+/// Transformation: reads direct `.terli` and `.typi` files and inserts richer
+/// duplicate summaries preferentially.
 pub fn load_interfaces_from_dir(dir: &Path, acc: &mut HashMap<String, ModuleInterface>) {
     let entries = match fs::read_dir(dir) {
         Ok(entries) => entries,
@@ -424,6 +517,11 @@ fn interface_payload_score(interface: &ModuleInterface) -> usize {
         + interface.functions.len()
 }
 
+/// Loads interfaces visible to one source file.
+///
+/// Inputs: source file path. Output: interface map. Transformation: scans the
+/// source directory and nearest/std fallback trees for `.terli`/`.typi`
+/// summaries.
 pub fn load_interfaces_from_file_set(file_path: &str) -> HashMap<String, ModuleInterface> {
     let mut interfaces = HashMap::new();
     let current = Path::new(file_path);
@@ -433,6 +531,11 @@ pub fn load_interfaces_from_file_set(file_path: &str) -> HashMap<String, ModuleI
     interfaces
 }
 
+/// Loads standard-library interfaces visible from a source path.
+///
+/// Inputs: current source path and accumulator. Output: accumulator is updated.
+/// Transformation: walks upward looking for a `std` tree, falling back to
+/// `./std` from the current working directory.
 fn load_std_interfaces(current: &Path, acc: &mut HashMap<String, ModuleInterface>) {
     let mut dir = current.parent();
     while let Some(candidate) = dir {
@@ -451,6 +554,11 @@ fn load_std_interfaces(current: &Path, acc: &mut HashMap<String, ModuleInterface
     }
 }
 
+/// Loads interfaces from a standard-library tree.
+///
+/// Inputs: std root and accumulator. Output: number of newly added interfaces.
+/// Transformation: scans child directories for interface files using the same
+/// directory loader as project sources.
 fn load_interfaces_from_std_tree(
     std_dir: &Path,
     acc: &mut HashMap<String, ModuleInterface>,
@@ -471,6 +579,11 @@ fn load_interfaces_from_std_tree(
     acc.len().saturating_sub(before)
 }
 
+/// Converts syntax output to an importable module interface.
+///
+/// Inputs: syntax-output module. Output: module interface. Transformation:
+/// collects public/private types, type bodies, struct fields, traits,
+/// conformances, constructors, functions, overloads, docs, and module metadata.
 pub fn syntax_module_output_to_interface(module: &SyntaxModuleOutput) -> ModuleInterface {
     let mut public_types = HashSet::new();
     let mut private_types = HashSet::new();
@@ -479,6 +592,7 @@ pub fn syntax_module_output_to_interface(module: &SyntaxModuleOutput) -> ModuleI
     let type_bodies = collect_syntax_type_bodies(module);
     let struct_fields = collect_syntax_struct_fields(module);
     let mut functions = HashMap::new();
+    let mut function_overloads = HashMap::new();
     let traits = collect_syntax_trait_signatures(module);
     let trait_conformances = collect_syntax_trait_conformances(module);
     let constructors = collect_syntax_constructor_signatures(module);
@@ -517,18 +631,22 @@ pub fn syntax_module_output_to_interface(module: &SyntaxModuleOutput) -> ModuleI
                 ..
             } => {
                 let key = (name.clone(), params.len());
-                functions.insert(
-                    key,
-                    FunctionSignature {
-                        name: name.clone(),
-                        params: syntax_param_signatures(params),
-                        return_type: normalize_type_text(&return_type.text),
-                        receiver_method: false,
-                        receiver_mutable: false,
-                        public: *is_public,
-                        docs: declaration.docs.clone(),
-                    },
-                );
+                let signature = FunctionSignature {
+                    name: name.clone(),
+                    params: syntax_param_signatures(params),
+                    return_type: normalize_type_text(&return_type.text),
+                    receiver_method: false,
+                    receiver_mutable: false,
+                    public: *is_public,
+                    docs: declaration.docs.clone(),
+                };
+                functions
+                    .entry(key.clone())
+                    .or_insert_with(|| signature.clone());
+                function_overloads
+                    .entry(key)
+                    .or_insert_with(Vec::new)
+                    .push(signature);
             }
             SyntaxDeclarationPayload::Method {
                 receiver,
@@ -540,23 +658,27 @@ pub fn syntax_module_output_to_interface(module: &SyntaxModuleOutput) -> ModuleI
             } => {
                 let signature_params = syntax_method_param_signatures(receiver, params);
                 let key = (name.clone(), signature_params.len());
-                functions.insert(
-                    key,
-                    FunctionSignature {
-                        name: name.clone(),
-                        params: signature_params,
-                        return_type: normalize_type_text(&return_type.text),
-                        receiver_method: true,
-                        receiver_mutable: receiver.is_mutable,
-                        public: *is_public,
-                        docs: declaration.docs.clone(),
-                    },
-                );
+                let signature = FunctionSignature {
+                    name: name.clone(),
+                    params: signature_params,
+                    return_type: normalize_type_text(&return_type.text),
+                    receiver_method: true,
+                    receiver_mutable: receiver.is_mutable,
+                    public: *is_public,
+                    docs: declaration.docs.clone(),
+                };
+                functions
+                    .entry(key.clone())
+                    .or_insert_with(|| signature.clone());
+                function_overloads
+                    .entry(key)
+                    .or_insert_with(Vec::new)
+                    .push(signature);
             }
             SyntaxDeclarationPayload::Config { name, text, .. } if name == "native" => {
                 for native_sig in extract_native_function_signatures(text) {
                     let key = (native_sig.name.clone(), native_sig.arity);
-                    functions.entry(key).or_insert_with(|| FunctionSignature {
+                    let signature = FunctionSignature {
                         name: native_sig.name.clone(),
                         params: native_sig
                             .params
@@ -572,7 +694,14 @@ pub fn syntax_module_output_to_interface(module: &SyntaxModuleOutput) -> ModuleI
                         receiver_mutable: false,
                         public: true,
                         docs: declaration.docs.clone(),
-                    });
+                    };
+                    functions
+                        .entry(key.clone())
+                        .or_insert_with(|| signature.clone());
+                    function_overloads
+                        .entry(key)
+                        .or_insert_with(Vec::new)
+                        .push(signature);
                 }
             }
             SyntaxDeclarationPayload::Import { .. }
@@ -601,6 +730,7 @@ pub fn syntax_module_output_to_interface(module: &SyntaxModuleOutput) -> ModuleI
         trait_conformances,
         constructors,
         functions,
+        function_overloads,
     }
 }
 
@@ -673,6 +803,11 @@ fn collect_syntax_trait_conformances(
     conformances
 }
 
+/// Collects public trait signatures from syntax output.
+///
+/// Inputs: syntax-output module. Output: map from trait name to signature.
+/// Transformation: ignores private traits and converts public trait methods to
+/// span-free interface signatures.
 fn collect_syntax_trait_signatures(module: &SyntaxModuleOutput) -> HashMap<String, TraitSignature> {
     let mut traits = HashMap::new();
 
@@ -729,6 +864,11 @@ fn collect_syntax_trait_signatures(module: &SyntaxModuleOutput) -> HashMap<Strin
     traits
 }
 
+/// Collects constructor signatures from syntax output.
+///
+/// Inputs: syntax-output module. Output: constructor signatures keyed by type
+/// name. Transformation: converts constructor clauses into fixed/vararg
+/// signature metadata and computes minimum arity from defaults.
 fn collect_syntax_constructor_signatures(
     module: &SyntaxModuleOutput,
 ) -> HashMap<String, Vec<ConstructorSignature>> {
@@ -792,6 +932,11 @@ fn collect_syntax_constructor_signatures(
     constructors
 }
 
+/// Collects public type parameters from syntax output.
+///
+/// Inputs: syntax-output module. Output: public type name to type parameters.
+/// Transformation: ignores private type aliases and preserves source parameter
+/// order.
 fn collect_syntax_type_params(module: &SyntaxModuleOutput) -> HashMap<String, Vec<String>> {
     let mut params = HashMap::new();
     for declaration in &module.declarations {
@@ -810,6 +955,11 @@ fn collect_syntax_type_params(module: &SyntaxModuleOutput) -> HashMap<String, Ve
     params
 }
 
+/// Collects public non-opaque type bodies.
+///
+/// Inputs: syntax-output module. Output: public type name to variant text.
+/// Transformation: excludes opaque/private/empty bodies and preserves variant
+/// order for imported constructor/type checks.
 fn collect_syntax_type_bodies(module: &SyntaxModuleOutput) -> HashMap<String, Vec<String>> {
     let mut bodies = HashMap::new();
     for declaration in &module.declarations {
@@ -881,6 +1031,10 @@ fn collect_syntax_struct_fields(
     structs
 }
 
+/// Collects public type and struct documentation.
+///
+/// Inputs: syntax-output module. Output: public type name to docs.
+/// Transformation: copies declaration docs for public type-like declarations.
 fn collect_syntax_type_docs(module: &SyntaxModuleOutput) -> HashMap<String, Vec<String>> {
     let mut docs = HashMap::new();
     for declaration in &module.declarations {
@@ -899,6 +1053,11 @@ fn collect_syntax_type_docs(module: &SyntaxModuleOutput) -> HashMap<String, Vec<
     docs
 }
 
+/// Converts syntax parameters to HIR parameter signatures.
+///
+/// Inputs: syntax-output params. Output: span-free parameter signatures.
+/// Transformation: normalizes type text and preserves parameter names and
+/// mutability flags.
 fn syntax_param_signatures(params: &[SyntaxParamOutput]) -> Vec<ParamSignature> {
     params
         .iter()
@@ -910,6 +1069,12 @@ fn syntax_param_signatures(params: &[SyntaxParamOutput]) -> Vec<ParamSignature> 
         .collect()
 }
 
+/// Resolves one syntax-output import declaration.
+///
+/// Inputs: module name, selected items, type-import flag, visible interfaces,
+/// mutable import tables, and diagnostics sink. Output: import tables and
+/// diagnostics are updated. Transformation: validates public type/trait/default
+/// imports and records local aliases.
 fn resolve_syntax_import(
     module_name: &str,
     items: &[SyntaxImportItem],
@@ -1152,6 +1317,11 @@ fn insert_imported_type(
     Ok(())
 }
 
+/// Adds a function or method declaration to the local symbol table.
+///
+/// Inputs: declaration, mutable symbol table, and diagnostics sink. Output:
+/// symbol table or diagnostics are updated. Transformation: extracts callable
+/// shape, detects duplicate shapes, and records exported/public metadata.
 fn add_syntax_function_symbol(
     declaration: &SyntaxDeclarationOutput,
     function_symbols: &mut HashMap<(String, usize), FunctionSymbol>,
@@ -1192,11 +1362,19 @@ fn add_syntax_function_symbol(
         };
 
     let key = (name.clone(), params.len());
-    if function_symbols.contains_key(&key) {
-        diagnostics.push(Diagnostic {
-            span: declaration.span.into(),
-            message: format!("duplicate function definition: {} / {}", name, params.len()),
-        });
+    if let Some(existing) = function_symbols.get(&key) {
+        if function_symbol_shape_matches(
+            existing,
+            &params,
+            return_type,
+            receiver_method,
+            receiver_mutable,
+        ) {
+            diagnostics.push(Diagnostic {
+                span: declaration.span.into(),
+                message: format!("duplicate function definition: {} / {}", name, params.len()),
+            });
+        }
         return;
     }
 
@@ -1213,6 +1391,42 @@ fn add_syntax_function_symbol(
         span: declaration.span.into(),
     };
     function_symbols.insert(key, symbol);
+}
+
+/// Checks whether two same-name same-arity function declarations have the same shape.
+///
+/// Inputs:
+/// - `existing`: first HIR function symbol already recorded for the name and
+///   arity.
+/// - `params`, `return_type`, `receiver_method`, and `receiver_mutable`: shape
+///   of the later declaration being considered.
+///
+/// Output:
+/// - `true` when the later declaration is a duplicate of the existing symbol.
+/// - `false` when it is a distinct overload candidate.
+///
+/// Transformation:
+/// - Compares callable kind, receiver mutability, return annotation, and
+///   parameter annotations. Parameter names are intentionally ignored so
+///   overload identity is based on callable type shape, not local binding names.
+fn function_symbol_shape_matches(
+    existing: &FunctionSymbol,
+    params: &[ParamSignature],
+    return_type: &str,
+    receiver_method: bool,
+    receiver_mutable: bool,
+) -> bool {
+    existing.receiver_method == receiver_method
+        && existing.receiver_mutable == receiver_mutable
+        && existing.return_type == return_type
+        && existing.params.len() == params.len()
+        && existing
+            .params
+            .iter()
+            .zip(params.iter())
+            .all(|(left, right)| {
+                left.annotation == right.annotation && left.is_mutable == right.is_mutable
+            })
 }
 
 /// Converts method syntax parameters into callable HIR parameters.
@@ -1241,6 +1455,11 @@ fn syntax_method_param_signatures(
         .collect()
 }
 
+/// Resolves interface export summaries against local function definitions.
+///
+/// Inputs: export set, mutable function symbols, and diagnostics sink. Output:
+/// function export flags or diagnostics are updated. Transformation: marks
+/// matching symbols exported and reports missing definitions.
 fn resolve_exports_against_defs(
     exported_fns: &HashSet<(String, usize)>,
     function_symbols: &mut HashMap<(String, usize), FunctionSymbol>,
@@ -1299,1331 +1518,15 @@ fn collect_export_payloads(
     }
 }
 
+/// Returns compiler-provided interfaces available without project files.
+///
+/// Inputs: none. Output: built-in interface map. Transformation: currently
+/// returns an empty map because release std interfaces are loaded from source
+/// summaries rather than hard-coded HIR metadata.
 fn builtin_interfaces() -> HashMap<String, ModuleInterface> {
     HashMap::new()
 }
 
-impl ModuleInterface {
-    pub fn to_terlan_interface_text(&self) -> String {
-        self.render_terlan_interface_text(true)
-    }
-
-    pub fn to_terlan_interface_type_text(&self) -> String {
-        self.render_terlan_interface_text(false)
-    }
-
-    pub fn to_terlan_interface_doc_text(&self) -> String {
-        let mut out = String::new();
-        out.push_str(&format!("module {}\n", self.module));
-        push_doc_lines(&mut out, "!", &self.docs);
-
-        let mut public_types: Vec<_> = self.public_types.iter().cloned().collect();
-        public_types.sort();
-        for ty in &public_types {
-            push_doc_lines(
-                &mut out,
-                "/",
-                self.type_docs.get(ty).map(Vec::as_slice).unwrap_or(&[]),
-            );
-        }
-
-        let mut public_functions: Vec<_> = self
-            .functions
-            .iter()
-            .filter(|(_, signature)| signature.public)
-            .collect();
-        public_functions.sort_by(|(lhs, _), (rhs, _)| match lhs.0.cmp(&rhs.0) {
-            std::cmp::Ordering::Equal => lhs.1.cmp(&rhs.1),
-            ord => ord,
-        });
-
-        for (_key, function) in public_functions {
-            push_doc_lines(&mut out, "/", &function.docs);
-        }
-
-        out
-    }
-
-    fn render_terlan_interface_text(&self, include_docs: bool) -> String {
-        let mut out = String::new();
-        if include_docs {
-            push_doc_lines(&mut out, "!", &self.docs);
-        }
-        out.push_str(&format!("module {}.\n\n", self.module));
-
-        let mut public_types: Vec<_> = self.public_types.iter().cloned().collect();
-        public_types.sort();
-        for ty in &public_types {
-            if include_docs {
-                push_doc_lines(
-                    &mut out,
-                    "/",
-                    self.type_docs.get(ty).map(Vec::as_slice).unwrap_or(&[]),
-                );
-            }
-            if self.opaque_types.contains(ty) {
-                out.push_str(&format!(
-                    "pub opaque type {}{}.\n\n",
-                    ty,
-                    render_type_params(self.type_params.get(ty))
-                ));
-            } else if let Some(fields) = self.struct_fields.get(ty) {
-                out.push_str(&format!("pub struct {} {{\n", ty));
-                for (index, field) in fields.iter().enumerate() {
-                    let suffix = if index + 1 == fields.len() { "" } else { "," };
-                    out.push_str(&format!(
-                        "    {}: {}{}\n",
-                        field.name,
-                        normalize_type_text(&field.annotation),
-                        suffix
-                    ));
-                }
-                out.push_str("}.\n\n");
-            } else {
-                let params = render_type_params(self.type_params.get(ty));
-                if let Some(body) = self.type_bodies.get(ty) {
-                    out.push_str(&format!(
-                        "pub type {}{} =\n    {}.\n\n",
-                        ty,
-                        params,
-                        body.iter()
-                            .map(|variant| normalize_type_text(variant))
-                            .collect::<Vec<_>>()
-                            .join("\n  | ")
-                    ));
-                } else {
-                    out.push_str(&format!("pub type {}{}.\n\n", ty, params));
-                }
-            }
-        }
-
-        let mut public_functions: Vec<_> = self
-            .functions
-            .iter()
-            .filter(|(_, signature)| signature.public)
-            .collect();
-        public_functions.sort_by(|(lhs, _), (rhs, _)| match lhs.0.cmp(&rhs.0) {
-            std::cmp::Ordering::Equal => lhs.1.cmp(&rhs.1),
-            ord => ord,
-        });
-
-        for (_key, function) in public_functions {
-            if include_docs {
-                push_doc_lines(&mut out, "/", &function.docs);
-            }
-            if function.receiver_method && !function.params.is_empty() {
-                let receiver = &function.params[0];
-                let receiver_mut = if function.receiver_mutable {
-                    "mut "
-                } else {
-                    ""
-                };
-                let params = function
-                    .params
-                    .iter()
-                    .skip(1)
-                    .map(render_param_signature)
-                    .collect::<Vec<_>>();
-                out.push_str(&format!(
-                    "pub ({}{}: {}) {}({}): {}.\n\n",
-                    receiver_mut,
-                    receiver.name,
-                    normalize_type_text(&receiver.annotation),
-                    function.name,
-                    params.join(", "),
-                    normalize_type_text(&function.return_type)
-                ));
-                continue;
-            }
-            let params = function
-                .params
-                .iter()
-                .map(render_param_signature)
-                .collect::<Vec<_>>();
-            out.push_str(&format!(
-                "pub {}({}): {}.\n\n",
-                function.name,
-                params.join(", "),
-                normalize_type_text(&function.return_type)
-            ));
-        }
-
-        let mut public_traits: Vec<_> = self.traits.values().collect();
-        public_traits.sort_by(|left, right| left.name.cmp(&right.name));
-
-        for trait_signature in public_traits {
-            if include_docs {
-                push_doc_lines(&mut out, "/", &trait_signature.docs);
-            }
-
-            let mut methods: Vec<_> = trait_signature.methods.iter().collect();
-            methods.sort_by(|(left, _), (right, _)| left.cmp(right));
-
-            let params = render_type_params(Some(&trait_signature.type_params));
-            out.push_str(&format!("pub trait {}{}", trait_signature.name, params));
-            if !trait_signature.super_traits.is_empty() {
-                out.push_str(&format!(
-                    " extends {}",
-                    trait_signature.super_traits.join(", ")
-                ));
-            }
-            out.push_str(" {\n");
-
-            for (method_name, method) in methods {
-                if include_docs {
-                    push_doc_lines(&mut out, "/", &method.docs);
-                }
-                let params = method
-                    .params
-                    .iter()
-                    .map(render_param_signature)
-                    .collect::<Vec<_>>();
-                out.push_str(&format!("    {}", method_name));
-                if !method.generic_bounds.is_empty() {
-                    out.push_str(&format!("<{}>", method.generic_bounds.join(", ")));
-                }
-                out.push_str(&format!(
-                    "({}): {}",
-                    params.join(", "),
-                    normalize_type_text(&method.return_type)
-                ));
-                if method.has_default {
-                    out.push_str(" ->\n        terlan_interface_default");
-                }
-                out.push_str(".\n");
-            }
-
-            out.push_str("}.\n\n");
-        }
-
-        let mut public_conformances: Vec<_> = self
-            .trait_conformances
-            .iter()
-            .filter(|conformance| conformance.public)
-            .collect();
-        public_conformances.sort();
-
-        for conformance in public_conformances {
-            out.push_str(&format!(
-                "pub impl {} for {} {{\n}}.\n\n",
-                normalize_type_text(&conformance.trait_ref),
-                normalize_type_text(&conformance.for_type)
-            ));
-        }
-
-        let mut public_constructors: Vec<_> = self
-            .constructors
-            .values()
-            .flatten()
-            .filter(|signature| signature.public)
-            .collect();
-        public_constructors.sort_by(|left, right| {
-            left.name
-                .cmp(&right.name)
-                .then(left.params.len().cmp(&right.params.len()))
-                .then(left.varargs.cmp(&right.varargs))
-        });
-
-        let mut current_constructor = String::new();
-        for (idx, constructor) in public_constructors.iter().enumerate() {
-            if current_constructor != constructor.name {
-                if !current_constructor.is_empty() {
-                    out.push_str("}.\n\n");
-                }
-                current_constructor = constructor.name.clone();
-                if include_docs {
-                    push_doc_lines(&mut out, "/", &constructor.docs);
-                }
-                out.push_str(&format!("pub constructor {} {{\n", constructor.name));
-            }
-
-            let mut params = constructor
-                .params
-                .iter()
-                .map(render_param_signature)
-                .collect::<Vec<_>>();
-            if let Some(vararg) = &constructor.vararg {
-                params.push(format!(
-                    "...{}: {}",
-                    vararg.name,
-                    normalize_type_text(&vararg.annotation)
-                ));
-            }
-
-            out.push_str(&format!(
-                "    ({}): {} ->\n        {}",
-                params.join(", "),
-                normalize_type_text(&constructor.return_type),
-                normalize_expr_text(&constructor.body)
-            ));
-
-            let next_is_same_constructor = public_constructors
-                .get(idx + 1)
-                .is_some_and(|next| next.name == constructor.name);
-            if next_is_same_constructor {
-                out.push_str(";\n\n");
-            } else {
-                out.push('\n');
-            }
-        }
-        if !current_constructor.is_empty() {
-            out.push_str("}.\n\n");
-        }
-
-        let mut private_types: Vec<_> = self.private_types.iter().cloned().collect();
-        private_types.sort();
-        if !private_types.is_empty() {
-            out.push_str("export type ");
-            out.push_str(&private_types.join(", "));
-            out.push_str(".\n\n");
-        }
-
-        out
-    }
-}
-
-/// Renders one public interface parameter.
-///
-/// Inputs:
-/// - `param`: HIR parameter signature carrying name, type annotation, and
-///   source mutability.
-///
-/// Output:
-/// - A source-like parameter fragment such as `value: Int` or
-///   `mut collection: C`.
-///
-/// Transformation:
-/// - Normalizes the type text and preserves `mut` so generated `.typi`
-///   summaries do not erase trait or function parameter mutability.
-fn render_param_signature(param: &ParamSignature) -> String {
-    let mut_prefix = if param.is_mutable { "mut " } else { "" };
-    format!(
-        "{}{}: {}",
-        mut_prefix,
-        param.name,
-        normalize_type_text(&param.annotation)
-    )
-}
-
-fn render_type_params(params: Option<&Vec<String>>) -> String {
-    match params {
-        Some(params) if !params.is_empty() => format!("[{}]", params.join(", ")),
-        _ => String::new(),
-    }
-}
-
-/// Appends Terlan doc comments to rendered interface text.
-///
-/// Inputs:
-/// - `out`: rendered interface buffer being built.
-/// - `marker`: doc-comment marker suffix, either `!` for module docs or `/`
-///   for item docs.
-/// - `docs`: normalized documentation blocks collected from source syntax.
-///
-/// Output:
-/// - `out` contains comment-prefixed documentation lines followed by a blank
-///   separator when at least one doc block is present.
-///
-/// Transformation:
-/// - Splits multiline documentation blocks into physical lines and prefixes
-///   every line with `//!` or `///` so generated `.typi` files remain valid
-///   Terlan interface source.
-fn push_doc_lines(out: &mut String, marker: &str, docs: &[String]) {
-    for block in docs {
-        for line in block.lines() {
-            out.push_str(&format!("//{} {}\n", marker, line));
-        }
-    }
-    if !docs.is_empty() {
-        out.push('\n');
-    }
-}
-
-fn normalize_type_text(input: &str) -> String {
-    input
-        .replace(" [", "[")
-        .replace("[ ", "[")
-        .replace(" ]", "]")
-        .replace(" }", "}")
-        .replace(" ,", ",")
-        .replace(",", ", ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .replace(", ]", "]")
-}
-
-fn normalize_expr_text(input: &str) -> String {
-    normalize_type_text(input)
-}
-
 #[cfg(test)]
-mod tests {
-    use super::{
-        load_interfaces_from_file_set, resolve_syntax_module_output,
-        resolve_syntax_module_output_with_interfaces, syntax_module_output_to_interface,
-        ModuleInterface, TraitConformanceSource,
-    };
-    use std::collections::HashMap;
-    use std::fs;
-    use std::time::{SystemTime, UNIX_EPOCH};
-    use terlan_syntax::cached_canonical_terlan_syntax_contract;
-    use terlan_syntax::canonical_terlan_syntax_contract;
-    use terlan_syntax::ebnf::EbnfGrammarExprKind;
-    use terlan_syntax::parse_interface_module_as_syntax_output;
-    use terlan_syntax::parse_module_as_syntax_output;
-    use terlan_syntax::validate_syntax_contract;
-    use terlan_syntax::SyntaxSourceKind;
-
-    /// Verifies type-only imports support module-default type exports.
-    ///
-    /// Inputs:
-    /// - A provider interface named `std.core.Task` that exports public opaque
-    ///   type `Task`.
-    /// - A consumer module using `import std.core.Task.` and an aliased form
-    ///   `import std.core.Task as AsyncTask.`.
-    ///
-    /// Output:
-    /// - Test passes when both local type names resolve to provider type
-    ///   `std.core.Task.Task`.
-    ///
-    /// Transformation:
-    /// - Parses the consumer through syntax output, resolves it against the
-    ///   provider interface map, and checks that the resolver collapses the
-    ///   repeated module/type name only when the provider module exports the
-    ///   matching default type.
-    #[test]
-    fn type_import_resolves_module_default_type_export() {
-        let provider = parse_interface_module_as_syntax_output(
-            "\
-module std.core.Task.\n\
-\n\
-pub opaque type Task[T].\n",
-        )
-        .expect("parse task provider interface");
-        let mut interfaces = HashMap::new();
-        interfaces.insert(
-            "std.core.Task".to_string(),
-            syntax_module_output_to_interface(&provider),
-        );
-        let consumer = parse_module_as_syntax_output(
-            "\
-module default_type_import_consumer.\n\
-\n\
-import std.core.Task.\n\
-import std.core.Task as AsyncTask.\n\
-\n\
-pub identity(task: Task[Int]): AsyncTask[Int] ->\n\
-    task.\n",
-        )
-        .expect("parse default type import consumer");
-
-        let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
-
-        let task = resolved
-            .imported_types
-            .get("Task")
-            .expect("default Task import");
-        assert_eq!(task.source_module, "std.core.Task");
-        assert_eq!(task.source_name, "Task");
-        let async_task = resolved
-            .imported_types
-            .get("AsyncTask")
-            .expect("aliased default Task import");
-        assert_eq!(async_task.source_module, "std.core.Task");
-        assert_eq!(async_task.source_name, "Task");
-        assert!(
-            resolved.diagnostics.is_empty(),
-            "unexpected default type import diagnostics: {:?}",
-            resolved.diagnostics
-        );
-    }
-
-    /// Verifies test-layout `std` directories do not shadow root std summaries.
-    ///
-    /// Inputs:
-    /// - A temporary workspace containing `tests/std` without summaries.
-    /// - A root `std/summaries` directory containing `std_core_result.typi`.
-    /// - A source path under `tests/std/core`.
-    ///
-    /// Output:
-    /// - Test passes when `load_interfaces_from_file_set` still loads the root
-    ///   stdlib summary.
-    ///
-    /// Transformation:
-    /// - Builds the workspace on disk, runs normal interface discovery from the
-    ///   test source path, and removes the workspace afterward.
-    #[test]
-    fn std_interface_loading_skips_empty_test_std_shadow_tree() {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock before unix epoch")
-            .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "terlan_hir_std_shadow_{}_{}",
-            std::process::id(),
-            nanos
-        ));
-        let test_core = root.join("tests/std/core");
-        let summaries = root.join("std/summaries");
-        fs::create_dir_all(&test_core).expect("create test std fixture");
-        fs::create_dir_all(&summaries).expect("create std summaries fixture");
-        let source_path = test_core.join("result_test.terl");
-        fs::write(&source_path, "module result_test.\n").expect("write test source fixture");
-        fs::write(
-            summaries.join("std_core_result.typi"),
-            "\
-module std_core_result.\n\
-pub type Ok[T] = {:ok, T}.\n\
-pub constructor Ok[T] {\n\
-    (value: T): Ok[T] -> {:ok, value}\n\
-}.\n",
-        )
-        .expect("write std summary fixture");
-
-        let interfaces = load_interfaces_from_file_set(
-            source_path
-                .to_str()
-                .expect("temporary source path should be utf-8"),
-        );
-        let _ = fs::remove_dir_all(&root);
-
-        assert!(
-            interfaces.contains_key("std_core_result"),
-            "interfaces: {:?}",
-            interfaces.keys().collect::<Vec<_>>()
-        );
-    }
-
-    /// Verifies release collection summaries load through std discovery.
-    ///
-    /// Inputs:
-    /// - A temporary workspace containing a `std/summaries` directory populated
-    ///   from the release Map/List/Set `.typi` summaries.
-    /// - A source file path under the same temporary workspace.
-    ///
-    /// Output:
-    /// - Test passes when `load_interfaces_from_file_set` discovers all three
-    ///   collection interfaces and preserves receiver-method mutability.
-    ///
-    /// Transformation:
-    /// - Writes release summaries into a throwaway std tree, runs the normal
-    ///   interface discovery algorithm, and checks the resulting module
-    ///   interfaces through the same path external projects use.
-    #[test]
-    fn std_interface_loading_discovers_release_core_collection_contracts() {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock before unix epoch")
-            .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "terlan_hir_collection_summaries_{}_{}",
-            std::process::id(),
-            nanos
-        ));
-        let source_dir = root.join("src/app");
-        let summaries = root.join("std/summaries");
-        fs::create_dir_all(&source_dir).expect("create source fixture");
-        fs::create_dir_all(&summaries).expect("create summaries fixture");
-        let source_path = source_dir.join("Main.terl");
-        fs::write(&source_path, "module app.Main.\n").expect("write source fixture");
-
-        for (file_name, text) in [
-            (
-                "std.collections.Map.typi",
-                include_str!("../../../std/summaries/std.collections.Map.typi"),
-            ),
-            (
-                "std.collections.List.typi",
-                include_str!("../../../std/summaries/std.collections.List.typi"),
-            ),
-            (
-                "std.collections.Set.typi",
-                include_str!("../../../std/summaries/std.collections.Set.typi"),
-            ),
-        ] {
-            fs::write(summaries.join(file_name), text)
-                .unwrap_or_else(|err| panic!("write {file_name}: {err}"));
-        }
-
-        let interfaces = load_interfaces_from_file_set(
-            source_path
-                .to_str()
-                .expect("temporary source path should be utf-8"),
-        );
-        let _ = fs::remove_dir_all(&root);
-
-        assert_collection_summary_signature(
-            &interfaces,
-            "std.collections.Map",
-            "put",
-            3,
-            "Unit",
-            "map",
-            "Map[K, V]",
-            true,
-            true,
-        );
-        assert_collection_summary_signature(
-            &interfaces,
-            "std.collections.List",
-            "clear",
-            1,
-            "Unit",
-            "list",
-            "List[T]",
-            true,
-            true,
-        );
-        assert_collection_summary_signature(
-            &interfaces,
-            "std.collections.Set",
-            "add",
-            2,
-            "Unit",
-            "set",
-            "Set[T]",
-            true,
-            true,
-        );
-    }
-
-    /// Verifies release iterator/iterable summaries load through std discovery.
-    ///
-    /// Inputs:
-    /// - A temporary workspace containing a `std/summaries` directory populated
-    ///   from the release Iterator/Iterable `.typi` summaries.
-    /// - A source file path under the same temporary workspace.
-    ///
-    /// Output:
-    /// - Test passes when `load_interfaces_from_file_set` discovers both
-    ///   interfaces and preserves `Iterator.next` plus `Iterable.iterator`.
-    ///
-    /// Transformation:
-    /// - Writes release summaries into a throwaway std tree, runs normal
-    ///   interface discovery, and checks the resulting module interfaces
-    ///   from the checked-in release std summaries.
-    #[test]
-    fn std_interface_loading_discovers_release_traversal_contracts() {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock before unix epoch")
-            .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "terlan_hir_collection_trait_summaries_{}_{}",
-            std::process::id(),
-            nanos
-        ));
-        let source_dir = root.join("src/app");
-        let summaries = root.join("std/summaries");
-        fs::create_dir_all(&source_dir).expect("create source fixture");
-        fs::create_dir_all(&summaries).expect("create summaries fixture");
-        let source_path = source_dir.join("Main.terl");
-        fs::write(&source_path, "module app.Main.\n").expect("write source fixture");
-
-        for (file_name, text) in [
-            (
-                "std.collections.Iterator.typi",
-                include_str!("../../../std/summaries/std.collections.Iterator.typi"),
-            ),
-            (
-                "std.collections.Iterable.typi",
-                include_str!("../../../std/summaries/std.collections.Iterable.typi"),
-            ),
-        ] {
-            fs::write(summaries.join(file_name), text)
-                .unwrap_or_else(|err| panic!("write {file_name}: {err}"));
-        }
-
-        let interfaces = load_interfaces_from_file_set(
-            source_path
-                .to_str()
-                .expect("temporary source path should be utf-8"),
-        );
-        let _ = fs::remove_dir_all(&root);
-
-        assert_collection_summary_signature(
-            &interfaces,
-            "std.collections.Iterator",
-            "next",
-            1,
-            "Option[Step[T]]",
-            "iterator",
-            "Iterator[T]",
-            false,
-            false,
-        );
-        assert_trait_method_signature(
-            &interfaces,
-            "std.collections.Iterable",
-            "Iterable",
-            "iterator",
-            "Iterator[T]",
-            "collection",
-            "C",
-        );
-    }
-
-    /// Asserts one loaded collection summary function signature.
-    ///
-    /// Inputs:
-    /// - `interfaces`: discovered module interfaces keyed by module name.
-    /// - `module_name`: expected collection module name.
-    /// - `function_name`: expected function/method name.
-    /// - `arity`: expected receiver-first callable arity.
-    /// - `return_type`: expected normalized return type text.
-    /// - `receiver_name`: expected receiver parameter name.
-    /// - `receiver_type`: expected normalized receiver annotation text.
-    /// - `receiver_method`: expected receiver-method syntax marker.
-    /// - `receiver_mutable`: expected receiver mutability marker.
-    ///
-    /// Output:
-    /// - Panics when the interface, function, return type, receiver-first
-    ///   parameter shape, or receiver mutability does not match.
-    ///
-    /// Transformation:
-    /// - Reads a function signature from an already loaded interface and
-    ///   compares the receiver-first shape plus mutability metadata used by
-    ///   downstream compiler phases.
-    fn assert_collection_summary_signature(
-        interfaces: &HashMap<String, ModuleInterface>,
-        module_name: &str,
-        function_name: &str,
-        arity: usize,
-        return_type: &str,
-        receiver_name: &str,
-        receiver_type: &str,
-        receiver_method: bool,
-        receiver_mutable: bool,
-    ) {
-        let interface = interfaces
-            .get(module_name)
-            .unwrap_or_else(|| panic!("missing interface {module_name}"));
-        let signature = interface
-            .functions
-            .get(&(function_name.to_string(), arity))
-            .unwrap_or_else(|| panic!("missing signature {module_name}.{function_name}/{arity}"));
-
-        assert_eq!(signature.return_type, return_type);
-        assert_eq!(signature.params[0].name, receiver_name);
-        assert_eq!(signature.params[0].annotation, receiver_type);
-        assert_eq!(signature.receiver_method, receiver_method);
-        assert_eq!(signature.receiver_mutable, receiver_mutable);
-    }
-
-    /// Asserts one loaded trait method signature.
-    ///
-    /// Inputs:
-    /// - `interfaces`: discovered module interfaces keyed by module name.
-    /// - `module_name`: expected module containing the trait.
-    /// - `trait_name`: expected trait name.
-    /// - `method_name`: expected trait method name.
-    /// - `return_type`: expected normalized method return type.
-    /// - `param_name`: expected first parameter name.
-    /// - `param_type`: expected first parameter annotation.
-    ///
-    /// Output:
-    /// - Panics when the interface, trait, method, return type, or parameter
-    ///   shape does not match.
-    ///
-    /// Transformation:
-    /// - Reads a trait method signature from an already loaded interface and
-    ///   compares the shape used by downstream conformance checks.
-    fn assert_trait_method_signature(
-        interfaces: &HashMap<String, ModuleInterface>,
-        module_name: &str,
-        trait_name: &str,
-        method_name: &str,
-        return_type: &str,
-        param_name: &str,
-        param_type: &str,
-    ) {
-        let interface = interfaces
-            .get(module_name)
-            .unwrap_or_else(|| panic!("missing interface {module_name}"));
-        let trait_signature = interface
-            .traits
-            .get(trait_name)
-            .unwrap_or_else(|| panic!("missing trait {module_name}.{trait_name}"));
-        let method = trait_signature
-            .methods
-            .get(method_name)
-            .unwrap_or_else(|| panic!("missing trait method {trait_name}.{method_name}"));
-
-        assert_eq!(method.return_type, return_type);
-        assert_eq!(method.params[0].name, param_name);
-        assert_eq!(method.params[0].annotation, param_type);
-    }
-
-    /// Verifies interface snapshots preserve public trait conformance facts.
-    ///
-    /// Inputs:
-    /// - A source module containing one declaration-site `implements`
-    ///   conformance and one explicit `impl Trait[...] for Type` conformance.
-    ///
-    /// Output:
-    /// - Test passes when both conformance facts appear in the direct interface
-    ///   and survive rendering/parsing as `.typi` interface text.
-    ///
-    /// Transformation:
-    /// - Converts syntax output to `ModuleInterface`, renders it as interface
-    ///   text, reparses that text through the interface parser, and converts it
-    ///   back to `ModuleInterface` to prove the metadata is stable.
-    #[test]
-    fn interface_rendering_preserves_public_trait_conformances() {
-        let module = parse_module_as_syntax_output(
-            "\
-module interface_trait_conformance.\n\
-\n\
-pub trait Show[T] {\n\
-    show(value: T): String.\n\
-}.\n\
-\n\
-pub type User implements Show[User] = {name: String}.\n\
-\n\
-pub impl Show[Int] for Int {\n\
-    show(value: Int): String ->\n\
-        \"int\".\n\
-}.\n",
-        )
-        .expect("parse conformance source fixture");
-
-        let interface = syntax_module_output_to_interface(&module);
-        assert_trait_conformance(
-            &interface,
-            "Show[User]",
-            "User",
-            TraitConformanceSource::Implements,
-        );
-        assert_trait_conformance(
-            &interface,
-            "Show[Int]",
-            "Int",
-            TraitConformanceSource::ExplicitImpl,
-        );
-
-        let rendered = interface.to_terlan_interface_text();
-        assert!(
-            rendered.contains("pub impl Show[User] for User"),
-            "rendered interface should preserve declaration-site conformance:\n{}",
-            rendered
-        );
-        assert!(
-            rendered.contains("pub impl Show[Int] for Int"),
-            "rendered interface should preserve explicit impl conformance:\n{}",
-            rendered
-        );
-
-        let reparsed = parse_interface_module_as_syntax_output(&rendered)
-            .expect("parse rendered conformance interface");
-        let reparsed_interface = syntax_module_output_to_interface(&reparsed);
-        assert_trait_conformance(
-            &reparsed_interface,
-            "Show[User]",
-            "User",
-            TraitConformanceSource::ExplicitImpl,
-        );
-        assert_trait_conformance(
-            &reparsed_interface,
-            "Show[Int]",
-            "Int",
-            TraitConformanceSource::ExplicitImpl,
-        );
-    }
-
-    /// Verifies interface rendering preserves trait default-method markers.
-    ///
-    /// Inputs:
-    /// - A public trait with one required method and one default method.
-    ///
-    /// Output:
-    /// - Test passes when direct and rendered/reparsed interfaces mark only the
-    ///   default method as having a default implementation.
-    ///
-    /// Transformation:
-    /// - Converts source syntax to an interface, renders the `.typi` summary
-    ///   with a placeholder default body, reparses that summary, and verifies
-    ///   downstream interface extraction still sees the default marker.
-    #[test]
-    fn interface_rendering_preserves_trait_default_method_markers() {
-        let module = parse_module_as_syntax_output(
-            "\
-module interface_trait_defaults.\n\
-\n\
-pub trait Lifecycle[T] {\n\
-    start(value: T): T.\n\
-    stop(value: T): Unit -> Unit.\n\
-}.\n",
-        )
-        .expect("parse default trait method source fixture");
-
-        let interface = syntax_module_output_to_interface(&module);
-        let lifecycle = interface
-            .traits
-            .get("Lifecycle")
-            .expect("direct lifecycle trait");
-        assert!(!lifecycle.methods["start"].has_default);
-        assert!(lifecycle.methods["stop"].has_default);
-
-        let rendered = interface.to_terlan_interface_text();
-        assert!(
-            rendered.contains("stop(value: T): Unit ->"),
-            "rendered summary should contain a placeholder default body:\n{}",
-            rendered
-        );
-
-        let reparsed = parse_interface_module_as_syntax_output(&rendered)
-            .expect("parse rendered default trait interface");
-        let reparsed_interface = syntax_module_output_to_interface(&reparsed);
-        let reparsed_lifecycle = reparsed_interface
-            .traits
-            .get("Lifecycle")
-            .expect("reparsed lifecycle trait");
-        assert!(!reparsed_lifecycle.methods["start"].has_default);
-        assert!(reparsed_lifecycle.methods["stop"].has_default);
-    }
-
-    /// Verifies public struct fields survive `.typi` rendering and parsing.
-    ///
-    /// Inputs:
-    /// - A syntax-output module containing one public struct with two fields.
-    ///
-    /// Output:
-    /// - Test passes when direct and reparsed interfaces both expose the public
-    ///   struct field signatures.
-    ///
-    /// Transformation:
-    /// - Converts source to interface metadata, renders that metadata as
-    ///   Terlan interface text, reparses it, and compares the resulting
-    ///   span-free field signatures.
-    #[test]
-    fn interface_rendering_preserves_public_struct_fields() {
-        let module = parse_module_as_syntax_output(
-            "\
-module interface_struct_fields.\n\
-\n\
-pub struct Error {\n\
-    code: Atom,\n\
-    message: String\n\
-}.\n",
-        )
-        .expect("parse struct field source fixture");
-
-        let interface = syntax_module_output_to_interface(&module);
-        let fields = interface
-            .struct_fields
-            .get("Error")
-            .expect("direct struct field metadata");
-        assert_eq!(fields.len(), 2);
-        assert_eq!(fields[0].name, "code");
-        assert_eq!(fields[0].annotation, "Atom");
-        assert_eq!(fields[1].name, "message");
-        assert_eq!(fields[1].annotation, "String");
-
-        let rendered = interface.to_terlan_interface_text();
-        assert!(
-            rendered.contains("pub struct Error"),
-            "rendered interface should preserve struct declaration:\n{}",
-            rendered
-        );
-        let reparsed = parse_interface_module_as_syntax_output(&rendered)
-            .expect("parse rendered struct interface");
-        let reparsed_interface = syntax_module_output_to_interface(&reparsed);
-        let reparsed_fields = reparsed_interface
-            .struct_fields
-            .get("Error")
-            .expect("reparsed struct field metadata");
-        assert_eq!(reparsed_fields, fields);
-    }
-
-    /// Verifies generated provider summaries with constructors and empty impls parse.
-    ///
-    /// Inputs:
-    /// - Interface text matching a cached provider `.typi` summary for a module
-    ///   with a public struct, constructor, trait, explicit impl, and function.
-    ///
-    /// Output:
-    /// - Test passes when interface parsing and HIR extraction preserve the
-    ///   provider module interface.
-    ///
-    /// Transformation:
-    /// - Parses generated interface text and converts it back into a
-    ///   `ModuleInterface`, catching cache summary shapes that would otherwise
-    ///   be silently skipped by interface loading.
-    #[test]
-    fn generated_provider_interface_with_empty_impl_parses() {
-        let source = "\
-module people.Provider.\n\
-\n\
-pub type ExternalUser.\n\
-\n\
-pub new_user(name: String): ExternalUser.\n\
-\n\
-pub trait Named[T] {\n\
-    name(value: T): String.\n\
-}.\n\
-\n\
-pub impl Named[ExternalUser] for ExternalUser {\n\
-}.\n\
-\n\
-pub constructor ExternalUser {\n\
-    (name: String): ExternalUser ->\n\
-        terlan_interface_constructor\n\
-}.\n";
-
-        let parsed = parse_interface_module_as_syntax_output(source)
-            .expect("parse generated provider interface summary");
-        let interface = syntax_module_output_to_interface(&parsed);
-
-        assert_eq!(interface.module, "people.Provider");
-        assert!(interface.public_types.contains("ExternalUser"));
-        assert!(interface.traits.contains_key("Named"));
-        assert_eq!(interface.trait_conformances.len(), 1);
-        assert!(interface
-            .functions
-            .contains_key(&("new_user".to_string(), 1)));
-    }
-
-    /// Asserts one trait conformance fact exists in an interface snapshot.
-    ///
-    /// Inputs:
-    /// - `interface`: module interface to inspect.
-    /// - `trait_ref`: expected normalized trait reference.
-    /// - `for_type`: expected normalized implementation type.
-    /// - `source`: expected conformance source category.
-    ///
-    /// Output:
-    /// - Panics when the conformance fact is missing.
-    ///
-    /// Transformation:
-    /// - Performs an exact metadata lookup without inspecting source text.
-    fn assert_trait_conformance(
-        interface: &ModuleInterface,
-        trait_ref: &str,
-        for_type: &str,
-        source: TraitConformanceSource,
-    ) {
-        assert!(
-            interface.trait_conformances.iter().any(|conformance| {
-                conformance.trait_ref == trait_ref
-                    && conformance.for_type == for_type
-                    && conformance.source == source
-                    && conformance.public
-            }),
-            "missing conformance {trait_ref} for {for_type} via {:?}: {:?}",
-            source,
-            interface.trait_conformances
-        );
-    }
-
-    #[test]
-    fn hir_accepts_canonical_syntax_contract() {
-        let contract =
-            cached_canonical_terlan_syntax_contract().expect("cached canonical syntax contract");
-
-        let diagnostics = validate_syntax_contract(contract);
-        assert!(
-            diagnostics.is_empty(),
-            "unexpected syntax contract diagnostics: {diagnostics:?}"
-        );
-    }
-
-    #[test]
-    fn hir_rejects_broken_syntax_contract() {
-        let mut contract =
-            canonical_terlan_syntax_contract().expect("compile canonical syntax contract");
-        contract.entry_rule = Some("Program".to_string());
-        let expr_rule = contract.rule("Expr").expect("Expr rule").clone();
-        let expr_rule_index = contract
-            .rules
-            .iter()
-            .position(|rule| rule.name == expr_rule.name)
-            .expect("Expr rule index");
-        contract.rules[expr_rule_index].expr.kind = EbnfGrammarExprKind::Terminal {
-            value: "broken".to_string(),
-        };
-
-        let diagnostics = validate_syntax_contract(&contract);
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message.contains("entry rule")));
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message == "syntax rule Expr must reference AssignExpr"));
-    }
-
-    #[test]
-    fn resolve_syntax_output_records_function_symbols() {
-        let syntax_module = parse_module_as_syntax_output(
-            r#"
-module syntax_resolve.
-
-pub add(Value: Int): Int ->
-    Value + 1.
-"#,
-        )
-        .expect("parse syntax output");
-
-        let resolved = resolve_syntax_module_output(&syntax_module);
-        let symbol = resolved
-            .module
-            .function_symbols
-            .get(&("add".to_string(), 1))
-            .expect("add symbol");
-        assert_eq!(symbol.return_type, "Int");
-        assert!(symbol.exported);
-        assert!(resolved.module.diagnostics.is_empty());
-    }
-
-    #[test]
-    fn resolve_syntax_output_rejects_source_export_payloads() {
-        let mut syntax_module = terlan_syntax::parse_interface_module_as_syntax_output(
-            r#"
-module syntax_resolve_source_export_payload.
-
-export add/1.
-"#,
-        )
-        .expect("parse interface syntax output");
-        syntax_module.source_kind = SyntaxSourceKind::Module;
-
-        let resolved = resolve_syntax_module_output(&syntax_module);
-        assert!(resolved
-            .module
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic
-                .message
-                .contains("source export declarations are not part of canonical Terlan")));
-        assert!(!resolved
-            .module
-            .function_symbols
-            .contains_key(&("add".to_string(), 1)));
-    }
-
-    /// Verifies source-tree resolution rejects source-mode export
-    /// payloads.
-    ///
-    /// Inputs:
-    /// - An interface-parsed AST module containing an `Export` payload.
-    ///
-    /// Output:
-    /// - Test passes when AST resolution reports the canonical source-export
-    ///   diagnostic and does not create a function symbol from the interface
-    ///   export summary.
-    ///
-    /// Transformation:
-    /// - Feeds an interface export-summary AST payload through the source-oriented
-    ///   compatibility resolver to prove it no longer treats `export` as a
-    ///   normal source visibility mechanism.
-    #[test]
-    fn formal_hir_syntax_output_resolves_interface_surface() {
-        let syntax_module = parse_module_as_syntax_output(
-            r#"
-//! Public docs.
-module formal_syntax_iface.
-
-/// Item collection.
-pub type Items[T] =
-    List[T].
-
-/// Builds item collections.
-pub constructor Items[T] {
-    (Values: List[T]): Items[T] ->
-        Values
-}.
-
-/// Shows values.
-	pub trait Show[A] {
-	  /// Converts to text.
-	  show(Value: A): Text.
-	}.
-	
-	/// Adds one.
-	pub add(Value: Int): Int ->
-	    Value + 1.
-"#,
-        )
-        .expect("parse syntax output");
-
-        let interface = syntax_module_output_to_interface(&syntax_module);
-        assert_eq!(interface.module, "formal_syntax_iface");
-        assert_eq!(interface.docs, vec!["Public docs."]);
-        assert!(interface.public_types.contains("Items"));
-        assert_eq!(
-            interface.type_params.get("Items"),
-            Some(&vec!["T".to_string()])
-        );
-        assert_eq!(interface.constructors.get("Items").map(Vec::len), Some(1));
-        assert_eq!(
-            interface.traits["Show"].methods["show"].docs,
-            vec!["Converts to text."]
-        );
-        assert_eq!(
-            interface.functions[&("add".to_string(), 1)].return_type,
-            "Int"
-        );
-
-        let resolved = resolve_syntax_module_output(&syntax_module);
-        let symbol = resolved
-            .module
-            .function_symbols
-            .get(&("add".to_string(), 1))
-            .expect("add symbol");
-        assert!(symbol.exported);
-        assert!(resolved.module.diagnostics.is_empty());
-    }
-
-    /// Verifies release core collection contracts produce stable interfaces.
-    ///
-    /// Inputs:
-    /// - Release source contracts for `std.collections.Map`, `std.collections.List`, and
-    ///   `std.collections.Set`.
-    /// - Matching release `.typi` summaries using bodyless receiver method
-    ///   signatures.
-    ///
-    /// Output:
-    /// - Test passes when source-contract extraction and summary parsing expose
-    ///   the same key function arities, return types, and receiver mutability.
-    ///
-    /// Transformation:
-    /// - Converts source and summary receiver methods into HIR's callable
-    ///   `method(receiver, args...)` convention while preserving `mut`.
-    #[test]
-    fn hir_extracts_release_core_collection_contracts_as_receiver_first_interfaces() {
-        let contracts = [
-            (
-                "std.collections.Map",
-                include_str!("../../../std/collections/map.terl"),
-                include_str!("../../../std/summaries/std.collections.Map.typi"),
-                vec![
-                    ("put", 3, "Unit", "map", "Map[K, V]", true),
-                    ("remove", 2, "Unit", "map", "Map[K, V]", true),
-                    ("clear", 1, "Unit", "map", "Map[K, V]", true),
-                ],
-            ),
-            (
-                "std.collections.List",
-                include_str!("../../../std/collections/list.terl"),
-                include_str!("../../../std/summaries/std.collections.List.typi"),
-                vec![
-                    ("push", 2, "Unit", "list", "List[T]", true),
-                    ("clear", 1, "Unit", "list", "List[T]", true),
-                ],
-            ),
-            (
-                "std.collections.Set",
-                include_str!("../../../std/collections/set.terl"),
-                include_str!("../../../std/summaries/std.collections.Set.typi"),
-                vec![
-                    ("add", 2, "Unit", "set", "Set[T]", true),
-                    ("remove", 2, "Unit", "set", "Set[T]", true),
-                    ("clear", 1, "Unit", "set", "Set[T]", true),
-                ],
-            ),
-        ];
-
-        for (module_name, source, summary, expected_functions) in contracts {
-            let source_module =
-                parse_module_as_syntax_output(source).expect("parse release collection source");
-            let summary_module = parse_interface_module_as_syntax_output(summary)
-                .expect("parse release collection summary");
-            let source_interface = syntax_module_output_to_interface(&source_module);
-            let summary_interface = syntax_module_output_to_interface(&summary_module);
-
-            assert_eq!(source_interface.module, module_name);
-            assert_eq!(summary_interface.module, module_name);
-
-            for (function_name, arity, return_type, receiver_name, receiver_type, mutable) in
-                expected_functions
-            {
-                let key = (function_name.to_string(), arity);
-                let source_signature = source_interface
-                    .functions
-                    .get(&key)
-                    .unwrap_or_else(|| panic!("missing source signature {module_name}.{key:?}"));
-                let summary_signature = summary_interface
-                    .functions
-                    .get(&key)
-                    .unwrap_or_else(|| panic!("missing summary signature {module_name}.{key:?}"));
-
-                assert_eq!(source_signature.return_type, return_type);
-                assert_eq!(summary_signature.return_type, return_type);
-                assert_eq!(source_signature.params[0].name, receiver_name);
-                assert_eq!(summary_signature.params[0].name, receiver_name);
-                assert_eq!(source_signature.params[0].annotation, receiver_type);
-                assert_eq!(summary_signature.params[0].annotation, receiver_type);
-                assert!(source_signature.receiver_method);
-                assert!(summary_signature.receiver_method);
-                assert_eq!(source_signature.receiver_mutable, mutable);
-                assert_eq!(summary_signature.receiver_mutable, mutable);
-            }
-        }
-    }
-
-    /// Verifies release iterator/iterable contracts produce stable interfaces.
-    ///
-    /// Inputs:
-    /// - Release interface contracts for `std.collections.Iterator` and
-    ///   `std.collections.Iterable`.
-    /// - Matching release `.typi` summaries.
-    ///
-    /// Output:
-    /// - Test passes when source-contract extraction and summary parsing expose
-    ///   the same key function and trait method signatures.
-    ///
-    /// Transformation:
-    /// - Converts release interface syntax into HIR module interfaces and
-    ///   compares those interfaces with the bodyless summaries planned for
-    ///   later compiler phases.
-    #[test]
-    fn hir_extracts_release_traversal_contracts_as_interfaces() {
-        let iterator_source =
-            parse_module_as_syntax_output(include_str!("../../../std/collections/iterator.terl"))
-                .expect("parse iterator source contract");
-        let iterator_summary = parse_interface_module_as_syntax_output(include_str!(
-            "../../../std/summaries/std.collections.Iterator.typi"
-        ))
-        .expect("parse iterator summary");
-        let iterator_source_interface = syntax_module_output_to_interface(&iterator_source);
-        let iterator_summary_interface = syntax_module_output_to_interface(&iterator_summary);
-
-        assert_eq!(iterator_source_interface.module, "std.collections.Iterator");
-        assert_eq!(
-            iterator_summary_interface.module,
-            "std.collections.Iterator"
-        );
-        assert_eq!(
-            iterator_source_interface.functions[&("next".to_string(), 1)].return_type,
-            "Option[Step[T]]"
-        );
-        assert_eq!(
-            iterator_summary_interface.functions[&("next".to_string(), 1)].return_type,
-            "Option[Step[T]]"
-        );
-
-        let iterable_source =
-            parse_module_as_syntax_output(include_str!("../../../std/collections/iterable.terl"))
-                .expect("parse iterable source contract");
-        let iterable_summary = parse_interface_module_as_syntax_output(include_str!(
-            "../../../std/summaries/std.collections.Iterable.typi"
-        ))
-        .expect("parse iterable summary");
-        let iterable_source_interface = syntax_module_output_to_interface(&iterable_source);
-        let iterable_summary_interface = syntax_module_output_to_interface(&iterable_summary);
-
-        assert_eq!(iterable_source_interface.module, "std.collections.Iterable");
-        assert_eq!(
-            iterable_summary_interface.module,
-            "std.collections.Iterable"
-        );
-        assert_eq!(
-            iterable_source_interface.traits["Iterable"].methods["iterator"].return_type,
-            "Iterator[T]"
-        );
-        assert_eq!(
-            iterable_summary_interface.traits["Iterable"].methods["iterator"].return_type,
-            "Iterator[T]"
-        );
-    }
-}
+#[path = "lib_test.rs"]
+mod lib_test;

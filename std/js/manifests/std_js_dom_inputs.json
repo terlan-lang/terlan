@@ -1,0 +1,23 @@
+{
+  "schema": "terlan.std.js.input-manifest.v1",
+  "generator": {
+    "name": "terlc",
+    "version": "0.0.4",
+    "profile": "tiny-dom-fixture",
+    "oxc_parser": true
+  },
+  "target_profile": "js.browser",
+  "source_package": {
+    "name": "typescript",
+    "version": "fixture",
+    "resolution": "committed-fixture"
+  },
+  "inputs": [
+    {
+      "path": "std/js/dom/fixtures/document.d.ts",
+      "sha256": "704034867b337bd7ac6018794cf13f032c2a0fd5b56cd5d78d92232cb4ea62e1",
+      "kind": "typescript-declaration",
+      "namespace": "std.js.Dom"
+    }
+  ]
+}

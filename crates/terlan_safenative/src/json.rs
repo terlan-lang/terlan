@@ -4,7 +4,7 @@
 //! portable `std.data.Json` contract. It delegates parsing and rendering to
 //! `serde_json`, while exposing only stable Terlan-facing shapes.
 
-use serde_json::Value;
+use serde_json::{Map, Number, Value};
 
 /// Parsed JSON value owned by the SafeNative adapter.
 #[derive(Clone, Debug, PartialEq)]
@@ -133,6 +133,164 @@ pub fn parse(text: &str) -> Result<Json, JsonError> {
         .map_err(|error| JsonError::new("json.parse", error.to_string(), 0))
 }
 
+/// Creates a JSON null value.
+///
+/// Inputs:
+/// - No value input.
+///
+/// Output:
+/// - `Json` containing `serde_json::Value::Null`.
+///
+/// Transformation:
+/// - Wraps the backend JSON null representation in the portable adapter type.
+pub fn null() -> Json {
+    Json::from_serde(Value::Null)
+}
+
+/// Creates a JSON boolean value.
+///
+/// Inputs:
+/// - `value`: boolean to represent as JSON.
+///
+/// Output:
+/// - `Json` containing a JSON boolean.
+///
+/// Transformation:
+/// - Converts the primitive boolean into the backend JSON value shape.
+pub fn r#bool(value: bool) -> Json {
+    Json::from_serde(Value::Bool(value))
+}
+
+/// Creates a JSON integer value.
+///
+/// Inputs:
+/// - `value`: integer to represent as JSON.
+///
+/// Output:
+/// - `Json` containing a JSON number.
+///
+/// Transformation:
+/// - Converts the primitive integer into the backend JSON number shape.
+pub fn int(value: i64) -> Json {
+    Json::from_serde(Value::Number(Number::from(value)))
+}
+
+/// Creates a JSON floating-point value.
+///
+/// Inputs:
+/// - `value`: floating-point number to represent as JSON.
+///
+/// Output:
+/// - `Ok(Json)` when the value is finite.
+/// - `Err(JsonError)` with code `json.invalid_float` for NaN or infinity.
+///
+/// Transformation:
+/// - Validates JSON numeric compatibility before constructing the backend
+///   number representation.
+pub fn float(value: f64) -> Result<Json, JsonError> {
+    Number::from_f64(value)
+        .map(Value::Number)
+        .map(Json::from_serde)
+        .ok_or_else(|| JsonError::new("json.invalid_float", "JSON numbers must be finite.", 0))
+}
+
+/// Creates a JSON string value.
+///
+/// Inputs:
+/// - `value`: UTF-8 text to represent as JSON.
+///
+/// Output:
+/// - `Json` containing a JSON string.
+///
+/// Transformation:
+/// - Copies the borrowed string into the backend JSON string representation.
+pub fn string(value: &str) -> Json {
+    Json::from_serde(Value::String(value.to_owned()))
+}
+
+/// Creates an empty JSON array.
+///
+/// Inputs:
+/// - No value input.
+///
+/// Output:
+/// - `Json` containing an empty JSON array.
+///
+/// Transformation:
+/// - Allocates the backend JSON array representation.
+pub fn array() -> Json {
+    Json::from_serde(Value::Array(Vec::new()))
+}
+
+/// Creates an empty JSON object.
+///
+/// Inputs:
+/// - No value input.
+///
+/// Output:
+/// - `Json` containing an empty JSON object.
+///
+/// Transformation:
+/// - Allocates the backend JSON object representation.
+pub fn object() -> Json {
+    Json::from_serde(Value::Object(Map::new()))
+}
+
+/// Appends a value to a JSON array.
+///
+/// Inputs:
+/// - `json`: mutable JSON value expected to be an array.
+/// - `value`: JSON value to append.
+///
+/// Output:
+/// - `Ok(())` when the receiver is an array.
+/// - `Err(JsonError)` with code `json.not_array` otherwise.
+///
+/// Transformation:
+/// - Mutates the backend JSON array in place while keeping the receiver
+///   wrapped as the portable adapter type.
+pub fn push(json: &mut Json, value: Json) -> Result<(), JsonError> {
+    match &mut json.value {
+        Value::Array(values) => {
+            values.push(value.value);
+            Ok(())
+        }
+        _ => Err(JsonError::new(
+            "json.not_array",
+            "JSON value is not an array.",
+            0,
+        )),
+    }
+}
+
+/// Inserts or replaces a value in a JSON object.
+///
+/// Inputs:
+/// - `json`: mutable JSON value expected to be an object.
+/// - `key`: object member key.
+/// - `value`: JSON value to store.
+///
+/// Output:
+/// - `Ok(())` when the receiver is an object.
+/// - `Err(JsonError)` with code `json.not_object` otherwise.
+///
+/// Transformation:
+/// - Mutates the backend JSON object in place while keeping the receiver
+///   wrapped as the portable adapter type.
+pub fn put(json: &mut Json, key: &str, value: Json) -> Result<(), JsonError> {
+    match &mut json.value {
+        Value::Object(object) => {
+            object.insert(key.to_owned(), value.value);
+            Ok(())
+        }
+        _ => Err(JsonError::new(
+            "json.not_object",
+            "JSON value is not an object.",
+            0,
+        )),
+    }
+}
+
 /// Renders a SafeNative JSON value to compact JSON text.
 ///
 /// Inputs:
@@ -179,6 +337,75 @@ pub fn get(json: &Json, key: &str) -> Result<Json, JsonError> {
         _ => Err(JsonError::new(
             "json.not_object",
             "JSON value is not an object.",
+            0,
+        )),
+    }
+}
+
+/// Returns the length of a JSON array.
+///
+/// Inputs:
+/// - `json`: parsed JSON value expected to be an array.
+///
+/// Output:
+/// - `Ok(i64)` containing the array length.
+/// - `Err(JsonError)` when the receiver is not an array or the length cannot
+///   be represented as a Terlan `Int`.
+///
+/// Transformation:
+/// - Observes the backend array length and converts it to the portable integer
+///   shape used by Terlan.
+pub fn length(json: &Json) -> Result<i64, JsonError> {
+    match json.as_serde() {
+        Value::Array(values) => i64::try_from(values.len()).map_err(|_| {
+            JsonError::new("json.length_overflow", "JSON array length exceeds Int.", 0)
+        }),
+        _ => Err(JsonError::new(
+            "json.not_array",
+            "JSON value is not an array.",
+            0,
+        )),
+    }
+}
+
+/// Reads a JSON array element by index.
+///
+/// Inputs:
+/// - `json`: parsed JSON value expected to be an array.
+/// - `index`: zero-based array index.
+///
+/// Output:
+/// - `Ok(Json)` containing the cloned array element.
+/// - `Err(JsonError)` when the receiver is not an array, the index is
+///   negative, or the index is outside the array bounds.
+///
+/// Transformation:
+/// - Validates the receiver and index before cloning the selected backend JSON
+///   value into the portable adapter wrapper.
+pub fn at(json: &Json, index: i64) -> Result<Json, JsonError> {
+    let index = usize::try_from(index).map_err(|_| {
+        JsonError::new(
+            "json.index_out_of_bounds",
+            "JSON array index must be non-negative.",
+            0,
+        )
+    })?;
+
+    match json.as_serde() {
+        Value::Array(values) => values
+            .get(index)
+            .cloned()
+            .map(Json::from_serde)
+            .ok_or_else(|| {
+                JsonError::new(
+                    "json.index_out_of_bounds",
+                    format!("JSON array does not contain index `{index}`."),
+                    0,
+                )
+            }),
+        _ => Err(JsonError::new(
+            "json.not_array",
+            "JSON value is not an array.",
             0,
         )),
     }
@@ -268,127 +495,5 @@ pub fn is_null(json: &Json) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Parses a JSON fixture for adapter tests.
-    ///
-    /// Inputs:
-    /// - `text`: JSON source expected to parse.
-    ///
-    /// Output:
-    /// - Parsed `Json` value, or JSON null after a failing assertion.
-    ///
-    /// Transformation:
-    /// - Converts a `Result` into a convenient test value without unwrap/expect.
-    fn parsed_fixture(text: &str) -> Json {
-        let result = parse(text);
-        assert!(result.is_ok());
-        result.unwrap_or_else(|_| Json::from_serde(Value::Null))
-    }
-
-    /// Validates JSON parsing and compact string rendering.
-    ///
-    /// Inputs:
-    /// - Object JSON text with stable key ordering.
-    ///
-    /// Output:
-    /// - Test passes when parsing succeeds and rendering returns compact JSON.
-    ///
-    /// Transformation:
-    /// - Exercises the parse/stringify path over the `serde_json` backend.
-    #[test]
-    fn parse_and_stringify_round_trip_json_text() {
-        let json = parsed_fixture(r#"{"name":"Ada","active":true}"#);
-        assert_eq!(
-            stringify(&json),
-            Ok(String::from(r#"{"active":true,"name":"Ada"}"#))
-        );
-    }
-
-    /// Validates stable parse error conversion.
-    ///
-    /// Inputs:
-    /// - Invalid JSON text.
-    ///
-    /// Output:
-    /// - Test passes when parsing returns the stable `json.parse` code.
-    ///
-    /// Transformation:
-    /// - Converts a backend parser error into the portable JSON error shape.
-    #[test]
-    fn parse_error_uses_stable_error_code() {
-        let result = parse("{");
-        assert!(result.is_err());
-        let error = result
-            .err()
-            .unwrap_or_else(|| JsonError::new("missing", "", 0));
-        assert_eq!(error.code(), "json.parse");
-        assert_eq!(error.offset(), 0);
-    }
-
-    /// Validates object lookup and typed accessors.
-    ///
-    /// Inputs:
-    /// - Object JSON text with string, integer, float, boolean, and null fields.
-    ///
-    /// Output:
-    /// - Test passes when each accessor returns the expected typed value.
-    ///
-    /// Transformation:
-    /// - Exercises `get` plus all typed reader operations.
-    #[test]
-    fn object_lookup_supports_typed_accessors() {
-        let json =
-            parsed_fixture(r#"{"name":"Ada","count":3,"ratio":1.5,"active":true,"none":null}"#);
-        let name = get(&json, "name").unwrap_or_else(|_| Json::from_serde(Value::Null));
-        let count = get(&json, "count").unwrap_or_else(|_| Json::from_serde(Value::Null));
-        let ratio = get(&json, "ratio").unwrap_or_else(|_| Json::from_serde(Value::Null));
-        let active = get(&json, "active").unwrap_or_else(|_| Json::from_serde(Value::Null));
-        let none = get(&json, "none").unwrap_or_else(|_| Json::from_serde(Value::Null));
-
-        assert_eq!(as_string(&name), Ok(String::from("Ada")));
-        assert_eq!(as_int(&count), Ok(3));
-        assert_eq!(as_float(&ratio), Ok(1.5));
-        assert_eq!(as_bool(&active), Ok(true));
-        assert!(is_null(&none));
-    }
-
-    /// Validates object lookup failure conversion.
-    ///
-    /// Inputs:
-    /// - Object JSON text and an absent key.
-    ///
-    /// Output:
-    /// - Test passes when lookup returns the stable missing-key code.
-    ///
-    /// Transformation:
-    /// - Converts a missing object member into a portable JSON error.
-    #[test]
-    fn missing_key_uses_stable_error_code() {
-        let json = parsed_fixture(r#"{"name":"Ada"}"#);
-        let error = get(&json, "missing")
-            .err()
-            .unwrap_or_else(|| JsonError::new("missing", "", 0));
-        assert_eq!(error.code(), "json.key_not_found");
-    }
-
-    /// Validates typed accessor failure conversion.
-    ///
-    /// Inputs:
-    /// - JSON string value read as an integer.
-    ///
-    /// Output:
-    /// - Test passes when the accessor returns the stable wrong-kind code.
-    ///
-    /// Transformation:
-    /// - Converts a JSON kind mismatch into a portable JSON error.
-    #[test]
-    fn wrong_kind_accessor_uses_stable_error_code() {
-        let json = parsed_fixture(r#""Ada""#);
-        let error = as_int(&json)
-            .err()
-            .unwrap_or_else(|| JsonError::new("missing", "", 0));
-        assert_eq!(error.code(), "json.not_int");
-    }
-}
+#[path = "json_test.rs"]
+mod json_test;

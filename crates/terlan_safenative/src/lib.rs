@@ -18,6 +18,7 @@ pub mod credit;
 pub mod dispatch;
 pub mod error;
 pub mod handle;
+pub mod http;
 pub mod json;
 pub mod path;
 pub mod request;

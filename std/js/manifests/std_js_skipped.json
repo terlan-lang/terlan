@@ -1,0 +1,8 @@
+{
+  "generator": "terlc",
+  "generator_version": "0.0.4",
+  "input_manifest": "std/js/manifests/std_js_dom_inputs.json",
+  "schema": "terlan.std.js.skipped-declarations.v1",
+  "skipped": [],
+  "target_profile": "js.browser"
+}

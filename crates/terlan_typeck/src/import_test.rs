@@ -101,7 +101,7 @@ pub demo(): Bool ->\n\
 fn syntax_output_std_option_compare_summary_preserves_comparison_return_type() {
     let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
-        .join("tests/std/core/option_test.terl");
+        .join("std/core/option_test.terl");
     let option_summary_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .join("std/summaries/std.core.Option.typi");

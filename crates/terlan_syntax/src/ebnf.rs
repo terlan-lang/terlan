@@ -1,12 +1,14 @@
 use crate::span::Span;
 use serde::{Deserialize, Serialize};
 
+/// EBNF parser diagnostic with source span.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EbnfError {
     pub message: String,
     pub span: Span,
 }
 
+/// Serializable source span used in EBNF contract artifacts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct EbnfSourceSpan {
     pub start: usize,
@@ -14,6 +16,16 @@ pub struct EbnfSourceSpan {
 }
 
 impl From<Span> for EbnfSourceSpan {
+    /// Converts the compiler span type into the serializable EBNF span type.
+    ///
+    /// Inputs:
+    /// - `span`: compiler source span.
+    ///
+    /// Output:
+    /// - EBNF source span with the same byte bounds.
+    ///
+    /// Transformation:
+    /// - Copies start and end offsets without normalization.
     fn from(span: Span) -> Self {
         Self {
             start: span.start,
@@ -23,11 +35,22 @@ impl From<Span> for EbnfSourceSpan {
 }
 
 impl From<EbnfSourceSpan> for Span {
+    /// Converts a serializable EBNF span into the compiler span type.
+    ///
+    /// Inputs:
+    /// - `span`: EBNF artifact span.
+    ///
+    /// Output:
+    /// - Compiler source span with the same byte bounds.
+    ///
+    /// Transformation:
+    /// - Copies start and end offsets into `Span::new`.
     fn from(span: EbnfSourceSpan) -> Self {
         Span::new(span.start, span.end)
     }
 }
 
+/// Compiled EBNF grammar contract.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EbnfGrammarContract {
     pub format_version: u32,
@@ -36,11 +59,22 @@ pub struct EbnfGrammarContract {
 }
 
 impl EbnfGrammarContract {
+    /// Looks up a rule by name.
+    ///
+    /// Inputs:
+    /// - `name`: EBNF rule name.
+    ///
+    /// Output:
+    /// - Matching grammar rule when present.
+    ///
+    /// Transformation:
+    /// - Performs a linear lookup over the compiled rule list.
     pub fn rule(&self, name: &str) -> Option<&EbnfGrammarRule> {
         self.rules.iter().find(|rule| rule.name == name)
     }
 }
 
+/// One named EBNF grammar rule.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EbnfGrammarRule {
     pub id: String,
@@ -50,6 +84,7 @@ pub struct EbnfGrammarRule {
     pub expr: EbnfGrammarExpr,
 }
 
+/// One EBNF expression node with a stable contract id.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EbnfGrammarExpr {
     pub id: String,
@@ -58,6 +93,7 @@ pub struct EbnfGrammarExpr {
     pub kind: EbnfGrammarExprKind,
 }
 
+/// Shape of one EBNF expression node.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EbnfGrammarExprKind {
@@ -73,49 +109,114 @@ pub enum EbnfGrammarExprKind {
     OneOrMore { expr: Box<EbnfGrammarExpr> },
 }
 
+/// Error emitted while compiling EBNF source into a contract.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EbnfCompileError {
     Parse(String, Span),
     Serialize(String),
 }
 
+/// Result type returned by public EBNF compilation entry points.
 pub type EbnfCompileResult<T> = Result<T, EbnfCompileError>;
 
+/// Compiles EBNF source into a grammar contract.
+///
+/// Inputs:
+/// - `input`: full EBNF source text.
+///
+/// Output:
+/// - Grammar contract or compile diagnostic.
+///
+/// Transformation:
+/// - Delegates to the EBNF parser and preserves the parsed contract shape.
 pub fn compile_ebnf(input: &str) -> EbnfCompileResult<EbnfGrammarContract> {
     parse_ebnf(input)
 }
 
+/// Parses EBNF source into the internal grammar contract before public wrapping.
+///
+/// Inputs:
+/// - `input`: full EBNF source text.
+///
+/// Output:
+/// - Grammar contract or low-level parse diagnostic.
+///
+/// Transformation:
+/// - Lexes EBNF tokens and consumes them with the recursive-descent EBNF parser.
 fn parse_ebnf_ast(input: &str) -> EbnfParseResult<EbnfGrammarContract> {
     let tokens = EbnfLexer::new(input).lex()?;
     EbnfParser::new(tokens).parse_grammar()
 }
 
+/// Parses EBNF source into a public compile result.
+///
+/// Inputs:
+/// - `input`: full EBNF source text.
+///
+/// Output:
+/// - Grammar contract or public compile diagnostic.
+///
+/// Transformation:
+/// - Converts low-level parser errors into `EbnfCompileError::Parse`.
 pub fn parse_ebnf(input: &str) -> EbnfCompileResult<EbnfGrammarContract> {
     parse_ebnf_ast(input).map_err(|error| EbnfCompileError::Parse(error.message, error.span))
 }
 
+/// Compiles EBNF source into the canonical contract artifact model.
+///
+/// Inputs:
+/// - `input`: full EBNF source text.
+///
+/// Output:
+/// - Grammar contract or compile diagnostic.
+///
+/// Transformation:
+/// - Alias for `compile_ebnf` retained for callers that name the contract path.
 pub fn compile_ebnf_contract(input: &str) -> EbnfCompileResult<EbnfGrammarContract> {
     compile_ebnf(input)
 }
 
+/// Compiles EBNF source into pretty JSON.
+///
+/// Inputs:
+/// - `input`: full EBNF source text.
+///
+/// Output:
+/// - Pretty-printed JSON contract or compile/serialization diagnostic.
+///
+/// Transformation:
+/// - Compiles the grammar contract and serializes it with `serde_json`.
 pub fn compile_ebnf_to_json(input: &str) -> EbnfCompileResult<String> {
     let output = compile_ebnf(input)?;
     serde_json::to_string_pretty(&output)
         .map_err(|error| EbnfCompileError::Serialize(error.to_string()))
 }
 
+/// Compiles EBNF source into pretty JSON through the contract-named entry point.
+///
+/// Inputs:
+/// - `input`: full EBNF source text.
+///
+/// Output:
+/// - Pretty-printed JSON contract or compile/serialization diagnostic.
+///
+/// Transformation:
+/// - Alias for `compile_ebnf_to_json`.
 pub fn compile_ebnf_contract_to_json(input: &str) -> EbnfCompileResult<String> {
     compile_ebnf_to_json(input)
 }
 
+/// Result type returned by the internal EBNF lexer and parser.
 pub type EbnfParseResult<T> = Result<T, EbnfError>;
 
+/// One token emitted by the EBNF lexer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct EbnfToken {
     kind: EbnfTokenKind,
     span: Span,
 }
 
+/// Token kinds recognized in EBNF source.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum EbnfTokenKind {
     Identifier(String),
@@ -136,16 +237,38 @@ enum EbnfTokenKind {
     Eof,
 }
 
+/// Lexer for the small EBNF grammar language.
 struct EbnfLexer<'a> {
     input: &'a str,
     pos: usize,
 }
 
 impl<'a> EbnfLexer<'a> {
+    /// Creates an EBNF lexer.
+    ///
+    /// Inputs:
+    /// - `input`: EBNF source text.
+    ///
+    /// Output:
+    /// - Lexer positioned at the start of the input.
+    ///
+    /// Transformation:
+    /// - Stores the borrowed input and initializes the byte cursor.
     fn new(input: &'a str) -> Self {
         Self { input, pos: 0 }
     }
 
+    /// Lexes the full EBNF source into tokens.
+    ///
+    /// Inputs:
+    /// - `self`: lexer over an EBNF input string.
+    ///
+    /// Output:
+    /// - Token stream terminated with EOF, or a lexer diagnostic.
+    ///
+    /// Transformation:
+    /// - Skips whitespace/comments and emits structural, terminal, class,
+    ///   special-sequence, and identifier tokens with spans.
     fn lex(mut self) -> EbnfParseResult<Vec<EbnfToken>> {
         let mut tokens = Vec::new();
         while !self.is_eof() {
@@ -224,6 +347,16 @@ impl<'a> EbnfLexer<'a> {
         Ok(tokens)
     }
 
+    /// Skips whitespace and nested EBNF comments.
+    ///
+    /// Inputs:
+    /// - Mutable lexer cursor.
+    ///
+    /// Output:
+    /// - `Ok(())` after all trivia has been consumed.
+    ///
+    /// Transformation:
+    /// - Advances over whitespace and balanced `(* ... *)` comment blocks.
     fn skip_ws_and_comments(&mut self) -> EbnfParseResult<()> {
         loop {
             while matches!(self.current_char(), Some(ch) if ch.is_whitespace()) {
@@ -257,6 +390,16 @@ impl<'a> EbnfLexer<'a> {
         }
     }
 
+    /// Lexes an EBNF identifier.
+    ///
+    /// Inputs:
+    /// - Lexer cursor at an identifier-start character.
+    ///
+    /// Output:
+    /// - Identifier token kind.
+    ///
+    /// Transformation:
+    /// - Consumes identifier-start and identifier-continue characters.
     fn lex_identifier(&mut self) -> EbnfTokenKind {
         let start = self.pos;
         self.bump_char();
@@ -266,6 +409,16 @@ impl<'a> EbnfLexer<'a> {
         EbnfTokenKind::Identifier(self.input[start..self.pos].to_string())
     }
 
+    /// Lexes a double-quoted EBNF terminal.
+    ///
+    /// Inputs:
+    /// - Lexer cursor at the opening quote.
+    ///
+    /// Output:
+    /// - Terminal token kind, or an unterminated terminal diagnostic.
+    ///
+    /// Transformation:
+    /// - Removes quotes and decodes the supported escape sequences.
     fn lex_terminal(&mut self) -> EbnfParseResult<EbnfTokenKind> {
         let start = self.pos;
         self.bump_char();
@@ -307,6 +460,16 @@ impl<'a> EbnfLexer<'a> {
         })
     }
 
+    /// Lexes an EBNF character class.
+    ///
+    /// Inputs:
+    /// - Lexer cursor at the opening bracket of a character class.
+    ///
+    /// Output:
+    /// - Character-class token kind, or an unterminated class diagnostic.
+    ///
+    /// Transformation:
+    /// - Captures the raw class payload between brackets.
     fn lex_character_class(&mut self) -> EbnfParseResult<EbnfTokenKind> {
         let start = self.pos;
         self.bump_char();
@@ -326,6 +489,16 @@ impl<'a> EbnfLexer<'a> {
         })
     }
 
+    /// Lexes an EBNF special sequence.
+    ///
+    /// Inputs:
+    /// - Lexer cursor at the opening `?`.
+    ///
+    /// Output:
+    /// - Special-sequence token kind, or an unterminated sequence diagnostic.
+    ///
+    /// Transformation:
+    /// - Captures trimmed text between `?` delimiters.
     fn lex_special(&mut self) -> EbnfParseResult<EbnfTokenKind> {
         let start = self.pos;
         self.bump_char();
@@ -345,10 +518,30 @@ impl<'a> EbnfLexer<'a> {
         })
     }
 
+    /// Checks whether the remaining input starts with a prefix.
+    ///
+    /// Inputs:
+    /// - `prefix`: text to compare at the current cursor.
+    ///
+    /// Output:
+    /// - `true` when the input suffix starts with `prefix`.
+    ///
+    /// Transformation:
+    /// - Reads the input slice without advancing.
     fn starts_with(&self, prefix: &str) -> bool {
         self.input[self.pos..].starts_with(prefix)
     }
 
+    /// Reports whether the current bracket begins a character class.
+    ///
+    /// Inputs:
+    /// - Lexer cursor at `[`.
+    ///
+    /// Output:
+    /// - `true` when the bracketed payload looks like a simple class range.
+    ///
+    /// Transformation:
+    /// - Peeks to the closing bracket and validates the payload shape.
     fn is_character_class_start(&self) -> bool {
         let Some(close_offset) = self.input[self.pos + 1..].find(']') else {
             return false;
@@ -361,31 +554,82 @@ impl<'a> EbnfLexer<'a> {
                 .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_'))
     }
 
+    /// Returns the current character.
+    ///
+    /// Inputs:
+    /// - Current lexer cursor.
+    ///
+    /// Output:
+    /// - Next Unicode scalar value, or `None` at EOF.
+    ///
+    /// Transformation:
+    /// - Reads from the current byte offset without advancing.
     fn current_char(&self) -> Option<char> {
         self.input[self.pos..].chars().next()
     }
 
+    /// Advances over the current character.
+    ///
+    /// Inputs:
+    /// - Current lexer cursor.
+    ///
+    /// Output:
+    /// - Character consumed, or `None` at EOF.
+    ///
+    /// Transformation:
+    /// - Increments the byte cursor by the UTF-8 width of the character.
     fn bump_char(&mut self) -> Option<char> {
         let ch = self.current_char()?;
         self.pos += ch.len_utf8();
         Some(ch)
     }
 
+    /// Reports whether the lexer cursor is at end of input.
+    ///
+    /// Inputs:
+    /// - Current lexer cursor.
+    ///
+    /// Output:
+    /// - `true` when the cursor is at or past the input length.
+    ///
+    /// Transformation:
+    /// - Compares byte cursor with input byte length.
     fn is_eof(&self) -> bool {
         self.pos >= self.input.len()
     }
 }
 
+/// Recursive-descent parser for EBNF token streams.
 struct EbnfParser {
     tokens: Vec<EbnfToken>,
     pos: usize,
 }
 
 impl EbnfParser {
+    /// Creates an EBNF parser.
+    ///
+    /// Inputs:
+    /// - `tokens`: EBNF token stream terminated by EOF.
+    ///
+    /// Output:
+    /// - Parser positioned at the first token.
+    ///
+    /// Transformation:
+    /// - Stores tokens without modification and initializes the cursor.
     fn new(tokens: Vec<EbnfToken>) -> Self {
         Self { tokens, pos: 0 }
     }
 
+    /// Parses a full EBNF grammar contract.
+    ///
+    /// Inputs:
+    /// - Parser cursor at the first rule.
+    ///
+    /// Output:
+    /// - Grammar contract containing all parsed rules.
+    ///
+    /// Transformation:
+    /// - Parses rules until EOF and uses the first rule as the entry rule.
     fn parse_grammar(&mut self) -> EbnfParseResult<EbnfGrammarContract> {
         let mut rules = Vec::new();
         while !self.check_kind(&EbnfTokenKind::Eof) {
@@ -400,6 +644,16 @@ impl EbnfParser {
         })
     }
 
+    /// Parses one named EBNF rule.
+    ///
+    /// Inputs:
+    /// - Parser cursor at a rule name.
+    ///
+    /// Output:
+    /// - Grammar rule with stable ids and source spans.
+    ///
+    /// Transformation:
+    /// - Consumes `Name ::= Expr .` and assigns nested expression ids.
     fn parse_rule_contract(&mut self) -> EbnfParseResult<EbnfGrammarRule> {
         let name_token = self.current().clone();
         let name = match &name_token.kind {
@@ -427,6 +681,16 @@ impl EbnfParser {
         })
     }
 
+    /// Parses an alternation expression.
+    ///
+    /// Inputs:
+    /// - Parser cursor at the start of an EBNF expression.
+    ///
+    /// Output:
+    /// - Single sequence expression or alternation expression.
+    ///
+    /// Transformation:
+    /// - Parses one or more sequences separated by top-level `|`.
     fn parse_expr_contract(&mut self) -> EbnfParseResult<EbnfGrammarExpr> {
         let mut alternatives = vec![self.parse_sequence_contract()?];
         while self.check_kind(&EbnfTokenKind::Pipe) {
@@ -448,6 +712,16 @@ impl EbnfParser {
         }
     }
 
+    /// Parses a sequence expression.
+    ///
+    /// Inputs:
+    /// - Parser cursor at the start of a sequence.
+    ///
+    /// Output:
+    /// - Single term expression, sequence expression, or empty sequence.
+    ///
+    /// Transformation:
+    /// - Parses terms until a sequence-ending delimiter is reached.
     fn parse_sequence_contract(&mut self) -> EbnfParseResult<EbnfGrammarExpr> {
         let mut items = Vec::new();
         while !self.is_sequence_end() {
@@ -473,6 +747,17 @@ impl EbnfParser {
         }
     }
 
+    /// Parses one EBNF term expression.
+    ///
+    /// Inputs:
+    /// - Parser cursor at a terminal, nonterminal, class, special, or group.
+    ///
+    /// Output:
+    /// - Parsed term expression including postfix repetition markers.
+    ///
+    /// Transformation:
+    /// - Consumes the primary term and folds trailing `*` or `+` into wrapper
+    ///   expression nodes.
     fn parse_term_contract(&mut self) -> EbnfParseResult<EbnfGrammarExpr> {
         let mut expr = match &self.current().kind {
             EbnfTokenKind::Identifier(name) => {
@@ -586,6 +871,17 @@ impl EbnfParser {
         }
     }
 
+    /// Reports whether the current token ends an EBNF sequence.
+    ///
+    /// Inputs:
+    /// - Parser cursor at a token inside an expression.
+    ///
+    /// Output:
+    /// - `true` for alternation, rule, group, optional, repetition, or EOF
+    ///   terminators.
+    ///
+    /// Transformation:
+    /// - Classifies the current token without advancing.
     fn is_sequence_end(&self) -> bool {
         matches!(
             self.current().kind,
@@ -598,10 +894,31 @@ impl EbnfParser {
         )
     }
 
+    /// Checks the current EBNF token kind by discriminant.
+    ///
+    /// Inputs:
+    /// - `expected`: token kind variant to compare against.
+    ///
+    /// Output:
+    /// - `true` when the current token has the same variant.
+    ///
+    /// Transformation:
+    /// - Ignores payload values so callers can match variant shape only.
     fn check_kind(&self, expected: &EbnfTokenKind) -> bool {
         std::mem::discriminant(&self.current().kind) == std::mem::discriminant(expected)
     }
 
+    /// Consumes an expected EBNF token kind.
+    ///
+    /// Inputs:
+    /// - `expected`: token kind variant required at the cursor.
+    /// - `message`: diagnostic text for mismatches.
+    ///
+    /// Output:
+    /// - Consumed token, or parser diagnostic at the cursor.
+    ///
+    /// Transformation:
+    /// - Checks by token discriminant and advances only on match.
     fn expect_kind(
         &mut self,
         expected: &EbnfTokenKind,
@@ -614,6 +931,16 @@ impl EbnfParser {
         }
     }
 
+    /// Produces a parser diagnostic at the current EBNF token.
+    ///
+    /// Inputs:
+    /// - `message`: diagnostic text.
+    ///
+    /// Output:
+    /// - Always returns `Err(EbnfError)`.
+    ///
+    /// Transformation:
+    /// - Anchors the diagnostic to the current token span.
     fn error_current<T>(&self, message: &str) -> EbnfParseResult<T> {
         Err(EbnfError {
             message: message.to_string(),
@@ -621,10 +948,30 @@ impl EbnfParser {
         })
     }
 
+    /// Returns the current EBNF token.
+    ///
+    /// Inputs:
+    /// - Current parser cursor.
+    ///
+    /// Output:
+    /// - Reference to the current token.
+    ///
+    /// Transformation:
+    /// - Indexes the token stream without advancing.
     fn current(&self) -> &EbnfToken {
         &self.tokens[self.pos]
     }
 
+    /// Advances over the current EBNF token.
+    ///
+    /// Inputs:
+    /// - Current parser cursor.
+    ///
+    /// Output:
+    /// - Token that was current before advancing.
+    ///
+    /// Transformation:
+    /// - Clones the token and advances unless the token is EOF.
     fn bump(&mut self) -> EbnfToken {
         let token = self.current().clone();
         if !matches!(token.kind, EbnfTokenKind::Eof) {
@@ -634,18 +981,59 @@ impl EbnfParser {
     }
 }
 
+/// Reports whether a character can start an EBNF identifier.
+///
+/// Inputs:
+/// - `ch`: character to classify.
+///
+/// Output:
+/// - `true` for ASCII alphabetic characters and underscore.
+///
+/// Transformation:
+/// - Applies the identifier-start rule used by the EBNF lexer.
 fn is_ebnf_ident_start(ch: char) -> bool {
     ch.is_ascii_alphabetic() || ch == '_'
 }
 
+/// Reports whether a character can continue an EBNF identifier.
+///
+/// Inputs:
+/// - `ch`: character to classify.
+///
+/// Output:
+/// - `true` for ASCII alphanumeric characters and underscore.
+///
+/// Transformation:
+/// - Applies the identifier-continue rule used by the EBNF lexer.
 fn is_ebnf_ident_continue(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
 }
 
+/// Combines two source spans.
+///
+/// Inputs:
+/// - `left`: first span.
+/// - `right`: second span.
+///
+/// Output:
+/// - Span covering both inputs.
+///
+/// Transformation:
+/// - Uses the minimum start and maximum end offsets.
 fn span_union(left: Span, right: Span) -> Span {
     Span::new(left.start.min(right.start), left.end.max(right.end))
 }
 
+/// Computes a span covering expression nodes.
+///
+/// Inputs:
+/// - `exprs`: expression list.
+///
+/// Output:
+/// - Span covering all expressions, or an empty zero span for an empty list.
+///
+/// Transformation:
+/// - Folds expression spans with `span_union`.
 fn span_from_exprs(exprs: &[EbnfGrammarExpr]) -> Span {
     let Some(first) = exprs.first() else {
         return Span::new(0, 0);
@@ -655,6 +1043,18 @@ fn span_from_exprs(exprs: &[EbnfGrammarExpr]) -> Span {
     })
 }
 
+/// Assigns stable ids to an EBNF expression tree.
+///
+/// Inputs:
+/// - `expr`: expression tree to mutate.
+/// - `id`: id assigned to the current expression node.
+///
+/// Output:
+/// - No return value.
+///
+/// Transformation:
+/// - Recursively assigns child ids using path-like suffixes that encode
+///   sequence, alternation, and wrapper positions.
 fn assign_expr_ids(expr: &mut EbnfGrammarExpr, id: String) {
     expr.id = id.clone();
     match &mut expr.kind {
@@ -692,6 +1092,7 @@ mod tests {
     use super::*;
     use serde::{Deserialize, Serialize};
 
+    /// Verifies that basic EBNF rules parse into a contract.
     #[test]
     fn parses_simple_rules() {
         let grammar = parse_ebnf_ast(
@@ -712,6 +1113,7 @@ mod tests {
         ));
     }
 
+    /// Verifies that the canonical Terlan grammar parses as EBNF.
     #[test]
     fn parses_canonical_terlan_ebnf() {
         let grammar = parse_ebnf_ast(include_str!(
@@ -730,6 +1132,7 @@ mod tests {
         assert!(grammar.rules.len() > 100);
     }
 
+    /// Verifies the public parse entry point returns a grammar contract.
     #[test]
     fn parse_ebnf_returns_grammar_contract() {
         let output = parse_ebnf("Program ::= Symbol .\nSymbol ::= \"a\" .").expect("compile ebnf");
@@ -739,6 +1142,7 @@ mod tests {
         assert_eq!(output.rules.len(), 2);
     }
 
+    /// Verifies the compile entry point returns rule metadata.
     #[test]
     fn compiles_ebnf_to_grammar_contract() {
         let output =
@@ -751,6 +1155,7 @@ mod tests {
         assert_eq!(output.rules[1].name, "Symbol");
     }
 
+    /// Verifies the contract entry point assigns rule and expression spans.
     #[test]
     fn compiles_ebnf_to_spanned_contract() {
         let output = compile_ebnf_contract("Program ::= Symbol .\nSymbol ::= \"a\" .")
@@ -769,6 +1174,7 @@ mod tests {
         ));
     }
 
+    /// Verifies the canonical grammar contract summary remains stable.
     #[test]
     fn canonical_terlan_ebnf_contract_matches_golden_summary() {
         let output = compile_ebnf_contract(include_str!(
@@ -785,6 +1191,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    /// Verifies EBNF contracts serialize to JSON.
     #[test]
     fn compiles_ebnf_to_json() {
         let json = compile_ebnf_to_json("Program ::= Symbol .\nSymbol ::= \"a\" .")
@@ -795,6 +1202,7 @@ mod tests {
         assert_eq!(value["rules"].as_array().map(|rules| rules.len()), Some(2));
     }
 
+    /// Verifies unterminated comments report a specific parse diagnostic.
     #[test]
     fn reports_unterminated_comment() {
         let error = parse_ebnf("Rule ::= Atom . (*").expect_err("unterminated comment");
@@ -805,6 +1213,7 @@ mod tests {
         assert_eq!(message, "unterminated EBNF comment");
     }
 
+    /// Verifies missing rule terminators report a specific parse diagnostic.
     #[test]
     fn reports_missing_rule_dot() {
         let error = parse_ebnf("Rule ::= Atom").expect_err("missing dot");
@@ -815,6 +1224,7 @@ mod tests {
         assert_eq!(message, "expected '.' after EBNF rule");
     }
 
+    /// Stable summary fixture for canonical EBNF contract tests.
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     struct ContractSummary {
         format_version: u32,
@@ -823,6 +1233,7 @@ mod tests {
         key_rules: Vec<RuleSummary>,
     }
 
+    /// Stable per-rule summary fixture for canonical EBNF contract tests.
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     struct RuleSummary {
         name: String,
@@ -832,6 +1243,17 @@ mod tests {
     }
 
     impl ContractSummary {
+        /// Builds a stable summary from a full grammar contract.
+        ///
+        /// Inputs:
+        /// - `contract`: compiled grammar contract.
+        ///
+        /// Output:
+        /// - Compact summary containing selected key rules.
+        ///
+        /// Transformation:
+        /// - Extracts deterministic metadata for the rules that protect the
+        ///   public syntax contract.
         fn from_contract(contract: &EbnfGrammarContract) -> Self {
             let key_rules = [
                 "SyntaxSpec",
@@ -884,6 +1306,16 @@ mod tests {
         }
     }
 
+    /// Returns the stable fixture name for an expression kind.
+    ///
+    /// Inputs:
+    /// - `expr`: grammar expression to classify.
+    ///
+    /// Output:
+    /// - Snake-case kind name used in contract summaries.
+    ///
+    /// Transformation:
+    /// - Maps enum variants to their serialized fixture spelling.
     fn expr_kind_name(expr: &EbnfGrammarExpr) -> &'static str {
         match &expr.kind {
             EbnfGrammarExprKind::Nonterminal { .. } => "nonterminal",

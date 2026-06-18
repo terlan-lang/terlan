@@ -1,0 +1,22 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile tiny-dom-fixture
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@fixture
+ * @source-input std/js/dom/fixtures/document.d.ts sha256=704034867b337bd7ac6018794cf13f032c2a0fd5b56cd5d78d92232cb4ea62e1
+ * @source-interface HTMLElement
+ */
+
+module std.js.Dom.HTMLElement.
+
+pub opaque type HTMLElement.
+
+pub (value: HTMLElement) id(): std.js.String.JsString ->
+    native.
+
+pub (value: HTMLElement) text_content(): Option[std.js.String.JsString] ->
+    native.

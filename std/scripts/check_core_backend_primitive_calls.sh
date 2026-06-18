@@ -70,7 +70,7 @@ scan_source_file() {
 
 while IFS= read -r source_file; do
   scan_source_file "$source_file"
-done < <(find std/core -type f -name '*.terl' | sort) | sort > "$actual_file"
+done < <(find std/core -type f -name '*.terl' ! -name '*_test.terl' | sort) | sort > "$actual_file"
 
 awk -F '\t' '
   /^[[:space:]]*#/ || /^[[:space:]]*$/ {

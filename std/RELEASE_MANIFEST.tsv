@@ -4,16 +4,16 @@
 # - Public release-owned standard-library modules under std/.
 # - Generated interface summaries under std/summaries/.
 # - Generated documentation pages from `terlc doc std`.
-# - Exact per-API release tests in tests/std/RELEASE_API_TESTS.tsv.
+# - Exact per-API release-test manifest in tests/std/RELEASE_API_TESTS.tsv.
 #
 # Output:
 # - A tab-separated manifest consumed by std/scripts/check_release_manifest.py.
 #
 # Transformation:
 # - Ties each release-owned std module to its source, summary, generated docs,
-#   and exact API-test manifest. The API-test manifest rows provide per-API
-#   test coverage, while each row here proves the owning module has source,
-#   summary, and documentation coverage.
+#   and exact API-test manifest. The API-test manifest rows point at adjacent
+#   std `*_test.terl` files, while each row here proves the owning module has
+#   source, summary, and documentation coverage.
 #
 # Format:
 # kind<TAB>id<TAB>source<TAB>summary<TAB>tests<TAB>docs
@@ -29,6 +29,9 @@ module	std.collections.Set	std/collections/set.terl	std/summaries/std.collection
 module	std.data.Json	std/data/json.terl	std/summaries/std.data.Json.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Json.html
 module	std.encoding.Base64	std/encoding/base64.terl	std/summaries/std.encoding.Base64.typi	tests/std/RELEASE_API_TESTS.tsv	std.encoding.Base64.html
 module	std.beam.Task	std/beam/task.terl	std/summaries/std.beam.Task.typi	tests/std/RELEASE_API_TESTS.tsv	std.beam.Task.html
+module	std.http.Error	std/http/error.terl	std/summaries/std.http.Error.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Error.html
+module	std.http.Request	std/http/request.terl	std/summaries/std.http.Request.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Request.html
+module	std.http.Response	std/http/response.terl	std/summaries/std.http.Response.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Response.html
 module	std.core.Atom	std/core/atom.terl	std/summaries/std.core.Atom.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Atom.html
 module	std.core.Bool	std/core/bool.terl	std/summaries/std.core.Bool.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Bool.html
 module	std.core.Equal	std/core/equal.terl	std/summaries/std.core.Equal.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Equal.html

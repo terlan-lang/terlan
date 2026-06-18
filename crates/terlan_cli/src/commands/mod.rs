@@ -15,6 +15,7 @@ pub(crate) mod interface;
 pub(crate) mod json;
 pub(crate) mod lsp;
 pub(crate) mod repl;
+pub(crate) mod serve;
 pub(crate) mod static_site;
 pub(crate) mod syntax_contract;
 pub(crate) mod test;

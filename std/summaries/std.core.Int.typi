@@ -1,20 +1,20 @@
 //! Core integer conformance helpers.
-//! 
+//!
 //! `std.core.Int` provides named operations used by stdlib trait/conformance
 //! implementations for primitive `Int`.
 
 module std.core.Int.
 
 /// Returns the absolute value of an `Int`.
-/// 
+///
 /// Input: one `Int` value.
 /// Output: the non-negative magnitude of the input.
 /// Transformation: returns the input unchanged when it is non-negative;
 /// otherwise subtracts it from zero.
-/// 
+///
 /// ```terlan
 /// module int_abs_example.
-/// 
+///
 /// pub demo(): Int ->
 ///     std.core.Int.abs(-7).
 /// ```
@@ -22,20 +22,20 @@ module std.core.Int.
 pub abs(value: Int): Int.
 
 /// Compares two `Int` values using numeric total ordering.
-/// 
+///
 /// Input: two `Int` values.
 /// Output: `Lt` when `left` is numerically less than `right`, `Eq` when the
 /// values are equal, and `Gt` when `left` is numerically greater than
 /// `right`.
 /// Transformation: maps the primitive integer ordering relation onto
 /// `std.core.Ordering.Comparison`.
-/// 
+///
 /// This function is the named implementation hook for compiler-known
 /// `std.core.Ordering.Ordering[Int]` conformance in 0.0.1.
-/// 
+///
 /// ```terlan
 /// module int_compare_example.
-/// 
+///
 /// pub demo(): std.core.Ordering.Comparison ->
 ///    std.core.Int.compare(1, 2).
 /// ```
@@ -43,16 +43,16 @@ pub abs(value: Int): Int.
 pub compare(left: Int, right: Int): std.core.Ordering.Comparison.
 
 /// Returns whether two `Int` values are equal.
-/// 
+///
 /// Input: two `Int` values.
 /// Output: `true` when both inputs represent the same integer; otherwise
 /// `false`.
 /// Transformation: delegates to exact Terlan equality for the primitive
 /// integer domain without changing either input.
-/// 
+///
 /// ```terlan
 /// module int_equal_example.
-/// 
+///
 /// pub demo(): Bool ->
 ///     std.core.Int.equal(42, 42).
 /// ```
@@ -60,16 +60,16 @@ pub compare(left: Int, right: Int): std.core.Ordering.Comparison.
 pub equal(left: Int, right: Int): Bool.
 
 /// Parses a canonical UTF-8 `String` into `Int`.
-/// 
+///
 /// Input: one `String` value.
 /// Output: `Option[Int]`, where canonical signed decimal text returns
 /// `Some(value)` and invalid text returns `None`.
 /// Transformation: lowers through the compiler-owned `core.int.from_string`
 /// intrinsic and accepts only inputs where the full string is consumed.
-/// 
+///
 /// ```terlan
 /// module int_from_string_example.
-/// 
+///
 /// pub demo(): Option[Int] ->
 ///    std.core.Int.from_string("42").
 /// ```
@@ -77,16 +77,16 @@ pub equal(left: Int, right: Int): Bool.
 pub from_string(value: String): Option[Int].
 
 /// Returns the larger of two `Int` values.
-/// 
+///
 /// Input: two `Int` values.
 /// Output: `left` when it is greater than or equal to `right`; otherwise
 /// `right`.
 /// Transformation: compares the two inputs with primitive integer ordering and
 /// returns one original input unchanged.
-/// 
+///
 /// ```terlan
 /// module int_max_example.
-/// 
+///
 /// pub demo(): Int ->
 ///     std.core.Int.max(7, 3).
 /// ```
@@ -94,15 +94,15 @@ pub from_string(value: String): Option[Int].
 pub max(left: Int, right: Int): Int.
 
 /// Returns the smaller of two `Int` values.
-/// 
+///
 /// Input: two `Int` values.
 /// Output: `left` when it is less than or equal to `right`; otherwise `right`.
 /// Transformation: compares the two inputs with primitive integer ordering and
 /// returns one original input unchanged.
-/// 
+///
 /// ```terlan
 /// module int_min_example.
-/// 
+///
 /// pub demo(): Int ->
 ///     std.core.Int.min(3, 7).
 /// ```
@@ -110,16 +110,16 @@ pub max(left: Int, right: Int): Int.
 pub min(left: Int, right: Int): Int.
 
 /// Renders an `Int` as its canonical UTF-8 `String`.
-/// 
+///
 /// Input: one `Int` value.
 /// Output: the canonical decimal string for the input integer.
 /// Transformation: lowers through the compiler-owned `core.int.to_string`
 /// intrinsic and returns the canonical text representation used by
 /// `std.core.String.Show[Int]`.
-/// 
+///
 /// ```terlan
 /// module int_to_string_example.
-/// 
+///
 /// pub demo(): String ->
 ///    std.core.Int.to_string(42).
 /// ```

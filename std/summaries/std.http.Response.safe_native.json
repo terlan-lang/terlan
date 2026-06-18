@@ -1,0 +1,11 @@
+{
+  "source_module": "std.http.Response",
+  "module": "std_http_response_safe_native",
+  "scheduler": "normal",
+  "native_policy": "safe_native_optional",
+  "functions": [
+    { "name": "json", "arity": 1, "operation": "std.http.response.json" },
+    { "name": "text", "arity": 1, "operation": "std.http.response.text" },
+    { "name": "status", "arity": 2, "operation": "std.http.response.status" },
+    { "name": "header", "arity": 3, "operation": "std.http.response.header" }]
+}

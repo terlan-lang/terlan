@@ -25,6 +25,19 @@ pub use runtime::emit_html_runtime_to_erlang;
 use syntax::{lower_syntax_module_output, lower_syntax_struct_headers_to_hrl};
 use util::*;
 
+/// Emits Erlang source from syntax output without imported interfaces.
+///
+/// Inputs:
+/// - `module`: syntax-output module to lower through the current bridge.
+///
+/// Output:
+/// - Erlang source text when the module is supported by direct bridge lowering.
+/// - `Err(String)` when the formal backend path does not support direct
+///   syntax-output emission for the module.
+///
+/// Transformation:
+/// - Delegates to syntax bridge lowering with empty interface/artifact maps and
+///   renders the backend module representation.
 pub fn try_emit_syntax_module_output_to_erlang(
     module: &SyntaxModuleOutput,
 ) -> Result<String, String> {
@@ -39,6 +52,19 @@ pub fn try_emit_syntax_module_output_to_erlang(
     .ok_or_else(|| unsupported_direct_syntax_emit_message(module))
 }
 
+/// Emits Erlang source from syntax output with imported interfaces.
+///
+/// Inputs:
+/// - `module`: syntax-output module to lower.
+/// - `interfaces`: provider module interfaces visible to the source module.
+///
+/// Output:
+/// - Erlang source text when lowering succeeds.
+/// - `Err(String)` when bridge lowering cannot support the module.
+///
+/// Transformation:
+/// - Supplies interface metadata to the syntax bridge so imported constructors,
+///   aliases, receiver methods, and selected calls can lower correctly.
 pub fn try_emit_syntax_module_output_to_erlang_with_interfaces(
     module: &SyntaxModuleOutput,
     interfaces: &BTreeMap<String, ModuleInterface>,
@@ -54,6 +80,22 @@ pub fn try_emit_syntax_module_output_to_erlang_with_interfaces(
     .ok_or_else(|| unsupported_direct_syntax_emit_message(module))
 }
 
+/// Emits Erlang source with interfaces and imported artifact inputs.
+///
+/// Inputs:
+/// - `module`: syntax-output module to lower.
+/// - `interfaces`: imported provider module interfaces.
+/// - `file_imports`: raw bytes loaded for file/css imports.
+/// - `templates`: parsed HTML template imports.
+/// - `markdown_imports`: parsed Markdown template imports.
+///
+/// Output:
+/// - Erlang source text when lowering succeeds.
+/// - `Err(String)` when bridge lowering cannot support the module.
+///
+/// Transformation:
+/// - Passes all build-command artifact inputs to the syntax bridge so emitted
+///   Erlang can embed or reference generated template and asset data.
 pub fn try_emit_syntax_module_output_to_erlang_with_interfaces_file_imports_templates_and_markdown(
     module: &SyntaxModuleOutput,
     interfaces: &BTreeMap<String, ModuleInterface>,
@@ -162,6 +204,18 @@ fn validate_core_module_syntax_bridge(
     }
 }
 
+/// Emits Erlang header text for Terlan struct declarations.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing struct declarations.
+///
+/// Output:
+/// - Erlang header source when structs can lower.
+/// - `Err(String)` when direct syntax bridge support is unavailable.
+///
+/// Transformation:
+/// - Delegates to struct-header lowering and renders the generated `.hrl`
+///   content used by the Erlang backend.
 pub fn try_emit_syntax_struct_headers_to_hrl(
     module: &SyntaxModuleOutput,
 ) -> Result<String, String> {
@@ -169,6 +223,17 @@ pub fn try_emit_syntax_struct_headers_to_hrl(
         .ok_or_else(|| unsupported_direct_syntax_emit_message(module))
 }
 
+/// Builds the diagnostic for unsupported direct syntax bridge emission.
+///
+/// Inputs:
+/// - `module`: syntax-output module that could not lower directly.
+///
+/// Output:
+/// - User-facing backend diagnostic text.
+///
+/// Transformation:
+/// - Includes the source module name so callers can report the exact module
+///   that needs the CoreIR-gated backend path.
 fn unsupported_direct_syntax_emit_message(module: &SyntaxModuleOutput) -> String {
     format!(
         "formal Erlang lowering does not yet support module `{}` without the syntax bridge",
@@ -177,8 +242,17 @@ fn unsupported_direct_syntax_emit_message(module: &SyntaxModuleOutput) -> String
 }
 
 #[cfg(test)]
+#[path = "emit/collection_emit_test.rs"]
+mod collection_emit_test;
+#[cfg(test)]
+#[path = "emit/control_flow_emit_test.rs"]
+mod control_flow_emit_test;
+#[cfg(test)]
 #[path = "emit/core_emit_test.rs"]
 mod core_emit_test;
+#[cfg(test)]
+#[path = "emit/doc_emit_test.rs"]
+mod doc_emit_test;
 #[cfg(test)]
 #[path = "emit_test.rs"]
 mod emit_test;
@@ -186,8 +260,20 @@ mod emit_test;
 #[path = "emit/html_emit_test.rs"]
 mod html_emit_test;
 #[cfg(test)]
+#[path = "emit/import_emit_test.rs"]
+mod import_emit_test;
+#[cfg(test)]
 #[path = "emit/intrinsic_emit_test.rs"]
 mod intrinsic_emit_test;
+#[cfg(test)]
+#[path = "emit/literal_emit_test.rs"]
+mod literal_emit_test;
+#[cfg(test)]
+#[path = "emit/macro_emit_test.rs"]
+mod macro_emit_test;
+#[cfg(test)]
+#[path = "emit/record_emit_test.rs"]
+mod record_emit_test;
 #[cfg(test)]
 #[path = "emit/runtime_emit_test.rs"]
 mod runtime_emit_test;

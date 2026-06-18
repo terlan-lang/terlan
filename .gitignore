@@ -9,6 +9,10 @@ erl_crash.dump
 erl_crash_*.dump
 rebar3.crashdump
 
+# Generated backend intermediates from std interface emission
+/std/summaries/*.erl
+/std/summaries/*.hrl
+
 # Local editor and language-server state
 /.metals/
 /.vscode/
@@ -17,3 +21,10 @@ rebar3.crashdump
 *~
 *.swp
 *.swo
+
+# Python script caches and local validation output
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.tmp

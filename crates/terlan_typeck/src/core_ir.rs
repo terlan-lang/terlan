@@ -1,9 +1,29 @@
 use terlan_hir::ModuleInterface;
 use terlan_syntax::span::Span;
 
+mod patterns;
+mod proof_payloads;
+mod types;
+
+pub use patterns::{CoreMapPatternField, CorePattern, CoreRecordPatternField};
+pub use proof_payloads::{
+    CoreCheckedPreservationEvidence, CoreCheckedPreservationEvidenceKind, CoreProofCoverage,
+    CoreProofReadiness, CoreSubstitutionFreshnessEvidence,
+};
+use types::core_type_contract_text;
+pub(crate) use types::{
+    atom_type_literal_payload, core_type_from_body_variants, core_type_from_text,
+};
+pub use types::{CoreMapTypeField, CoreStructTypeField, CoreTupleTypeElem, CoreType};
+
 pub const CORE_IR_SCHEMA: &str = "terlan.core_ir.v1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Source identity attached to a CoreIR module.
+///
+/// Inputs: typed phase source metadata. Output: stable source-kind and syntax
+/// fingerprint fields. Transformation: carries provenance into CoreIR without
+/// embedding parser or backend state.
 pub struct CoreSourceIdentity {
     pub source_kind: String,
     pub syntax_contract_fingerprint: Option<String>,
@@ -30,18 +50,32 @@ pub enum CoreImportKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Import preserved at the backend-neutral CoreIR boundary.
+///
+/// Inputs: resolved import metadata. Output: module name plus import kind.
+/// Transformation: records only the target-neutral import classification.
 pub struct CoreImport {
     pub module: String,
     pub kind: CoreImportKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Export preserved in CoreIR.
+///
+/// Inputs: resolved public declaration metadata. Output: export name and kind.
+/// Transformation: records declaration visibility without backend export
+/// syntax.
 pub struct CoreExport {
     pub name: String,
     pub kind: CoreExportKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Kind of exported Core declaration.
+///
+/// Inputs: resolved declaration shape. Output: function, type, or constructor
+/// export identity. Transformation: keeps arity/min-arity metadata needed by
+/// backends without carrying source syntax.
 pub enum CoreExportKind {
     Function { arity: usize },
     Type,
@@ -49,6 +83,11 @@ pub enum CoreExportKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Type declaration summarized in CoreIR.
+///
+/// Inputs: resolved type declaration. Output: source type text and optional
+/// typed Core body. Transformation: preserves source-facing type shape while
+/// attaching backend-neutral typed structure when available.
 pub struct CoreTypeDecl {
     pub name: String,
     pub visibility: CoreVisibility,
@@ -58,6 +97,10 @@ pub struct CoreTypeDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core visibility for declarations.
+///
+/// Inputs: source visibility and opacity modifiers. Output: public/private/
+/// opaque tag. Transformation: normalizes visibility for backend validation.
 pub enum CoreVisibility {
     Public,
     Private,
@@ -65,6 +108,11 @@ pub enum CoreVisibility {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Function declaration summarized in CoreIR.
+///
+/// Inputs: resolved function signature and clauses. Output: typed function
+/// summary. Transformation: preserves params, return type, visibility, and
+/// clause summaries in backend-neutral form.
 pub struct CoreFunction {
     pub name: String,
     pub arity: usize,
@@ -76,206 +124,15 @@ pub struct CoreFunction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Function or constructor parameter summarized in CoreIR.
+///
+/// Inputs: source parameter name and type annotation. Output: textual and typed
+/// parameter shape. Transformation: attaches optional `CoreType` without
+/// changing the source parameter identity.
 pub struct CoreParam {
     pub name: String,
     pub ty: String,
     pub core_ty: Option<CoreType>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CoreType {
-    Int,
-    Float,
-    Number,
-    String,
-    Binary,
-    Atom,
-    Bool,
-    Term,
-    Dynamic,
-    Never,
-    AtomLiteral(String),
-    Named(String),
-    Apply {
-        constructor: String,
-        args: Vec<CoreType>,
-    },
-    List(Box<CoreType>),
-    Tuple(Vec<CoreTupleTypeElem>),
-    Struct {
-        name: String,
-        fields: Vec<CoreStructTypeField>,
-    },
-    Map(Vec<CoreMapTypeField>),
-    Arrow {
-        params: Vec<CoreType>,
-        return_type: Box<CoreType>,
-    },
-    Union(Vec<CoreType>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CoreTupleTypeElem {
-    Type(CoreType),
-    Field { name: String, ty: CoreType },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CoreMapTypeField {
-    pub key: String,
-    pub operator: String,
-    pub value: CoreType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CoreStructTypeField {
-    pub name: String,
-    pub ty: CoreType,
-}
-
-impl CoreStructTypeField {
-    /// Renders a typed Core struct field as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed struct field payload.
-    ///
-    /// Output:
-    /// - Stable compact `name:type` text for CoreIR contracts.
-    ///
-    /// Transformation:
-    /// - Serializes field identity and typed payload without backend-specific
-    ///   struct layout assumptions.
-    pub(crate) fn contract_text(&self) -> String {
-        format!("{}:{}", self.name, self.ty.contract_text())
-    }
-}
-
-impl CoreMapTypeField {
-    /// Renders a typed Core map field as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed map field payload.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the key/operator text plus typed value payload without
-    ///   attempting to resolve map keys semantically.
-    fn contract_text(&self) -> String {
-        format!(
-            "{}{}{}",
-            self.key,
-            self.operator,
-            self.value.contract_text()
-        )
-    }
-}
-
-impl CoreTupleTypeElem {
-    /// Renders a typed Core tuple element as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed tuple element payload.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes positional elements as their nested CoreType text and
-    ///   named fields as `Field(name:type)` without backend syntax.
-    fn contract_text(&self) -> String {
-        match self {
-            CoreTupleTypeElem::Type(ty) => ty.contract_text(),
-            CoreTupleTypeElem::Field { name, ty } => {
-                format!("Field({}:{})", name, ty.contract_text())
-            }
-        }
-    }
-}
-
-impl CoreType {
-    /// Renders a typed Core type as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed Core type payload derived from signature text.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes built-in and simple named type payloads without backend
-    ///   syntax or source span data.
-    fn contract_text(&self) -> String {
-        match self {
-            CoreType::Int => "Int".to_string(),
-            CoreType::Float => "Float".to_string(),
-            CoreType::Number => "Number".to_string(),
-            CoreType::String => "String".to_string(),
-            CoreType::Binary => "Binary".to_string(),
-            CoreType::Atom => "Atom".to_string(),
-            CoreType::Bool => "Bool".to_string(),
-            CoreType::Term => "Term".to_string(),
-            CoreType::Dynamic => "Dynamic".to_string(),
-            CoreType::Never => "Never".to_string(),
-            CoreType::AtomLiteral(name) => format!("AtomLiteral({name})"),
-            CoreType::Named(name) => format!("Named({name})"),
-            CoreType::Apply { constructor, args } => format!(
-                "Apply({};{})",
-                constructor,
-                args.iter()
-                    .map(CoreType::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreType::List(item) => format!("List({})", item.contract_text()),
-            CoreType::Tuple(items) => format!(
-                "Tuple({})",
-                items
-                    .iter()
-                    .map(CoreTupleTypeElem::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreType::Struct { name, fields } => format!(
-                "Struct({};{})",
-                name,
-                fields
-                    .iter()
-                    .map(CoreStructTypeField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreType::Map(fields) => format!(
-                "Map({})",
-                fields
-                    .iter()
-                    .map(CoreMapTypeField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreType::Arrow {
-                params,
-                return_type,
-            } => format!(
-                "Arrow({};{})",
-                params
-                    .iter()
-                    .map(CoreType::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(","),
-                return_type.contract_text()
-            ),
-            CoreType::Union(items) => format!(
-                "Union({})",
-                items
-                    .iter()
-                    .map(CoreType::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-        }
-    }
 }
 
 /// Renders a Core parameter as deterministic contract text.
@@ -299,659 +156,12 @@ fn core_param_contract_text(param: &CoreParam) -> String {
     )
 }
 
-/// Renders an optional Core type payload for contract text.
-///
-/// Inputs:
-/// - `ty`: optional typed Core type payload.
-///
-/// Output:
-/// - Typed Core type contract text, or `unsupported` when no payload exists.
-///
-/// Transformation:
-/// - Converts optional payload state into stable snapshot text.
-fn core_type_contract_text(ty: Option<&CoreType>) -> String {
-    ty.map(CoreType::contract_text)
-        .unwrap_or_else(|| "unsupported".to_string())
-}
-
-/// Converts textual type annotations into typed Core type payloads.
-///
-/// Inputs:
-/// - `text`: source/interface type annotation text.
-///
-/// Output:
-/// - `Some(CoreType)` for built-in types, simple named/type-variable refs,
-///   parameterized named refs, lists, tuples, function types, and unions whose
-///   members are also supported.
-/// - `None` for compound type syntax that still requires additional CoreType
-///   forms.
-///
-/// Transformation:
-/// - Normalizes surrounding whitespace and maps stable annotations into
-///   backend-neutral Core type payloads.
-pub(crate) fn core_type_from_text(text: &str) -> Option<CoreType> {
-    let text = text.trim();
-    if let Some(items) = split_top_level_type_union(text) {
-        return items
-            .into_iter()
-            .map(core_type_from_text)
-            .collect::<Option<Vec<_>>>()
-            .map(CoreType::Union);
-    }
-    if let Some(atom) = core_atom_literal_from_text(text) {
-        return Some(CoreType::AtomLiteral(atom));
-    }
-    match text {
-        "Int" => Some(CoreType::Int),
-        "Float" => Some(CoreType::Float),
-        "Number" => Some(CoreType::Number),
-        "String" => Some(CoreType::String),
-        "Binary" | "Text" => Some(CoreType::Binary),
-        "Atom" => Some(CoreType::Atom),
-        "Bool" => Some(CoreType::Bool),
-        "Term" => Some(CoreType::Term),
-        "Dynamic" => Some(CoreType::Dynamic),
-        "Never" => Some(CoreType::Never),
-        list if list.starts_with("List[") && list.ends_with(']') => {
-            let inner = list.strip_prefix("List[")?.strip_suffix(']')?;
-            core_type_from_text(inner).map(|item| CoreType::List(Box::new(item)))
-        }
-        map if core_map_type_inner(map).is_some() => {
-            core_map_type_fields_from_text(core_map_type_inner(map)?).map(CoreType::Map)
-        }
-        tuple if tuple.starts_with('{') && tuple.ends_with('}') => {
-            let inner = tuple.strip_prefix('{')?.strip_suffix('}')?;
-            split_top_level_type_items(inner)?
-                .into_iter()
-                .map(core_tuple_type_elem_from_text)
-                .collect::<Option<Vec<_>>>()
-                .map(CoreType::Tuple)
-        }
-        application => {
-            if let Some((params, return_type)) = core_type_arrow_parts(application) {
-                return params
-                    .into_iter()
-                    .map(core_type_from_text)
-                    .collect::<Option<Vec<_>>>()
-                    .and_then(|params| {
-                        core_type_from_text(return_type).map(|return_type| CoreType::Arrow {
-                            params,
-                            return_type: Box::new(return_type),
-                        })
-                    });
-            }
-            if let Some((constructor, args)) = core_type_application_parts(application) {
-                return args
-                    .into_iter()
-                    .map(core_type_from_text)
-                    .collect::<Option<Vec<_>>>()
-                    .map(|args| CoreType::Apply {
-                        constructor: constructor.to_string(),
-                        args,
-                    });
-            }
-            if is_simple_core_type_name(application) {
-                Some(CoreType::Named(application.to_string()))
-            } else {
-                None
-            }
-        }
-    }
-}
-
-/// Returns the inner field text for a map type annotation.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some(&str)` for source-like `#{...}` and parser-normalized `# {...}`
-///   map type text.
-/// - `None` when the text is not a supported map type wrapper.
-///
-/// Transformation:
-/// - Removes only the outer map delimiters and leaves field text untouched for
-///   map-field splitting.
-fn core_map_type_inner(text: &str) -> Option<&str> {
-    text.strip_prefix("#{")
-        .or_else(|| text.strip_prefix("# {"))?
-        .strip_suffix('}')
-}
-
-/// Converts one tuple type element into a typed Core tuple element.
-///
-/// Inputs:
-/// - `text`: tuple element text without surrounding tuple braces.
-///
-/// Output:
-/// - `Some(CoreTupleTypeElem)` when the element is a supported positional type
-///   or named field type.
-/// - `None` when the element is unsupported.
-///
-/// Transformation:
-/// - Detects a top-level field separator after a valid field name; otherwise
-///   lowers the whole element as a positional Core type.
-fn core_tuple_type_elem_from_text(text: &str) -> Option<CoreTupleTypeElem> {
-    let text = text.trim();
-    if let Some((name, ty)) = core_tuple_type_field_parts(text) {
-        return core_type_from_text(ty).map(|ty| CoreTupleTypeElem::Field {
-            name: name.to_string(),
-            ty,
-        });
-    }
-    core_type_from_text(text).map(CoreTupleTypeElem::Type)
-}
-
-/// Converts map type field text into typed Core map fields.
-///
-/// Inputs:
-/// - `text`: map body text without the surrounding `#{` and `}` delimiters.
-///
-/// Output:
-/// - `Some(Vec<CoreMapTypeField>)` when every field has a supported value
-///   type.
-/// - `None` when a field is malformed or has an unsupported value type.
-///
-/// Transformation:
-/// - Splits fields on top-level commas, preserves key/operator text, and
-///   recursively lowers each value type into CoreType.
-fn core_map_type_fields_from_text(text: &str) -> Option<Vec<CoreMapTypeField>> {
-    let items = split_top_level_type_items(text)?;
-    if items.is_empty() {
-        return Some(Vec::new());
-    }
-    items
-        .into_iter()
-        .map(core_map_type_field_from_text)
-        .collect()
-}
-
-/// Converts one map type field into a typed Core map field.
-///
-/// Inputs:
-/// - `text`: one map field text without surrounding map delimiters.
-///
-/// Output:
-/// - `Some(CoreMapTypeField)` for `key => Type` or `key := Type` fields with
-///   supported value types.
-/// - `None` for malformed fields or unsupported value types.
-///
-/// Transformation:
-/// - Finds the first top-level map field operator, preserves the key and
-///   operator, and lowers the value text through CoreType.
-fn core_map_type_field_from_text(text: &str) -> Option<CoreMapTypeField> {
-    let (operator_index, operator) = find_top_level_map_type_operator(text)?;
-    let key = text[..operator_index].trim();
-    let value_text = text[(operator_index + operator.len())..].trim();
-    if key.is_empty() || value_text.is_empty() {
-        return None;
-    }
-    core_type_from_text(value_text).map(|value| CoreMapTypeField {
-        key: key.to_string(),
-        operator: operator.to_string(),
-        value,
-    })
-}
-
-/// Finds a top-level map type field operator in field text.
-///
-/// Inputs:
-/// - `text`: one map field text.
-///
-/// Output:
-/// - `Some((byte_index, operator))` for top-level `=>` or `:=`.
-/// - `None` when no operator exists or delimiters are unbalanced.
-///
-/// Transformation:
-/// - Scans once, tracks bracket/brace/paren depth, and ignores operators
-///   inside nested type delimiters.
-fn find_top_level_map_type_operator(text: &str) -> Option<(usize, &'static str)> {
-    let mut depth = 0usize;
-    let mut chars = text.char_indices().peekable();
-    while let Some((index, ch)) = chars.next() {
-        match ch {
-            '[' | '{' | '(' => depth = depth.checked_add(1)?,
-            ']' | '}' | ')' => depth = depth.checked_sub(1)?,
-            '=' if depth == 0 && chars.peek().is_some_and(|(_, next)| *next == '>') => {
-                return Some((index, "=>"));
-            }
-            ':' if depth == 0 && chars.peek().is_some_and(|(_, next)| *next == '=') => {
-                return Some((index, ":="));
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-/// Splits a named tuple type field into field name and type text.
-///
-/// Inputs:
-/// - `text`: tuple element text without surrounding tuple braces.
-///
-/// Output:
-/// - `Some((name, ty))` for supported `lower_name: Type` and `_: Type`
-///   elements.
-/// - `None` when the element is positional or has unsupported field syntax.
-///
-/// Transformation:
-/// - Finds a top-level colon that is not the first non-space character, then
-///   validates the field name while leaving the field type text for recursive
-///   CoreType lowering.
-fn core_tuple_type_field_parts(text: &str) -> Option<(&str, &str)> {
-    let colon = find_top_level_type_colon(text)?;
-    let name = text[..colon].trim();
-    let ty = text[(colon + ':'.len_utf8())..].trim();
-    if ty.is_empty() || !is_tuple_type_field_name(name) {
-        return None;
-    }
-    Some((name, ty))
-}
-
-/// Finds a top-level tuple field colon in type element text.
-///
-/// Inputs:
-/// - `text`: tuple element text without surrounding tuple braces.
-///
-/// Output:
-/// - `Some(byte_index)` for a top-level colon that can separate a field name
-///   from its type.
-/// - `None` when no such colon exists or delimiters are unbalanced.
-///
-/// Transformation:
-/// - Scans once, tracks bracket/brace/paren depth, and ignores a colon at the
-///   first non-space position so raw atom literals like `:ok` remain
-///   positional elements.
-fn find_top_level_type_colon(text: &str) -> Option<usize> {
-    let first_non_space = text.find(|ch: char| !ch.is_whitespace())?;
-    let mut depth = 0usize;
-    for (index, ch) in text.char_indices() {
-        match ch {
-            '[' | '{' | '(' => depth = depth.checked_add(1)?,
-            ']' | '}' | ')' => depth = depth.checked_sub(1)?,
-            ':' if depth == 0 && index != first_non_space => return Some(index),
-            _ => {}
-        }
-    }
-    None
-}
-
-/// Checks whether text is a supported tuple type field name.
-///
-/// Inputs:
-/// - `name`: candidate field name text.
-///
-/// Output:
-/// - `true` for lowercase field names and `_`.
-/// - `false` for empty, uppercase, compound, or symbol-containing names.
-///
-/// Transformation:
-/// - Applies the current Terlan tuple-field naming subset without resolving
-///   names semantically.
-fn is_tuple_type_field_name(name: &str) -> bool {
-    name == "_"
-        || (name
-            .chars()
-            .next()
-            .is_some_and(|ch| ch.is_ascii_lowercase())
-            && name
-                .chars()
-                .all(|ch| ch.is_ascii_alphanumeric() || ch == '_'))
-}
-
-/// Converts raw atom literal type text into a Core atom literal payload.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some(String)` for explicit raw atom literal forms such as `:none` and
-///   `:'Elixir.Module'`.
-/// - `None` when the text is not a supported atom literal.
-///
-/// Transformation:
-/// - Strips the leading `:`, preserves quoted interop atom content without the
-///   surrounding quotes, and accepts only explicit atom syntax so bare names do
-///   not become atoms in Terlan source mode.
-fn core_atom_literal_from_text(text: &str) -> Option<String> {
-    if let Some(atom) = atom_type_literal_payload(text) {
-        return Some(atom);
-    }
-
-    let atom = text.strip_prefix(':')?.trim();
-    if let Some(quoted) = atom
-        .strip_prefix('\'')
-        .and_then(|value| value.strip_suffix('\''))
-    {
-        if quoted.is_empty() {
-            return None;
-        }
-        return Some(quoted.to_string());
-    }
-    if atom.is_empty()
-        || !atom
-            .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
-    {
-        return None;
-    }
-    Some(atom.to_string())
-}
-
-/// Extracts the canonical `Atom["name"]` singleton primitive payload.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some(String)` for canonical `Atom["name"]` type literals.
-/// - `None` for all other type expressions.
-///
-/// Transformation:
-/// - Parses only the language-neutral symbolic singleton syntax and unescapes
-///   the contained string literal without treating bare names as atoms.
-pub(crate) fn atom_type_literal_payload(text: &str) -> Option<String> {
-    let inner = text.trim().strip_prefix("Atom[")?.strip_suffix(']')?.trim();
-    parse_atom_string_literal(inner)
-}
-
-/// Parses a string payload used by `Atom["name"]`.
-///
-/// Inputs:
-/// - `text`: candidate string literal source including quotes.
-///
-/// Output:
-/// - `Some(String)` with the unescaped payload when the literal is non-empty.
-/// - `None` for non-string or empty atom payloads.
-///
-/// Transformation:
-/// - Performs the small escape handling needed by type-level atom primitives.
-fn parse_atom_string_literal(text: &str) -> Option<String> {
-    let inner = text.strip_prefix('"')?.strip_suffix('"')?;
-    if inner.is_empty() {
-        return None;
-    }
-    let mut output = String::new();
-    let mut chars = inner.chars();
-    while let Some(ch) = chars.next() {
-        if ch == '\\' {
-            if let Some(escaped) = chars.next() {
-                output.push(escaped);
-            }
-        } else {
-            output.push(ch);
-        }
-    }
-    Some(output)
-}
-
-/// Converts an interface type body variant list into a Core type payload.
-///
-/// Inputs:
-/// - `body`: interface type body variants preserved by the resolver.
-///
-/// Output:
-/// - `Some(CoreType)` when every variant is representable by the current
-///   CoreType model.
-/// - `None` when the body is empty or any variant is not yet representable.
-///
-/// Transformation:
-/// - Lowers a single body variant as-is, and lowers multiple variants into a
-///   typed `CoreType::Union` without depending on rendered infix body text.
-pub(crate) fn core_type_from_body_variants(body: &[String]) -> Option<CoreType> {
-    match body {
-        [] => None,
-        [single] => core_type_from_body_variant(single),
-        variants => variants
-            .iter()
-            .map(|variant| core_type_from_body_variant(variant))
-            .collect::<Option<Vec<_>>>()
-            .map(CoreType::Union),
-    }
-}
-
-/// Converts one resolver-preserved type body variant into a Core type payload.
-///
-/// Inputs:
-/// - `variant`: one type body variant from `ModuleInterface::type_bodies`.
-///
-/// Output:
-/// - `Some(CoreType)` when the variant is representable by the current
-///   CoreType model.
-/// - `None` when the variant is unsupported.
-///
-/// Transformation:
-/// - Reuses normal type-text lowering first, then handles resolver-preserved
-///   raw atom variants whose source spelling was explicit `:atom` but whose
-///   stored variant text no longer includes the leading colon.
-fn core_type_from_body_variant(variant: &str) -> Option<CoreType> {
-    core_type_from_text(variant).or_else(|| {
-        if is_resolver_atom_body_variant(variant) {
-            Some(CoreType::AtomLiteral(variant.to_string()))
-        } else {
-            None
-        }
-    })
-}
-
-/// Checks whether a resolver type-body variant represents a raw atom literal.
-///
-/// Inputs:
-/// - `variant`: one type body variant from the module interface.
-///
-/// Output:
-/// - `true` for lowercase/underscore atom names preserved by the resolver.
-/// - `false` for empty, uppercase, compound, or symbol-containing type text.
-///
-/// Transformation:
-/// - Accepts only lowercase-leading ASCII atom names so this resolver-specific
-///   path does not make bare lowercase type text valid in source-mode parsing.
-fn is_resolver_atom_body_variant(variant: &str) -> bool {
-    let variant = variant.trim();
-    variant
-        .chars()
-        .next()
-        .is_some_and(|ch| ch.is_ascii_lowercase() || ch == '_')
-        && variant
-            .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
-}
-
-/// Splits type union text on top-level `|` delimiters.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some(Vec<&str>)` when the text contains a balanced top-level union with
-///   at least two non-empty members.
-/// - `None` when no top-level union is present or delimiters are unbalanced.
-///
-/// Transformation:
-/// - Scans once, tracks bracket/brace/paren depth, and splits only on `|`
-///   characters at depth zero.
-fn split_top_level_type_union(text: &str) -> Option<Vec<&str>> {
-    let mut items = Vec::new();
-    let mut start = 0;
-    let mut depth = 0usize;
-    let mut found_union = false;
-    for (index, ch) in text.char_indices() {
-        match ch {
-            '[' | '{' | '(' => depth = depth.checked_add(1)?,
-            ']' | '}' | ')' => depth = depth.checked_sub(1)?,
-            '|' if depth == 0 => {
-                found_union = true;
-                let item = text[start..index].trim();
-                if item.is_empty() {
-                    return None;
-                }
-                items.push(item);
-                start = index + ch.len_utf8();
-            }
-            _ => {}
-        }
-    }
-    if depth != 0 || !found_union {
-        return None;
-    }
-    let tail = text[start..].trim();
-    if tail.is_empty() {
-        return None;
-    }
-    items.push(tail);
-    Some(items)
-}
-
-/// Splits a function type annotation into parameter and return type text.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some((params, return_type))` when the text is `(Param, ...) -> Return`
-///   with balanced parameter syntax.
-/// - `None` when the text is not a supported function type annotation.
-///
-/// Transformation:
-/// - Finds a top-level `->`, validates parenthesized parameter text, and uses
-///   top-level comma splitting for parameter type items.
-fn core_type_arrow_parts(text: &str) -> Option<(Vec<&str>, &str)> {
-    let arrow_index = find_top_level_arrow(text)?;
-    let params_text = text[..arrow_index].trim();
-    let return_type = text[(arrow_index + "->".len())..].trim();
-    if !params_text.starts_with('(') || !params_text.ends_with(')') || return_type.is_empty() {
-        return None;
-    }
-    let params_inner = &params_text['('.len_utf8()..(params_text.len() - ')'.len_utf8())];
-    let params = split_top_level_type_items(params_inner)?;
-    if params.iter().any(|param| param.is_empty()) {
-        return None;
-    }
-    Some((params, return_type))
-}
-
-/// Finds a top-level function-type arrow in type annotation text.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some(byte_index)` for the first `->` outside nested type delimiters.
-/// - `None` when no top-level arrow exists or delimiter depth is unbalanced.
-///
-/// Transformation:
-/// - Scans once, tracks bracket/brace/paren depth, and only accepts `->` at
-///   depth zero.
-fn find_top_level_arrow(text: &str) -> Option<usize> {
-    let mut depth = 0usize;
-    let mut chars = text.char_indices().peekable();
-    while let Some((index, ch)) = chars.next() {
-        match ch {
-            '[' | '{' | '(' => depth = depth.checked_add(1)?,
-            ']' | '}' | ')' => depth = depth.checked_sub(1)?,
-            '-' if depth == 0 && chars.peek().is_some_and(|(_, next)| *next == '>') => {
-                return Some(index);
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-/// Splits a parameterized type annotation into constructor and argument text.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some((constructor, args))` when the text is `Name[Arg, ...]`, the
-///   constructor is a simple Core type name, and top-level arguments are
-///   balanced.
-/// - `None` when the text is not a supported parameterized type application.
-///
-/// Transformation:
-/// - Finds the outermost bracket pair, validates the constructor name, and
-///   delegates comma splitting to the existing top-level type-list scanner.
-fn core_type_application_parts(text: &str) -> Option<(&str, Vec<&str>)> {
-    let open_index = text
-        .char_indices()
-        .find_map(|(index, ch)| if ch == '[' { Some(index) } else { None })?;
-    let constructor = text[..open_index].trim();
-    if !is_simple_core_type_name(constructor) || !text.ends_with(']') {
-        return None;
-    }
-    let args_text = &text[(open_index + '['.len_utf8())..(text.len() - ']'.len_utf8())];
-    let args = split_top_level_type_items(args_text)?;
-    if args.is_empty() || args.iter().any(|arg| arg.is_empty()) {
-        return None;
-    }
-    Some((constructor, args))
-}
-
-/// Splits type item text on top-level commas.
-///
-/// Inputs:
-/// - `text`: inner type-list text, without the enclosing tuple braces.
-///
-/// Output:
-/// - `Some(Vec<&str>)` containing trimmed top-level item slices.
-/// - `None` when nesting is unbalanced.
-///
-/// Transformation:
-/// - Scans the text once, tracks bracket/brace/paren depth, and splits only on
-///   commas at depth zero.
-fn split_top_level_type_items(text: &str) -> Option<Vec<&str>> {
-    let mut items = Vec::new();
-    let mut start = 0;
-    let mut depth = 0usize;
-    for (index, ch) in text.char_indices() {
-        match ch {
-            '[' | '{' | '(' => depth = depth.checked_add(1)?,
-            ']' | '}' | ')' => depth = depth.checked_sub(1)?,
-            ',' if depth == 0 => {
-                items.push(text[start..index].trim());
-                start = index + ch.len_utf8();
-            }
-            _ => {}
-        }
-    }
-    if depth != 0 {
-        return None;
-    }
-    let tail = text[start..].trim();
-    if !tail.is_empty() || !text.trim().is_empty() {
-        items.push(tail);
-    }
-    Some(items)
-}
-
-/// Checks whether a type annotation is a simple named Core type reference.
-///
-/// Inputs:
-/// - `name`: normalized type annotation text.
-///
-/// Output:
-/// - `true` when the text is a non-empty simple name/path whose first segment
-///   starts uppercase.
-/// - `false` for empty, compound, lowercase, or symbol-containing type text.
-///
-/// Transformation:
-/// - Accepts ASCII alphanumeric/underscore segments separated by dots and
-///   rejects generic/list/tuple/function syntax for this initial CoreType
-///   slice.
-fn is_simple_core_type_name(name: &str) -> bool {
-    name.split('.').all(|segment| {
-        segment
-            .chars()
-            .next()
-            .is_some_and(|ch| ch.is_ascii_uppercase())
-            && segment
-                .chars()
-                .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
-    })
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// One function clause summarized in CoreIR.
+///
+/// Inputs: pattern list, optional guard, and body expression. Output:
+/// clause-level Core summary. Transformation: records source pattern text,
+/// typed pattern payloads, proof metadata, guard, and body.
 pub struct CoreFunctionClause {
     pub patterns: Vec<String>,
     pub core_patterns: Vec<Option<CorePattern>>,
@@ -962,341 +172,11 @@ pub struct CoreFunctionClause {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CorePattern {
-    Wildcard,
-    Var(String),
-    Int(i64),
-    Float(String),
-    Atom(String),
-    Tuple(Vec<CorePattern>),
-    List(Vec<CorePattern>),
-    ListCons {
-        head: Box<CorePattern>,
-        tail: Box<CorePattern>,
-    },
-    Map(Vec<CoreMapPatternField>),
-    Record {
-        name: String,
-        fields: Vec<CoreRecordPatternField>,
-    },
-    Constructor {
-        name: String,
-        constructor_identity: Option<String>,
-        args: Vec<CorePattern>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CoreMapPatternField {
-    pub key: String,
-    pub required: bool,
-    pub value: CorePattern,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CoreRecordPatternField {
-    pub key: String,
-    pub required: bool,
-    pub value: CorePattern,
-}
-
-impl CorePattern {
-    /// Renders a typed Core pattern as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed Core pattern from the Lean-covered pattern subset.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the structural Core pattern without using source spans,
-    ///   backend syntax, or syntax-output summary text.
-    pub(crate) fn contract_text(&self) -> String {
-        match self {
-            CorePattern::Wildcard => "Wildcard".to_string(),
-            CorePattern::Var(name) => format!("Var({name})"),
-            CorePattern::Int(value) => format!("Int({value})"),
-            CorePattern::Float(value) => format!("Float({value})"),
-            CorePattern::Atom(value) => format!("Atom({value})"),
-            CorePattern::Tuple(elements) => format!(
-                "Tuple({})",
-                elements
-                    .iter()
-                    .map(CorePattern::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CorePattern::List(elements) => format!(
-                "List({})",
-                elements
-                    .iter()
-                    .map(CorePattern::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CorePattern::ListCons { head, tail } => {
-                format!(
-                    "ListCons({}|{})",
-                    head.contract_text(),
-                    tail.contract_text()
-                )
-            }
-            CorePattern::Map(fields) => format!(
-                "Map({})",
-                fields
-                    .iter()
-                    .map(CoreMapPatternField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CorePattern::Record { name, fields } => format!(
-                "Record({name};{})",
-                fields
-                    .iter()
-                    .map(CoreRecordPatternField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CorePattern::Constructor {
-                name,
-                constructor_identity,
-                args,
-            } => {
-                let args = args
-                    .iter()
-                    .map(CorePattern::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",");
-                match constructor_identity {
-                    Some(identity) => format!("Constructor({name};identity={identity};{args})"),
-                    None => format!("Constructor({name};{args})"),
-                }
-            }
-        }
-    }
-}
-
-impl CoreMapPatternField {
-    /// Renders a typed Core map-pattern field as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed Core map-pattern field from syntax-output lowering.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the source key, required/optional map-match operator, and
-    ///   recursively rendered value pattern without backend-specific syntax.
-    fn contract_text(&self) -> String {
-        let operator = if self.required { ":=" } else { "=>" };
-        format!("{}{}{}", self.key, operator, self.value.contract_text())
-    }
-}
-
-impl CoreRecordPatternField {
-    /// Renders a typed Core record-pattern field as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed Core record-pattern field from syntax-output lowering.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the field key, source field-match operator, and
-    ///   recursively rendered value pattern without backend-specific syntax.
-    fn contract_text(&self) -> String {
-        let operator = if self.required { "=" } else { "=>" };
-        format!("{}{}{}", self.key, operator, self.value.contract_text())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CoreProofCoverage {
-    LeanCovered,
-    Partial,
-    ProofModelRequired,
-    RuntimeBoundary,
-    ArtifactOnly,
-}
-
-impl CoreProofCoverage {
-    /// Renders the proof-coverage label used in deterministic CoreIR artifacts.
-    ///
-    /// Inputs:
-    /// - `self`: proof coverage classification for a Core expression summary.
-    ///
-    /// Output:
-    /// - Stable lowercase label suitable for CoreIR contract text and
-    ///   conformance fixtures.
-    ///
-    /// Transformation:
-    /// - Maps internal enum variants to the documented LP7 coverage labels.
-    fn as_str(&self) -> &'static str {
-        match self {
-            CoreProofCoverage::LeanCovered => "lean-covered",
-            CoreProofCoverage::Partial => "partial",
-            CoreProofCoverage::ProofModelRequired => "proof-model-required",
-            CoreProofCoverage::RuntimeBoundary => "runtime-boundary",
-            CoreProofCoverage::ArtifactOnly => "artifact-only",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CoreProofReadiness {
-    LeanCovered,
-    Partial,
-    ProofModelRequired,
-    RuntimeBoundary,
-    ArtifactOnly,
-    NoExpressions,
-}
-
-impl CoreProofReadiness {
-    /// Renders the module-level proof readiness label.
-    ///
-    /// Inputs:
-    /// - `self`: proof readiness classification for a Core module.
-    ///
-    /// Output:
-    /// - Stable lowercase label suitable for manifests and CoreIR contract text.
-    ///
-    /// Transformation:
-    /// - Maps the internal readiness enum to the documented proof-readiness
-    ///   labels used by release tooling.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            CoreProofReadiness::LeanCovered => "lean-covered",
-            CoreProofReadiness::Partial => "partial",
-            CoreProofReadiness::ProofModelRequired => "proof-model-required",
-            CoreProofReadiness::RuntimeBoundary => "runtime-boundary",
-            CoreProofReadiness::ArtifactOnly => "artifact-only",
-            CoreProofReadiness::NoExpressions => "no-expressions",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CoreCheckedPreservationEvidenceKind {
-    StructuralCoreExpr,
-    StructuralCorePattern,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CoreSubstitutionFreshnessEvidence {
-    NoRuntimeBindings,
-    RuntimeBindingsRequired,
-}
-
-impl CoreSubstitutionFreshnessEvidence {
-    /// Renders the substitution-freshness obligation attached to evidence.
-    ///
-    /// Inputs:
-    /// - `self`: conservative freshness classification for one evidence-backed
-    ///   Core expression or pattern.
-    ///
-    /// Output:
-    /// - Stable lowercase label suitable for CoreIR contract text and future
-    ///   Lean export.
-    ///
-    /// Transformation:
-    /// - Maps internal freshness categories to the LP8 handoff vocabulary:
-    ///   values without runtime binding introduction need no freshness payload,
-    ///   while binding forms require checked runtime freshness evidence later.
-    fn as_str(&self) -> &'static str {
-        match self {
-            CoreSubstitutionFreshnessEvidence::NoRuntimeBindings => "no-runtime-bindings",
-            CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired => {
-                "runtime-bindings-required"
-            }
-        }
-    }
-
-    /// Combines two substitution-freshness obligations conservatively.
-    ///
-    /// Inputs:
-    /// - `self`: current aggregate obligation.
-    /// - `other`: additional nested obligation.
-    ///
-    /// Output:
-    /// - `RuntimeBindingsRequired` when either side may introduce runtime
-    ///   bindings; otherwise `NoRuntimeBindings`.
-    ///
-    /// Transformation:
-    /// - Applies a two-point lattice join over freshness obligations.
-    pub(crate) fn combine(
-        self,
-        other: CoreSubstitutionFreshnessEvidence,
-    ) -> CoreSubstitutionFreshnessEvidence {
-        if matches!(
-            self,
-            CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired
-        ) || matches!(
-            other,
-            CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired
-        ) {
-            CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired
-        } else {
-            CoreSubstitutionFreshnessEvidence::NoRuntimeBindings
-        }
-    }
-}
-
-impl CoreCheckedPreservationEvidenceKind {
-    /// Renders the checked-preservation evidence kind used in CoreIR payloads.
-    ///
-    /// Inputs:
-    /// - `self`: checked-preservation evidence classification for one typed
-    ///   Core expression or pattern.
-    ///
-    /// Output:
-    /// - Stable lowercase evidence label suitable for deterministic contract
-    ///   text and future Lean export.
-    ///
-    /// Transformation:
-    /// - Maps the internal evidence enum to a documented LP8 evidence label.
-    fn as_str(&self) -> &'static str {
-        match self {
-            CoreCheckedPreservationEvidenceKind::StructuralCoreExpr => "structural-core-expr",
-            CoreCheckedPreservationEvidenceKind::StructuralCorePattern => "structural-core-pattern",
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CoreCheckedPreservationEvidence {
-    pub kind: CoreCheckedPreservationEvidenceKind,
-    pub freshness: CoreSubstitutionFreshnessEvidence,
-    pub target: String,
-}
-
-impl CoreCheckedPreservationEvidence {
-    /// Renders checked-preservation evidence as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: evidence object attached to a typed Core expression summary.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the evidence kind, substitution-freshness obligation, and
-    ///   structural Core term it covers, avoiding source spans and
-    ///   backend-specific syntax.
-    pub(crate) fn contract_text(&self) -> String {
-        format!(
-            "{}(freshness={};target={})",
-            self.kind.as_str(),
-            self.freshness.as_str(),
-            self.target
-        )
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Expression summary carried through CoreIR.
+///
+/// Inputs: typed or partially typed expression lowering result. Output: summary
+/// text, optional typed expression, and proof metadata. Transformation:
+/// separates typed Core payload from summary-only fallback information.
 pub struct CoreExprSummary {
     pub kind: String,
     pub core_expr: Option<CoreExpr>,
@@ -1310,6 +190,11 @@ pub struct CoreExprSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Backend-neutral effect labels for a Core expression.
+///
+/// Inputs: effect names discovered during lowering. Output: effect set.
+/// Transformation: stores effects as labels for deterministic validation and
+/// target capability checks.
 pub struct CoreEffectSet {
     pub effects: Vec<String>,
 }
@@ -1334,6 +219,11 @@ impl CoreEffectSet {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Compiler-owned primitive intrinsic identity.
+///
+/// Inputs: resolved intrinsic operation. Output: closed primitive enum.
+/// Transformation: replaces target module calls with backend-neutral intrinsic
+/// identities.
 pub enum CorePrimitiveIntrinsic {
     TypeOf,
     IsType,
@@ -1513,6 +403,11 @@ impl CorePrimitiveIntrinsic {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Runtime capability intrinsic identity.
+///
+/// Inputs: resolved runtime operation. Output: closed capability enum.
+/// Transformation: records portable runtime requirements without selecting a
+/// backend implementation.
 pub enum CoreRuntimeCapability {
     ConsolePrintln,
     FileExists,
@@ -1548,6 +443,11 @@ impl CoreRuntimeCapability {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Closed Core intrinsic identity.
+///
+/// Inputs: primitive or runtime intrinsic classification. Output: namespaced
+/// intrinsic identity. Transformation: keeps both intrinsic families behind one
+/// expression node shape.
 pub enum CoreIntrinsicId {
     Primitive(CorePrimitiveIntrinsic),
     Runtime(CoreRuntimeCapability),
@@ -1574,6 +474,11 @@ impl CoreIntrinsicId {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core intrinsic call expression payload.
+///
+/// Inputs: intrinsic identity, typed args, return type, effects, and span.
+/// Output: backend-neutral intrinsic call. Transformation: carries enough data
+/// for target lowering and proof contracts without exposing source call syntax.
 pub struct CoreIntrinsicCall {
     pub id: CoreIntrinsicId,
     pub args: Vec<CoreExpr>,
@@ -1615,6 +520,12 @@ impl CoreIntrinsicCall {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Typed backend-neutral Core expression.
+///
+/// Inputs: syntax-output expressions after resolver/typechecker lowering.
+/// Output: structured expression tree. Transformation: removes parser-specific
+/// detail while preserving semantics needed by proof, validation, and backend
+/// emitters.
 pub enum CoreExpr {
     Int(i64),
     Float(String),
@@ -1700,6 +611,10 @@ pub enum CoreExpr {
         callee: Box<CoreExpr>,
         args: Vec<CoreExpr>,
     },
+    Cast {
+        expr: Box<CoreExpr>,
+        target_type: CoreType,
+    },
     Intrinsic(CoreIntrinsicCall),
     Case {
         scrutinee: Box<CoreExpr>,
@@ -1730,6 +645,11 @@ pub enum CoreExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core map expression field.
+///
+/// Inputs: map field key/operator/value. Output: typed map field. Transformation:
+/// preserves insert/update intent through the `required` flag and stores the
+/// lowered value expression.
 pub struct CoreMapExprField {
     pub key: String,
     pub required: bool,
@@ -1737,12 +657,22 @@ pub struct CoreMapExprField {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core let binding.
+///
+/// Inputs: binding name and value expression. Output: one local binding.
+/// Transformation: represents source let bindings in expression form for
+/// backend-neutral lowering.
 pub struct CoreLetBinding {
     pub name: String,
     pub value: CoreExpr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core record or template field expression.
+///
+/// Inputs: field key/operator/value. Output: typed field payload.
+/// Transformation: preserves assignment/update intent through `required` and
+/// stores the lowered value expression.
 pub struct CoreRecordExprField {
     pub key: String,
     pub required: bool,
@@ -1750,6 +680,11 @@ pub struct CoreRecordExprField {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core case-like branch.
+///
+/// Inputs: pattern, optional guard, and body expression. Output: typed branch.
+/// Transformation: normalizes `case`, `try of`, and `catch` clauses into a
+/// shared branch shape.
 pub struct CoreCaseClause {
     pub pattern: CorePattern,
     pub guard: Option<CoreExpr>,
@@ -1757,12 +692,20 @@ pub struct CoreCaseClause {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core if branch.
+///
+/// Inputs: condition and body expressions. Output: typed if clause.
+/// Transformation: stores predicate/body pairs in source order.
 pub struct CoreIfClause {
     pub condition: CoreExpr,
     pub body: CoreExpr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core try cleanup branch.
+///
+/// Inputs: cleanup trigger and body expressions. Output: typed after branch.
+/// Transformation: keeps cleanup semantics explicit for target lowering.
 pub struct CoreTryAfter {
     pub trigger: Box<CoreExpr>,
     pub body: Box<CoreExpr>,
@@ -1976,6 +919,13 @@ impl CoreExpr {
                     .collect::<Vec<_>>()
                     .join(",")
             ),
+            CoreExpr::Cast { expr, target_type } => {
+                format!(
+                    "Cast({} as {})",
+                    expr.contract_text(),
+                    target_type.contract_text()
+                )
+            }
             CoreExpr::Intrinsic(call) => call.contract_text(),
             CoreExpr::Case { scrutinee, clauses } => format!(
                 "Case({};{})",
@@ -2174,6 +1124,11 @@ impl CoreTryAfter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Constructor declaration summarized in CoreIR.
+///
+/// Inputs: resolved constructor declaration. Output: constructor signature.
+/// Transformation: records public flag, fixed params, optional vararg, return
+/// type, and typed return shape without backend constructor code.
 pub struct CoreConstructorDecl {
     pub name: String,
     pub public: bool,
@@ -2225,6 +1180,12 @@ pub struct CoreTraitConformance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Core module metadata and proof/readiness counters.
+///
+/// Inputs: generated Core module summaries. Output: deterministic counts for
+/// release gates and proof readiness. Transformation: aggregates typed,
+/// summary-only, proof-coverage, runtime-boundary, and constructor-resolution
+/// counters.
 pub struct CoreModuleMetadata {
     pub interface_function_count: usize,
     pub interface_type_count: usize,

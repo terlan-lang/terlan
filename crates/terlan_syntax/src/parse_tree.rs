@@ -1,5 +1,6 @@
 use crate::span::Span;
 
+/// Parsed Terlan source module.
 #[derive(Debug, Clone)]
 pub struct Module {
     pub name: String,
@@ -9,6 +10,7 @@ pub struct Module {
     pub span: Span,
 }
 
+/// Parsed source annotation attached to a declaration or item.
 #[derive(Debug, Clone)]
 pub struct Annotation {
     pub path: Vec<String>,
@@ -18,6 +20,7 @@ pub struct Annotation {
     pub span: Span,
 }
 
+/// Key-value entry inside an annotation object body.
 #[derive(Debug, Clone)]
 pub struct AnnotationEntry {
     pub key: Vec<String>,
@@ -25,6 +28,7 @@ pub struct AnnotationEntry {
     pub span: Span,
 }
 
+/// Literal value accepted by annotation syntax.
 #[derive(Debug, Clone)]
 pub enum AnnotationValue {
     Name(Vec<String>),
@@ -36,6 +40,7 @@ pub enum AnnotationValue {
     Object(Vec<AnnotationEntry>),
 }
 
+/// Top-level declaration node in a Terlan module.
 #[derive(Debug, Clone)]
 pub enum Decl {
     Import(ImportDecl),
@@ -52,6 +57,7 @@ pub enum Decl {
     Raw(UnsupportedDecl),
 }
 
+/// Source import declaration.
 #[derive(Debug, Clone)]
 pub struct ImportDecl {
     pub kind: ImportKind,
@@ -62,6 +68,7 @@ pub struct ImportDecl {
     pub span: Span,
 }
 
+/// Import source category.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImportKind {
     Module,
@@ -70,6 +77,7 @@ pub enum ImportKind {
     Markdown,
 }
 
+/// One imported name and its optional local alias.
 #[derive(Debug, Clone)]
 pub struct ImportItem {
     pub name: String,
@@ -77,12 +85,14 @@ pub struct ImportItem {
     pub span: Span,
 }
 
+/// Explicit export declaration retained for parsed source compatibility.
 #[derive(Debug, Clone)]
 pub struct ExportDecl {
     pub items: Vec<ExportItem>,
     pub span: Span,
 }
 
+/// One exported function identity.
 #[derive(Debug, Clone)]
 pub struct ExportItem {
     pub name: String,
@@ -90,6 +100,7 @@ pub struct ExportItem {
     pub span: Span,
 }
 
+/// Type or opaque type declaration.
 #[derive(Debug, Clone)]
 pub struct TypeDecl {
     pub name: String,
@@ -102,6 +113,7 @@ pub struct TypeDecl {
     pub span: Span,
 }
 
+/// Struct declaration and its declared fields.
 #[derive(Debug, Clone)]
 pub struct StructDecl {
     pub name: String,
@@ -113,6 +125,7 @@ pub struct StructDecl {
     pub span: Span,
 }
 
+/// One field in a struct declaration.
 #[derive(Debug, Clone)]
 pub struct StructFieldDecl {
     pub name: String,
@@ -122,6 +135,7 @@ pub struct StructFieldDecl {
     pub span: Span,
 }
 
+/// Constructor declaration for a named type.
 #[derive(Debug, Clone)]
 pub struct ConstructorDecl {
     pub name: String,
@@ -132,6 +146,7 @@ pub struct ConstructorDecl {
     pub span: Span,
 }
 
+/// One constructor clause body and signature.
 #[derive(Debug, Clone)]
 pub struct ConstructorClause {
     pub params: Vec<ConstructorParam>,
@@ -140,6 +155,7 @@ pub struct ConstructorClause {
     pub span: Span,
 }
 
+/// One constructor parameter.
 #[derive(Debug, Clone)]
 pub struct ConstructorParam {
     pub name: String,
@@ -149,6 +165,7 @@ pub struct ConstructorParam {
     pub span: Span,
 }
 
+/// Named function declaration.
 #[derive(Debug, Clone)]
 pub struct FunctionDecl {
     pub name: String,
@@ -162,6 +179,7 @@ pub struct FunctionDecl {
     pub span: Span,
 }
 
+/// Receiver method declaration.
 #[derive(Debug, Clone)]
 pub struct MethodDecl {
     pub receiver: Param,
@@ -175,6 +193,7 @@ pub struct MethodDecl {
     pub span: Span,
 }
 
+/// One pattern-matched function or lambda clause.
 #[derive(Debug, Clone)]
 pub struct FunctionClause {
     pub patterns: Vec<Pattern>,
@@ -183,6 +202,7 @@ pub struct FunctionClause {
     pub guard: Option<Box<Expr>>,
 }
 
+/// Function, method, or receiver parameter.
 #[derive(Debug, Clone)]
 pub struct Param {
     pub name: String,
@@ -191,12 +211,14 @@ pub struct Param {
     pub span: Span,
 }
 
+/// Raw parsed type expression text with source span.
 #[derive(Debug, Clone)]
 pub struct TypeExpr {
     pub text: String,
     pub span: Span,
 }
 
+/// Template declaration linking a template name to a source asset.
 #[derive(Debug, Clone)]
 pub struct TemplateDecl {
     pub name: String,
@@ -246,6 +268,7 @@ pub struct AnnotationValueType {
     pub text: String,
 }
 
+/// One typed property accepted by a template declaration.
 #[derive(Debug, Clone)]
 pub struct TemplatePropDecl {
     pub name: String,
@@ -253,6 +276,7 @@ pub struct TemplatePropDecl {
     pub span: Span,
 }
 
+/// Pattern map field.
 #[derive(Debug, Clone)]
 pub struct MapField {
     pub key: String,
@@ -260,6 +284,7 @@ pub struct MapField {
     pub required: bool,
 }
 
+/// Expression map field.
 #[derive(Debug, Clone)]
 pub struct MapExprField {
     pub key: String,
@@ -267,6 +292,7 @@ pub struct MapExprField {
     pub required: bool,
 }
 
+/// Pattern syntax tree used in cases, clauses, and destructuring.
 #[derive(Debug, Clone)]
 pub enum Pattern {
     Wildcard,
@@ -281,6 +307,7 @@ pub enum Pattern {
     Record { name: String, fields: Vec<MapField> },
 }
 
+/// Expression syntax tree produced by the parser.
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i64),
@@ -385,12 +412,14 @@ pub enum Expr {
     Sequence(Vec<Expr>),
 }
 
+/// One binding in a `let` expression.
 #[derive(Debug, Clone)]
 pub struct LetBinding {
     pub name: String,
     pub value: Expr,
 }
 
+/// Parsed built-in block macro body.
 #[derive(Debug, Clone)]
 pub struct HtmlBlockExpr {
     pub macro_kind: BuiltinBlockMacro,
@@ -398,12 +427,23 @@ pub struct HtmlBlockExpr {
     pub nodes: Vec<HtmlNode>,
 }
 
+/// Built-in raw block macro kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinBlockMacro {
     Html,
 }
 
 impl BuiltinBlockMacro {
+    /// Resolves a source macro name to a built-in block macro.
+    ///
+    /// Inputs:
+    /// - `name`: raw source macro name.
+    ///
+    /// Output:
+    /// - Matching built-in block macro kind, or `None` for user macros.
+    ///
+    /// Transformation:
+    /// - Keeps the parser's reserved built-in macro name table explicit.
     pub fn from_name(name: &str) -> Option<Self> {
         match name {
             "html" => Some(Self::Html),
@@ -411,6 +451,16 @@ impl BuiltinBlockMacro {
         }
     }
 
+    /// Returns the canonical source name for a built-in block macro.
+    ///
+    /// Inputs:
+    /// - `self`: built-in macro kind.
+    ///
+    /// Output:
+    /// - Source spelling used by the parser and formatter.
+    ///
+    /// Transformation:
+    /// - Converts the enum discriminant back to its reserved macro name.
     pub fn name(self) -> &'static str {
         match self {
             Self::Html => "html",
@@ -418,6 +468,7 @@ impl BuiltinBlockMacro {
     }
 }
 
+/// Node inside a parsed HTML block.
 #[derive(Debug, Clone)]
 pub enum HtmlNode {
     Text(String),
@@ -426,6 +477,7 @@ pub enum HtmlNode {
     NamedSlot(HtmlNamedSlot),
 }
 
+/// HTML element node inside an HTML block.
 #[derive(Debug, Clone)]
 pub struct HtmlElement {
     pub name: String,
@@ -433,24 +485,28 @@ pub struct HtmlElement {
     pub children: Vec<HtmlNode>,
 }
 
+/// Named slot node inside an HTML block.
 #[derive(Debug, Clone)]
 pub struct HtmlNamedSlot {
     pub name: String,
     pub children: Vec<HtmlNode>,
 }
 
+/// HTML attribute inside an HTML element node.
 #[derive(Debug, Clone)]
 pub struct HtmlAttr {
     pub name: String,
     pub value: Option<HtmlAttrValue>,
 }
 
+/// HTML attribute value.
 #[derive(Debug, Clone)]
 pub enum HtmlAttrValue {
     Text(String),
     Expr(Expr),
 }
 
+/// Pattern, optional guard, and body for case-like expressions.
 #[derive(Debug, Clone)]
 pub struct CaseClause {
     pub pattern: Pattern,
@@ -458,18 +514,21 @@ pub struct CaseClause {
     pub body: Expr,
 }
 
+/// Cleanup clause attached to a try expression.
 #[derive(Debug, Clone)]
 pub struct TryAfterClause {
     pub trigger: Box<Expr>,
     pub body: Box<Expr>,
 }
 
+/// One branch in an `if` expression.
 #[derive(Debug, Clone)]
 pub struct IfClause {
     pub condition: Expr,
     pub body: Expr,
 }
 
+/// Unary operator kind.
 #[derive(Debug, Clone, Copy)]
 pub enum UnaryOp {
     Neg,
@@ -477,6 +536,7 @@ pub enum UnaryOp {
     Bang,
 }
 
+/// Binary operator kind.
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryOp {
     Add,
@@ -496,6 +556,7 @@ pub enum BinaryOp {
     PipeForward,
 }
 
+/// Trait declaration with required and default methods.
 #[derive(Debug, Clone)]
 pub struct TraitDecl {
     pub name: String,
@@ -507,6 +568,7 @@ pub struct TraitDecl {
     pub span: Span,
 }
 
+/// Method signature declared inside a trait.
 #[derive(Debug, Clone)]
 pub struct TraitMethodDecl {
     pub name: String,
@@ -519,6 +581,7 @@ pub struct TraitMethodDecl {
     pub span: Span,
 }
 
+/// Explicit trait implementation for a concrete type.
 #[derive(Debug, Clone)]
 pub struct TraitImplDecl {
     pub trait_ref: TypeExpr,
@@ -529,6 +592,7 @@ pub struct TraitImplDecl {
     pub span: Span,
 }
 
+/// Parsed unsupported declaration preserved for diagnostics.
 #[derive(Debug, Clone)]
 pub struct UnsupportedDecl {
     pub kind: String,

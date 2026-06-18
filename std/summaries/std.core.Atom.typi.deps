@@ -4,5 +4,5 @@ syntax_contract_fingerprint_algorithm=fnv1a64
 syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
 source_hash=10819987817838964750
 interface_hash=8082240374461922759
-interface_doc_hash=5659885996763441935
+interface_doc_hash=5294574455219087360
 deps=0

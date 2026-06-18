@@ -1,0 +1,8 @@
+{
+  "source_module": "std.http.Request",
+  "module": "std_http_request_safe_native",
+  "scheduler": "normal",
+  "native_policy": "safe_native_optional",
+  "functions": [
+    { "name": "body_json", "arity": 1, "operation": "std.http.request.body_json" }]
+}

@@ -1,0 +1,2 @@
+# Existing undocumented Rust items allowed during 0.0.4 consolidation.
+# New Rust functions and types must add Rustdoc instead of extending this file.

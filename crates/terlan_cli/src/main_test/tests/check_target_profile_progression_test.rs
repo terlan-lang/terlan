@@ -1458,15 +1458,14 @@ module a0_19_erlang_accepts_index_access.\n\npub first(values: Dynamic): Dynamic
 ///   algorithm probe.
 ///
 /// Output:
-/// - Successful check command exit code.
+/// - Failed check command exit code under the Erlang profile.
 ///
 /// Transformation:
-/// - Runs the public check command with the permissive Erlang profile so
-///   the fixture validates syntax, imports, receiver methods, bracket
-///   reads, and indexed assignment against embedded std summaries without
-///   requiring a native backend to execute it.
+/// - Runs the public check command with the Erlang profile and verifies native
+///   std modules remain target-gated until a native backend profile owns their
+///   execution contract.
 #[test]
-fn run_check_single_file_accepts_native_vector_selection_sort_fixture() {
+fn run_check_single_file_rejects_native_vector_selection_sort_for_erlang_profile() {
     let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/fixtures/native/vector_selection_sort.terl");
     let exit = commands::check::run(
@@ -1480,7 +1479,7 @@ fn run_check_single_file_accepts_native_vector_selection_sort_fixture() {
         },
     );
 
-    assert_eq!(exit, ExitCode::SUCCESS);
+    assert_ne!(exit, ExitCode::SUCCESS);
 }
 
 /// Verifies the `check` command accepts qualified and scoped calls under

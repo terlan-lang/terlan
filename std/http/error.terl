@@ -1,0 +1,73 @@
+/**
+ * Portable HTTP error contract.
+ *
+ * `std.http.Error` defines the common recoverable error shape used by Terlan
+ * HTTP request and response helpers. Backends must map server, body, and
+ * serialization failures into this target-neutral shape.
+ */
+
+module std.http.Error.
+
+import type std.core.Error.
+
+/**
+ * HttpError is the portable error returned by HTTP helpers.
+ *
+ * Input: inherits the neutral `code` and `message` fields from
+ * `std.core.Error.Error` and adds the HTTP status code most closely associated
+ * with the failure.
+ * Output: a typed error value usable anywhere `Error`-derived values are
+ * accepted.
+ * Transformation: maps backend HTTP request/response failures into a stable
+ * source-visible data shape without exposing server implementation details.
+ */
+pub struct HttpError derives Error {
+    status: Int
+}.
+
+/**
+ * Creates a portable HTTP error.
+ *
+ * Input: one symbolic error code, one human-readable message, and one HTTP
+ * status code.
+ * Output: `HttpError`.
+ * Transformation: stores the portable code and message inherited from
+ * `std.core.Error.Error` plus HTTP-specific status context.
+ */
+pub new(code: Atom, message: String, status: Int): HttpError ->
+    #HttpError{
+        code = code,
+        message = message,
+        status = status
+    }.
+
+/**
+ * Returns the portable HTTP error code.
+ *
+ * Input: one `HttpError`.
+ * Output: `Atom` identifying the portable HTTP failure category.
+ * Transformation: reads the inherited `code` field without exposing backend
+ * server error values.
+ */
+pub (error: HttpError) code(): Atom ->
+    error.code.
+
+/**
+ * Returns the portable HTTP error message.
+ *
+ * Input: one `HttpError`.
+ * Output: human-readable UTF-8 message.
+ * Transformation: reads the inherited `message` field.
+ */
+pub (error: HttpError) message(): String ->
+    error.message.
+
+/**
+ * Returns the HTTP status associated with the error.
+ *
+ * Input: one `HttpError`.
+ * Output: numeric HTTP status code.
+ * Transformation: reads the HTTP-specific `status` field.
+ */
+pub (error: HttpError) status(): Int ->
+    error.status.

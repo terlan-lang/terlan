@@ -902,6 +902,18 @@ impl Parser {
         }
         Ok(clauses)
     }
+    /// Parses a built-in block macro expression.
+    ///
+    /// Inputs:
+    /// - `macro_kind`: built-in block macro selected by the caller.
+    /// - `raw`: preserved raw block text.
+    ///
+    /// Output:
+    /// - Parsed macro expression with structured payload when available.
+    ///
+    /// Transformation:
+    /// - Converts the raw macro block into the parser expression shape while
+    ///   preserving original text for syntax output and diagnostics.
     fn parse_builtin_block_macro(
         &mut self,
         macro_kind: BuiltinBlockMacro,
@@ -1086,6 +1098,18 @@ impl Parser {
 
         Ok(expr)
     }
+    /// Parses Terlan record construction.
+    ///
+    /// Inputs:
+    /// - Parser cursor at the record type name.
+    ///
+    /// Output:
+    /// - Record construction expression with parsed field assignments.
+    ///
+    /// Transformation:
+    /// - Consumes `TypeName { field = expr }` syntax and reuses expression
+    ///   field parsing so record construction follows the same field rules as
+    ///   template instantiation.
     fn parse_record_expr(&mut self) -> ParseResult<Expr> {
         let name = self.expect(TokenKind::Var)?.text;
         self.expect(TokenKind::LBrace)?;

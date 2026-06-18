@@ -32,6 +32,9 @@ jobs:
       - name: Test
         run: make test
 
+      - name: JS release preflight
+        run: make release-0-0-4-preflight
+
       - name: Build artifact
         run: make release-artifact-linux
 

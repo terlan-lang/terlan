@@ -1,12 +1,12 @@
 //! Core map collection contract.
-//! 
+//!
 //! `std.collections.Map` is the portable key-value collection surface. Backends own
 //! the efficient runtime representation while preserving this source contract.
 
 module std.collections.Map.
 
 /// Map represents a collection of values addressed by keys.
-/// 
+///
 /// Input: type parameters `K` and `V`.
 /// Output: an opaque key-value collection type.
 /// Transformation: hides the selected backend representation behind the
@@ -15,7 +15,7 @@ module std.collections.Map.
 pub opaque type Map[K, V].
 
 /// Removes every entry from a map.
-/// 
+///
 /// Input: a mutable `Map[K, V]` receiver.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.map.clear`
@@ -24,7 +24,7 @@ pub opaque type Map[K, V].
 pub (mut map: Map[K, V]) clear(): Unit.
 
 /// Returns whether a key exists.
-/// 
+///
 /// Input: one `Map[K, V]` receiver and one key of type `K`.
 /// Output: `true` when the key exists; otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.map.contains_key`
@@ -33,7 +33,7 @@ pub (mut map: Map[K, V]) clear(): Unit.
 pub (map: Map[K, V]) contains_key(key: K): Bool.
 
 /// Looks up a value by key.
-/// 
+///
 /// Input: one `Map[K, V]` receiver and one key of type `K`.
 /// Output: `Some(value)` when the key exists; otherwise `None`.
 /// Transformation: lowers through the compiler-owned `core.map.get`
@@ -42,7 +42,7 @@ pub (map: Map[K, V]) contains_key(key: K): Bool.
 pub (map: Map[K, V]) get(key: K): Option[V].
 
 /// Returns whether a map contains no entries.
-/// 
+///
 /// Input: one `Map[K, V]`.
 /// Output: `true` when the map has no entries; otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.map.is_empty`
@@ -51,7 +51,7 @@ pub (map: Map[K, V]) get(key: K): Option[V].
 pub (map: Map[K, V]) is_empty(): Bool.
 
 /// Creates an iterator over key-value entries.
-/// 
+///
 /// Input: one `Map[K, V]`.
 /// Output: an `Iterator[{K, V}]` yielding one `{key, value}` pair per entry.
 /// Transformation: lowers through the compiler-owned `core.map.iterator`
@@ -61,7 +61,7 @@ pub (map: Map[K, V]) is_empty(): Bool.
 pub (map: Map[K, V]) iterator(): Iterator[{K, V}].
 
 /// Creates an empty map.
-/// 
+///
 /// Input: no value input.
 /// Output: an empty `Map[K, V]`.
 /// Transformation: lowers through the compiler-owned `core.map.new`
@@ -70,7 +70,7 @@ pub (map: Map[K, V]) iterator(): Iterator[{K, V}].
 pub new(): Map[K, V].
 
 /// Inserts or replaces a key-value entry.
-/// 
+///
 /// Input: a mutable `Map[K, V]` receiver, one key, and one value.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.map.put`
@@ -80,7 +80,7 @@ pub new(): Map[K, V].
 pub (mut map: Map[K, V]) put(key: K, value: V): Unit.
 
 /// Removes a key-value entry if it exists.
-/// 
+///
 /// Input: a mutable `Map[K, V]` receiver and one key.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.map.remove`
@@ -89,7 +89,7 @@ pub (mut map: Map[K, V]) put(key: K, value: V): Unit.
 pub (mut map: Map[K, V]) remove(key: K): Unit.
 
 /// Returns the number of entries in a map.
-/// 
+///
 /// Input: one `Map[K, V]`.
 /// Output: the number of key-value entries currently visible in the map.
 /// Transformation: lowers through the compiler-owned `core.map.size`

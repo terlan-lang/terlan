@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Inputs:
 # - tests/std/RELEASE_API_TESTS.tsv, a tab-separated release API manifest.
-# - Terlan stdlib release tests under tests/std.
+# - Terlan stdlib release tests adjacent to their owning modules under std/.
 #
 # Output:
 # - Exit status 0 when every listed release API has an @test-annotated Terlan
@@ -73,15 +73,15 @@ while IFS=$'\t' read -r api_id test_file test_function extra; do
     continue
   fi
 
-  if [[ "$test_file" != tests/std/*/*_test.terl && "$test_file" != tests/std/*/*/*_test.terl ]]; then
-    printf '%s: API `%s` test path must be tests/std/<feature>/*_test.terl, got `%s`\n' \
+  if [[ "$test_file" != std/*/*_test.terl && "$test_file" != std/*/*/*_test.terl ]]; then
+    printf '%s: API `%s` test path must be adjacent std source `std/<feature>/*_test.terl`, got `%s`\n' \
       "$manifest" "$api_id" "$test_file" >&2
     failures=1
     continue
   fi
 
   if [[ "$test_file" == tests/std/negative/* ]]; then
-    printf '%s: API `%s` positive test path must not live under tests/std/negative, got `%s`\n' \
+    printf '%s: API `%s` positive test path must not live under negative fixtures, got `%s`\n' \
       "$manifest" "$api_id" "$test_file" >&2
     failures=1
     continue

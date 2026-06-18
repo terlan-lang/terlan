@@ -12,7 +12,7 @@
  *portable Terlan source never depends on Erlang modules, JavaScript prototype
  *methods, Rust crate APIs, or platform-specific encodings.
  *
- *Target-specific string types, such as a future `std.js.JsString`, must not
+ *Target-specific string types, such as `std.js.String.JsString`, must not
  *extend or redefine core `String`. They should expose their own platform API
  *and use explicit conversion traits when crossing into or out of core
  *`String`.
@@ -72,6 +72,27 @@ pub trait Show[T] {
  */
 pub trait Parse[T] {
     from_string(value: String): Option[T].
+}.
+
+/**
+ * Describes explicit conversion from one type into another type.
+ *
+ * Input: a value of type `From`.
+ * Output: a value of type `To`.
+ * Transformation: converts the source value into the destination type through
+ * a declared implementation. The compiler uses this trait as the semantic
+ * proof behind non-assignable `value as Target` expressions.
+ *
+ * ```terlan
+ * module convertable_trait_example.
+ *
+ * pub trait Convertable[From, To] {
+ *     convert(value: From): To.
+ * }.
+ * ```
+ */
+pub trait Convertable[From, To] {
+    convert(value: From): To.
 }.
 
 /**

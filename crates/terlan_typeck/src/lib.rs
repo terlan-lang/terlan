@@ -70,6 +70,17 @@ mod core_ir;
 pub use core_ir::*;
 pub(crate) use core_ir::{core_type_from_body_variants, core_type_from_text};
 
+/// Callable function type scheme used by expression inference.
+///
+/// Inputs:
+/// - Local/imported function signature metadata after type parsing.
+///
+/// Output:
+/// - Parameter types, return type, and generic trait bounds.
+///
+/// Transformation:
+/// - Stores one overload candidate in a compact form that can be instantiated
+///   during call resolution.
 #[derive(Debug, Clone)]
 struct FunctionScheme {
     params: Vec<Type>,
@@ -77,12 +88,34 @@ struct FunctionScheme {
     bounds: Vec<FunctionBound>,
 }
 
+/// Generic trait bound attached to a function scheme.
+///
+/// Inputs:
+/// - Parsed generic bound syntax from declarations or interfaces.
+///
+/// Output:
+/// - Trait name plus type arguments required by generic dispatch.
+///
+/// Transformation:
+/// - Converts source bound text into typechecker types for later satisfaction
+///   checks.
 #[derive(Debug, Clone)]
 struct FunctionBound {
     trait_name: String,
     trait_args: Vec<Type>,
 }
 
+/// Constructor callable type scheme.
+///
+/// Inputs:
+/// - Constructor declarations and eligible constructor-like alias shapes.
+///
+/// Output:
+/// - Fixed/vararg parameter types, minimum arity, and return type.
+///
+/// Transformation:
+/// - Represents constructor calls and patterns with the same overload matching
+///   data needed by ordinary call checking.
 #[derive(Debug, Clone)]
 struct ConstructorScheme {
     fixed_params: Vec<Type>,
@@ -91,11 +124,33 @@ struct ConstructorScheme {
     ret: Type,
 }
 
+/// Template instantiation type scheme.
+///
+/// Inputs:
+/// - Template declarations and imported template metadata.
+///
+/// Output:
+/// - Property name to expected type map.
+///
+/// Transformation:
+/// - Normalizes template props into a field lookup table for type checking
+///   template instantiation expressions.
 #[derive(Debug, Clone)]
 struct TemplateScheme {
     props: HashMap<String, Type>,
 }
 
+/// Local or imported type alias model.
+///
+/// Inputs:
+/// - Type/opaque type declarations after parsing their body into `Type`.
+///
+/// Output:
+/// - Type parameters, alias body, and opacity flag.
+///
+/// Transformation:
+/// - Keeps aliases available for expansion while preserving opacity decisions
+///   for constructor and pattern validation.
 #[derive(Debug, Clone)]
 struct TypeAlias {
     params: Vec<TypeVarId>,
@@ -103,12 +158,35 @@ struct TypeAlias {
     is_opaque: bool,
 }
 
+/// Fully qualified imported type name.
+///
+/// Inputs:
+/// - Resolver import metadata for visible types.
+///
+/// Output:
+/// - Provider module and source type name.
+///
+/// Transformation:
+/// - Gives diagnostics and constructor lookup a stable qualified identity for
+///   imported type references.
 #[derive(Debug, Clone)]
 struct QualifiedTypeName {
     module: String,
     name: String,
 }
 
+/// Pre-collected inputs required by module type checking.
+///
+/// Inputs:
+/// - Resolver output plus local/imported aliases, signatures, traits, macros,
+///   templates, receiver methods, and collected diagnostics.
+///
+/// Output:
+/// - Single bundle consumed by `type_check_syntax_module_with_inputs`.
+///
+/// Transformation:
+/// - Separates collection from validation so each typechecking phase can be
+///   tested and refactored independently.
 #[derive(Debug, Clone)]
 struct TypeCheckInputs<'a> {
     import_maps: TypeCheckImportMaps,
@@ -119,7 +197,7 @@ struct TypeCheckInputs<'a> {
     trait_decl_diagnostics: Vec<Diagnostic>,
     trait_impl_coherence_diagnostics: Vec<Diagnostic>,
     trait_impl_signature_diagnostics: Vec<Diagnostic>,
-    function_signatures: HashMap<(String, usize), FunctionScheme>,
+    function_signatures: HashMap<(String, usize), Vec<FunctionScheme>>,
     constructor_signatures: HashMap<String, Vec<ConstructorScheme>>,
     struct_fields: HashMap<String, HashMap<String, Type>>,
     receiver_methods: HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,

@@ -82,6 +82,152 @@ pub negate(value: Int): Int ->\n\
     );
 }
 
+/// Verifies assignment-compatible casts typecheck without conversion errors.
+///
+/// Inputs:
+/// - A module using literal widening and a local type alias with `as`.
+///
+/// Output:
+/// - Test passes when no diagnostics are produced.
+///
+/// Transformation:
+/// - Parses source through the formal syntax-output path and proves the
+///   typechecker accepts casts that require no runtime conversion after alias
+///   expansion.
+#[test]
+fn syntax_output_accepts_assignable_casts_on_formal_path() {
+    let diagnostics = check_syntax_output(
+        "\
+module syntax_cast_assignable.\n\
+\n\
+pub type UserId = Int.\n\
+\n\
+pub literal(): Int ->\n\
+    1 as Int.\n\
+\n\
+pub alias(id: UserId): Int ->\n\
+    id as Int.\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies unsupported casts still require explicit conversion semantics.
+///
+/// Inputs:
+/// - A module attempting to cast a `String` value to `Int`.
+///
+/// Output:
+/// - Test passes when typechecking reports the stable trait-backed conversion
+///   diagnostic.
+///
+/// Transformation:
+/// - Confirms `as` does not silently become an unchecked backend cast when the
+///   source type is not already assignment-compatible with the target type.
+#[test]
+fn syntax_output_rejects_unproven_casts_on_formal_path() {
+    let diagnostics = check_syntax_output(
+        "\
+module syntax_cast_unproven.\n\
+\n\
+pub value(text: String): Int ->\n\
+    text as Int.\n\
+",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diag| {
+            diag.message
+                .contains("cast from Binary to Int requires trait-backed conversion")
+        }),
+        "expected cast conversion diagnostic, got {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies explicit conversion conformances satisfy non-assignable casts.
+///
+/// Inputs:
+/// - A module declaring `Convertable[From, To]`, an explicit
+///   `Convertable[String, Int] for Int` implementation, and a cast from
+///   `String` to `Int`.
+///
+/// Output:
+/// - Test passes when the cast no longer reports the unsupported conversion
+///   diagnostic.
+///
+/// Transformation:
+/// - Parses through the formal syntax-output path and confirms `as` conversion
+///   proof reuses the same trait conformance table as ordinary generic bounds.
+#[test]
+fn syntax_output_accepts_trait_backed_casts_on_formal_path() {
+    let diagnostics = check_syntax_output(
+        "\
+module syntax_cast_convertable.\n\
+\n\
+pub trait Convertable[From, To] {\n\
+    convert(value: From): To.\n\
+}.\n\
+\n\
+pub impl Convertable[String, Int] for Int {\n\
+    convert(value: String): Int ->\n\
+        1.\n\
+}.\n\
+\n\
+pub value(text: String): Int ->\n\
+    text as Int.\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies lambda callback values satisfy function-typed parameters.
+///
+/// Inputs:
+/// - A module declaring a callback-accepting function shaped like a generated
+///   event registration API.
+/// - A caller passing a lambda value into that function.
+///
+/// Output:
+/// - Test passes when typechecking accepts the lambda as `(Event) -> Unit`.
+///
+/// Transformation:
+/// - Exercises the L0.2 callback path without relying on generated `std.js`
+///   bindings: the lambda expression is inferred as a function value, unified
+///   with the API parameter type, and accepted as an ordinary argument.
+#[test]
+fn syntax_output_accepts_lambda_callback_arguments_on_formal_path() {
+    let diagnostics = check_syntax_output(
+        "\
+module syntax_callback_lambda.\n\
+\n\
+pub type Event = {id: Int}.\n\
+\n\
+pub register(callback: (Event) -> Unit): Unit ->\n\
+    Unit.\n\
+\n\
+pub demo(): Unit ->\n\
+    register((event: Event) -> Unit).\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 #[test]
 fn syntax_output_checks_remote_fun_ref_on_formal_path() {
     let parsed = parse_module_as_syntax_output(
@@ -297,6 +443,139 @@ pub inc_all(values: List[Int]): List[Int] ->\n\
     );
 }
 
+/// Verifies imported overloads resolve by argument type.
+///
+/// Inputs:
+/// - A provider interface declaring two `pick/1` signatures with different
+///   parameter and return types.
+/// - A consumer module calling both overloads through a qualified import.
+///
+/// Output:
+/// - Test passes when both calls typecheck against their declared return types.
+///
+/// Transformation:
+/// - Parses the provider as an interface module so duplicate same-name
+///   same-arity signatures are preserved in `ModuleInterface.function_overloads`,
+///   then typechecks the consumer through ordinary remote-call inference.
+#[test]
+fn syntax_output_selects_imported_overloads_by_argument_type_on_formal_path() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module overload.Consumer.\n\
+\n\
+import overload.Provider.\n\
+\n\
+pub int_value(): Int ->\n\
+    Provider.pick(1).\n\
+\n\
+pub string_value(): String ->\n\
+    Provider.pick(\"x\").\n\
+",
+        "\
+module overload.Provider.\n\
+\n\
+pub pick(value: Int): Int.\n\
+pub pick(value: String): String.\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies local overload declarations resolve by argument type.
+///
+/// Inputs:
+/// - A source module declaring two public `pick/1` functions with different
+///   parameter and return types.
+/// - Functions that call each overload through ordinary local call syntax.
+///
+/// Output:
+/// - Test passes when both calls typecheck and HIR does not report a duplicate
+///   function diagnostic for distinct overload shapes.
+///
+/// Transformation:
+/// - Exercises parser output, HIR duplicate-shape filtering, type signature
+///   candidate collection, and local call overload selection in one formal
+///   source path.
+#[test]
+fn syntax_output_selects_local_overloads_by_argument_type_on_formal_path() {
+    let diagnostics = check_syntax_output(
+        "\
+module overload_local.\n\
+\n\
+pub pick(value: Int): Int ->\n\
+    value.\n\
+\n\
+pub pick(value: String): String ->\n\
+    value.\n\
+\n\
+pub int_value(): Int ->\n\
+    pick(1).\n\
+\n\
+pub string_value(): String ->\n\
+    pick(\"x\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported receiver-method overloads resolve by receiver type.
+///
+/// Inputs:
+/// - A provider interface declaring two `length/0` receiver methods on
+///   different wrapper types.
+/// - A consumer module importing those types and calling `value.length()`.
+///
+/// Output:
+/// - Test passes when receiver-method dispatch selects the candidate whose
+///   receiver type matches the call target.
+///
+/// Transformation:
+/// - Exercises generated-style method overloads through imported interface
+///   summaries, receiver-method dispatch collection, and method-call
+///   typechecking.
+#[test]
+fn syntax_output_selects_imported_receiver_overloads_by_receiver_type_on_formal_path() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module overload.Consumer.\n\
+\n\
+import type overload.Provider.{JsArray, JsString}.\n\
+import overload.Provider.\n\
+\n\
+pub string_length(value: JsString): Int ->\n\
+    value.length().\n\
+\n\
+pub array_length(value: JsArray): Int ->\n\
+    value.length().\n\
+",
+        "\
+module overload.Provider.\n\
+\n\
+pub type JsString.\n\
+pub type JsArray.\n\
+\n\
+pub (value: JsString) length(): Int.\n\
+pub (value: JsArray) length(): Int.\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 #[test]
 fn syntax_output_infers_standalone_expression_on_formal_path() {
     let module = parse_module_as_syntax_output(
@@ -315,23 +594,6 @@ pub add_one(value: Int): Int ->\n\
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
     assert_eq!(pretty_type(&ty), "Int");
 }
-
-/// Verifies bracket reads infer through `IndexGet`.
-///
-/// Inputs:
-/// - A syntax-output module declaring `IndexGet[C, I, T]`.
-/// - One struct and one explicit `IndexGet[IndexedBox, Int, Int]` impl.
-/// - A function body indexing a value parameter.
-///
-/// Output:
-/// - Test passes when the function body is reported as `Int` against an
-///   intentionally wrong `String` return annotation.
-///
-/// Transformation:
-/// - Exercises the compiler-owned desugaring contract that treats
-///   `collection[index]` as a trait-backed `IndexGet.get_at(collection,
-///   index)` lookup while keeping parser and CoreIR index syntax
-///   collection-neutral.
 
 /// Verifies bracket reads infer through `IndexGet`.
 ///
@@ -399,24 +661,6 @@ pub read(value: IndexedBox): String ->\n\
 ///   `collection[index] = value` as a trait-backed
 ///   `IndexSet.set_at(collection, index, value)` update while preserving
 ///   target-neutral parser syntax.
-
-/// Verifies bracket assignments infer through `IndexSet`.
-///
-/// Inputs:
-/// - A syntax-output module declaring `IndexSet[C, I, T]`.
-/// - One struct declaring `implements IndexSet[IndexedBox, Int, Int]`.
-/// - One mutable receiver method satisfying the trait contract.
-/// - A function body assigning through bracket syntax.
-///
-/// Output:
-/// - Test passes when the function body is reported as `Unit` against an
-///   intentionally wrong `String` return annotation.
-///
-/// Transformation:
-/// - Exercises the compiler-owned desugaring contract that treats
-///   `collection[index] = value` as a trait-backed
-///   `IndexSet.set_at(collection, index, value)` update while preserving
-///   target-neutral parser syntax.
 #[test]
 fn syntax_output_infers_index_assignment_through_index_set_trait() {
     let diagnostics = check_syntax_output(
@@ -444,6 +688,63 @@ pub write(value: IndexedBox): String ->\n\
             .iter()
             .any(|diag| diag.message.contains("expected Binary found Unit")),
         "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported wrappers can satisfy bracket read and write contracts.
+///
+/// Inputs:
+/// - A generated-style provider interface exporting an opaque wrapper type.
+/// - Public `IndexGet` and `IndexSet` traits plus wrapper conformances.
+/// - A consumer module importing the wrapper and trait contracts.
+///
+/// Output:
+/// - Test passes when `values[0]` infers `String` and `values[0] = "x"`
+///   infers `Unit` through imported interface metadata.
+///
+/// Transformation:
+/// - Exercises the same trait-backed bracket desugaring that JS DOM wrappers
+///   need, without relying on local source impl bodies.
+#[test]
+fn syntax_output_infers_imported_index_get_and_set_for_generated_wrapper_on_formal_path() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module index_generated.Consumer.\n\
+\n\
+import type std.js.Dom.{ElementList}.\n\
+import std.js.Dom.{IndexGet, IndexSet}.\n\
+\n\
+pub read(values: ElementList): String ->\n\
+    values[0].\n\
+\n\
+pub write(values: ElementList): Unit ->\n\
+    values[0] = \"x\".\n\
+",
+        "\
+module std.js.Dom.\n\
+\n\
+pub type ElementList.\n\
+\n\
+pub trait IndexGet[C, I, T] {\n\
+    get_at(collection: C, index: I): T.\n\
+}.\n\
+\n\
+pub trait IndexSet[C, I, T] {\n\
+    set_at(mut collection: C, index: I, value: T): Unit.\n\
+}.\n\
+\n\
+pub impl IndexGet[ElementList, Int, String] for ElementList {\n\
+}.\n\
+\n\
+pub impl IndexSet[ElementList, Int, String] for ElementList {\n\
+}.\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
         diagnostics
     );
 }

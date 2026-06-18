@@ -251,6 +251,11 @@ fn format_annotation_value(value: &AnnotationValue) -> String {
     }
 }
 
+/// Formats an import declaration.
+///
+/// Inputs: parsed import declaration. Output: canonical import source text.
+/// Transformation: handles asset imports, type imports, selected imports, and
+/// redundant default type import spelling.
 fn format_import(import: &ImportDecl) -> String {
     if matches!(
         import.kind,
@@ -304,6 +309,11 @@ fn format_import(import: &ImportDecl) -> String {
     out
 }
 
+/// Returns whether a type import repeats its default exported type name.
+///
+/// Inputs: parsed import declaration. Output: redundancy flag. Transformation:
+/// compares the selected item with the module's final segment when no alias is
+/// present.
 fn is_redundant_default_type_import(import: &ImportDecl) -> bool {
     let Some(item) = import.items.first() else {
         return false;
@@ -316,6 +326,10 @@ fn is_redundant_default_type_import(import: &ImportDecl) -> bool {
             .is_some_and(|last_segment| last_segment == item.name)
 }
 
+/// Formats one selected import item.
+///
+/// Inputs: parsed import item. Output: source item text. Transformation:
+/// appends `as Alias` only when an alias is present.
 fn format_import_item(item: &crate::parse_tree::ImportItem) -> String {
     let mut text = String::from(&item.name);
     if let Some(alias) = &item.as_alias {
@@ -326,6 +340,11 @@ fn format_import_item(item: &crate::parse_tree::ImportItem) -> String {
     text
 }
 
+/// Formats a template declaration.
+///
+/// Inputs: parsed template declaration. Output: canonical template source text.
+/// Transformation: emits source path and ordered props, using an empty block
+/// when no props exist.
 fn format_template_decl(template: &TemplateDecl) -> String {
     let mut out = format!(
         "template {} from \"{}\"",
@@ -352,6 +371,11 @@ fn format_template_decl(template: &TemplateDecl) -> String {
     out
 }
 
+/// Escapes string content for quoted source output.
+///
+/// Inputs: raw string value. Output: escaped string payload without outer
+/// quotes. Transformation: escapes backslash, quote, newline, carriage return,
+/// and tab.
 fn escape_string(value: &str) -> String {
     value
         .chars()
@@ -392,6 +416,11 @@ fn format_export(export: &ExportDecl) -> String {
     format!("export {}.", items.join(", "))
 }
 
+/// Formats a type declaration.
+///
+/// Inputs: parsed type declaration. Output: canonical type source text.
+/// Transformation: emits visibility, opacity, params, implements clauses, and
+/// union variants with stable indentation.
 fn format_type_decl(ty: &TypeDecl) -> String {
     let mut out = String::new();
     if ty.is_public {
@@ -441,6 +470,11 @@ fn format_type_decl(ty: &TypeDecl) -> String {
     out
 }
 
+/// Formats a struct declaration.
+///
+/// Inputs: parsed struct declaration. Output: canonical struct source text.
+/// Transformation: emits visibility, derives/implements clauses, and fields in
+/// source order.
 fn format_struct_decl(decl: &StructDecl) -> String {
     let mut out = String::new();
     if decl.is_public {
@@ -474,6 +508,10 @@ fn format_struct_decl(decl: &StructDecl) -> String {
     out
 }
 
+/// Formats a struct field.
+///
+/// Inputs: parsed struct field. Output: source field text. Transformation:
+/// emits name/type and optional default expression.
 fn format_struct_field(field: &StructFieldDecl) -> String {
     let mut out = String::new();
     out.push_str(&field.name);
@@ -486,6 +524,11 @@ fn format_struct_field(field: &StructFieldDecl) -> String {
     out
 }
 
+/// Formats a constructor declaration.
+///
+/// Inputs: parsed constructor declaration. Output: canonical constructor block.
+/// Transformation: emits visibility, type params, clauses, params, return
+/// types, and bodies with stable separators.
 fn format_constructor_decl(decl: &ConstructorDecl) -> String {
     let mut out = String::new();
     if decl.is_public {
@@ -525,6 +568,10 @@ fn format_constructor_decl(decl: &ConstructorDecl) -> String {
     out
 }
 
+/// Formats one constructor parameter.
+///
+/// Inputs: parsed constructor parameter. Output: source parameter text.
+/// Transformation: emits varargs marker, name/type, and optional default.
 fn format_constructor_param(param: &ConstructorParam) -> String {
     let mut out = String::new();
     if param.is_varargs {
@@ -540,6 +587,11 @@ fn format_constructor_param(param: &ConstructorParam) -> String {
     out
 }
 
+/// Formats a function declaration.
+///
+/// Inputs: parsed function declaration. Output: canonical function source.
+/// Transformation: handles bodyless signatures, single-clause inline bodies,
+/// and multi-clause function bodies.
 fn format_function(function: &FunctionDecl) -> String {
     let mut out = String::new();
     if function.is_public {
@@ -633,6 +685,11 @@ fn format_method(method: &MethodDecl) -> String {
     out
 }
 
+/// Formats a function signature.
+///
+/// Inputs: function name, params, and return type. Output: `name(params):
+/// Type` text. Transformation: formats params in source order and normalizes
+/// type expressions through `format_type_expr`.
 fn format_function_signature(name: &str, params: &[Param], ret: &TypeExpr) -> String {
     let mut out = String::new();
     out.push_str(name);
@@ -650,6 +707,11 @@ fn format_function_signature(name: &str, params: &[Param], ret: &TypeExpr) -> St
     out
 }
 
+/// Formats a trait declaration.
+///
+/// Inputs: parsed trait declaration. Output: canonical trait source text.
+/// Transformation: emits visibility, params, super traits, method signatures,
+/// and default bodies.
 fn format_trait_decl(trait_decl: &TraitDecl) -> String {
     let mut out = String::new();
     if trait_decl.is_public {
@@ -732,10 +794,20 @@ fn format_trait_impl_decl(trait_impl: &TraitImplDecl) -> String {
     out
 }
 
+/// Formats a raw/unsupported declaration.
+///
+/// Inputs: raw declaration payload. Output: raw text with terminating period.
+/// Transformation: preserves raw declaration text exactly apart from appending
+/// the declaration terminator.
 fn format_raw_decl(raw: &UnsupportedDecl) -> String {
     format!("{}.", raw.text)
 }
 
+/// Formats one multi-clause function clause.
+///
+/// Inputs: parent function metadata and parsed clause. Output: source clause
+/// text. Transformation: uses the parent function name and clause patterns,
+/// optional guard, and body.
 fn format_function_clause(function: &FunctionDecl, clause: &FunctionClause) -> String {
     let mut out = String::new();
     out.push_str(&function.name);
@@ -763,6 +835,10 @@ fn format_function_clause(function: &FunctionDecl, clause: &FunctionClause) -> S
     out
 }
 
+/// Formats a pattern.
+///
+/// Inputs: parsed pattern. Output: canonical pattern text. Transformation:
+/// recursively formats tuples, lists, cons patterns, maps, and records.
 fn format_pattern(pattern: &Pattern) -> String {
     match pattern {
         Pattern::Wildcard => "_".to_string(),
@@ -812,24 +888,45 @@ fn format_pattern(pattern: &Pattern) -> String {
     }
 }
 
+/// Formats a record pattern field.
+///
+/// Inputs: parsed pattern field. Output: `key = pattern` text. Transformation:
+/// recursively formats the field pattern value.
 fn format_record_pattern_field(field: &MapField) -> String {
     format!("{} = {}", field.key, format_pattern(&field.value))
 }
 
+/// Formats a map pattern field.
+///
+/// Inputs: parsed map pattern field. Output: key/operator/value text.
+/// Transformation: chooses `:=` for required fields and `=>` otherwise.
 fn format_map_field(field: &MapField) -> String {
     let sep = if field.required { ":=" } else { "=>" };
     format!("{}{}{}", field.key, sep, format_pattern(&field.value))
 }
 
+/// Formats a map expression field.
+///
+/// Inputs: parsed map expression field. Output: key/operator/value text.
+/// Transformation: chooses `:=` for required fields and recursively formats the
+/// value expression.
 fn format_map_expr_field(field: &MapExprField) -> String {
     let sep = if field.required { ":=" } else { "=>" };
     format!("{}{}{}", field.key, sep, format_expr(&field.value, 0))
 }
 
+/// Formats a template or record construction field.
+///
+/// Inputs: parsed expression field. Output: `key = expr` text. Transformation:
+/// recursively formats the value expression.
 fn format_template_expr_field(field: &MapExprField) -> String {
     format!("{} = {}", field.key, format_expr(&field.value, 0))
 }
 
+/// Formats a type expression.
+///
+/// Inputs: parsed type expression. Output: source type text. Transformation:
+/// trims whitespace and substitutes `Dynamic` for empty type text.
 fn format_type_expr(ty: &TypeExpr) -> String {
     let mut text = ty.text.trim().to_string();
     if text.is_empty() {
@@ -838,6 +935,11 @@ fn format_type_expr(ty: &TypeExpr) -> String {
     text
 }
 
+/// Formats an expression.
+///
+/// Inputs: parsed expression and indentation level. Output: canonical
+/// expression text. Transformation: recursively formats expression variants and
+/// uses indentation for block-like forms.
 fn format_expr(expr: &Expr, indent: usize) -> String {
     let spacing = "    ".repeat(indent);
     match expr {
@@ -1106,6 +1208,11 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
     }
 }
 
+/// Formats an HTML/raw block expression.
+///
+/// Inputs: macro/block name, HTML nodes, and indentation. Output: block source
+/// text. Transformation: formats children one per line and closes at the parent
+/// indentation level.
 fn format_html_block(name: &str, nodes: &[HtmlNode], indent: usize) -> String {
     let spacing = "    ".repeat(indent);
     let mut out = format!("{name} {{\n");
@@ -1118,6 +1225,11 @@ fn format_html_block(name: &str, nodes: &[HtmlNode], indent: usize) -> String {
     out
 }
 
+/// Formats one HTML node.
+///
+/// Inputs: parsed HTML node and indentation. Output: HTML source fragment.
+/// Transformation: formats text, interpolation, named slots, and elements
+/// recursively.
 fn format_html_node(node: &HtmlNode, indent: usize) -> String {
     let spacing = "    ".repeat(indent);
     match node {
@@ -1153,6 +1265,11 @@ fn format_html_node(node: &HtmlNode, indent: usize) -> String {
     }
 }
 
+/// Formats HTML attributes.
+///
+/// Inputs: parsed attributes. Output: sorted attribute source text.
+/// Transformation: sorts by attribute name for deterministic output and formats
+/// static or expression values.
 fn format_html_attrs(attrs: &[HtmlAttr]) -> String {
     let mut attrs = attrs.iter().collect::<Vec<_>>();
     attrs.sort_by(|left, right| left.name.cmp(&right.name));
@@ -1169,6 +1286,10 @@ fn format_html_attrs(attrs: &[HtmlAttr]) -> String {
         .join("")
 }
 
+/// Returns canonical source text for a binary operator.
+///
+/// Inputs: parser binary operator. Output: operator spelling. Transformation:
+/// maps the closed operator enum to the formatter spelling.
 fn op_text(op: &BinaryOp) -> &'static str {
     match op {
         BinaryOp::Add => "+",
@@ -1189,6 +1310,10 @@ fn op_text(op: &BinaryOp) -> &'static str {
     }
 }
 
+/// Formats a case/try clause.
+///
+/// Inputs: parsed case clause. Output: `pattern [when guard] -> body` text.
+/// Transformation: formats the pattern, optional guard, and body expression.
 fn format_case_clause(clause: &CaseClause) -> String {
     let mut out = String::new();
     out.push_str(&format_pattern(&clause.pattern));
@@ -1202,6 +1327,11 @@ fn format_case_clause(clause: &CaseClause) -> String {
     out
 }
 
+/// Returns whether a single function clause duplicates the declaration header.
+///
+/// Inputs: parsed function declaration. Output: `true` when the first clause
+/// patterns are exactly the header parameter names. Transformation: compares
+/// clause variables with params to decide compact formatting.
 fn single_clause_matches_header(function: &FunctionDecl) -> bool {
     let Some(clause) = function.clauses.first() else {
         return false;
@@ -1222,162 +1352,5 @@ fn single_clause_matches_header(function: &FunctionDecl) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{parse_interface_module, parse_module};
-
-    /// Verifies source modules cannot reach formatter export-list normalization.
-    ///
-    /// Inputs:
-    /// - A canonical `.terl` module string containing removed source `export`
-    ///   syntax.
-    ///
-    /// Output:
-    /// - Parse diagnostic from the source parser.
-    ///
-    /// Transformation:
-    /// - Attempts source parsing before formatting, proving formatter export
-    ///   support is not a source-module escape hatch.
-    #[test]
-    fn formatter_source_parser_rejects_export_declarations() {
-        let error = parse_module(
-            r#"
-module formatter_source_export.
-
-export ghost/1.
-"#,
-        )
-        .expect_err("source parser must reject export declarations before formatting");
-
-        assert!(error
-            .message
-            .contains("source export declarations are not part of canonical Terlan"));
-    }
-
-    /// Verifies interface export summaries can still round-trip through the
-    /// shared formatter.
-    ///
-    /// Inputs:
-    /// - A `.terli` interface string containing an export summary.
-    ///
-    /// Output:
-    /// - Formatted interface text preserving `export ghost/1.`.
-    ///
-    /// Transformation:
-    /// - Parses with the interface parser and formats the resulting parse tree, using
-    ///   the shared declaration formatter's interface-only export branch.
-    #[test]
-    fn formatter_preserves_interface_export_summaries() {
-        let module = parse_interface_module(
-            r#"
-module formatter_interface_export.
-
-export ghost/1.
-"#,
-        )
-        .expect("interface export summaries remain valid");
-
-        let output = format_module(&module);
-
-        assert!(output.contains("export ghost/1."));
-    }
-
-    #[test]
-    fn formats_html_blocks_with_nested_shape_and_sorted_attrs() {
-        let module = parse_module(
-            r#"
-module html_fmt.
-
-pub view(Name: Text): Html[none] ->
-    html { <main id="home" class="page"><h1>{Name}</h1><input value={Name} name="email" /></main> }.
-"#,
-        )
-        .expect("parse module");
-
-        let output = format_module(&module);
-        assert!(output.contains(
-            "html {\n        <main class=\"page\" id=\"home\">\n            <h1>\n                {Name}\n            </h1>\n            <input name=\"email\" value={Name} />\n        </main>\n    }"
-        ));
-    }
-
-    #[test]
-    fn formats_file_imports() {
-        let module = parse_module(
-            r#"
-module file_import_fmt.
-
-import file "./templates/user_card.terl.html" as UserCard.
-"#,
-        )
-        .expect("parse module");
-
-        let output = format_module(&module);
-        assert!(output.contains(r#"import file "./templates/user_card.terl.html" as UserCard."#));
-    }
-
-    #[test]
-    fn formats_css_imports() {
-        let module = parse_module(
-            r#"
-module css_import_fmt.
-
-import css "./styles/page.css" as PageCss.
-"#,
-        )
-        .expect("parse module");
-
-        let output = format_module(&module);
-        assert!(output.contains(r#"import css "./styles/page.css" as PageCss."#));
-    }
-
-    #[test]
-    fn formats_markdown_imports() {
-        let module = parse_module(
-            r#"
-module markdown_import_fmt.
-
-import markdown "./posts/hello.md" as HelloPost.
-"#,
-        )
-        .expect("parse module");
-
-        let output = format_module(&module);
-        assert!(output.contains(r#"import markdown "./posts/hello.md" as HelloPost."#));
-    }
-
-    #[test]
-    fn formats_template_declarations() {
-        let module = parse_module(
-            r#"
-module template_fmt.
-
-template Page from "./templates/page.terl.html" {
-    title: Text,
-    user: User
-}.
-"#,
-        )
-        .expect("parse module");
-
-        let output = format_module(&module);
-        assert!(output.contains(
-            "template Page from \"./templates/page.terl.html\" {\n    title: Text,\n    user: User\n}."
-        ));
-    }
-
-    #[test]
-    fn formats_template_instantiation_exprs() {
-        let module = parse_module(
-            r#"
-module template_instantiation_fmt.
-
-pub view(Title: Text, User: User): Html[none] ->
-    Page{ title = Title, user = User }.
-"#,
-        )
-        .expect("parse module");
-
-        let output = format_module(&module);
-        assert!(output.contains("Page {title = Title, user = User}."));
-    }
-}
+#[path = "formatter_test.rs"]
+mod formatter_test;

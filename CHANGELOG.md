@@ -2,6 +2,29 @@
 
 All notable release-facing changes to Terlan are tracked here.
 
+## Unreleased
+
+## 0.0.4
+
+- Add the experimental JavaScript build target for library-style ES module
+  output through `terlc build --target js`.
+- Add explicit JavaScript target profiles for shared, browser, and worker
+  output validation.
+- Add generated `std.js` bindings for the first standard JavaScript surface:
+  `String`, `Array`, `Promise`, `Dom.Document`, and `Dom.HTMLElement`.
+- Add browser packaging with `terlc build --target js.browser`, producing a
+  runnable `_build/web` artifact with JavaScript modules, imported assets, and
+  manifest-declared static assets.
+- Add `terlc serve` for local validation and serving of packaged web artifacts.
+- Add `terlc init --profile web` to scaffold a minimal browser module, HTTP
+  handler module, web assets directory, and project manifest.
+- Add `std.http.Request`, `std.http.Response`, `std.http.Error`, and
+  `std.data.Json` as the first HTTP/JSON standard-library surface for web
+  handlers.
+- Add target-profile diagnostics that reject JavaScript-only standard-library
+  imports on non-JavaScript targets.
+- Add Oxc validation for emitted JavaScript before build artifacts are written.
+
 ## 0.0.3
 
 - Promote `.terl` as the canonical Terlan source extension and `.terli` as the

@@ -2,6 +2,17 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{erlang_type_param_name, is_generic_type_var, map_module_name, map_struct_name};
 
+/// Erlang module render model.
+///
+/// Inputs:
+/// - Lowered module name, documentation lines, and ordered forms.
+///
+/// Output:
+/// - Complete `.erl` source through `render`.
+///
+/// Transformation:
+/// - Keeps top-level form ordering explicit so frontend lowerers control
+///   deterministic Erlang output.
 #[derive(Debug, Clone)]
 pub(super) struct ErlModule {
     pub(super) name: String,
@@ -26,6 +37,18 @@ impl ErlModule {
     }
 }
 
+/// Top-level Erlang form render model.
+///
+/// Inputs:
+/// - Lowered exports, types, records, specs, functions, or backend-owned raw
+///   text.
+///
+/// Output:
+/// - One top-level Erlang source form through `render`.
+///
+/// Transformation:
+/// - Represents structured forms directly and confines raw fragments to
+///   backend-owned escape hatches.
 #[derive(Debug, Clone)]
 pub(super) enum ErlForm {
     Export(Vec<String>),
@@ -56,6 +79,17 @@ impl ErlForm {
     }
 }
 
+/// Erlang type declaration render model.
+///
+/// Inputs:
+/// - Opacity marker, docs, type name, parameters, and lowered RHS type.
+///
+/// Output:
+/// - `-type` or `-opaque` Erlang form.
+///
+/// Transformation:
+/// - Preserves declaration shape while marking phantom parameters during
+///   rendering.
 #[derive(Debug, Clone)]
 pub(super) struct ErlTypeDecl {
     pub(super) opaque: bool,
@@ -105,6 +139,16 @@ impl ErlTypeDecl {
     }
 }
 
+/// Erlang record declaration render model.
+///
+/// Inputs:
+/// - Backend-safe record name and ordered fields.
+///
+/// Output:
+/// - `-record` Erlang form.
+///
+/// Transformation:
+/// - Keeps field order stable for deterministic generated record headers.
 #[derive(Debug, Clone)]
 pub(super) struct ErlRecordDecl {
     pub(super) name: String,
@@ -133,6 +177,17 @@ impl ErlRecordDecl {
     }
 }
 
+/// Erlang record field render model.
+///
+/// Inputs:
+/// - Field name, source docs, and optional default expression.
+///
+/// Output:
+/// - Field fragment inside a `-record` form.
+///
+/// Transformation:
+/// - Preserves default values as expressions and renders docs as inline
+///   comments where present.
 #[derive(Debug, Clone)]
 pub(super) struct ErlRecordField {
     pub(super) name: String,
@@ -159,6 +214,16 @@ impl ErlRecordField {
     }
 }
 
+/// Erlang function spec render model.
+///
+/// Inputs:
+/// - Docs, function name, argument types, and return type.
+///
+/// Output:
+/// - `-spec` Erlang form.
+///
+/// Transformation:
+/// - Tracks type-variable usage so render can mark phantom variables.
 #[derive(Debug, Clone)]
 pub(super) struct ErlSpec {
     pub(super) docs: Vec<String>,
@@ -201,6 +266,17 @@ impl ErlSpec {
     }
 }
 
+/// Erlang function render model.
+///
+/// Inputs:
+/// - Function docs, backend-safe name, and ordered clauses.
+///
+/// Output:
+/// - Erlang function source.
+///
+/// Transformation:
+/// - Shares one function name across all clauses and renders clause
+///   separators based on position.
 #[derive(Debug, Clone)]
 pub(super) struct ErlFunction {
     pub(super) docs: Vec<String>,
@@ -261,6 +337,17 @@ fn escape_erlang_string_literal(text: &str) -> String {
         .collect()
 }
 
+/// Erlang function clause render model.
+///
+/// Inputs:
+/// - Clause patterns, optional guard, and body expression.
+///
+/// Output:
+/// - One named Erlang function clause through `render`.
+///
+/// Transformation:
+/// - Leaves the owning function name outside the clause so multi-clause
+///   functions can reuse the same clause representation.
 #[derive(Debug, Clone)]
 pub(super) struct ErlFunctionClause {
     pub(super) patterns: Vec<ErlPattern>,
@@ -299,6 +386,17 @@ impl ErlFunctionClause {
     }
 }
 
+/// Erlang type expression render model.
+///
+/// Inputs:
+/// - Lowered type fragments from syntax or CoreIR type lowering.
+///
+/// Output:
+/// - Erlang type syntax through `render`.
+///
+/// Transformation:
+/// - Represents common type shapes structurally while allowing raw fragments
+///   for backend-owned spec forms.
 #[derive(Debug, Clone)]
 pub(super) enum ErlType {
     Raw(String),
@@ -470,6 +568,16 @@ impl ErlType {
     }
 }
 
+/// Erlang map type field render model.
+///
+/// Inputs:
+/// - Key text, value type, and requiredness marker.
+///
+/// Output:
+/// - Map type field syntax.
+///
+/// Transformation:
+/// - Selects Erlang `:=` or `=>` separators from the requiredness flag.
 #[derive(Debug, Clone)]
 pub(super) struct ErlMapTypeField {
     pub(super) key: String,
@@ -504,6 +612,17 @@ impl ErlMapTypeField {
     }
 }
 
+/// Erlang expression render model.
+///
+/// Inputs:
+/// - Lowered expression forms from CoreIR or syntax-output lowering.
+///
+/// Output:
+/// - Erlang expression source through `render`.
+///
+/// Transformation:
+/// - Captures the common expression subset needed by Terlan's BEAM target
+///   while keeping raw fragments isolated to backend-owned cases.
 #[derive(Debug, Clone)]
 pub(super) enum ErlExpr {
     Int(i64),
@@ -806,12 +925,34 @@ impl ErlExpr {
     }
 }
 
+/// Erlang `begin` binding render model.
+///
+/// Inputs:
+/// - Backend-safe variable name and expression value.
+///
+/// Output:
+/// - Binding fragment inside a rendered `begin ... end` expression.
+///
+/// Transformation:
+/// - Lets `let` lowering keep ordered value bindings distinct from the final
+///   body expression.
 #[derive(Debug, Clone)]
 pub(super) struct ErlLetBinding {
     pub(super) name: String,
     pub(super) value: ErlExpr,
 }
 
+/// Erlang map or record field expression render model.
+///
+/// Inputs:
+/// - Field key, value expression, and map requiredness marker.
+///
+/// Output:
+/// - Map field or record field assignment source.
+///
+/// Transformation:
+/// - Shares one lowered field shape across map expressions, record
+///   construction, and record updates.
 #[derive(Debug, Clone)]
 pub(super) struct ErlMapField {
     pub(super) key: String,
@@ -840,6 +981,16 @@ impl ErlMapField {
     }
 }
 
+/// Erlang case-like clause render model.
+///
+/// Inputs:
+/// - Pattern, optional guard, and body expression.
+///
+/// Output:
+/// - Clause fragment for `case`, `try of`, and `catch`.
+///
+/// Transformation:
+/// - Keeps separator management with the enclosing expression renderer.
 #[derive(Debug, Clone)]
 pub(super) struct ErlCaseClause {
     pub(super) pattern: ErlPattern,
@@ -847,6 +998,17 @@ pub(super) struct ErlCaseClause {
     pub(super) body: ErlExpr,
 }
 
+/// Erlang `try ... after` clause render model.
+///
+/// Inputs:
+/// - Trigger expression and cleanup body expression.
+///
+/// Output:
+/// - `after` clause fragment inside a rendered try expression.
+///
+/// Transformation:
+/// - Models Terlan's try-after cleanup branch without turning it into a normal
+///   case clause.
 #[derive(Debug, Clone)]
 pub(super) struct ErlTryAfterClause {
     pub(super) trigger: Box<ErlExpr>,
@@ -874,12 +1036,34 @@ impl ErlCaseClause {
     }
 }
 
+/// Erlang `if` clause render model.
+///
+/// Inputs:
+/// - Condition expression and body expression.
+///
+/// Output:
+/// - Clause fragment inside an Erlang `if`.
+///
+/// Transformation:
+/// - Separates condition/body pairs from the surrounding clause separator
+///   logic.
 #[derive(Debug, Clone)]
 pub(super) struct ErlIfClause {
     pub(super) condition: ErlExpr,
     pub(super) body: ErlExpr,
 }
 
+/// Erlang pattern render model.
+///
+/// Inputs:
+/// - Lowered pattern shapes from syntax or CoreIR pattern lowering.
+///
+/// Output:
+/// - Erlang pattern source through `render`.
+///
+/// Transformation:
+/// - Captures literals, collections, maps, records, and variables in a backend
+///   hygiene-aware shape.
 #[derive(Debug, Clone)]
 pub(super) enum ErlPattern {
     Wildcard,
@@ -947,6 +1131,16 @@ impl ErlPattern {
     }
 }
 
+/// Erlang map or record pattern field render model.
+///
+/// Inputs:
+/// - Field key, lowered pattern value, and map requiredness marker.
+///
+/// Output:
+/// - Map pattern field or record pattern field source.
+///
+/// Transformation:
+/// - Shares one field shape between map and record pattern rendering.
 #[derive(Debug, Clone)]
 pub(super) struct ErlPatternMapField {
     pub(super) key: String,
@@ -975,6 +1169,16 @@ impl ErlPatternMapField {
     }
 }
 
+/// Erlang binary operator identity.
+///
+/// Inputs:
+/// - Terlan/CoreIR operator lowering decisions.
+///
+/// Output:
+/// - Backend operator spelling through `render`.
+///
+/// Transformation:
+/// - Keeps source/operator normalization separate from expression rendering.
 #[derive(Debug, Clone)]
 pub(super) enum ErlBinaryOp {
     Add,
@@ -998,6 +1202,16 @@ pub(super) enum ErlBinaryOp {
     Send,
 }
 
+/// Erlang unary operator identity.
+///
+/// Inputs:
+/// - Terlan/CoreIR unary operator lowering decisions.
+///
+/// Output:
+/// - Backend unary operator spelling selected during expression rendering.
+///
+/// Transformation:
+/// - Represents negation and logical-not independently from operand lowering.
 #[derive(Debug, Clone)]
 pub(super) enum ErlUnaryOp {
     Neg,

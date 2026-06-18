@@ -1,5 +1,5 @@
 //! BEAM supervisor contract.
-//! 
+//!
 //! `std.beam.Supervisor` models supervised runtime ownership for BEAM-targeted
 //! services and native bridges. It is deliberately expressed as ordinary types
 //! and traits so supervision stays outside the Terlan grammar.
@@ -7,7 +7,7 @@
 module std.beam.Supervisor.
 
 /// ChildSpec describes a supervised child declaration.
-/// 
+///
 /// Input: child process or resource type `P`.
 /// Output: an opaque child specification.
 /// Transformation: carries target-owned child startup metadata without exposing
@@ -16,7 +16,7 @@ module std.beam.Supervisor.
 pub opaque type ChildSpec[P].
 
 /// Supervisor represents a BEAM supervision owner.
-/// 
+///
 /// Input: no type parameters.
 /// Output: an opaque supervisor handle.
 /// Transformation: hides BEAM supervision tree identity behind a typed target
@@ -25,7 +25,7 @@ pub opaque type ChildSpec[P].
 pub opaque type Supervisor.
 
 /// Builds a child specification for a supervised value.
-/// 
+///
 /// Input: one process or resource value of type `P`.
 /// Output: `ChildSpec[P]`.
 /// Transformation: asks the BEAM runtime adapter to describe how the value
@@ -34,7 +34,7 @@ pub opaque type Supervisor.
 pub child_spec(value: P): ChildSpec[P].
 
 /// Starts a child under a supervisor.
-/// 
+///
 /// Input: one `Supervisor` receiver and one child specification.
 /// Output: `Result[P, Error]`.
 /// Transformation: delegates startup to the target supervisor and normalizes
@@ -43,7 +43,7 @@ pub child_spec(value: P): ChildSpec[P].
 pub (supervisor: Supervisor) start(spec: ChildSpec[P]): Result[P, Error].
 
 /// Stops a supervised child.
-/// 
+///
 /// Input: one mutable `Supervisor` receiver and one supervised child value.
 /// Output: `Unit`.
 /// Transformation: asks the target supervisor to stop the child while hiding
@@ -52,7 +52,7 @@ pub (supervisor: Supervisor) start(spec: ChildSpec[P]): Result[P, Error].
 pub (mut supervisor: Supervisor) stop(value: P): Unit.
 
 /// Supervised defines how a runtime value enters and leaves supervision.
-/// 
+///
 /// Input: child process or resource type `P`.
 /// Output: a trait requiring child specification, start, and stop operations.
 /// Transformation: gives BEAM runtime adapters a stable contract that can be

@@ -1,0 +1,52 @@
+/**
+ * JavaScript-native string wrapper.
+ *
+ * `std.js.String` exposes the target-specific JavaScript string surface.
+ * `JsString` is intentionally distinct from portable `std.core.String` so
+ * modules can choose when they are relying on JavaScript runtime behavior.
+ */
+
+module std.js.String.
+
+/**
+ * Represents a JavaScript-native string value.
+ *
+ * Input: no value input.
+ * Output: an opaque target-specific wrapper type.
+ * Transformation: preserves JavaScript string identity at the Terlan type
+ * level while keeping portable `String` conversions explicit.
+ */
+pub opaque type JsString.
+
+/**
+ * Converts a portable Terlan `String` into a JavaScript-native `JsString`.
+ *
+ * Input: one portable UTF-8 `String`.
+ * Output: one JavaScript-native `JsString`.
+ * Transformation: asks the JavaScript target backend to wrap or reinterpret
+ * the portable string at the platform boundary.
+ */
+pub from_core(value: String): JsString ->
+    native.
+
+/**
+ * Converts a JavaScript-native `JsString` into a portable Terlan `String`.
+ *
+ * Input: one `JsString`.
+ * Output: one portable UTF-8 `String`.
+ * Transformation: asks the JavaScript target backend to produce a portable
+ * core string value from the target-native wrapper.
+ */
+pub (value: JsString) to_core(): String ->
+    native.
+
+/**
+ * Returns the portable string representation of a `JsString`.
+ *
+ * Input: one `JsString`.
+ * Output: one portable UTF-8 `String`.
+ * Transformation: delegates to `to_core` so normal stringification remains
+ * explicit and target-owned.
+ */
+pub (value: JsString) to_string(): String ->
+    value.to_core().

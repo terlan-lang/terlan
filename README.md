@@ -10,11 +10,12 @@ through explicit compiler targets.
 
 Terlan favors immutable data, explicit types, and predictable control flow,
 while remaining practical for object-style APIs, platform interop, and rich
-domain modeling. If you have worked in the industry across multiple server stacks, everything about Terlan should feel familiar and intuitive.
+domain modeling. If you have worked across multiple server stacks, Terlan
+should feel familiar and predictable.
 
 ## Hello World
 
-The value proposition of Terlan is best demonstrated in the following example: 
+The value proposition of Terlan is best demonstrated in the following example:
 
 ```terlan
 module hello_terl.Main.
@@ -22,7 +23,7 @@ module hello_terl.Main.
 import std.io.Console.{println}.
 
 pub main(): Unit ->
-    println("Hello Terl").
+    println("Hello Terlan").
 ```
 
 This compiles to Erlang:
@@ -33,12 +34,12 @@ This compiles to Erlang:
 -export([main/0]).
 
 main() ->
-    begin io:format("~ts~n", ["Hello Terl"]), unit end.
+    begin io:format("~ts~n", ["Hello Terlan"]), unit end.
 ```
 
 ## Status
 
-Current version: `0.0.3`
+Current version: `0.0.4`
 
 Terlan is in a very early experimental stage. The compiler, standard library,
 syntax, and release tooling are still changing quickly.
@@ -148,5 +149,37 @@ test result: ok. 1 passed; 0 failed
 
 ## Current Scope
 
-0.0.3 expands Terlan from the base language and standard-library milestone into
-a CLI, documentation, native-boundary, and release-hardening milestone.
+0.0.4 adds the first JavaScript and browser-web target path while preserving
+the existing Erlang/BEAM release path.
+
+## JavaScript Target
+
+Terlan can emit library-style JavaScript modules with:
+
+```sh
+terlc build --target js
+```
+
+It can also package a browser web artifact:
+
+```sh
+terlc init hello-web --profile web
+cd hello-web
+terlc build --target js.browser
+terlc serve
+```
+
+The accepted JavaScript target profiles are:
+
+- `js` / `js.shared` for shared library-style modules.
+- `js.browser` for browser APIs and packaged `_build/web` output.
+- `js.worker` for worker-safe APIs.
+
+The initial generated JavaScript standard library surface is intentionally
+small: `std.js.String`, `std.js.Array`, `std.js.Promise`,
+`std.js.Dom.Document`, and `std.js.Dom.HTMLElement`.
+
+The JavaScript target is still experimental. It validates emitted JavaScript
+with Oxc, rejects JavaScript-only standard-library imports on non-JavaScript
+targets, and can package local browser artifacts with static assets and
+`terlc serve`.

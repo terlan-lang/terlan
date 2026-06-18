@@ -1,0 +1,11 @@
+module tests.js.std.PromiseTest.
+
+import type std.core.Task.
+import type std.js.Promise.
+
+pub accepts_promise(value: Promise[Int]): Promise[Int] ->
+    value.
+
+@test
+pub generated_surface_is_declared(): Bool ->
+    true.

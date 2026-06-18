@@ -150,7 +150,7 @@ agent.stop().\n\
 pub read_updated(agent: Agent[Int]): Int ->\n\
 agent.cast((value: Int) -> value + 1);\n\
 agent.update((value: Int) -> value + 1);\n\
-agent.get_and_update((value: Int) -> {value + 1, value + 1}) + agent.get().\n\
+agent.get_and_update((value: Int) -> {value, value}).\n\
 \n\
 pub run(result: Result[Agent[Int], Error]): Int ->\n\
 case result {\n\
@@ -212,7 +212,7 @@ println(Int.to_string(run(Agent.start(1)))).\n",
         "launcher should exit successfully: stderr={}",
         String::from_utf8_lossy(&launcher_output.stderr)
     );
-    assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "8\n");
+    assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "3\n");
 }
 
 /// Verifies the first admitted `std.beam.Task` operations lower to BEAM

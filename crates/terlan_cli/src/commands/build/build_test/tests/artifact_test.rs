@@ -1,5 +1,25 @@
 use super::*;
 
+/// Asserts a JS runtime smoke status accepted by the J0.4 contract.
+///
+/// Inputs:
+/// - `value`: manifest JSON value stored on one JS module artifact entry.
+///
+/// Output:
+/// - Test assertion only; panics when the status is not a known runtime-smoke
+///   result.
+///
+/// Transformation:
+/// - Accepts successful runtime smoke when Node is available and explicit skip
+///   status when the local runtime is unavailable.
+fn assert_runtime_smoke_status(value: &serde_json::Value) {
+    let status = value.as_str().expect("runtime smoke status");
+    assert!(
+        status == "passed" || status == "skipped:node_unavailable",
+        "unexpected runtime smoke status: {status}"
+    );
+}
+
 /// Verifies single-file builds emit Erlang source and BEAM bytecode only.
 ///
 /// Inputs:
@@ -86,6 +106,306 @@ fn build_command_emits_erlang_source_and_beam_for_single_file() {
     );
 }
 
+/// Verifies single-file JavaScript builds emit JS modules and a manifest.
+///
+/// Inputs:
+/// - A standalone Terlan source file with one public arithmetic function.
+/// - An explicit JavaScript build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when a `.js` module, target metadata, diagnostics metadata,
+///   and JS build manifest are written without Erlang artifacts.
+///
+/// Transformation:
+/// - Runs the build command through `--target js`, then inspects the J0.1
+///   `_build/js`-style layout under the selected test output directory.
+#[test]
+fn build_command_emits_js_module_and_manifest_for_single_file() {
+    let dir = make_temp_dir("single_file_js");
+    let source_path = dir.join("build_single_file_js.terl");
+    let out_dir = dir.join("build");
+    fs::write(
+        &source_path,
+        "module build_single_file_js.\n\npub add(x: Int, y: Int): Int ->\n    x + y.\n",
+    )
+    .expect("failed to write source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_path.display().to_string(),
+            "--target".to_string(),
+            "js".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let js_root = out_dir.join("js");
+    let js_module = js_root.join("modules/build_single_file_js.js");
+    assert!(js_module.exists(), "expected JS module at {js_module:?}");
+    assert!(
+        !out_dir.join("src/build_single_file_js.erl").exists(),
+        "JS build should not emit Erlang source"
+    );
+    assert!(
+        !out_dir.join("ebin/build_single_file_js.beam").exists(),
+        "JS build should not emit BEAM bytecode"
+    );
+
+    let js_text = fs::read_to_string(&js_module).expect("read JS module");
+    assert!(js_text.contains("export function add(x, y)"));
+    assert!(js_text.contains("return x + y;"));
+
+    let manifest_text =
+        fs::read_to_string(js_root.join("manifest.json")).expect("read JS manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_text).expect("parse JS manifest");
+    assert_eq!(manifest["schema"], "terlan-js-build-v1");
+    assert_eq!(manifest["target_profile"], "js.shared");
+    assert_eq!(manifest["module_format"], "es-module");
+    assert_eq!(manifest["module_extension"], "js");
+    assert_eq!(manifest["modules"].as_array().expect("modules").len(), 1);
+    assert_eq!(manifest["modules"][0]["module"], "build_single_file_js");
+    assert_eq!(
+        manifest["modules"][0]["relative_path"],
+        "modules/build_single_file_js.js"
+    );
+    assert_runtime_smoke_status(&manifest["modules"][0]["runtime_smoke_status"]);
+
+    let profile_text = fs::read_to_string(js_root.join("metadata/target-profile.json"))
+        .expect("read JS target metadata");
+    let profile: serde_json::Value =
+        serde_json::from_str(&profile_text).expect("parse JS target metadata");
+    assert_eq!(profile["target_profile"], "js.shared");
+
+    let diagnostics_text = fs::read_to_string(js_root.join("metadata/diagnostics.json"))
+        .expect("read JS diagnostics metadata");
+    let diagnostics: serde_json::Value =
+        serde_json::from_str(&diagnostics_text).expect("parse JS diagnostics metadata");
+    assert_eq!(diagnostics["diagnostic_family"], "js_emit");
+    assert_eq!(
+        diagnostics["diagnostics"]
+            .as_array()
+            .expect("diagnostics")
+            .len(),
+        0
+    );
+}
+
+/// Verifies JavaScript builds lower selected portable `std.core.String`
+/// intrinsics directly into JS operations.
+///
+/// Inputs:
+/// - A standalone Terlan source file using `String` receiver methods selected
+///   for J0.7.
+/// - An explicit JavaScript build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when the written JS module contains direct JavaScript string
+///   operations and the manifest records the artifact.
+///
+/// Transformation:
+/// - Runs the real `terlc build --target js` command so target validation,
+///   direct Oxc emission, artifact writing, and manifest generation are all
+///   exercised through the release-facing build path.
+#[test]
+fn build_command_emits_js_std_core_string_intrinsics() {
+    let dir = make_temp_dir("single_file_js_string_intrinsics");
+    let source_path = dir.join("build_single_file_js_string_intrinsics.terl");
+    let out_dir = dir.join("build");
+    fs::write(
+        &source_path,
+        "\
+module build_single_file_js_string_intrinsics.
+
+pub clean(): String ->
+    \"  hello  \".trim().
+
+pub loud(): String ->
+    \"hello\".uppercase().
+
+pub has_suffix(): Bool ->
+    \"hello\".ends_with(\"lo\").
+",
+    )
+    .expect("failed to write source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_path.display().to_string(),
+            "--target".to_string(),
+            "js".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let js_root = out_dir.join("js");
+    let js_module = js_root.join("modules/build_single_file_js_string_intrinsics.js");
+    let js_text = fs::read_to_string(&js_module).expect("read JS module");
+    assert!(
+        js_text.contains(r#"return "  hello  ".trim();"#),
+        "{js_text}"
+    );
+    assert!(
+        js_text.contains(r#"return "hello".toUpperCase();"#),
+        "{js_text}"
+    );
+    assert!(
+        js_text.contains(r#"return "hello".endsWith("lo");"#),
+        "{js_text}"
+    );
+
+    let manifest_text =
+        fs::read_to_string(js_root.join("manifest.json")).expect("read JS manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_text).expect("parse JS manifest");
+    assert_eq!(manifest["schema"], "terlan-js-build-v1");
+    assert_eq!(
+        manifest["modules"][0]["relative_path"],
+        "modules/build_single_file_js_string_intrinsics.js"
+    );
+    assert_runtime_smoke_status(&manifest["modules"][0]["runtime_smoke_status"]);
+}
+
+/// Verifies JS builds emit TypeScript declarations when requested.
+///
+/// Inputs:
+/// - A standalone Terlan source file with one public function.
+/// - An explicit JavaScript build target, `--declarations`, and isolated
+///   output directory.
+///
+/// Output:
+/// - Test passes when `.js` and `.d.ts` artifacts are written side by side and
+///   the JS manifest records the declaration path.
+///
+/// Transformation:
+/// - Runs `terlc build --target js --declarations`, then verifies declaration
+///   text is derived from CoreIR public function metadata.
+#[test]
+fn build_command_emits_js_declarations_when_requested() {
+    let dir = make_temp_dir("single_file_js_declarations");
+    let source_path = dir.join("build_single_file_js_declarations.terl");
+    let out_dir = dir.join("build");
+    fs::write(
+        &source_path,
+        "module build_single_file_js_declarations.\n\npub add(x: Int, y: Int): Int ->\n    x + y.\n",
+    )
+    .expect("failed to write source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_path.display().to_string(),
+            "--target".to_string(),
+            "js".to_string(),
+            "--declarations".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let js_root = out_dir.join("js");
+    let declaration_path = js_root.join("modules/build_single_file_js_declarations.d.ts");
+    assert!(
+        declaration_path.exists(),
+        "expected TypeScript declaration at {declaration_path:?}"
+    );
+    let declaration_text =
+        fs::read_to_string(&declaration_path).expect("read TypeScript declaration");
+    assert!(
+        declaration_text.contains("export function add(x: number, y: number): number;"),
+        "{declaration_text}"
+    );
+
+    let manifest_text =
+        fs::read_to_string(js_root.join("manifest.json")).expect("read JS manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_text).expect("parse JS manifest");
+    assert_eq!(
+        manifest["modules"][0]["declaration_relative_path"],
+        "modules/build_single_file_js_declarations.d.ts"
+    );
+    assert_eq!(
+        manifest["modules"][0]["declaration_path"],
+        declaration_path.to_string_lossy().to_string()
+    );
+}
+
+/// Verifies JavaScript builds reject unsupported direct-backend shapes before write.
+///
+/// Inputs:
+/// - A standalone Terlan source file with a public body that the release JS
+///   backend currently cannot lower through direct Oxc AST emission.
+/// - An explicit JavaScript build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when the build fails and no partial JS module or manifest is
+///   written.
+///
+/// Transformation:
+/// - Runs `terlc build --target js` through the normal command path and checks
+///   J0.3's direct-backend artifact-write boundary.
+#[test]
+fn build_command_rejects_unsupported_js_direct_backend_before_artifact_write() {
+    let dir = make_temp_dir("single_file_js_direct_reject");
+    let source_path = dir.join("build_js_direct_reject.terl");
+    let out_dir = dir.join("build");
+    fs::write(
+        &source_path,
+        "\
+module build_js_direct_reject.
+
+pub choose(flag: Bool): Int ->
+    if { flag -> 1 }.
+",
+    )
+    .expect("failed to write source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_path.display().to_string(),
+            "--target".to_string(),
+            "js".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::from(1));
+    let js_root = out_dir.join("js");
+    assert!(
+        !js_root.join("modules/build_js_direct_reject.js").exists(),
+        "unsupported JS bodies must fail before module artifact write"
+    );
+    assert!(
+        !js_root.join("manifest.json").exists(),
+        "unsupported JS bodies must fail before manifest write"
+    );
+}
+
 /// Verifies semicolon expression sequences execute in manifest entrypoints.
 ///
 /// Inputs:
@@ -113,7 +433,7 @@ fn build_command_compiles_semicolon_expression_sequence_entrypoint() {
     .expect("failed to write project manifest fixture");
     fs::write(
         app_dir.join("Main.terl"),
-        "module app.Main.\n\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"Hello Terl\");\n    println(\"Hello Terl\").\n",
+        "module app.Main.\n\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"Hello Terlan\");\n    println(\"Hello Terlan\").\n",
     )
     .expect("failed to write semicolon sequence module");
 
@@ -152,7 +472,7 @@ fn build_command_compiles_semicolon_expression_sequence_entrypoint() {
     );
     assert_eq!(
         String::from_utf8_lossy(&launcher_output.stdout),
-        "Hello Terl\nHello Terl\n"
+        "Hello Terlan\nHello Terlan\n"
     );
 }
 
@@ -231,6 +551,303 @@ fn build_command_emits_erlang_sources_and_beams_for_directory() {
             .to_string_lossy()
             .to_string()
     );
+}
+
+/// Verifies directory JavaScript builds emit one JS module per source file.
+///
+/// Inputs:
+/// - A source directory containing multiple package-rooted Terlan modules.
+/// - An explicit JavaScript build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when all expected `.js` modules are emitted and listed in the
+///   JS build manifest without Erlang artifacts.
+///
+/// Transformation:
+/// - Runs source-root discovery through `terlc build --target js`, then checks
+///   that the J0.1 JS layout receives deterministic module artifacts.
+#[test]
+fn build_command_emits_js_modules_and_manifest_for_directory() {
+    let dir = make_temp_dir("directory_js");
+    let source_dir = dir.join("project");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&source_dir).expect("failed to create source dir");
+    fs::write(
+        source_dir.join("a_math.terl"),
+        "module a_math.\n\npub value(): Int ->\n    1.\n",
+    )
+    .expect("failed to write first source fixture");
+    fs::write(
+        source_dir.join("z_math.terl"),
+        "module z_math.\n\npub add(x: Int): Int ->\n    x + 1.\n",
+    )
+    .expect("failed to write second source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_dir.display().to_string(),
+            "--target".to_string(),
+            "js".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let js_root = out_dir.join("js");
+    assert!(js_root.join("modules/a_math.js").exists());
+    assert!(js_root.join("modules/z_math.js").exists());
+    assert!(
+        !out_dir.join("src/a_math.erl").exists(),
+        "JS directory builds should not emit Erlang source"
+    );
+    assert!(
+        !out_dir.join("ebin/z_math.beam").exists(),
+        "JS directory builds should not emit BEAM bytecode"
+    );
+
+    let manifest_text =
+        fs::read_to_string(js_root.join("manifest.json")).expect("read JS directory manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_text).expect("parse JS directory manifest");
+    assert_eq!(manifest["schema"], "terlan-js-build-v1");
+    assert_eq!(manifest["target_profile"], "js.shared");
+    let modules = manifest["modules"].as_array().expect("modules");
+    let module_names = modules
+        .iter()
+        .map(|entry| entry["module"].as_str().expect("module name"))
+        .collect::<Vec<_>>();
+    assert_eq!(module_names, vec!["a_math", "z_math"]);
+    for module in modules {
+        assert_runtime_smoke_status(&module["runtime_smoke_status"]);
+    }
+}
+
+/// Verifies browser JavaScript builds package runnable web artifacts.
+///
+/// Inputs:
+/// - A source directory containing multiple Terlan modules.
+/// - An explicit `js.browser` build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when the normal JS module layout is preserved and `_build/web`
+///   receives copied JS assets, `index.html`, and a browser package manifest.
+///
+/// Transformation:
+/// - Runs the release-facing JS browser build path and checks that browser
+///   packaging remains deterministic glue over Oxc-validated JS modules rather
+///   than a separate bundler implementation.
+#[test]
+fn build_command_emits_browser_web_package_for_js_browser_target() {
+    let dir = make_temp_dir("directory_js_browser_package");
+    let source_dir = dir.join("project");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&source_dir).expect("failed to create source dir");
+    fs::create_dir_all(source_dir.join("assets")).expect("failed to create asset dir");
+    fs::write(
+        source_dir.join("assets/app.css"),
+        "body { color: black; }\n",
+    )
+    .expect("failed to write css fixture");
+    fs::write(source_dir.join("assets/logo.txt"), "terlan\n")
+        .expect("failed to write file fixture");
+    fs::write(source_dir.join("assets/post.md"), "# Terlan\n")
+        .expect("failed to write markdown fixture");
+    fs::write(
+        source_dir.join("app.terl"),
+        r#"module app.
+
+import css "./assets/app.css" as AppCss.
+import file "./assets/logo.txt" as Logo.
+import markdown "./assets/post.md" as Post.
+
+pub value(): Int ->
+    1.
+"#,
+    )
+    .expect("failed to write app source fixture");
+    fs::write(
+        source_dir.join("helper.terl"),
+        "module helper.\n\npub add(x: Int): Int ->\n    x + 1.\n",
+    )
+    .expect("failed to write helper source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_dir.display().to_string(),
+            "--target".to_string(),
+            "js.browser".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let js_root = out_dir.join("js");
+    assert!(js_root.join("modules/app.js").exists());
+    assert!(js_root.join("modules/helper.js").exists());
+
+    let web_root = out_dir.join("web");
+    assert!(web_root.join("index.html").exists());
+    assert!(web_root.join("manifest.json").exists());
+    assert!(web_root.join("assets/js/modules/app.js").exists());
+    assert!(web_root.join("assets/js/modules/helper.js").exists());
+    assert!(
+        web_root.join("assets/imports/app").exists(),
+        "expected imported app asset directory"
+    );
+
+    let index_html = fs::read_to_string(web_root.join("index.html")).expect("read web index");
+    assert!(
+        index_html.contains(r#"<script type="module" src="./assets/js/modules/app.js"></script>"#),
+        "{index_html}"
+    );
+    assert!(
+        index_html
+            .contains(r#"<script type="module" src="./assets/js/modules/helper.js"></script>"#),
+        "{index_html}"
+    );
+
+    let manifest_text =
+        fs::read_to_string(web_root.join("manifest.json")).expect("read web manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_text).expect("parse web manifest");
+    assert_eq!(manifest["schema"], "terlan-web-build-v1");
+    assert_eq!(manifest["target_profile"], "js.browser");
+    assert_eq!(manifest["source_js_manifest"], "../js/manifest.json");
+    assert_eq!(manifest["index"], "index.html");
+    let assets = manifest["assets"].as_array().expect("assets");
+    let asset_paths = assets
+        .iter()
+        .map(|entry| entry["web_relative_path"].as_str().expect("asset path"))
+        .collect::<Vec<_>>();
+    assert_eq!(asset_paths.first(), Some(&"assets/js/modules/app.js"));
+    assert_eq!(asset_paths.last(), Some(&"assets/js/modules/helper.js"));
+    assert!(asset_paths
+        .iter()
+        .any(|path| { path.starts_with("assets/imports/app/AppCss-") && path.ends_with(".css") }));
+    assert!(asset_paths
+        .iter()
+        .any(|path| { path.starts_with("assets/imports/app/Logo-") && path.ends_with(".txt") }));
+    assert!(asset_paths
+        .iter()
+        .any(|path| { path.starts_with("assets/imports/app/Post-") && path.ends_with(".md") }));
+    for path in &asset_paths {
+        assert!(
+            web_root.join(path).exists(),
+            "expected copied browser asset at {path}"
+        );
+    }
+    let asset_kinds = assets
+        .iter()
+        .map(|entry| entry["kind"].as_str().expect("asset kind"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        asset_kinds,
+        vec![
+            "javascript-module",
+            "asset-css",
+            "asset-file",
+            "asset-markdown",
+            "javascript-module"
+        ]
+    );
+    let asset_sources = assets
+        .iter()
+        .map(|entry| {
+            entry["source_relative_path"]
+                .as_str()
+                .expect("asset source")
+        })
+        .collect::<Vec<_>>();
+    assert!(asset_sources.contains(&"./assets/app.css"));
+    assert!(asset_sources.contains(&"./assets/logo.txt"));
+    assert!(asset_sources.contains(&"./assets/post.md"));
+    for asset in assets {
+        assert!(
+            asset["fingerprint"].as_u64().expect("asset fingerprint") > 0,
+            "{asset:?}"
+        );
+    }
+}
+
+/// Verifies manifest-declared web assets are copied into browser packages.
+///
+/// Inputs:
+/// - A manifest-backed project with `[web.assets] directory = "assets"`.
+/// - An explicit `js.browser` build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when files under the manifest asset directory are copied into
+///   `_build/web/assets` and recorded as `static-asset` manifest rows.
+///
+/// Transformation:
+/// - Runs the project JS browser build path so parsed `terlan.toml` metadata is
+///   carried through source-root resolution into browser package emission.
+#[test]
+fn build_command_emits_manifest_declared_static_assets_for_js_browser_project() {
+    let dir = make_temp_dir("directory_js_browser_manifest_assets");
+    let project_dir = dir.join("project");
+    let source_dir = project_dir.join("src/demo");
+    let asset_dir = project_dir.join("assets/nested");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&source_dir).expect("failed to create source dir");
+    fs::create_dir_all(&asset_dir).expect("failed to create asset dir");
+    fs::write(
+        project_dir.join("terlan.toml"),
+        "[package]\nname = \"demo\"\nversion = \"0.0.4\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[web.assets]\ndirectory = \"assets\"\npublic_path = \"/assets\"\n",
+    )
+    .expect("failed to write manifest");
+    fs::write(asset_dir.join("logo.txt"), "terlan\n").expect("failed to write asset");
+    fs::write(
+        source_dir.join("Main.terl"),
+        "module demo.Main.\n\npub value(): Int ->\n    1.\n",
+    )
+    .expect("failed to write source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            project_dir.display().to_string(),
+            "--target".to_string(),
+            "js.browser".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let web_root = out_dir.join("web");
+    assert!(web_root.join("assets/nested/logo.txt").exists());
+    let manifest_text =
+        fs::read_to_string(web_root.join("manifest.json")).expect("read web manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_text).expect("parse web manifest");
+    let assets = manifest["assets"].as_array().expect("assets");
+    let static_asset = assets
+        .iter()
+        .find(|entry| entry["kind"] == "static-asset")
+        .expect("static asset manifest row");
+    assert_eq!(
+        static_asset["source_relative_path"],
+        "assets/nested/logo.txt"
+    );
+    assert_eq!(static_asset["web_relative_path"], "assets/nested/logo.txt");
+    assert!(static_asset["fingerprint"].as_u64().expect("fingerprint") > 0);
 }
 
 /// Verifies directory builds recursively discover package-rooted source

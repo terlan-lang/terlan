@@ -1909,4 +1909,74 @@ pub put(Cache: Cache, Key: Binary, Value: Binary): ok.
             panic!("expected type declaration");
         }
     }
+
+    /// Verifies release core collection contracts stay parseable.
+    ///
+    /// Inputs:
+    /// - Release source modules for `std.collections.Map`, `std.collections.List`, and
+    ///   `std.collections.Set`.
+    ///
+    /// Output:
+    /// - Test passes when all three release modules parse as normal source
+    ///   modules and keep their canonical module names.
+    ///
+    /// Transformation:
+    /// - Parses release contracts with compiler intrinsic annotations and
+    ///   placeholder bodies without typechecking or backend emission, proving
+    ///   the P0.3 release source shape remains grammar-stable.
+    #[test]
+    fn parses_release_core_collection_contracts() {
+        let contracts = [
+            (
+                "std.collections.Map",
+                include_str!("../../../std/collections/map.terl"),
+            ),
+            (
+                "std.collections.List",
+                include_str!("../../../std/collections/list.terl"),
+            ),
+            (
+                "std.collections.Set",
+                include_str!("../../../std/collections/set.terl"),
+            ),
+        ];
+
+        for (expected_module, source) in contracts {
+            let module = parse_module(source).expect("parse release collection contract");
+            assert_eq!(module.name, expected_module);
+        }
+    }
+
+    /// Verifies release iterator/iterable modules stay parseable.
+    ///
+    /// Inputs:
+    /// - Release source modules for `std.collections.Iterator` and
+    ///   `std.collections.Iterable`.
+    ///
+    /// Output:
+    /// - Test passes when both modules parse in source mode and keep their
+    ///   canonical module names.
+    ///
+    /// Transformation:
+    /// - Parses release traversal modules without typechecking or backend
+    ///   emission, proving P0.4b exposes traversal contracts while allowing
+    ///   source-implemented helpers such as `Iterator.each`.
+    #[test]
+    fn parses_release_traversal_contracts() {
+        let contracts = [
+            (
+                "std.collections.Iterator",
+                include_str!("../../../std/collections/iterator.terl"),
+            ),
+            (
+                "std.collections.Iterable",
+                include_str!("../../../std/collections/iterable.terl"),
+            ),
+        ];
+
+        for (expected_module, source) in contracts {
+            let module = parse_module(source).expect("parse release collection trait module");
+            assert_eq!(module.name, expected_module);
+        }
+    }
 }

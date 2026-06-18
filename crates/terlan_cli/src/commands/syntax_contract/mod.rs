@@ -33,12 +33,34 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
     }
 }
 
+/// Output mode for the `syntax-contract` command.
+///
+/// Inputs:
+/// - Parsed command flags such as `--fingerprint`.
+///
+/// Output:
+/// - Command-local mode used by artifact emission.
+///
+/// Transformation:
+/// - Separates full artifact JSON output from compact fingerprint output while
+///   keeping both modes behind the same command implementation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SyntaxContractOutputMode {
     ArtifactJson,
     Fingerprint,
 }
 
+/// Parsed `syntax-contract` command plan.
+///
+/// Inputs:
+/// - Flat command-local argument list.
+///
+/// Output:
+/// - Either artifact/fingerprint emission or artifact checking with a path.
+///
+/// Transformation:
+/// - Converts mutually exclusive CLI flags into a typed command enum so the
+///   runner can dispatch without revalidating argument combinations.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum SyntaxContractCommand {
     Emit {
@@ -50,6 +72,17 @@ pub(crate) enum SyntaxContractCommand {
     },
 }
 
+/// Marker error for invalid `syntax-contract` arguments.
+///
+/// Inputs:
+/// - Invalid command-local argument state detected by the parser.
+///
+/// Output:
+/// - Zero-sized parse error consumed by the command runner.
+///
+/// Transformation:
+/// - Keeps the command parser's public error shape intentionally small because
+///   invalid syntax-contract arguments all route to normal CLI usage output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct SyntaxContractCommandParseError;
 

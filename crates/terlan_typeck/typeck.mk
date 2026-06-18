@@ -2,7 +2,9 @@
 #
 # Kept with the typechecker crate to keep typecheck checks near the owning module.
 
-T_TYPECK_CLI_EXACT_TEST := $(CARGO) test -p terlan_cli
+CARGO ?= cargo
+EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
+T_TYPECK_CLI_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan_cli
 
 .PHONY: typeck-help formal-typecheck-gate formal-typecheck-a0-29-implements-gate formal-typecheck-a0-30-cast-gate formal-typecheck-a0-53-struct-authority-gate formal-core-proof-gate
 
@@ -20,17 +22,17 @@ formal-typecheck-gate:
 formal-typecheck-a0-29-implements-gate:
 	$(CARGO) test -p terlan_typeck declared_implements -- --nocapture
 	$(CARGO) test -p terlan_typeck explicit_trait_impl -- --nocapture
-	$(CARGO) test -p terlan_typeck tests::syntax_output_uses_generic_bounds_for_trait_method_dispatch_on_formal_path -- --exact
-	$(CARGO) test -p terlan_typeck tests::syntax_output_lowering_to_core_preserves_trait_conformance_facts -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck tests::syntax_output_uses_generic_bounds_for_trait_method_dispatch_on_formal_path -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck tests::syntax_output_lowering_to_core_preserves_trait_conformance_facts -- --exact
 
 formal-typecheck-a0-30-cast-gate:
-	$(CARGO) test -p terlan_typeck tests::syntax_output_rejects_cast_before_conversion_resolution_on_formal_path -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck diagnostic_test::syntax_output_rejects_cast_before_conversion_resolution_on_formal_path -- --exact
 
 formal-typecheck-a0-53-struct-authority-gate:
-	$(CARGO) test -p terlan_typeck tests::syntax_output_lowering_to_core_record_construct_expr -- --exact
-	$(CARGO) test -p terlan_typeck tests::syntax_output_rejects_raw_imported_struct_construction_without_constructor -- --exact
-	$(CARGO) test -p terlan_cli tests::run_check_single_file_rejects_imported_raw_struct_construction_before_core_phase -- --exact
-	$(CARGO) test -p terlan_cli tests::run_check_single_file_rejects_record_construct_for_core_v0_target_profile -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck tests::syntax_output_lowering_to_core_record_construct_expr -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck tests::syntax_output_rejects_raw_imported_struct_construction_without_constructor -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_cli tests::run_check_single_file_rejects_imported_raw_struct_construction_before_core_phase -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_cli tests::run_check_single_file_rejects_record_construct_for_core_v0_target_profile -- --exact
 
 # Intentionally broad: the suite filters in this gate track all CoreIR
 # lowering, proof-manifest, proof-baseline, and target-profile regressions.

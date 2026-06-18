@@ -29,7 +29,7 @@ pub(super) fn infer_implicit_unit_value(name: &str) -> Option<Type> {
 ///
 /// Output:
 /// - `Some(Type)` when the identifier is one of the target-neutral implicit
-///   type values admitted into 0.0.3.
+///   type values admitted into the current implicit prelude.
 /// - `None` for ordinary value names.
 ///
 /// Transformation:
@@ -71,7 +71,7 @@ pub(super) fn is_implicit_type_value_name(name: &str) -> bool {
 /// - `true` for `True` or `False`.
 ///
 /// Transformation:
-/// - Keeps the 0.0.3 boolean literal rule explicit: lowercase `true` and
+/// - Keeps the boolean literal rule explicit: lowercase `true` and
 ///   `false` are built-in values, while uppercase spellings are constructor-like
 ///   names that must be declared before use.
 pub(super) fn is_reserved_uppercase_bool_literal_spelling(name: &str) -> bool {
@@ -87,7 +87,7 @@ pub(super) fn is_reserved_uppercase_bool_literal_spelling(name: &str) -> bool {
 /// - `true` for the exact source spelling `unit`.
 ///
 /// Transformation:
-/// - Enforces the 0.0.3 rule that `Unit` is the unit type and value while
+/// - Enforces the rule that `Unit` is the unit type and value while
 ///   lowercase `unit` is not a built-in source-level synonym.
 pub(super) fn is_reserved_lowercase_unit_spelling(name: &str) -> bool {
     name == "unit"

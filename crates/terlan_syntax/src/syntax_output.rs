@@ -3,53 +3,50 @@ use serde::{Deserialize, Serialize};
 mod annotations;
 mod config;
 mod declarations;
+mod expressions;
 mod html;
+mod imports;
+mod modules;
+mod patterns;
+mod types;
 
 use annotations::{
     annotation_output, annotation_schema_entry_output, validate_builtin_annotation_schemas,
 };
 use config::{config_declaration_target, is_config_declaration_kind, parse_config_entries};
 use declarations::{declaration_docs, declaration_payload};
+pub use expressions::{
+    SyntaxClauseOutput, SyntaxExprFieldOutput, SyntaxExprKind, SyntaxExprOutput,
+    SyntaxTryAfterOutput,
+};
 use html::html_node_output;
+pub use imports::{SyntaxExportItem, SyntaxImportItem, SyntaxImportKind};
+pub use modules::{SyntaxModuleOutput, SyntaxSourceKind, SYNTAX_MODULE_OUTPUT_SCHEMA};
+use patterns::{pattern_leaf, pattern_output};
+pub use patterns::{SyntaxPatternFieldOutput, SyntaxPatternKind, SyntaxPatternOutput};
+pub use types::{SyntaxParamOutput, SyntaxTypeOutput};
 
 use crate::{
-    ebnf::{EbnfCompileError, EbnfCompileResult, EbnfGrammarContract, EbnfSourceSpan},
+    ebnf::{EbnfCompileError, EbnfCompileResult, EbnfSourceSpan},
     lexer::lex,
     parse_tree::{
         Annotation, AnnotationEntry, AnnotationKeyOption, AnnotationSchemaEntry, AnnotationValue,
         BinaryOp, CaseClause, ConstructorClause, ConstructorParam, Decl, Expr, FunctionClause,
         FunctionDecl, HtmlAttr, HtmlAttrValue, HtmlElement, HtmlNamedSlot, HtmlNode, IfClause,
-        ImportKind, MapExprField, MapField, Module, Param, Pattern, TraitMethodDecl, TypeExpr,
-        UnaryOp,
+        MapExprField, Module, Param, TraitMethodDecl, TypeExpr, UnaryOp,
     },
     parser::{parse_interface_module, parse_module},
     parser_contract::{contract_decl_class, decl_span, module_as_contract},
-    syntax_contract::{cached_canonical_terlan_syntax_contract_identity, SyntaxContractIdentity},
+    syntax_contract::cached_canonical_terlan_syntax_contract_identity,
     token::{Token, TokenKind},
 };
 
-pub const SYNTAX_MODULE_OUTPUT_SCHEMA: &str = "terlan-syntax-module-output-v1";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SyntaxSourceKind {
-    Module,
-    Interface,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxModuleOutput {
-    pub schema: String,
-    pub source_kind: SyntaxSourceKind,
-    pub syntax_contract: SyntaxContractIdentity,
-    pub module_name: String,
-    pub docs: Vec<String>,
-    pub span: EbnfSourceSpan,
-    pub declarations: Vec<SyntaxDeclarationOutput>,
-    pub contract: EbnfGrammarContract,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// One declaration in syntax-output form.
+///
+/// Inputs: parsed declaration plus docs/annotations. Output: stable
+/// declaration record. Transformation: attaches index, class, span, docs,
+/// annotations, and normalized payload for downstream compiler phases.
 pub struct SyntaxDeclarationOutput {
     pub index: usize,
     pub class: String,
@@ -60,6 +57,11 @@ pub struct SyntaxDeclarationOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Annotation instance in syntax-output form.
+///
+/// Inputs: parsed annotation path, args, entries, values, and span. Output:
+/// serializable annotation record. Transformation: separates positional values
+/// from keyed entries while preserving source span.
 pub struct SyntaxAnnotationOutput {
     pub path: Vec<String>,
     pub args: Option<String>,
@@ -69,6 +71,10 @@ pub struct SyntaxAnnotationOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Keyed annotation entry.
+///
+/// Inputs: annotation key path, value, and span. Output: serializable key/value
+/// pair. Transformation: keeps dotted keys as segment vectors.
 pub struct SyntaxAnnotationEntryOutput {
     pub key: Vec<String>,
     pub value: SyntaxAnnotationValueOutput,
@@ -77,6 +83,11 @@ pub struct SyntaxAnnotationEntryOutput {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+/// Annotation value represented by the syntax-output contract.
+///
+/// Inputs: parsed annotation literal or compound value. Output: tagged value
+/// payload. Transformation: normalizes names, scalars, lists, and objects into
+/// JSON-serializable variants.
 pub enum SyntaxAnnotationValueOutput {
     Name {
         segments: Vec<String>,
@@ -103,6 +114,11 @@ pub enum SyntaxAnnotationValueOutput {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+/// Declaration-specific syntax-output payload.
+///
+/// Inputs: parsed declaration variants. Output: tagged declaration payload.
+/// Transformation: preserves declaration semantics while removing parser-only
+/// enum shapes from the compiler handoff contract.
 pub enum SyntaxDeclarationPayload {
     Import {
         import_kind: SyntaxImportKind,
@@ -190,6 +206,11 @@ pub enum SyntaxDeclarationPayload {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+/// Annotation schema entry in syntax-output form.
+///
+/// Inputs: parsed annotation schema declaration entry. Output: applies-to or
+/// key definition payload. Transformation: keeps schema metadata structured for
+/// compile-time annotation validation.
 pub enum SyntaxAnnotationSchemaEntryOutput {
     AppliesTo {
         targets: Vec<String>,
@@ -205,6 +226,11 @@ pub enum SyntaxAnnotationSchemaEntryOutput {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+/// Annotation key option in syntax-output form.
+///
+/// Inputs: parsed option attached to an annotation schema key. Output:
+/// required/repeatable/default/applies-to payload. Transformation: carries
+/// option spans so schema diagnostics can point at the exact option.
 pub enum SyntaxAnnotationKeyOptionOutput {
     Required {
         value: bool,
@@ -225,6 +251,11 @@ pub enum SyntaxAnnotationKeyOptionOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Config block key/value entry.
+///
+/// Inputs: parsed config key and value. Output: serializable config entry.
+/// Transformation: keeps config keys as source text and values as structured
+/// config payloads.
 pub struct SyntaxConfigEntryOutput {
     pub key: String,
     pub value: SyntaxConfigValueOutput,
@@ -232,6 +263,11 @@ pub struct SyntaxConfigEntryOutput {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+/// Config value represented by syntax output.
+///
+/// Inputs: parsed config literal or compound value. Output: tagged config
+/// value. Transformation: normalizes bools, symbols, numbers, strings, lists,
+/// and maps for target-profile validation.
 pub enum SyntaxConfigValueOutput {
     Bool {
         value: bool,
@@ -256,59 +292,12 @@ pub enum SyntaxConfigValueOutput {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SyntaxImportKind {
-    Module,
-    File,
-    Css,
-    Markdown,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxImportItem {
-    pub name: String,
-    pub as_alias: Option<String>,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxExportItem {
-    pub name: String,
-    pub arity: usize,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxTypeOutput {
-    pub text: String,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxParamOutput {
-    pub name: String,
-    pub annotation: SyntaxTypeOutput,
-    #[serde(default, rename = "mutable", skip_serializing_if = "is_false")]
-    pub is_mutable: bool,
-    pub span: EbnfSourceSpan,
-}
-
-/// Returns whether a boolean value is false for compact syntax JSON output.
+/// Struct field represented by syntax output.
 ///
-/// Inputs:
-/// - `value`: boolean metadata value being considered for serialization.
-///
-/// Output:
-/// - `true` when the value is false and can be omitted from serialized output.
-///
-/// Transformation:
-/// - Performs a direct boolean negation with no side effects.
-fn is_false(value: &bool) -> bool {
-    !*value
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Inputs: parsed field declaration, docs, default expression, and span.
+/// Output: field record. Transformation: preserves type annotation and optional
+/// default as syntax-output data.
 pub struct SyntaxStructFieldOutput {
     pub name: String,
     pub annotation: SyntaxTypeOutput,
@@ -321,6 +310,11 @@ pub struct SyntaxStructFieldOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Constructor parameter represented by syntax output.
+///
+/// Inputs: parsed constructor parameter. Output: parameter record with optional
+/// default and varargs flag. Transformation: keeps source type annotation and
+/// default expression in normalized syntax-output form.
 pub struct SyntaxConstructorParamOutput {
     pub name: String,
     pub annotation: SyntaxTypeOutput,
@@ -332,6 +326,11 @@ pub struct SyntaxConstructorParamOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Constructor clause represented by syntax output.
+///
+/// Inputs: parsed constructor clause. Output: params, return type, body, body
+/// text, and span. Transformation: stores both structured body and source-like
+/// text for diagnostics/contracts.
 pub struct SyntaxConstructorClauseOutput {
     pub params: Vec<SyntaxConstructorParamOutput>,
     pub return_type: SyntaxTypeOutput,
@@ -341,6 +340,11 @@ pub struct SyntaxConstructorClauseOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Function clause represented by syntax output.
+///
+/// Inputs: parsed function clause. Output: patterns, optional guard, body, and
+/// span. Transformation: normalizes guard presence and expression/pattern
+/// payloads for typechecking.
 pub struct SyntaxFunctionClauseOutput {
     pub patterns: Vec<SyntaxPatternOutput>,
     pub guard: Option<SyntaxExprOutput>,
@@ -350,85 +354,12 @@ pub struct SyntaxFunctionClauseOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxPatternOutput {
-    pub kind: SyntaxPatternKind,
-    pub arity: usize,
-    pub text: Option<String>,
-    pub children: Vec<SyntaxPatternOutput>,
-    pub fields: Vec<SyntaxPatternFieldOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxPatternFieldOutput {
-    pub key: String,
-    pub required: bool,
-    pub value: Box<SyntaxPatternOutput>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SyntaxPatternKind {
-    Wildcard,
-    Var,
-    Int,
-    Float,
-    Atom,
-    Tuple,
-    List,
-    ListCons,
-    Constructor,
-    Map,
-    MapField,
-    Ignore,
-    Placeholder,
-    Record,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxExprOutput {
-    pub kind: SyntaxExprKind,
-    pub arity: usize,
-    pub text: Option<String>,
-    #[serde(default)]
-    pub span: EbnfSourceSpan,
-    #[serde(default)]
-    pub raw: Option<String>,
-    pub operator: Option<String>,
-    pub remote: Option<String>,
-    pub children: Vec<SyntaxExprOutput>,
-    pub patterns: Vec<SyntaxPatternOutput>,
-    pub fields: Vec<SyntaxExprFieldOutput>,
-    pub clauses: Vec<SyntaxClauseOutput>,
-    #[serde(default)]
-    pub catch_clauses: Vec<SyntaxClauseOutput>,
-    #[serde(default)]
-    pub try_after: Option<SyntaxTryAfterOutput>,
-    #[serde(default)]
-    pub html_nodes: Vec<SyntaxHtmlNodeOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxExprFieldOutput {
-    pub key: String,
-    pub required: bool,
-    pub value: Box<SyntaxExprOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxClauseOutput {
-    pub patterns: Vec<SyntaxPatternOutput>,
-    pub guard: Option<Box<SyntaxExprOutput>>,
-    pub body: Box<SyntaxExprOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SyntaxTryAfterOutput {
-    pub trigger: Box<SyntaxExprOutput>,
-    pub body: Box<SyntaxExprOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+/// HTML node represented in syntax output.
+///
+/// Inputs: parsed HTML block node. Output: tagged text, expression, element, or
+/// named-slot node. Transformation: converts HTML parser structures into
+/// syntax-output records.
 pub enum SyntaxHtmlNodeOutput {
     Text { text: String },
     Expr { expr: Box<SyntaxExprOutput> },
@@ -437,6 +368,10 @@ pub enum SyntaxHtmlNodeOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// HTML element represented in syntax output.
+///
+/// Inputs: parsed HTML element. Output: name, attributes, and children.
+/// Transformation: recursively maps child nodes and attributes.
 pub struct SyntaxHtmlElementOutput {
     pub name: String,
     pub attrs: Vec<SyntaxHtmlAttrOutput>,
@@ -444,12 +379,20 @@ pub struct SyntaxHtmlElementOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Named HTML slot represented in syntax output.
+///
+/// Inputs: parsed slot name and children. Output: named-slot record.
+/// Transformation: preserves slot children as syntax-output HTML nodes.
 pub struct SyntaxHtmlNamedSlotOutput {
     pub name: String,
     pub children: Vec<SyntaxHtmlNodeOutput>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// HTML attribute represented in syntax output.
+///
+/// Inputs: parsed HTML attribute. Output: name and optional value.
+/// Transformation: maps static or expression-backed values into tagged output.
 pub struct SyntaxHtmlAttrOutput {
     pub name: String,
     pub value: Option<SyntaxHtmlAttrValueOutput>,
@@ -457,53 +400,22 @@ pub struct SyntaxHtmlAttrOutput {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+/// HTML attribute value represented in syntax output.
+///
+/// Inputs: parsed attribute value. Output: static text or expression payload.
+/// Transformation: boxes expression values so attribute payload shape remains
+/// compact and recursive.
 pub enum SyntaxHtmlAttrValueOutput {
     Text { text: String },
     Expr { expr: Box<SyntaxExprOutput> },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SyntaxExprKind {
-    Int,
-    Float,
-    Atom,
-    Binary,
-    Var,
-    Tuple,
-    List,
-    ListCons,
-    FixedArray,
-    Index,
-    IndexAssign,
-    Map,
-    ListComprehension,
-    Let,
-    Call,
-    Case,
-    Try,
-    If,
-    Fun,
-    FunctionCall,
-    RemoteFunRef,
-    Macro,
-    RawMacro,
-    HtmlBlock,
-    RecordAccess,
-    FieldAccess,
-    RecordUpdate,
-    RecordConstruct,
-    TemplateInstantiate,
-    ConstructorChain,
-    UnaryOp,
-    Cast,
-    BinaryOp,
-    Quote,
-    Unquote,
-    Sequence,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Trait method declaration represented in syntax output.
+///
+/// Inputs: parsed trait method. Output: signature, bounds, optional default
+/// body, visibility, docs, and span. Transformation: normalizes default methods
+/// into expression output while preserving signature text.
 pub struct SyntaxTraitMethodOutput {
     pub name: String,
     pub params: Vec<SyntaxParamOutput>,
@@ -517,6 +429,10 @@ pub struct SyntaxTraitMethodOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Explicit trait implementation method represented in syntax output.
+///
+/// Inputs: parsed impl method. Output: signature and clauses. Transformation:
+/// normalizes implementation clauses for typechecking and trait conformance.
 pub struct SyntaxImplMethodOutput {
     pub name: String,
     pub params: Vec<SyntaxParamOutput>,
@@ -527,18 +443,33 @@ pub struct SyntaxImplMethodOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Template property represented in syntax output.
+///
+/// Inputs: parsed template property. Output: name, annotation, and span.
+/// Transformation: keeps template property type metadata structured for
+/// template lowering.
 pub struct SyntaxTemplatePropOutput {
     pub name: String,
     pub annotation: SyntaxTypeOutput,
     pub span: EbnfSourceSpan,
 }
 
+/// Parses a Terlan module into syntax-output form.
+///
+/// Inputs: module source text. Output: syntax-output module or compile error.
+/// Transformation: parses source, attaches contract identity, validates
+/// annotation schemas, and serializes declarations into formal output records.
 pub fn parse_module_as_syntax_output(input: &str) -> EbnfCompileResult<SyntaxModuleOutput> {
     let module =
         parse_module(input).map_err(|err| EbnfCompileError::Parse(err.message, err.span))?;
     module_as_syntax_output(&module, SyntaxSourceKind::Module)
 }
 
+/// Parses a Terlan interface module into syntax-output form.
+///
+/// Inputs: interface source text. Output: syntax-output module or compile
+/// error. Transformation: uses the interface parser and marks the output source
+/// kind as `Interface`.
 pub fn parse_interface_module_as_syntax_output(
     input: &str,
 ) -> EbnfCompileResult<SyntaxModuleOutput> {
@@ -547,12 +478,22 @@ pub fn parse_interface_module_as_syntax_output(
     module_as_syntax_output(&module, SyntaxSourceKind::Interface)
 }
 
+/// Parses one Terlan expression into syntax-output form.
+///
+/// Inputs: expression source text. Output: syntax-output expression or compile
+/// error. Transformation: parses the expression and lowers it to the formal
+/// expression-output tree.
 pub fn parse_expr_as_syntax_output(input: &str) -> EbnfCompileResult<SyntaxExprOutput> {
     let expr = crate::parser::parse_terlan_expr(input)
         .map_err(|err| EbnfCompileError::Parse(err.message, err.span))?;
     Ok(expr_output(&expr))
 }
 
+/// Converts a parsed module to syntax-output form.
+///
+/// Inputs: parsed `module` and source kind. Output: syntax-output module or
+/// serialization error. Transformation: attaches canonical syntax contract
+/// identity, declaration payloads, docs, annotations, and parser contract text.
 fn module_as_syntax_output(
     module: &Module,
     source_kind: SyntaxSourceKind,
@@ -590,61 +531,19 @@ fn module_as_syntax_output(
     })
 }
 
-fn pattern_output(pattern: &Pattern) -> SyntaxPatternOutput {
-    match pattern {
-        Pattern::Wildcard => pattern_leaf(SyntaxPatternKind::Wildcard, None),
-        Pattern::Var(name) => pattern_leaf(SyntaxPatternKind::Var, Some(name.clone())),
-        Pattern::Int(value) => pattern_leaf(SyntaxPatternKind::Int, Some(value.to_string())),
-        Pattern::Float(value) => pattern_leaf(SyntaxPatternKind::Float, Some(value.to_string())),
-        Pattern::Atom(name) => pattern_leaf(SyntaxPatternKind::Atom, Some(name.clone())),
-        Pattern::Tuple(items) if is_constructor_pattern_tuple(items) => {
-            let Pattern::Atom(name) = &items[0] else {
-                unreachable!("constructor pattern tuple starts with atom");
-            };
-            pattern_node(
-                SyntaxPatternKind::Constructor,
-                Some(name.clone()),
-                items.iter().skip(1).map(pattern_output).collect(),
-                Vec::new(),
-            )
-        }
-        Pattern::Tuple(items) => pattern_node(
-            SyntaxPatternKind::Tuple,
-            None,
-            items.iter().map(pattern_output).collect(),
-            Vec::new(),
-        ),
-        Pattern::List(items) => pattern_node(
-            SyntaxPatternKind::List,
-            None,
-            items.iter().map(pattern_output).collect(),
-            Vec::new(),
-        ),
-        Pattern::ListCons(head, tail) => pattern_node(
-            SyntaxPatternKind::ListCons,
-            None,
-            vec![pattern_output(head), pattern_output(tail)],
-            Vec::new(),
-        ),
-        Pattern::Map(fields) => pattern_node(
-            SyntaxPatternKind::Map,
-            None,
-            Vec::new(),
-            fields.iter().map(pattern_field_output).collect(),
-        ),
-        Pattern::Record { name, fields } => pattern_node(
-            SyntaxPatternKind::Record,
-            Some(name.clone()),
-            Vec::new(),
-            fields.iter().map(pattern_field_output).collect(),
-        ),
-    }
-}
-
+/// Converts an expression to syntax output with a default span.
+///
+/// Inputs: parsed expression. Output: syntax-output expression. Transformation:
+/// delegates to span-aware lowering with an empty span.
 fn expr_output(expr: &Expr) -> SyntaxExprOutput {
     expr_output_with_span(expr, EbnfSourceSpan::default())
 }
 
+/// Converts an expression to syntax output with a source span.
+///
+/// Inputs: parsed expression and span. Output: syntax-output expression tree.
+/// Transformation: recursively maps parser expression variants into stable
+/// syntax-output kinds, children, fields, clauses, and metadata.
 fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput {
     match expr {
         Expr::Int(value) => expr_leaf_with_span(SyntaxExprKind::Int, Some(value.to_string()), span),
@@ -1119,37 +1018,11 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
     }
 }
 
-fn pattern_leaf(kind: SyntaxPatternKind, text: Option<String>) -> SyntaxPatternOutput {
-    pattern_node(kind, text, Vec::new(), Vec::new())
-}
-
-fn pattern_node(
-    kind: SyntaxPatternKind,
-    text: Option<String>,
-    children: Vec<SyntaxPatternOutput>,
-    fields: Vec<SyntaxPatternFieldOutput>,
-) -> SyntaxPatternOutput {
-    SyntaxPatternOutput {
-        kind,
-        arity: if fields.is_empty() {
-            children.len()
-        } else {
-            fields.len()
-        },
-        text,
-        children,
-        fields,
-    }
-}
-
-fn pattern_field_output(field: &MapField) -> SyntaxPatternFieldOutput {
-    SyntaxPatternFieldOutput {
-        key: field.key.clone(),
-        required: field.required,
-        value: Box::new(pattern_output(&field.value)),
-    }
-}
-
+/// Builds a leaf expression node with no raw spelling override.
+///
+/// Inputs: expression kind, optional text, and span. Output: syntax-output leaf
+/// expression. Transformation: delegates to the general node builder with empty
+/// child/pattern/field/clause collections.
 fn expr_leaf_with_span(
     kind: SyntaxExprKind,
     text: Option<String>,
@@ -1220,6 +1093,12 @@ fn format_canonical_atom_literal_raw(payload: &str) -> String {
     format!("Atom[\"{escaped}\"]")
 }
 
+/// Builds a syntax-output expression node.
+///
+/// Inputs: kind, optional text/operator/remote metadata, children, patterns,
+/// fields, clauses, and span. Output: populated `SyntaxExprOutput`.
+/// Transformation: computes arity from the widest child collection and fills
+/// default optional collections for catch/after/html payloads.
 fn expr_node(
     kind: SyntaxExprKind,
     text: Option<String>,
@@ -1249,6 +1128,11 @@ fn expr_node(
     }
 }
 
+/// Computes default expression-node arity.
+///
+/// Inputs: child, pattern, field, and clause collections. Output: maximum
+/// collection length. Transformation: treats the widest structural collection
+/// as the node's default arity.
 fn node_arity(
     children: &[SyntaxExprOutput],
     patterns: &[SyntaxPatternOutput],
@@ -1262,17 +1146,34 @@ fn node_arity(
         .max(children.len())
 }
 
+/// Extension trait for overriding syntax-output expression arity.
+///
+/// Inputs: expression output and explicit arity. Output: expression output with
+/// replaced arity. Transformation: supports source forms where semantic arity
+/// differs from the widest child collection.
 trait SyntaxExprArity {
+    /// Overrides expression arity.
+    ///
+    /// Inputs: expression output and new arity. Output: updated expression.
+    /// Transformation: replaces only the `arity` field.
     fn with_arity(self, arity: usize) -> Self;
 }
 
 impl SyntaxExprArity for SyntaxExprOutput {
+    /// Overrides expression arity.
+    ///
+    /// Inputs: expression output and new arity. Output: updated expression.
+    /// Transformation: mutates only the `arity` field before returning `self`.
     fn with_arity(mut self, arity: usize) -> Self {
         self.arity = arity;
         self
     }
 }
 
+/// Converts a map/record expression field to syntax output.
+///
+/// Inputs: parsed field and span. Output: syntax-output field. Transformation:
+/// preserves key/operator intent and recursively lowers the field value.
 fn expr_field_output_with_span(
     field: &MapExprField,
     span: EbnfSourceSpan,
@@ -1284,6 +1185,10 @@ fn expr_field_output_with_span(
     }
 }
 
+/// Converts a case clause to syntax output.
+///
+/// Inputs: parsed case clause and span. Output: syntax-output clause.
+/// Transformation: lowers the pattern, optional guard, and body expression.
 fn case_clause_output(clause: &CaseClause, span: EbnfSourceSpan) -> SyntaxClauseOutput {
     SyntaxClauseOutput {
         patterns: vec![pattern_output(&clause.pattern)],
@@ -1295,6 +1200,11 @@ fn case_clause_output(clause: &CaseClause, span: EbnfSourceSpan) -> SyntaxClause
     }
 }
 
+/// Converts an if clause to syntax output.
+///
+/// Inputs: parsed if clause and span. Output: syntax-output clause.
+/// Transformation: stores the condition as the clause guard and lowers the
+/// branch body.
 fn if_clause_output(clause: &IfClause, span: EbnfSourceSpan) -> SyntaxClauseOutput {
     SyntaxClauseOutput {
         patterns: Vec::new(),
@@ -1303,6 +1213,10 @@ fn if_clause_output(clause: &IfClause, span: EbnfSourceSpan) -> SyntaxClauseOutp
     }
 }
 
+/// Converts a function or lambda clause to syntax output.
+///
+/// Inputs: parsed function clause and span. Output: syntax-output clause.
+/// Transformation: lowers patterns, optional guard, and body expression.
 fn function_clause_output_with_span(
     clause: &FunctionClause,
     span: EbnfSourceSpan,
@@ -1317,6 +1231,11 @@ fn function_clause_output_with_span(
     }
 }
 
+/// Renders parser expression text for syntax-output summaries.
+///
+/// Inputs: parsed expression. Output: compact source-like text. Transformation:
+/// recursively formats expression variants used by declarations that preserve
+/// body/default text for diagnostics and contracts.
 fn expr_to_output_text(expr: &Expr) -> String {
     match expr {
         Expr::Int(value) => value.to_string(),
@@ -1435,6 +1354,10 @@ fn unary_op_text(op: &UnaryOp) -> &'static str {
     }
 }
 
+/// Returns the source spelling for a binary operator.
+///
+/// Inputs: parser binary operator. Output: canonical operator text.
+/// Transformation: maps the closed operator enum to its syntax spelling.
 fn binary_op_text(op: &BinaryOp) -> &'static str {
     match op {
         BinaryOp::Add => "+",
@@ -1455,24 +1378,6 @@ fn binary_op_text(op: &BinaryOp) -> &'static str {
     }
 }
 
-fn is_constructor_pattern_tuple(items: &[Pattern]) -> bool {
-    matches!(
-        items.first(),
-        Some(Pattern::Atom(name)) if name.chars().next().is_some_and(|ch| ch.is_ascii_uppercase())
-    )
-}
-
-impl From<ImportKind> for SyntaxImportKind {
-    fn from(kind: ImportKind) -> Self {
-        match kind {
-            ImportKind::Module => Self::Module,
-            ImportKind::File => Self::File,
-            ImportKind::Css => Self::Css,
-            ImportKind::Markdown => Self::Markdown,
-        }
-    }
-}
-
 #[cfg(test)]
 #[path = "syntax_output_decl_test.rs"]
 mod syntax_output_decl_test;
@@ -1482,5 +1387,9 @@ mod syntax_output_decl_test;
 mod syntax_output_expr_test;
 
 #[cfg(test)]
-#[path = "syntax_output_test.rs"]
-mod syntax_output_test;
+#[path = "syntax_output_html_test.rs"]
+mod syntax_output_html_test;
+
+#[cfg(test)]
+#[path = "syntax_output_pattern_test.rs"]
+mod syntax_output_pattern_test;

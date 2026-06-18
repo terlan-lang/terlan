@@ -12,6 +12,18 @@ use super::{
     TypeVarId,
 };
 
+/// Receiver-method candidate used by expression dispatch.
+///
+/// Inputs:
+/// - Receiver type, callable function scheme, and receiver mutability from
+///   local or imported method declarations.
+///
+/// Output:
+/// - Dispatch candidate stored under method name and non-receiver arity.
+///
+/// Transformation:
+/// - Rewrites receiver-first declarations into the call shape needed for
+///   `value.method(args...)` type inference.
 #[derive(Debug, Clone)]
 pub(super) struct ReceiverMethodDispatchSignature {
     pub(super) receiver_type: Type,
@@ -19,6 +31,17 @@ pub(super) struct ReceiverMethodDispatchSignature {
     pub(super) receiver_mutable: bool,
 }
 
+/// Declaration-site receiver-method signature.
+///
+/// Inputs:
+/// - Syntax-output receiver method declaration.
+///
+/// Output:
+/// - Normalized parameter, return, mutability, and source-span metadata.
+///
+/// Transformation:
+/// - Preserves declaration shape for trait conformance and inherited receiver
+///   method checks before dispatch candidates are generated.
 #[derive(Debug, Clone)]
 pub(super) struct ReceiverMethodSignature {
     pub(super) params: Vec<String>,
@@ -112,8 +135,78 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures_with_imports(
         imported_type_aliases,
         local_aliases,
     );
+    extend_receiver_method_dispatch_with_imported_receiver_methods(resolved, &mut methods);
     extend_receiver_method_dispatch_with_imported_struct_derives(module, resolved, &mut methods);
     methods
+}
+
+/// Adds direct imported receiver-method dispatch signatures.
+///
+/// Inputs:
+/// - `resolved`: resolved module context containing imported provider
+///   interfaces.
+/// - `methods`: receiver-method dispatch table to extend.
+///
+/// Output:
+/// - None; `methods` is updated in place.
+///
+/// Transformation:
+/// - Scans loaded provider interfaces for public receiver-method signatures,
+///   parses each receiver-first interface signature, removes the receiver from
+///   callable parameters, and stores a receiver-specialized dispatch candidate.
+///   This makes generated wrapper methods such as `value.set_text(...)`
+///   callable from modules that import the wrapper type.
+fn extend_receiver_method_dispatch_with_imported_receiver_methods(
+    resolved: &ResolvedModule,
+    methods: &mut HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
+) {
+    let imported = resolved
+        .interface_map
+        .values()
+        .flat_map(|interface| {
+            interface
+                .function_overloads
+                .values()
+                .flat_map(move |signatures| {
+                    signatures
+                        .iter()
+                        .filter(|signature| signature.public && signature.receiver_method)
+                        .filter_map(move |signature| {
+                            let scheme =
+                                parse_interface_signature(signature, interface, &HashMap::new())?;
+                            let mut params = scheme.params;
+                            if params.is_empty() {
+                                return None;
+                            }
+                            let receiver_type = params.remove(0);
+                            Some((
+                                (signature.name.clone(), params.len()),
+                                ReceiverMethodDispatchSignature {
+                                    receiver_type,
+                                    scheme: FunctionScheme {
+                                        params,
+                                        ret: scheme.ret,
+                                        bounds: scheme.bounds,
+                                    },
+                                    receiver_mutable: signature.receiver_mutable,
+                                },
+                            ))
+                        })
+                })
+        })
+        .collect::<Vec<_>>();
+
+    for (key, signature) in imported {
+        let candidates = methods.entry(key).or_default();
+        if candidates.iter().any(|candidate| {
+            candidate.receiver_type == signature.receiver_type
+                && candidate.receiver_mutable == signature.receiver_mutable
+                && candidate.scheme.params == signature.scheme.params
+        }) {
+            continue;
+        }
+        candidates.push(signature);
+    }
 }
 
 /// Adds inherited local receiver-method signatures for derived structs.

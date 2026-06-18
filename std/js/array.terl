@@ -1,0 +1,107 @@
+/**
+ * JavaScript-native array wrapper.
+ *
+ * `std.js.Array` exposes JavaScript array-like values as an explicit
+ * target-specific collection surface. Portable modules should use
+ * `std.collections.List`; JavaScript-targeted modules may opt into `Array[T]`
+ * when they need JavaScript interop shape.
+ */
+
+module std.js.Array.
+
+import std.collections.Index.{IndexGet}.
+import std.collections.Iterable.{Iterable}.
+import std.collections.Iterator.{Iterator}.
+import type std.collections.List.
+
+/**
+ * Represents a JavaScript-native array value.
+ *
+ * Input: type parameter `T`.
+ * Output: an opaque JavaScript-native array wrapper.
+ * Transformation: preserves the target-native array identity while keeping it
+ * distinct from portable `std.collections.List`.
+ */
+pub opaque type Array[T].
+
+/**
+ * Converts a portable list into a JavaScript-native array.
+ *
+ * Input: one portable `List[T]`.
+ * Output: one `Array[T]` with the same value order.
+ * Transformation: asks the JavaScript target backend to allocate or wrap a
+ * JavaScript array from the portable list representation.
+ */
+pub from_list[T](values: List[T]): Array[T] ->
+    native.
+
+/**
+ * Converts a JavaScript-native array into a portable list.
+ *
+ * Input: one `Array[T]`.
+ * Output: one portable `List[T]` preserving array order.
+ * Transformation: asks the JavaScript target backend to copy or view the
+ * array as a portable list at the platform boundary.
+ */
+pub (array: Array[T]) to_list(): List[T] ->
+    native.
+
+/**
+ * Returns the number of values in a JavaScript-native array.
+ *
+ * Input: one `Array[T]`.
+ * Output: the current array length.
+ * Transformation: observes the target-native array length without changing
+ * array contents.
+ */
+pub (array: Array[T]) length(): Int ->
+    native.
+
+/**
+ * Returns the value at a zero-based index.
+ *
+ * Input: one `Array[T]` and one `Int` index.
+ * Output: the value at that index.
+ * Transformation: delegates indexed read semantics to the JavaScript target
+ * backend and backs read-only bracket syntax through `IndexGet`.
+ */
+pub (array: Array[T]) get_at(index: Int): T ->
+    native.
+
+/**
+ * Returns an iterator over a JavaScript-native array.
+ *
+ * Input: one `Array[T]`.
+ * Output: an `Iterator[T]` positioned at the first array value.
+ * Transformation: bridges JavaScript array iteration into Terlan's portable
+ * iterator contract without exposing JavaScript iterator protocol details.
+ */
+pub (array: Array[T]) iterator(): Iterator[T] ->
+    native.
+
+/**
+ * Connects JavaScript-native arrays to portable iterable traversal.
+ *
+ * Input: one `Array[T]`.
+ * Output: an `Iterator[T]`.
+ * Transformation: delegates trait dispatch to the receiver method so
+ * generated bindings and hand-authored JS-targeted modules share one
+ * traversal shape.
+ */
+pub impl Iterable[Array[T], T] for Array[T] {
+    iterator(array: Array[T]): Iterator[T] ->
+        Array.iterator(array).
+}.
+
+/**
+ * Connects JavaScript-native arrays to read-only bracket syntax.
+ *
+ * Input: one `Array[T]` and one `Int` index.
+ * Output: the value at the given index.
+ * Transformation: delegates `IndexGet.get_at` to the receiver method so
+ * `array[index]` remains trait-backed and target-specific.
+ */
+pub impl IndexGet[Array[T], Int, T] for Array[T] {
+    get_at(array: Array[T], index: Int): T ->
+        Array.get_at(array, index).
+}.

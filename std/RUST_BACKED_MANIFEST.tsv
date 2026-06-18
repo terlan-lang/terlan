@@ -15,9 +15,20 @@
 # Format:
 # module<TAB>source<TAB>crate<TAB>operation<TAB>function<TAB>arity
 module	source	crate	operation	function	arity
+std.data.Json	std/data/json.terl	serde_json	std.data.json.null	null	0
+std.data.Json	std/data/json.terl	serde_json	std.data.json.bool	bool	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.int	int	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.float	float	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.string	string	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.array	array	0
+std.data.Json	std/data/json.terl	serde_json	std.data.json.object	object	0
+std.data.Json	std/data/json.terl	serde_json	std.data.json.array_push	push	2
+std.data.Json	std/data/json.terl	serde_json	std.data.json.object_put	put	3
 std.data.Json	std/data/json.terl	serde_json	std.data.json.parse	parse	1
 std.data.Json	std/data/json.terl	serde_json	std.data.json.stringify	stringify	1
 std.data.Json	std/data/json.terl	serde_json	std.data.json.get	get	2
+std.data.Json	std/data/json.terl	serde_json	std.data.json.length	length	1
+std.data.Json	std/data/json.terl	serde_json	std.data.json.at	at	2
 std.data.Json	std/data/json.terl	serde_json	std.data.json.as_string	as_string	1
 std.data.Json	std/data/json.terl	serde_json	std.data.json.as_int	as_int	1
 std.data.Json	std/data/json.terl	serde_json	std.data.json.as_float	as_float	1
@@ -41,3 +52,8 @@ std.net.Uri	std/net/uri.terl	url	std.net.uri.host	host	1
 std.net.Uri	std/net/uri.terl	url	std.net.uri.path	path	1
 std.net.Uri	std/net/uri.terl	url	std.net.uri.query	query	1
 std.net.Uri	std/net/uri.terl	url	std.net.uri.fragment	fragment	1
+std.http.Request	std/http/request.terl	std::http	std.http.request.body_json	body_json	1
+std.http.Response	std/http/response.terl	std::http	std.http.response.json	json	1
+std.http.Response	std/http/response.terl	std::http	std.http.response.text	text	1
+std.http.Response	std/http/response.terl	std::http	std.http.response.status	status	2
+std.http.Response	std/http/response.terl	std::http	std.http.response.header	header	3

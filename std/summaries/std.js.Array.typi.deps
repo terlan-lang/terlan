@@ -1,0 +1,11 @@
+module=std.js.Array
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+source_hash=14328827946747274491
+interface_hash=4374053943755094338
+interface_doc_hash=5151590949606345951
+deps=3
+std.collections.Index=6676691833875931145
+std.collections.Iterable=1661477736678275298
+std.collections.Iterator=8855023706483958755

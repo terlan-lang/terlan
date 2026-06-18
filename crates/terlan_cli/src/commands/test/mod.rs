@@ -21,6 +21,7 @@ use crate::{CliCommand, CliState};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TestTarget {
     Erlang,
+    Js,
 }
 
 /// Parsed command-local arguments for `terlc test`.
@@ -242,6 +243,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 
     match args.target {
         TestTarget::Erlang => run_erlang_tests(&args, state),
+        TestTarget::Js => run_js_tests(&args, state),
     }
 }
 
@@ -252,8 +254,8 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 ///   command verb.
 ///
 /// Output:
-/// - `Ok(TestArgs)` for zero or one source path, optional `--target erlang`,
-///   optional `--emit-test-manifest <path>`, and optional
+/// - `Ok(TestArgs)` for zero or one source path, optional
+///   `--target erlang|js`, optional `--emit-test-manifest <path>`, and optional
 ///   `--emit-test-result-manifest <path>`.
 /// - `Err(message)` for malformed flags, unsupported targets, or wrong arity.
 ///
@@ -274,6 +276,7 @@ fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
                 };
                 target = match value.as_str() {
                     "erlang" => TestTarget::Erlang,
+                    "js" => TestTarget::Js,
                     other => return Err(format!("unsupported test target: {other}")),
                 };
                 i += 2;
@@ -456,6 +459,239 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
         return ExitCode::from(1);
     }
     ExitCode::SUCCESS
+}
+
+/// Validates discovered tests through the JavaScript target compile path.
+///
+/// Inputs:
+/// - `args`: parsed test arguments, including one source file or directory and
+///   optional manifest output paths.
+/// - `state`: global CLI state used for diagnostics, cache, native policy, and
+///   target-profile selection.
+///
+/// Output:
+/// - `ExitCode::SUCCESS` when every selected test module compiles for a JS
+///   profile and contains valid `@test` functions.
+/// - `ExitCode::from(1)` when profile selection, file discovery, formal
+///   compilation, test discovery, or manifest writing fails.
+///
+/// Transformation:
+/// - Compiles each test module through the formal pipeline with a JavaScript
+///   target profile, validates source-level test declarations, and records a
+///   validation-only pass report without executing JavaScript runtime code.
+fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
+    let profile = match effective_js_test_profile(state.target_profile) {
+        Ok(profile) => profile,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
+
+    let path = args.path.as_str();
+    if Path::new(path).is_dir() {
+        return run_js_test_directory(args, state, profile);
+    }
+    if !is_test_source_path(path) {
+        eprintln!("terlc test requires a *_test.terl source file for 0.0.4 JS validation: {path}");
+        return ExitCode::from(1);
+    }
+
+    let source = match crate::support::read_file(path) {
+        Ok(source) => source,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
+    let compiled =
+        match crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
+            path,
+            &source,
+            state.diagnostic_format,
+            state.cache_dir.as_deref(),
+            state.native_policy,
+            profile,
+            TargetProfileCheckOptions {
+                allow_asset_imports: true,
+            },
+        ) {
+            Ok(compiled) => compiled,
+            Err(exit_code) => return exit_code,
+        };
+
+    let tests = match discover_tests(&compiled.syntax_output) {
+        Ok(tests) => tests,
+        Err(messages) => {
+            for message in messages {
+                eprintln!("{message}");
+            }
+            return ExitCode::from(1);
+        }
+    };
+    if let Some(manifest_path) = args.emit_test_manifest.as_deref() {
+        if let Err(message) = write_test_manifest(
+            manifest_path,
+            path,
+            &compiled.syntax_output.module_name,
+            "js",
+            profile.as_str(),
+            &tests,
+        ) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    }
+    if tests.is_empty() {
+        eprintln!("no @test declarations found in {path}");
+        return ExitCode::from(1);
+    }
+
+    let report = validation_pass_report(&tests);
+    if let Some(result_manifest_path) = args.emit_test_result_manifest.as_deref() {
+        if let Err(message) = write_test_result_manifest(
+            result_manifest_path,
+            path,
+            &compiled.syntax_output.module_name,
+            "js",
+            profile.as_str(),
+            &report,
+        ) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    }
+    print_validation_pass_report(&report);
+    ExitCode::SUCCESS
+}
+
+/// Returns the JavaScript profile used by `terlc test --target js`.
+///
+/// Inputs:
+/// - `profile`: global target profile selected before command dispatch.
+///
+/// Output:
+/// - `Ok(TargetProfile)` for accepted JS profiles.
+/// - `Err(message)` when the selected profile is not compatible with JS tests.
+///
+/// Transformation:
+/// - Treats the default global Erlang profile as an ergonomic request for
+///   `js.shared`, while preserving explicit JS profile choices and rejecting
+///   unrelated backend profiles.
+fn effective_js_test_profile(profile: TargetProfile) -> Result<TargetProfile, String> {
+    if profile == TargetProfile::Erlang {
+        return Ok(TargetProfile::JsShared);
+    }
+    if profile.is_js() {
+        return Ok(profile);
+    }
+    Err(format!(
+        "terlc test --target js requires --target-profile js.shared, js.browser, or js.worker; got {}",
+        profile.as_str()
+    ))
+}
+
+/// Validates all JavaScript test modules below one directory.
+///
+/// Inputs:
+/// - `args`: parsed test arguments whose path is a directory.
+/// - `state`: global CLI state used for formal compilation.
+/// - `profile`: effective JavaScript target profile for every file.
+///
+/// Output:
+/// - `ExitCode::SUCCESS` when every discovered JS test file validates.
+/// - `ExitCode::from(1)` when discovery fails, no test files exist, manifest
+///   flags are used with a directory, or any test file fails.
+///
+/// Transformation:
+/// - Recursively discovers `*_test.terl` files in deterministic order, then
+///   delegates each file to the JS validation runner and aggregates status
+///   without inventing a directory-level manifest format.
+fn run_js_test_directory(args: &TestArgs, state: CliState, profile: TargetProfile) -> ExitCode {
+    if args.emit_test_manifest.is_some() || args.emit_test_result_manifest.is_some() {
+        eprintln!("test manifest output is only supported for a single *_test.terl file");
+        return ExitCode::from(1);
+    }
+
+    let mut files = Vec::new();
+    if let Err(message) = collect_test_files(Path::new(&args.path), &mut files) {
+        eprintln!("{message}");
+        return ExitCode::from(1);
+    }
+    files.sort();
+    if files.is_empty() {
+        eprintln!("no *_test.terl files found in {}", args.path);
+        return ExitCode::from(1);
+    }
+
+    let mut failed = false;
+    for file in files {
+        let file_args = TestArgs {
+            path: file.to_string_lossy().into_owned(),
+            target: args.target,
+            emit_test_manifest: None,
+            emit_test_result_manifest: None,
+        };
+        let mut file_state = state.clone();
+        file_state.target_profile = profile;
+        if run_js_tests(&file_args, file_state) != ExitCode::SUCCESS {
+            failed = true;
+        }
+    }
+
+    if failed {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+/// Builds a validation-only pass report for JS tests.
+///
+/// Inputs:
+/// - `tests`: discovered test metadata already accepted by test discovery.
+///
+/// Output:
+/// - A `TestRunReport` with every test marked passed.
+///
+/// Transformation:
+/// - Converts source-level test metadata into result entries with a stable
+///   message that distinguishes compile/discovery validation from runtime
+///   JavaScript execution.
+fn validation_pass_report(tests: &[DiscoveredTest]) -> TestRunReport {
+    TestRunReport {
+        passed: tests.len(),
+        failed: 0,
+        results: tests
+            .iter()
+            .map(|test| TestRunResult {
+                name: test.name.clone(),
+                status: TestRunStatus::Passed,
+                message: Some("validated without runtime execution".to_string()),
+                span_start: test.span_start,
+                span_end: test.span_end,
+            })
+            .collect(),
+    }
+}
+
+/// Prints a validation-only test report.
+///
+/// Inputs:
+/// - `report`: validation-only result report for one JS test module.
+///
+/// Output:
+/// - Human-readable test status lines written to stdout.
+///
+/// Transformation:
+/// - Renders the same compact shape as the Erlang runner while adding
+///   `(validated)` to make the non-runtime status explicit.
+fn print_validation_pass_report(report: &TestRunReport) {
+    println!("running {} tests", report.results.len());
+    for result in &report.results {
+        println!("test {} ... ok (validated)", result.name);
+    }
+    println!("test result: ok. {} passed; 0 failed", report.passed);
 }
 
 /// Executes all test modules below one directory through the Erlang runner.
@@ -863,7 +1099,7 @@ fn emit_and_compile_release_support_modules(
     Ok(())
 }
 
-/// Returns the embedded 0.0.1 support module list for `terlc test`.
+/// Returns the embedded release support module list for `terlc test`.
 ///
 /// Inputs:
 /// - No runtime input.
@@ -920,6 +1156,10 @@ fn release_support_modules() -> &'static [ReleaseSupportModule] {
         ReleaseSupportModule {
             path: "std/core/equal.terl",
             source: include_str!("../../../../../std/core/equal.terl"),
+        },
+        ReleaseSupportModule {
+            path: "std/http/error.terl",
+            source: include_str!("../../../../../std/http/error.terl"),
         },
         ReleaseSupportModule {
             path: "std/core/string.terl",
@@ -1346,449 +1586,5 @@ fn quote_erlang_atom(atom: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Builds a command argument vector from string slices.
-    ///
-    /// Inputs:
-    /// - `items`: borrowed argument strings.
-    ///
-    /// Output:
-    /// - Owned `String` vector accepted by parser helpers.
-    ///
-    /// Transformation:
-    /// - Clones each slice into owned CLI-like arguments.
-    fn args(items: &[&str]) -> Vec<String> {
-        items.iter().map(|item| (*item).to_string()).collect()
-    }
-
-    #[test]
-    fn parse_test_args_accepts_default_erlang_target() {
-        let parsed = parse_test_args(&args(&["tests/sample.terl"])).expect("test args");
-        assert_eq!(parsed.path, "tests/sample.terl");
-        assert_eq!(parsed.target, TestTarget::Erlang);
-        assert_eq!(parsed.emit_test_manifest, None);
-        assert_eq!(parsed.emit_test_result_manifest, None);
-    }
-
-    /// Verifies no-argument `terlc test` targets the project test tree.
-    ///
-    /// Inputs:
-    /// - Empty command-local argument vector.
-    ///
-    /// Output:
-    /// - Parsed args with path `tests` and default Erlang target.
-    ///
-    /// Transformation:
-    /// - Exercises the project-default CLI contract without touching the
-    ///   filesystem.
-    #[test]
-    fn parse_test_args_defaults_to_tests_directory() {
-        let parsed = parse_test_args(&[]).expect("test args");
-
-        assert_eq!(parsed.path, "tests");
-        assert_eq!(parsed.target, TestTarget::Erlang);
-        assert_eq!(parsed.emit_test_manifest, None);
-        assert_eq!(parsed.emit_test_result_manifest, None);
-    }
-
-    #[test]
-    fn parse_test_args_accepts_explicit_erlang_target() {
-        let parsed = parse_test_args(&args(&["tests/sample.terl", "--target", "erlang"]))
-            .expect("test args");
-        assert_eq!(parsed.path, "tests/sample.terl");
-        assert_eq!(parsed.target, TestTarget::Erlang);
-        assert_eq!(parsed.emit_test_manifest, None);
-        assert_eq!(parsed.emit_test_result_manifest, None);
-    }
-
-    /// Verifies parsing for the opt-in test manifest flag.
-    ///
-    /// Inputs:
-    /// - Synthetic CLI arguments with a source path and `--emit-test-manifest`.
-    ///
-    /// Output:
-    /// - Assertions over parsed manifest path state.
-    ///
-    /// Transformation:
-    /// - Parses command-local arguments without touching the filesystem.
-    #[test]
-    fn parse_test_args_accepts_test_manifest_path() {
-        let parsed = parse_test_args(&args(&[
-            "tests/sample_test.terl",
-            "--emit-test-manifest",
-            "target/sample.test-manifest.json",
-        ]))
-        .expect("test args");
-        assert_eq!(parsed.path, "tests/sample_test.terl");
-        assert_eq!(
-            parsed.emit_test_manifest,
-            Some(PathBuf::from("target/sample.test-manifest.json"))
-        );
-    }
-
-    /// Verifies duplicate manifest flags are rejected.
-    ///
-    /// Inputs:
-    /// - Synthetic CLI arguments with two `--emit-test-manifest` flags.
-    ///
-    /// Output:
-    /// - Assertion over the exact parser diagnostic.
-    ///
-    /// Transformation:
-    /// - Parses command-local arguments and expects a duplicate-flag error.
-    #[test]
-    fn parse_test_args_rejects_duplicate_test_manifest_path() {
-        let error = parse_test_args(&args(&[
-            "tests/sample_test.terl",
-            "--emit-test-manifest",
-            "target/one.json",
-            "--emit-test-manifest",
-            "target/two.json",
-        ]))
-        .expect_err("error");
-        assert_eq!(error, "duplicate --emit-test-manifest");
-    }
-
-    /// Verifies parsing for the opt-in test result manifest flag.
-    ///
-    /// Inputs:
-    /// - Synthetic CLI arguments with a source path and
-    ///   `--emit-test-result-manifest`.
-    ///
-    /// Output:
-    /// - Assertions over parsed result-manifest path state.
-    ///
-    /// Transformation:
-    /// - Parses command-local arguments without touching the filesystem.
-    #[test]
-    fn parse_test_args_accepts_test_result_manifest_path() {
-        let parsed = parse_test_args(&args(&[
-            "tests/sample_test.terl",
-            "--emit-test-result-manifest",
-            "target/sample.test-results.json",
-        ]))
-        .expect("test args");
-        assert_eq!(parsed.path, "tests/sample_test.terl");
-        assert_eq!(
-            parsed.emit_test_result_manifest,
-            Some(PathBuf::from("target/sample.test-results.json"))
-        );
-    }
-
-    /// Verifies duplicate result manifest flags are rejected.
-    ///
-    /// Inputs:
-    /// - Synthetic CLI arguments with two `--emit-test-result-manifest` flags.
-    ///
-    /// Output:
-    /// - Assertion over the exact parser diagnostic.
-    ///
-    /// Transformation:
-    /// - Parses command-local arguments and expects a duplicate-flag error.
-    #[test]
-    fn parse_test_args_rejects_duplicate_test_result_manifest_path() {
-        let error = parse_test_args(&args(&[
-            "tests/sample_test.terl",
-            "--emit-test-result-manifest",
-            "target/one.json",
-            "--emit-test-result-manifest",
-            "target/two.json",
-        ]))
-        .expect_err("error");
-        assert_eq!(error, "duplicate --emit-test-result-manifest");
-    }
-
-    #[test]
-    fn parse_test_args_rejects_unsupported_target() {
-        let error =
-            parse_test_args(&args(&["tests/sample.terl", "--target", "js"])).expect_err("error");
-        assert_eq!(error, "unsupported test target: js");
-    }
-
-    #[test]
-    fn supported_test_return_types_include_bool_and_assertions() {
-        for text in ["Bool", "Assertion", "std.test.Test.Assertion"] {
-            assert!(is_supported_test_return_type(&SyntaxTypeOutput {
-                text: text.to_string(),
-                span: Default::default(),
-            }));
-        }
-    }
-
-    #[test]
-    fn supported_test_return_types_reject_unit() {
-        assert!(!is_supported_test_return_type(&SyntaxTypeOutput {
-            text: "Unit".to_string(),
-            span: Default::default(),
-        }));
-    }
-
-    /// Verifies recursive directory discovery finds only test source files.
-    ///
-    /// Inputs:
-    /// - A temporary directory containing nested test and non-test `.terl` files.
-    ///
-    /// Output:
-    /// - Discovered path list containing only `*_test.terl` files.
-    ///
-    /// Transformation:
-    /// - Walks the directory through `collect_test_files`, then removes the
-    ///   temporary fixture tree.
-    #[test]
-    fn collect_test_files_finds_only_test_sources() {
-        let root = std::env::temp_dir().join(format!(
-            "terlan_collect_test_files_{}_{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("time")
-                .as_nanos()
-        ));
-        fs::create_dir_all(root.join("std/core")).expect("create nested test dir");
-        fs::create_dir_all(root.join("helpers")).expect("create helper dir");
-        fs::write(
-            root.join("std/core/bool_test.terl"),
-            "module std.core.BoolTest.\n",
-        )
-        .expect("write bool test");
-        fs::write(root.join("helpers/helper.terl"), "module helpers.Helper.\n")
-            .expect("write non-test source");
-        fs::write(root.join("readme.md"), "# ignored\n").expect("write ignored markdown");
-
-        let mut files = Vec::new();
-        collect_test_files(&root, &mut files).expect("collect tests");
-        files.sort();
-        let paths = files
-            .iter()
-            .map(|path| path.to_string_lossy().replace('\\', "/"))
-            .collect::<Vec<_>>();
-        let _ = fs::remove_dir_all(&root);
-
-        assert_eq!(paths.len(), 1);
-        assert!(paths[0].ends_with("std/core/bool_test.terl"));
-    }
-
-    #[test]
-    fn test_source_path_requires_test_suffix() {
-        assert!(is_test_source_path("tests/std/core/bool_test.terl"));
-        assert!(!is_test_source_path("std/core/bool.terl"));
-        assert!(!is_test_source_path("tests/std/core/bool_test.md"));
-    }
-
-    /// Verifies release support modules are embedded for installed test runs.
-    ///
-    /// Inputs:
-    /// - No runtime input.
-    ///
-    /// Output:
-    /// - Assertions over support module paths and embedded source text.
-    ///
-    /// Transformation:
-    /// - Reads the static release support inventory without touching the
-    ///   current working directory, proving `terlc test` does not depend on a
-    ///   repo-relative `std/` folder at runtime.
-    #[test]
-    fn release_support_modules_are_embedded_for_installed_runner() {
-        let modules = release_support_modules();
-
-        assert!(modules.iter().any(|module| {
-            module.path == "std/test/test.terl" && module.source.contains("module std.test.Test.")
-        }));
-        assert!(modules.iter().any(|module| {
-            module.path == "std/core/string.terl"
-                && module.source.contains("module std.core.String.")
-        }));
-    }
-
-    /// Verifies test manifest JSON serialization.
-    ///
-    /// Inputs:
-    /// - Synthetic discovered test metadata and a temporary output path.
-    ///
-    /// Output:
-    /// - Assertions over decoded JSON fields.
-    ///
-    /// Transformation:
-    /// - Writes a manifest file, decodes it through `serde_json`, then removes
-    ///   the temporary file.
-    #[test]
-    fn write_test_manifest_records_source_target_and_spans() {
-        let path = std::env::temp_dir().join(format!(
-            "terlan_test_manifest_unit_{}_{}.json",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("time")
-                .as_nanos()
-        ));
-        write_test_manifest(
-            &path,
-            "tests/sample_test.terl",
-            "tests.SampleTest",
-            "erlang",
-            "erlang",
-            &[DiscoveredTest {
-                name: "sample".to_string(),
-                span_start: 12,
-                span_end: 34,
-            }],
-        )
-        .expect("write manifest");
-
-        let json: serde_json::Value =
-            serde_json::from_str(&fs::read_to_string(&path).expect("manifest text"))
-                .expect("manifest json");
-        let _ = fs::remove_file(&path);
-
-        assert_eq!(json["source_path"], "tests/sample_test.terl");
-        assert_eq!(json["module_name"], "tests.SampleTest");
-        assert_eq!(json["target"], "erlang");
-        assert_eq!(json["target_profile"], "erlang");
-        assert_eq!(json["tests"][0]["name"], "sample");
-        assert_eq!(json["tests"][0]["span_start"], 12);
-        assert_eq!(json["tests"][0]["span_end"], 34);
-    }
-
-    /// Verifies test result manifest JSON serialization.
-    ///
-    /// Inputs:
-    /// - Synthetic execution report and a temporary output path.
-    ///
-    /// Output:
-    /// - Assertions over decoded JSON fields.
-    ///
-    /// Transformation:
-    /// - Writes a result manifest file, decodes it through `serde_json`, then
-    ///   removes the temporary file.
-    #[test]
-    fn write_test_result_manifest_records_outcomes_and_spans() {
-        let path = std::env::temp_dir().join(format!(
-            "terlan_test_result_manifest_unit_{}_{}.json",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("time")
-                .as_nanos()
-        ));
-        let report = TestRunReport {
-            passed: 1,
-            failed: 1,
-            results: vec![
-                TestRunResult {
-                    name: "passes".to_string(),
-                    status: TestRunStatus::Passed,
-                    message: None,
-                    span_start: 10,
-                    span_end: 20,
-                },
-                TestRunResult {
-                    name: "fails".to_string(),
-                    status: TestRunStatus::Failed,
-                    message: Some("assertion returned false".to_string()),
-                    span_start: 30,
-                    span_end: 40,
-                },
-            ],
-        };
-        write_test_result_manifest(
-            &path,
-            "tests/sample_test.terl",
-            "tests.SampleTest",
-            "erlang",
-            "erlang",
-            &report,
-        )
-        .expect("write result manifest");
-
-        let json: serde_json::Value =
-            serde_json::from_str(&fs::read_to_string(&path).expect("manifest text"))
-                .expect("manifest json");
-        let _ = fs::remove_file(&path);
-
-        assert_eq!(json["source_path"], "tests/sample_test.terl");
-        assert_eq!(json["passed"], 1);
-        assert_eq!(json["failed"], 1);
-        assert_eq!(json["tests"][0]["name"], "passes");
-        assert_eq!(json["tests"][0]["status"], "passed");
-        assert!(json["tests"][0]["message"].is_null());
-        assert_eq!(json["tests"][1]["name"], "fails");
-        assert_eq!(json["tests"][1]["status"], "failed");
-        assert_eq!(json["tests"][1]["message"], "assertion returned false");
-        assert_eq!(json["tests"][1]["span_start"], 30);
-    }
-
-    /// Verifies backend-owned EUnit wrapper rendering.
-    ///
-    /// Inputs:
-    /// - Synthetic target module atom and discovered test metadata.
-    ///
-    /// Output:
-    /// - Assertions over Erlang module, export, delegate call, and failure
-    ///   mapping text.
-    ///
-    /// Transformation:
-    /// - Renders wrapper source without compiling it.
-    #[test]
-    fn render_eunit_wrapper_source_delegates_to_target_tests() {
-        let source = render_eunit_wrapper_source(
-            "sample_eunit_tests",
-            "sample",
-            &[DiscoveredTest {
-                name: "passes".to_string(),
-                span_start: 1,
-                span_end: 2,
-            }],
-        );
-        assert!(
-            source.contains("-module('sample_eunit_tests')."),
-            "{source}"
-        );
-        assert!(source.contains("-export(['passes_test'/0])."), "{source}");
-        assert!(source.contains("'passes_test'() ->"), "{source}");
-        assert!(source.contains("case 'sample':'passes'() of"), "{source}");
-        assert!(
-            source.contains("false -> erlang:error(assertion_returned_false);"),
-            "{source}"
-        );
-        assert!(
-            source.contains("Other -> erlang:error({unexpected_test_result, Other})"),
-            "{source}"
-        );
-    }
-
-    /// Verifies test-only Erlang export injection.
-    ///
-    /// Inputs:
-    /// - Minimal generated Erlang source and synthetic discovered tests.
-    ///
-    /// Output:
-    /// - Assertions over the inserted export attribute and original source.
-    ///
-    /// Transformation:
-    /// - Inserts exports after the module line without altering production
-    ///   emitter behavior.
-    #[test]
-    fn add_test_exports_to_erlang_source_inserts_test_only_export() {
-        let source = add_test_exports_to_erlang_source(
-            "-module(sample).\n\nhidden() -> true.\n".to_string(),
-            &[DiscoveredTest {
-                name: "hidden".to_string(),
-                span_start: 1,
-                span_end: 2,
-            }],
-        );
-        assert!(
-            source.starts_with("-module(sample).\n-export(['hidden'/0]).\n\n"),
-            "{source}"
-        );
-        assert!(source.contains("hidden() -> true."), "{source}");
-    }
-
-    #[test]
-    fn quote_erlang_atom_escapes_quotes_and_backslashes() {
-        assert_eq!(quote_erlang_atom("std_test"), "'std_test'");
-        assert_eq!(quote_erlang_atom("a'b\\c"), "'a\\'b\\\\c'");
-    }
-}
+#[path = "test_command_test.rs"]
+mod test_command_test;

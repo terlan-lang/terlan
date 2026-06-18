@@ -1,5 +1,5 @@
 //! BEAM message contract.
-//! 
+//!
 //! `std.beam.Message` models typed payloads that can cross BEAM process
 //! boundaries. It is a target-gated runtime contract and is not part of
 //! portable `std.core`.
@@ -7,7 +7,7 @@
 module std.beam.Message.
 
 /// Message represents one typed BEAM process message.
-/// 
+///
 /// Input: type parameter `T`.
 /// Output: an opaque message wrapper owned by the BEAM target runtime.
 /// Transformation: keeps source-level message payloads typed while leaving the
@@ -16,7 +16,7 @@ module std.beam.Message.
 pub opaque type Message[T].
 
 /// MessageCodec defines conversion between source values and BEAM messages.
-/// 
+///
 /// Input: source payload type `T`.
 /// Output: a trait requiring wrapping and unwrapping operations for `Message[T]`.
 /// Transformation: gives BEAM adapters an ordinary trait surface for message

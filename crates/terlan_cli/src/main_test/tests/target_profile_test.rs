@@ -14,6 +14,107 @@ fn parse_args_accepts_core_v0_target_profile() {
     assert_eq!(cmd.args, vec!["src/example.terl".to_string()]);
 }
 
+/// Verifies CLI argument parsing accepts the JavaScript shared target profile.
+///
+/// Inputs:
+/// - Synthetic CLI arguments containing `--target-profile js.shared`.
+///
+/// Output:
+/// - Test assertion only; no files are read or written.
+///
+/// Transformation:
+/// - Parses the argument vector and asserts the command state carries
+///   `TargetProfile::JsShared` while preserving the command and source path.
+#[test]
+fn parse_args_accepts_js_shared_target_profile() {
+    let (state, cmd) = parse_args(vec![
+        "check".into(),
+        "src/example.terl".into(),
+        "--target-profile".into(),
+        "js.shared".into(),
+    ]);
+
+    assert_eq!(state.target_profile, TargetProfile::JsShared);
+    assert_eq!(cmd.verb.as_deref(), Some("check"));
+    assert_eq!(cmd.args, vec!["src/example.terl".to_string()]);
+}
+
+/// Verifies CLI argument parsing treats the shorthand JavaScript profile as
+/// the shared JavaScript profile.
+///
+/// Inputs:
+/// - Synthetic CLI arguments containing `--target-profile js`.
+///
+/// Output:
+/// - Test assertion only; no files are read or written.
+///
+/// Transformation:
+/// - Parses the argument vector and asserts the command state carries
+///   `TargetProfile::JsShared` while preserving the command and source path.
+#[test]
+fn parse_args_accepts_js_target_profile_alias() {
+    let (state, cmd) = parse_args(vec![
+        "check".into(),
+        "src/example.terl".into(),
+        "--target-profile".into(),
+        "js".into(),
+    ]);
+
+    assert_eq!(state.target_profile, TargetProfile::JsShared);
+    assert_eq!(cmd.verb.as_deref(), Some("check"));
+    assert_eq!(cmd.args, vec!["src/example.terl".to_string()]);
+}
+
+/// Verifies CLI argument parsing accepts the JavaScript browser target profile.
+///
+/// Inputs:
+/// - Synthetic CLI arguments containing `--target-profile js.browser`.
+///
+/// Output:
+/// - Test assertion only; no files are read or written.
+///
+/// Transformation:
+/// - Parses the argument vector and asserts the command state carries
+///   `TargetProfile::JsBrowser` while preserving the command and source path.
+#[test]
+fn parse_args_accepts_js_browser_target_profile() {
+    let (state, cmd) = parse_args(vec![
+        "check".into(),
+        "src/example.terl".into(),
+        "--target-profile".into(),
+        "js.browser".into(),
+    ]);
+
+    assert_eq!(state.target_profile, TargetProfile::JsBrowser);
+    assert_eq!(cmd.verb.as_deref(), Some("check"));
+    assert_eq!(cmd.args, vec!["src/example.terl".to_string()]);
+}
+
+/// Verifies CLI argument parsing accepts the JavaScript worker target profile.
+///
+/// Inputs:
+/// - Synthetic CLI arguments containing `--target-profile js.worker`.
+///
+/// Output:
+/// - Test assertion only; no files are read or written.
+///
+/// Transformation:
+/// - Parses the argument vector and asserts the command state carries
+///   `TargetProfile::JsWorker` while preserving the command and source path.
+#[test]
+fn parse_args_accepts_js_worker_target_profile() {
+    let (state, cmd) = parse_args(vec![
+        "check".into(),
+        "src/example.terl".into(),
+        "--target-profile".into(),
+        "js.worker".into(),
+    ]);
+
+    assert_eq!(state.target_profile, TargetProfile::JsWorker);
+    assert_eq!(cmd.verb.as_deref(), Some("check"));
+    assert_eq!(cmd.args, vec!["src/example.terl".to_string()]);
+}
+
 /// Verifies CLI argument parsing accepts the frozen A0 Erlang artifact
 /// target profile.
 ///

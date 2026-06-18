@@ -1,0 +1,36 @@
+{
+  "generator": "terlc",
+  "generator_profile": "tiny-dom-fixture",
+  "generator_version": "0.0.4",
+  "input_manifest": "std/js/manifests/std_js_dom_inputs.json",
+  "inputs": [
+    {
+      "kind": "typescript-declaration",
+      "namespace": "std.js.Dom",
+      "package": "typescript",
+      "package_version": "fixture",
+      "path": "std/js/dom/fixtures/document.d.ts",
+      "sha256": "704034867b337bd7ac6018794cf13f032c2a0fd5b56cd5d78d92232cb4ea62e1"
+    }
+  ],
+  "outputs": [
+    {
+      "interface": "std/js/dom/document.terli",
+      "module": "std.js.Dom.Document",
+      "source": "std/js/dom/document.terl",
+      "summary": "std/summaries/std.js.Dom.Document.typi",
+      "test": "std/js/dom/document_test.terl"
+    },
+    {
+      "interface": "std/js/dom/html_element.terli",
+      "module": "std.js.Dom.HTMLElement",
+      "source": "std/js/dom/html_element.terl",
+      "summary": "std/summaries/std.js.Dom.HTMLElement.typi",
+      "test": "std/js/dom/html_element_test.terl"
+    }
+  ],
+  "schema": "terlan.std.js.bindings.v1",
+  "skipped": [],
+  "skipped_manifest": "std/js/manifests/std_js_skipped.json",
+  "target_profile": "js.browser"
+}

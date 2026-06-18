@@ -1,5 +1,17 @@
 use super::*;
 
+/// Local explicit constructor target.
+///
+/// Inputs:
+/// - Constructor declaration selected by source name and arity.
+///
+/// Output:
+/// - Generated Erlang function name, arity/default metadata, and varargs
+///   shape used by local constructor call lowering.
+///
+/// Transformation:
+/// - Converts Terlan constructor clauses into backend call metadata while
+///   preserving default argument and varargs behavior.
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxConstructorTarget {
     pub(super) function: String,
@@ -9,6 +21,17 @@ pub(super) struct SyntaxConstructorTarget {
     pub(super) varargs: bool,
 }
 
+/// Imported or remote constructor target.
+///
+/// Inputs:
+/// - Provider module interface constructor signature.
+///
+/// Output:
+/// - Erlang module/function identity plus arity shape.
+///
+/// Transformation:
+/// - Stores the remote constructor ABI selected from imported interface
+///   metadata so call lowering can emit remote Erlang calls.
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxRemoteConstructorTarget {
     pub(super) module: String,
@@ -39,12 +62,34 @@ impl SyntaxRemoteConstructorTarget {
     }
 }
 
+/// Constructor-pattern target for deconstruction lowering.
+///
+/// Inputs:
+/// - Constructor-like source shape selected for pattern position.
+///
+/// Output:
+/// - Parameter names and body template used to lower constructor patterns.
+///
+/// Transformation:
+/// - Preserves alias or constructor deconstruction metadata so pattern lowering
+///   can match the generated runtime representation.
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxConstructorPatternTarget {
     pub(super) params: Vec<String>,
     pub(super) body: SyntaxExprOutput,
 }
 
+/// Single-shape type alias constructor metadata.
+///
+/// Inputs:
+/// - Type alias variants parsed from syntax output.
+///
+/// Output:
+/// - Constructor parameter names and template expression body.
+///
+/// Transformation:
+/// - Converts eligible singleton atom or tagged tuple aliases into the
+///   constructor-like metadata used by expression and pattern lowering.
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxAliasConstructorTarget {
     pub(super) params: Vec<String>,

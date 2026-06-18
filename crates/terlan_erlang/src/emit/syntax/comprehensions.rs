@@ -1,5 +1,17 @@
 use super::*;
 
+/// Lowered source expression for a list comprehension.
+///
+/// Inputs:
+/// - Terlan comprehension source expression after `<-`.
+///
+/// Output:
+/// - Native Erlang list source for list-backed comprehensions.
+/// - Explicit iterator expression for generic iterable sources.
+///
+/// Transformation:
+/// - Records whether the comprehension can use Erlang's native list
+///   comprehension syntax or must lower through an explicit iterator loop.
 #[derive(Debug, Clone)]
 pub(super) enum LoweredComprehensionSource {
     NativeList(ErlExpr),

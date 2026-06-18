@@ -1,0 +1,55 @@
+module std.collections.MapTest.
+
+import std.collections.Enumerable.{Enumerable}.
+import std.collections.List.
+import std.collections.Map.
+import std.core.Option.{None, Option, Some}.
+
+@test
+pub new_starts_empty(): Bool ->
+    let users = Map.new();
+    std.test.Test.assert(users.is_empty()).
+
+@test
+pub put_updates_size_and_lookup(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    case users.get("alice") {
+        Some(found) ->
+            std.test.Test.assert_equal(1, found);
+        None ->
+            false
+    }.
+
+@test
+pub contains_key_tracks_mutations(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    users.remove("alice");
+    std.test.Test.assert_equal(false, users.contains_key("alice")).
+
+@test
+pub clear_removes_entries(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    users.put("bob", 2);
+    users.clear();
+    std.test.Test.assert_equal(0, users.size()).
+
+@test
+pub enumerable_fold_counts_entries(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    users.put("bob", 2);
+    std.test.Test.assert_equal(
+        2,
+        Enumerable.fold(users, 0, (acc, _entry) -> acc + 1)
+    ).
+
+@test
+pub enumerable_map_yields_entry_pairs(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    users.put("bob", 2);
+    let mapped = Enumerable.map(users, (_entry) -> 1);
+    std.test.Test.assert_equal(2, List.length(mapped)).

@@ -43,6 +43,8 @@ pub(super) fn validate_builtin_annotation_schemas(
                 validate_compiler_key_annotation(annotation, declaration, "@compiler.native")?;
             } else if annotation_path_matches(annotation, &["target", "erlang"]) {
                 validate_target_erlang_annotation(annotation, declaration)?;
+            } else if annotation_path_matches(annotation, &["target", "js"]) {
+                validate_target_js_annotation(annotation, declaration)?;
             } else if annotation_path_matches(annotation, &["native"]) {
                 validate_native_annotation(annotation, declaration)?;
             } else if let Some(schema) = user_schemas.get(&annotation.path.join(".")) {
@@ -53,18 +55,6 @@ pub(super) fn validate_builtin_annotation_schemas(
 
     Ok(())
 }
-
-/// Collects user-declared annotation schemas from syntax declarations.
-///
-/// Inputs:
-/// - `declarations`: module declarations after syntax-output payload routing.
-///
-/// Output:
-/// - Map from dotted annotation path to schema payload.
-///
-/// Transformation:
-/// - Indexes `AnnotationSchemaDecl` payloads so declaration-leading annotations
-///   can be validated without reparsing source text.
 
 /// Collects user-declared annotation schemas from syntax declarations.
 ///
@@ -88,21 +78,6 @@ fn collect_user_annotation_schemas<'a>(
     }
     schemas
 }
-
-/// Validates one annotation against a user-declared schema.
-///
-/// Inputs:
-/// - `annotation`: declaration-leading annotation metadata.
-/// - `declaration`: annotated declaration.
-/// - `schema`: matching `AnnotationSchemaDecl` payload.
-///
-/// Output:
-/// - `Ok(())` when target, keys, required options, repeatability, and value
-///   types satisfy the schema.
-///
-/// Transformation:
-/// - Applies user-authored schema metadata as an early compile-time contract
-///   before semantic lowering, CoreIR, or backend emission.
 
 /// Validates one annotation against a user-declared schema.
 ///
@@ -209,21 +184,6 @@ fn validate_user_annotation_schema(
 /// Transformation:
 /// - Converts schema target names such as `function` into declaration-class
 ///   checks such as `FunctionDecl`.
-
-/// Validates declaration target restrictions for a user schema.
-///
-/// Inputs:
-/// - `annotation`: annotation being validated.
-/// - `declaration`: annotated declaration.
-/// - `entries`: schema entries.
-/// - `label`: user-facing annotation label.
-///
-/// Output:
-/// - `Ok(())` when the declaration target is allowed.
-///
-/// Transformation:
-/// - Converts schema target names such as `function` into declaration-class
-///   checks such as `FunctionDecl`.
 fn validate_user_annotation_target(
     annotation: &SyntaxAnnotationOutput,
     declaration: &SyntaxDeclarationOutput,
@@ -247,21 +207,6 @@ fn validate_user_annotation_target(
         format!("{label} cannot annotate {}", declaration.class),
     )
 }
-
-/// Validates key-level target restrictions for a user schema.
-///
-/// Inputs:
-/// - `entry`: annotation key entry being validated.
-/// - `declaration`: annotated declaration.
-/// - `options`: schema options for the key.
-/// - `label`: user-facing annotation label.
-///
-/// Output:
-/// - `Ok(())` when the key is valid for the declaration target.
-///
-/// Transformation:
-/// - Applies key-specific `applies_to` restrictions after top-level schema
-///   target validation.
 
 /// Validates key-level target restrictions for a user schema.
 ///
@@ -317,19 +262,6 @@ fn validate_user_annotation_key_target(
 /// Transformation:
 /// - Maps the public schema target vocabulary to formal parser-contract class
 ///   names.
-
-/// Returns whether a schema target name matches a declaration class.
-///
-/// Inputs:
-/// - `target`: schema target spelling.
-/// - `declaration`: annotated declaration.
-///
-/// Output:
-/// - `true` when the target permits the declaration class.
-///
-/// Transformation:
-/// - Maps the public schema target vocabulary to formal parser-contract class
-///   names.
 fn annotation_target_matches_declaration(
     target: &str,
     declaration: &SyntaxDeclarationOutput,
@@ -361,17 +293,6 @@ fn annotation_target_matches_declaration(
 ///
 /// Transformation:
 /// - Interprets omitted `required` as false.
-
-/// Returns whether a schema key is required.
-///
-/// Inputs:
-/// - `options`: key options from an annotation schema entry.
-///
-/// Output:
-/// - `true` when `required: true` is present.
-///
-/// Transformation:
-/// - Interprets omitted `required` as false.
 fn schema_key_is_required(options: &[SyntaxAnnotationKeyOptionOutput]) -> bool {
     options.iter().any(|option| {
         matches!(
@@ -391,17 +312,6 @@ fn schema_key_is_required(options: &[SyntaxAnnotationKeyOptionOutput]) -> bool {
 ///
 /// Transformation:
 /// - Interprets omitted `repeatable` as false.
-
-/// Returns whether a schema key is repeatable.
-///
-/// Inputs:
-/// - `options`: key options from an annotation schema entry.
-///
-/// Output:
-/// - `true` when `repeatable: true` is present.
-///
-/// Transformation:
-/// - Interprets omitted `repeatable` as false.
 fn schema_key_is_repeatable(options: &[SyntaxAnnotationKeyOptionOutput]) -> bool {
     options.iter().any(|option| {
         matches!(
@@ -410,19 +320,6 @@ fn schema_key_is_repeatable(options: &[SyntaxAnnotationKeyOptionOutput]) -> bool
         )
     })
 }
-
-/// Returns whether an annotation value satisfies a schema value type.
-///
-/// Inputs:
-/// - `value`: parsed annotation value.
-/// - `value_type`: schema value-type text.
-///
-/// Output:
-/// - `true` when the current schema type supports the value shape.
-///
-/// Transformation:
-/// - Checks primitive value kinds, name/type references, list types, and object
-///   types using syntax-output metadata rather than source text.
 
 /// Returns whether an annotation value satisfies a schema value type.
 ///
@@ -467,19 +364,6 @@ fn annotation_value_matches_type(value: &SyntaxAnnotationValueOutput, value_type
 /// Transformation:
 /// - Compares owned compiler output strings against borrowed schema strings
 ///   without allocating a temporary path.
-
-/// Returns whether an annotation path matches a static schema path.
-///
-/// Inputs:
-/// - `annotation`: parsed annotation with owned path segments.
-/// - `path`: expected schema path segments.
-///
-/// Output:
-/// - `true` when both paths contain the same segments in the same order.
-///
-/// Transformation:
-/// - Compares owned compiler output strings against borrowed schema strings
-///   without allocating a temporary path.
 fn annotation_path_matches(annotation: &SyntaxAnnotationOutput, path: &[&str]) -> bool {
     annotation.path.len() == path.len()
         && annotation
@@ -488,22 +372,6 @@ fn annotation_path_matches(annotation: &SyntaxAnnotationOutput, path: &[&str]) -
             .zip(path.iter())
             .all(|(actual, expected)| actual == expected)
 }
-
-/// Validates a marker-only annotation.
-///
-/// Inputs:
-/// - `annotation`: parsed annotation metadata.
-/// - `declaration`: annotated declaration.
-/// - `targets`: allowed declaration classes.
-/// - `label`: user-facing annotation spelling.
-///
-/// Output:
-/// - `Ok(())` when the annotation has no metadata and targets a legal
-///   declaration class.
-///
-/// Transformation:
-/// - Rejects metadata and invalid targets for annotations whose presence alone
-///   carries all required meaning.
 
 /// Validates a marker-only annotation.
 ///
@@ -532,21 +400,6 @@ fn validate_marker_annotation(
     }
     Ok(())
 }
-
-/// Validates compiler annotations that may optionally carry one explicit key.
-///
-/// Inputs:
-/// - `annotation`: parsed `@compiler.intrinsic` or `@compiler.native` metadata.
-/// - `declaration`: annotated declaration.
-/// - `label`: user-facing annotation spelling.
-///
-/// Output:
-/// - `Ok(())` when the annotation is marker-only or carries one positional
-///   qualified-name value.
-///
-/// Transformation:
-/// - Keeps release source marker-based while preserving a narrow explicit-key
-///   escape hatch for scratch/compiler tests.
 
 /// Validates compiler annotations that may optionally carry one explicit key.
 ///
@@ -595,19 +448,6 @@ fn validate_compiler_key_annotation(
     }
     Ok(())
 }
-
-/// Validates `@target.erlang` annotation metadata.
-///
-/// Inputs:
-/// - `annotation`: parsed annotation metadata.
-/// - `declaration`: annotated declaration.
-///
-/// Output:
-/// - `Ok(())` when entries use known keys and valid value types.
-///
-/// Transformation:
-/// - Rejects positional metadata, unknown keys, duplicate keys, and invalid
-///   value types for the Erlang target-owned annotation surface.
 
 /// Validates `@target.erlang` annotation metadata.
 ///
@@ -670,18 +510,67 @@ fn validate_target_erlang_annotation(
     Ok(())
 }
 
-/// Validates `@native` annotation metadata.
+/// Validates `@target.js` annotation metadata.
 ///
 /// Inputs:
 /// - `annotation`: parsed annotation metadata.
 /// - `declaration`: annotated declaration.
 ///
 /// Output:
-/// - `Ok(())` when entries use known keys and valid value types.
+/// - `Ok(())` when entries use known JS target metadata keys and value types.
 ///
 /// Transformation:
-/// - Models native metadata as explicit typed key/value configuration, not as
-///   positional compiler-internal names.
+/// - Enforces the generated-binding metadata surface before CoreIR or JS
+///   backend emission, keeping ordinary snake-case to camel-case mapping
+///   convention-based and reserving annotations for explicit exceptions.
+fn validate_target_js_annotation(
+    annotation: &SyntaxAnnotationOutput,
+    declaration: &SyntaxDeclarationOutput,
+) -> EbnfCompileResult<()> {
+    validate_annotation_target(
+        annotation,
+        declaration,
+        &[
+            "TypeDecl",
+            "OpaqueTypeDecl",
+            "StructDecl",
+            "ConstructorDecl",
+            "FunctionDecl",
+            "MethodDecl",
+            "TraitDecl",
+            "TraitImplDecl",
+            "TemplateDecl",
+            "ConfigDecl",
+        ],
+        "@target.js",
+    )?;
+    if !annotation.values.is_empty() {
+        return annotation_error(annotation, "@target.js does not accept positional metadata");
+    }
+    validate_unique_annotation_keys(annotation, "@target.js")?;
+    for entry in &annotation.entries {
+        match entry.key_text().as_str() {
+            "name" | "source_module" | "namespace" => validate_annotation_entry_value(
+                entry,
+                annotation_value_is_name_or_string,
+                "name or String",
+            )?,
+            "profile" => validate_annotation_entry_value(
+                entry,
+                annotation_value_is_name_or_string,
+                "name or String",
+            )?,
+            "global" => validate_annotation_entry_value(entry, annotation_value_is_bool, "Bool")?,
+            key => {
+                return annotation_entry_error(
+                    entry,
+                    format!("@target.js has unknown key `{key}`"),
+                );
+            }
+        }
+    }
+    Ok(())
+}
 
 /// Validates `@native` annotation metadata.
 ///
@@ -746,21 +635,6 @@ fn validate_native_annotation(
 /// Transformation:
 /// - Converts declaration class routing into a compile-time annotation target
 ///   schema check.
-
-/// Validates that an annotation is applied to an allowed declaration class.
-///
-/// Inputs:
-/// - `annotation`: parsed annotation metadata.
-/// - `declaration`: annotated declaration.
-/// - `targets`: allowed declaration classes.
-/// - `label`: user-facing annotation spelling.
-///
-/// Output:
-/// - `Ok(())` when `declaration.class` is present in `targets`.
-///
-/// Transformation:
-/// - Converts declaration class routing into a compile-time annotation target
-///   schema check.
 fn validate_annotation_target(
     annotation: &SyntaxAnnotationOutput,
     declaration: &SyntaxDeclarationOutput,
@@ -789,32 +663,9 @@ fn validate_annotation_target(
 ///
 /// Transformation:
 /// - Collapses raw and typed metadata forms into one marker-vs-metadata check.
-
-/// Returns whether an annotation carries any metadata.
-///
-/// Inputs:
-/// - `annotation`: parsed annotation metadata.
-///
-/// Output:
-/// - `true` when raw args, keyed entries, or positional values are present.
-///
-/// Transformation:
-/// - Collapses raw and typed metadata forms into one marker-vs-metadata check.
 fn has_annotation_metadata(annotation: &SyntaxAnnotationOutput) -> bool {
     annotation.args.is_some() || !annotation.entries.is_empty() || !annotation.values.is_empty()
 }
-
-/// Rejects duplicate non-repeatable annotation keys.
-///
-/// Inputs:
-/// - `annotation`: parsed annotation metadata.
-/// - `label`: user-facing annotation spelling.
-///
-/// Output:
-/// - `Ok(())` when every key appears at most once.
-///
-/// Transformation:
-/// - Treats all current built-in annotation keys as non-repeatable.
 
 /// Rejects duplicate non-repeatable annotation keys.
 ///
@@ -853,19 +704,6 @@ fn validate_unique_annotation_keys(
 ///
 /// Transformation:
 /// - Centralizes typed metadata diagnostics for built-in annotation schemas.
-
-/// Validates one annotation entry value with a predicate.
-///
-/// Inputs:
-/// - `entry`: parsed annotation entry.
-/// - `predicate`: accepted value-shape test.
-/// - `expected`: user-facing expected type text.
-///
-/// Output:
-/// - `Ok(())` when `predicate(entry.value)` is true.
-///
-/// Transformation:
-/// - Centralizes typed metadata diagnostics for built-in annotation schemas.
 fn validate_annotation_entry_value(
     entry: &SyntaxAnnotationEntryOutput,
     predicate: fn(&SyntaxAnnotationValueOutput) -> bool,
@@ -879,17 +717,6 @@ fn validate_annotation_entry_value(
         format!("annotation key `{}` expects {expected}", entry.key_text()),
     )
 }
-
-/// Returns whether an annotation value is `Bool`.
-///
-/// Inputs:
-/// - `value`: parsed annotation value.
-///
-/// Output:
-/// - `true` for typed boolean values.
-///
-/// Transformation:
-/// - Matches the annotation schema value kind without reading raw source text.
 
 /// Returns whether an annotation value is `Bool`.
 ///
@@ -915,31 +742,27 @@ fn annotation_value_is_bool(value: &SyntaxAnnotationValueOutput) -> bool {
 ///
 /// Transformation:
 /// - Matches the annotation schema value kind without reading raw source text.
-
-/// Returns whether an annotation value is `String`.
-///
-/// Inputs:
-/// - `value`: parsed annotation value.
-///
-/// Output:
-/// - `true` for typed string values.
-///
-/// Transformation:
-/// - Matches the annotation schema value kind without reading raw source text.
 fn annotation_value_is_string(value: &SyntaxAnnotationValueOutput) -> bool {
     matches!(value, SyntaxAnnotationValueOutput::String { .. })
 }
 
-/// Returns whether an annotation value is `Bool`, name, or `String`.
+/// Returns whether an annotation value is a qualified name or `String`.
 ///
 /// Inputs:
 /// - `value`: parsed annotation value.
 ///
 /// Output:
-/// - `true` for typed boolean, qualified-name, or string values.
+/// - `true` for typed qualified-name and string values.
 ///
 /// Transformation:
-/// - Allows target-owned enum-like values while preserving type validation.
+/// - Supports target metadata that may refer to symbolic platform names or
+///   string spellings without accepting unrelated scalar types.
+fn annotation_value_is_name_or_string(value: &SyntaxAnnotationValueOutput) -> bool {
+    matches!(
+        value,
+        SyntaxAnnotationValueOutput::Name { .. } | SyntaxAnnotationValueOutput::String { .. }
+    )
+}
 
 /// Returns whether an annotation value is `Bool`, name, or `String`.
 ///
@@ -972,19 +795,6 @@ fn annotation_value_is_bool_name_or_string(value: &SyntaxAnnotationValueOutput) 
 /// Transformation:
 /// - Converts syntax-output validation failures into the existing parser error
 ///   channel used by command phases.
-
-/// Builds a syntax-output parse diagnostic for an annotation.
-///
-/// Inputs:
-/// - `annotation`: offending annotation.
-/// - `message`: user-facing diagnostic message.
-///
-/// Output:
-/// - `EbnfCompileError::Parse` at the annotation span.
-///
-/// Transformation:
-/// - Converts syntax-output validation failures into the existing parser error
-///   channel used by command phases.
 fn annotation_error<T>(
     annotation: &SyntaxAnnotationOutput,
     message: impl Into<String>,
@@ -994,19 +804,6 @@ fn annotation_error<T>(
         annotation.span.into(),
     ))
 }
-
-/// Builds a syntax-output parse diagnostic for an annotation entry.
-///
-/// Inputs:
-/// - `entry`: offending annotation entry.
-/// - `message`: user-facing diagnostic message.
-///
-/// Output:
-/// - `EbnfCompileError::Parse` at the entry span.
-///
-/// Transformation:
-/// - Reports key/value schema failures at the most specific typed metadata
-///   span currently available.
 
 /// Builds a syntax-output parse diagnostic for an annotation entry.
 ///
@@ -1055,19 +852,6 @@ impl SyntaxAnnotationEntryOutput {
 /// Transformation:
 /// - Clones parser-owned annotation fields into the formal output schema so
 ///   downstream phases can inspect annotations without reading source text.
-
-/// Converts parser annotation metadata into serializable syntax output.
-///
-/// Inputs:
-/// - `annotation`: parsed declaration-leading annotation metadata.
-///
-/// Output:
-/// - Syntax-output annotation payload with path, optional raw args, typed
-///   entries, and span.
-///
-/// Transformation:
-/// - Clones parser-owned annotation fields into the formal output schema so
-///   downstream phases can inspect annotations without reading source text.
 pub(super) fn annotation_output(annotation: &Annotation) -> SyntaxAnnotationOutput {
     SyntaxAnnotationOutput {
         path: annotation.path.clone(),
@@ -1096,17 +880,6 @@ pub(super) fn annotation_output(annotation: &Annotation) -> SyntaxAnnotationOutp
 ///
 /// Transformation:
 /// - Clones key segments and recursively converts the typed annotation value.
-
-/// Converts one parser annotation entry into serializable syntax output.
-///
-/// Inputs:
-/// - `entry`: parsed annotation key/value metadata.
-///
-/// Output:
-/// - Serializable annotation entry with source span.
-///
-/// Transformation:
-/// - Clones key segments and recursively converts the typed annotation value.
 fn annotation_entry_output(entry: &AnnotationEntry) -> SyntaxAnnotationEntryOutput {
     SyntaxAnnotationEntryOutput {
         key: entry.key.clone(),
@@ -1114,18 +887,6 @@ fn annotation_entry_output(entry: &AnnotationEntry) -> SyntaxAnnotationEntryOutp
         span: entry.span.into(),
     }
 }
-
-/// Converts one parser annotation value into serializable syntax output.
-///
-/// Inputs:
-/// - `value`: parsed annotation metadata value.
-///
-/// Output:
-/// - Serializable annotation value payload.
-///
-/// Transformation:
-/// - Preserves literal source text for numeric/string values and recursively
-///   maps list/object values.
 
 /// Converts one parser annotation value into serializable syntax output.
 ///
@@ -1168,19 +929,6 @@ fn annotation_value_output(value: &AnnotationValue) -> SyntaxAnnotationValueOutp
 /// Transformation:
 /// - Maps parse tree schema entries into the formal syntax-output representation used
 ///   by validation and downstream compiler phases.
-
-/// Converts one parser annotation schema entry into syntax output.
-///
-/// Inputs:
-/// - `entry`: parsed schema body entry.
-///
-/// Output:
-/// - Serializable schema entry preserving targets, key path, value type text,
-///   options, and source span.
-///
-/// Transformation:
-/// - Maps parse tree schema entries into the formal syntax-output representation used
-///   by validation and downstream compiler phases.
 pub(super) fn annotation_schema_entry_output(
     entry: &AnnotationSchemaEntry,
 ) -> SyntaxAnnotationSchemaEntryOutput {
@@ -1204,18 +952,6 @@ pub(super) fn annotation_schema_entry_output(
         },
     }
 }
-
-/// Converts one parser annotation key option into syntax output.
-///
-/// Inputs:
-/// - `option`: parsed schema key option.
-///
-/// Output:
-/// - Serializable option preserving typed values and source span.
-///
-/// Transformation:
-/// - Reuses annotation value conversion for default metadata and copies target
-///   lists for applies-to restrictions.
 
 /// Converts one parser annotation key option into syntax output.
 ///

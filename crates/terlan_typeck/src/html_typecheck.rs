@@ -7,7 +7,7 @@ use terlan_syntax::{
 };
 
 use super::{
-    expand_type_aliases, infer_function_with_bounds, infer_syntax_expr, pretty_type,
+    expand_type_aliases, infer_function_scheme_overload, infer_syntax_expr, pretty_type,
     ExprInferContext, Type, TypeAlias, TypeVarId,
 };
 
@@ -99,6 +99,17 @@ fn check_syntax_html_node(
     }
 }
 
+/// Standard HTML attribute type category used by syntax-level checks.
+///
+/// Inputs:
+/// - HTML attribute name from syntax output.
+///
+/// Output:
+/// - Compact type category used for diagnostics and renderability checks.
+///
+/// Transformation:
+/// - Groups common HTML attributes into the current Terlan type categories
+///   without introducing a full DOM type model into the core typechecker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HtmlAttrType {
     Text,
@@ -333,14 +344,14 @@ fn infer_syntax_html_component_call(
 ) -> Type {
     let arity = element.attrs.len();
     for name in component_function_names(&element.name) {
-        if let Some(scheme) = ctx.signatures.get(&(name.clone(), arity)) {
+        if let Some(schemes) = ctx.signatures.get(&(name.clone(), arity)) {
             let arg_types =
                 syntax_component_arg_types(element, ctx.local_fns.get(&(name.clone(), arity)))
                     .into_iter()
                     .map(|attr| syntax_html_attr_type(attr, locals, ctx, subst, errors))
                     .collect::<Vec<_>>();
 
-            return match infer_function_with_bounds(scheme, Some(&name), &arg_types, ctx, subst) {
+            return match infer_function_scheme_overload(schemes, &name, &arg_types, ctx, subst) {
                 Ok(ty) => ty,
                 Err(message) => {
                     errors.push(message);

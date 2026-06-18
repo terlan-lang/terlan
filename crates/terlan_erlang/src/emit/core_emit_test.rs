@@ -43,6 +43,31 @@ fn core_string_contains_intrinsic_lowers_to_erlang_search_case() {
     assert!(rendered.contains("true"));
 }
 
+/// Verifies CoreIR casts lower as identity expressions for Erlang output.
+///
+/// Inputs:
+/// - A directly constructed assignment-compatible CoreIR cast.
+///
+/// Output:
+/// - Test passes when the Erlang expression is the wrapped value.
+///
+/// Transformation:
+/// - Lowers `CoreExpr::Cast` through the CoreIR Erlang emitter and confirms
+///   the backend does not introduce target-specific coercion for a cast that
+///   typechecking has already accepted.
+#[test]
+fn core_cast_expr_lowers_to_erlang_wrapped_expr() {
+    let expr = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::Int(42)),
+        target_type: CoreType::Int,
+    };
+    let rendered = lower_core_expr_to_erlang(&expr)
+        .expect("assignment-compatible cast should lower")
+        .render();
+
+    assert_eq!(rendered, "42");
+}
+
 /// Verifies `runtime.console.println` lowers through backend-owned BEAM IO.
 ///
 /// Inputs:

@@ -3,6 +3,18 @@
 //! This module owns static Erlang runtime source snippets that are exposed
 //! through the backend public API.
 
+/// Returns the embedded Erlang HTML runtime helper module.
+///
+/// Inputs:
+/// - No runtime input.
+///
+/// Output:
+/// - Static Erlang source for the HTML escaping helper module.
+///
+/// Transformation:
+/// - Exposes the checked-in runtime snippet without allocation so callers can
+///   write it beside generated Erlang modules when template output needs HTML
+///   escaping support.
 pub fn emit_html_runtime_to_erlang() -> &'static str {
     TYPER_HTML_RUNTIME
 }

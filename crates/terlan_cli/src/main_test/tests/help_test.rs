@@ -87,6 +87,63 @@ fn run_cli_accepts_top_level_help_command() {
     assert_eq!(run_cli(vec!["help".into()]), ExitCode::SUCCESS);
 }
 
+/// Verifies bare top-level usage is release-facing only.
+///
+/// Inputs:
+/// - The static usage lines printed by bare `terlc` and `terlc help`.
+///
+/// Output:
+/// - Test assertions only; no process output is captured.
+///
+/// Transformation:
+/// - Joins the top-level usage allowlist and checks that stable release
+///   commands are present while scratch, maintainer, backend-probe, and
+///   validation commands are absent from the default user surface.
+#[test]
+fn top_level_usage_hides_internal_scratch_commands() {
+    let usage = public_usage_lines().join("\n");
+
+    for public_command in [
+        "terlc help [command]",
+        "terlc init [project-name] [--profile default|web]",
+        "terlc check <file.terl|file.terli|dir>",
+        "terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]",
+        "terlc test [file.terl|dir] [--target erlang|js]",
+        "terlc doc <file.terl|dir|std>",
+        "terlc repl [--help]",
+        "terlc fmt <file.terl>",
+        "terlc version | terlc --version | terlc -V",
+        "Global options: --diagnostic-format text|json --color auto|always|never --target-profile erlang|js.shared|js.browser|js.worker",
+    ] {
+        assert!(
+            usage.contains(public_command),
+            "top-level usage should include `{public_command}`:\n{usage}"
+        );
+    }
+
+    for internal_command in [
+        "bind rust",
+        "emit <file.terl>",
+        "emit-static",
+        "serve-static",
+        "emit-js",
+        "interface <file.terli>",
+        "doctest",
+        "emit-native-metadata",
+        "hover",
+        "lsp",
+        "syntax-contract",
+        "native-policy",
+        "a0-erlang",
+        "core-v0",
+    ] {
+        assert!(
+            !usage.contains(internal_command),
+            "top-level usage leaked internal command `{internal_command}`:\n{usage}"
+        );
+    }
+}
+
 /// Verifies help-command long help exits successfully.
 ///
 /// Inputs:

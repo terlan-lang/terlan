@@ -9,6 +9,17 @@ use super::{
     syntax_declared_implements, syntax_trait_impl_to_parsed, FunctionBound, FunctionScheme, Type,
 };
 
+/// Parsed trait declaration surface visible to type checking.
+///
+/// Inputs:
+/// - Local trait declarations and imported trait interface metadata.
+///
+/// Output:
+/// - Normalized trait parameter, method, and inheritance shape.
+///
+/// Transformation:
+/// - Converts syntax/interface text into a lookup-ready model while preserving
+///   method defaults and super trait references.
 #[derive(Debug, Clone)]
 pub(super) struct ParsedTraitSignature {
     pub(super) type_params: Vec<String>,
@@ -16,12 +27,34 @@ pub(super) struct ParsedTraitSignature {
     pub(super) super_traits: Vec<String>,
 }
 
+/// Resolved trait method implementation candidate.
+///
+/// Inputs:
+/// - Declared or explicit trait implementation method plus resolved type args.
+///
+/// Output:
+/// - Callable function scheme paired with implementation type arguments.
+///
+/// Transformation:
+/// - Binds generic implementation context to the method shape used by
+///   expression dispatch.
 #[derive(Debug, Clone)]
 pub(super) struct ResolvedTraitMethod {
     pub(super) scheme: FunctionScheme,
     pub(super) impl_type_args: Vec<Type>,
 }
 
+/// Method requirement declared by a trait.
+///
+/// Inputs:
+/// - Trait method syntax or imported interface method metadata.
+///
+/// Output:
+/// - Parameter, return, generic-bound, and default-method metadata.
+///
+/// Transformation:
+/// - Normalizes source-level type text into the comparable trait signature
+///   format used for conformance checks.
 #[derive(Debug, Clone)]
 pub(super) struct TraitMethodSignature {
     pub(super) params: Vec<TraitMethodParamSignature>,
@@ -30,12 +63,34 @@ pub(super) struct TraitMethodSignature {
     pub(super) has_default: bool,
 }
 
+/// Trait method parameter requirement.
+///
+/// Inputs:
+/// - One trait method parameter annotation and mutability marker.
+///
+/// Output:
+/// - Normalized parameter type text and mutable receiver/argument flag.
+///
+/// Transformation:
+/// - Keeps mutability explicit so trait conformance can validate mutable
+///   receiver methods.
 #[derive(Debug, Clone)]
 pub(super) struct TraitMethodParamSignature {
     pub(super) ty: String,
     pub(super) is_mutable: bool,
 }
 
+/// Parsed explicit trait implementation declaration.
+///
+/// Inputs:
+/// - `impl Trait[...] for Type` syntax-output declaration.
+///
+/// Output:
+/// - Target trait instance, optional `for` type, and implemented methods.
+///
+/// Transformation:
+/// - Converts implementation syntax into a compact semantic shape before
+///   coherence and signature validation.
 #[derive(Debug, Clone)]
 pub(super) struct ParsedTraitImpl {
     pub(super) target: ParsedTraitInstance,
@@ -43,12 +98,35 @@ pub(super) struct ParsedTraitImpl {
     pub(super) methods: Vec<ParsedMethodSignature>,
 }
 
+/// Parsed trait reference with type arguments.
+///
+/// Inputs:
+/// - Trait name text such as `Show[User]`.
+///
+/// Output:
+/// - Trait name and raw type-argument text.
+///
+/// Transformation:
+/// - Splits the trait reference enough for later type parsing and generic
+///   substitution.
 #[derive(Debug, Clone)]
 pub(super) struct ParsedTraitInstance {
     pub(super) name: String,
     pub(super) type_args: Vec<String>,
 }
 
+/// Parsed method signature inside an explicit trait implementation.
+///
+/// Inputs:
+/// - Implementation method syntax-output declaration.
+///
+/// Output:
+/// - Method name, parameter type text, mutability markers, return type, and
+///   diagnostic span.
+///
+/// Transformation:
+/// - Captures the implementation method surface used for trait signature
+///   matching without retaining the method body.
 #[derive(Debug, Clone)]
 pub(super) struct ParsedMethodSignature {
     pub(super) name: String,

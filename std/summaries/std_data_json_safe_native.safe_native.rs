@@ -11,9 +11,20 @@ pub const NATIVE_MODULE: &str = "std_data_json_safe_native";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
+    ("null", 0),
+    ("bool", 1),
+    ("int", 1),
+    ("float", 1),
+    ("string", 1),
+    ("array", 0),
+    ("object", 0),
+    ("push", 2),
+    ("put", 3),
     ("parse", 1),
     ("stringify", 1),
     ("get", 2),
+    ("length", 1),
+    ("at", 2),
     ("as_string", 1),
     ("as_int", 1),
     ("as_float", 1),
@@ -22,9 +33,20 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
+    ("null", "std.data.json.null", 0),
+    ("bool", "std.data.json.bool", 1),
+    ("int", "std.data.json.int", 1),
+    ("float", "std.data.json.float", 1),
+    ("string", "std.data.json.string", 1),
+    ("array", "std.data.json.array", 0),
+    ("object", "std.data.json.object", 0),
+    ("push", "std.data.json.array_push", 2),
+    ("put", "std.data.json.object_put", 3),
     ("parse", "std.data.json.parse", 1),
     ("stringify", "std.data.json.stringify", 1),
     ("get", "std.data.json.get", 2),
+    ("length", "std.data.json.length", 1),
+    ("at", "std.data.json.at", 2),
     ("as_string", "std.data.json.as_string", 1),
     ("as_int", "std.data.json.as_int", 1),
     ("as_float", "std.data.json.as_float", 1),
@@ -157,9 +179,20 @@ fn worker_loop(rx: Receiver<SafeNativeCommand>, credit_window: usize) {
             SafeNativeCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
+                        "std.data.json.null" => native_unimplemented_operation(operation),
+                        "std.data.json.bool" => native_unimplemented_operation(operation),
+                        "std.data.json.int" => native_unimplemented_operation(operation),
+                        "std.data.json.float" => native_unimplemented_operation(operation),
+                        "std.data.json.string" => native_unimplemented_operation(operation),
+                        "std.data.json.array" => native_unimplemented_operation(operation),
+                        "std.data.json.object" => native_unimplemented_operation(operation),
+                        "std.data.json.array_push" => native_unimplemented_operation(operation),
+                        "std.data.json.object_put" => native_unimplemented_operation(operation),
                         "std.data.json.parse" => native_unimplemented_operation(operation),
                         "std.data.json.stringify" => native_unimplemented_operation(operation),
                         "std.data.json.get" => native_unimplemented_operation(operation),
+                        "std.data.json.length" => native_unimplemented_operation(operation),
+                        "std.data.json.at" => native_unimplemented_operation(operation),
                         "std.data.json.as_string" => native_unimplemented_operation(operation),
                         "std.data.json.as_int" => native_unimplemented_operation(operation),
                         "std.data.json.as_float" => native_unimplemented_operation(operation),

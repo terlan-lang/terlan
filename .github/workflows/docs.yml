@@ -1,0 +1,62 @@
+name: Docs CI
+
+on:
+  pull_request:
+    paths:
+      - "README.md"
+      - "CHANGELOG.md"
+      - "docs/**"
+      - ".github/WORKFLOWS.md"
+      - ".github/workflows/docs.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "CHANGELOG.md"
+      - "docs/**"
+      - ".github/WORKFLOWS.md"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  docs-light:
+    name: Docs light checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Markdown hygiene
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          files = [Path("README.md"), Path("CHANGELOG.md")]
+          files.extend(sorted(Path("docs").rglob("*.md")))
+          files.append(Path(".github/WORKFLOWS.md"))
+
+          errors = []
+          for path in files:
+              if not path.exists():
+                  errors.append(f"{path}: missing")
+                  continue
+              text = path.read_text(encoding="utf-8")
+              if "\t" in text:
+                  errors.append(f"{path}: contains tab characters")
+              for line_no, line in enumerate(text.splitlines(), start=1):
+                  if line.rstrip(" \t") != line:
+                      errors.append(f"{path}:{line_no}: trailing whitespace")
+
+          if errors:
+              print("docs-light failures:", file=sys.stderr)
+              for error in errors:
+                  print(f"  - {error}", file=sys.stderr)
+              raise SystemExit(1)
+
+          print(f"docs-light checked {len(files)} markdown files.")
+          PY

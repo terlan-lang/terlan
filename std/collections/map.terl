@@ -7,7 +7,7 @@
 
 module std.collections.Map.
 
-import type std.core.Option.
+import std.core.Option.{None, Option}.
 import std.core.Unit.{Unit}.
 import std.collections.Iterator.{Iterator}.
 

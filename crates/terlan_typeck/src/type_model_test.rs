@@ -110,6 +110,7 @@ pub tag_count(tags: Boxed[Binary]): Int ->
     assert!(extra_names.contains("User"));
     let ok_signature = function_signatures
         .get(&("ok".to_string(), 0))
+        .and_then(|signatures| signatures.first())
         .expect("ok function signature");
     assert_eq!(
         ok_signature.ret,
@@ -121,6 +122,7 @@ pub tag_count(tags: Boxed[Binary]): Int ->
     );
     let tag_count_signature = function_signatures
         .get(&("tag_count".to_string(), 1))
+        .and_then(|signatures| signatures.first())
         .expect("tag_count function signature");
     assert_eq!(
         tag_count_signature.params,

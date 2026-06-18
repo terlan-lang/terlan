@@ -1,0 +1,38 @@
+/**
+ * Portable HTTP request contract.
+ *
+ * `std.http.Request` exposes request helpers used by Terlan HTTP handlers.
+ * Runtime servers own the concrete request representation; source code works
+ * with typed receivers and portable `Result` values.
+ */
+
+module std.http.Request.
+
+import type std.core.Result.
+import type std.data.Json.
+import type std.core.Error.
+
+/**
+ * Request represents one HTTP request received by a Terlan server.
+ *
+ * Input: no type parameter.
+ * Output: an opaque request handle whose runtime representation is target
+ * owned.
+ * Transformation: hides server-specific request storage while preserving a
+ * stable typed receiver for handler functions.
+ */
+pub opaque type Request.
+
+/**
+ * Parses the request body as JSON.
+ *
+ * Input: one `Request` receiver.
+ * Output: `Ok(json)` when the body is present and valid JSON, otherwise
+ * `Err(Error)`.
+ * Transformation: reads the target-owned request body, delegates JSON parsing
+ * to the native JSON capability, and normalizes body/parse failures into a
+ * portable core error.
+ */
+@compiler.native {std.http.request.body_json}
+pub (request: Request) body_json(): Result[Json, Error] ->
+    native.

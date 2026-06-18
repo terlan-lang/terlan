@@ -1,0 +1,57 @@
+//! Portable HTTP response contract.
+//!
+//! `std.http.Response` exposes response builders used by Terlan HTTP handlers.
+//! Runtime servers own the concrete response representation; source code works
+//! with typed constructors and receiver methods.
+
+module std.http.Response.
+
+/// Response represents one HTTP response returned by a Terlan handler.
+///
+/// Input: no type parameter.
+/// Output: an opaque response handle whose runtime representation is target
+/// owned.
+/// Transformation: hides server-specific response storage while preserving a
+/// stable typed return value for handler functions.
+
+pub opaque type Response.
+
+/// Sets a response header.
+///
+/// Input: one mutable `Response` receiver, one UTF-8 header name, and one UTF-8
+/// header value.
+/// Output: `Unit`.
+/// Transformation: updates the target-owned response metadata through the
+/// mutable receiver ABI.
+
+pub (mut response: Response) header(name: String, value: String): Unit.
+
+/// Creates a JSON response.
+///
+/// Input: one `Json` value.
+/// Output: a `Response` containing the serialized JSON body and the platform
+/// default JSON content type.
+/// Transformation: delegates response allocation and serialization to the
+/// selected HTTP server capability without exposing backend response buffers.
+
+pub json(value: Json): Response.
+
+/// Sets the response status.
+///
+/// Input: one mutable `Response` receiver and one HTTP status code.
+/// Output: `Unit`.
+/// Transformation: updates the target-owned response metadata through the
+/// mutable receiver ABI.
+
+pub (mut response: Response) status(code: Int): Unit.
+
+/// Creates a text response.
+///
+/// Input: one UTF-8 `String` value.
+/// Output: a `Response` containing the text body and the platform default text
+/// content type.
+/// Transformation: delegates response allocation to the selected HTTP server
+/// capability without exposing backend response buffers.
+
+pub text(value: String): Response.
+

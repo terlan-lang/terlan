@@ -1,0 +1,44 @@
+/**
+ * JavaScript-native Promise wrapper.
+ *
+ * `std.js.Promise` exposes JavaScript promises as an explicit target-specific
+ * async value. Portable modules should use `std.core.Task`; JavaScript-targeted
+ * modules may opt into `Promise[T]` when interop requires the JavaScript
+ * promise shape.
+ */
+
+module std.js.Promise.
+
+import type std.core.Task.
+
+/**
+ * Represents a JavaScript-native promise.
+ *
+ * Input: type parameter `T`.
+ * Output: an opaque JavaScript-native promise wrapper.
+ * Transformation: preserves JavaScript promise identity while keeping it
+ * distinct from portable `std.core.Task`.
+ */
+pub opaque type Promise[T].
+
+/**
+ * Converts a portable task into a JavaScript-native promise.
+ *
+ * Input: one portable `Task[T]`.
+ * Output: one JavaScript-native `Promise[T]`.
+ * Transformation: asks the JavaScript target backend to expose the portable
+ * task as a promise at the target boundary.
+ */
+pub from_task[T](task: Task[T]): Promise[T] ->
+    native.
+
+/**
+ * Converts a JavaScript-native promise into a portable task.
+ *
+ * Input: one `Promise[T]`.
+ * Output: one portable `Task[T]`.
+ * Transformation: asks the JavaScript target backend to observe the promise
+ * through Terlan's portable task contract.
+ */
+pub (promise: Promise[T]) to_task(): Task[T] ->
+    native.

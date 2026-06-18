@@ -1,5 +1,5 @@
 //! Portable JSON value contract.
-//! 
+//!
 //! `std.data.Json` exposes JSON parsing, rendering, and typed accessors through
 //! a target-neutral Terlan API. Its first backend is Rust/SafeNative with
 //! `serde_json`, but source code sees only `Json`, `JsonError`, and `Result`.
@@ -7,7 +7,7 @@
 module std.data.Json.
 
 /// Json represents a parsed JSON value.
-/// 
+///
 /// Input: no type parameter.
 /// Output: an opaque JSON handle whose runtime representation is target-owned.
 /// Transformation: hides the selected target JSON representation behind a
@@ -17,7 +17,7 @@ module std.data.Json.
 pub opaque type Json.
 
 /// JsonError is the portable error returned by JSON operations.
-/// 
+///
 /// Input: inherits the neutral `code` and `message` fields from
 /// `std.core.Error.Error` and adds the byte offset reported by the parser when
 /// available.
@@ -32,8 +32,17 @@ pub struct JsonError {
     offset: Int
 }.
 
+/// Creates an empty JSON array.
+///
+/// Input: no value input.
+/// Output: an empty JSON array.
+/// Transformation: delegates array allocation to the selected target JSON
+/// capability.
+
+pub array(): Json.
+
 /// Reads a JSON boolean value.
-/// 
+///
 /// Input: one `Json` receiver.
 /// Output: `Ok(value)` when the receiver is a JSON boolean, otherwise
 /// `Err(JsonError)`.
@@ -43,7 +52,7 @@ pub struct JsonError {
 pub (json: Json) as_bool(): Result[Bool, JsonError].
 
 /// Reads a JSON floating-point value.
-/// 
+///
 /// Input: one `Json` receiver.
 /// Output: `Ok(value)` when the receiver is a JSON number representable as
 /// `Float`, otherwise `Err(JsonError)`.
@@ -53,7 +62,7 @@ pub (json: Json) as_bool(): Result[Bool, JsonError].
 pub (json: Json) as_float(): Result[Float, JsonError].
 
 /// Reads a JSON integer value.
-/// 
+///
 /// Input: one `Json` receiver.
 /// Output: `Ok(value)` when the receiver is a JSON integer representable as
 /// `Int`, otherwise `Err(JsonError)`.
@@ -63,7 +72,7 @@ pub (json: Json) as_float(): Result[Float, JsonError].
 pub (json: Json) as_int(): Result[Int, JsonError].
 
 /// Reads a JSON string value.
-/// 
+///
 /// Input: one `Json` receiver.
 /// Output: `Ok(value)` when the receiver is a JSON string, otherwise
 /// `Err(JsonError)`.
@@ -72,8 +81,37 @@ pub (json: Json) as_int(): Result[Int, JsonError].
 
 pub (json: Json) as_string(): Result[String, JsonError].
 
+/// Reads a JSON array element by index.
+///
+/// Input: one `Json` receiver and one zero-based index.
+/// Output: `Ok(value)` when the receiver is a JSON array and the index exists,
+/// otherwise `Err(JsonError)`.
+/// Transformation: performs a typed JSON array lookup without exposing the
+/// backend array representation.
+
+pub (json: Json) at(index: Int): Result[Json, JsonError].
+
+/// Creates a JSON boolean value.
+///
+/// Input: one `Bool` value.
+/// Output: a `Json` value representing that boolean.
+/// Transformation: maps the portable Terlan boolean into the selected target
+/// JSON representation.
+
+pub bool(value: Bool): Json.
+
+/// Creates a JSON floating-point value.
+///
+/// Input: one `Float` value.
+/// Output: `Ok(json)` when the value is finite and representable as JSON,
+/// otherwise `Err(JsonError)`.
+/// Transformation: rejects non-finite numbers before delegating construction to
+/// the selected target JSON representation.
+
+pub float(value: Float): Result[Json, JsonError].
+
 /// Reads an object member by key.
-/// 
+///
 /// Input: one `Json` receiver and one UTF-8 object key.
 /// Output: `Ok(value)` when the receiver is an object containing the key,
 /// otherwise `Err(JsonError)`.
@@ -82,16 +120,53 @@ pub (json: Json) as_string(): Result[String, JsonError].
 
 pub (json: Json) get(key: String): Result[Json, JsonError].
 
+/// Creates a JSON integer value.
+///
+/// Input: one `Int` value.
+/// Output: a `Json` value representing that integer.
+/// Transformation: maps the portable Terlan integer into the selected target
+/// JSON number representation.
+
+pub int(value: Int): Json.
+
 /// Returns whether a JSON value is null.
-/// 
+///
 /// Input: one `Json` receiver.
 /// Output: `true` when the receiver is JSON null, otherwise `false`.
 /// Transformation: observes the JSON value kind without changing the receiver.
 
 pub (json: Json) is_null(): Bool.
 
+/// Returns the length of a JSON array.
+///
+/// Input: one `Json` receiver.
+/// Output: `Ok(length)` when the receiver is a JSON array, otherwise
+/// `Err(JsonError)`.
+/// Transformation: validates the JSON value kind and returns the array element
+/// count without exposing the backend array representation.
+
+pub (json: Json) length(): Result[Int, JsonError].
+
+/// Creates a JSON null value.
+///
+/// Input: no value input.
+/// Output: a `Json` value representing JSON null.
+/// Transformation: delegates construction to the selected target JSON
+/// capability while preserving `Json` as the only source-visible value shape.
+
+pub null(): Json.
+
+/// Creates an empty JSON object.
+///
+/// Input: no value input.
+/// Output: an empty JSON object.
+/// Transformation: delegates object allocation to the selected target JSON
+/// capability.
+
+pub object(): Json.
+
 /// Parses text into a JSON value.
-/// 
+///
 /// Input: one UTF-8 string containing JSON source text.
 /// Output: `Ok(json)` when parsing succeeds, otherwise `Err(JsonError)`.
 /// Transformation: delegates parsing to the selected target JSON capability and
@@ -99,8 +174,35 @@ pub (json: Json) is_null(): Bool.
 
 pub parse(text: String): Result[Json, JsonError].
 
+/// Appends a value to a JSON array.
+///
+/// Input: one mutable JSON array receiver and one JSON value.
+/// Output: `Unit`.
+/// Transformation: updates the mutable receiver through the native JSON
+/// builder capability without exposing the backend array representation.
+
+pub (mut json: Json) push(value: Json): Unit.
+
+/// Inserts or replaces a member on a JSON object.
+///
+/// Input: one mutable JSON object receiver, one UTF-8 key, and one JSON value.
+/// Output: `Unit`.
+/// Transformation: updates the mutable receiver through the native JSON
+/// builder capability without exposing the backend object representation.
+
+pub (mut json: Json) put(key: String, value: Json): Unit.
+
+/// Creates a JSON string value.
+///
+/// Input: one UTF-8 `String` value.
+/// Output: a `Json` value representing that string.
+/// Transformation: maps the portable Terlan string into the selected target
+/// JSON string representation.
+
+pub string(value: String): Json.
+
 /// Renders a JSON value as text.
-/// 
+///
 /// Input: one `Json` value.
 /// Output: `Ok(text)` when rendering succeeds, otherwise `Err(JsonError)`.
 /// Transformation: delegates serialization to the selected target JSON

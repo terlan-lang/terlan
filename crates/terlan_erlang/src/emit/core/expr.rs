@@ -78,6 +78,7 @@ pub(in crate::emit) fn lower_core_expr_to_erlang(expr: &CoreExpr) -> Option<ErlE
             callee: Box::new(lower_core_expr_to_erlang(callee)?),
             args: lower_core_exprs_to_erlang(args)?,
         }),
+        CoreExpr::Cast { expr, .. } => lower_core_expr_to_erlang(expr),
         CoreExpr::RemoteCall {
             module,
             function,

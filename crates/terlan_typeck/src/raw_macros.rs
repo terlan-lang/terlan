@@ -164,6 +164,21 @@ pub fn collect_syntax_raw_macro_diagnostics(module: &SyntaxModuleOutput) -> Vec<
     diagnostics
 }
 
+/// Collects unsupported raw-macro diagnostics from an expression tree.
+///
+/// Inputs:
+/// - `expr`: syntax-output expression to inspect.
+/// - `fallback_span`: declaration or clause span used when a nested raw-macro
+///   expression lacks a better source span.
+/// - `diagnostics`: output sink for typechecker diagnostics.
+///
+/// Output:
+/// - No direct value; diagnostics are appended to `diagnostics`.
+///
+/// Transformation:
+/// - Recursively walks expression children, fields, clauses, try/catch blocks,
+///   and HTML embedded expressions so raw macro placeholders are rejected
+///   before later semantic phases treat them as ordinary expressions.
 fn collect_raw_macro_diagnostics_in_expr(
     expr: &SyntaxExprOutput,
     fallback_span: Span,

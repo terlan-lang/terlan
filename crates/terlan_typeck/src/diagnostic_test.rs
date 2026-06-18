@@ -298,7 +298,7 @@ pub make(values: List[Int]): items.Items[Int] ->\n\
 ///   prelude.
 ///
 /// Transformation:
-/// - Enforces the 0.0.3 prelude boundary so only target-neutral compiler
+/// - Enforces the implicit-prelude boundary so only target-neutral compiler
 ///   functions such as `type_of` and `is_type` are implicit.
 #[test]
 fn syntax_output_rejects_legacy_conversion_helpers_from_implicit_prelude() {

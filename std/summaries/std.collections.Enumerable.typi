@@ -1,12 +1,12 @@
 //! Core enumerable trait.
-//! 
+//!
 //! `std.collections.Enumerable` is the portable contract for user-facing
 //! collection consumption operations.
 
 module std.collections.Enumerable.
 
 /// Enumerable connects a collection type `C` to the item type `T` it contains.
-/// 
+///
 /// Input: collection type `C` and contained item type `T`.
 /// Output: a trait requiring effectful consumption and value transformation
 /// methods.

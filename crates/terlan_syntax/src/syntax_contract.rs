@@ -13,10 +13,20 @@ pub const SYNTAX_CONTRACT_FINGERPRINT_ALGORITHM: &str = "fnv1a64";
 pub const CANONICAL_TERLAN_EBNF: &str =
     include_str!("../../../docs/grammar/TERLAN_SYNTAX_SPEC.ebnf");
 
+/// Compiles the embedded canonical Terlan EBNF.
+///
+/// Inputs: none; the source is `CANONICAL_TERLAN_EBNF`. Output: grammar
+/// contract or EBNF compile error. Transformation: delegates directly to the
+/// EBNF compiler with the embedded syntax specification.
 pub fn canonical_terlan_syntax_contract() -> EbnfCompileResult<EbnfGrammarContract> {
     compile_ebnf(CANONICAL_TERLAN_EBNF)
 }
 
+/// Compiles and validates the embedded canonical Terlan EBNF.
+///
+/// Inputs: none. Output: checked grammar contract or syntax contract error.
+/// Transformation: compiles the embedded EBNF and applies required-rule
+/// validation before returning the contract.
 pub fn validated_canonical_terlan_syntax_contract(
 ) -> Result<EbnfGrammarContract, SyntaxContractError> {
     let contract = canonical_terlan_syntax_contract().map_err(SyntaxContractError::Compile)?;
@@ -28,6 +38,11 @@ pub fn validated_canonical_terlan_syntax_contract(
     }
 }
 
+/// Returns the cached validated canonical syntax contract.
+///
+/// Inputs: none. Output: static contract reference or cached error.
+/// Transformation: initializes a `OnceLock` with the validated canonical
+/// contract so repeated callers do not recompile EBNF.
 pub fn cached_canonical_terlan_syntax_contract(
 ) -> Result<&'static EbnfGrammarContract, SyntaxContractError> {
     static RESULT: OnceLock<Result<EbnfGrammarContract, SyntaxContractError>> = OnceLock::new();
@@ -38,10 +53,18 @@ pub fn cached_canonical_terlan_syntax_contract(
     }
 }
 
+/// Ensures the canonical syntax contract compiles and validates.
+///
+/// Inputs: none. Output: `Ok(())` when valid. Transformation: forces cached
+/// contract initialization and discards the contract payload.
 pub fn ensure_canonical_syntax_contract_valid() -> Result<(), SyntaxContractError> {
     cached_canonical_terlan_syntax_contract().map(|_| ())
 }
 
+/// Builds the cached canonical syntax contract artifact.
+///
+/// Inputs: none. Output: syntax contract artifact or error. Transformation:
+/// combines the cached contract with its identity/fingerprint metadata.
 pub fn cached_canonical_terlan_syntax_contract_artifact(
 ) -> Result<SyntaxContractArtifact, SyntaxContractError> {
     let contract = cached_canonical_terlan_syntax_contract()?;
@@ -54,12 +77,20 @@ pub fn cached_canonical_terlan_syntax_contract_artifact(
     })
 }
 
+/// Builds the cached canonical syntax contract identity.
+///
+/// Inputs: none. Output: syntax contract identity or error. Transformation:
+/// fingerprints the cached contract and wraps it in artifact identity metadata.
 pub fn cached_canonical_terlan_syntax_contract_identity(
 ) -> Result<SyntaxContractIdentity, SyntaxContractError> {
     let contract = cached_canonical_terlan_syntax_contract()?;
     syntax_contract_identity(contract)
 }
 
+/// Serializes the cached canonical syntax contract identity as JSON.
+///
+/// Inputs: none. Output: JSON string or serialization error. Transformation:
+/// builds the cached identity and encodes it with `serde_json`.
 pub fn cached_canonical_terlan_syntax_contract_identity_json() -> Result<String, SyntaxContractError>
 {
     let identity = cached_canonical_terlan_syntax_contract_identity()?;
@@ -68,6 +99,10 @@ pub fn cached_canonical_terlan_syntax_contract_identity_json() -> Result<String,
     })
 }
 
+/// Serializes the cached canonical syntax contract artifact as pretty JSON.
+///
+/// Inputs: none. Output: JSON string or serialization error. Transformation:
+/// builds the cached artifact and encodes it with pretty `serde_json` output.
 pub fn cached_canonical_terlan_syntax_contract_artifact_json() -> Result<String, SyntaxContractError>
 {
     let artifact = cached_canonical_terlan_syntax_contract_artifact()?;
@@ -76,6 +111,11 @@ pub fn cached_canonical_terlan_syntax_contract_artifact_json() -> Result<String,
     })
 }
 
+/// Computes a stable fingerprint for a syntax contract.
+///
+/// Inputs: grammar contract. Output: algorithm-prefixed fingerprint.
+/// Transformation: serializes the contract to JSON and hashes the bytes with
+/// FNV-1a 64-bit hex.
 pub fn syntax_contract_fingerprint(
     contract: &EbnfGrammarContract,
 ) -> Result<String, SyntaxContractError> {
@@ -89,6 +129,11 @@ pub fn syntax_contract_fingerprint(
     ))
 }
 
+/// Builds an identity object for a syntax contract.
+///
+/// Inputs: grammar contract. Output: syntax contract identity or error.
+/// Transformation: computes the contract fingerprint and wraps it with schema
+/// and algorithm metadata.
 fn syntax_contract_identity(
     contract: &EbnfGrammarContract,
 ) -> Result<SyntaxContractIdentity, SyntaxContractError> {
@@ -97,6 +142,10 @@ fn syntax_contract_identity(
     ))
 }
 
+/// Builds syntax contract identity metadata from a fingerprint.
+///
+/// Inputs: fingerprint string. Output: identity object. Transformation: adds
+/// current artifact schema and fingerprint algorithm metadata.
 pub fn syntax_contract_identity_from_fingerprint(
     fingerprint: impl Into<String>,
 ) -> SyntaxContractIdentity {
@@ -107,12 +156,21 @@ pub fn syntax_contract_identity_from_fingerprint(
     }
 }
 
+/// Checks whether an identity matches the current canonical contract.
+///
+/// Inputs: identity to check. Output: match flag or error. Transformation:
+/// compares the supplied identity with the cached current identity.
 pub fn syntax_contract_identity_matches_current(
     identity: &SyntaxContractIdentity,
 ) -> Result<bool, SyntaxContractError> {
     Ok(identity == &cached_canonical_terlan_syntax_contract_identity()?)
 }
 
+/// Checks whether an artifact or raw fingerprint matches the current contract.
+///
+/// Inputs: artifact JSON or raw fingerprint. Output: match flag or error.
+/// Transformation: delegates to the detailed artifact check and collapses the
+/// result to a boolean.
 pub fn syntax_contract_artifact_matches_current(
     artifact_or_fingerprint: &str,
 ) -> Result<bool, SyntaxContractError> {
@@ -122,6 +180,11 @@ pub fn syntax_contract_artifact_matches_current(
     ))
 }
 
+/// Compares an artifact or raw fingerprint with the current contract.
+///
+/// Inputs: artifact JSON or raw fingerprint. Output: match/mismatch/invalid
+/// check result. Transformation: extracts the fingerprint and compares it with
+/// the cached current artifact fingerprint.
 pub fn check_syntax_contract_artifact_against_current(
     artifact_or_fingerprint: &str,
 ) -> Result<SyntaxContractArtifactCheck, SyntaxContractError> {
@@ -139,6 +202,11 @@ pub fn check_syntax_contract_artifact_against_current(
     }
 }
 
+/// Extracts a syntax contract fingerprint from JSON or raw text.
+///
+/// Inputs: artifact JSON or raw fingerprint text. Output: fingerprint when the
+/// schema and algorithm are valid. Transformation: accepts raw `fnv1a64:...`
+/// strings or minimal JSON fields without fully deserializing the artifact.
 pub fn extract_syntax_contract_artifact_fingerprint(contents: &str) -> Option<String> {
     let trimmed = contents.trim();
     if trimmed.starts_with("fnv1a64:") && !trimmed.contains(char::is_whitespace) {
@@ -162,6 +230,11 @@ pub fn extract_syntax_contract_artifact_fingerprint(contents: &str) -> Option<St
     }
 }
 
+/// Extracts a simple unescaped string field from JSON-like text.
+///
+/// Inputs: JSON text and field name. Output: unescaped field value or `None`.
+/// Transformation: performs a small field scan for artifact preflight without
+/// accepting escaped values.
 fn extract_json_string_field(contents: &str, field: &str) -> Option<String> {
     let needle = format!("\"{field}\"");
     let after_field = contents.get(contents.find(&needle)? + needle.len()..)?;
@@ -176,6 +249,10 @@ fn extract_json_string_field(contents: &str, field: &str) -> Option<String> {
     }
 }
 
+/// Hashes bytes with FNV-1a 64-bit and returns hex text.
+///
+/// Inputs: byte slice. Output: 16-character lowercase hex hash. Transformation:
+/// applies FNV-1a wrapping multiplication over the bytes.
 fn fnv1a64_hex(bytes: &[u8]) -> String {
     const OFFSET_BASIS: u64 = 0xcbf29ce484222325;
     const PRIME: u64 = 0x100000001b3;
@@ -190,6 +267,11 @@ fn fnv1a64_hex(bytes: &[u8]) -> String {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Serialized syntax contract artifact.
+///
+/// Inputs: validated grammar contract. Output: schema, fingerprint metadata,
+/// and contract payload. Transformation: packages the canonical EBNF contract
+/// for generated summaries and CI checks.
 pub struct SyntaxContractArtifact {
     pub schema: String,
     pub fingerprint_algorithm: String,
@@ -198,6 +280,11 @@ pub struct SyntaxContractArtifact {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Stable identity for a syntax contract artifact.
+///
+/// Inputs: contract fingerprint. Output: schema, algorithm, and fingerprint.
+/// Transformation: records enough metadata to compare artifacts without
+/// embedding the full grammar contract.
 pub struct SyntaxContractIdentity {
     pub schema: String,
     pub fingerprint_algorithm: String,
@@ -205,6 +292,11 @@ pub struct SyntaxContractIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Result of comparing a syntax contract artifact against the current contract.
+///
+/// Inputs: parsed fingerprint and current fingerprint. Output: match,
+/// mismatch, or invalid-artifact tag. Transformation: preserves mismatch
+/// details for diagnostics.
 pub enum SyntaxContractArtifactCheck {
     Match { fingerprint: String },
     Mismatch { expected: String, found: String },
@@ -212,17 +304,30 @@ pub enum SyntaxContractArtifactCheck {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Error returned by syntax contract compilation or validation.
+///
+/// Inputs: EBNF compile error or validation diagnostics. Output: typed error.
+/// Transformation: keeps compile and validation failures distinct for callers.
 pub enum SyntaxContractError {
     Compile(EbnfCompileError),
     Validation(Vec<SyntaxContractDiagnostic>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Syntax contract validation diagnostic.
+///
+/// Inputs: invalid contract condition. Output: source span and message.
+/// Transformation: maps grammar contract validation failures to parser spans.
 pub struct SyntaxContractDiagnostic {
     pub span: Span,
     pub message: String,
 }
 
+/// Validates the required shape of the Terlan syntax contract.
+///
+/// Inputs: compiled grammar contract. Output: validation diagnostics.
+/// Transformation: checks entry rule, required rules, and required rule
+/// references that the formal compiler path depends on.
 pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxContractDiagnostic> {
     let mut diagnostics = Vec::new();
 
@@ -410,6 +515,11 @@ const REQUIRED_SYNTAX_RULES: &[&str] = &[
     "CallExpr",
 ];
 
+/// Requires one grammar rule to reference another rule.
+///
+/// Inputs: contract, rule name, referenced rule, and diagnostic sink. Output:
+/// diagnostics may be appended. Transformation: finds the rule and recursively
+/// checks its expression tree for the referenced nonterminal.
 fn require_rule_reference(
     contract: &EbnfGrammarContract,
     rule_name: &str,
@@ -428,6 +538,11 @@ fn require_rule_reference(
     }
 }
 
+/// Returns whether an EBNF expression references a rule.
+///
+/// Inputs: grammar expression and rule name. Output: reference flag.
+/// Transformation: recursively scans nested expression forms for a matching
+/// nonterminal.
 fn expr_references_rule(expr: &EbnfGrammarExpr, rule_name: &str) -> bool {
     match &expr.kind {
         EbnfGrammarExprKind::Nonterminal { name } => name == rule_name,
@@ -447,237 +562,5 @@ fn expr_references_rule(expr: &EbnfGrammarExpr, rule_name: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn canonical_contract_compiles_from_embedded_ebnf() {
-        let contract =
-            canonical_terlan_syntax_contract().expect("compile canonical syntax contract");
-
-        assert_eq!(contract.format_version, 1);
-        assert_eq!(contract.entry_rule.as_deref(), Some("SyntaxSpec"));
-        assert!(contract.rule("Declaration").is_some());
-        assert!(contract.rule("Expr").is_some());
-        assert!(matches!(
-            contract.rule("PrimaryExpr").expect("PrimaryExpr").expr.kind,
-            EbnfGrammarExprKind::Alternation { .. }
-        ));
-    }
-
-    #[test]
-    fn canonical_contract_matches_direct_ebnf_compile() {
-        let embedded =
-            canonical_terlan_syntax_contract().expect("compile embedded syntax contract");
-        let direct = compile_ebnf(CANONICAL_TERLAN_EBNF).expect("compile direct syntax contract");
-
-        assert_eq!(embedded, direct);
-    }
-
-    #[test]
-    fn validator_accepts_canonical_contract() {
-        let contract =
-            canonical_terlan_syntax_contract().expect("compile canonical syntax contract");
-
-        let diagnostics = validate_syntax_contract(&contract);
-        assert!(
-            diagnostics.is_empty(),
-            "unexpected syntax contract diagnostics: {diagnostics:?}"
-        );
-    }
-
-    #[test]
-    fn validated_canonical_contract_returns_checked_contract() {
-        let contract = validated_canonical_terlan_syntax_contract()
-            .expect("validated canonical syntax contract");
-
-        assert_eq!(contract.entry_rule.as_deref(), Some("SyntaxSpec"));
-    }
-
-    #[test]
-    fn cached_canonical_contract_validation_accepts_canonical_contract() {
-        ensure_canonical_syntax_contract_valid().expect("cached syntax validation");
-        ensure_canonical_syntax_contract_valid().expect("cached syntax validation is reusable");
-    }
-
-    #[test]
-    fn cached_canonical_contract_returns_stable_contract_reference() {
-        let first = cached_canonical_terlan_syntax_contract().expect("cached syntax contract");
-        let second = cached_canonical_terlan_syntax_contract().expect("cached syntax contract");
-
-        assert!(std::ptr::eq(first, second));
-        assert_eq!(first.entry_rule.as_deref(), Some("SyntaxSpec"));
-    }
-
-    #[test]
-    fn canonical_contract_artifact_is_deterministic_and_serializable() {
-        let artifact =
-            cached_canonical_terlan_syntax_contract_artifact().expect("syntax contract artifact");
-        let second =
-            cached_canonical_terlan_syntax_contract_artifact().expect("syntax contract artifact");
-
-        assert_eq!(artifact, second);
-        assert_eq!(artifact.schema, SYNTAX_CONTRACT_ARTIFACT_SCHEMA);
-        assert_eq!(
-            artifact.fingerprint_algorithm,
-            SYNTAX_CONTRACT_FINGERPRINT_ALGORITHM
-        );
-        assert!(artifact.fingerprint.starts_with("fnv1a64:"));
-        assert_eq!(
-            artifact.fingerprint,
-            syntax_contract_fingerprint(&artifact.contract).expect("fingerprint")
-        );
-
-        let identity =
-            cached_canonical_terlan_syntax_contract_identity().expect("syntax contract identity");
-        assert_eq!(identity.schema, artifact.schema);
-        assert_eq!(
-            identity.fingerprint_algorithm,
-            artifact.fingerprint_algorithm
-        );
-        assert_eq!(identity.fingerprint, artifact.fingerprint);
-        assert_eq!(
-            syntax_contract_identity_from_fingerprint(artifact.fingerprint.clone()),
-            identity
-        );
-        assert!(
-            syntax_contract_identity_matches_current(&identity).expect("identity matches current")
-        );
-
-        let old_identity = syntax_contract_identity_from_fingerprint("fnv1a64:0000000000000000");
-        assert!(!syntax_contract_identity_matches_current(&old_identity)
-            .expect("identity mismatch is checked"));
-
-        let identity_json = cached_canonical_terlan_syntax_contract_identity_json()
-            .expect("syntax contract identity json");
-        let decoded_identity = serde_json::from_str::<SyntaxContractIdentity>(&identity_json)
-            .expect("decode identity");
-        assert_eq!(decoded_identity, identity);
-
-        let json = cached_canonical_terlan_syntax_contract_artifact_json()
-            .expect("syntax contract artifact json");
-        let decoded =
-            serde_json::from_str::<SyntaxContractArtifact>(&json).expect("decode artifact json");
-        assert_eq!(decoded, artifact);
-    }
-
-    #[test]
-    fn syntax_contract_artifact_matching_accepts_json_and_raw_fingerprint() {
-        let artifact =
-            cached_canonical_terlan_syntax_contract_artifact().expect("syntax contract artifact");
-        let json = cached_canonical_terlan_syntax_contract_artifact_json()
-            .expect("syntax contract artifact json");
-
-        assert_eq!(
-            extract_syntax_contract_artifact_fingerprint(&json),
-            Some(artifact.fingerprint.clone())
-        );
-        assert_eq!(
-            extract_syntax_contract_artifact_fingerprint(&format!("{}\n", artifact.fingerprint)),
-            Some(artifact.fingerprint.clone())
-        );
-        assert!(syntax_contract_artifact_matches_current(&json).expect("match json"));
-        assert!(
-            syntax_contract_artifact_matches_current(&artifact.fingerprint)
-                .expect("match fingerprint")
-        );
-        assert_eq!(
-            check_syntax_contract_artifact_against_current(&json).expect("check json"),
-            SyntaxContractArtifactCheck::Match {
-                fingerprint: artifact.fingerprint.clone()
-            }
-        );
-        assert_eq!(
-            check_syntax_contract_artifact_against_current("fnv1a64:0000000000000000")
-                .expect("check mismatch"),
-            SyntaxContractArtifactCheck::Mismatch {
-                expected: artifact.fingerprint.clone(),
-                found: "fnv1a64:0000000000000000".to_string()
-            }
-        );
-        assert_eq!(
-            check_syntax_contract_artifact_against_current("{}").expect("check invalid"),
-            SyntaxContractArtifactCheck::InvalidArtifact
-        );
-        assert!(
-            !syntax_contract_artifact_matches_current("fnv1a64:0000000000000000")
-                .expect("mismatch fingerprint")
-        );
-        assert!(extract_syntax_contract_artifact_fingerprint("{}").is_none());
-        assert!(extract_syntax_contract_artifact_fingerprint(
-            r#"{"fingerprint":"fnv1a64:bbc2bff7cdefae6c"}"#
-        )
-        .is_none());
-        assert!(extract_syntax_contract_artifact_fingerprint(
-            r#"{"schema":"other","fingerprint_algorithm":"fnv1a64","fingerprint":"fnv1a64:bbc2bff7cdefae6c"}"#
-        )
-        .is_none());
-        assert!(extract_syntax_contract_artifact_fingerprint(
-            r#"{"schema":"terlan-syntax-contract-v1","fingerprint_algorithm":"other","fingerprint":"fnv1a64:bbc2bff7cdefae6c"}"#
-        )
-        .is_none());
-    }
-
-    #[test]
-    fn canonical_contract_artifact_matches_golden_summary() {
-        let artifact =
-            cached_canonical_terlan_syntax_contract_artifact().expect("syntax contract artifact");
-        let actual = SyntaxContractArtifactSummary::from_artifact(&artifact);
-        let expected = serde_json::from_str::<SyntaxContractArtifactSummary>(include_str!(
-            "../../../docs/grammar/fixtures/contract/terlan_syntax_contract_artifact_summary.json"
-        ))
-        .expect("parse golden artifact summary");
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn validator_rejects_broken_contract() {
-        let mut contract =
-            canonical_terlan_syntax_contract().expect("compile canonical syntax contract");
-        contract.entry_rule = Some("Program".to_string());
-        let expr_rule_index = contract
-            .rules
-            .iter()
-            .position(|rule| rule.name == "Expr")
-            .expect("Expr rule index");
-        contract.rules[expr_rule_index].expr.kind = EbnfGrammarExprKind::Terminal {
-            value: "broken".to_string(),
-        };
-
-        let diagnostics = validate_syntax_contract(&contract);
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message.contains("entry rule")));
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message == "syntax rule Expr must reference AssignExpr"));
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-    struct SyntaxContractArtifactSummary {
-        schema: String,
-        fingerprint_algorithm: String,
-        fingerprint: String,
-        format_version: u32,
-        entry_rule: String,
-        rule_count: usize,
-    }
-
-    impl SyntaxContractArtifactSummary {
-        fn from_artifact(artifact: &SyntaxContractArtifact) -> Self {
-            Self {
-                schema: artifact.schema.clone(),
-                fingerprint_algorithm: artifact.fingerprint_algorithm.clone(),
-                fingerprint: artifact.fingerprint.clone(),
-                format_version: artifact.contract.format_version,
-                entry_rule: artifact
-                    .contract
-                    .entry_rule
-                    .clone()
-                    .expect("canonical contract has entry rule"),
-                rule_count: artifact.contract.rules.len(),
-            }
-        }
-    }
-}
+#[path = "syntax_contract_test.rs"]
+mod syntax_contract_test;

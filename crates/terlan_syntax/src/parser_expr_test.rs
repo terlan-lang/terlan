@@ -798,4 +798,330 @@ mod tests {
             Expr::RecordConstruct { name, fields } if name == "Admin" && fields.len() == 2
         ));
     }
+
+    #[test]
+    fn parses_quote_and_unquote_expressions() {
+        let source = r#"
+module sym.
+
+pub macro expand(C: Ast, X: Expr): Expr ->
+    quote unquote(X).
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+
+        let expr = &function.clauses[0].body;
+        match expr {
+            Expr::Quote(inner) => match inner.as_ref() {
+                Expr::Unquote(_) => {}
+                _ => panic!("expected unquote inside quote"),
+            },
+            _ => panic!("expected quoted expression"),
+        }
+    }
+
+    #[test]
+    fn parses_typed_fun_parameters() {
+        let source = r#"
+module callbackx.
+
+pub run(X: Int): Int ->
+    apply((N: Int) -> N + 1, X).
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        match &function.clauses[0].body {
+            Expr::Call { args, .. } => match &args[0] {
+                Expr::Fun { clauses } => assert_eq!(clauses[0].patterns.len(), 1),
+                _ => panic!("expected fun argument"),
+            },
+            _ => panic!("expected call"),
+        }
+    }
+
+    #[test]
+    fn parses_remote_call_expression() {
+        let source = r#"
+module remote.
+
+pub add(): Int ->
+    io_lib:format("~p", []).
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        let expr = &function.clauses[0].body;
+        match expr {
+            Expr::Call {
+                remote: Some(module),
+                ..
+            } => assert_eq!(module, "io_lib"),
+            _ => panic!("expected remote call"),
+        }
+    }
+
+    /// Verifies explicit trait-target method calls parse as remote calls.
+    ///
+    /// Inputs:
+    /// - A module using `Parse[Int].from_string("42")`.
+    ///
+    /// Output:
+    /// - Test passes when the call is preserved with `Parse[Int]` as the
+    ///   remote qualifier and `from_string` as the method name.
+    ///
+    /// Transformation:
+    /// - Parses bracketed type arguments in expression qualifier position
+    ///   without introducing general postfix generic call syntax.
+    #[test]
+    fn parses_explicit_trait_target_call_expression() {
+        let source = r#"
+module traits.parse_target.
+
+pub parse(): Option[Int] ->
+    Parse[Int].from_string("42").
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        let expr = &function.clauses[0].body;
+        match expr {
+            Expr::Call {
+                callee,
+                remote: Some(module),
+                ..
+            } => {
+                assert_eq!(module, "Parse[Int]");
+                assert!(matches!(callee.as_ref(), Expr::Atom(name) if name == "from_string"));
+            }
+            _ => panic!("expected explicit trait-target call"),
+        }
+    }
+
+    #[test]
+    fn parses_struct_field_access_sugar() {
+        let source = r#"
+module fields.
+
+pub name(User: User): Text ->
+    User.name.
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        let expr = &function.clauses[0].body;
+        match expr {
+            Expr::FieldAccess { value, field } => {
+                assert_eq!(field, "name");
+                match value.as_ref() {
+                    Expr::Var(name) => assert_eq!(name, "User"),
+                    _ => panic!("expected field receiver"),
+                }
+            }
+            _ => panic!("expected field access"),
+        }
+    }
+
+    #[test]
+    fn parses_template_instantiation_expr() {
+        let source = r#"
+module template_instantiation.
+
+pub view(Title: Text, User: User): Html[none] ->
+    Page{ title = Title, user = User }.
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        match &function.clauses[0].body {
+            Expr::TemplateInstantiate { name, fields } => {
+                assert_eq!(name, "Page");
+                assert_eq!(fields.len(), 2);
+                assert_eq!(fields[0].key, "title");
+                assert!(matches!(fields[0].value.as_ref(), Expr::Var(name) if name == "Title"));
+                assert_eq!(fields[1].key, "user");
+                assert!(matches!(fields[1].value.as_ref(), Expr::Var(name) if name == "User"));
+            }
+            _ => panic!("expected template instantiation"),
+        }
+    }
+
+    #[test]
+    fn parses_eqeq_and_divrem_operators() {
+        let source = r#"
+module ops.
+
+pub add(X: Int, Y: Int): Int ->
+    X == Y + X div Y.
+"#;
+
+        let tokens = crate::lexer::lex(source).unwrap();
+        for token in tokens {
+            println!("{:?} {:?} {:?}", token.kind, token.text, token.span());
+        }
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        match &function.clauses[0].body {
+            Expr::BinaryOp { op, .. } => {
+                assert_eq!(format!("{:?}", op), "EqEq");
+            }
+            _ => panic!("expected binary op"),
+        }
+    }
+
+    #[test]
+    fn parses_greater_than_or_equal_operator() {
+        let source = r#"
+module compare.
+
+pub non_negative(X: Int): Bool ->
+    X >= 0.
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        match &function.clauses[0].body {
+            Expr::BinaryOp { op, .. } => {
+                assert!(matches!(op, crate::parse_tree::BinaryOp::GtEq));
+            }
+            _ => panic!("expected binary op"),
+        }
+    }
+
+    /// Verifies that the old Kleisli composition operator is not A0 syntax.
+    ///
+    /// Inputs:
+    /// - A module body containing the removed `>=>` operator.
+    ///
+    /// Output:
+    /// - Test passes when parsing rejects the source.
+    ///
+    /// Transformation:
+    /// - Exercises the recursive-descent parser after the canonical EBNF
+    ///   removed `>=>` from `CmpOp`.
+    #[test]
+    fn rejects_kleisli_compose_operator_from_canonical_syntax() {
+        let source = r#"
+module kleisli_demo.
+
+pub authenticate(): Kleisli[AuthResult, Text, User] ->
+    decode_token() >=> load_user() >=> require_admin().
+"#;
+
+        parse_module(source).expect_err("kleisli composition operator should be rejected");
+    }
+
+    #[test]
+    fn parses_pipe_forward_operator() {
+        let source = r#"
+module pipe_demo.
+
+pub demo(X: Int): Int ->
+    X |> add(1).
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        match &function.clauses[0].body {
+            Expr::BinaryOp { op, .. } => {
+                assert!(matches!(op, crate::parse_tree::BinaryOp::PipeForward));
+            }
+            _ => panic!("expected pipe forward binary op"),
+        }
+    }
+
+    /// Verifies binary `!` is rejected as process-message syntax.
+    ///
+    /// Inputs:
+    /// - A module body that attempts to use `P ! inc`.
+    ///
+    /// Output:
+    /// - Test passes when parsing rejects the module.
+    ///
+    /// Transformation:
+    /// - Parses source through the normal module parser and confirms the
+    ///   removed BEAM-shaped binary operator cannot produce an expression.
+    #[test]
+    fn rejects_binary_send_operator_as_noncanonical_source() {
+        let source = r#"
+module protocol_ok.
+
+pub inc(P: Pid[Counter]): ok ->
+    P ! inc,
+    ok.
+"#;
+
+        parse_module(source).expect_err("binary send operator is not canonical Terlan source");
+    }
+
+    #[test]
+    fn parses_fixed_array_expression_syntax() {
+        let source = r#"
+module arrays.
+
+pub rgb(): FixedArray[3, Int] ->
+    #[255, 128, 0].
+"#;
+
+        let module = parse_module(source).expect("parse");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function declaration"),
+        };
+
+        match &function.clauses[0].body {
+            Expr::FixedArray(elements) => {
+                assert_eq!(elements.len(), 3);
+            }
+            _ => panic!("expected fixed array expression"),
+        }
+    }
+
+    #[test]
+    fn rejects_bodyless_let_expression() {
+        let source = r#"
+module let_requires_result.
+
+pub total(price: Int, tax: Int): Int ->
+    let subtotal = price; total = subtotal + tax.
+"#;
+
+        let error = parse_module(source).expect_err("bodyless let should fail");
+        assert!(
+            error
+                .message
+                .contains("let expression requires an explicit result expression"),
+            "unexpected diagnostic: {:?}",
+            error
+        );
+    }
 }

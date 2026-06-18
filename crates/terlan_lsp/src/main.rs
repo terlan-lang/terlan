@@ -1,10 +1,34 @@
 use std::process::ExitCode;
 
+/// Prints `terlan-lsp` command usage.
+///
+/// Inputs:
+/// - No runtime input.
+///
+/// Output:
+/// - Usage text written to standard output.
+///
+/// Transformation:
+/// - Keeps the standalone LSP binary help text separate from the main `terlc`
+///   CLI help surface.
 fn print_usage() {
     println!("terlan-lsp --stdio");
     println!("Starts the Terlan language server on standard I/O.");
 }
 
+/// Runs the Terlan LSP binary.
+///
+/// Inputs:
+/// - Process arguments from `std::env::args`.
+///
+/// Output:
+/// - `ExitCode::SUCCESS` for help or a started stdio server.
+/// - `ExitCode::from(2)` for unexpected arguments.
+/// - Server exit code from `terlan_lsp::run_stdio_server`.
+///
+/// Transformation:
+/// - Validates the tiny LSP-specific CLI surface and delegates stdio server
+///   execution to the `terlan_lsp` crate.
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
     if args

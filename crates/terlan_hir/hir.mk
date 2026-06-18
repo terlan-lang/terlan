@@ -2,7 +2,9 @@
 #
 # Kept with the HIR crate so validation targets are owned by the owning module.
 
-T_HIR_EXACT_TEST := $(CARGO) test -p terlan_hir
+CARGO ?= cargo
+EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
+T_HIR_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan_hir
 
 .PHONY: hir-help formal-contract-gate formal-hir-gate
 
@@ -11,8 +13,8 @@ hir-help:
 	@echo "  make formal-hir-gate - run syntax-output HIR/interface regressions"
 
 formal-contract-gate:
-	$(T_HIR_EXACT_TEST) tests::hir_accepts_canonical_syntax_contract -- --exact
-	$(T_HIR_EXACT_TEST) tests::hir_rejects_broken_syntax_contract -- --exact
+	$(T_HIR_EXACT_TEST) lib_test::hir_accepts_canonical_syntax_contract -- --exact
+	$(T_HIR_EXACT_TEST) lib_test::hir_rejects_broken_syntax_contract -- --exact
 
 formal-hir-gate:
-	$(T_HIR_EXACT_TEST) tests::formal_hir_syntax_output_resolves_interface_surface -- --exact
+	$(T_HIR_EXACT_TEST) lib_test::formal_hir_syntax_output_resolves_interface_surface -- --exact

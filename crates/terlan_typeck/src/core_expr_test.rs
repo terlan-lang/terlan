@@ -141,6 +141,56 @@ pub value(): Binary ->\n\
     );
 }
 
+/// Verifies cast expressions are preserved as typed CoreIR boundaries.
+///
+/// Inputs:
+/// - A module with an assignment-compatible `as` expression.
+///
+/// Output:
+/// - Test passes when CoreIR contains `CoreExpr::Cast` with the lowered child
+///   expression and typed target payload.
+///
+/// Transformation:
+/// - Parses source through syntax output, lowers it to CoreIR, and checks that
+///   the conversion boundary remains visible without selecting backend
+///   coercion semantics.
+#[test]
+fn syntax_output_lowering_to_core_cast_boundary() {
+    let module = parse_module_as_syntax_output(
+        "\
+module core_cast_boundary.\n\
+\n\
+pub value(): Int ->\n\
+    1 as Int.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output(&module).module;
+    let core = lower_syntax_module_output_to_core(&module, &resolved);
+
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "value")
+        .expect("core value function");
+    assert_eq!(function.clauses.len(), 1);
+    assert_eq!(
+        function.clauses[0].body.core_expr,
+        Some(CoreExpr::Cast {
+            expr: Box::new(CoreExpr::Int(1)),
+            target_type: CoreType::Int,
+        })
+    );
+    assert_eq!(
+        function.clauses[0].body.proof_coverage,
+        CoreProofCoverage::ProofModelRequired
+    );
+    assert!(
+        core.contract_text().contains("Cast(Int(1) as Int)"),
+        "contract text: {}",
+        core.contract_text()
+    );
+}
+
 #[test]
 fn syntax_output_lowering_to_core_binary_op() {
     let module = parse_module_as_syntax_output(

@@ -98,6 +98,17 @@ pub(super) fn parse_config_entries(text: &str) -> Vec<SyntaxConfigEntryOutput> {
     parser.parse_entries().unwrap_or_default()
 }
 
+/// Parser cursor for structured config metadata entries.
+///
+/// Inputs:
+/// - Token slice produced by re-lexing preserved config declaration text.
+///
+/// Output:
+/// - Internal cursor used to extract `ConfigDecl` metadata entries.
+///
+/// Transformation:
+/// - Reuses the normal token model to parse config blocks without replacing
+///   the broader raw-declaration preservation path.
 struct ConfigEntryParser<'a> {
     tokens: &'a [Token],
     pos: usize,

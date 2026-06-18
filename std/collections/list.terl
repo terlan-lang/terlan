@@ -7,9 +7,9 @@
 
 module std.collections.List.
 
-import type std.core.Option.
 import type std.collections.Iterator.
 import std.collections.Iterator.
+import std.core.Option.{None, Option}.
 import std.core.Unit.{Unit}.
 
 /**
@@ -74,13 +74,14 @@ pub (list: List[T]) first(): Option[T] ->
  *Returns an iterator over the list.
  *
  *Input: one `List[T]`.
- *Output: an `Iterator[T]` positioned at the beginning of the list.
+ *Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
+ *of the list.
  *Transformation: lowers through the compiler-owned `core.list.iterator`
  *intrinsic. The source-level iterator state is immutable; backends choose
  *the efficient representation behind the opaque iterator type.
  */
 @compiler.intrinsic
-pub (list: List[T]) iterator(): Iterator[T] ->
+pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T] ->
     list.
 
 /**

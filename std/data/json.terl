@@ -38,6 +38,115 @@ pub struct JsonError derives Error {
 }.
 
 /**
+ * Creates a JSON null value.
+ *
+ * Input: no value input.
+ * Output: a `Json` value representing JSON null.
+ * Transformation: delegates construction to the selected target JSON
+ * capability while preserving `Json` as the only source-visible value shape.
+ */
+@compiler.native {std.data.json.null}
+pub null(): Json ->
+    native.
+
+/**
+ * Creates a JSON boolean value.
+ *
+ * Input: one `Bool` value.
+ * Output: a `Json` value representing that boolean.
+ * Transformation: maps the portable Terlan boolean into the selected target
+ * JSON representation.
+ */
+@compiler.native {std.data.json.bool}
+pub bool(value: Bool): Json ->
+    native.
+
+/**
+ * Creates a JSON integer value.
+ *
+ * Input: one `Int` value.
+ * Output: a `Json` value representing that integer.
+ * Transformation: maps the portable Terlan integer into the selected target
+ * JSON number representation.
+ */
+@compiler.native {std.data.json.int}
+pub int(value: Int): Json ->
+    native.
+
+/**
+ * Creates a JSON floating-point value.
+ *
+ * Input: one `Float` value.
+ * Output: `Ok(json)` when the value is finite and representable as JSON,
+ * otherwise `Err(JsonError)`.
+ * Transformation: rejects non-finite numbers before delegating construction to
+ * the selected target JSON representation.
+ */
+@compiler.native {std.data.json.float}
+pub float(value: Float): Result[Json, JsonError] ->
+    native.
+
+/**
+ * Creates a JSON string value.
+ *
+ * Input: one UTF-8 `String` value.
+ * Output: a `Json` value representing that string.
+ * Transformation: maps the portable Terlan string into the selected target
+ * JSON string representation.
+ */
+@compiler.native {std.data.json.string}
+pub string(value: String): Json ->
+    native.
+
+/**
+ * Creates an empty JSON array.
+ *
+ * Input: no value input.
+ * Output: an empty JSON array.
+ * Transformation: delegates array allocation to the selected target JSON
+ * capability.
+ */
+@compiler.native {std.data.json.array}
+pub array(): Json ->
+    native.
+
+/**
+ * Creates an empty JSON object.
+ *
+ * Input: no value input.
+ * Output: an empty JSON object.
+ * Transformation: delegates object allocation to the selected target JSON
+ * capability.
+ */
+@compiler.native {std.data.json.object}
+pub object(): Json ->
+    native.
+
+/**
+ * Appends a value to a JSON array.
+ *
+ * Input: one mutable JSON array receiver and one JSON value.
+ * Output: `Unit`.
+ * Transformation: updates the mutable receiver through the native JSON
+ * builder capability without exposing the backend array representation.
+ */
+@compiler.native {std.data.json.array_push}
+pub (mut json: Json) push(value: Json): Unit ->
+    native.
+
+/**
+ * Inserts or replaces a member on a JSON object.
+ *
+ * Input: one mutable JSON object receiver, one UTF-8 key, and one JSON value.
+ * Output: `Unit`.
+ * Transformation: updates the mutable receiver through the native JSON
+ * builder capability without exposing the backend object representation.
+ */
+@compiler.native {std.data.json.object_put}
+pub (mut json: Json) put(key: String, value: Json): Unit ->
+    native.
+
+/**
  * Parses text into a JSON value.
  *
  * Input: one UTF-8 string containing JSON source text.
@@ -72,6 +181,32 @@ pub stringify(json: Json): Result[String, JsonError] ->
  */
 @compiler.native {std.data.json.get}
 pub (json: Json) get(key: String): Result[Json, JsonError] ->
+    native.
+
+/**
+ * Returns the length of a JSON array.
+ *
+ * Input: one `Json` receiver.
+ * Output: `Ok(length)` when the receiver is a JSON array, otherwise
+ * `Err(JsonError)`.
+ * Transformation: validates the JSON value kind and returns the array element
+ * count without exposing the backend array representation.
+ */
+@compiler.native {std.data.json.length}
+pub (json: Json) length(): Result[Int, JsonError] ->
+    native.
+
+/**
+ * Reads a JSON array element by index.
+ *
+ * Input: one `Json` receiver and one zero-based index.
+ * Output: `Ok(value)` when the receiver is a JSON array and the index exists,
+ * otherwise `Err(JsonError)`.
+ * Transformation: performs a typed JSON array lookup without exposing the
+ * backend array representation.
+ */
+@compiler.native {std.data.json.at}
+pub (json: Json) at(index: Int): Result[Json, JsonError] ->
     native.
 
 /**

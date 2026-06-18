@@ -1,5 +1,5 @@
 //! BEAM SafeNative bridge contract.
-//! 
+//!
 //! `std.beam.NativeBridge` connects BEAM supervision and message flow to
 //! Rust-backed SafeNative workers. It is a BEAM target contract, not a portable
 //! runtime abstraction.
@@ -7,7 +7,7 @@
 module std.beam.NativeBridge.
 
 /// NativeBridge represents a supervised native worker handle.
-/// 
+///
 /// Input: native resource type `Resource`.
 /// Output: an opaque BEAM-owned bridge handle.
 /// Transformation: separates BEAM process ownership from native resource
@@ -16,7 +16,7 @@ module std.beam.NativeBridge.
 pub opaque type NativeBridge[Resource].
 
 /// Sends a synchronous command to a native bridge worker.
-/// 
+///
 /// Input: one `NativeBridge[Resource]` receiver and one command value.
 /// Output: `Result[Reply, Error]`.
 /// Transformation: routes command execution through the BEAM/SafeNative bridge
@@ -25,7 +25,7 @@ pub opaque type NativeBridge[Resource].
 pub (bridge: NativeBridge[Resource]) call(command: Command): Result[Reply, Error].
 
 /// Disposes the native resource owned by a bridge worker.
-/// 
+///
 /// Input: one mutable `NativeBridge[Resource]` receiver.
 /// Output: `Unit`.
 /// Transformation: releases target-owned native resources deterministically
@@ -34,7 +34,7 @@ pub (bridge: NativeBridge[Resource]) call(command: Command): Result[Reply, Error
 pub (mut bridge: NativeBridge[Resource]) dispose(): Unit.
 
 /// Starts a BEAM-owned native bridge worker.
-/// 
+///
 /// Input: one native resource descriptor of type `Resource`.
 /// Output: `Result[NativeBridge[Resource], Error]`.
 /// Transformation: asks the BEAM runtime to attach a supervised SafeNative
@@ -43,7 +43,7 @@ pub (mut bridge: NativeBridge[Resource]) dispose(): Unit.
 pub start(resource: Resource): Result[NativeBridge[Resource], Error].
 
 /// Stops the BEAM bridge process.
-/// 
+///
 /// Input: one mutable `NativeBridge[Resource]` receiver.
 /// Output: `Unit`.
 /// Transformation: asks the BEAM runtime to shut down the bridge process after
@@ -52,7 +52,7 @@ pub start(resource: Resource): Result[NativeBridge[Resource], Error].
 pub (mut bridge: NativeBridge[Resource]) stop(): Unit.
 
 /// NativeBridgeRuntime defines the required bridge operations.
-/// 
+///
 /// Input: resource type `Resource`, command type `Command`, and reply type
 /// `Reply`.
 /// Output: a trait requiring start, call, dispose, and stop operations.

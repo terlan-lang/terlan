@@ -44,7 +44,7 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::TemplateInstantiate => core_template_instantiate_expr_from_syntax(expr),
         SyntaxExprKind::ConstructorChain => core_constructor_chain_expr_from_syntax(expr),
         SyntaxExprKind::RemoteFunRef => core_remote_fun_ref_expr_from_syntax(expr),
-        SyntaxExprKind::Cast => None,
+        SyntaxExprKind::Cast => core_cast_expr_from_syntax(expr),
         SyntaxExprKind::UnaryOp => core_unary_op_expr_from_syntax(expr),
         SyntaxExprKind::Call if expr.remote.is_some() => core_intrinsic_call_expr_from_syntax(expr)
             .or_else(|| core_remote_call_expr_from_syntax(expr)),
@@ -105,6 +105,31 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
 ///   remains unsupported.
 fn core_exprs_from_syntax_children(expr: &SyntaxExprOutput) -> Option<Vec<CoreExpr>> {
     expr.children.iter().map(core_expr_from_syntax).collect()
+}
+
+/// Converts a syntax-output cast expression into typed Core.
+///
+/// Inputs:
+/// - `expr`: syntax-output cast with one source child and target type text.
+///
+/// Output:
+/// - `Some(CoreExpr::Cast)` when the source expression and target type are
+///   both representable in CoreIR.
+/// - `None` when the syntax shape is malformed or unsupported.
+///
+/// Transformation:
+/// - Preserves `as` as an explicit backend-neutral conversion boundary without
+///   choosing runtime conversion semantics. Typechecking decides whether the
+///   boundary is already assignment-compatible or needs conversion traits.
+fn core_cast_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+    if !matches!(expr.kind, SyntaxExprKind::Cast) || expr.children.len() != 1 {
+        return None;
+    }
+
+    Some(CoreExpr::Cast {
+        expr: Box::new(core_expr_from_syntax(&expr.children[0])?),
+        target_type: core_type_from_text(expr.text.as_deref()?)?,
+    })
 }
 
 /// Converts a syntax-output list-cons expression into typed Core.

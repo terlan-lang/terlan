@@ -1,5 +1,5 @@
 //! Core typed error value.
-//! 
+//!
 //! `std.core.Error` is the portable base error shape used by standard-library
 //! APIs that return typed recoverable failures. Domain errors derive from this
 //! struct and add context fields while preserving the common `code` and
@@ -8,7 +8,7 @@
 module std.core.Error.
 
 /// Error is the common portable error data shape.
-/// 
+///
 /// Input: no runtime input; fields are supplied by constructors.
 /// Output: a typed struct containing a stable machine-readable `code` and a
 /// human-readable `message`.
@@ -21,7 +21,7 @@ pub struct Error {
 }.
 
 /// Returns an error's symbolic code.
-/// 
+///
 /// Input: one `Error` receiver.
 /// Output: the receiver's machine-readable `Atom` code.
 /// Transformation: reads the `code` field without changing the error value.
@@ -29,7 +29,7 @@ pub struct Error {
 pub (error: Error) code(): Atom.
 
 /// Returns an error's human-readable message.
-/// 
+///
 /// Input: one `Error` receiver.
 /// Output: the receiver's `String` message.
 /// Transformation: reads the `message` field without changing the error value.
@@ -37,19 +37,19 @@ pub (error: Error) code(): Atom.
 pub (error: Error) message(): String.
 
 /// Creates an `Error`.
-/// 
+///
 /// Input: one symbolic error code and one human-readable message.
 /// Output: an `Error` value with both fields populated.
 /// Transformation: constructs the public base error struct without relying on a
 /// target-specific exception or atom representation.
-/// 
+///
 /// ```terlan
 /// module error_new_example.
-/// 
+///
 /// import std.core.Error.{new}.
-/// 
+///
 /// pub type Invalid = Atom["invalid"].
-/// 
+///
 /// pub demo(): Error ->
 ///    new(Invalid, "invalid input").
 /// ```
@@ -57,7 +57,7 @@ pub (error: Error) message(): String.
 pub new(code: Atom, message: String): Error.
 
 /// Converts an error to display text.
-/// 
+///
 /// Input: one `Error` receiver.
 /// Output: the receiver's human-readable message.
 /// Transformation: delegates to `message()` so generic display paths can use the

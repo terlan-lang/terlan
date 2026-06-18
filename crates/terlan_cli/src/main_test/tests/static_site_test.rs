@@ -1,6 +1,30 @@
 use super::*;
 
 #[test]
+fn parse_serve_static_args_preserves_shared_server_settings() {
+    let parsed = parse_serve_static_args(&[
+        "src/site.terl".to_string(),
+        "--host".to_string(),
+        "0.0.0.0".to_string(),
+        "--port".to_string(),
+        "9010".to_string(),
+        "--poll-ms".to_string(),
+        "250".to_string(),
+        "--source-dir".to_string(),
+        "src".to_string(),
+        "--validate-output".to_string(),
+    ])
+    .expect("parse serve-static args");
+
+    assert_eq!(parsed.file, "src/site.terl");
+    assert_eq!(parsed.host, "0.0.0.0");
+    assert_eq!(parsed.port, 9010);
+    assert_eq!(parsed.poll_ms, 250);
+    assert_eq!(parsed.source_dir, Some(PathBuf::from("src")));
+    assert!(parsed.emit_args.validate_output);
+}
+
+#[test]
 fn formal_static_syntax_output_discovers_entrypoints_and_routes() {
     let module = parse_module_as_syntax_output(
         "\

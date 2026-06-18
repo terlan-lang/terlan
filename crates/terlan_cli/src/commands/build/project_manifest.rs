@@ -18,6 +18,7 @@ pub(crate) struct ProjectManifest {
     pub(crate) package: ProjectPackage,
     pub(crate) source_roots: Vec<String>,
     pub(crate) artifact: ProjectArtifactKind,
+    pub(crate) web_assets: Option<ProjectWebAssets>,
     pub(crate) dependencies: Vec<ProjectDependency>,
     pub(crate) erlang_package_adapter: Option<ProjectErlangPackageAdapter>,
 }
@@ -75,6 +76,24 @@ impl ProjectArtifactKind {
             ProjectArtifactKind::Library => "library",
         }
     }
+}
+
+/// Parsed Terlan-owned web asset configuration from `[web.assets]`.
+///
+/// Inputs:
+/// - Produced from user-authored `terlan.toml`.
+///
+/// Output:
+/// - Stable web asset configuration for browser packaging.
+///
+/// Transformation:
+/// - Keeps the user-facing asset shape independent from Rsbuild/Rspack config
+///   while preserving enough metadata for later packaging translation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProjectWebAssets {
+    pub(crate) directory: String,
+    pub(crate) public_path: Option<String>,
+    pub(crate) inline_limit: Option<u64>,
 }
 
 /// Parsed Erlang target packaging adapter reservation.
@@ -255,6 +274,9 @@ pub(crate) fn read_project_manifest(path: &Path) -> Result<ProjectManifest, Stri
 ///   - optional `[package] namespace = "std.native.polars"`
 ///   - optional `[build] source_roots = ["src", "lib"]`
 ///   - optional `[build] artifact = "beam-thin"`
+///   - optional `[web.assets] directory = "assets"`
+///   - optional `[web.assets] public_path = "/assets"`
+///   - optional `[web.assets] inline_limit = 8192`
 ///   - `[dependencies] name = { path = "../name" }`
 ///   - `[target.erlang.dependencies] cowboy = { hex = "cowboy", version = "2.12.0" }`
 ///   - `[target.js.dependencies] zod = { npm = "zod", version = "3.25.0" }`
@@ -270,6 +292,7 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
     let mut package_namespace = None;
     let mut source_roots = None;
     let mut artifact = None;
+    let mut web_assets = ProjectWebAssetsBuilder::default();
     let mut dependencies = Vec::new();
     let mut erlang_package_adapter = None;
 
@@ -323,6 +346,25 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
                 _ => {
                     return Err(format!(
                         "{}:{}: unsupported [build] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ManifestSection::WebAssets => match key {
+                "directory" => {
+                    web_assets.directory = Some(parse_string(value, path, line_no)?);
+                }
+                "public_path" => {
+                    web_assets.public_path = Some(parse_string(value, path, line_no)?);
+                }
+                "inline_limit" => {
+                    web_assets.inline_limit = Some(parse_non_negative_u64(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [web.assets] key `{}`",
                         path.display(),
                         line_no,
                         key
@@ -409,6 +451,7 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         ));
     }
     let artifact = artifact.unwrap_or(ProjectArtifactKind::BeamThin);
+    let web_assets = web_assets.finish(path)?;
 
     Ok(ProjectManifest {
         package: ProjectPackage {
@@ -418,9 +461,77 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         },
         source_roots,
         artifact,
+        web_assets,
         dependencies,
         erlang_package_adapter,
     })
+}
+
+/// Incremental parser state for optional `[web.assets]`.
+///
+/// Inputs:
+/// - Filled while scanning manifest key/value assignments.
+///
+/// Output:
+/// - Optional `ProjectWebAssets` after validation.
+///
+/// Transformation:
+/// - Distinguishes an absent section from a present but incomplete section so
+///   users get a precise diagnostic when they start configuring web assets.
+#[derive(Debug, Default)]
+struct ProjectWebAssetsBuilder {
+    directory: Option<String>,
+    public_path: Option<String>,
+    inline_limit: Option<u64>,
+}
+
+impl ProjectWebAssetsBuilder {
+    /// Finalizes parsed web asset configuration.
+    ///
+    /// Inputs:
+    /// - `self`: accumulated optional section values.
+    /// - `path`: manifest path used in diagnostics.
+    ///
+    /// Output:
+    /// - `Ok(None)` when `[web.assets]` was absent.
+    /// - `Ok(Some(ProjectWebAssets))` when the section is complete.
+    /// - `Err(String)` when the section is incomplete or invalid.
+    ///
+    /// Transformation:
+    /// - Requires `directory` when any web asset key is present and rejects
+    ///   empty path-like values before browser packaging consumes them.
+    fn finish(self, path: &Path) -> Result<Option<ProjectWebAssets>, String> {
+        let has_any_key =
+            self.directory.is_some() || self.public_path.is_some() || self.inline_limit.is_some();
+        if !has_any_key {
+            return Ok(None);
+        }
+        let directory = self.directory.ok_or_else(|| {
+            format!(
+                "{}: project manifest [web.assets] requires directory",
+                path.display()
+            )
+        })?;
+        if directory.trim().is_empty() {
+            return Err(format!(
+                "{}: project manifest [web.assets] directory cannot be empty",
+                path.display()
+            ));
+        }
+        if let Some(public_path) = self.public_path.as_deref() {
+            if public_path.trim().is_empty() {
+                return Err(format!(
+                    "{}: project manifest [web.assets] public_path cannot be empty",
+                    path.display()
+                ));
+            }
+        }
+        Ok(Some(ProjectWebAssets {
+            directory,
+            public_path: self.public_path,
+            inline_limit: self.inline_limit,
+        }))
+    }
 }
 
 /// Supported top-level manifest sections.
@@ -438,6 +549,7 @@ enum ManifestSection {
     Root,
     Package,
     Build,
+    WebAssets,
     Dependencies,
     TargetDependencies(ProjectTarget),
     TargetErlangPackage,
@@ -500,6 +612,7 @@ fn parse_section(line: &str, path: &Path, line_no: usize) -> Result<ManifestSect
     match section.trim() {
         "package" => Ok(ManifestSection::Package),
         "build" => Ok(ManifestSection::Build),
+        "web.assets" => Ok(ManifestSection::WebAssets),
         "dependencies" => Ok(ManifestSection::Dependencies),
         "target.erlang.package" => Ok(ManifestSection::TargetErlangPackage),
         other => {
@@ -631,6 +744,36 @@ fn parse_artifact_kind(
             other
         )),
     }
+}
+
+/// Parses a non-negative unsigned integer manifest value.
+///
+/// Inputs:
+/// - `value`: trimmed manifest value text.
+/// - `path`: manifest path used in diagnostics.
+/// - `line_no`: 1-based line number used in diagnostics.
+///
+/// Output:
+/// - Parsed `u64` value.
+///
+/// Transformation:
+/// - Accepts plain ASCII decimal digits only so user-authored TOML config stays
+///   predictable and does not inherit target-tool numeric syntax variants.
+fn parse_non_negative_u64(value: &str, path: &Path, line_no: usize) -> Result<u64, String> {
+    if value.is_empty() || !value.chars().all(|ch| ch.is_ascii_digit()) {
+        return Err(format!(
+            "{}:{}: project manifest value must be a non-negative integer",
+            path.display(),
+            line_no
+        ));
+    }
+    value.parse::<u64>().map_err(|err| {
+        format!(
+            "{}:{}: project manifest integer value is out of range: {err}",
+            path.display(),
+            line_no
+        )
+    })
 }
 
 /// Parses one project dependency manifest entry.
@@ -1388,293 +1531,5 @@ fn unescape_string(inner: &str, path: &Path, line_no: usize) -> Result<String, S
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::path::PathBuf;
-
-    /// Returns a stable synthetic manifest path for parser tests.
-    ///
-    /// Inputs:
-    /// - No inputs.
-    ///
-    /// Output:
-    /// - Path used in parser diagnostics.
-    ///
-    /// Transformation:
-    /// - Builds a path without touching the filesystem.
-    fn manifest_path() -> PathBuf {
-        PathBuf::from("terlan.toml")
-    }
-
-    #[test]
-    fn project_manifest_parses_package_name_with_default_source_root() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n",
-            &manifest_path(),
-        )
-        .expect("manifest should parse");
-
-        assert_eq!(parsed.package.name, "demo");
-        assert_eq!(parsed.package.version, "0.0.1");
-        assert_eq!(parsed.package.namespace, None);
-        assert_eq!(parsed.source_roots, vec!["src"]);
-        assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
-    }
-
-    #[test]
-    fn project_manifest_parses_package_namespace() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"std-native-polars\"\nversion = \"0.0.3\"\nnamespace = \"std.native.polars\"\n",
-            &manifest_path(),
-        )
-        .expect("manifest should parse package namespace");
-
-        assert_eq!(parsed.package.name, "std-native-polars");
-        assert_eq!(
-            parsed.package.namespace.as_deref(),
-            Some("std.native.polars")
-        );
-    }
-
-    #[test]
-    fn project_manifest_rejects_invalid_package_namespace() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\nnamespace = \"std.Native\"\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject invalid package namespace");
-
-        assert!(err.contains("namespace `std.Native` segments must start"));
-    }
-
-    #[test]
-    fn project_manifest_parses_explicit_source_roots() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\", \"lib\"]\nartifact = \"beam-thin\"\n",
-            &manifest_path(),
-        )
-        .expect("manifest should parse");
-
-        assert_eq!(parsed.package.name, "demo");
-        assert_eq!(parsed.package.version, "0.0.1");
-        assert_eq!(parsed.source_roots, vec!["src", "lib"]);
-        assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
-    }
-
-    #[test]
-    fn project_manifest_parses_library_artifact_kind() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"library\"\n",
-            &manifest_path(),
-        )
-        .expect("manifest should parse library artifact kind");
-
-        assert_eq!(parsed.artifact, ProjectArtifactKind::Library);
-    }
-
-    #[test]
-    fn project_manifest_rejects_missing_package_name() {
-        let err = parse_project_manifest("[package]\nversion = \"0.0.1\"\n", &manifest_path())
-            .expect_err("manifest should reject missing package name");
-
-        assert!(err.contains("requires [package] name"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_missing_package_version() {
-        let err = parse_project_manifest("[package]\nname = \"demo\"\n", &manifest_path())
-            .expect_err("manifest should reject missing package version");
-
-        assert!(err.contains("requires [package] version"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_invalid_package_name() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"Demo\"\nversion = \"0.0.1\"\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject invalid package name");
-
-        assert!(err.contains("must start with a lowercase ASCII letter"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_invalid_package_version() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.1\"\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject invalid package version");
-
-        assert!(err.contains("major.minor.patch"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_unsupported_artifact_kind() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"beam-standalone\"\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject unsupported artifact kind");
-
-        assert!(err.contains("unsupported [build] artifact `beam-standalone`"));
-    }
-
-    #[test]
-    fn project_manifest_accepts_reserved_empty_dependency_sections() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\n\n[target.erlang.dependencies]\n\n[target.js.dependencies]\n\n[target.rust.dependencies]\n",
-            &manifest_path(),
-        )
-        .expect("manifest should accept reserved dependency section boundaries");
-
-        assert_eq!(parsed.package.name, "demo");
-        assert_eq!(parsed.package.version, "0.0.1");
-        assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
-        assert!(parsed.dependencies.is_empty());
-    }
-
-    #[test]
-    fn project_manifest_parses_dependency_source_metadata() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\n\n[target.erlang.dependencies]\ncowboy = { hex = \"cowboy\", version = \"2.12.0\" }\n\n[target.js.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\" }\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", version = \"1.0.0\" }\n",
-            &manifest_path(),
-        )
-        .expect("manifest should parse dependency metadata");
-
-        assert_eq!(parsed.dependencies.len(), 4);
-        assert_eq!(
-            parsed.dependencies[0],
-            ProjectDependency {
-                alias: "local_utils".to_string(),
-                scope: ProjectDependencyScope::Local,
-                source: ProjectDependencySource::Path {
-                    path: "../local_utils".to_string()
-                },
-            }
-        );
-        assert_eq!(
-            parsed.dependencies[1],
-            ProjectDependency {
-                alias: "cowboy".to_string(),
-                scope: ProjectDependencyScope::Target(ProjectTarget::Erlang),
-                source: ProjectDependencySource::Hex {
-                    package: "cowboy".to_string(),
-                    version: "2.12.0".to_string()
-                },
-            }
-        );
-        assert_eq!(
-            parsed.dependencies[2],
-            ProjectDependency {
-                alias: "zod".to_string(),
-                scope: ProjectDependencyScope::Target(ProjectTarget::Js),
-                source: ProjectDependencySource::Npm {
-                    package: "zod".to_string(),
-                    version: "3.25.0".to_string()
-                },
-            }
-        );
-        assert_eq!(
-            parsed.dependencies[3],
-            ProjectDependency {
-                alias: "serde".to_string(),
-                scope: ProjectDependencyScope::Target(ProjectTarget::Rust),
-                source: ProjectDependencySource::Cargo {
-                    package: "serde".to_string(),
-                    version: "1.0.0".to_string(),
-                    features: Vec::new()
-                },
-            }
-        );
-    }
-
-    #[test]
-    fn project_manifest_parses_rust_dependency_feature_metadata() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.rust.dependencies]\npolars = { cargo = \"polars\", version = \"0.54.4\", features = [\"lazy\", \"csv\", \"strings\"] }\n",
-            &manifest_path(),
-        )
-        .expect("manifest should parse Rust dependency feature metadata");
-
-        assert_eq!(
-            parsed.dependencies[0],
-            ProjectDependency {
-                alias: "polars".to_string(),
-                scope: ProjectDependencyScope::Target(ProjectTarget::Rust),
-                source: ProjectDependencySource::Cargo {
-                    package: "polars".to_string(),
-                    version: "0.54.4".to_string(),
-                    features: vec!["lazy".to_string(), "csv".to_string(), "strings".to_string()]
-                },
-            }
-        );
-    }
-
-    #[test]
-    fn project_manifest_parses_erlang_package_adapter_metadata() {
-        let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.erlang.package]\nadapter = \"rebar3-compatible\"\n",
-            &manifest_path(),
-        )
-        .expect("manifest should parse Erlang package adapter metadata");
-
-        assert_eq!(
-            parsed.erlang_package_adapter,
-            Some(ProjectErlangPackageAdapter::Rebar3Compatible)
-        );
-    }
-
-    #[test]
-    fn project_manifest_rejects_unsupported_erlang_package_adapter() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.erlang.package]\nadapter = \"rebar3-plugin\"\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject unsupported Erlang package adapter");
-
-        assert!(err.contains("unsupported [target.erlang.package] adapter `rebar3-plugin`"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_registry_dependency_in_local_scope() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\ncowboy = { hex = \"cowboy\", version = \"2.12.0\" }\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject registry dependency in local scope");
-
-        assert!(err.contains("[dependencies] entries must use exactly"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_wrong_target_dependency_source() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.erlang.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\" }\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject wrong target dependency source");
-
-        assert!(err.contains("{ hex = \"...\", version = \"...\" }"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_dependency_without_version() {
-        let err = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\" }\n",
-            &manifest_path(),
-        )
-        .expect_err("manifest should reject dependency without version");
-
-        assert!(err.contains("{ cargo = \"...\", version = \"...\" }"));
-    }
-
-    #[test]
-    fn project_manifest_rejects_unsupported_section() {
-        let err = parse_project_manifest("[workspace]\nfoo = \"bar\"\n", &manifest_path())
-            .expect_err("manifest should reject unsupported section");
-
-        assert!(err.contains("unsupported project manifest section `workspace`"));
-    }
-}
+#[path = "project_manifest_test.rs"]
+mod project_manifest_test;

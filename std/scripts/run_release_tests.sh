@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Inputs:
-# - tests/std/RELEASE_API_TESTS.tsv, which identifies the stdlib
+# - tests/std/RELEASE_API_TESTS.tsv, which identifies adjacent stdlib
 #   release-test files.
 # - The `terlan_cli` Cargo package providing the `terlc test` command.
 #

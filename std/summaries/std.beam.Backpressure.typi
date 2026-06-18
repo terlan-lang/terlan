@@ -1,5 +1,5 @@
 //! BEAM backpressure contract.
-//! 
+//!
 //! `std.beam.Backpressure` defines the credit accounting surface used by
 //! supervised native bridges. The implementation is target-owned; Terlan source
 //! only depends on the typed trait contract.
@@ -7,7 +7,7 @@
 module std.beam.Backpressure.
 
 /// Credit represents available work capacity.
-/// 
+///
 /// Input: no type parameters.
 /// Output: an integer-backed credit count.
 /// Transformation: gives BEAM/native bridge contracts a named type alias for
@@ -17,7 +17,7 @@ pub type Credit =
     Int.
 
 /// Backpressure defines credit-based flow-control operations.
-/// 
+///
 /// Input: resource or process type `P`.
 /// Output: a trait requiring observation, request, and release operations.
 /// Transformation: lets SafeNative bridges prove they own a flow-control

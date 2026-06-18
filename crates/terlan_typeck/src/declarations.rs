@@ -5,8 +5,8 @@ use super::*;
 /// Inputs:
 /// - `module`: syntax-output module containing functions, receiver methods,
 ///   and explicit trait implementation methods.
-/// - `function_signatures`: local function signature table keyed by name and
-///   arity.
+/// - `function_signatures`: local function signature candidates keyed by name
+///   and arity.
 /// - `alias_names`, `aliases`, and imported/local alias maps: visible type
 ///   information used to parse method signatures and check patterns.
 /// - `expr_ctx`: shared expression-inference context for callable bodies.
@@ -21,7 +21,7 @@ use super::*;
 ///   changing the syntax output model.
 pub(super) fn check_syntax_module_functions(
     module: &SyntaxModuleOutput,
-    function_signatures: &HashMap<(String, usize), FunctionScheme>,
+    function_signatures: &HashMap<(String, usize), Vec<FunctionScheme>>,
     alias_names: &HashSet<String>,
     aliases: &HashMap<String, TypeAlias>,
     imported_type_names: &HashMap<String, QualifiedTypeName>,
@@ -39,12 +39,14 @@ pub(super) fn check_syntax_module_functions(
             SyntaxDeclarationPayload::Function {
                 name,
                 params,
+                return_type,
                 clauses,
+                generic_bounds,
                 ..
             } => {
                 let key = (name.clone(), params.len());
-                let scheme = match function_signatures.get(&key) {
-                    Some(scheme) => scheme.clone(),
+                let schemes = match function_signatures.get(&key) {
+                    Some(schemes) => schemes,
                     None => {
                         diagnostics.push(Diagnostic {
                             span: declaration.span.into(),
@@ -58,6 +60,27 @@ pub(super) fn check_syntax_module_functions(
                         continue;
                     }
                 };
+                let scheme = function_decl_to_scheme(
+                    &params
+                        .iter()
+                        .map(|param| param.annotation.text.clone())
+                        .collect::<Vec<_>>(),
+                    &return_type.text,
+                    generic_bounds,
+                    alias_names,
+                    imported_type_names,
+                    imported_type_aliases,
+                    local_aliases,
+                );
+                let scheme = schemes
+                    .iter()
+                    .find(|candidate| {
+                        candidate.params == scheme.params
+                            && candidate.ret == scheme.ret
+                            && candidate.bounds.len() == scheme.bounds.len()
+                    })
+                    .cloned()
+                    .unwrap_or(scheme);
 
                 check_syntax_callable_clauses(
                     &format!("function {}", name),

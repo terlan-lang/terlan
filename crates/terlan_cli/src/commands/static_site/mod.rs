@@ -1,12 +1,8 @@
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::mpsc::{self, Sender};
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, UNIX_EPOCH};
 
@@ -112,8 +108,6 @@ pub(crate) struct ServeStaticArgs {
     pub(crate) source_dir: Option<PathBuf>,
     pub(crate) emit_args: EmitStaticArgs,
 }
-
-type ReloadClients = Arc<Mutex<Vec<Sender<u64>>>>;
 
 /// Parses command-local arguments for `emit-static`.
 ///
@@ -585,30 +579,23 @@ pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let clients: ReloadClients = Arc::new(Mutex::new(Vec::new()));
-    let listener = match TcpListener::bind(format!("{}:{}", args.host, args.port)) {
-        Ok(listener) => listener,
-        Err(err) => {
-            eprintln!("failed to bind dev server: {}", err);
+    let server = match crate::commands::serve::spawn_directory_server(
+        out_dir.clone(),
+        args.host.clone(),
+        args.port,
+        args.poll_ms,
+        "terlc serve-static",
+    ) {
+        Ok(server) => server,
+        Err(message) => {
+            eprintln!("{message}");
             return ExitCode::from(1);
         }
     };
-    let local_addr = match listener.local_addr() {
-        Ok(addr) => addr.to_string(),
-        Err(_) => format!("{}:{}", args.host, args.port),
-    };
-    eprintln!("terlc serve-static: serving {}", out_dir.display());
-    eprintln!("terlc serve-static: http://{}", local_addr);
-    eprintln!("terlc serve-static: reload stream /__terlan/reload");
-
-    let server_clients = Arc::clone(&clients);
-    let server_out_dir = out_dir.clone();
-    thread::spawn(move || run_static_http_server(listener, server_out_dir, server_clients));
+    eprintln!("terlc serve-static: shared server {}", server.local_addr);
 
     let poll_interval = Duration::from_millis(args.poll_ms);
     let mut source_hash = directory_fingerprint(&source_dir, exclude_dir.as_deref());
-    let mut dist_hash = directory_fingerprint(&out_dir, None);
-    let mut reload_version = 0;
 
     loop {
         thread::sleep(poll_interval);
@@ -621,13 +608,6 @@ pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
                 eprintln!("terlc serve-static: compile failed; keeping previous output");
                 continue;
             }
-        }
-
-        let next_dist_hash = directory_fingerprint(&out_dir, None);
-        if next_dist_hash != dist_hash {
-            dist_hash = next_dist_hash;
-            reload_version += 1;
-            broadcast_reload(&clients, reload_version);
         }
     }
 }
@@ -665,325 +645,6 @@ fn run_emit_static_with_args(args: &EmitStaticArgs, state: CliState) -> ExitCode
         },
         state,
     )
-}
-
-/// Runs the static development HTTP server accept loop.
-///
-/// Inputs:
-/// - `listener`: bound TCP listener.
-/// - `out_dir`: static output directory to serve.
-/// - `clients`: reload SSE subscribers.
-///
-/// Output:
-/// - No return value; runs until listener errors or process exits.
-///
-/// Transformation:
-/// - Accepts connections and spawns one handler thread per connection.
-fn run_static_http_server(listener: TcpListener, out_dir: PathBuf, clients: ReloadClients) {
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                let out_dir = out_dir.clone();
-                let clients = Arc::clone(&clients);
-                thread::spawn(move || handle_static_http_connection(stream, &out_dir, clients));
-            }
-            Err(err) => eprintln!("terlc serve-static: connection failed: {}", err),
-        }
-    }
-}
-
-/// Handles one static HTTP connection.
-///
-/// Inputs:
-/// - `stream`: accepted TCP stream.
-/// - `out_dir`: static output directory.
-/// - `clients`: reload SSE subscribers.
-///
-/// Output:
-/// - No return value; writes one HTTP/SSE response.
-///
-/// Transformation:
-/// - Parses a minimal HTTP request, routes reload SSE, serves files, injects
-///   reload script into HTML, and writes a response.
-fn handle_static_http_connection(mut stream: TcpStream, out_dir: &Path, clients: ReloadClients) {
-    let mut buffer = [0; 8192];
-    let read = match stream.read(&mut buffer) {
-        Ok(read) => read,
-        Err(_) => return,
-    };
-    if read == 0 {
-        return;
-    }
-
-    let request = String::from_utf8_lossy(&buffer[..read]);
-    let Some(first_line) = request.lines().next() else {
-        return;
-    };
-    let mut parts = first_line.split_whitespace();
-    let method = parts.next().unwrap_or("");
-    let target = parts.next().unwrap_or("/");
-
-    if method != "GET" && method != "HEAD" {
-        let _ = write_http_response(
-            &mut stream,
-            405,
-            "Method Not Allowed",
-            "text/plain; charset=utf-8",
-            b"method not allowed",
-            method == "HEAD",
-        );
-        return;
-    }
-
-    let path = target.split('?').next().unwrap_or("/");
-    if path == "/__terlan/reload" {
-        handle_reload_sse(stream, clients);
-        return;
-    }
-
-    let Some(file_path) = static_request_path(out_dir, path) else {
-        let _ = write_http_response(
-            &mut stream,
-            400,
-            "Bad Request",
-            "text/plain; charset=utf-8",
-            b"bad request",
-            method == "HEAD",
-        );
-        return;
-    };
-
-    let response_path = if file_path.is_dir() {
-        file_path.join("index.html")
-    } else if file_path.exists() {
-        file_path
-    } else if file_path.extension().is_none() {
-        file_path.join("index.html")
-    } else {
-        file_path
-    };
-
-    let bytes = match fs::read(&response_path) {
-        Ok(bytes) => bytes,
-        Err(_) => {
-            let _ = write_http_response(
-                &mut stream,
-                404,
-                "Not Found",
-                "text/plain; charset=utf-8",
-                b"not found",
-                method == "HEAD",
-            );
-            return;
-        }
-    };
-    let content_type = content_type_for_path(&response_path);
-    let body = if content_type.starts_with("text/html") {
-        String::from_utf8(bytes)
-            .map(|html| inject_reload_script(&html).into_bytes())
-            .unwrap_or_else(|err| err.into_bytes())
-    } else {
-        bytes
-    };
-    let _ = write_http_response(
-        &mut stream,
-        200,
-        "OK",
-        content_type,
-        &body,
-        method == "HEAD",
-    );
-}
-
-/// Handles one reload server-sent-events connection.
-///
-/// Inputs:
-/// - `stream`: accepted TCP stream.
-/// - `clients`: shared reload subscriber list.
-///
-/// Output:
-/// - No return value; writes events until the client disconnects.
-///
-/// Transformation:
-/// - Registers a sender, writes SSE headers, and streams reload versions.
-fn handle_reload_sse(mut stream: TcpStream, clients: ReloadClients) {
-    let (tx, rx) = mpsc::channel();
-    if let Ok(mut locked) = clients.lock() {
-        locked.push(tx);
-    }
-
-    let headers = concat!(
-        "HTTP/1.1 200 OK\r\n",
-        "Content-Type: text/event-stream\r\n",
-        "Cache-Control: no-cache\r\n",
-        "Connection: keep-alive\r\n",
-        "Access-Control-Allow-Origin: *\r\n",
-        "\r\n",
-        ": connected\n\n"
-    );
-    if stream.write_all(headers.as_bytes()).is_err() {
-        return;
-    }
-    let _ = stream.flush();
-
-    while let Ok(version) = rx.recv() {
-        if write!(stream, "event: reload\ndata: {}\n\n", version).is_err() {
-            break;
-        }
-        if stream.flush().is_err() {
-            break;
-        }
-    }
-}
-
-/// Broadcasts a reload event to active clients.
-///
-/// Inputs:
-/// - `clients`: reload subscriber list.
-/// - `version`: monotonically increasing reload version.
-///
-/// Output:
-/// - No return value.
-///
-/// Transformation:
-/// - Sends to each client and drops disconnected senders.
-fn broadcast_reload(clients: &ReloadClients, version: u64) {
-    eprintln!("terlc serve-static: output changed; broadcasting reload");
-    if let Ok(mut locked) = clients.lock() {
-        locked.retain(|client| client.send(version).is_ok());
-    }
-}
-
-/// Writes a minimal HTTP response.
-///
-/// Inputs:
-/// - `stream`: TCP stream to write.
-/// - `status`: numeric HTTP status.
-/// - `reason`: status reason phrase.
-/// - `content_type`: response content type.
-/// - `body`: response body bytes.
-/// - `head_only`: whether to omit the body for HEAD requests.
-///
-/// Output:
-/// - I/O result for response writing.
-///
-/// Transformation:
-/// - Emits headers and optionally writes body bytes.
-fn write_http_response(
-    stream: &mut TcpStream,
-    status: u16,
-    reason: &str,
-    content_type: &str,
-    body: &[u8],
-    head_only: bool,
-) -> std::io::Result<()> {
-    write!(
-        stream,
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        status,
-        reason,
-        content_type,
-        body.len()
-    )?;
-    if !head_only {
-        stream.write_all(body)?;
-    }
-    stream.flush()
-}
-
-/// Converts a request path into a static output path.
-///
-/// Inputs:
-/// - `root`: static output directory.
-/// - `request_path`: URL path component.
-///
-/// Output:
-/// - Safe filesystem path under `root`, or `None` for invalid traversal-like
-///   paths.
-///
-/// Transformation:
-/// - Splits URL segments, rejects dangerous segments, and maps `/` to
-///   `index.html`.
-pub(crate) fn static_request_path(root: &Path, request_path: &str) -> Option<PathBuf> {
-    let mut path = root.to_path_buf();
-    let trimmed = request_path.trim_start_matches('/');
-    if trimmed.is_empty() {
-        return Some(path.join("index.html"));
-    }
-
-    for segment in trimmed.split('/') {
-        if segment.is_empty() {
-            continue;
-        }
-        if segment == "." || segment == ".." || segment.contains('\\') || segment.contains('\0') {
-            return None;
-        }
-        path.push(segment);
-    }
-
-    Some(path)
-}
-
-/// Returns a content type for a static file path.
-///
-/// Inputs:
-/// - `path`: response file path.
-///
-/// Output:
-/// - Static content-type string.
-///
-/// Transformation:
-/// - Maps common extensions to MIME types and falls back to octet stream.
-fn content_type_for_path(path: &Path) -> &'static str {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some("html") => "text/html; charset=utf-8",
-        Some("css") => "text/css; charset=utf-8",
-        Some("js") => "text/javascript; charset=utf-8",
-        Some("json") => "application/json; charset=utf-8",
-        Some("svg") => "image/svg+xml",
-        Some("png") => "image/png",
-        Some("jpg") | Some("jpeg") => "image/jpeg",
-        Some("gif") => "image/gif",
-        Some("webp") => "image/webp",
-        Some("ico") => "image/x-icon",
-        Some("txt") => "text/plain; charset=utf-8",
-        _ => "application/octet-stream",
-    }
-}
-
-/// Injects the live-reload script into HTML.
-///
-/// Inputs:
-/// - `html`: rendered HTML document.
-///
-/// Output:
-/// - HTML with reload script appended or inserted before `</body>`.
-///
-/// Transformation:
-/// - Preserves documents that already reference the reload endpoint.
-pub(crate) fn inject_reload_script(html: &str) -> String {
-    const SCRIPT: &str = r#"<script>
-(() => {
-  const events = new EventSource('/__terlan/reload');
-  events.addEventListener('reload', () => location.reload());
-})();
-</script>"#;
-
-    if html.contains("/__terlan/reload") {
-        return html.to_string();
-    }
-    if let Some(index) = html.rfind("</body>") {
-        let mut out = String::with_capacity(html.len() + SCRIPT.len());
-        out.push_str(&html[..index]);
-        out.push_str(SCRIPT);
-        out.push_str(&html[index..]);
-        return out;
-    }
-
-    let mut out = String::with_capacity(html.len() + SCRIPT.len());
-    out.push_str(html);
-    out.push_str(SCRIPT);
-    out
 }
 
 /// Canonicalizes a path when possible.

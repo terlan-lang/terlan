@@ -1,4 +1,5 @@
 use super::*;
+use terlan_typeck::CoreProofCoverage;
 
 /// Builds a Lean-covered expression summary for direct target-profile tests.
 ///
@@ -141,6 +142,7 @@ fn empty_interface(module: &str) -> ModuleInterface {
         trait_conformances: Vec::new(),
         constructors: HashMap::new(),
         functions: HashMap::new(),
+        function_overloads: HashMap::new(),
     }
 }
 
@@ -215,18 +217,51 @@ fn assert_unresolved_constructor_violation(
     chains: usize,
     patterns: usize,
 ) {
+    assert_unresolved_constructor_violation_for_profile(
+        violations,
+        TargetProfile::Erlang,
+        calls,
+        chains,
+        patterns,
+    );
+}
+
+/// Asserts the unresolved-constructor target-profile diagnostic is present
+/// for a caller-selected target profile.
+///
+/// Inputs:
+/// - `violations`: validation output returned by `target_profile_checks`.
+/// - `profile`: target profile expected to own the diagnostic message.
+/// - `calls`: expected unresolved constructor-call candidate count.
+/// - `chains`: expected unresolved constructor-chain candidate count.
+/// - `patterns`: expected unresolved constructor-pattern candidate count.
+///
+/// Output:
+/// - Test assertion only; no compiler artifacts are modified.
+///
+/// Transformation:
+/// - Locates the shared unresolved-constructor diagnostic by code and
+///   compares its formatted message against the expected profile/count
+///   payload.
+fn assert_unresolved_constructor_violation_for_profile(
+    violations: &[TargetProfileViolation],
+    profile: TargetProfile,
+    calls: usize,
+    chains: usize,
+    patterns: usize,
+) {
     let violation = violations
         .iter()
         .find(|violation| violation.code == TARGET_PROFILE_UNRESOLVED_CONSTRUCTOR_CODE)
         .unwrap_or_else(|| {
             panic!(
-                "Erlang profile should reject unresolved constructor candidates: {:?}",
-                violations
+                "{:?} profile should reject unresolved constructor candidates: {:?}",
+                profile, violations
             )
         });
     assert_eq!(
         violation.message,
-        unresolved_constructor_message(TargetProfile::Erlang, calls, chains, patterns),
+        unresolved_constructor_message(profile, calls, chains, patterns),
         "unexpected unresolved constructor diagnostic message"
     );
 }
@@ -1089,6 +1124,29 @@ fn target_profile_rejects_unresolved_constructor_chain_candidate() {
     let erlang = target_profile_checks(&module, TargetProfile::Erlang);
 
     assert_unresolved_constructor_violation(&erlang, 0, 1, 0);
+}
+
+/// Verifies JS target-profile validation rejects unresolved constructor
+/// metadata before JavaScript lowering.
+///
+/// Inputs:
+/// - A directly constructed Lean-covered Core module whose metadata reports
+///   unresolved constructor call, chain, and pattern candidates.
+///
+/// Output:
+/// - Test passes when JS target-profile validation reports
+///   `target_profile_unresolved_constructor`.
+///
+/// Transformation:
+/// - Uses the unresolved-constructor fixture helper to isolate metadata
+///   validation from parser, typechecker, and JavaScript emitter diagnostics.
+#[test]
+fn target_profile_rejects_unresolved_constructor_candidates_for_js_profile() {
+    let module = module_with_unresolved_constructor_candidates(1, 1, 1);
+
+    let js = target_profile_checks(&module, TargetProfile::JsShared);
+
+    assert_unresolved_constructor_violation_for_profile(&js, TargetProfile::JsShared, 1, 1, 1);
 }
 
 #[test]

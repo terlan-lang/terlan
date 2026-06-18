@@ -7,13 +7,17 @@
 use std::collections::BTreeMap;
 
 use crate::handle::SafeNativeHandle;
-use crate::{json, path, uri};
+use crate::{http, json, path, uri};
 
 /// Resource kind stored in the SafeNative registry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ResourceKind {
     /// `std.data.Json.Json`.
     Json,
+    /// `std.http.Request.Request`.
+    HttpRequest,
+    /// `std.http.Response.Response`.
+    HttpResponse,
     /// `std.io.Path.Path`.
     Path,
     /// `std.net.Uri.Uri`.
@@ -25,6 +29,10 @@ pub enum ResourceKind {
 pub enum ResourceValue {
     /// JSON resource owned by the Rust JSON adapter.
     Json(json::Json),
+    /// HTTP request resource owned by the Rust HTTP adapter.
+    HttpRequest(http::Request),
+    /// HTTP response resource owned by the Rust HTTP adapter.
+    HttpResponse(http::Response),
     /// Path resource owned by the Rust path adapter.
     Path(path::Path),
     /// URI resource owned by the Rust URI adapter.
@@ -45,6 +53,8 @@ impl ResourceValue {
     pub fn kind(&self) -> ResourceKind {
         match self {
             Self::Json(_) => ResourceKind::Json,
+            Self::HttpRequest(_) => ResourceKind::HttpRequest,
+            Self::HttpResponse(_) => ResourceKind::HttpResponse,
             Self::Path(_) => ResourceKind::Path,
             Self::Uri(_) => ResourceKind::Uri,
         }
@@ -113,6 +123,19 @@ pub struct ResourceStore {
     resources: BTreeMap<u64, ResourceSlot>,
 }
 
+/// Live resource entry stored behind a generation-tagged handle.
+///
+/// Inputs:
+/// - `generation`: handle generation that must match before a resource can be
+///   borrowed or removed.
+/// - `value`: adapter-owned resource payload.
+///
+/// Output:
+/// - Internal registry slot consumed only by `ResourceStore`.
+///
+/// Transformation:
+/// - Keeps liveness metadata beside the owned resource value so stale handles
+///   cannot access a removed or replaced resource.
 #[derive(Clone, Debug, PartialEq)]
 struct ResourceSlot {
     generation: u64,
@@ -199,6 +222,47 @@ impl ResourceStore {
         match &self.slot(handle)?.value {
             ResourceValue::Json(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::Json, other.kind())),
+        }
+    }
+
+    /// Returns an HTTP request resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify an HTTP request
+    ///   resource.
+    ///
+    /// Output:
+    /// - `Ok(&Request)` for a live HTTP request resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before borrowing the value.
+    pub fn http_request(&self, handle: SafeNativeHandle) -> Result<&http::Request, ResourceError> {
+        match &self.slot(handle)?.value {
+            ResourceValue::HttpRequest(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::HttpRequest, other.kind())),
+        }
+    }
+
+    /// Returns an HTTP response resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify an HTTP response
+    ///   resource.
+    ///
+    /// Output:
+    /// - `Ok(&Response)` for a live HTTP response resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before borrowing the value.
+    pub fn http_response(
+        &self,
+        handle: SafeNativeHandle,
+    ) -> Result<&http::Response, ResourceError> {
+        match &self.slot(handle)?.value {
+            ResourceValue::HttpResponse(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::HttpResponse, other.kind())),
         }
     }
 
@@ -337,169 +401,5 @@ fn kind_error(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::Value;
-
-    /// Builds a JSON resource fixture.
-    ///
-    /// Inputs:
-    /// - No external input.
-    ///
-    /// Output:
-    /// - JSON resource wrapping a stable string value.
-    ///
-    /// Transformation:
-    /// - Uses the JSON adapter constructor to avoid depending on raw
-    ///   `serde_json` values outside tests.
-    fn json_resource() -> ResourceValue {
-        ResourceValue::Json(json::Json::from_serde(Value::String(String::from("Ada"))))
-    }
-
-    /// Builds a path resource fixture.
-    ///
-    /// Inputs:
-    /// - No external input.
-    ///
-    /// Output:
-    /// - Path resource for `src/main.terl`, or an empty path after a failing
-    ///   assertion.
-    ///
-    /// Transformation:
-    /// - Converts adapter parsing into a resource value without unwrap/expect.
-    fn path_resource() -> ResourceValue {
-        let parsed = path::from_string("src/main.terl");
-        assert!(parsed.is_ok());
-        ResourceValue::Path(
-            parsed.unwrap_or_else(|_| path::Path::from_path_buf(Default::default())),
-        )
-    }
-
-    /// Validates resources are stored and retrieved by matching handles.
-    ///
-    /// Inputs:
-    /// - One JSON resource.
-    ///
-    /// Output:
-    /// - Test passes when the returned handle retrieves the same kind.
-    ///
-    /// Transformation:
-    /// - Moves a resource into the store and checks handle-based lookup.
-    #[test]
-    fn insert_returns_live_handle_for_resource() {
-        let mut store = ResourceStore::new();
-        let result = store.insert(json_resource());
-        assert!(result.is_ok());
-        let Some(handle) = result.ok() else {
-            return;
-        };
-
-        assert_eq!(store.kind(handle), Ok(ResourceKind::Json));
-        assert!(store.json(handle).is_ok());
-    }
-
-    /// Validates resource-kind mismatches use a stable error code.
-    ///
-    /// Inputs:
-    /// - One path resource accessed as JSON.
-    ///
-    /// Output:
-    /// - Test passes when lookup returns `resource.kind`.
-    ///
-    /// Transformation:
-    /// - Exercises live-handle type validation after liveness succeeds.
-    #[test]
-    fn rejects_wrong_resource_kind_with_stable_error_code() {
-        let mut store = ResourceStore::new();
-        let result = store.insert(path_resource());
-        assert!(result.is_ok());
-        let Some(handle) = result.ok() else {
-            return;
-        };
-
-        let error = store
-            .json(handle)
-            .err()
-            .unwrap_or_else(|| ResourceError::new("missing", ""));
-        assert_eq!(error.code(), "resource.kind");
-    }
-
-    /// Validates disposed handles become stale.
-    ///
-    /// Inputs:
-    /// - One JSON resource and its handle.
-    ///
-    /// Output:
-    /// - Test passes when dispose succeeds once and later lookup fails stale.
-    ///
-    /// Transformation:
-    /// - Removes a resource through a matching handle, then checks stale-handle
-    ///   rejection for the old handle.
-    #[test]
-    fn dispose_removes_resource_and_rejects_stale_handle() {
-        let mut store = ResourceStore::new();
-        let result = store.insert(json_resource());
-        assert!(result.is_ok());
-        let Some(handle) = result.ok() else {
-            return;
-        };
-
-        assert_eq!(store.dispose(handle), Ok(()));
-        let error = store
-            .json(handle)
-            .err()
-            .unwrap_or_else(|| ResourceError::new("missing", ""));
-        assert_eq!(error.code(), "resource.stale_handle");
-    }
-
-    /// Validates stale generations are rejected.
-    ///
-    /// Inputs:
-    /// - One JSON resource and a handle with a modified generation.
-    ///
-    /// Output:
-    /// - Test passes when lookup returns `resource.stale_handle`.
-    ///
-    /// Transformation:
-    /// - Exercises generation-tag validation without disposing the resource.
-    #[test]
-    fn rejects_stale_generation_with_stable_error_code() {
-        let mut store = ResourceStore::new();
-        let result = store.insert(json_resource());
-        assert!(result.is_ok());
-        let Some(mut handle) = result.ok() else {
-            return;
-        };
-        handle.generation += 1;
-
-        let error = store
-            .json(handle)
-            .err()
-            .unwrap_or_else(|| ResourceError::new("missing", ""));
-        assert_eq!(error.code(), "resource.stale_handle");
-    }
-
-    /// Validates id allocation overflow is rejected before insertion.
-    ///
-    /// Inputs:
-    /// - Store whose next id is `u64::MAX`.
-    ///
-    /// Output:
-    /// - Test passes when insertion returns `resource.id_overflow`.
-    ///
-    /// Transformation:
-    /// - Exercises checked resource-id allocation.
-    #[test]
-    fn insert_rejects_id_overflow() {
-        let mut store = ResourceStore {
-            next_id: u64::MAX,
-            resources: BTreeMap::new(),
-        };
-
-        let error = store
-            .insert(json_resource())
-            .err()
-            .unwrap_or_else(|| ResourceError::new("missing", ""));
-        assert_eq!(error.code(), "resource.id_overflow");
-    }
-}
+#[path = "resource_test.rs"]
+mod resource_test;

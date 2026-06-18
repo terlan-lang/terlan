@@ -1,5 +1,16 @@
 //! Utilities for parsing `native core module` blocks.
 
+/// Native function signature extracted from a `native core module` block.
+///
+/// Inputs:
+/// - Textual native function declarations annotated with `#[native(...)]`.
+///
+/// Output:
+/// - Function name, arity, parameter names/types, and return type text.
+///
+/// Transformation:
+/// - Captures just enough signature metadata for native policy and interface
+///   checks without parsing implementation bodies.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NativeFunctionSignature {
     pub name: String,
@@ -8,6 +19,17 @@ pub struct NativeFunctionSignature {
     pub return_type: String,
 }
 
+/// Extracts the declared native module name.
+///
+/// Inputs:
+/// - `source`: Terlan source text that may contain `native core module Name`.
+///
+/// Output:
+/// - Native module name when present.
+///
+/// Transformation:
+/// - Scans line-by-line for the native module header and reads the name before
+///   the opening block or trailing whitespace.
 pub fn extract_native_module_name(source: &str) -> Option<String> {
     source.lines().find_map(|line| {
         let trimmed = line.trim();
@@ -24,6 +46,17 @@ pub fn extract_native_module_name(source: &str) -> Option<String> {
     })
 }
 
+/// Extracts the first native scheduler annotation from a native block.
+///
+/// Inputs:
+/// - `source`: Terlan source text containing a native block.
+///
+/// Output:
+/// - Scheduler string from `#[native(...)]` when present.
+///
+/// Transformation:
+/// - Finds the native block, normalizes spacing, and reads the first native
+///   annotation payload without interpreting scheduler semantics.
 pub fn extract_native_scheduler(source: &str) -> Option<String> {
     let (_, block) = extract_native_block_and_source(source)?;
     let block = normalize_native_spacing(block);
@@ -36,6 +69,19 @@ pub fn extract_native_scheduler(source: &str) -> Option<String> {
     })
 }
 
+/// Extracts annotated native function signatures from source text.
+///
+/// Inputs:
+/// - `source`: Terlan source text containing a `native core module` block.
+///
+/// Output:
+/// - Ordered native function signatures that follow `#[native(...)]`
+///   annotations.
+///
+/// Transformation:
+/// - Normalizes native-block spacing, scans annotated declarations through the
+///   terminating top-level `.`, and parses each declaration into signature
+///   metadata.
 pub fn extract_native_function_signatures(source: &str) -> Vec<NativeFunctionSignature> {
     let Some((_, block)) = extract_native_block_and_source(source) else {
         return Vec::new();
@@ -91,6 +137,17 @@ pub fn extract_native_function_signatures(source: &str) -> Vec<NativeFunctionSig
     signatures
 }
 
+/// Extracts the body of the first native core module block.
+///
+/// Inputs:
+/// - `source`: Terlan source text.
+///
+/// Output:
+/// - Start offset after the opening brace and block body text.
+///
+/// Transformation:
+/// - Finds `native core module`, then balances braces to return only the block
+///   contents.
 fn extract_native_block_and_source(source: &str) -> Option<(usize, &str)> {
     let Some(native_start) = source.find("native core module ") else {
         return None;
@@ -123,6 +180,17 @@ fn extract_native_block_and_source(source: &str) -> Option<(usize, &str)> {
     ))
 }
 
+/// Normalizes lightweight spacing variants inside native declarations.
+///
+/// Inputs:
+/// - `source`: raw native block body.
+///
+/// Output:
+/// - String with known harmless spacing variants collapsed.
+///
+/// Transformation:
+/// - Rewrites annotation, punctuation, and delimiter spacing so the simple
+///   native signature scanner can remain deterministic.
 fn normalize_native_spacing(source: &str) -> String {
     let mut normalized = source.to_string();
     normalized = normalized.replace("# [", "#[");
@@ -139,6 +207,18 @@ fn normalize_native_spacing(source: &str) -> String {
     normalized
 }
 
+/// Parses one native function signature declaration.
+///
+/// Inputs:
+/// - `line`: native function declaration text without the leading annotation.
+///
+/// Output:
+/// - Parsed `NativeFunctionSignature`, or `None` when the declaration is not a
+///   supported signature shape.
+///
+/// Transformation:
+/// - Locates the parameter list, extracts the name, counts arity, parses
+///   parameter annotations, and normalizes return type text.
 fn parse_native_function_signature(line: &str) -> Option<NativeFunctionSignature> {
     let signature = line
         .trim()
@@ -171,6 +251,17 @@ fn parse_native_function_signature(line: &str) -> Option<NativeFunctionSignature
     })
 }
 
+/// Parses the function name before a native parameter list.
+///
+/// Inputs:
+/// - `prefix`: text before the opening `(`.
+///
+/// Output:
+/// - Function name when present.
+///
+/// Transformation:
+/// - Trims generic/type-parameter suffixes and whitespace from the declaration
+///   prefix.
 fn parse_native_function_name(prefix: &str) -> Option<String> {
     let name = prefix
         .trim()
@@ -185,6 +276,17 @@ fn parse_native_function_name(prefix: &str) -> Option<String> {
     }
 }
 
+/// Parses native function parameter declarations.
+///
+/// Inputs:
+/// - `src`: comma-separated parameter list body.
+///
+/// Output:
+/// - Ordered `(name, type_text)` parameter pairs.
+///
+/// Transformation:
+/// - Splits at top-level commas, keeps parameters with `name: Type` shape, and
+///   strips trailing declaration punctuation from type annotations.
 fn parse_native_function_params(src: &str) -> Vec<(String, String)> {
     split_top_level(src, ',')
         .into_iter()
@@ -205,6 +307,16 @@ fn parse_native_function_params(src: &str) -> Vec<(String, String)> {
         .collect()
 }
 
+/// Normalizes native function return type text.
+///
+/// Inputs:
+/// - `raw`: text after the closing parameter-list parenthesis.
+///
+/// Output:
+/// - Return type text without `:`, `.`, `}`, or surrounding whitespace.
+///
+/// Transformation:
+/// - Performs syntax-level cleanup without validating type names.
 fn parse_native_return_type(raw: &str) -> String {
     raw.trim()
         .trim_start_matches(":")
@@ -215,6 +327,18 @@ fn parse_native_return_type(raw: &str) -> String {
         .to_string()
 }
 
+/// Splits text at a delimiter outside nested delimiters.
+///
+/// Inputs:
+/// - `input`: source text to split.
+/// - `delimiter`: delimiter character to split on.
+///
+/// Output:
+/// - Ordered text segments.
+///
+/// Transformation:
+/// - Tracks parentheses, brackets, and braces so nested generic or tuple-like
+///   forms do not split the parameter list.
 fn split_top_level(input: &str, delimiter: char) -> Vec<String> {
     let mut parts = Vec::new();
     let mut paren_depth = 0isize;
@@ -242,6 +366,16 @@ fn split_top_level(input: &str, delimiter: char) -> Vec<String> {
     parts
 }
 
+/// Counts native function arity from a parameter-list body.
+///
+/// Inputs:
+/// - `args`: text inside the parameter list.
+///
+/// Output:
+/// - Number of top-level comma-separated parameters.
+///
+/// Transformation:
+/// - Uses delimiter-depth tracking so nested type syntax does not affect arity.
 fn native_signature_arity(args: &str) -> usize {
     let trimmed = args.trim();
     if trimmed.is_empty() {
@@ -269,6 +403,18 @@ fn native_signature_arity(args: &str) -> usize {
     commas + 1
 }
 
+/// Finds the closing parenthesis matching an opening parenthesis.
+///
+/// Inputs:
+/// - `input`: source text containing the parenthesis.
+/// - `open_idx`: byte offset of the opening parenthesis.
+///
+/// Output:
+/// - Byte offset of the matching closing parenthesis.
+///
+/// Transformation:
+/// - Walks nested parentheses with a depth counter and returns the close that
+///   balances the requested opening parenthesis.
 fn find_matching_paren(input: &str, open_idx: usize) -> Option<usize> {
     let mut depth = 0usize;
     for (offset, ch) in input.char_indices().skip(open_idx) {
@@ -287,49 +433,5 @@ fn find_matching_paren(input: &str, open_idx: usize) -> Option<usize> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_native_block_signatures_and_types() {
-        let source = "native core module VecNative {\n    #[native(normal)]\n    empty[T](): Vec[T].\n\n    #[native(normal)]\n    push[T](V: Vec[T], Item: T): Vec[T].\n}";
-
-        assert_eq!(
-            extract_native_module_name(source).as_deref(),
-            Some("VecNative")
-        );
-        assert_eq!(extract_native_scheduler(source).as_deref(), Some("normal"));
-
-        let signatures = extract_native_function_signatures(source);
-        assert_eq!(signatures.len(), 2);
-
-        assert_eq!(signatures[0].name, "empty");
-        assert_eq!(signatures[0].arity, 0);
-        assert_eq!(signatures[0].params.len(), 0);
-        assert_eq!(signatures[0].return_type, "Vec[T]");
-
-        assert_eq!(signatures[1].name, "push");
-        assert_eq!(signatures[1].arity, 2);
-        assert_eq!(
-            signatures[1].params[0],
-            ("V".to_string(), "Vec[T]".to_string())
-        );
-        assert_eq!(
-            signatures[1].params[1],
-            ("Item".to_string(), "T".to_string())
-        );
-        assert_eq!(signatures[1].return_type, "Vec[T]");
-    }
-
-    #[test]
-    fn parses_native_signatures_from_block_without_newlines() {
-        let source = "native core module VecNative { #[native(normal)] empty[T](): Vec[T]. #[native(normal)] push[T](V: Vec[T], Item: T): Vec[T]. }";
-
-        let signatures = extract_native_function_signatures(source);
-        assert_eq!(signatures.len(), 2);
-        assert_eq!(signatures[0].name, "empty");
-        assert_eq!(signatures[1].name, "push");
-        assert_eq!(signatures[1].arity, 2);
-        assert_eq!(signatures[1].return_type, "Vec[T]");
-    }
-}
+#[path = "native_test.rs"]
+mod native_test;

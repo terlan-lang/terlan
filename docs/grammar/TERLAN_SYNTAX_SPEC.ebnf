@@ -715,6 +715,12 @@ StringChar ::= ? any source character except unescaped terminator ? .
      declaration kinds each key may be applied to. Annotation schema validation
      is a compile-time gate and runs before semantic lowering, CoreIR, or
      backend emission.
+     The JS target annotation is compiler-known for generated bindings:
+     `@target.js { name: "querySelector"; source_module: "dom";
+     namespace: "web.dom"; profile: "browser"; global: true }`.
+     These keys are checked before backend emission. Ordinary snake_case to
+     camelCase mapping remains convention-based; per-declaration names are for
+     exceptions.
      Macros may consume or produce annotations, but annotations remain a
      distinct metadata channel through compiler phases. Value-producing language
      forms, such as `html { ... }`, must remain expressions or declarations

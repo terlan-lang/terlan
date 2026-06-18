@@ -112,6 +112,19 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     }
 }
 
+/// Parsed hover source or parse diagnostic span.
+///
+/// Inputs:
+/// - Source text parsed by the hover command.
+///
+/// Output:
+/// - `Ok(SyntaxModuleOutput)` for a parsed module.
+/// - `Err((message, range))` for parse failures that should be reported at the
+///   source span.
+///
+/// Transformation:
+/// - Keeps hover parsing errors in the small shape required by diagnostic
+///   emission instead of exposing parser internals to the command flow.
 type HoverParseResult = Result<SyntaxModuleOutput, (String, std::ops::Range<usize>)>;
 
 /// Parses a hover source file through the formal syntax-output parser pipeline.

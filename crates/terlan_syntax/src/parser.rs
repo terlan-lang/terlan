@@ -23,6 +23,7 @@ mod callables;
 mod expressions;
 mod html;
 mod imports;
+mod modules;
 mod patterns;
 mod type_decls;
 mod types;
@@ -30,15 +31,29 @@ mod types;
 use html::parse_html_nodes;
 pub(crate) use html::parse_terlan_expr;
 
+/// Parser diagnostic with message and source span.
 #[derive(Debug)]
 pub struct ParseError {
     pub message: String,
     pub span: Span,
 }
 
+/// Result type returned by parser operations.
 pub type ParseResult<T> = Result<T, ParseError>;
+/// Backwards-compatible parser error alias.
 pub type ParserError = ParseError;
 
+/// Parses a full Terlan source module.
+///
+/// Inputs:
+/// - `input`: complete Terlan source text.
+///
+/// Output:
+/// - Parsed module tree, or the first lexer/parser/contract diagnostic.
+///
+/// Transformation:
+/// - Validates the canonical syntax contract, lexes the source, and consumes a
+///   normal source module with declaration bodies.
 pub(crate) fn parse_module(input: &str) -> ParseResult<Module> {
     ensure_syntax_contract_valid().map_err(syntax_contract_parse_error)?;
 
@@ -60,6 +75,17 @@ pub(crate) fn parse_module(input: &str) -> ParseResult<Module> {
     parser.parse_module()
 }
 
+/// Parses a generated interface module.
+///
+/// Inputs:
+/// - `input`: complete `.terli`-style interface source text.
+///
+/// Output:
+/// - Parsed module tree, or the first lexer/parser/contract diagnostic.
+///
+/// Transformation:
+/// - Validates the canonical syntax contract, lexes the source, and consumes an
+///   interface module where declarations may be signatures.
 pub(crate) fn parse_interface_module(input: &str) -> ParseResult<Module> {
     ensure_syntax_contract_valid().map_err(syntax_contract_parse_error)?;
 
@@ -81,6 +107,17 @@ pub(crate) fn parse_interface_module(input: &str) -> ParseResult<Module> {
     parser.parse_interface_module()
 }
 
+/// Converts syntax-contract failures into parser diagnostics.
+///
+/// Inputs:
+/// - `error`: syntax-contract compile or validation failure.
+///
+/// Output:
+/// - Parser error with a source span suitable for existing diagnostics.
+///
+/// Transformation:
+/// - Preserves the first contract diagnostic span when available and otherwise
+///   anchors the failure at the start of the input.
 fn syntax_contract_parse_error(error: SyntaxContractError) -> ParseError {
     let (message, span) = match error {
         SyntaxContractError::Compile(error) => match error {
@@ -114,278 +151,38 @@ fn syntax_contract_parse_error(error: SyntaxContractError) -> ParseError {
     ParseError { message, span }
 }
 
+/// Stateful recursive-descent parser over lexer tokens.
 struct Parser {
     tokens: Vec<Token>,
     pos: usize,
 }
 
 impl Parser {
+    /// Creates a parser cursor over a token stream.
+    ///
+    /// Inputs:
+    /// - `tokens`: lexer output terminated by EOF.
+    ///
+    /// Output:
+    /// - Parser positioned at the first token.
+    ///
+    /// Transformation:
+    /// - Stores tokens without modification and initializes the cursor.
     fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, pos: 0 }
     }
 
-    fn parse_module(&mut self) -> ParseResult<Module> {
-        self.skip_comments();
-        let docs = self.take_module_docs();
-        self.skip_comments();
-        let start = self.current().start;
-        self.expect_keyword(TokenKind::Module)?;
-        let name = self.parse_module_path()?;
-        self.expect(TokenKind::Dot)?;
-
-        let mut declarations = Vec::new();
-        let mut declaration_annotations = Vec::new();
-        let mut pending_pub_function: Option<FunctionDecl> = None;
-        let mut pending_pub_function_annotations: Vec<Annotation> = Vec::new();
-        while !self.check(TokenKind::EOF) {
-            self.skip_comments();
-            self.reject_misplaced_module_docs()?;
-            let docs = self.take_item_docs();
-            self.skip_comments();
-            self.reject_misplaced_module_docs()?;
-            let annotations = self.parse_leading_annotations()?;
-            self.skip_comments();
-            if self.check(TokenKind::EOF) {
-                break;
-            }
-
-            if let Some(pending) = pending_pub_function.as_ref() {
-                if !matches!(self.current().kind, TokenKind::Atom | TokenKind::Var)
-                    || self.current().text != pending.name
-                {
-                    declarations.push(Decl::Function(pending_pub_function.take().unwrap()));
-                    declaration_annotations
-                        .push(std::mem::take(&mut pending_pub_function_annotations));
-                }
-            }
-
-            match self.current().kind {
-                TokenKind::Import => {
-                    declarations.push(attach_docs(self.parse_import()?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Pub => {
-                    let declaration = attach_docs(self.parse_pub_decl()?, docs);
-                    match declaration {
-                        Decl::Function(function_decl)
-                            if function_decl.is_public && function_decl.clauses.is_empty() =>
-                        {
-                            pending_pub_function = Some(function_decl);
-                            pending_pub_function_annotations = annotations;
-                        }
-                        _ => {
-                            declarations.push(declaration);
-                            declaration_annotations.push(annotations);
-                        }
-                    }
-                }
-                TokenKind::Export => {
-                    return Err(ParseError {
-                        message:
-                            "source export declarations are not part of canonical Terlan; use `pub` on declarations"
-                                .to_string(),
-                        span: self.current().span(),
-                    });
-                }
-                TokenKind::Type => {
-                    declarations.push(attach_docs(self.parse_type_decl(false, false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Opaque => {
-                    declarations.push(attach_docs(self.parse_type_decl(true, false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Trait => {
-                    declarations.push(attach_docs(self.parse_trait_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Impl => {
-                    declarations.push(attach_docs(self.parse_trait_impl_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Struct => {
-                    declarations.push(attach_docs(self.parse_struct_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Constructor => {
-                    declarations.push(attach_docs(self.parse_constructor_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Template => {
-                    declarations.push(attach_docs(self.parse_template_decl()?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Atom if self.current().text == "annotation" => {
-                    declarations.push(attach_docs(self.parse_annotation_schema_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::LParen => {
-                    declarations.push(attach_docs(self.parse_method_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Macro => {
-                    self.bump();
-                    declarations.push(attach_docs(self.parse_function_decl(false, true)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Atom | TokenKind::Var => {
-                    if self.is_template_decl_start() {
-                        declarations.push(attach_docs(self.parse_template_decl()?, docs));
-                        declaration_annotations.push(annotations);
-                    } else if is_raw_declaration_name(&self.current().text) {
-                        let decl = self.parse_raw_decl(self.current().text.clone())?;
-                        declarations.push(attach_docs(decl, docs));
-                        declaration_annotations.push(annotations);
-                    } else if let Some(function_decl) = pending_pub_function
-                        .take()
-                        .filter(|f| f.name == self.current().text)
-                    {
-                        let clauses = self.parse_function_clause_group(
-                            &function_decl.name,
-                            function_decl.params.len(),
-                        )?;
-                        declarations.push(Decl::Function(FunctionDecl {
-                            clauses,
-                            ..function_decl
-                        }));
-                        declaration_annotations
-                            .push(std::mem::take(&mut pending_pub_function_annotations));
-                    } else {
-                        declarations
-                            .push(attach_docs(self.parse_function_decl(false, false)?, docs));
-                        declaration_annotations.push(annotations);
-                    }
-                }
-                TokenKind::EOF => break,
-                _ => {
-                    return Err(ParseError {
-                        message: format!(
-                            "unexpected token {:?} in module body",
-                            self.current().kind
-                        ),
-                        span: self.current().span(),
-                    })
-                }
-            }
-        }
-
-        if let Some(function_decl) = pending_pub_function {
-            declarations.push(Decl::Function(function_decl));
-            declaration_annotations.push(pending_pub_function_annotations);
-        }
-
-        Ok(Module {
-            name,
-            docs,
-            declarations,
-            declaration_annotations,
-            span: Span::new(start, self.previous().end),
-        })
-    }
-
-    fn parse_interface_module(&mut self) -> ParseResult<Module> {
-        self.skip_comments();
-        let docs = self.take_module_docs();
-        self.skip_comments();
-        let start = self.current().start;
-        self.expect_keyword(TokenKind::Module)?;
-        let name = self.parse_module_path()?;
-        self.expect(TokenKind::Dot)?;
-
-        let mut declarations = Vec::new();
-        let mut declaration_annotations = Vec::new();
-        while !self.check(TokenKind::EOF) {
-            self.skip_comments();
-            self.reject_misplaced_module_docs()?;
-            let docs = self.take_item_docs();
-            self.skip_comments();
-            self.reject_misplaced_module_docs()?;
-            let annotations = self.parse_leading_annotations()?;
-            self.skip_comments();
-            match self.current().kind {
-                TokenKind::Import => {
-                    declarations.push(attach_docs(self.parse_import()?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Export => {
-                    declarations.push(attach_docs(self.parse_interface_export()?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Pub => {
-                    declarations.push(attach_docs(self.parse_pub_interface_decl()?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Trait => {
-                    declarations.push(attach_docs(self.parse_trait_decl(true)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Type => {
-                    declarations.push(attach_docs(self.parse_type_decl(false, false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Opaque => {
-                    declarations.push(attach_docs(self.parse_type_decl(true, false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Struct => {
-                    declarations.push(attach_docs(self.parse_struct_decl(true)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Constructor => {
-                    declarations.push(attach_docs(self.parse_constructor_decl(true)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Atom if self.current().text == "annotation" => {
-                    declarations.push(attach_docs(self.parse_annotation_schema_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::LParen => {
-                    declarations.push(attach_docs(self.parse_method_signature_decl(false)?, docs));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Macro => {
-                    self.bump();
-                    declarations.push(attach_docs(
-                        self.parse_function_signature_decl(false, true)?,
-                        docs,
-                    ));
-                    declaration_annotations.push(annotations);
-                }
-                TokenKind::Atom | TokenKind::Var => {
-                    if is_raw_declaration_name(&self.current().text) {
-                        let decl = self.parse_raw_decl(self.current().text.clone())?;
-                        declarations.push(attach_docs(decl, docs));
-                        declaration_annotations.push(annotations);
-                    } else {
-                        declarations.push(attach_docs(
-                            self.parse_function_signature_decl(false, false)?,
-                            docs,
-                        ));
-                        declaration_annotations.push(annotations);
-                    }
-                }
-                TokenKind::EOF => break,
-                _ => {
-                    return Err(ParseError {
-                        message: format!(
-                            "unexpected token {:?} in interface module body",
-                            self.current().kind
-                        ),
-                        span: self.current().span(),
-                    });
-                }
-            }
-        }
-
-        Ok(Module {
-            name,
-            docs,
-            declarations,
-            declaration_annotations,
-            span: Span::new(start, self.previous().end),
-        })
-    }
-
+    /// Parses a public source declaration after consuming no tokens yet.
+    ///
+    /// Inputs:
+    /// - Parser cursor at `pub`.
+    ///
+    /// Output:
+    /// - Parsed declaration with public visibility.
+    ///
+    /// Transformation:
+    /// - Consumes `pub` and dispatches to the declaration parser for the next
+    ///   keyword or function head.
     fn parse_pub_decl(&mut self) -> ParseResult<Decl> {
         self.expect_keyword(TokenKind::Pub)?;
         match self.current().kind {
@@ -411,6 +208,16 @@ impl Parser {
         }
     }
 
+    /// Parses a public interface declaration.
+    ///
+    /// Inputs:
+    /// - Parser cursor at `pub` inside an interface module.
+    ///
+    /// Output:
+    /// - Parsed public interface declaration or signature.
+    ///
+    /// Transformation:
+    /// - Consumes `pub` and dispatches to interface-aware declaration parsers.
     fn parse_pub_interface_decl(&mut self) -> ParseResult<Decl> {
         self.expect_keyword(TokenKind::Pub)?;
         match self.current().kind {
@@ -436,6 +243,17 @@ impl Parser {
         }
     }
 
+    /// Parses a template declaration.
+    ///
+    /// Inputs:
+    /// - Parser cursor at `template`.
+    ///
+    /// Output:
+    /// - Parsed template declaration.
+    ///
+    /// Transformation:
+    /// - Consumes the template header, source path, typed props, and terminating
+    ///   dot into a `TemplateDecl`.
     fn parse_template_decl(&mut self) -> ParseResult<Decl> {
         let start = self.current().start;
         self.expect_keyword(TokenKind::Template)?;
@@ -489,6 +307,16 @@ impl Parser {
         }))
     }
 
+    /// Reports whether the cursor starts a template declaration.
+    ///
+    /// Inputs:
+    /// - Current parser cursor.
+    ///
+    /// Output:
+    /// - `true` when the next tokens match `template Name from`.
+    ///
+    /// Transformation:
+    /// - Peeks ahead without advancing.
     fn is_template_decl_start(&self) -> bool {
         self.current().text == "template"
             && matches!(
@@ -501,6 +329,17 @@ impl Parser {
             )
     }
 
+    /// Parses a raw unsupported declaration block.
+    ///
+    /// Inputs:
+    /// - `kind`: raw declaration kind selected by the caller.
+    ///
+    /// Output:
+    /// - Unsupported declaration preserving raw text for downstream diagnostics.
+    ///
+    /// Transformation:
+    /// - Consumes nested braces until the declaration terminator and joins the
+    ///   token text into a stable raw declaration payload.
     fn parse_raw_decl(&mut self, kind: String) -> ParseResult<Decl> {
         let start = self.current().start;
         let mut parts = vec![kind.clone()];
@@ -577,6 +416,17 @@ impl Parser {
         }))
     }
 
+    /// Parses an interface export declaration.
+    ///
+    /// Inputs:
+    /// - Parser cursor at `export` inside an interface module.
+    ///
+    /// Output:
+    /// - Parsed export declaration.
+    ///
+    /// Transformation:
+    /// - Accepts type export lists or function arity exports and consumes the
+    ///   terminating dot.
     fn parse_interface_export(&mut self) -> ParseResult<Decl> {
         let start = self.current().start;
         self.expect_keyword(TokenKind::Export)?;
@@ -737,6 +587,16 @@ impl Parser {
 }
 
 impl Parser {
+    /// Consumes a fixed lexer keyword token.
+    ///
+    /// Inputs:
+    /// - `expected`: exact token kind expected at the cursor.
+    ///
+    /// Output:
+    /// - `Ok(())` after consuming the token, or a parser diagnostic.
+    ///
+    /// Transformation:
+    /// - Delegates to `expect` and discards the consumed token payload.
     fn expect_keyword(&mut self, expected: TokenKind) -> ParseResult<()> {
         self.expect(expected).map(|_| ())
     }
@@ -764,6 +624,17 @@ impl Parser {
         })
     }
 
+    /// Consumes a contextual keyword if present.
+    ///
+    /// Inputs:
+    /// - `expected`: lower-case contextual keyword text.
+    ///
+    /// Output:
+    /// - `true` when the token was consumed.
+    ///
+    /// Transformation:
+    /// - Advances over matching identifier-like tokens without reserving the
+    ///   word globally.
     fn consume_keyword(&mut self, expected: &str) -> bool {
         if self.check_keyword(expected) {
             self.pos += 1;
@@ -772,6 +643,16 @@ impl Parser {
         false
     }
 
+    /// Parses a source identifier in a permissive identifier position.
+    ///
+    /// Inputs:
+    /// - Parser cursor at an identifier-like token.
+    ///
+    /// Output:
+    /// - Identifier text or a parser diagnostic.
+    ///
+    /// Transformation:
+    /// - Accepts lower and upper identifier tokens and consumes the token.
     fn expect_ident(&mut self) -> ParseResult<String> {
         let token = self.current().clone();
         match token.kind {
@@ -835,6 +716,16 @@ impl Parser {
                 .unwrap_or(true)
     }
 
+    /// Parses an atom literal payload after `:`.
+    ///
+    /// Inputs:
+    /// - Parser cursor at a lower identifier or quoted atom payload.
+    ///
+    /// Output:
+    /// - Atom payload without quote delimiters where possible.
+    ///
+    /// Transformation:
+    /// - Consumes the atom name token and unquotes quoted interop atoms.
     fn expect_atom_literal_name(&mut self) -> ParseResult<String> {
         let token = self.current().clone();
         match token.kind {
@@ -853,6 +744,16 @@ impl Parser {
         }
     }
 
+    /// Consumes an exact token kind.
+    ///
+    /// Inputs:
+    /// - `expected`: token kind required at the parser cursor.
+    ///
+    /// Output:
+    /// - Consumed token on success, otherwise a parser diagnostic at the cursor.
+    ///
+    /// Transformation:
+    /// - Advances one token only when the kind matches.
     fn expect(&mut self, expected: TokenKind) -> ParseResult<Token> {
         let token = self.current().clone();
         if token.kind == expected {
@@ -865,6 +766,16 @@ impl Parser {
         }
     }
 
+    /// Consumes a token when its kind matches.
+    ///
+    /// Inputs:
+    /// - `kind`: token kind to consume opportunistically.
+    ///
+    /// Output:
+    /// - `true` when a token was consumed.
+    ///
+    /// Transformation:
+    /// - Checks the current token and advances the cursor on match.
     fn consume_if(&mut self, kind: TokenKind) -> bool {
         if self.check(kind) {
             self.pos += 1;
@@ -874,20 +785,60 @@ impl Parser {
         }
     }
 
+    /// Checks the current token kind.
+    ///
+    /// Inputs:
+    /// - `kind`: token kind to compare against the current token.
+    ///
+    /// Output:
+    /// - `true` when the current token kind matches.
+    ///
+    /// Transformation:
+    /// - Reads the cursor without advancing.
     fn check(&self, kind: TokenKind) -> bool {
         self.current().kind == kind
     }
 
+    /// Checks whether the current token matches any candidate kind.
+    ///
+    /// Inputs:
+    /// - `kinds`: accepted token kinds.
+    ///
+    /// Output:
+    /// - `true` when any candidate matches the current token.
+    ///
+    /// Transformation:
+    /// - Runs `check` over the candidate list without advancing.
     fn check_any(&self, kinds: &[TokenKind]) -> bool {
         kinds.iter().any(|kind| self.check(kind.clone()))
     }
 
+    /// Skips ordinary comments.
+    ///
+    /// Inputs:
+    /// - Parser cursor at any token.
+    ///
+    /// Output:
+    /// - No return value.
+    ///
+    /// Transformation:
+    /// - Advances over non-doc comments and stops at the first non-comment.
     fn skip_comments(&mut self) {
         while self.check(TokenKind::Comment) {
             self.pos += 1;
         }
     }
 
+    /// Rejects module documentation after the module declaration.
+    ///
+    /// Inputs:
+    /// - Parser cursor at a possible documentation token.
+    ///
+    /// Output:
+    /// - `Ok(())` when no misplaced module docs are present.
+    ///
+    /// Transformation:
+    /// - Converts misplaced `//!` or `@module` block docs into parser errors.
     fn reject_misplaced_module_docs(&self) -> ParseResult<()> {
         if self.check(TokenKind::ModuleDocComment) {
             return Err(ParseError {
@@ -907,6 +858,16 @@ impl Parser {
         Ok(())
     }
 
+    /// Consumes item documentation comments.
+    ///
+    /// Inputs:
+    /// - Parser cursor at zero or more item doc tokens.
+    ///
+    /// Output:
+    /// - Raw documentation token text in source order.
+    ///
+    /// Transformation:
+    /// - Advances over `///` and non-module `/** ... */` doc tokens.
     fn take_item_docs(&mut self) -> Vec<String> {
         let mut docs = Vec::new();
         while self.check(TokenKind::DocComment) || self.check(TokenKind::DocBlockComment) {
@@ -915,6 +876,16 @@ impl Parser {
         docs
     }
 
+    /// Consumes module documentation comments.
+    ///
+    /// Inputs:
+    /// - Parser cursor at zero or more module doc tokens.
+    ///
+    /// Output:
+    /// - Raw module documentation token text in source order.
+    ///
+    /// Transformation:
+    /// - Advances over `//!` and module doc block tokens.
     fn take_module_docs(&mut self) -> Vec<String> {
         let mut docs = Vec::new();
         while self.check(TokenKind::ModuleDocComment) || self.check(TokenKind::DocBlockComment) {
@@ -923,26 +894,76 @@ impl Parser {
         docs
     }
 
+    /// Advances the parser by one token.
+    ///
+    /// Inputs:
+    /// - Current parser cursor.
+    ///
+    /// Output:
+    /// - Token that was current before advancing.
+    ///
+    /// Transformation:
+    /// - Clones the token and increments the cursor position.
     fn bump(&mut self) -> Token {
         let token = self.current().clone();
         self.pos += 1;
         token
     }
 
+    /// Returns the previously consumed token.
+    ///
+    /// Inputs:
+    /// - Parser state after at least one token has been consumed.
+    ///
+    /// Output:
+    /// - Reference to the previous token.
+    ///
+    /// Transformation:
+    /// - Indexes the token stream at `pos - 1`.
     fn previous(&self) -> &Token {
         &self.tokens[self.pos - 1]
     }
 
+    /// Checks for a contextual keyword at the cursor.
+    ///
+    /// Inputs:
+    /// - `expected`: contextual keyword text.
+    ///
+    /// Output:
+    /// - `true` when the current identifier-like token has matching text.
+    ///
+    /// Transformation:
+    /// - Treats atom and upper-identifier tokens as contextual keyword carriers.
     fn check_keyword(&self, expected: &str) -> bool {
         matches!(self.current().kind, TokenKind::Atom | TokenKind::Var)
             && self.current().text == expected
     }
 
+    /// Returns the current parser token.
+    ///
+    /// Inputs:
+    /// - Current parser cursor.
+    ///
+    /// Output:
+    /// - Reference to the current token.
+    ///
+    /// Transformation:
+    /// - Indexes the token stream without advancing.
     fn current(&self) -> &Token {
         &self.tokens[self.pos]
     }
 }
 
+/// Removes quote delimiters from a single-quoted atom payload.
+///
+/// Inputs:
+/// - `text`: raw token text including single quotes.
+///
+/// Output:
+/// - Unescaped atom payload, or `None` if delimiters are missing.
+///
+/// Transformation:
+/// - Drops escape markers and copies escaped characters literally.
 fn unquote_single_quoted_atom(text: &str) -> Option<String> {
     let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
     let mut output = String::new();
@@ -959,6 +980,16 @@ fn unquote_single_quoted_atom(text: &str) -> Option<String> {
     Some(output)
 }
 
+/// Reports whether a token kind can carry an identifier-like spelling.
+///
+/// Inputs:
+/// - `kind`: token kind to classify.
+///
+/// Output:
+/// - `true` for lower identifiers, generic identifiers, and upper identifiers.
+///
+/// Transformation:
+/// - Centralizes the parser's permissive identifier token set.
 fn is_identifier_like_token(kind: &TokenKind) -> bool {
     matches!(kind, TokenKind::Atom | TokenKind::Ident | TokenKind::Var)
 }
@@ -1084,10 +1115,32 @@ fn parse_int_literal_text(text: &str) -> Option<i64> {
     text.parse::<i64>().ok()
 }
 
+/// Reports whether a name starts a raw declaration family.
+///
+/// Inputs:
+/// - `name`: lower-case declaration name candidate.
+///
+/// Output:
+/// - `true` for raw declarations preserved by the parser.
+///
+/// Transformation:
+/// - Keeps non-core declaration families explicit at the parser boundary.
 fn is_raw_declaration_name(name: &str) -> bool {
     matches!(name, "target" | "native" | "machine" | "static")
 }
 
+/// Attaches parsed documentation tokens to a declaration.
+///
+/// Inputs:
+/// - `decl`: declaration parsed after documentation comments.
+/// - `docs`: raw documentation tokens in source order.
+///
+/// Output:
+/// - Declaration with its documentation field populated where supported.
+///
+/// Transformation:
+/// - Mutates only declaration variants that carry docs and leaves imports and
+///   exports unchanged.
 fn attach_docs(mut decl: Decl, docs: Vec<String>) -> Decl {
     if docs.is_empty() {
         return decl;
@@ -1126,6 +1179,17 @@ fn is_module_doc_block(text: &str) -> bool {
         .any(|line| line.trim_start().starts_with("@module"))
 }
 
+/// Joins raw declaration token parts into readable source text.
+///
+/// Inputs:
+/// - `parts`: token text collected from a raw declaration.
+///
+/// Output:
+/// - Stable raw declaration text.
+///
+/// Transformation:
+/// - Inserts spaces where needed while preserving punctuation adjacency for
+///   dots, brackets, commas, and operators.
 fn join_parts(parts: &[String]) -> String {
     let mut output = String::new();
     let mut first = true;
@@ -1165,5 +1229,9 @@ mod parser_decl_test;
 mod parser_expr_test;
 
 #[cfg(test)]
-#[path = "parser_test.rs"]
-mod parser_test;
+#[path = "parser_html_test.rs"]
+mod parser_html_test;
+
+#[cfg(test)]
+#[path = "parser_pattern_test.rs"]
+mod parser_pattern_test;

@@ -17,6 +17,7 @@ terlan_hir = { path = "../terlan_hir" }
 terlan_html = { path = "../terlan_html" }
 terlan_typeck = { path = "../terlan_typeck" }
 terlan_lsp = { path = "../terlan_lsp" }
+terlan_safenative = { path = "../terlan_safenative" }
 ammonia = "4.1.2"
 oxc_allocator = "0.134.0"
 oxc_ast = "0.134.0"
@@ -26,5 +27,6 @@ oxc_span = "0.134.0"
 oxc_syntax = "0.134.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+tokio = { version = "1", features = ["io-util", "net", "rt-multi-thread", "sync", "time"] }
 
 [dev-dependencies]

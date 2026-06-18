@@ -6,10 +6,20 @@
 
 use super::*;
 
+/// Returns whether a name is one of Terlan's boolean literals.
+///
+/// Inputs: `name` is source identifier text. Output: `true` for `true` or
+/// `false`. Transformation: performs an exact literal-name match.
 pub(super) fn is_bool_literal_name(name: &str) -> bool {
     matches!(name, "true" | "false")
 }
 
+/// Lowers Terlan type text into an Erlang type-spec model.
+///
+/// Inputs: `input` is a Terlan type expression. Output: an `ErlType` suitable
+/// for `-spec` or `-type` rendering. Transformation: normalizes spacing,
+/// recognizes atoms, functions, unions, collections, tuples, maps, and named
+/// types, then maps each form to the Erlang backend representation.
 pub(super) fn lower_type_to_spec(input: &str) -> ErlType {
     let src = compact_type_application(&compact_spaces(input));
 
@@ -131,6 +141,11 @@ pub(super) fn lower_type_to_spec(input: &str) -> ErlType {
     lower_bare_type_to_spec(&src)
 }
 
+/// Lowers one tuple type element to an Erlang type.
+///
+/// Inputs: `input` is a tuple element type, optionally named as `field: Type`.
+/// Output: the lowered element type. Transformation: strips supported tuple
+/// field labels before delegating to normal type lowering.
 pub(super) fn lower_tuple_type_elem_to_spec(input: &str) -> ErlType {
     if let Some((label, ty)) = split_named_tuple_type_elem(input) {
         if is_lower_identifier(label) || label == "_" {
@@ -162,6 +177,11 @@ fn lower_map_type_elem_to_spec(input: &str) -> Option<ErlMapTypeField> {
     })
 }
 
+/// Lowers a bare type name with no surrounding syntax.
+///
+/// Inputs: `src` is a compact bare type name. Output: an `ErlType` for the
+/// name. Transformation: distinguishes built-ins, generic variables, module
+/// qualified names, and custom type names before mapping to Erlang spelling.
 pub(super) fn lower_bare_type_to_spec(src: &str) -> ErlType {
     if src.contains('.') {
         ErlType::Named {
@@ -192,6 +212,11 @@ pub(super) fn lower_bare_type_to_spec(src: &str) -> ErlType {
     }
 }
 
+/// Removes insignificant spacing around type application punctuation.
+///
+/// Inputs: `input` is type text. Output: compacted type text. Transformation:
+/// rewrites known whitespace-sensitive punctuation pairs without parsing the
+/// type tree.
 pub(super) fn compact_type_application(input: &str) -> String {
     input
         .replace("# {", "#{")
@@ -204,6 +229,10 @@ pub(super) fn compact_type_application(input: &str) -> String {
         .replace(", ", ",")
 }
 
+/// Splits fixed-array type arguments into size and element type.
+///
+/// Inputs: `args` is the parsed argument list. Output: `Some(size, elem)` for
+/// exactly two arguments. Transformation: consumes the vector in source order.
 pub(super) fn split_fixed_array_args(mut args: Vec<String>) -> Option<(String, String)> {
     if args.len() != 2 {
         return None;
@@ -211,6 +240,11 @@ pub(super) fn split_fixed_array_args(mut args: Vec<String>) -> Option<(String, S
     Some((args.remove(0), args.remove(0)))
 }
 
+/// Extracts the Erlang type parameter name from Terlan type parameter text.
+///
+/// Inputs: `param` is a parameter or type application. Output: the head name.
+/// Transformation: compacts spaces/application punctuation and drops any
+/// bracketed type arguments.
 pub(super) fn erlang_type_param_name(param: &str) -> String {
     let compact = compact_type_application(&compact_spaces(param));
     compact
@@ -219,6 +253,11 @@ pub(super) fn erlang_type_param_name(param: &str) -> String {
         .unwrap_or(compact)
 }
 
+/// Removes one balanced outer parenthesis pair.
+///
+/// Inputs: `input` is candidate parenthesized text. Output: the inner slice
+/// when the outer pair wraps the whole input. Transformation: tracks
+/// parenthesis depth to reject partial wrappers.
 pub(super) fn strip_wrapping_parens(input: &str) -> Option<&str> {
     let trimmed = input.trim();
     if !trimmed.starts_with('(') || !trimmed.ends_with(')') {
@@ -242,6 +281,11 @@ pub(super) fn strip_wrapping_parens(input: &str) -> Option<&str> {
     Some(&trimmed[1..trimmed.len() - 1])
 }
 
+/// Collapses repeated whitespace inside source fragments.
+///
+/// Inputs: `input` is source or type text. Output: text with whitespace runs
+/// collapsed to single spaces. Transformation: scans characters and preserves
+/// token boundaries without trimming non-whitespace characters.
 pub(super) fn compact_spaces(input: &str) -> String {
     let mut out = String::new();
     let mut in_token = false;
@@ -264,6 +308,11 @@ pub(super) fn compact_spaces(input: &str) -> String {
     result
 }
 
+/// Maps a Terlan type name to Erlang type-spec spelling.
+///
+/// Inputs: `name` is a Terlan type reference. Output: Erlang type-spec name
+/// text. Transformation: handles built-ins, qualified names, and custom
+/// PascalCase type names.
 pub(super) fn map_type_name(name: &str) -> String {
     match name {
         "Int" => "integer()".to_string(),
@@ -309,15 +358,27 @@ pub(super) fn map_module_name(name: &str) -> String {
     name.replace('.', "_").to_ascii_lowercase()
 }
 
+/// Returns whether a type name is a single-letter generic variable.
+///
+/// Inputs: `name` is a type identifier. Output: `true` for one uppercase ASCII
+/// letter. Transformation: checks identifier shape only.
 pub(super) fn is_generic_type_var(name: &str) -> bool {
     let mut chars = name.chars();
     matches!(chars.next(), Some(ch) if ch.is_ascii_uppercase()) && chars.next().is_none()
 }
 
+/// Returns whether an identifier starts with an uppercase ASCII letter.
+///
+/// Inputs: `name` is source identifier text. Output: uppercase-head flag.
+/// Transformation: inspects only the first character.
 pub(super) fn is_upper_identifier(name: &str) -> bool {
     matches!(name.chars().next(), Some(ch) if ch.is_ascii_uppercase())
 }
 
+/// Returns whether a name is a Terlan built-in type known to Erlang lowering.
+///
+/// Inputs: `name` is a type identifier. Output: built-in membership flag.
+/// Transformation: performs an exact match against the backend type table.
 pub(super) fn is_builtin_type_name(name: &str) -> bool {
     matches!(
         name,
@@ -339,23 +400,42 @@ pub(super) fn is_builtin_type_name(name: &str) -> bool {
     )
 }
 
+/// Returns whether a type name should lower as a custom type.
+///
+/// Inputs: `name` is a type identifier. Output: custom-type flag.
+/// Transformation: accepts uppercase identifiers while excluding one-letter
+/// generic variables.
 pub(super) fn is_custom_type_name(name: &str) -> bool {
     let mut chars = name.chars();
     matches!(chars.next(), Some(ch) if ch.is_ascii_uppercase()) && !is_generic_type_var(name)
 }
 
+/// Returns whether a name is a lowercase Terlan identifier.
+///
+/// Inputs: `name` is identifier text. Output: lowercase identifier flag.
+/// Transformation: validates the leading character and ASCII identifier tail.
 pub(super) fn is_lower_identifier(name: &str) -> bool {
     let mut chars = name.chars();
     matches!(chars.next(), Some(ch) if ch.is_ascii_lowercase())
         && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
+/// Returns whether raw atom payload text is backend-safe.
+///
+/// Inputs: `name` is atom payload text without the leading marker. Output:
+/// `true` for accepted atom characters. Transformation: validates the leading
+/// lowercase character and allowed atom tail characters.
 pub(super) fn is_raw_atom_name(name: &str) -> bool {
     let mut chars = name.chars();
     matches!(chars.next(), Some(ch) if ch.is_ascii_lowercase())
         && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '$' || ch == '-')
 }
 
+/// Converts a Terlan PascalCase type name to Erlang snake_case.
+///
+/// Inputs: `name` is a custom type name. Output: Erlang type atom text.
+/// Transformation: inserts underscores before uppercase word boundaries and
+/// lowercases uppercase ASCII letters.
 pub(super) fn to_erlang_type_name(name: &str) -> String {
     let mut out = String::new();
     for (idx, ch) in name.chars().enumerate() {
@@ -371,6 +451,10 @@ pub(super) fn to_erlang_type_name(name: &str) -> String {
     out
 }
 
+/// Maps a Terlan struct name to its Erlang record/type stem.
+///
+/// Inputs: `name` is a Terlan struct type name. Output: lowercase Erlang stem.
+/// Transformation: lowercases the full name for backend record use.
 pub(super) fn map_struct_name(name: &str) -> String {
     name.to_lowercase()
 }
@@ -401,6 +485,11 @@ pub(super) fn parse_named_type_args(src: &str) -> Option<(&str, Vec<String>)> {
     None
 }
 
+/// Splits comma-separated text at top-level commas only.
+///
+/// Inputs: `input` is comma-separated source text. Output: trimmed non-empty
+/// fields. Transformation: tracks parentheses, brackets, and braces so nested
+/// commas remain part of their containing expression.
 pub(super) fn split_top_level_csv(input: &str) -> Vec<String> {
     let mut depth_p = 0;
     let mut depth_b = 0;
@@ -448,6 +537,11 @@ pub(super) fn split_top_level_csv(input: &str) -> Vec<String> {
     out
 }
 
+/// Splits union type text at top-level `|` separators.
+///
+/// Inputs: `input` is Terlan type text. Output: trimmed union branch text.
+/// Transformation: tracks nested parentheses, brackets, and braces so nested
+/// `|` characters do not split the outer union.
 pub(super) fn split_top_level_union(input: &str) -> Vec<String> {
     let mut depth_p = 0;
     let mut depth_b = 0;
@@ -495,10 +589,20 @@ pub(super) fn split_top_level_union(input: &str) -> Vec<String> {
     out
 }
 
+/// Returns whether type text contains a top-level union.
+///
+/// Inputs: `input` is Terlan type text. Output: union membership flag.
+/// Transformation: reuses top-level union splitting and checks for multiple
+/// branches.
 pub(super) fn is_union(input: &str) -> bool {
     split_top_level_union(input).len() > 1
 }
 
+/// Splits function type text at a top-level `->`.
+///
+/// Inputs: `input` is Terlan type text. Output: `Some(params, return_type)`
+/// when a top-level arrow exists. Transformation: tracks nested delimiters and
+/// trims both sides of the arrow.
 pub(super) fn split_top_level_arrow(input: &str) -> Option<(String, String)> {
     let chars: Vec<char> = input.chars().collect();
     let mut depth_p = 0;
@@ -530,11 +634,21 @@ pub(super) fn split_top_level_arrow(input: &str) -> Option<(String, String)> {
 }
 
 #[derive(Debug, Clone)]
+/// Lowered template payload prepared for Erlang HTML/template emission.
+///
+/// Inputs: parsed HTML nodes and template prop types. Output: shared payload
+/// consumed by template emitter paths. Transformation: stores parsed template
+/// data without changing node or prop semantics.
 pub(super) struct LowerTemplate {
     pub(super) nodes: Vec<terlan_html::HtmlNode>,
     pub(super) props: BTreeMap<String, String>,
 }
 
+/// Builds the Erlang wrapper name for a constructor-like shape.
+///
+/// Inputs: source constructor `name`, fixed arity, and varargs flag. Output:
+/// Erlang-safe constructor function name. Transformation: lowercases the type
+/// name and encodes arity/varargs in the generated name.
 pub(super) fn constructor_function_name(name: &str, fixed_arity: usize, varargs: bool) -> String {
     if varargs {
         format!(
@@ -547,6 +661,11 @@ pub(super) fn constructor_function_name(name: &str, fixed_arity: usize, varargs:
     }
 }
 
+/// Lowers a raw declaration block into backend Erlang text.
+///
+/// Inputs: raw declaration `kind` and body `text`. Output: Erlang source text.
+/// Transformation: emits NIF stubs for `native` declarations and comment
+/// placeholders for other raw declaration kinds.
 pub(super) fn lower_raw_decl_text(kind: &str, text: &str) -> String {
     match kind {
         "native" => {
@@ -591,6 +710,11 @@ pub(super) fn lower_raw_decl_text(kind: &str, text: &str) -> String {
     }
 }
 
+/// Extracts a simple template type name.
+///
+/// Inputs: `type_text` is a template type annotation. Output: the type text
+/// when it is a simple uppercase identifier. Transformation: validates the
+/// identifier shape without resolving it.
 pub(super) fn simple_template_type_name(type_text: &str) -> Option<&str> {
     let mut chars = type_text.chars();
     let first = chars.next()?;
@@ -604,11 +728,20 @@ pub(super) fn simple_template_type_name(type_text: &str) -> Option<&str> {
     }
 }
 
+/// Returns whether a template type annotation denotes HTML output.
+///
+/// Inputs: `type_text` is a type annotation. Output: HTML-type flag.
+/// Transformation: trims whitespace and checks `Html` or `Html[...]` forms.
 pub(super) fn is_template_html_type(type_text: &str) -> bool {
     let trimmed = type_text.trim();
     trimmed == "Html" || trimmed.starts_with("Html[")
 }
 
+/// Extracts static HTML attribute text from supported Erlang string forms.
+///
+/// Inputs: `value` is rendered attribute text. Output: unwrapped text when the
+/// input is a quoted string or Erlang binary string. Transformation: strips
+/// known wrappers and otherwise preserves the value.
 pub(super) fn static_html_attr_binary_text(value: &str) -> String {
     if let Some(inner) = value
         .strip_prefix('"')
@@ -625,6 +758,11 @@ pub(super) fn static_html_attr_binary_text(value: &str) -> String {
     value.to_string()
 }
 
+/// Renders bytes as an Erlang binary literal.
+///
+/// Inputs: `bytes` is raw UTF-8 or binary content. Output: Erlang binary
+/// literal text. Transformation: joins bytes as decimal byte values inside
+/// `<<...>>`.
 pub(super) fn erlang_binary_bytes(bytes: &[u8]) -> String {
     if bytes.is_empty() {
         return "<<>>".to_string();
@@ -640,10 +778,18 @@ pub(super) fn erlang_binary_bytes(bytes: &[u8]) -> String {
     )
 }
 
+/// Builds an Erlang binary expression for static HTML text.
+///
+/// Inputs: `text` is static HTML. Output: `ErlExpr::Binary`. Transformation:
+/// escapes Erlang binary string characters and wraps them in `<<"...">>`.
 pub(super) fn html_binary(text: &str) -> ErlExpr {
     ErlExpr::Binary(format!("<<\"{}\">>", escape_erlang_binary_string(text)))
 }
 
+/// Escapes text for inclusion in an Erlang binary string literal.
+///
+/// Inputs: `text` is unescaped source text. Output: escaped literal payload.
+/// Transformation: escapes backslash, quote, newline, carriage return, and tab.
 pub(super) fn escape_erlang_binary_string(text: &str) -> String {
     text.chars()
         .flat_map(|ch| match ch {
@@ -657,6 +803,10 @@ pub(super) fn escape_erlang_binary_string(text: &str) -> String {
         .collect()
 }
 
+/// Escapes text for an HTML attribute value.
+///
+/// Inputs: `text` is raw attribute text. Output: HTML-escaped text.
+/// Transformation: replaces ampersand, quote, less-than, and greater-than.
 pub(super) fn escape_html_attr(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('"', "&quot;")
@@ -664,6 +814,11 @@ pub(super) fn escape_html_attr(text: &str) -> String {
         .replace('>', "&gt;")
 }
 
+/// Splits named tuple element text at a top-level colon.
+///
+/// Inputs: `input` is tuple element type text. Output: `Some(label, type)` for
+/// named elements. Transformation: scans with delimiter and quote tracking so
+/// nested colons do not split the element.
 pub(super) fn split_named_tuple_type_elem(input: &str) -> Option<(&str, &str)> {
     let mut depth_p = 0usize;
     let mut depth_b = 0usize;
@@ -758,6 +913,11 @@ fn split_map_type_elem(input: &str) -> Option<(&str, &str, bool)> {
     None
 }
 
+/// Parses Terlan atom singleton type text.
+///
+/// Inputs: `input` is candidate atom type text. Output: atom payload when the
+/// input is `Atom["..."]`, `:name`, or a quoted raw atom. Transformation:
+/// normalizes supported atom spellings to one backend atom payload.
 pub(super) fn parse_type_atom_literal(input: &str) -> Option<String> {
     if let Some(atom) = atom_type_literal_payload(input) {
         return Some(atom);
@@ -826,6 +986,11 @@ fn parse_atom_string_literal(input: &str) -> Option<String> {
     Some(output)
 }
 
+/// Unquotes a single-quoted atom payload.
+///
+/// Inputs: `text` is a quoted atom string. Output: unescaped payload or
+/// `None`. Transformation: strips outer quotes and preserves simple escaped
+/// characters.
 pub(super) fn unquote_type_atom(text: &str) -> Option<String> {
     let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
     let mut output = String::new();
@@ -842,10 +1007,18 @@ pub(super) fn unquote_type_atom(text: &str) -> Option<String> {
     Some(output)
 }
 
+/// Normalizes trait type text for generated wrapper names and lookups.
+///
+/// Inputs: `text` is trait type text. Output: whitespace-normalized text.
+/// Transformation: collapses whitespace-separated tokens with single spaces.
 pub(super) fn normalize_trait_type_text(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+/// Builds the default trait-method dictionary wrapper name.
+///
+/// Inputs: trait and method names. Output: Erlang-safe wrapper function name.
+/// Transformation: sanitizes both names and appends the dictionary suffix.
 pub(super) fn trait_method_wrapper_name(trait_name: &str, method_name: &str) -> String {
     format!(
         "typer_trait_{}_{}_dict",
@@ -880,6 +1053,11 @@ pub(super) fn typed_trait_method_wrapper_name(
     )
 }
 
+/// Sanitizes source text for use as an Erlang function atom.
+///
+/// Inputs: `input` is arbitrary source-derived text. Output: lowercase
+/// Erlang-safe function name. Transformation: replaces non-identifier
+/// characters with underscores and prefixes digit-leading names.
 pub(super) fn sanitize_erlang_fn_name(input: &str) -> String {
     let mut out = String::new();
     for ch in input.chars() {
@@ -898,6 +1076,11 @@ pub(super) fn sanitize_erlang_fn_name(input: &str) -> String {
     }
 }
 
+/// Sanitizes source text for use as an Erlang variable.
+///
+/// Inputs: `name` is source-derived variable text. Output: Erlang-safe
+/// variable name. Transformation: preserves underscores, replaces invalid
+/// characters, and ensures non-special variables start uppercase or underscore.
 pub(super) fn sanitize_erlang_var(name: &str) -> String {
     let mut out = String::new();
     for (idx, ch) in name.chars().enumerate() {
@@ -926,6 +1109,11 @@ pub(super) fn sanitize_erlang_var(name: &str) -> String {
     }
 }
 
+/// Builds an Erlang trait dictionary marker expression.
+///
+/// Inputs: trait and method names. Output: Erlang map expression carrying
+/// trait metadata. Transformation: sanitizes names into atom values stored
+/// under stable internal keys.
 pub(super) fn trait_dictionary_expr(trait_name: &str, method_name: &str) -> ErlExpr {
     ErlExpr::Map(vec![
         ErlMapField {
@@ -941,6 +1129,11 @@ pub(super) fn trait_dictionary_expr(trait_name: &str, method_name: &str) -> ErlE
     ])
 }
 
+/// Maps a syntax-output binary operator token to the Erlang operator model.
+///
+/// Inputs: optional operator token. Output: `ErlBinaryOp`. Transformation:
+/// defaults missing operators to match/equality lowering and maps Terlan
+/// aliases such as `&&`, `||`, and `!=`.
 pub(super) fn lower_syntax_binary_op(operator: Option<&str>) -> ErlBinaryOp {
     match operator.unwrap_or("=") {
         "+" => ErlBinaryOp::Add,
@@ -966,6 +1159,10 @@ pub(super) fn lower_syntax_binary_op(operator: Option<&str>) -> ErlBinaryOp {
     }
 }
 
+/// Maps a syntax-output unary operator token to the Erlang operator model.
+///
+/// Inputs: optional operator token. Output: `ErlUnaryOp`. Transformation:
+/// maps negation and logical-not aliases, defaulting unknown tokens to `not`.
 pub(super) fn lower_syntax_unary_op(operator: Option<&str>) -> ErlUnaryOp {
     match operator.unwrap_or("") {
         "-" => ErlUnaryOp::Neg,
@@ -975,6 +1172,11 @@ pub(super) fn lower_syntax_unary_op(operator: Option<&str>) -> ErlUnaryOp {
 }
 
 #[cfg(test)]
+/// Renders a lowered binary operator for tests.
+///
+/// Inputs: `operator` is source operator text. Output: Erlang render spelling.
+/// Transformation: lowers the token through `lower_syntax_binary_op` and calls
+/// the operator renderer.
 pub(super) fn lower_syntax_binary_op_render(operator: &str) -> &'static str {
     lower_syntax_binary_op(Some(operator)).render()
 }

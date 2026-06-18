@@ -56,6 +56,19 @@ use generic_dispatch::*;
 mod calls;
 use calls::*;
 
+/// Context shared by syntax-output Erlang lowering.
+///
+/// Inputs:
+/// - Syntax module output, imported interfaces, static assets, templates, and
+///   markdown imports.
+///
+/// Output:
+/// - Lookup tables used by expression, pattern, callable, constructor, trait,
+///   template, and receiver-method lowering.
+///
+/// Transformation:
+/// - Precomputes source-visible and backend-visible dispatch metadata so
+///   individual lowering functions can stay mostly local and table-driven.
 pub(super) struct SyntaxLowerCtx {
     module_name: String,
     constructors: BTreeMap<String, Vec<SyntaxConstructorTarget>>,
@@ -82,11 +95,35 @@ pub(super) struct SyntaxLowerCtx {
     struct_field_types: BTreeMap<String, BTreeMap<String, String>>,
 }
 
+/// Receiver-method target metadata used by backend dispatch.
+///
+/// Inputs:
+/// - Local method declarations and inherited methods from local struct derives.
+///
+/// Output:
+/// - Mutable receiver marker for a receiver type/method/arity target.
+///
+/// Transformation:
+/// - Carries mutability into lowering so mutable receiver calls can rebind or
+///   continue pipelines through the receiver value.
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxReceiverMethodTarget {
     pub(super) mutable: bool,
 }
 
+/// Local environment for lowering one syntax-output expression body.
+///
+/// Inputs:
+/// - Function/constructor parameters, generic bounds, and temporary lowering
+///   substitutions introduced by `let`, pipes, and mutable receivers.
+///
+/// Output:
+/// - Local value/type/struct and replacement tables used during expression and
+///   pattern lowering.
+///
+/// Transformation:
+/// - Tracks only body-local state; module-wide lookup data stays in
+///   `SyntaxLowerCtx`.
 #[derive(Clone, Default)]
 struct SyntaxLowerEnv {
     struct_locals: BTreeMap<String, String>,
@@ -97,6 +134,17 @@ struct SyntaxLowerEnv {
 }
 
 impl SyntaxLowerCtx {
+    /// Creates an empty syntax lowering context.
+    ///
+    /// Inputs:
+    /// - None.
+    ///
+    /// Output:
+    /// - Context with all lookup tables empty.
+    ///
+    /// Transformation:
+    /// - Provides a deterministic fallback for tests and unsupported direct
+    ///   lowering paths.
     fn empty() -> Self {
         Self {
             module_name: String::new(),
@@ -125,6 +173,22 @@ impl SyntaxLowerCtx {
         }
     }
 
+    /// Builds syntax lowering context from module-level compiler outputs.
+    ///
+    /// Inputs:
+    /// - `module`: syntax-output module being lowered.
+    /// - `interfaces`: resolved imported interfaces.
+    /// - `file_imports`: file asset bytes keyed by source alias.
+    /// - `templates`: parsed HTML templates keyed by template name.
+    /// - `markdown_imports`: parsed markdown documents keyed by source alias.
+    ///
+    /// Output:
+    /// - Fully populated lowering context for this module.
+    ///
+    /// Transformation:
+    /// - Collects import aliases, constructor targets, alias constructors,
+    ///   trait conformance wrappers, generic functions, templates, structs, and
+    ///   receiver methods into backend lookup maps.
     pub(super) fn new(
         module: &SyntaxModuleOutput,
         interfaces: &BTreeMap<String, ModuleInterface>,
@@ -555,6 +619,17 @@ impl SyntaxLowerCtx {
         }
     }
 
+    /// Resolves a source-visible remote module or module alias.
+    ///
+    /// Inputs:
+    /// - `module`: module segment used in source remote-call syntax.
+    ///
+    /// Output:
+    /// - Fully resolved module name when an alias exists, otherwise `module`.
+    ///
+    /// Transformation:
+    /// - Applies selected import aliases without changing already-qualified
+    ///   module names.
     fn resolve_remote_module(&self, module: &str) -> String {
         self.module_aliases
             .get(module)
@@ -604,6 +679,18 @@ impl SyntaxLowerCtx {
         self.generic_functions.get(&(name.to_string(), arity))
     }
 
+    /// Resolves a local alias-constructor target by name and arity.
+    ///
+    /// Inputs:
+    /// - `name`: source constructor-like alias name.
+    /// - `arity`: number of associated values.
+    ///
+    /// Output:
+    /// - Alias constructor target when the alias exists and arity matches.
+    ///
+    /// Transformation:
+    /// - Looks up eligible single-shape type aliases collected from the current
+    ///   module and selected imports.
     fn alias_constructor_target(
         &self,
         name: &str,
@@ -655,6 +742,20 @@ impl SyntaxLowerCtx {
             .filter(|target| !target.params.is_empty())
     }
 
+    /// Resolves a remote alias-constructor target by module, name, and arity.
+    ///
+    /// Inputs:
+    /// - `module`: source remote module or module alias.
+    /// - `name`: remote alias constructor name.
+    /// - `arity`: number of associated values.
+    ///
+    /// Output:
+    /// - Remote alias target when the provider exposes a matching eligible
+    ///   alias shape.
+    ///
+    /// Transformation:
+    /// - Resolves module aliases and checks arity against imported interface
+    ///   type-body metadata.
     fn remote_alias_constructor_target(
         &self,
         module: &str,
@@ -667,6 +768,18 @@ impl SyntaxLowerCtx {
             .filter(|target| target.params.len() == arity)
     }
 
+    /// Resolves a local explicit constructor target.
+    ///
+    /// Inputs:
+    /// - `name`: constructor call name.
+    /// - `arity`: number of supplied call arguments.
+    ///
+    /// Output:
+    /// - Constructor target that accepts the arity.
+    ///
+    /// Transformation:
+    /// - Applies min/fixed arity and varargs rules captured from constructor
+    ///   clauses.
     fn constructor_target(&self, name: &str, arity: usize) -> Option<&SyntaxConstructorTarget> {
         self.constructors.get(name)?.iter().find(|target| {
             if target.varargs {
@@ -677,6 +790,17 @@ impl SyntaxLowerCtx {
         })
     }
 
+    /// Resolves a selected imported constructor target.
+    ///
+    /// Inputs:
+    /// - `name`: local import name or alias.
+    /// - `arity`: number of supplied call arguments.
+    ///
+    /// Output:
+    /// - Remote constructor target selected by import and arity.
+    ///
+    /// Transformation:
+    /// - Searches public constructor signatures from imported interfaces.
     fn imported_constructor_target(
         &self,
         name: &str,
@@ -688,6 +812,19 @@ impl SyntaxLowerCtx {
             .find(|target| target.accepts_arity(arity))
     }
 
+    /// Resolves an explicit remote constructor target.
+    ///
+    /// Inputs:
+    /// - `module`: source remote module or alias.
+    /// - `name`: remote constructor name.
+    /// - `arity`: number of supplied call arguments.
+    ///
+    /// Output:
+    /// - Remote constructor target when a public signature accepts the arity.
+    ///
+    /// Transformation:
+    /// - Resolves module aliases and searches imported interface constructor
+    ///   signatures.
     fn remote_constructor_target(
         &self,
         module: &str,
@@ -701,6 +838,18 @@ impl SyntaxLowerCtx {
             .find(|target| target.accepts_arity(arity))
     }
 
+    /// Resolves a local constructor pattern target.
+    ///
+    /// Inputs:
+    /// - `name`: constructor-pattern name.
+    /// - `arity`: number of pattern arguments.
+    ///
+    /// Output:
+    /// - Pattern lowering target when the constructor has a non-vararg clause
+    ///   with matching arity.
+    ///
+    /// Transformation:
+    /// - Searches precomputed local constructor pattern metadata.
     fn constructor_pattern_target(
         &self,
         name: &str,
@@ -712,6 +861,18 @@ impl SyntaxLowerCtx {
             .find(|target| target.params.len() == arity)
     }
 
+    /// Resolves an untyped trait-method wrapper.
+    ///
+    /// Inputs:
+    /// - `trait_name`: source trait name or qualified trait reference.
+    /// - `method`: trait method name.
+    ///
+    /// Output:
+    /// - Wrapper function name when an untyped wrapper exists.
+    ///
+    /// Transformation:
+    /// - Attempts exact trait lookup first, then final-segment lookup for
+    ///   qualified source names.
     fn trait_method_wrapper(&self, trait_name: &str, method: &str) -> Option<&String> {
         let key = trait_name.trim_matches('.').trim();
         if let Some(wrapper) = self
@@ -1104,6 +1265,19 @@ fn normalize_syntax_trait_dispatch_type_key(type_text: &str) -> String {
     }
 }
 
+/// Builds a lowering environment for a function or method body.
+///
+/// Inputs:
+/// - `params`: source parameters for the callable.
+/// - `ctx`: module lowering context.
+/// - `generic_bounds`: generic trait bounds declared on the callable.
+///
+/// Output:
+/// - Local lowering environment for the callable body.
+///
+/// Transformation:
+/// - Records value locals, qualified parameter types, struct-typed locals, and
+///   hidden generic-bound dictionary parameter names.
 fn lower_syntax_function_env(
     params: &[SyntaxParamOutput],
     ctx: &SyntaxLowerCtx,
@@ -1149,6 +1323,18 @@ fn lower_syntax_function_env(
     }
 }
 
+/// Builds a lowering environment for a constructor clause body.
+///
+/// Inputs:
+/// - `params`: constructor clause parameters.
+/// - `ctx`: module lowering context.
+///
+/// Output:
+/// - Local lowering environment for the constructor body.
+///
+/// Transformation:
+/// - Records constructor value locals, qualified parameter types, and
+///   struct-typed locals without generic-bound dictionaries.
 fn lower_syntax_constructor_clause_env(
     params: &[SyntaxConstructorParamOutput],
     ctx: &SyntaxLowerCtx,
@@ -1182,6 +1368,18 @@ fn lower_syntax_constructor_clause_env(
     }
 }
 
+/// Resolves a local struct name from a simple type annotation.
+///
+/// Inputs:
+/// - `annotation`: source type annotation text.
+/// - `ctx`: module lowering context containing local struct fields.
+///
+/// Output:
+/// - Local struct name when the annotation directly names a local struct.
+///
+/// Transformation:
+/// - Rejects generic and qualified annotations, then checks the local struct
+///   field table.
 fn syntax_struct_name_from_type_annotation(
     annotation: &str,
     ctx: &SyntaxLowerCtx,
@@ -1195,10 +1393,35 @@ fn syntax_struct_name_from_type_annotation(
         .then(|| trimmed.to_string())
 }
 
+/// Lowers a syntax-output expression without pre-existing local state.
+///
+/// Inputs:
+/// - `expr`: syntax-output expression tree.
+/// - `ctx`: module lowering context.
+///
+/// Output:
+/// - Erlang render expression when this bridge supports the expression shape.
+///
+/// Transformation:
+/// - Delegates to environment-aware lowering with an empty local environment.
 fn lower_syntax_expr(expr: &SyntaxExprOutput, ctx: &SyntaxLowerCtx) -> Option<ErlExpr> {
     lower_syntax_expr_with_env(expr, ctx, &SyntaxLowerEnv::default())
 }
 
+/// Lowers a syntax-output expression with local lowering state.
+///
+/// Inputs:
+/// - `expr`: syntax-output expression tree.
+/// - `ctx`: module lowering context.
+/// - `env`: local value/type/replacement environment.
+///
+/// Output:
+/// - Erlang render expression, or `None` for unsupported bridge shapes.
+///
+/// Transformation:
+/// - Recursively lowers literals, collections, calls, control flow, templates,
+///   records, aliases, receiver methods, and operators into the internal
+///   Erlang render model.
 fn lower_syntax_expr_with_env(
     expr: &SyntaxExprOutput,
     ctx: &SyntaxLowerCtx,
@@ -1481,6 +1704,18 @@ fn lower_syntax_expr_with_env(
     }
 }
 
+/// Resolves record name for field-access sugar.
+///
+/// Inputs:
+/// - `value`: expression on the left side of `.field`.
+/// - `env`: local lowering environment containing struct-typed locals.
+///
+/// Output:
+/// - Struct record name when the value is a known local struct variable.
+///
+/// Transformation:
+/// - Uses parameter/local type metadata to turn `user.name` into record access
+///   for the correct Erlang record.
 fn resolve_syntax_field_access_struct(
     value: &SyntaxExprOutput,
     env: &SyntaxLowerEnv,

@@ -1,7 +1,30 @@
 use terlan_syntax::span::Span;
 
+/// Identifier for an inference type variable.
+///
+/// Inputs:
+/// - Allocated by type inference when a fresh type variable is required.
+///
+/// Output:
+/// - Stable numeric id used inside `Type::Var`.
+///
+/// Transformation:
+/// - Keeps type variables compact and comparable without storing source names.
 pub type TypeVarId = usize;
 
+/// Internal Terlan type model used by type checking.
+///
+/// Inputs:
+/// - Parsed type annotations, inferred expression shapes, and imported type
+///   metadata.
+///
+/// Output:
+/// - Structural or named type representation consumed by inference,
+///   diagnostics, CoreIR lowering, and backend checks.
+///
+/// Transformation:
+/// - Normalizes source-level type forms into a compact enum while preserving
+///   enough structure for generics, unions, maps, functions, and literals.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     Int,
@@ -39,6 +62,17 @@ pub enum Type {
     },
 }
 
+/// Field entry in an internal map type.
+///
+/// Inputs:
+/// - Source map field key, value type, and required/optional marker.
+///
+/// Output:
+/// - Hashable map-field type metadata.
+///
+/// Transformation:
+/// - Records typed map field shape without depending on backend map
+///   representation.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MapFieldType {
     pub(crate) key: String,
@@ -46,12 +80,34 @@ pub struct MapFieldType {
     pub(crate) required: bool,
 }
 
+/// Diagnostic severity emitted by type checking.
+///
+/// Inputs:
+/// - Typechecker rule outcome.
+///
+/// Output:
+/// - Error or warning severity for CLI diagnostic rendering.
+///
+/// Transformation:
+/// - Separates fatal type errors from advisory diagnostics without changing
+///   diagnostic span/message shape.
 #[derive(Debug, Clone)]
 pub enum DiagSeverity {
     Error,
     Warning,
 }
 
+/// Typechecker diagnostic.
+///
+/// Inputs:
+/// - Source span, diagnostic message, and severity.
+///
+/// Output:
+/// - Public diagnostic consumed by CLI, LSP, tests, and release validation.
+///
+/// Transformation:
+/// - Packages typechecker findings into a stable structure independent of
+///   command-specific rendering.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
     pub span: Span,

@@ -1,12 +1,12 @@
 //! Core list collection contract.
-//! 
+//!
 //! `std.collections.List` is the portable ordered collection surface for Terlan list
 //! values.
 
 module std.collections.List.
 
 /// List represents an ordered collection of values.
-/// 
+///
 /// Input: type parameter `T`.
 /// Output: an opaque ordered collection type.
 /// Transformation: hides the selected backend representation behind the
@@ -15,7 +15,7 @@ module std.collections.List.
 pub opaque type List[T].
 
 /// Removes every value from a list.
-/// 
+///
 /// Input: a mutable `List[T]` receiver.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.list.clear`
@@ -24,7 +24,7 @@ pub opaque type List[T].
 pub (mut list: List[T]) clear(): Unit.
 
 /// Applies a callback to each value in a list.
-/// 
+///
 /// Input: one `List[T]` receiver and one callback from `T` to `Unit`.
 /// Output: `Unit`.
 /// Transformation: creates a traversal state with `list.iterator()` and
@@ -34,7 +34,7 @@ pub (mut list: List[T]) clear(): Unit.
 pub (list: List[T]) each(cb: (T ) -> Unit): Unit.
 
 /// Returns the first value in a list.
-/// 
+///
 /// Input: one `List[T]`.
 /// Output: `Some(value)` when the list is non-empty; otherwise `None`.
 /// Transformation: lowers through the compiler-owned `core.list.first`
@@ -43,7 +43,7 @@ pub (list: List[T]) each(cb: (T ) -> Unit): Unit.
 pub (list: List[T]) first(): Option[T].
 
 /// Returns whether a list contains no values.
-/// 
+///
 /// Input: one `List[T]`.
 /// Output: `true` when the list is empty; otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.list.is_empty`
@@ -52,17 +52,18 @@ pub (list: List[T]) first(): Option[T].
 pub (list: List[T]) is_empty(): Bool.
 
 /// Returns an iterator over the list.
-/// 
+///
 /// Input: one `List[T]`.
-/// Output: an `Iterator[T]` positioned at the beginning of the list.
+/// Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
+/// of the list.
 /// Transformation: lowers through the compiler-owned `core.list.iterator`
 /// intrinsic. The source-level iterator state is immutable; backends choose
 /// the efficient representation behind the opaque iterator type.
 
-pub (list: List[T]) iterator(): Iterator[T].
+pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T].
 
 /// Returns the number of values in a list.
-/// 
+///
 /// Input: one `List[T]`.
 /// Output: the number of values currently visible in the list.
 /// Transformation: lowers through the compiler-owned `core.list.length`
@@ -71,7 +72,7 @@ pub (list: List[T]) iterator(): Iterator[T].
 pub (list: List[T]) length(): Int.
 
 /// Creates an empty list.
-/// 
+///
 /// Input: no value input.
 /// Output: an empty `List[T]`.
 /// Transformation: lowers through the compiler-owned `core.list.new`
@@ -80,7 +81,7 @@ pub (list: List[T]) length(): Int.
 pub new(): List[T].
 
 /// Appends a value to the end of a list.
-/// 
+///
 /// Input: a mutable `List[T]` receiver and one value of type `T`.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.list.push`

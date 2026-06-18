@@ -11,7 +11,7 @@ use super::*;
 ///   imports.
 ///
 /// Output:
-/// - Function scheme map keyed by source function name and arity.
+/// - Function scheme candidate map keyed by source function name and arity.
 ///
 /// Transformation:
 /// - Lowers ordinary function annotations and native config signatures into
@@ -23,7 +23,7 @@ pub(super) fn collect_syntax_function_signatures(
     imported_type_names: &HashMap<String, QualifiedTypeName>,
     imported_type_aliases: &HashMap<String, TypeAlias>,
     local_aliases: &HashMap<String, TypeAlias>,
-) -> HashMap<(String, usize), FunctionScheme> {
+) -> HashMap<(String, usize), Vec<FunctionScheme>> {
     let mut map = HashMap::new();
 
     for declaration in &module.declarations {
@@ -47,7 +47,9 @@ pub(super) fn collect_syntax_function_signatures(
                     imported_type_aliases,
                     local_aliases,
                 );
-                map.insert((name.clone(), params.len()), scheme);
+                map.entry((name.clone(), params.len()))
+                    .or_insert_with(Vec::new)
+                    .push(scheme);
             }
             SyntaxDeclarationPayload::Config { name, text, .. } if name == "native" => {
                 for native_sig in extract_native_function_signatures(text) {
@@ -66,7 +68,8 @@ pub(super) fn collect_syntax_function_signatures(
                         local_aliases,
                     );
                     map.entry((native_sig.name, native_sig.arity))
-                        .or_insert(scheme);
+                        .or_insert_with(Vec::new)
+                        .push(scheme);
                 }
             }
             _ => {}

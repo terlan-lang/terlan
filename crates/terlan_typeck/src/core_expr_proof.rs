@@ -106,7 +106,10 @@ pub(crate) fn core_expr_proof_coverage(
             _ => CoreProofCoverage::ProofModelRequired,
         },
         SyntaxExprKind::Sequence => CoreProofCoverage::ProofModelRequired,
-        SyntaxExprKind::Cast => CoreProofCoverage::ProofModelRequired,
+        SyntaxExprKind::Cast => match core_expr {
+            Some(CoreExpr::Cast { .. }) => CoreProofCoverage::ProofModelRequired,
+            _ => CoreProofCoverage::ProofModelRequired,
+        },
         SyntaxExprKind::Float
         | SyntaxExprKind::Map
         | SyntaxExprKind::RecordConstruct
@@ -205,6 +208,7 @@ pub(crate) fn core_expr_is_lean_modeled(expr: &CoreExpr) -> bool {
         CoreExpr::FunctionCall { callee, args } => {
             core_expr_is_lean_modeled(callee) && args.iter().all(core_expr_is_lean_modeled)
         }
+        CoreExpr::Cast { .. } => false,
         CoreExpr::ConstructorCall {
             constructor_identity,
             args,

@@ -1,13 +1,14 @@
 CARGO := cargo
+PYTHON := python3 -B
 
-.PHONY: check test build release-artifact-linux publish-preflight publish validate-ebnf workspace-version-check source-extension-check clean
+.PHONY: check test build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check web-capability-decision-check changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan_cli/cli.mk
 include std/stdlib.mk
 
 ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
 ifndef VERSION
-$(error VERSION is required. Use: make $(firstword $(MAKECMDGOALS)) VERSION=0.0.3)
+$(error VERSION is required. Use: make $(firstword $(MAKECMDGOALS)) VERSION=0.0.4)
 endif
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
@@ -15,9 +16,25 @@ endif
 endif
 
 check:
+	$(MAKE) release-boundary-check
+	$(MAKE) single-root-contract-check
+	$(MAKE) diff-whitespace-check
+	$(MAKE) workspace-version-check
+	$(MAKE) release-version-metadata-check
+	$(MAKE) source-extension-check
+	$(MAKE) rust-quality-check
+	$(MAKE) test-hierarchy-check
+	$(MAKE) cli-exact-selector-check
+	$(MAKE) shared-helper-check
+	$(MAKE) oxc-boundary-check
+	$(MAKE) web-capability-decision-check
+	$(MAKE) changelog-public-scope-check
+	$(MAKE) internal-docs-check
+	$(MAKE) module-readme-check
+	$(MAKE) rustdoc-check
 	$(MAKE) cli-check
 	$(MAKE) stdlib-check
-	python3 tools/validate_ebnf.py --strict
+	$(PYTHON) tools/validate_ebnf.py --strict
 
 test:
 	$(MAKE) cli-test
@@ -26,16 +43,77 @@ build:
 	$(MAKE) cli-build
 
 validate-ebnf:
-	python3 tools/validate_ebnf.py --strict
+	$(PYTHON) tools/validate_ebnf.py --strict
 
 workspace-version-check:
 	bash scripts/check_workspace_version_inheritance.sh
 
+release-version-metadata-check:
+	bash scripts/check_release_version_metadata.sh
+
 source-extension-check:
 	bash scripts/check_terlan_source_extensions.sh
 
+release-boundary-check:
+	bash scripts/check_release_boundary.sh
+
+single-root-contract-check:
+	$(PYTHON) tools/check_single_root_contract.py
+
+diff-whitespace-check:
+	git diff --check
+
+rust-quality-check:
+	$(PYTHON) tools/check_rust_quality.py
+
+test-hierarchy-check:
+	$(PYTHON) tools/check_test_hierarchy.py
+
+cli-exact-selector-check:
+	$(PYTHON) tools/check_cli_exact_selectors.py
+
+shared-helper-check:
+	$(PYTHON) tools/check_shared_helpers.py
+
+oxc-boundary-check:
+	$(PYTHON) tools/check_oxc_boundary.py
+
+web-capability-decision-check:
+	$(PYTHON) tools/check_web_capability_decisions.py
+
+changelog-public-scope-check:
+	$(PYTHON) tools/check_changelog_public_scope.py
+
+internal-docs-check:
+	$(PYTHON) tools/check_internal_docs.py
+
+module-readme-check:
+	$(PYTHON) tools/check_module_readmes.py
+
+rustdoc-check:
+	$(PYTHON) tools/check_rust_docs.py
+
 release-artifact-linux:
+	$(MAKE) release-boundary-check
+	$(MAKE) release-version-metadata-check
+	$(MAKE) source-extension-check
 	$(MAKE) cli-release-artifact-linux
+	$(MAKE) release-artifact-smoke
+
+release-artifact-smoke:
+	test -x dist/terlc
+	test -f dist/terlc-linux-x86_64.tar.gz
+	tmpdir=$$(mktemp -d /tmp/terlan-release-artifact-smoke.XXXXXX); \
+	trap 'rm -rf "$$tmpdir"' EXIT; \
+	expected_version=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1); \
+	tar -xzf dist/terlc-linux-x86_64.tar.gz -C "$$tmpdir"; \
+	"$$tmpdir/terlc" --version | grep -Fx "terlc $$expected_version"; \
+	"$$tmpdir/terlc" init "$$tmpdir/hello" --profile web; \
+	printf '%s\n' 'hello asset' > "$$tmpdir/hello/assets/hello.txt"; \
+	"$$tmpdir/terlc" --out-dir "$$tmpdir/hello/_build" build "$$tmpdir/hello" --target erlang; \
+	"$$tmpdir/terlc" --target-profile js.browser --out-dir "$$tmpdir/hello/_build" build "$$tmpdir/hello" --target js.browser; \
+	test -f "$$tmpdir/hello/_build/web/assets/hello.txt"; \
+	"$$tmpdir/terlc" serve "$$tmpdir/hello/_build/web" --check
 
 publish-preflight:
 	@echo "Preparing Terlan $(VERSION) publication preflight"
@@ -56,23 +134,7 @@ publish-preflight:
 		echo "publication must run from main; current branch is $$branch"; \
 		exit 1; \
 	fi
-	@actual=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1); \
-	if [ "$$actual" != "$(VERSION)" ]; then \
-		echo "workspace package version $$actual != $(VERSION)"; \
-		exit 1; \
-	fi
-	@grep -q 'VERSION="$${TERLAN_VERSION:-v$(VERSION)}"' install.sh || { \
-		echo "install.sh default version is not v$(VERSION)"; \
-		exit 1; \
-	}
-	@grep -q '^## $(VERSION)$$' CHANGELOG.md || { \
-		echo "CHANGELOG.md is missing section ## $(VERSION)"; \
-		exit 1; \
-	}
-	@grep -Eq '^Current version: `$(VERSION)`\.?$$' README.md || { \
-		echo "README.md current version is not $(VERSION)"; \
-		exit 1; \
-	}
+	bash scripts/check_release_version_metadata.sh "$(VERSION)"
 	@if git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
 		tag_sha=$$(git rev-parse "refs/tags/v$(VERSION)"); \
 		head_sha=$$(git rev-parse HEAD); \
@@ -86,8 +148,15 @@ publish-preflight:
 		echo "remote tag v$(VERSION) already exists"; \
 		exit 1; \
 	fi
-	$(MAKE) check
-	$(MAKE) test
+	@if [ "$(VERSION)" = "0.0.4" ]; then \
+		$(MAKE) check; \
+		$(MAKE) test; \
+		$(MAKE) release-0-0-4-preflight; \
+		$(MAKE) release-artifact-linux; \
+	else \
+		$(MAKE) check; \
+		$(MAKE) test; \
+	fi
 
 publish: publish-preflight
 	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \

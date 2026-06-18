@@ -459,6 +459,7 @@ import std.core.Int.\n\
 import std.collections.List.\n\
 import type std.collections.List.List.\n\
 import std.collections.Iterator.\n\
+import type std.collections.Iterator.\n\
 import std.core.Option.{None, Some}.\n\
 import type std.core.Option.{Option}.\n\
 \
@@ -535,7 +536,7 @@ import type std.core.Option.{Option}.\n\
 import std.collections.List.\n\
 import type std.collections.List.List.\n\
 import std.collections.Iterator.\n\
-import type std.collections.Iterator.Iterator.\n\
+import type std.collections.Iterator.\n\
 \
 pub first(values: List[Int]): Int ->\n\
 case Iterator.next(List.iterator(values)) {\n\

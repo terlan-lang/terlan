@@ -1,4 +1,33 @@
 use super::*;
+use terlan_typeck::{CoreImport, CoreImportKind};
+
+/// Builds a minimal lowered module with one injected module import.
+///
+/// Inputs:
+/// - `module_name`: fully qualified import module to add to the fixture.
+///
+/// Output:
+/// - Lowered CoreIR module containing a simple `Int` function and the import.
+///
+/// Transformation:
+/// - Reuses the normal parser/resolver/lowering path for the body, then adds a
+///   synthetic import so target-profile family gating can be tested before the
+///   generated std module summaries exist.
+fn module_with_module_import(module_name: &str) -> CoreModule {
+    let mut module = lower(
+        "\
+module profile_target_import.\n\
+\n\
+pub main(): Int ->\n\
+1.\n",
+        "src/profile_target_import.terl",
+    );
+    module.imports.push(CoreImport {
+        module: module_name.to_string(),
+        kind: CoreImportKind::Module,
+    });
+    module
+}
 
 /// Verifies target profiles reject asset imports that need command-owned
 /// filesystem resolution.
@@ -115,6 +144,148 @@ Json.parse(text).\n",
                     .contains("rust-backed std module std.data.Json")
         }),
         "expected Rust-backed JSON target-profile diagnostic, got {violations:?}"
+    );
+}
+
+/// Verifies JavaScript std modules are rejected outside JavaScript profiles.
+///
+/// Inputs:
+/// - A lowered CoreIR module with a synthetic `std.js.String` import.
+///
+/// Output:
+/// - Test passes when Erlang and CoreV0 reject the import, while `js.shared`
+///   accepts it.
+///
+/// Transformation:
+/// - Exercises the import-family target gate directly, proving JavaScript std
+///   contracts cannot pass into non-JS backend validation by accident.
+#[test]
+fn rejects_js_std_module_for_non_js_profiles() {
+    let module = module_with_module_import("std.js.String");
+
+    let erlang = target_profile_checks(&module, TargetProfile::Erlang);
+    assert!(
+        erlang.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation
+                    .message
+                    .contains("JavaScript std module std.js.String")
+        }),
+        "expected JavaScript std diagnostic for Erlang, got {erlang:?}"
+    );
+
+    let core_v0 = target_profile_checks(&module, TargetProfile::CoreV0);
+    assert!(
+        core_v0.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation
+                    .message
+                    .contains("JavaScript std module std.js.String")
+        }),
+        "expected JavaScript std diagnostic for CoreV0, got {core_v0:?}"
+    );
+
+    let js_shared = target_profile_checks(&module, TargetProfile::JsShared);
+    assert!(
+        !js_shared.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation.message.contains("JavaScript std module")
+        }),
+        "js.shared should accept shared JavaScript std imports, got {js_shared:?}"
+    );
+}
+
+/// Verifies JavaScript profiles reject BEAM std modules.
+///
+/// Inputs:
+/// - A lowered CoreIR module with a synthetic `std.beam.Process` import.
+///
+/// Output:
+/// - Test passes when `js.shared` rejects the import with a stable
+///   target-profile diagnostic.
+///
+/// Transformation:
+/// - Exercises the import-family gate directly, proving BEAM-specific process
+///   contracts cannot pass into JS backend validation.
+#[test]
+fn rejects_beam_std_module_for_js_profile() {
+    let module = module_with_module_import("std.beam.Process");
+
+    let js_shared = target_profile_checks(&module, TargetProfile::JsShared);
+    assert!(
+        js_shared.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation
+                    .message
+                    .contains("BEAM std module std.beam.Process")
+        }),
+        "expected BEAM std diagnostic for js.shared, got {js_shared:?}"
+    );
+}
+
+/// Verifies JavaScript profiles reject native std modules.
+///
+/// Inputs:
+/// - A lowered CoreIR module with a synthetic
+///   `std.native.collections.Vector` import.
+///
+/// Output:
+/// - Test passes when `js.shared` rejects the import with a stable
+///   target-profile diagnostic.
+///
+/// Transformation:
+/// - Exercises the import-family gate directly, proving native-specific std
+///   contracts cannot pass into JS backend validation.
+#[test]
+fn rejects_native_std_module_for_js_profile() {
+    let module = module_with_module_import("std.native.collections.Vector");
+
+    let js_shared = target_profile_checks(&module, TargetProfile::JsShared);
+    assert!(
+        js_shared.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation
+                    .message
+                    .contains("native std module std.native.collections.Vector")
+        }),
+        "expected native std diagnostic for js.shared, got {js_shared:?}"
+    );
+}
+
+/// Verifies browser DOM bindings require the browser JavaScript profile.
+///
+/// Inputs:
+/// - A lowered CoreIR module with a synthetic `std.js.Dom.Document` import.
+///
+/// Output:
+/// - Test passes when `js.shared` rejects the import and `js.browser` accepts
+///   it.
+///
+/// Transformation:
+/// - Encodes the first coarse generated-binding profile rule before generated
+///   per-module profile metadata exists.
+#[test]
+fn rejects_browser_dom_js_std_module_for_shared_js_profile() {
+    let module = module_with_module_import("std.js.Dom.Document");
+
+    let js_shared = target_profile_checks(&module, TargetProfile::JsShared);
+    assert!(
+        js_shared.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation
+                    .message
+                    .contains("JavaScript std module std.js.Dom.Document")
+        }),
+        "expected DOM JavaScript std diagnostic for js.shared, got {js_shared:?}"
+    );
+
+    let js_browser = target_profile_checks(&module, TargetProfile::JsBrowser);
+    assert!(
+        !js_browser.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation.message.contains("JavaScript std module")
+        }),
+        "js.browser should accept DOM JavaScript std imports, got {js_browser:?}"
     );
 }
 
@@ -582,5 +753,52 @@ Uri.parse(text).\n",
     assert!(
         messages.contains("rust-backed std module std.net.Uri"),
         "expected Uri target-profile diagnostic, got {violations:?}"
+    );
+}
+
+/// Verifies Rust-backed HTTP std modules are target-gated on Erlang until the
+/// HTTP runtime bridge can execute them.
+///
+/// Inputs:
+/// - A source module that imports `std.http.Request` and `std.http.Response`.
+///
+/// Output:
+/// - Test passes when Erlang target-profile validation reports stable
+///   unsupported Rust-backed std module diagnostics for both imports.
+///
+/// Transformation:
+/// - Resolves the HTTP std contracts from checked-in summaries, lowers the
+///   module to CoreIR, and validates that handler APIs do not silently pass
+///   into a backend profile that cannot execute them yet.
+#[test]
+fn rejects_rust_backed_http_std_modules_for_erlang_profile() {
+    let module = lower(
+        "\
+module profile_http_operation.\n\
+\n\
+import std.http.Request.\n\
+import std.http.Response.\n\
+import type std.http.Request.Request.\n\
+import type std.http.Response.Response.\n\
+\n\
+pub handle(_request: Request): Response ->\n\
+Response.text(\"ok\").\n",
+        "src/profile_http_operation.terl",
+    );
+
+    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let messages = violations
+        .iter()
+        .map(|violation| violation.message.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    assert!(
+        messages.contains("rust-backed std module std.http.Request"),
+        "expected Request target-profile diagnostic, got {violations:?}"
+    );
+    assert!(
+        messages.contains("rust-backed std module std.http.Response"),
+        "expected Response target-profile diagnostic, got {violations:?}"
     );
 }

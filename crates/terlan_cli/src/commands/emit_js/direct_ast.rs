@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
-
 use terlan_typeck::{CoreExpr, CoreFunction, CoreModule};
+
+use super::cast_semantics::cast_can_lower_as_js_identity;
 
 /// Builds and prints a minimal JavaScript module directly through Oxc AST APIs.
 ///
@@ -92,7 +93,6 @@ pub(crate) fn emit_minimal_direct_oxc_ast_module() -> String {
         ast.vec(),
         ast.vec1(Statement::from(export)),
     );
-
     oxc_codegen::Codegen::new().build(&program).code
 }
 
@@ -118,12 +118,10 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
         AstBuilder, NONE,
     };
     use oxc_span::{SourceType, SPAN};
-
     let allocator = oxc_allocator::Allocator::default();
     let ast = AstBuilder::new(&allocator);
     let mut statements = ast.vec();
     let reachable_functions = reachable_direct_function_names(module);
-
     for function in module
         .functions
         .iter()
@@ -145,7 +143,6 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
                 return None;
             }
         }
-
         let mut params = ast.vec();
         for param in &function.params {
             let param_name = oxc_ident_name(ast, param.name.as_str());
@@ -196,7 +193,6 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
             statements.push(Statement::from(declaration));
         }
     }
-
     let program = ast.program(
         SPAN,
         SourceType::mjs(),
@@ -313,8 +309,10 @@ fn collect_core_expr_local_calls<'a>(
                 collect_core_expr_local_calls(&field.value, functions_by_name, pending);
             }
         }
-        CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
-            collect_core_expr_local_calls(base, functions_by_name, pending);
+        CoreExpr::FieldAccess { base: expr, .. }
+        | CoreExpr::RecordAccess { base: expr, .. }
+        | CoreExpr::Cast { expr, .. } => {
+            collect_core_expr_local_calls(expr, functions_by_name, pending)
         }
         CoreExpr::ConstructorChain { args, record, .. } => {
             for arg in args {
@@ -403,7 +401,6 @@ fn collect_core_expr_local_calls<'a>(
         | CoreExpr::RemoteFunRef { .. } => {}
     }
 }
-
 /// Lowers a tiny CoreIR expression subset into an Oxc expression.
 ///
 /// Inputs:
@@ -421,7 +418,7 @@ fn collect_core_expr_local_calls<'a>(
 /// Transformation:
 /// - Recursively maps selected CoreIR expressions into Oxc expression nodes
 ///   without going through JavaScript source text.
-fn core_expr_to_oxc_expression<'a>(
+pub(super) fn core_expr_to_oxc_expression<'a>(
     ast: oxc_ast::AstBuilder<'a>,
     expr: &terlan_typeck::CoreExpr,
 ) -> Option<oxc_ast::ast::Expression<'a>> {
@@ -573,6 +570,10 @@ fn core_expr_to_oxc_expression<'a>(
         terlan_typeck::CoreExpr::FunctionCall { callee, args } => {
             core_function_call_expr_to_oxc_expression(ast, callee, args)
         }
+        terlan_typeck::CoreExpr::Cast { expr, target_type } => {
+            cast_can_lower_as_js_identity(expr, target_type)
+                .then(|| core_expr_to_oxc_expression(ast, expr))?
+        }
         terlan_typeck::CoreExpr::Intrinsic(call) => {
             core_intrinsic_call_expr_to_oxc_expression(ast, call)
         }
@@ -620,137 +621,15 @@ fn core_intrinsic_call_expr_to_oxc_expression<'a>(
     call: &terlan_typeck::CoreIntrinsicCall,
 ) -> Option<oxc_ast::ast::Expression<'a>> {
     match &call.id {
-        terlan_typeck::CoreIntrinsicId::Primitive(
-            terlan_typeck::CorePrimitiveIntrinsic::StringContains,
-        ) => core_string_contains_intrinsic_to_oxc_expression(ast, call.args.as_slice()),
-        terlan_typeck::CoreIntrinsicId::Primitive(
-            terlan_typeck::CorePrimitiveIntrinsic::StringStartsWith,
-        ) => core_string_starts_with_intrinsic_to_oxc_expression(ast, call.args.as_slice()),
-        terlan_typeck::CoreIntrinsicId::Primitive(
-            terlan_typeck::CorePrimitiveIntrinsic::StringLength,
-        ) => core_string_length_intrinsic_to_oxc_expression(ast, call.args.as_slice()),
+        terlan_typeck::CoreIntrinsicId::Primitive(intrinsic) => {
+            super::std_core_string_intrinsics::core_string_intrinsic_call_to_oxc_expression(
+                ast,
+                intrinsic,
+                call.args.as_slice(),
+            )
+        }
         _ => None,
     }
-}
-
-/// Lowers `core.string.contains` into a JavaScript `.includes(...)` call.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `args`: CoreIR intrinsic arguments in `(value, pattern)` order.
-///
-/// Output:
-/// - `Some(Expression)` for a JavaScript `value.includes(pattern)` call.
-/// - `None` when the intrinsic has the wrong arity or unsupported arguments.
-///
-/// Transformation:
-/// - Converts the backend-neutral string containment intrinsic into the
-///   JavaScript string API selected for the JS/Oxc neutrality probe.
-fn core_string_contains_intrinsic_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    args: &[terlan_typeck::CoreExpr],
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_ast::ast::Argument;
-    use oxc_span::SPAN;
-
-    let [value, pattern] = args else {
-        return None;
-    };
-    let callee = ast
-        .member_expression_static(
-            SPAN,
-            core_expr_to_oxc_expression(ast, value)?,
-            ast.identifier_name(SPAN, oxc_ident_name(ast, "includes")),
-            false,
-        )
-        .into();
-    let arguments = ast.vec1(Argument::from(core_expr_to_oxc_expression(ast, pattern)?));
-    Some(ast.expression_call(SPAN, callee, oxc_ast::NONE, arguments, false))
-}
-
-/// Lowers `core.string.starts_with` into a JavaScript `.startsWith(...)` call.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `args`: CoreIR intrinsic arguments in `(value, prefix)` order.
-///
-/// Output:
-/// - `Some(Expression)` for a JavaScript `value.startsWith(prefix)` call.
-/// - `None` when the intrinsic has the wrong arity or unsupported arguments.
-///
-/// Transformation:
-/// - Converts the backend-neutral string-prefix intrinsic into the JavaScript
-///   string API selected for the JS/Oxc neutrality probe.
-fn core_string_starts_with_intrinsic_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    args: &[terlan_typeck::CoreExpr],
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_ast::ast::Argument;
-    use oxc_span::SPAN;
-
-    let [value, prefix] = args else {
-        return None;
-    };
-    let callee = ast
-        .member_expression_static(
-            SPAN,
-            core_expr_to_oxc_expression(ast, value)?,
-            ast.identifier_name(SPAN, oxc_ident_name(ast, "startsWith")),
-            false,
-        )
-        .into();
-    let arguments = ast.vec1(Argument::from(core_expr_to_oxc_expression(ast, prefix)?));
-    Some(ast.expression_call(SPAN, callee, oxc_ast::NONE, arguments, false))
-}
-
-/// Lowers `core.string.length` into `Array.from(value).length`.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `args`: CoreIR intrinsic arguments in `(value)` order.
-///
-/// Output:
-/// - `Some(Expression)` for JavaScript text-length calculation.
-/// - `None` when the intrinsic has the wrong arity or unsupported value.
-///
-/// Transformation:
-/// - Converts the backend-neutral text-length intrinsic into `Array.from` over
-///   the JavaScript string value so the probe avoids UTF-16 code-unit `.length`
-///   semantics.
-fn core_string_length_intrinsic_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    args: &[terlan_typeck::CoreExpr],
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_ast::ast::Argument;
-    use oxc_span::SPAN;
-
-    let [value] = args else {
-        return None;
-    };
-    let array_from_callee = ast
-        .member_expression_static(
-            SPAN,
-            ast.expression_identifier(SPAN, oxc_ident_name(ast, "Array")),
-            ast.identifier_name(SPAN, oxc_ident_name(ast, "from")),
-            false,
-        )
-        .into();
-    let array_from = ast.expression_call(
-        SPAN,
-        array_from_callee,
-        oxc_ast::NONE,
-        ast.vec1(Argument::from(core_expr_to_oxc_expression(ast, value)?)),
-        false,
-    );
-    Some(
-        ast.member_expression_static(
-            SPAN,
-            array_from,
-            ast.identifier_name(SPAN, oxc_ident_name(ast, "length")),
-            false,
-        )
-        .into(),
-    )
 }
 
 /// Lowers a local named CoreIR call into an Oxc call expression.
@@ -964,7 +843,6 @@ fn core_list_comprehension_to_oxc_expression<'a>(
     if guard.is_some() {
         return None;
     }
-
     let callee = ast
         .member_expression_static(
             SPAN,
@@ -1346,7 +1224,7 @@ fn core_float_literal_to_oxc_number(value: &str) -> Option<f64> {
 /// Transformation:
 /// - Allocates the identifier bytes in Oxc's arena so generated AST nodes do
 ///   not borrow from the shorter-lived CoreIR module.
-fn oxc_ident_name<'a>(ast: oxc_ast::AstBuilder<'a>, name: &str) -> &'a str {
+pub(super) fn oxc_ident_name<'a>(ast: oxc_ast::AstBuilder<'a>, name: &str) -> &'a str {
     ast.allocator.alloc_str(name)
 }
 
@@ -1364,7 +1242,7 @@ fn oxc_ident_name<'a>(ast: oxc_ast::AstBuilder<'a>, name: &str) -> &'a str {
 /// - Normalizes quoted CoreIR binary payloads to runtime string content, then
 ///   allocates the literal payload in Oxc's arena before creating a
 ///   `StringLiteral` node.
-fn oxc_string_value<'a>(ast: oxc_ast::AstBuilder<'a>, value: &str) -> &'a str {
+pub(super) fn oxc_string_value<'a>(ast: oxc_ast::AstBuilder<'a>, value: &str) -> &'a str {
     let value = core_string_runtime_value(value);
     ast.allocator.alloc_str(value.as_str())
 }

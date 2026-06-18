@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-VERSION="${TERLAN_VERSION:-v0.0.3}"
+VERSION="${TERLAN_VERSION:-v0.0.4}"
 INSTALL_DIR="${TERLAN_INSTALL_DIR:-/usr/local/bin}"
 ARTIFACT="terlc-linux-x86_64.tar.gz"
 URL="https://github.com/terlan-lang/terlan/releases/download/${VERSION}/${ARTIFACT}"
@@ -13,7 +13,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cd "$TMP_DIR"
-curl -L "$URL" -o terlc.tar.gz
+curl -fL "$URL" -o terlc.tar.gz
 tar -xzf terlc.tar.gz
 chmod +x terlc
 

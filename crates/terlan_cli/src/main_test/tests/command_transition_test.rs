@@ -42,7 +42,7 @@ fn emit_command_uses_core_ir_gated_erlang_lowering() {
 ///   CoreIR evaluator and does not invoke Erlang compiler/runtime commands.
 ///
 /// Transformation:
-/// - Reads the REPL command/evaluator sources as text and checks the 0.0.3
+/// - Reads the REPL command/evaluator sources as text and checks the
 ///   interactive execution invariant.
 #[test]
 fn repl_expression_execution_uses_core_ir_evaluator() {

@@ -100,6 +100,7 @@ def iter_std_sources() -> list[Path]:
         path
         for path in STD_DIR.rglob("*.terl")
         if path.is_file()
+        and not path.name.endswith("_test.terl")
         and "summaries" not in path.relative_to(STD_DIR).parts
         and "disabled" not in path.relative_to(STD_DIR).parts
     )

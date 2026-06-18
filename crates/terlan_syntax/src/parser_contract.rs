@@ -15,6 +15,17 @@ use crate::{
 };
 
 #[cfg(test)]
+/// Parser contract mode used by contract projection tests.
+///
+/// Inputs:
+/// - Test choice between source-module and interface-module parsing.
+///
+/// Output:
+/// - Mode value passed to shared parser contract helpers.
+///
+/// Transformation:
+/// - Keeps source and interface parser paths under the same contract
+///   projection tests without duplicating helper logic.
 #[derive(Debug, Clone, Copy)]
 enum ContractMode {
     /// Parse and contract-check canonical `.terl` source modules.
@@ -286,6 +297,18 @@ fn is_config_decl_kind(kind: &str) -> bool {
 mod tests {
     use super::*;
 
+    /// Verifies parser contract output includes the program entry and
+    /// declaration rules.
+    ///
+    /// Inputs:
+    /// - Source module containing imports, a type declaration, and a function.
+    ///
+    /// Output:
+    /// - Assertions over the projected EBNF contract tree.
+    ///
+    /// Transformation:
+    /// - Parses canonical source and projects it through the contract path to
+    ///   ensure declaration classes and module-name terminal rules are stable.
     #[test]
     fn module_contract_includes_program_entry_and_declarations() {
         let output = parse_module_as_contract(
@@ -321,6 +344,17 @@ mod tests {
         assert_eq!(module_name_rule.expr.id, "rule:ModuleName/expr");
     }
 
+    /// Verifies interface parsing uses the same contract projection rules.
+    ///
+    /// Inputs:
+    /// - Interface module containing an export summary.
+    ///
+    /// Output:
+    /// - Assertions over the projected EBNF contract tree.
+    ///
+    /// Transformation:
+    /// - Parses `.terli` interface text and checks that interface-only
+    ///   declarations still project through the shared contract shape.
     #[test]
     fn interface_contract_follows_same_rules() {
         let output = parse_interface_module_as_contract(
@@ -369,6 +403,17 @@ mod tests {
         }
     }
 
+    /// Verifies parser contract output can serialize through JSON.
+    ///
+    /// Inputs:
+    /// - Source module with a simple type declaration.
+    ///
+    /// Output:
+    /// - Round-tripped `EbnfGrammarContract` with stable entry and rule count.
+    ///
+    /// Transformation:
+    /// - Exercises serde serialization for parser contract artifacts used by
+    ///   grammar validation tooling.
     #[test]
     fn contract_output_is_serializable_via_grammar_contract_path() {
         let output = parse_module_as_contract(
@@ -386,6 +431,17 @@ mod tests {
         assert_eq!(decoded.rules.len(), output.rules.len());
     }
 
+    /// Verifies parser declaration classes remain stable.
+    ///
+    /// Inputs:
+    /// - Synthetic raw config declaration.
+    ///
+    /// Output:
+    /// - Assertion that config raw declarations project as `ConfigDecl`.
+    ///
+    /// Transformation:
+    /// - Protects the compatibility shim that maps preserved config syntax
+    ///   into the formal parser contract class.
     #[test]
     fn module_decl_class_mapping_is_stable() {
         use crate::parse_tree::Decl;

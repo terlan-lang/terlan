@@ -3,7 +3,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Output};
 
-use serde::Serialize;
 use terlan_erlang::{
     emit_html_runtime_to_erlang, try_emit_core_module_to_erlang_with_syntax_bridge,
     try_emit_syntax_struct_headers_to_hrl,
@@ -14,8 +13,23 @@ use crate::commands::artifacts::{
     collect_syntax_template_inputs, fingerprint,
 };
 use crate::formal_pipeline::CheckedSyntaxModuleArtifacts;
-use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions};
+use crate::validation::target_profile::{
+    target_profile_std_module_import_error, TargetProfile, TargetProfileCheckOptions,
+};
 use crate::{CliCommand, CliState};
+
+mod js;
+mod js_browser;
+mod metadata;
+mod package_layout;
+
+use package_layout::{source_package_path, validate_project_source_package_root};
+
+use metadata::{
+    build_package_metadata, BuildDebugMap, BuildDebugModuleEntry, BuildDebugProject,
+    BuildEntrypoint, BuildEntrypointFunction, BuildModuleArtifact, BuildPackageExecutable,
+    BuildPackageMetadata, ProjectBuildRoots, ProjectSourceRoot,
+};
 
 pub(crate) mod project_manifest;
 
@@ -32,6 +46,7 @@ pub(crate) mod project_manifest;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum BuildTarget {
     Erlang,
+    Js(TargetProfile),
 }
 
 const BUILD_DEBUG_MAP_FILE: &str = "terlan-debug-map.json";
@@ -39,288 +54,6 @@ const BUILD_DEBUG_MAP_SCHEMA: &str = "terlan-build-debug-map-v1";
 const BUILD_PACKAGE_METADATA_FILE: &str = "terlan-package-build.json";
 const BUILD_PACKAGE_METADATA_SCHEMA: &str = "terlan-package-build-v1";
 const TERLAN_PROJECT_MANIFEST_FILE: &str = "terlan.toml";
-
-/// Serializable source-to-artifact debug map for one build invocation.
-///
-/// Inputs:
-/// - Produced from successfully compiled build module entries.
-///
-/// Output:
-/// - JSON-ready metadata written to the build output directory.
-///
-/// Transformation:
-/// - Groups backend artifact paths under a stable schema so debuggers,
-///   release tools, and future backend runners can trace generated artifacts
-///   back to Terlan source and CoreIR identity.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildDebugMap {
-    schema: &'static str,
-    target: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    project: Option<BuildDebugProject>,
-    modules: Vec<BuildDebugModuleEntry>,
-}
-
-/// Serializable project metadata for a manifest-backed build invocation.
-///
-/// Inputs:
-/// - Produced from parsed `terlan.toml` metadata.
-///
-/// Output:
-/// - Optional project entry inside `terlan-debug-map.json`.
-///
-/// Transformation:
-/// - Records package identity, manifest source roots, and selected artifact
-///   kind so project-level build artifacts can be traced back to package
-///   metadata as well as source files.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildDebugProject {
-    package: String,
-    version: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    namespace: Option<String>,
-    source_roots: Vec<String>,
-    artifact: String,
-}
-
-/// Serializable package/build metadata for a manifest-backed build.
-///
-/// Inputs:
-/// - Produced from a parsed root `terlan.toml`.
-///
-/// Output:
-/// - JSON-ready package metadata written beside backend artifacts.
-///
-/// Transformation:
-/// - Separates package identity, artifact selection, source roots, and
-///   dependency metadata from the source-to-backend debug map so downstream
-///   tools can reason about package shape without consuming debug traces.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildPackageMetadata {
-    schema: &'static str,
-    target: &'static str,
-    package: BuildPackageIdentity,
-    artifact: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    executable: Option<BuildPackageExecutable>,
-    source_roots: Vec<String>,
-    dependencies: Vec<BuildPackageDependency>,
-    adapters: Vec<BuildPackageAdapter>,
-}
-
-/// Serializable package identity inside build metadata.
-///
-/// Inputs:
-/// - Produced from the manifest `[package]` table.
-///
-/// Output:
-/// - Stable package name/version payload.
-///
-/// Transformation:
-/// - Copies the validated package identity into the build artifact metadata
-///   schema without adding target-specific package-manager semantics.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildPackageIdentity {
-    name: String,
-    version: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    namespace: Option<String>,
-}
-
-/// Serializable single executable artifact metadata.
-///
-/// Inputs:
-/// - Produced from the selected package artifact mode and package identity.
-///
-/// Output:
-/// - Executable artifact entry inside `terlan-package-build.json`.
-///
-/// Transformation:
-/// - Records the user-facing executable path and runtime expectation while
-///   keeping backend `.erl` and `.beam` files classified as intermediate
-///   compiler artifacts.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildPackageExecutable {
-    mode: String,
-    path: String,
-    runtime: String,
-    entrypoint: BuildPackageEntrypoint,
-}
-
-/// Serializable entrypoint metadata inside executable build metadata.
-///
-/// Inputs:
-/// - Produced from the manifest package name and selected artifact mode.
-///
-/// Output:
-/// - Stable package entrypoint module/function/arity payload.
-///
-/// Transformation:
-/// - Converts the package-root convention into metadata consumed by the
-///   launcher writer and future release/debug tools.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildPackageEntrypoint {
-    module: String,
-    function: String,
-    arity: usize,
-}
-
-/// Serializable dependency metadata inside build metadata.
-///
-/// Inputs:
-/// - Produced from parsed manifest dependency entries.
-///
-/// Output:
-/// - One normalized dependency entry in `terlan-package-build.json`.
-///
-/// Transformation:
-/// - Represents every accepted dependency source kind with stable string
-///   fields while omitting fields that do not apply to that source kind.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildPackageDependency {
-    alias: String,
-    scope: String,
-    source: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    path: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    package: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    version: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    features: Option<Vec<String>>,
-}
-
-/// Serializable target package-adapter metadata inside build metadata.
-///
-/// Inputs:
-/// - Produced from target package-adapter reservations in `terlan.toml`.
-///
-/// Output:
-/// - One normalized adapter entry in `terlan-package-build.json`.
-///
-/// Transformation:
-/// - Records target-owned adapter intent without generating adapter files or
-///   making target package tools part of the generic build path.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildPackageAdapter {
-    target: String,
-    adapter: String,
-}
-
-/// Resolved project package build roots.
-///
-/// Inputs:
-/// - Produced from a root project manifest plus recursively parsed local
-///   `path` dependencies.
-///
-/// Output:
-/// - Ordered source roots for validation/emission.
-///
-/// Transformation:
-/// - Keeps dependency source roots before the root package source roots so
-///   imports from the root package can resolve through the shared build cache.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ProjectBuildRoots {
-    source_roots: Vec<ProjectSourceRoot>,
-}
-
-/// Resolved source root with package identity.
-///
-/// Inputs:
-/// - Produced from a project manifest or local path dependency manifest.
-///
-/// Output:
-/// - Filesystem source root plus the source package root required under that
-///   root for module-layout validation.
-///
-/// Transformation:
-/// - Carries manifest package identity into the shared source-root build path
-///   so package-root imports are validated before CoreIR/backend emission.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ProjectSourceRoot {
-    path: PathBuf,
-    package_path: Vec<String>,
-}
-
-/// Serializable debug metadata for one compiled module.
-///
-/// Inputs:
-/// - Produced after Erlang source and BEAM artifact generation succeeds.
-///
-/// Output:
-/// - One module entry inside `terlan-debug-map.json`.
-///
-/// Transformation:
-/// - Records the source path, CoreIR hash, generated Erlang source path, and
-///   generated BEAM path for source-to-artifact debugging.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct BuildDebugModuleEntry {
-    module: String,
-    source_path: String,
-    core_ir_hash: u64,
-    erl_path: String,
-    beam_path: String,
-}
-
-/// Built module artifact plus entrypoint-relevant CoreIR summary.
-///
-/// Inputs:
-/// - Produced after one source file has compiled to Erlang and BEAM artifacts.
-///
-/// Output:
-/// - Debug-map entry plus public/private function summaries used by package
-///   executable validation.
-///
-/// Transformation:
-/// - Keeps executable entrypoint validation on CoreIR facts without adding
-///   function signatures to the public debug-map JSON schema.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct BuildModuleArtifact {
-    debug_entry: BuildDebugModuleEntry,
-    functions: Vec<BuildEntrypointFunction>,
-}
-
-/// Entrypoint-relevant function summary for one built module.
-///
-/// Inputs:
-/// - Extracted from `CoreFunction` after the formal compiler path succeeds.
-///
-/// Output:
-/// - Minimal name/arity/visibility/return-type payload for launcher contract
-///   validation.
-///
-/// Transformation:
-/// - Projects CoreIR function declarations into a build-local summary so the
-///   executable gate does not depend on backend syntax.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct BuildEntrypointFunction {
-    name: String,
-    arity: usize,
-    public: bool,
-    return_type: String,
-}
-
-/// Validated executable entrypoint for a package build.
-///
-/// Inputs:
-/// - Produced by checking manifest-derived executable metadata against built
-///   module CoreIR summaries.
-///
-/// Output:
-/// - Terlan module/function identity and backend Erlang module/function names.
-///
-/// Transformation:
-/// - Bridges the target-neutral package entrypoint convention to the concrete
-///   BEAM invocation owned by the `beam-thin` launcher.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct BuildEntrypoint {
-    module: String,
-    function: String,
-    arity: usize,
-    erlang_module: String,
-    erlang_function: String,
-}
 
 /// Error shape for one source build attempt.
 ///
@@ -368,7 +101,7 @@ impl BuildOneError {
 /// - Produced from the raw command-local argument vector.
 ///
 /// Output:
-/// - One source path and one backend target.
+/// - One source path, one backend target, and declaration-output intent.
 ///
 /// Transformation:
 /// - Separates source selection from target selection before the build runner
@@ -377,6 +110,7 @@ impl BuildOneError {
 struct BuildArgs {
     path: String,
     target: BuildTarget,
+    declarations: bool,
 }
 
 /// Executes the `build` CLI command.
@@ -407,16 +141,22 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         }
     };
 
-    if !target_profile_supports_erlang_backend(state.target_profile) {
-        eprintln!(
-            "terlc build --target erlang requires an Erlang-compatible --target-profile, got `{}`",
-            state.target_profile.as_str()
-        );
-        return ExitCode::from(1);
-    }
-
     match args.target {
-        BuildTarget::Erlang => run_erlang_build(&args, &state),
+        BuildTarget::Erlang => {
+            if args.declarations {
+                eprintln!("terlc build --declarations requires --target js");
+                return ExitCode::from(2);
+            }
+            if !target_profile_supports_erlang_backend(state.target_profile) {
+                eprintln!(
+                    "terlc build --target erlang requires an Erlang-compatible --target-profile, got `{}`",
+                    state.target_profile.as_str()
+                );
+                return ExitCode::from(1);
+            }
+            run_erlang_build(&args, &state)
+        }
+        BuildTarget::Js(profile) => js::run_js_build(&args, &state, profile),
     }
 }
 
@@ -431,12 +171,13 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 ///   or unsupported backend targets.
 ///
 /// Transformation:
-/// - Accepts zero or one positional path and optional `--target erlang`,
+/// - Accepts zero or one positional path and optional backend `--target`,
 ///   defaulting the source path to the current directory and the target to
 ///   Erlang when they are not specified.
 fn parse_build_args(args: &[String]) -> Result<BuildArgs, String> {
     let mut path = None;
     let mut target = BuildTarget::Erlang;
+    let mut declarations = false;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -446,6 +187,10 @@ fn parse_build_args(args: &[String]) -> Result<BuildArgs, String> {
                     .ok_or_else(|| "missing value for --target".to_string())?;
                 target = parse_build_target(value)?;
                 i += 2;
+            }
+            "--declarations" => {
+                declarations = true;
+                i += 1;
             }
             option if option.starts_with("--") => {
                 return Err(format!("unknown build option: {option}"));
@@ -461,7 +206,11 @@ fn parse_build_args(args: &[String]) -> Result<BuildArgs, String> {
     }
 
     let path = path.unwrap_or_else(|| ".".to_string());
-    Ok(BuildArgs { path, target })
+    Ok(BuildArgs {
+        path,
+        target,
+        declarations,
+    })
 }
 
 /// Parses a backend target string.
@@ -478,9 +227,13 @@ fn parse_build_args(args: &[String]) -> Result<BuildArgs, String> {
 fn parse_build_target(value: &str) -> Result<BuildTarget, String> {
     match value {
         "erlang" => Ok(BuildTarget::Erlang),
-        other => Err(format!(
-            "unsupported build target `{other}`; supported targets: erlang"
-        )),
+        js_target => crate::commands::emit_js::target_contract::parse_js_build_target_profile(
+            js_target,
+        )
+        .map(BuildTarget::Js)
+        .ok_or_else(|| {
+            format!("unsupported build target `{js_target}`; supported targets: erlang, js, js.shared, js.browser, js.worker")
+        }),
     }
 }
 
@@ -829,200 +582,6 @@ fn run_erlang_project_manifest_build(
     )
 }
 
-/// Builds deterministic package metadata from a parsed project manifest.
-///
-/// Inputs:
-/// - `manifest`: parsed root project manifest.
-///
-/// Output:
-/// - Serializable package/build metadata for artifact consumers.
-///
-/// Transformation:
-/// - Copies validated package fields and converts dependency enum variants to a
-///   sorted, string-keyed metadata schema without resolving external packages.
-fn build_package_metadata(manifest: &project_manifest::ProjectManifest) -> BuildPackageMetadata {
-    let mut dependencies = manifest
-        .dependencies
-        .iter()
-        .map(build_package_dependency_metadata)
-        .collect::<Vec<_>>();
-    dependencies.sort_by(|left, right| {
-        (
-            left.scope.as_str(),
-            left.alias.as_str(),
-            left.source.as_str(),
-            left.path.as_deref().unwrap_or(""),
-            left.package.as_deref().unwrap_or(""),
-            left.version.as_deref().unwrap_or(""),
-        )
-            .cmp(&(
-                right.scope.as_str(),
-                right.alias.as_str(),
-                right.source.as_str(),
-                right.path.as_deref().unwrap_or(""),
-                right.package.as_deref().unwrap_or(""),
-                right.version.as_deref().unwrap_or(""),
-            ))
-    });
-
-    BuildPackageMetadata {
-        schema: BUILD_PACKAGE_METADATA_SCHEMA,
-        target: "erlang",
-        package: BuildPackageIdentity {
-            name: manifest.package.name.clone(),
-            version: manifest.package.version.clone(),
-            namespace: manifest.package.namespace.clone(),
-        },
-        artifact: manifest.artifact.as_str().to_string(),
-        executable: build_package_executable_metadata(manifest),
-        source_roots: manifest.source_roots.clone(),
-        dependencies,
-        adapters: build_package_adapter_metadata(manifest),
-    }
-}
-
-/// Builds deterministic executable artifact metadata when the artifact is runnable.
-///
-/// Inputs:
-/// - `manifest`: parsed root project manifest.
-///
-/// Output:
-/// - Serializable executable artifact metadata for runnable artifact modes.
-/// - `None` for library artifact modes.
-///
-/// Transformation:
-/// - Converts `beam-thin` into launcher metadata and treats `library` as a
-///   non-executable package artifact.
-fn build_package_executable_metadata(
-    manifest: &project_manifest::ProjectManifest,
-) -> Option<BuildPackageExecutable> {
-    match manifest.artifact {
-        project_manifest::ProjectArtifactKind::BeamThin => Some(BuildPackageExecutable {
-            mode: "beam-thin".to_string(),
-            path: format!("bin/{}", manifest.package.name),
-            runtime: "external-erts".to_string(),
-            entrypoint: BuildPackageEntrypoint {
-                module: format!("{}.Main", source_package_module_prefix(&manifest.package)),
-                function: "main".to_string(),
-                arity: 0,
-            },
-        }),
-        project_manifest::ProjectArtifactKind::Library => None,
-    }
-}
-
-/// Builds deterministic target package-adapter metadata.
-///
-/// Inputs:
-/// - `manifest`: parsed root project manifest.
-///
-/// Output:
-/// - Ordered adapter metadata entries for the package build artifact.
-///
-/// Transformation:
-/// - Preserves supported target adapter reservations as metadata only; it does
-///   not generate Rebar3 files, package-manager manifests, or release configs.
-fn build_package_adapter_metadata(
-    manifest: &project_manifest::ProjectManifest,
-) -> Vec<BuildPackageAdapter> {
-    manifest
-        .erlang_package_adapter
-        .map(|adapter| BuildPackageAdapter {
-            target: "erlang".to_string(),
-            adapter: adapter.as_str().to_string(),
-        })
-        .into_iter()
-        .collect()
-}
-
-/// Builds one deterministic dependency metadata entry.
-///
-/// Inputs:
-/// - `dependency`: parsed manifest dependency.
-///
-/// Output:
-/// - Serializable dependency metadata for the package build artifact.
-///
-/// Transformation:
-/// - Converts local and target-scoped dependency source variants into stable
-///   strings while preserving the original package alias and source metadata.
-fn build_package_dependency_metadata(
-    dependency: &project_manifest::ProjectDependency,
-) -> BuildPackageDependency {
-    match &dependency.source {
-        project_manifest::ProjectDependencySource::Path { path } => BuildPackageDependency {
-            alias: dependency.alias.clone(),
-            scope: package_dependency_scope(&dependency.scope).to_string(),
-            source: "path".to_string(),
-            path: Some(path.clone()),
-            package: None,
-            version: None,
-            features: None,
-        },
-        project_manifest::ProjectDependencySource::Hex { package, version } => {
-            BuildPackageDependency {
-                alias: dependency.alias.clone(),
-                scope: package_dependency_scope(&dependency.scope).to_string(),
-                source: "hex".to_string(),
-                path: None,
-                package: Some(package.clone()),
-                version: Some(version.clone()),
-                features: None,
-            }
-        }
-        project_manifest::ProjectDependencySource::Npm { package, version } => {
-            BuildPackageDependency {
-                alias: dependency.alias.clone(),
-                scope: package_dependency_scope(&dependency.scope).to_string(),
-                source: "npm".to_string(),
-                path: None,
-                package: Some(package.clone()),
-                version: Some(version.clone()),
-                features: None,
-            }
-        }
-        project_manifest::ProjectDependencySource::Cargo {
-            package,
-            version,
-            features,
-        } => BuildPackageDependency {
-            alias: dependency.alias.clone(),
-            scope: package_dependency_scope(&dependency.scope).to_string(),
-            source: "cargo".to_string(),
-            path: None,
-            package: Some(package.clone()),
-            version: Some(version.clone()),
-            features: (!features.is_empty()).then(|| features.clone()),
-        },
-    }
-}
-
-/// Returns the package metadata spelling for a dependency scope.
-///
-/// Inputs:
-/// - `scope`: parsed dependency scope.
-///
-/// Output:
-/// - Stable scope string for build metadata.
-///
-/// Transformation:
-/// - Converts local and target-specific dependency scopes to the same section
-///   names used by the manifest contract.
-fn package_dependency_scope(scope: &project_manifest::ProjectDependencyScope) -> &'static str {
-    match scope {
-        project_manifest::ProjectDependencyScope::Local => "local",
-        project_manifest::ProjectDependencyScope::Target(
-            project_manifest::ProjectTarget::Erlang,
-        ) => "target.erlang",
-        project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Js) => {
-            "target.js"
-        }
-        project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Rust) => {
-            "target.rust"
-        }
-    }
-}
-
 /// Runs the recursive source-root Erlang build.
 ///
 /// Inputs:
@@ -1269,109 +828,6 @@ fn run_erlang_source_roots_build(
     ExitCode::SUCCESS
 }
 
-/// Converts a package identity into source namespace path segments.
-///
-/// Inputs:
-/// - `package`: manifest `[package]` identity.
-///
-/// Output:
-/// - Lowercase module path segments used in source layout validation.
-///
-/// Transformation:
-/// - Uses explicit `[package] namespace` when present, otherwise derives one
-///   segment from the package name by replacing package-manager dashes with
-///   underscores.
-fn source_package_path(package: &project_manifest::ProjectPackage) -> Vec<String> {
-    package
-        .namespace
-        .as_deref()
-        .map(|namespace| namespace.split('.').map(str::to_string).collect())
-        .unwrap_or_else(|| vec![source_package_root(&package.name)])
-}
-
-/// Converts a package identity into a dotted source module prefix.
-///
-/// Inputs:
-/// - `package`: manifest `[package]` identity.
-///
-/// Output:
-/// - Dotted module prefix used for executable entrypoint conventions.
-///
-/// Transformation:
-/// - Joins `source_package_path` using Terlan module path dots.
-fn source_package_module_prefix(package: &project_manifest::ProjectPackage) -> String {
-    source_package_path(package).join(".")
-}
-
-/// Converts a package name into the default source module root spelling.
-///
-/// Inputs:
-/// - `package_name`: manifest `[package] name` value.
-///
-/// Output:
-/// - Lowercase module-root spelling used when no explicit namespace is set.
-///
-/// Transformation:
-/// - Replaces package-manager dashes with underscores because Terlan module
-///   path segments use `LowerIdent`, while package names may contain `-`.
-fn source_package_root(package_name: &str) -> String {
-    package_name.replace('-', "_")
-}
-
-/// Validates that a manifest source file starts under the package namespace.
-///
-/// Inputs:
-/// - `source_root`: manifest-declared source root.
-/// - `file`: discovered Terlan source file under the source root.
-/// - `package_path`: normalized package namespace expected as the leading
-///   relative source path segments.
-///
-/// Output:
-/// - `Ok(())` when the file path starts with the package namespace.
-/// - `Err(message)` when the file is outside the root, contains non-UTF-8
-///   path segments, or has a different namespace prefix.
-///
-/// Transformation:
-/// - Checks source-root-relative paths before the existing `terlc check <dir>`
-///   pass validates the full module declaration against that path.
-fn validate_project_source_package_root(
-    source_root: &Path,
-    file: &Path,
-    package_path: &[String],
-) -> Result<(), String> {
-    let relative = file.strip_prefix(source_root).map_err(|_| {
-        format!(
-            "source file `{}` is not under project source root `{}`",
-            file.display(),
-            source_root.display()
-        )
-    })?;
-    let actual = relative
-        .components()
-        .take(package_path.len())
-        .map(|component| {
-            component.as_os_str().to_str().ok_or_else(|| {
-                format!(
-                    "source path `{}` contains a non-UTF-8 package namespace segment",
-                    file.display()
-                )
-            })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let expected = package_path.iter().map(String::as_str).collect::<Vec<_>>();
-    if actual == expected {
-        return Ok(());
-    }
-    let expected_path = package_path.join("/");
-    Err(format!(
-        "project source file `{}` is outside package namespace `{}`; expected path under `{}/{}`",
-        file.display(),
-        package_path.join("."),
-        source_root.display(),
-        expected_path
-    ))
-}
-
 /// Validates the manifest-backed package executable entrypoint.
 ///
 /// Inputs:
@@ -1539,6 +995,10 @@ fn build_one_erlang_source_artifact(
     if let Err(message) = reject_erlang_native_package_source(path, &source) {
         return Err(BuildOneError::Message(message));
     }
+    if let Err(message) = reject_unsupported_target_std_source(path, &source, state.target_profile)
+    {
+        return Err(BuildOneError::Message(message));
+    }
 
     let compiled =
         match crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
@@ -1592,6 +1052,95 @@ fn reject_erlang_native_package_source(path: &str, source: &str) -> Result<(), S
         ));
     }
     Ok(())
+}
+
+/// Rejects std imports that the selected target profile cannot execute.
+///
+/// Inputs:
+/// - `path`: source path used for diagnostics.
+/// - `source`: Terlan source text to scan for module and import declarations.
+/// - `profile`: backend capability profile selected by the build command.
+///
+/// Output:
+/// - `Ok(())` when all discovered target-gated std modules are supported.
+/// - `Err(String)` with the first stable target-profile diagnostic.
+///
+/// Transformation:
+/// - Extracts only top-level `module`, `import`, and `import type`
+///   declaration paths from raw source text, then delegates std-family support
+///   decisions to target-profile validation. This catches unsupported platform
+///   std imports before interface loading can obscure the target error.
+pub(super) fn reject_unsupported_target_std_source(
+    path: &str,
+    source: &str,
+    profile: TargetProfile,
+) -> Result<(), String> {
+    let context = format!("source `{path}`");
+    for module in source_declared_or_imported_modules(source) {
+        if let Some(message) = target_profile_std_module_import_error(profile, &context, &module) {
+            return Err(format!("terlc build target-profile error: {message}"));
+        }
+    }
+    Ok(())
+}
+
+/// Extracts declaration module paths from source text for build preflight gates.
+///
+/// Inputs:
+/// - `source`: Terlan source text.
+///
+/// Output:
+/// - Ordered module paths mentioned by top-level `module`, `import`, and
+///   `import type` declarations.
+///
+/// Transformation:
+/// - Performs a lightweight line-oriented scan and normalizes trailing
+///   statement dots or selective-import braces. It does not replace parsing;
+///   it only feeds conservative target-family rejection before the formal
+///   parser and interface loader run.
+fn source_declared_or_imported_modules(source: &str) -> Vec<String> {
+    source
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("module ") {
+                source_declaration_path(rest)
+            } else if let Some(rest) = trimmed.strip_prefix("import type ") {
+                source_declaration_path(rest)
+            } else if let Some(rest) = trimmed.strip_prefix("import ") {
+                source_declaration_path(rest)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Normalizes one module path fragment from a declaration line.
+///
+/// Inputs:
+/// - `rest`: declaration text after the keyword prefix.
+///
+/// Output:
+/// - `Some(String)` for a non-empty module path candidate.
+/// - `None` when the declaration has no path token.
+///
+/// Transformation:
+/// - Takes the first whitespace-delimited token, strips the statement
+///   terminator, and removes selective-import suffixes such as `.{println}` so
+///   target-family matching sees the declared module identity.
+fn source_declaration_path(rest: &str) -> Option<String> {
+    let token = rest.split_whitespace().next()?.trim_end_matches('.');
+    let module = token
+        .split(".{")
+        .next()
+        .unwrap_or(token)
+        .trim_end_matches('.');
+    if module.is_empty() {
+        None
+    } else {
+        Some(module.to_string())
+    }
 }
 
 /// Writes Erlang build sources and compiles them to BEAM.

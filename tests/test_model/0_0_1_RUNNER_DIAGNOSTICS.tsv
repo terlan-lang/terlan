@@ -1,3 +1,3 @@
 # label	fixture	target_profile	target	expected
-unsupported --target js	tests/std/test/assertions_test.terl	-	js	unsupported test target: js
-erlang runner with a0 target profile	tests/std/test/assertions_test.terl	a0-erlang	erlang	terlc test --target erlang requires --target-profile erlang, got a0-erlang
+unsupported --target python	std/test/assertions_test.terl	-	python	unsupported test target: python
+erlang runner with a0 target profile	std/test/assertions_test.terl	a0-erlang	erlang	terlc test --target erlang requires --target-profile erlang, got a0-erlang

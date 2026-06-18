@@ -3,6 +3,8 @@ use terlan_typeck::{
     CoreModule, CorePattern, CorePrimitiveIntrinsic,
 };
 
+use super::cast_semantics::cast_can_lower_as_js_identity;
+
 /// Serializes public CoreIR function signatures into minimal JS exports.
 ///
 /// Inputs:
@@ -159,6 +161,9 @@ fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
         CoreExpr::Lam { params, body } => core_lam_expr_to_js(params, body),
         CoreExpr::Call { function, args } => core_call_expr_to_js(function, args),
         CoreExpr::FunctionCall { callee, args } => core_function_call_expr_to_js(callee, args),
+        CoreExpr::Cast { expr, target_type } => {
+            cast_can_lower_as_js_identity(expr, target_type).then(|| core_expr_to_js(expr))?
+        }
         CoreExpr::Intrinsic(call) => core_intrinsic_call_expr_to_js(call),
         CoreExpr::UnaryOp { operator, operand } if operator == "-" => {
             Some(format!("(-{})", core_expr_to_js(operand)?))

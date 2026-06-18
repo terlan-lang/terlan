@@ -254,7 +254,7 @@ fn build_command_compiles_project_manifest_namespace_layout() {
     fs::create_dir_all(&module_dir).expect("failed to create namespace source dir");
     fs::write(
             project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"std-sample-polars\"\nversion = \"0.0.3\"\nnamespace = \"std.sample.polars\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+            "[package]\nname = \"std-sample-polars\"\nversion = \"0.0.4\"\nnamespace = \"std.sample.polars\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
         )
         .expect("failed to write project manifest fixture");
     fs::write(

@@ -8,6 +8,18 @@ use super::{
     QualifiedTypeName, Type, TypeAlias, TypeVarId,
 };
 
+/// Import maps consumed by expression and declaration type checking.
+///
+/// Inputs:
+/// - Source import declarations from syntax output.
+///
+/// Output:
+/// - Grouped aliases for modules, raw file imports, markdown imports, and
+///   selected function imports.
+///
+/// Transformation:
+/// - Normalizes import declarations into lookup tables so later inference
+///   code does not need to inspect raw syntax declaration payloads.
 #[derive(Debug, Clone, Default)]
 pub(super) struct TypeCheckImportMaps {
     pub(super) module_aliases: HashMap<String, String>,

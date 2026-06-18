@@ -1,11 +1,11 @@
 //! Core set collection contract.
-//! 
+//!
 //! `std.collections.Set` is the portable unique-value collection surface.
 
 module std.collections.Set.
 
 /// Set represents a collection of unique values.
-/// 
+///
 /// Input: type parameter `T`.
 /// Output: an opaque unique-value collection type.
 /// Transformation: hides the selected backend representation behind the
@@ -14,7 +14,7 @@ module std.collections.Set.
 pub opaque type Set[T].
 
 /// Adds a value to a set.
-/// 
+///
 /// Input: a mutable `Set[T]` receiver and one value of type `T`.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.set.add`
@@ -24,7 +24,7 @@ pub opaque type Set[T].
 pub (mut set: Set[T]) add(value: T): Unit.
 
 /// Removes every value from a set.
-/// 
+///
 /// Input: a mutable `Set[T]` receiver.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.set.clear`
@@ -33,7 +33,7 @@ pub (mut set: Set[T]) add(value: T): Unit.
 pub (mut set: Set[T]) clear(): Unit.
 
 /// Returns whether a value exists in a set.
-/// 
+///
 /// Input: one `Set[T]` receiver and one value of type `T`.
 /// Output: `true` when the value exists; otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.set.contains`
@@ -42,7 +42,7 @@ pub (mut set: Set[T]) clear(): Unit.
 pub (set: Set[T]) contains(value: T): Bool.
 
 /// Returns whether a set contains no values.
-/// 
+///
 /// Input: one `Set[T]`.
 /// Output: `true` when the set is empty; otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.set.is_empty`
@@ -51,7 +51,7 @@ pub (set: Set[T]) contains(value: T): Bool.
 pub (set: Set[T]) is_empty(): Bool.
 
 /// Creates an iterator over set values.
-/// 
+///
 /// Input: one `Set[T]`.
 /// Output: an `Iterator[T]` yielding each unique value.
 /// Transformation: lowers through the compiler-owned `core.set.iterator`
@@ -61,7 +61,7 @@ pub (set: Set[T]) is_empty(): Bool.
 pub (set: Set[T]) iterator(): Iterator[T].
 
 /// Creates an empty set.
-/// 
+///
 /// Input: no value input.
 /// Output: an empty `Set[T]`.
 /// Transformation: lowers through the compiler-owned `core.set.new`
@@ -70,7 +70,7 @@ pub (set: Set[T]) iterator(): Iterator[T].
 pub new(): Set[T].
 
 /// Removes a value from a set.
-/// 
+///
 /// Input: a mutable `Set[T]` receiver and one value of type `T`.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned `core.set.remove`
@@ -79,7 +79,7 @@ pub new(): Set[T].
 pub (mut set: Set[T]) remove(value: T): Unit.
 
 /// Returns the number of unique values in a set.
-/// 
+///
 /// Input: one `Set[T]`.
 /// Output: the number of unique values currently visible in the set.
 /// Transformation: lowers through the compiler-owned `core.set.size`

@@ -1,11 +1,35 @@
 use super::*;
 
+/// Bounded generic function metadata used by syntax-bridge call lowering.
+///
+/// Inputs:
+/// - Source-visible parameter annotations and trait bounds from a function
+///   declaration.
+///
+/// Output:
+/// - Backend-local target metadata used to synthesize hidden trait dictionary
+///   arguments for concrete calls.
+///
+/// Transformation:
+/// - Keeps the source parameter type variables and parsed trait bounds
+///   together so call lowering can infer concrete bound dictionaries.
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxGenericFunctionTarget {
     pub(super) params: Vec<String>,
     pub(super) bounds: Vec<SyntaxGenericFunctionBound>,
 }
 
+/// Parsed trait bound for a bounded generic function.
+///
+/// Inputs:
+/// - Source bound text such as `Equal[A]`.
+///
+/// Output:
+/// - Trait name plus normalized type arguments.
+///
+/// Transformation:
+/// - Converts textual bounds into the compact form needed by Erlang hidden
+///   trait dictionary lowering.
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxGenericFunctionBound {
     pub(super) trait_name: String,

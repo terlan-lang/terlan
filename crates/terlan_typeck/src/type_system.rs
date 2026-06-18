@@ -2,11 +2,30 @@ use std::collections::{HashMap, HashSet};
 
 use terlan_hir::{ConstructorSignature, FunctionSignature, FunctionSymbol, ModuleInterface};
 
+mod interface;
+
+pub(super) use interface::{
+    interface_qualified_type_names, interface_type_aliases, interface_type_names,
+    parse_interface_constructor_schemes, parse_interface_signature, parse_symbol_scheme,
+    qualify_type_names,
+};
+
 use crate::{
     atom_type_literal_payload, normalize_type_param_name, pretty_type, primitive_type_names,
     ConstructorScheme, FunctionScheme, MapFieldType, QualifiedTypeName, Type, TypeAlias, TypeVarId,
 };
 
+/// Reports whether a type can be treated as a map-like value.
+///
+/// Inputs:
+/// - `ty`: resolved type to inspect.
+/// - `aliases`: type aliases available in the current module.
+///
+/// Output:
+/// - `true` for concrete map types, `Map` aliases, and dynamic top types.
+///
+/// Transformation:
+/// - Expands transparent aliases before checking map compatibility.
 pub(super) fn is_map_type(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> bool {
     match expand_type_aliases(ty, aliases) {
         Type::Named { name, .. } if name == "Map" || name == "map" => true,
@@ -16,397 +35,21 @@ pub(super) fn is_map_type(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> bo
     }
 }
 
-pub(super) fn parse_symbol_scheme(symbol: &FunctionSymbol) -> Option<FunctionScheme> {
-    let mut vars = HashMap::new();
-    let mut next_var: TypeVarId = 0;
-    let params = symbol
-        .params
-        .iter()
-        .filter_map(|param| {
-            parse_type_expr(&param.annotation, &HashSet::new(), &mut vars, &mut next_var)
-        })
-        .collect::<Vec<_>>();
-    let ret = parse_type_expr(
-        &symbol.return_type,
-        &HashSet::new(),
-        &mut vars,
-        &mut next_var,
-    )?;
-
-    Some(FunctionScheme {
-        params,
-        ret,
-        bounds: Vec::new(),
-    })
-}
-
-pub(super) fn parse_interface_signature(
-    signature: &FunctionSignature,
-    interface: &ModuleInterface,
-    global_aliases: &HashMap<String, TypeAlias>,
-) -> Option<FunctionScheme> {
-    let mut vars = HashMap::new();
-    let mut next_var: TypeVarId = 0;
-    let alias_names = interface_type_names(interface);
-    let qualified_names = interface_qualified_type_names(interface);
-    let interface_aliases = interface_type_aliases(interface);
-
-    let params = signature
-        .params
-        .iter()
-        .filter_map(|param| {
-            parse_type_expr(&param.annotation, &alias_names, &mut vars, &mut next_var)
-        })
-        .map(|param| expand_type_aliases(&param, &interface_aliases))
-        .map(|param| expand_interface_global_aliases(&param, global_aliases))
-        .map(|param| qualify_type_names(&param, &qualified_names))
-        .collect::<Vec<_>>();
-
-    let ret = parse_type_expr(
-        &signature.return_type,
-        &alias_names,
-        &mut vars,
-        &mut next_var,
-    )?;
-    let ret = expand_type_aliases(&ret, &interface_aliases);
-    let ret = expand_interface_global_aliases(&ret, global_aliases);
-    let ret = qualify_type_names(&ret, &qualified_names);
-    Some(FunctionScheme {
-        params,
-        ret,
-        bounds: Vec::new(),
-    })
-}
-
-/// Expands aliases visible through the global interface map.
+/// Parses a textual type expression into the internal type model.
 ///
 /// Inputs:
-/// - `ty`: type parsed from a public interface signature.
-/// - `global_aliases`: fully qualified aliases loaded from dependency
-///   interfaces.
+/// - `input`: source text for a type expression.
+/// - `aliases`: visible alias names that should stay named.
+/// - `vars`: mutable mapping from type-variable names to ids.
+/// - `next_var`: next available type-variable id.
 ///
 /// Output:
-/// - Type with fully qualified aliases expanded, plus unqualified aliases
-///   expanded only when their short name is unique globally.
+/// - `Some(Type)` when the expression is recognized.
+/// - `None` for malformed generic, fixed-array, map, or nested forms.
 ///
 /// Transformation:
-/// - Preserves local/interface parsing while allowing checked std summaries
-///   such as `Option[T]` to resolve to the single loaded
-///   `std.core.Option.Option[T]` alias without requiring every summary to spell
-///   fully qualified type names.
-pub(super) fn expand_interface_global_aliases(
-    ty: &Type,
-    global_aliases: &HashMap<String, TypeAlias>,
-) -> Type {
-    match ty {
-        Type::Named {
-            module: None,
-            name,
-            args,
-        } => {
-            if let Some(alias) = unique_global_alias(name, global_aliases) {
-                if alias.params.len() != args.len() {
-                    return Type::Named {
-                        module: None,
-                        name: name.clone(),
-                        args: args
-                            .iter()
-                            .map(|arg| expand_interface_global_aliases(arg, global_aliases))
-                            .collect(),
-                    };
-                }
-                let args = args
-                    .iter()
-                    .map(|arg| expand_interface_global_aliases(arg, global_aliases))
-                    .collect::<Vec<_>>();
-                let mapping = alias
-                    .params
-                    .iter()
-                    .cloned()
-                    .zip(args)
-                    .collect::<HashMap<_, _>>();
-                if alias.is_opaque {
-                    return substitute_type_vars(&alias.body, &mapping);
-                }
-                return expand_interface_global_aliases(
-                    &substitute_type_vars(&alias.body, &mapping),
-                    global_aliases,
-                );
-            }
-            expand_type_aliases(ty, global_aliases)
-        }
-        Type::Named { .. } => expand_type_aliases(ty, global_aliases),
-        Type::List(inner) => Type::List(Box::new(expand_interface_global_aliases(
-            inner,
-            global_aliases,
-        ))),
-        Type::Tuple(items) => Type::Tuple(
-            items
-                .iter()
-                .map(|item| expand_interface_global_aliases(item, global_aliases))
-                .collect(),
-        ),
-        Type::Union(items) => Type::Union(
-            items
-                .iter()
-                .map(|item| expand_interface_global_aliases(item, global_aliases))
-                .collect(),
-        ),
-        Type::Map(fields) => Type::Map(
-            fields
-                .iter()
-                .map(|field| MapFieldType {
-                    key: field.key.clone(),
-                    value: expand_interface_global_aliases(&field.value, global_aliases),
-                    required: field.required,
-                })
-                .collect(),
-        ),
-        Type::Function { params, ret } => Type::Function {
-            params: params
-                .iter()
-                .map(|param| expand_interface_global_aliases(param, global_aliases))
-                .collect(),
-            ret: Box::new(expand_interface_global_aliases(ret, global_aliases)),
-        },
-        Type::FixedArray { size, elem } => Type::FixedArray {
-            size: *size,
-            elem: Box::new(expand_interface_global_aliases(elem, global_aliases)),
-        },
-        other => other.clone(),
-    }
-}
-
-/// Finds a globally unique alias by short type name.
-///
-/// Inputs:
-/// - `name`: unqualified type name from an interface signature.
-/// - `global_aliases`: fully qualified aliases keyed as `module.Type`.
-///
-/// Output:
-/// - The alias when exactly one global alias has the requested final segment.
-///
-/// Transformation:
-/// - Scans fully qualified alias keys by their final dotted segment and rejects
-///   ambiguous short names so interface summaries do not accidentally bind to
-///   the wrong module.
-pub(super) fn unique_global_alias<'a>(
-    name: &str,
-    global_aliases: &'a HashMap<String, TypeAlias>,
-) -> Option<&'a TypeAlias> {
-    let mut matches = global_aliases.iter().filter_map(|(qualified, alias)| {
-        qualified
-            .rsplit_once('.')
-            .and_then(|(_, short)| (short == name).then_some(alias))
-    });
-    let first = matches.next()?;
-    if matches.next().is_some() {
-        None
-    } else {
-        Some(first)
-    }
-}
-
-pub(super) fn parse_interface_constructor_schemes(
-    signatures: Option<&[ConstructorSignature]>,
-    interface: &ModuleInterface,
-) -> Option<Vec<ConstructorScheme>> {
-    let signatures = signatures?;
-    let alias_names = interface_type_names(interface);
-    let qualified_names = interface_qualified_type_names(interface);
-    let interface_aliases = interface_type_aliases(interface);
-
-    let schemes = signatures
-        .iter()
-        .filter(|signature| signature.public && signature.min_arity == signature.params.len())
-        .map(|signature| {
-            let mut vars = HashMap::new();
-            let mut next_var: TypeVarId = 0;
-
-            let fixed_params = signature
-                .params
-                .iter()
-                .map(|param| {
-                    parse_type_expr(&param.annotation, &alias_names, &mut vars, &mut next_var)
-                        .unwrap_or(Type::Dynamic)
-                })
-                .map(|param| expand_type_aliases(&param, &interface_aliases))
-                .map(|param| qualify_type_names(&param, &qualified_names))
-                .collect::<Vec<_>>();
-
-            let vararg = signature.vararg.as_ref().map(|param| {
-                let parsed =
-                    parse_type_expr(&param.annotation, &alias_names, &mut vars, &mut next_var)
-                        .unwrap_or(Type::Dynamic);
-                let parsed = expand_type_aliases(&parsed, &interface_aliases);
-                qualify_type_names(&parsed, &qualified_names)
-            });
-
-            let ret = parse_type_expr(
-                &signature.return_type,
-                &alias_names,
-                &mut vars,
-                &mut next_var,
-            )
-            .unwrap_or(Type::Dynamic);
-            let ret = expand_type_aliases(&ret, &interface_aliases);
-            let ret = qualify_type_names(&ret, &qualified_names);
-
-            ConstructorScheme {
-                min_arity: signature.min_arity,
-                fixed_params,
-                vararg,
-                ret,
-            }
-        })
-        .collect::<Vec<_>>();
-
-    Some(schemes)
-}
-
-pub(super) fn interface_type_names(interface: &ModuleInterface) -> HashSet<String> {
-    let mut names: HashSet<String> = interface
-        .public_types
-        .iter()
-        .chain(interface.opaque_types.iter())
-        .cloned()
-        .collect();
-    names.extend(primitive_type_names());
-    names
-}
-
-pub(super) fn interface_type_aliases(interface: &ModuleInterface) -> HashMap<String, TypeAlias> {
-    let mut aliases = HashMap::new();
-    let alias_names = interface_type_names(interface);
-
-    for (name, variants) in &interface.type_bodies {
-        if interface.opaque_types.contains(name) {
-            continue;
-        }
-
-        let mut vars = HashMap::new();
-        let mut next_var: TypeVarId = 0;
-        let mut params = Vec::new();
-        for param in interface.type_params.get(name).into_iter().flatten() {
-            vars.insert(normalize_type_param_name(param), next_var);
-            params.push(next_var);
-            next_var += 1;
-        }
-
-        let body = normalize_union(
-            variants
-                .iter()
-                .filter_map(|variant| {
-                    parse_type_expr(variant, &alias_names, &mut vars, &mut next_var)
-                })
-                .collect(),
-        );
-        aliases.insert(
-            name.clone(),
-            TypeAlias {
-                params,
-                body,
-                is_opaque: false,
-            },
-        );
-    }
-
-    aliases
-}
-
-pub(super) fn interface_qualified_type_names(
-    interface: &ModuleInterface,
-) -> HashMap<String, QualifiedTypeName> {
-    interface
-        .public_types
-        .iter()
-        .chain(interface.opaque_types.iter())
-        .map(|name| {
-            (
-                name.clone(),
-                QualifiedTypeName {
-                    module: interface.module.clone(),
-                    name: name.clone(),
-                },
-            )
-        })
-        .collect()
-}
-
-pub(super) fn qualify_type_names(
-    ty: &Type,
-    qualified_names: &HashMap<String, QualifiedTypeName>,
-) -> Type {
-    match ty {
-        Type::Named {
-            module: None,
-            name,
-            args,
-        } => {
-            let args = args
-                .iter()
-                .map(|arg| qualify_type_names(arg, qualified_names))
-                .collect();
-            if let Some(qualified) = qualified_names.get(name) {
-                Type::Named {
-                    module: Some(qualified.module.clone()),
-                    name: qualified.name.clone(),
-                    args,
-                }
-            } else {
-                Type::Named {
-                    module: None,
-                    name: name.clone(),
-                    args,
-                }
-            }
-        }
-        Type::Named { module, name, args } => Type::Named {
-            module: module.clone(),
-            name: name.clone(),
-            args: args
-                .iter()
-                .map(|arg| qualify_type_names(arg, qualified_names))
-                .collect(),
-        },
-        Type::List(inner) => Type::List(Box::new(qualify_type_names(inner, qualified_names))),
-        Type::Tuple(items) => Type::Tuple(
-            items
-                .iter()
-                .map(|item| qualify_type_names(item, qualified_names))
-                .collect(),
-        ),
-        Type::Union(items) => Type::Union(
-            items
-                .iter()
-                .map(|item| qualify_type_names(item, qualified_names))
-                .collect(),
-        ),
-        Type::Map(fields) => Type::Map(
-            fields
-                .iter()
-                .map(|field| MapFieldType {
-                    key: field.key.clone(),
-                    value: qualify_type_names(&field.value, qualified_names),
-                    required: field.required,
-                })
-                .collect(),
-        ),
-        Type::Function { params, ret } => Type::Function {
-            params: params
-                .iter()
-                .map(|param| qualify_type_names(param, qualified_names))
-                .collect(),
-            ret: Box::new(qualify_type_names(ret, qualified_names)),
-        },
-        Type::FixedArray { size, elem } => Type::FixedArray {
-            size: *size,
-            elem: Box::new(qualify_type_names(elem, qualified_names)),
-        },
-        other => other.clone(),
-    }
-}
-
+/// - Removes insignificant whitespace, recognizes literals and composite
+///   types, and allocates type variables consistently through `vars`.
 pub(super) fn parse_type_expr(
     input: &str,
     aliases: &HashSet<String>,
@@ -515,6 +158,19 @@ pub(super) fn parse_type_expr(
     Some(map_named_or_var(&src, aliases, vars, next_var))
 }
 
+/// Parses one tuple type element.
+///
+/// Inputs:
+/// - `input`: tuple element text, optionally `name: Type` or `_: Type`.
+/// - `aliases`: visible alias names.
+/// - `vars`: mutable type-variable mapping.
+/// - `next_var`: next available type-variable id.
+///
+/// Output:
+/// - Parsed element type, ignoring valid tuple field labels.
+///
+/// Transformation:
+/// - Strips supported tuple labels before delegating to `parse_type_expr`.
 pub(super) fn parse_tuple_type_elem(
     input: &str,
     aliases: &HashSet<String>,
@@ -530,6 +186,17 @@ pub(super) fn parse_tuple_type_elem(
     parse_type_expr(input, aliases, vars, next_var)
 }
 
+/// Splits a named tuple type element at its top-level colon.
+///
+/// Inputs:
+/// - `input`: tuple element text.
+///
+/// Output:
+/// - `Some((label, value))` when a top-level label separator is found.
+/// - `None` when the colon is absent or nested inside another construct.
+///
+/// Transformation:
+/// - Tracks bracket depth and quoted strings so nested colons are preserved.
 pub(super) fn split_named_tuple_type_elem(input: &str) -> Option<(&str, &str)> {
     let mut depth_p = 0usize;
     let mut depth_b = 0usize;
@@ -567,6 +234,17 @@ pub(super) fn split_named_tuple_type_elem(input: &str) -> Option<(&str, &str)> {
     None
 }
 
+/// Parses an atom literal used in type position.
+///
+/// Inputs:
+/// - `input`: candidate atom literal text.
+///
+/// Output:
+/// - Atom payload without source delimiters when the spelling is valid.
+///
+/// Transformation:
+/// - Accepts canonical `Atom["name"]`, shorthand `:name`, and quoted
+///   interop atoms while rejecting empty or invalid constructor names.
 pub(super) fn parse_type_atom_literal(input: &str) -> Option<String> {
     if let Some(atom) = atom_type_literal_payload(input) {
         return Some(atom);
@@ -585,6 +263,16 @@ pub(super) fn parse_type_atom_literal(input: &str) -> Option<String> {
     None
 }
 
+/// Removes quote delimiters from a quoted atom payload.
+///
+/// Inputs:
+/// - `text`: quoted atom text including leading and trailing single quotes.
+///
+/// Output:
+/// - Unescaped atom payload, or `None` when delimiters are missing.
+///
+/// Transformation:
+/// - Copies escaped characters literally after dropping the escape marker.
 pub(super) fn unquote_type_atom(text: &str) -> Option<String> {
     let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
     let mut output = String::new();
@@ -601,6 +289,20 @@ pub(super) fn unquote_type_atom(text: &str) -> Option<String> {
     Some(output)
 }
 
+/// Parses a map type expression.
+///
+/// Inputs:
+/// - `input`: candidate `#{...}` map type text.
+/// - `aliases`: visible alias names.
+/// - `vars`: mutable type-variable mapping.
+/// - `next_var`: next available type-variable id.
+///
+/// Output:
+/// - `Some(Type::Map(_))` for valid map type syntax.
+/// - `None` for non-map input or malformed fields.
+///
+/// Transformation:
+/// - Splits top-level fields and parses each required or optional field type.
 pub(super) fn parse_map_type_expression(
     input: &str,
     aliases: &HashSet<String>,
@@ -625,6 +327,19 @@ pub(super) fn parse_map_type_expression(
     Some(Type::Map(fields))
 }
 
+/// Parses one map type field.
+///
+/// Inputs:
+/// - `input`: field text using `:=` for required or `=>` for optional.
+/// - `aliases`: visible alias names.
+/// - `vars`: mutable type-variable mapping.
+/// - `next_var`: next available type-variable id.
+///
+/// Output:
+/// - A map-field type descriptor with key, value type, and required flag.
+///
+/// Transformation:
+/// - Splits the field separator and parses the value side as a type.
 pub(super) fn parse_map_type_field(
     input: &str,
     aliases: &HashSet<String>,
@@ -641,6 +356,18 @@ pub(super) fn parse_map_type_field(
     })
 }
 
+/// Splits a map type field into key, value, and requiredness.
+///
+/// Inputs:
+/// - `input`: map field text.
+///
+/// Output:
+/// - `Some((key, value, true))` for top-level `:=`.
+/// - `Some((key, value, false))` for top-level `=>`.
+/// - `None` when no top-level map-field separator exists.
+///
+/// Transformation:
+/// - Tracks nested delimiters so separators inside type arguments are ignored.
 pub(super) fn split_map_field(input: &str) -> Option<(&str, &str, bool)> {
     let bytes = input.as_bytes();
     let mut depth_p = 0usize;
@@ -678,6 +405,16 @@ pub(super) fn split_map_field(input: &str) -> Option<(&str, &str, bool)> {
     None
 }
 
+/// Splits a generic named type into base name and argument text.
+///
+/// Inputs:
+/// - `input`: candidate type text such as `Result[T, E]`.
+///
+/// Output:
+/// - Base type name and raw argument list without outer brackets.
+///
+/// Transformation:
+/// - Finds the first top-level `[` and validates the closing `]`.
 pub(super) fn split_named_type(input: &str) -> Option<(&str, String)> {
     let bytes = input.as_bytes();
     if !bytes.contains(&b'[') || !input.ends_with(']') {
@@ -703,6 +440,17 @@ pub(super) fn split_named_type(input: &str) -> Option<(&str, String)> {
     None
 }
 
+/// Completes generic named-type splitting after the opening bracket is known.
+///
+/// Inputs:
+/// - `input`: full type text.
+/// - `open_index`: byte index of the top-level opening bracket.
+///
+/// Output:
+/// - Base type name and raw argument list when both sides are non-empty enough.
+///
+/// Transformation:
+/// - Trims the base name and removes the outer generic brackets.
 pub(super) fn split_named_type_inner(input: &str, open_index: usize) -> Option<(&str, String)> {
     if !input.ends_with(']') {
         return None;
@@ -718,10 +466,34 @@ pub(super) fn split_named_type_inner(input: &str, open_index: usize) -> Option<(
     }
 }
 
+/// Reports whether type text contains a top-level union separator.
+///
+/// Inputs:
+/// - `input`: compacted type-expression text.
+///
+/// Output:
+/// - `true` when splitting on top-level `|` yields multiple variants.
+///
+/// Transformation:
+/// - Delegates to the depth-aware union splitter.
 pub(super) fn is_union_type(input: &str) -> bool {
     split_top_level_union(input).len() > 1
 }
 
+/// Maps a bare type token to a primitive, named type, literal, or type variable.
+///
+/// Inputs:
+/// - `text`: compacted bare type token.
+/// - `aliases`: visible alias names.
+/// - `vars`: mutable type-variable mapping.
+/// - `next_var`: next available type-variable id.
+///
+/// Output:
+/// - Internal type corresponding to the token.
+///
+/// Transformation:
+/// - Recognizes primitives first, then qualified names, aliases, fresh generic
+///   variables, constructor atoms, and finally ordinary named types.
 pub(super) fn map_named_or_var(
     text: &str,
     aliases: &HashSet<String>,
@@ -924,6 +696,18 @@ pub(super) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
     }
 }
 
+/// Substitutes type variables according to a concrete mapping.
+///
+/// Inputs:
+/// - `ty`: type tree that may contain variables.
+/// - `mapping`: variable-id to replacement-type mapping.
+///
+/// Output:
+/// - A cloned type tree with mapped variables replaced.
+///
+/// Transformation:
+/// - Recursively walks all composite type forms and leaves unmapped variables
+///   unchanged.
 pub(super) fn substitute_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, Type>) -> Type {
     match ty {
         Type::Var(id) => mapping.get(id).cloned().unwrap_or(Type::Var(*id)),
@@ -973,6 +757,18 @@ pub(super) fn substitute_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, Type>
     }
 }
 
+/// Normalizes a set of union variants.
+///
+/// Inputs:
+/// - `types`: candidate union variants that may include nested unions.
+///
+/// Output:
+/// - `Never` for an empty union, a single type for singleton unions, or a
+///   deduplicated `Union`.
+///
+/// Transformation:
+/// - Flattens nested unions, removes `Never`, short-circuits on `Term`, and
+///   drops variants covered by wider supertypes.
 pub(super) fn normalize_union(mut types: Vec<Type>) -> Type {
     let mut expanded = Vec::new();
     while let Some(ty) = types.pop() {
@@ -1073,6 +869,18 @@ pub(super) fn are_unit_equivalent_types(left: &Type, right: &Type) -> bool {
         || (is_unit_literal_type(left) && is_unit_named_type(right))
 }
 
+/// Checks the current structural subtype relation.
+///
+/// Inputs:
+/// - `lhs`: candidate subtype.
+/// - `rhs`: expected supertype.
+///
+/// Output:
+/// - `true` when `lhs` is assignable to `rhs` without conversion.
+///
+/// Transformation:
+/// - Applies primitive widening, literal widening, Unit equivalence, fixed-array
+///   compatibility, and structural map-field compatibility.
 pub(super) fn is_subtype(lhs: &Type, rhs: &Type) -> bool {
     if lhs == rhs {
         return true;
@@ -1103,6 +911,18 @@ pub(super) fn is_subtype(lhs: &Type, rhs: &Type) -> bool {
     }
 }
 
+/// Checks structural subtype compatibility for map fields.
+///
+/// Inputs:
+/// - `lhs`: fields present on the candidate map type.
+/// - `rhs`: fields required or allowed by the expected map type.
+///
+/// Output:
+/// - `true` when all required expected fields are present with compatible types.
+///
+/// Transformation:
+/// - Treats optional expected fields as skippable and rejects optional candidate
+///   fields where the expected type requires the field.
 pub(super) fn map_fields_is_subtype(lhs: &[MapFieldType], rhs: &[MapFieldType]) -> bool {
     for rhs_field in rhs {
         let Some(lhs_field) = lhs.iter().find(|field| field.key == rhs_field.key) else {
@@ -1124,6 +944,20 @@ pub(super) fn map_fields_is_subtype(lhs: &[MapFieldType], rhs: &[MapFieldType]) 
     true
 }
 
+/// Unifies two types and updates type-variable substitutions.
+///
+/// Inputs:
+/// - `left`: first type constraint.
+/// - `right`: second type constraint.
+/// - `subst`: mutable substitution table for type variables.
+///
+/// Output:
+/// - `Ok(())` when the types can be made compatible.
+/// - `Err(message)` with a human-readable mismatch when unification fails.
+///
+/// Transformation:
+/// - Applies existing substitutions, binds variables with occurs checks, and
+///   recursively unifies composite type structure.
 pub(super) fn unify(
     left: &Type,
     right: &Type,
@@ -1321,6 +1155,20 @@ pub(super) fn unify(
     }
 }
 
+/// Unifies two structural map field lists.
+///
+/// Inputs:
+/// - `lhs`: candidate map fields.
+/// - `rhs`: expected map fields.
+/// - `subst`: mutable substitution table for field value types.
+///
+/// Output:
+/// - `Ok(())` when required fields and value types can unify.
+/// - `Err(message)` when a required field is missing or incompatible.
+///
+/// Transformation:
+/// - Matches fields by key, enforces requiredness, and delegates value
+///   compatibility to `unify`.
 pub(super) fn unify_map_fields(
     lhs: &[MapFieldType],
     rhs: &[MapFieldType],
@@ -1356,6 +1204,20 @@ pub(super) fn unify_map_fields(
     Ok(())
 }
 
+/// Binds a type variable to a concrete type.
+///
+/// Inputs:
+/// - `id`: variable id being constrained.
+/// - `value`: type to bind after generic literal widening.
+/// - `subst`: mutable substitution table.
+///
+/// Output:
+/// - `Ok(())` when the binding is accepted.
+/// - `Err(message)` for recursive bindings or incompatible existing bindings.
+///
+/// Transformation:
+/// - Widens literal bindings, unifies with any existing binding, checks occurs,
+///   and records the substitution.
 pub(super) fn bind_var(
     id: TypeVarId,
     value: Type,
@@ -1391,6 +1253,18 @@ pub(super) fn widen_type_var_binding(value: Type) -> Type {
     }
 }
 
+/// Checks whether a type variable occurs inside a candidate binding.
+///
+/// Inputs:
+/// - `var`: variable id being tested.
+/// - `value`: candidate type value.
+/// - `subst`: current substitutions to apply before traversal.
+///
+/// Output:
+/// - `true` when binding would create a recursive type.
+///
+/// Transformation:
+/// - Applies substitutions and recursively scans composite type children.
 pub(super) fn occurs(var: TypeVarId, value: &Type, subst: &HashMap<TypeVarId, Type>) -> bool {
     match apply_subst(value, subst) {
         Type::Var(other) => other == var,
@@ -1406,6 +1280,18 @@ pub(super) fn occurs(var: TypeVarId, value: &Type, subst: &HashMap<TypeVarId, Ty
     }
 }
 
+/// Reveals opaque alias bodies for internal compatibility checks.
+///
+/// Inputs:
+/// - `ty`: type tree that may reference opaque aliases.
+/// - `aliases`: known type aliases.
+///
+/// Output:
+/// - Type tree with directly referenced local opaque aliases substituted.
+///
+/// Transformation:
+/// - Replaces matching opaque aliases with parameter-substituted bodies and
+///   recursively processes composite type children.
 pub(super) fn reveal_opaque_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> Type {
     match ty {
         Type::Named {
@@ -1479,6 +1365,17 @@ pub(super) fn reveal_opaque_aliases(ty: &Type, aliases: &HashMap<String, TypeAli
     }
 }
 
+/// Applies type-variable substitutions to a type tree.
+///
+/// Inputs:
+/// - `ty`: type that may contain variables.
+/// - `subst`: variable substitutions produced during unification.
+///
+/// Output:
+/// - Type tree with all reachable substitutions applied.
+///
+/// Transformation:
+/// - Recursively follows variable bindings and rewrites composite type children.
 pub(super) fn apply_subst(ty: &Type, subst: &HashMap<TypeVarId, Type>) -> Type {
     match ty {
         Type::Var(id) => match subst.get(id) {
@@ -1522,6 +1419,17 @@ pub(super) fn apply_subst(ty: &Type, subst: &HashMap<TypeVarId, Type>) -> Type {
     }
 }
 
+/// Looks up an implicit compiler builtin call.
+///
+/// Inputs:
+/// - `name`: unqualified source-level call name.
+/// - `arity`: number of call arguments.
+///
+/// Output:
+/// - Function scheme for supported implicit builtins, otherwise `None`.
+///
+/// Transformation:
+/// - Maps the small always-available builtin surface to typed function schemes.
 pub(super) fn builtin_call(name: &str, arity: usize) -> Option<FunctionScheme> {
     match (name, arity) {
         ("type_of", 1) => Some(FunctionScheme {
@@ -1560,7 +1468,7 @@ pub(super) fn builtin_call(name: &str, arity: usize) -> Option<FunctionScheme> {
 ///   into Terlan's implicit prelude.
 ///
 /// Transformation:
-/// - Keeps the minimal 0.0.3 implicit prelude closed while producing a clearer
+/// - Keeps the minimal implicit prelude closed while producing a clearer
 ///   diagnostic than a later backend failure for old helper spellings.
 pub(super) fn is_removed_implicit_builtin_call(name: &str, arity: usize) -> bool {
     matches!(
@@ -1576,10 +1484,32 @@ pub(super) fn is_removed_implicit_builtin_call(name: &str, arity: usize) -> bool
     )
 }
 
+/// Reports whether a bare atom payload is a supported literal atom.
+///
+/// Inputs:
+/// - `name`: atom payload without source delimiters.
+///
+/// Output:
+/// - `true` for built-in singleton atoms and valid constructor-style atoms.
+///
+/// Transformation:
+/// - Keeps legacy boolean and nil payloads recognizable while delegating general
+///   constructor-atom validation to `is_type_constructor_atom`.
 pub(super) fn is_literal_atom(name: &str) -> bool {
     matches!(name, "ok" | "error" | "true" | "false" | "nil") || is_type_constructor_atom(name)
 }
 
+/// Widens literal element types inferred inside list literals.
+///
+/// Inputs:
+/// - `ty`: element type inferred from one list item.
+///
+/// Output:
+/// - A list-compatible element type.
+///
+/// Transformation:
+/// - Converts integer literals to `Int`, boolean atom literals to `Bool`, and
+///   other atom literals to `Atom`.
 pub(super) fn widen_list_literal_element_type(ty: Type) -> Type {
     match ty {
         Type::LiteralInt(_) => Type::Int,
@@ -1594,6 +1524,16 @@ pub(super) fn widen_list_literal_element_type(ty: Type) -> Type {
     }
 }
 
+/// Validates a constructor-style atom payload.
+///
+/// Inputs:
+/// - `name`: atom payload without source delimiters.
+///
+/// Output:
+/// - `true` when the payload starts lowercase and uses allowed atom characters.
+///
+/// Transformation:
+/// - Enforces Terlan's conservative atom spelling for type-literal payloads.
 pub(super) fn is_type_constructor_atom(name: &str) -> bool {
     if name.is_empty() {
         return false;
@@ -1610,6 +1550,17 @@ pub(super) fn is_type_constructor_atom(name: &str) -> bool {
     chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$' || c == '-')
 }
 
+/// Validates a lowercase Terlan identifier.
+///
+/// Inputs:
+/// - `name`: candidate identifier text.
+///
+/// Output:
+/// - `true` when the identifier starts lowercase and contains only ASCII
+///   alphanumerics or underscores.
+///
+/// Transformation:
+/// - Applies the value-level identifier shape used by tuple field labels.
 pub(super) fn is_lower_identifier(name: &str) -> bool {
     if name.is_empty() {
         return false;
@@ -1622,6 +1573,17 @@ pub(super) fn is_lower_identifier(name: &str) -> bool {
     chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
+/// Removes insignificant whitespace from a type expression.
+///
+/// Inputs:
+/// - `input`: raw type-expression text.
+///
+/// Output:
+/// - Text with whitespace outside quoted strings removed.
+///
+/// Transformation:
+/// - Preserves quoted payloads and escape sequences while compacting structural
+///   type syntax.
 pub(super) fn compact_spaces(input: &str) -> String {
     let mut output = String::new();
     let mut quote = None;
@@ -1653,6 +1615,16 @@ pub(super) fn compact_spaces(input: &str) -> String {
     output
 }
 
+/// Removes one pair of parentheses that wraps an entire expression.
+///
+/// Inputs:
+/// - `input`: candidate parenthesized text.
+///
+/// Output:
+/// - Inner text when the outer parentheses enclose the whole input.
+///
+/// Transformation:
+/// - Tracks parenthesis depth and rejects partial wrapping.
 pub(super) fn strip_wrapping_parens(input: &str) -> Option<&str> {
     let bytes = input.as_bytes();
     if bytes.first() != Some(&b'(') || bytes.last() != Some(&b')') {
@@ -1676,6 +1648,16 @@ pub(super) fn strip_wrapping_parens(input: &str) -> Option<&str> {
     Some(&input[1..input.len() - 1])
 }
 
+/// Splits a function type at a top-level `->`.
+///
+/// Inputs:
+/// - `input`: compacted type-expression text.
+///
+/// Output:
+/// - Parameter-side and return-side text when a top-level arrow exists.
+///
+/// Transformation:
+/// - Ignores arrows nested inside parentheses, brackets, or braces.
 pub(super) fn split_top_level_arrow(input: &str) -> Option<(String, String)> {
     let bytes = input.as_bytes();
     let mut p_depth = 0usize;
@@ -1707,6 +1689,16 @@ pub(super) fn split_top_level_arrow(input: &str) -> Option<(String, String)> {
     None
 }
 
+/// Splits comma-separated text at top-level commas.
+///
+/// Inputs:
+/// - `input`: list text without surrounding delimiters.
+///
+/// Output:
+/// - Non-empty trimmed items.
+///
+/// Transformation:
+/// - Tracks nested delimiters so commas inside nested type forms are preserved.
 pub(super) fn split_top_level_csv(input: &str) -> Vec<String> {
     let bytes = input.as_bytes();
     let mut out = Vec::new();
@@ -1738,6 +1730,16 @@ pub(super) fn split_top_level_csv(input: &str) -> Vec<String> {
         .collect()
 }
 
+/// Splits text at top-level plus signs.
+///
+/// Inputs:
+/// - `input`: expression-like text to split.
+///
+/// Output:
+/// - Non-empty trimmed items.
+///
+/// Transformation:
+/// - Tracks nested delimiters so plus signs inside nested forms are preserved.
 pub(super) fn split_top_level_plus(input: &str) -> Vec<String> {
     let bytes = input.as_bytes();
     let mut out = Vec::new();
@@ -1769,6 +1771,17 @@ pub(super) fn split_top_level_plus(input: &str) -> Vec<String> {
         .collect()
 }
 
+/// Splits type text at top-level union separators.
+///
+/// Inputs:
+/// - `input`: type-expression text.
+///
+/// Output:
+/// - Non-empty trimmed union variant text.
+///
+/// Transformation:
+/// - Tracks nested delimiters so `|` inside lists, tuples, maps, or function
+///   parameters does not split the outer union.
 pub(super) fn split_top_level_union(input: &str) -> Vec<String> {
     let bytes = input.as_bytes();
     let mut out = Vec::new();
@@ -1800,6 +1813,16 @@ pub(super) fn split_top_level_union(input: &str) -> Vec<String> {
         .collect()
 }
 
+/// Splits a qualified type name into module path and base name.
+///
+/// Inputs:
+/// - `name`: type name that may contain dots.
+///
+/// Output:
+/// - Optional module path and unqualified base name.
+///
+/// Transformation:
+/// - Uses the final dot as the boundary so nested module paths remain intact.
 pub(super) fn split_module_name(name: &str) -> (Option<String>, String) {
     if let Some((module, base)) = name.rsplit_once('.') {
         (Some(module.to_string()), base.to_string())
@@ -1808,14 +1831,45 @@ pub(super) fn split_module_name(name: &str) -> (Option<String>, String) {
     }
 }
 
+/// Reports whether compacted text has list type syntax.
+///
+/// Inputs:
+/// - `input`: compacted type-expression text.
+///
+/// Output:
+/// - `true` for bracketed list type syntax that is not a list-comprehension
+///   marker.
+///
+/// Transformation:
+/// - Checks only the outer delimiters and excludes `||`.
 pub(super) fn is_list_type(input: &str) -> bool {
     input.starts_with('[') && input.ends_with(']') && !input.contains("||")
 }
 
+/// Reports whether compacted text has tuple type syntax.
+///
+/// Inputs:
+/// - `input`: compacted type-expression text.
+///
+/// Output:
+/// - `true` when the text is wrapped in tuple braces.
+///
+/// Transformation:
+/// - Performs a delimiter-shape check before full tuple parsing.
 pub(super) fn is_tuple_type(input: &str) -> bool {
     input.starts_with('{') && input.ends_with('}')
 }
 
+/// Reports whether compacted text has map type syntax.
+///
+/// Inputs:
+/// - `input`: compacted type-expression text.
+///
+/// Output:
+/// - `true` for `#{...}` map type expressions.
+///
+/// Transformation:
+/// - Performs a delimiter-shape check before full map-field parsing.
 pub(super) fn is_map_type_expr(input: &str) -> bool {
     input.starts_with("#{") && input.ends_with('}') && input.len() >= 3
 }

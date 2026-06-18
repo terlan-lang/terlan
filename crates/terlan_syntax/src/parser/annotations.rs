@@ -1,5 +1,16 @@
 use super::*;
 
+/// Parsed annotation metadata block.
+///
+/// Inputs:
+/// - Source block following an annotation path.
+///
+/// Output:
+/// - Raw preserved block text plus typed entries and standalone values.
+///
+/// Transformation:
+/// - Keeps raw metadata available for compatibility while exposing structured
+///   annotation values to syntax output and later semantic validation.
 struct ParsedAnnotationBlock {
     raw: String,
     entries: Vec<AnnotationEntry>,

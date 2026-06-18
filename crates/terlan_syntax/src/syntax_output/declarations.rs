@@ -1,5 +1,16 @@
 use super::*;
 
+/// Converts a parsed declaration into the stable syntax-output payload.
+///
+/// Inputs:
+/// - `declaration`: parser AST declaration.
+///
+/// Output:
+/// - Serializable `SyntaxDeclarationPayload` for downstream compiler phases.
+///
+/// Transformation:
+/// - Projects each declaration variant into syntax-output DTOs while preserving
+///   names, visibility, spans, docs, typed annotations, and converted bodies.
 pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayload {
     match declaration {
         Decl::Import(decl) => SyntaxDeclarationPayload::Import {
@@ -131,6 +142,17 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
     }
 }
 
+/// Extracts documentation comments attached to a parsed declaration.
+///
+/// Inputs:
+/// - `declaration`: parser AST declaration.
+///
+/// Output:
+/// - Documentation lines attached to declarations that support docs.
+///
+/// Transformation:
+/// - Clones declaration-owned doc text and returns an empty list for imports
+///   and exports, which currently do not carry source docs.
 pub(super) fn declaration_docs(declaration: &Decl) -> Vec<String> {
     match declaration {
         Decl::Type(decl) => decl.docs.clone(),
@@ -147,6 +169,16 @@ pub(super) fn declaration_docs(declaration: &Decl) -> Vec<String> {
     }
 }
 
+/// Converts a parsed type expression into syntax-output form.
+///
+/// Inputs:
+/// - `ty`: parser type expression with source text and span.
+///
+/// Output:
+/// - `SyntaxTypeOutput` retaining text and span.
+///
+/// Transformation:
+/// - Preserves canonical type text for later type parsing and diagnostics.
 fn type_output(ty: &TypeExpr) -> SyntaxTypeOutput {
     SyntaxTypeOutput {
         text: ty.text.clone(),
@@ -154,6 +186,17 @@ fn type_output(ty: &TypeExpr) -> SyntaxTypeOutput {
     }
 }
 
+/// Converts a parsed function or method parameter into syntax-output form.
+///
+/// Inputs:
+/// - `param`: parser parameter with name, annotation, mutability, and span.
+///
+/// Output:
+/// - `SyntaxParamOutput` consumed by type checking and interface generation.
+///
+/// Transformation:
+/// - Converts the annotation through `type_output` and preserves mutable
+///   receiver/argument metadata.
 fn param_output(param: &Param) -> SyntaxParamOutput {
     SyntaxParamOutput {
         name: param.name.clone(),
@@ -163,6 +206,17 @@ fn param_output(param: &Param) -> SyntaxParamOutput {
     }
 }
 
+/// Converts a constructor parameter into syntax-output form.
+///
+/// Inputs:
+/// - `param`: parser constructor parameter with optional default expression.
+///
+/// Output:
+/// - `SyntaxConstructorParamOutput` including default and varargs metadata.
+///
+/// Transformation:
+/// - Converts the annotation and lowers any default expression into syntax
+///   output using the parameter span as source context.
 fn constructor_param_output(param: &ConstructorParam) -> SyntaxConstructorParamOutput {
     let span: EbnfSourceSpan = param.span.into();
     SyntaxConstructorParamOutput {
@@ -178,6 +232,18 @@ fn constructor_param_output(param: &ConstructorParam) -> SyntaxConstructorParamO
     }
 }
 
+/// Converts a constructor clause into syntax-output form.
+///
+/// Inputs:
+/// - `clause`: parser constructor clause.
+///
+/// Output:
+/// - `SyntaxConstructorClauseOutput` containing parameters, return type, body,
+///   body text, and span.
+///
+/// Transformation:
+/// - Converts constructor parameters and body expression into the stable
+///   syntax-output layer used by type checking and Erlang lowering.
 fn constructor_clause_output(clause: &ConstructorClause) -> SyntaxConstructorClauseOutput {
     let span: EbnfSourceSpan = clause.span.into();
     SyntaxConstructorClauseOutput {
@@ -189,6 +255,17 @@ fn constructor_clause_output(clause: &ConstructorClause) -> SyntaxConstructorCla
     }
 }
 
+/// Converts a function clause into syntax-output form.
+///
+/// Inputs:
+/// - `clause`: parser function clause with patterns, optional guard, and body.
+///
+/// Output:
+/// - `SyntaxFunctionClauseOutput` consumed by type checking and lowering.
+///
+/// Transformation:
+/// - Converts patterns, guard, and body into syntax-output nodes while
+///   preserving whether a guard was present.
 fn function_clause_output(clause: &FunctionClause) -> SyntaxFunctionClauseOutput {
     let span: EbnfSourceSpan = clause.span.into();
     SyntaxFunctionClauseOutput {
@@ -203,6 +280,18 @@ fn function_clause_output(clause: &FunctionClause) -> SyntaxFunctionClauseOutput
     }
 }
 
+/// Converts a trait method declaration into syntax-output form.
+///
+/// Inputs:
+/// - `method`: parser trait method declaration.
+///
+/// Output:
+/// - `SyntaxTraitMethodOutput` with signature, optional default body, docs, and
+///   span.
+///
+/// Transformation:
+/// - Converts parameter and return type annotations and lowers default bodies
+///   through normal expression syntax output.
 fn trait_method_output(method: &TraitMethodDecl) -> SyntaxTraitMethodOutput {
     let span: EbnfSourceSpan = method.span.into();
     SyntaxTraitMethodOutput {
@@ -219,18 +308,6 @@ fn trait_method_output(method: &TraitMethodDecl) -> SyntaxTraitMethodOutput {
         span: method.span.into(),
     }
 }
-
-/// Converts an explicit conformance method into syntax-output form.
-///
-/// Inputs:
-/// - `method`: function declaration parsed inside an `impl` block.
-///
-/// Output:
-/// - Serializable method summary containing signature, clauses, and span.
-///
-/// Transformation:
-/// - Reuses function clause output so impl methods preserve the same body shape
-///   as normal declarations until trait conformance lowering resolves them.
 
 /// Converts an explicit conformance method into syntax-output form.
 ///

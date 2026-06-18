@@ -6,7 +6,8 @@ Inputs:
 - Standard-library source files under `std/`.
 - Generated summaries under `std/summaries/`.
 - Generated docs under `/tmp/terlan-std-docs` by default.
-- Exact API test coverage rows in `tests/std/RELEASE_API_TESTS.tsv`.
+- Exact API test coverage rows in `tests/std/RELEASE_API_TESTS.tsv`,
+  pointing at adjacent std `*_test.terl` files.
 
 Outputs:
 - Exit status 0 when the release manifest is complete.

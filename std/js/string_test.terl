@@ -1,0 +1,16 @@
+module tests.js.std.StringTest.
+
+import type std.js.String.JsString.
+
+pub accepts_js_string(value: JsString): JsString ->
+    value.
+
+pub converts_to_core(value: JsString): String ->
+    value.to_core().
+
+pub converts_from_core(value: String): JsString ->
+    std.js.String.from_core(value).
+
+@test
+pub generated_surface_is_declared(): Bool ->
+    true.

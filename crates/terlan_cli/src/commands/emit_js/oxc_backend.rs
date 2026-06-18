@@ -5,7 +5,6 @@ use terlan_typeck::CoreModule;
 
 use super::{core_lowering, direct_ast};
 
-#[cfg(test)]
 pub(crate) use direct_ast::emit_core_module_with_direct_oxc_ast;
 
 #[cfg(test)]
@@ -59,6 +58,24 @@ pub(crate) fn emit_js_with_oxc_codegen(source: &str) -> Result<String, String> {
 /// Validates JavaScript source as an ECMAScript module through Oxc.
 ///
 /// Inputs:
+/// - `source`: JavaScript module source produced by a release or probe
+///   emitter.
+///
+/// Output:
+/// - `Ok(())` when Oxc parses and codegens the module successfully.
+/// - `Err(String)` containing parser diagnostics when Oxc rejects the source.
+///
+/// Transformation:
+/// - Reuses the parser/codegen validation path without returning the reprinted
+///   JavaScript, giving build commands a mandatory JS validation hook that is
+///   independent of any external runtime.
+pub(crate) fn validate_js_module_with_oxc(source: &str) -> Result<(), String> {
+    emit_js_with_oxc_codegen(source).map(|_| ())
+}
+
+/// Validates JavaScript source as an ECMAScript module through Oxc.
+///
+/// Inputs:
 /// - `path`: generated JavaScript artifact path used in diagnostics.
 /// - `source`: JavaScript source text written by `terlc emit-js`.
 ///
@@ -71,7 +88,7 @@ pub(crate) fn emit_js_with_oxc_codegen(source: &str) -> Result<String, String> {
 ///   using the same parser/codegen path as production JS emission.
 #[cfg(test)]
 pub(crate) fn assert_oxc_accepts_js_artifact(path: &Path, source: &str) {
-    if let Err(message) = emit_js_with_oxc_codegen(source) {
+    if let Err(message) = validate_js_module_with_oxc(source) {
         panic!("Oxc rejected emitted JS artifact {path:?}: {message}");
     }
 }

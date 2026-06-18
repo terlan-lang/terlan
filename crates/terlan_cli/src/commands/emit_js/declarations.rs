@@ -13,7 +13,7 @@ use terlan_typeck::{CoreModule, CoreTupleTypeElem, CoreType, CoreVisibility};
 /// - Filters private CoreIR declarations, emits public type aliases when the
 ///   current CoreIR payload can describe them, and emits public function
 ///   signatures from CoreIR parameter/return metadata.
-pub(super) fn emit_core_module_to_typescript_declarations(module: &CoreModule) -> String {
+pub(crate) fn emit_core_module_to_typescript_declarations(module: &CoreModule) -> String {
     let mut out = String::new();
     for type_decl in &module.types {
         if !matches!(type_decl.visibility, CoreVisibility::Public) {

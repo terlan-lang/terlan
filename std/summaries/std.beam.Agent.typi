@@ -1,5 +1,5 @@
 //! BEAM Agent contract.
-//! 
+//!
 //! `std.beam.Agent` models a supervised process that owns one typed state value.
 //! It is a BEAM convenience wrapper built on the same ordinary type and method
 //! rules as the rest of Terlan; it is not a portable mutable reference.
@@ -7,7 +7,7 @@
 module std.beam.Agent.
 
 /// Agent represents a supervised typed state process.
-/// 
+///
 /// Input: type parameter `T`.
 /// Output: an opaque BEAM-owned process handle.
 /// Transformation: hides process identity, mailbox mechanics, and supervision
@@ -16,7 +16,7 @@ module std.beam.Agent.
 pub opaque type Agent[T].
 
 /// Queues an asynchronous state update.
-/// 
+///
 /// Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
 /// Output: `Unit`.
 /// Transformation: records an effectful state update request without exposing
@@ -25,7 +25,7 @@ pub opaque type Agent[T].
 pub (mut agent: Agent[T]) cast(writer: (T ) -> T): Unit.
 
 /// Reads the current state.
-/// 
+///
 /// Input: one `Agent[T]` receiver.
 /// Output: the current state value.
 /// Transformation: performs a typed synchronous state read without exposing a
@@ -34,7 +34,7 @@ pub (mut agent: Agent[T]) cast(writer: (T ) -> T): Unit.
 pub (agent: Agent[T]) get(): T.
 
 /// Updates state and returns a derived value.
-/// 
+///
 /// Input: one `Agent[T]` receiver and one writer from `T` to a named
 /// `{state, value}` pair.
 /// Output: the derived value.
@@ -45,7 +45,7 @@ pub (agent: Agent[T]) get(): T.
 pub (agent: Agent[T]) get_and_update(writer: (T ) -> {state : T, value : U}): U.
 
 /// Starts an agent with an initial value.
-/// 
+///
 /// Input: one initial state value of type `T`.
 /// Output: `Result[Agent[T], Error]`.
 /// Transformation: asks the BEAM runtime to start a supervised state process and
@@ -54,7 +54,7 @@ pub (agent: Agent[T]) get_and_update(writer: (T ) -> {state : T, value : U}): U.
 pub start(initial: T): Result[Agent[T], Error].
 
 /// Stops the agent.
-/// 
+///
 /// Input: one mutable `Agent[T]` receiver.
 /// Output: `Unit`.
 /// Transformation: asks the BEAM runtime to terminate the supervised state
@@ -63,7 +63,7 @@ pub start(initial: T): Result[Agent[T], Error].
 pub (mut agent: Agent[T]) stop(): Unit.
 
 /// Replaces state by applying a writer function.
-/// 
+///
 /// Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
 /// Output: `Unit`.
 /// Transformation: updates the agent state through receiver mutability while

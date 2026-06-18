@@ -1,12 +1,12 @@
 //! Core index access traits.
-//! 
+//!
 //! `std.collections.Index` defines the portable contracts that bracket syntax
 //! resolves through when a collection-like type supports indexed access.
 
 module std.collections.Index.
 
 /// Describes read access through `collection[index]`.
-/// 
+///
 /// Input: collection type `C`, index type `I`, and yielded value type `T`.
 /// Output: a trait requiring `get_at(collection, index)`.
 /// Transformation: lets the compiler typecheck bracket-read syntax without
@@ -17,7 +17,7 @@ pub trait IndexGet[C, I, T] {
 }.
 
 /// Describes write access through `collection[index] = value`.
-/// 
+///
 /// Input: collection type `C`, index type `I`, and assigned value type `T`.
 /// Output: `Unit` after the indexed update is accepted.
 /// Transformation: gives bracket-assignment syntax a trait contract while the

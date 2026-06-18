@@ -213,6 +213,52 @@ pub (error: Error) message_text(): String.\n\
     );
 }
 
+/// Verifies imported mutable receiver methods dispatch directly.
+///
+/// Inputs:
+/// - A provider interface exporting a wrapper type and a mutable receiver
+///   setter method returning `Unit`.
+/// - A consumer module importing the type and using both direct receiver-call
+///   and pipe-forward forms.
+///
+/// Output:
+/// - Test passes when direct calls type as `Unit` and mutable receiver pipes
+///   continue with the receiver type.
+///
+/// Transformation:
+/// - Exercises generated-summary receiver metadata for JS-style wrappers
+///   without requiring a local `derives` edge or hand-written adapter method.
+#[test]
+fn syntax_output_typechecks_imported_mutable_receiver_method_call_and_pipe() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module imported_mutable_receiver_method_ok.\n\
+\n\
+import type std.js.Dom.{Element}.\n\
+import std.js.Dom.\n\
+\n\
+pub set_once(element: Element): Unit ->\n\
+    element.set_text(\"hello\").\n\
+\n\
+pub update(element: Element): Element ->\n\
+    element |> set_text(\"hello\").\n\
+",
+        "\
+module std.js.Dom.\n\
+\n\
+pub type Element.\n\
+\n\
+pub (mut element: Element) set_text(value: String): Unit.\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 #[test]
 fn syntax_output_typechecks_inherited_receiver_method_pipe() {
     let diagnostics = check_syntax_output(

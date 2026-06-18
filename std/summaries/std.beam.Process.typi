@@ -1,5 +1,5 @@
 //! BEAM process contract.
-//! 
+//!
 //! `std.beam.Process` models a typed process handle for BEAM-targeted runtime
 //! modules. It exists so supervision and native bridges can be expressed as
 //! ordinary annotated types and traits instead of source-level actor syntax.
@@ -7,7 +7,7 @@
 module std.beam.Process.
 
 /// Process represents a typed BEAM process handle.
-/// 
+///
 /// Input: type parameter `T` describing accepted message payloads.
 /// Output: an opaque BEAM process handle.
 /// Transformation: keeps process identity target-owned while preserving a typed
@@ -16,7 +16,7 @@ module std.beam.Process.
 pub opaque type Process[T].
 
 /// ProcessLike defines the minimum typed process operations.
-/// 
+///
 /// Input: process handle type `P` and message payload type `T`.
 /// Output: a trait requiring `send` and `stop` operations.
 /// Transformation: models BEAM message delivery as receiver-style API surface

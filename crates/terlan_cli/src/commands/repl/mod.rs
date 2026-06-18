@@ -404,6 +404,23 @@ fn is_repl_binding_name(name: &str) -> bool {
         && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
+/// Parses a REPL declaration entry and emits diagnostics or success output.
+///
+/// Inputs:
+/// - `module_name`: synthetic REPL module used to wrap the declaration.
+/// - `declaration`: user-entered declaration source.
+/// - `diagnostic_format`: text or JSON diagnostic output mode.
+/// - `declarations`: persistent REPL declaration accumulator.
+/// - `expr_parse_error`: optional expression-parser failure to report before
+///   declaration parse diagnostics.
+///
+/// Output:
+/// - None; parsed declarations are appended and diagnostics/results are printed.
+///
+/// Transformation:
+/// - Rewraps the entry as a temporary module, stores source-spanned
+///   declarations, and reports both expression and declaration parse failures
+///   so ambiguous REPL entries remain debuggable.
 fn parse_repl_declaration_and_log(
     module_name: &str,
     declaration: &str,
@@ -450,6 +467,17 @@ fn parse_repl_declaration_and_log(
     }
 }
 
+/// Parses a complete Terlan module into syntax output for REPL loading.
+///
+/// Inputs:
+/// - `source`: complete module source text.
+///
+/// Output:
+/// - Parsed `SyntaxModuleOutput` on success.
+/// - Diagnostic message and byte span on parse or serialization failure.
+///
+/// Transformation:
+/// - Adapts the syntax crate error shape into the compact REPL diagnostic tuple.
 fn parse_syntax_module(source: &str) -> Result<SyntaxModuleOutput, (String, usize, usize)> {
     match parse_module_as_syntax_output(source) {
         Ok(module) => Ok(module),
@@ -458,6 +486,18 @@ fn parse_syntax_module(source: &str) -> Result<SyntaxModuleOutput, (String, usiz
     }
 }
 
+/// Rebuilds a synthetic module from persistent REPL declarations.
+///
+/// Inputs:
+/// - `module_name`: generated REPL module name.
+/// - `declarations`: source snippets already accepted into the session.
+///
+/// Output:
+/// - Complete module source text.
+///
+/// Transformation:
+/// - Prepends the module declaration and joins persisted declarations with
+///   stable spacing so later expression evaluation can use the normal compiler.
 fn repl_declarations_to_source(module_name: &str, declarations: &[String]) -> String {
     let mut source = format!("module {}.\n\n", module_name);
     for declaration in declarations {
@@ -470,6 +510,18 @@ fn repl_declarations_to_source(module_name: &str, declarations: &[String]) -> St
     source
 }
 
+/// Extracts declaration source slices from parsed syntax declarations.
+///
+/// Inputs:
+/// - `source`: original module source containing the declarations.
+/// - `declarations`: parsed declarations with source spans.
+///
+/// Output:
+/// - Source snippets for declarations whose spans are valid.
+///
+/// Transformation:
+/// - Uses parser-provided spans to preserve user declaration text without
+///   pretty-printing or normalizing the source.
 fn repl_declaration_sources(source: &str, declarations: &[SyntaxDeclarationOutput]) -> Vec<String> {
     declarations
         .iter()
@@ -481,6 +533,19 @@ fn repl_declaration_sources(source: &str, declarations: &[SyntaxDeclarationOutpu
         .collect()
 }
 
+/// Parses one declaration-style REPL entry into persistent source snippets.
+///
+/// Inputs:
+/// - `module_name`: generated module wrapper name.
+/// - `declaration`: user-entered declaration source.
+///
+/// Output:
+/// - Parsed declaration source snippets on success.
+/// - Parse diagnostic tuple when the wrapped module is invalid or empty.
+///
+/// Transformation:
+/// - Wraps the entry in a temporary module because the syntax parser accepts
+///   complete modules, then extracts the declaration spans back out.
 fn parse_repl_declaration(
     module_name: &str,
     declaration: &str,
@@ -498,6 +563,20 @@ fn parse_repl_declaration(
     Ok(declarations)
 }
 
+/// Loads declarations from a REPL seed file or project directory.
+///
+/// Inputs:
+/// - `path`: `.terl` file or project directory path supplied to `terlc repl`
+///   or `:load`.
+/// - `diagnostic_format`: text or JSON output mode for load errors.
+///
+/// Output:
+/// - Declaration source snippets to seed the REPL session.
+/// - `ExitCode` when filesystem or parse diagnostics should abort loading.
+///
+/// Transformation:
+/// - Expands the path into ordered Terlan sources, parses each complete module,
+///   and stores only declaration source slices for later REPL evaluation.
 fn load_repl_seed_declarations(
     path: &str,
     diagnostic_format: DiagnosticFormat,
@@ -554,7 +633,7 @@ fn load_repl_seed_declarations(
 /// - Ordered `(path, source)` pairs for `.terl` files to add to the session.
 ///
 /// Transformation:
-/// - Applies the 0.0.3 load contract: a file path loads exactly that file; a
+/// - Applies the REPL load contract: a file path loads exactly that file; a
 ///   directory path must contain `terlan.toml` and loads `.terl` files only from
 ///   manifest-declared source roots in deterministic path order.
 fn repl_load_sources(path: &Path) -> Result<Vec<(String, String)>, String> {
@@ -1030,241 +1109,5 @@ fn emit_repl_result(diagnostic_format: DiagnosticFormat, value: &str) {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::PathBuf;
-    use std::time::UNIX_EPOCH;
-
-    use super::{
-        is_repl_help_args, parse_repl_value_binding, render_repl_json_event,
-        repl_expression_with_bindings, repl_load_sources, ReplValueBinding,
-    };
-
-    /// Verifies REPL command-local help aliases are recognized.
-    ///
-    /// Inputs:
-    /// - Synthetic command-local argument vectors for `--help` and `-h`.
-    ///
-    /// Output:
-    /// - Test assertions only; no files are read or written.
-    ///
-    /// Transformation:
-    /// - Exercises the REPL help detector without starting the interactive
-    ///   command loop.
-    #[test]
-    fn repl_help_args_accept_long_and_short_help() {
-        assert!(is_repl_help_args(&["--help".to_string()]));
-        assert!(is_repl_help_args(&["-h".to_string()]));
-    }
-
-    /// Verifies REPL help detection does not consume seed paths.
-    ///
-    /// Inputs:
-    /// - Synthetic command-local argument vectors for empty args, one seed
-    ///   path, and malformed extra arguments.
-    ///
-    /// Output:
-    /// - Test assertions only; no files are read or written.
-    ///
-    /// Transformation:
-    /// - Keeps REPL help routing exact so normal seed loading and malformed
-    ///   argument diagnostics remain owned by the main command path.
-    #[test]
-    fn repl_help_args_reject_non_help_invocations() {
-        assert!(!is_repl_help_args(&[]));
-        assert!(!is_repl_help_args(&["src/main.terl".to_string()]));
-        assert!(!is_repl_help_args(&[
-            "--help".to_string(),
-            "src/main.terl".to_string()
-        ]));
-    }
-
-    /// Verifies that REPL binding syntax captures a simple persistent name.
-    ///
-    /// Inputs:
-    /// - A terminator-stripped REPL entry with shape `let name = expr`.
-    ///
-    /// Output:
-    /// - Parsed name and value expression.
-    ///
-    /// Transformation:
-    /// - Exercises the REPL-only binding parser without invoking the full
-    ///   interactive command loop.
-    #[test]
-    fn repl_value_binding_parser_accepts_simple_binding() {
-        let binding = parse_repl_value_binding("let total = 1 + 2").unwrap();
-
-        assert_eq!(binding.name, "total");
-        assert_eq!(binding.value, "1 + 2");
-    }
-
-    /// Verifies that full Terlan `let` expressions are left to source parsing.
-    ///
-    /// Inputs:
-    /// - A terminator-stripped source `let` expression containing `;`.
-    ///
-    /// Output:
-    /// - `None`, indicating the REPL did not treat the entry as persistent
-    ///   session state.
-    ///
-    /// Transformation:
-    /// - Keeps the REPL-only `let name = expr.` entry form separate from normal
-    ///   Terlan let expressions such as `let x = 1; x + 1`.
-    #[test]
-    fn repl_value_binding_parser_rejects_source_let_expression() {
-        assert!(parse_repl_value_binding("let x = 1; x + 1").is_none());
-    }
-
-    /// Verifies that persisted bindings lower through ordinary Terlan `let`.
-    ///
-    /// Inputs:
-    /// - Current expression source and two persisted REPL value bindings.
-    ///
-    /// Output:
-    /// - Generated source expression with persisted bindings evaluated first.
-    ///
-    /// Transformation:
-    /// - Converts REPL state into the compiler-owned source form used before
-    ///   parsing, typechecking, CoreIR lowering, and evaluator execution.
-    #[test]
-    fn repl_expression_with_bindings_builds_source_let_expression() {
-        let expression = repl_expression_with_bindings(
-            "x + y",
-            &[
-                ReplValueBinding {
-                    name: "x".to_string(),
-                    value: "1".to_string(),
-                },
-                ReplValueBinding {
-                    name: "y".to_string(),
-                    value: "2".to_string(),
-                },
-            ],
-        );
-
-        assert_eq!(expression, "let x = 1; y = 2; x + y");
-    }
-
-    /// Verifies JSON REPL events are valid without optional fields.
-    ///
-    /// Inputs:
-    /// - Event kind and text without extra field payload.
-    ///
-    /// Output:
-    /// - Parsed JSON with schema, kind, and text fields.
-    ///
-    /// Transformation:
-    /// - Renders the event through the same helper used by the REPL command and
-    ///   parses it back through `serde_json`.
-    #[test]
-    fn repl_json_event_without_extra_fields_is_valid_json() {
-        let event = render_repl_json_event("ready", None, "REPL ready");
-        let value: serde_json::Value = serde_json::from_str(&event).expect("parse repl event");
-
-        assert_eq!(value["schema"], "terlan-repl-event-v1");
-        assert_eq!(value["kind"], "ready");
-        assert_eq!(value["text"], "REPL ready");
-    }
-
-    /// Verifies JSON REPL events are valid with optional fields.
-    ///
-    /// Inputs:
-    /// - Event kind, field payload, and human-readable text.
-    ///
-    /// Output:
-    /// - Parsed JSON containing both the payload field and text field.
-    ///
-    /// Transformation:
-    /// - Confirms optional field insertion preserves comma separation before
-    ///   the final `text` property.
-    #[test]
-    fn repl_json_event_with_extra_fields_is_valid_json() {
-        let event = render_repl_json_event(
-            "result",
-            Some("\"value\":\"Unit\",\"message\":\"ok\""),
-            "Unit",
-        );
-        let value: serde_json::Value = serde_json::from_str(&event).expect("parse repl event");
-
-        assert_eq!(value["schema"], "terlan-repl-event-v1");
-        assert_eq!(value["kind"], "result");
-        assert_eq!(value["value"], "Unit");
-        assert_eq!(value["message"], "ok");
-        assert_eq!(value["text"], "Unit");
-    }
-
-    /// Verifies project loads follow manifest source roots.
-    ///
-    /// Inputs:
-    /// - A temporary project with `src` and `lib` source roots plus unrelated
-    ///   `.terl` files outside those roots.
-    ///
-    /// Output:
-    /// - Loaded source paths from `src` and `lib` only.
-    ///
-    /// Transformation:
-    /// - Reads `terlan.toml`, resolves `[build] source_roots`, recursively
-    ///   collects Terlan files under those roots, and ignores unrelated project
-    ///   directories such as `_build`.
-    #[test]
-    fn repl_load_sources_uses_project_manifest_source_roots() {
-        let root = make_repl_test_dir("manifest_source_roots");
-        fs::create_dir_all(root.join("src/app")).expect("create src");
-        fs::create_dir_all(root.join("lib/app")).expect("create lib");
-        fs::create_dir_all(root.join("_build/src")).expect("create ignored build dir");
-        fs::create_dir_all(root.join("misc")).expect("create ignored misc dir");
-        fs::write(
-            root.join("terlan.toml"),
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\", \"lib\"]\nartifact = \"beam-thin\"\n",
-        )
-        .expect("write manifest");
-        fs::write(root.join("src/app/Main.terl"), "module app.Main.\n").expect("write src");
-        fs::write(root.join("lib/app/Util.terl"), "module app.Util.\n").expect("write lib");
-        fs::write(
-            root.join("_build/src/generated.terl"),
-            "module ignored.Generated.\n",
-        )
-        .expect("write ignored build source");
-        fs::write(root.join("misc/Other.terl"), "module ignored.Other.\n")
-            .expect("write ignored misc source");
-
-        let sources = repl_load_sources(&root).expect("load project sources");
-        let paths = sources
-            .iter()
-            .map(|(path, _)| path.replace('\\', "/"))
-            .collect::<Vec<_>>();
-
-        assert_eq!(sources.len(), 2);
-        assert!(paths.iter().any(|path| path.ends_with("lib/app/Util.terl")));
-        assert!(paths.iter().any(|path| path.ends_with("src/app/Main.terl")));
-        assert!(!paths.iter().any(|path| path.contains("_build")));
-        assert!(!paths.iter().any(|path| path.contains("/misc/")));
-
-        fs::remove_dir_all(root).expect("remove test project");
-    }
-
-    /// Creates a unique temporary directory for REPL unit tests.
-    ///
-    /// Inputs:
-    /// - `label`: stable readable prefix for the test directory name.
-    ///
-    /// Output:
-    /// - Path to a newly created directory under the OS temporary directory.
-    ///
-    /// Transformation:
-    /// - Combines the label, process id, and current time to avoid collisions,
-    ///   removes any stale directory with that exact name, then creates it.
-    fn make_repl_test_dir(label: &str) -> PathBuf {
-        let nanos = std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |duration| duration.as_nanos());
-        let path = std::env::temp_dir().join(format!(
-            "terlan_repl_{label}_{}_{}",
-            std::process::id(),
-            nanos
-        ));
-        let _ = fs::remove_dir_all(&path);
-        fs::create_dir_all(&path).expect("create repl test dir");
-        path
-    }
-}
+#[path = "repl_test.rs"]
+mod repl_test;

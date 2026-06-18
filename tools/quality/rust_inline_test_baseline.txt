@@ -1,0 +1,19 @@
+# Repository-relative Rust files that currently contain inline #[cfg(test)].
+crates/terlan_cli/src/commands/bind/polars_probe.rs
+crates/terlan_cli/src/commands/build/mod.rs
+crates/terlan_cli/src/commands/emit_js/direct_ast.rs
+crates/terlan_cli/src/commands/emit_js/mod.rs
+crates/terlan_cli/src/commands/emit_js/oxc_backend.rs
+crates/terlan_cli/src/commands/mod.rs
+crates/terlan_cli/src/commands/repl/evaluator.rs
+crates/terlan_cli/src/main.rs
+crates/terlan_cli/src/validation/mod.rs
+crates/terlan_cli/src/validation/target_profile/mod.rs
+crates/terlan_erlang/src/emit.rs
+crates/terlan_erlang/src/emit/core.rs
+crates/terlan_erlang/src/emit/util.rs
+crates/terlan_lsp/src/lib.rs
+crates/terlan_syntax/src/ebnf.rs
+crates/terlan_syntax/src/lib.rs
+crates/terlan_syntax/src/parser_contract.rs
+crates/terlan_typeck/src/lib.rs

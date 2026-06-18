@@ -9,6 +9,16 @@ use validation::target_profile::TargetProfile;
 
 mod commands;
 
+/// Terminal color selection for human-readable diagnostics.
+///
+/// Inputs:
+/// - Parsed from the global `--color` option.
+///
+/// Output:
+/// - Color policy consumed by diagnostic rendering.
+///
+/// Transformation:
+/// - Keeps terminal-color behavior separate from diagnostic format selection.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum ColorChoice {
     #[default]
@@ -17,6 +27,17 @@ pub(crate) enum ColorChoice {
     Never,
 }
 
+/// Top-level diagnostic serialization mode.
+///
+/// Inputs:
+/// - Parsed from `--diagnostic-format` and `--color`.
+///
+/// Output:
+/// - Text or JSON diagnostic mode shared by command handlers.
+///
+/// Transformation:
+/// - Bundles text color policy with the text format while keeping JSON output
+///   deterministic and color-free.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum DiagnosticFormat {
     Text { color: ColorChoice },
@@ -24,6 +45,17 @@ pub(crate) enum DiagnosticFormat {
 }
 
 impl Default for DiagnosticFormat {
+    /// Returns the default diagnostic format for CLI invocations.
+    ///
+    /// Inputs:
+    /// - None.
+    ///
+    /// Output:
+    /// - Text diagnostics with automatic terminal color selection.
+    ///
+    /// Transformation:
+    /// - Provides a stable default so command parsing can start from a complete
+    ///   CLI state before global options are processed.
     fn default() -> Self {
         Self::Text {
             color: ColorChoice::Auto,
@@ -31,6 +63,17 @@ impl Default for DiagnosticFormat {
     }
 }
 
+/// Documentation renderer selected by `terlc doc`.
+///
+/// Inputs:
+/// - Parsed from `terlc doc --format`.
+///
+/// Output:
+/// - Markdown, HTML, or JSON renderer choice.
+///
+/// Transformation:
+/// - Keeps doc output selection in shared CLI state so doc command parsing can
+///   remain focused on command-local source paths.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 enum DocFormat {
     Markdown,
@@ -39,6 +82,17 @@ enum DocFormat {
     Json,
 }
 
+/// Parsed global CLI state shared with command handlers.
+///
+/// Inputs:
+/// - Raw command-line arguments before the command verb and command-local args.
+///
+/// Output:
+/// - Normalized global options such as output dirs, diagnostics, native policy,
+///   and target profile.
+///
+/// Transformation:
+/// - Separates command-independent flags from the verb-specific argument list.
 #[derive(Default, Clone)]
 struct CliState {
     no_emit: bool,
@@ -52,54 +106,85 @@ struct CliState {
     target_profile: TargetProfile,
 }
 
+/// Parsed command verb and command-local arguments.
+///
+/// Inputs:
+/// - Raw command-line arguments after global option extraction.
+///
+/// Output:
+/// - Optional verb plus remaining args forwarded to the command module.
+///
+/// Transformation:
+/// - Preserves command-local options without interpreting them in the top-level
+///   dispatcher.
 #[derive(Default)]
 struct CliCommand {
     verb: Option<String>,
     args: Vec<String>,
 }
 
+/// Returns the release-facing top-level usage lines.
+///
+/// Inputs:
+/// - None; the public command surface is a compile-time list.
+///
+/// Output:
+/// - Ordered usage lines shown by bare `terlc`, `terlc help`, and unknown
+///   command diagnostics.
+///
+/// Transformation:
+/// - Filters the implemented command set down to the stable user-facing
+///   release surface so scratch, maintainer, and internal validation commands
+///   do not leak through the default CLI output.
+fn public_usage_lines() -> &'static [&'static str] {
+    &[
+        "terlc help [command]",
+        "terlc init [project-name] [--profile default|web]",
+        "terlc check <file.terl|file.terli|dir>",
+        "terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]",
+        "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]",
+        "terlc test [file.terl|dir] [--target erlang|js]",
+        "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
+        "terlc repl [--help] [<file.terl|project-dir>]",
+        "terlc fmt <file.terl>",
+        "terlc version | terlc --version | terlc -V",
+        "Global options: --diagnostic-format text|json --color auto|always|never --target-profile erlang|js.shared|js.browser|js.worker",
+    ]
+}
+
 fn print_usage() {
-    println!("terlc help [command]");
-    println!("terlc init [project-name]");
-    println!("terlc bind rust --crate <crate-name> --out <dir>");
-    println!("terlc check <file.terl|file.terli|dir> [--emit-phase-manifest <path>]");
-    println!("terlc build [file.terl|dir] [--target erlang] [--out-dir <dir>]");
-    println!("terlc emit <file.terl> [--out-dir <dir>] [--no-emit] [--incremental]");
-    println!(
-        "terlc emit-static <file.terl> [--out-dir <dir>] [--validate-output] [--asset-include <pattern>] [--asset-exclude <pattern>]"
-    );
-    println!(
-        "terlc serve-static <file.terl> [--out-dir <dir>] [--host <host>] [--port <port>] [--poll-ms <ms>] [--source-dir <dir>] [--validate-output]"
-    );
-    println!("terlc emit-js <file.terl> [--out-dir <dir>] [--declarations]");
-    println!(
-        "terlc test [file.terl|dir] [--target erlang] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
-    );
-    println!("terlc interface <file.terli> [--out-dir <dir>]");
-    println!(
-        "terlc doc <file.terl|dir> [--format html|markdown|json] [--out-dir <dir>] [--check] [--missing-docs]"
-    );
-    println!("terlc doctest <file.terl>");
-    println!("terlc emit-native-metadata <file.terl> [--out-dir <dir>]");
-    println!("terlc repl [--help] [<file.terl|project-dir>]");
-    println!("terlc fmt <file.terl>");
-    println!("terlc hover <file.terl> --line <line> (--column|--col) <column>");
-    println!("terlc lsp --stdio");
-    println!("terlc version | terlc --version | terlc -V");
-    println!("Maintainer/release tooling:");
-    println!("terlc syntax-contract [--fingerprint] [--out <path>]");
-    println!("terlc syntax-contract --check <path>");
-    println!("Global options: --diagnostic-format text|json --color auto|always|never");
-    println!(
-        "               --native-policy pure|safe_native_optional|safe_native_required [--target-profile erlang|a0-erlang|a0.1-erlang|a0.2-erlang|a0.3-erlang|a0.4-erlang|a0.5-erlang|a0.6-erlang|a0.7-erlang|a0.8-erlang|a0.9-erlang|a0.10-erlang|a0.11-erlang|a0.12-erlang|a0.13-erlang|a0.14-erlang|a0.15-erlang|a0.16-erlang|a0.17-erlang|a0.18-erlang|a0.19-erlang|a0.20-erlang|a0.21-erlang|core-v0]"
-    );
+    for line in public_usage_lines() {
+        println!("{line}");
+    }
 }
 
 #[cfg(not(test))]
+/// Native binary entrypoint.
+///
+/// Inputs:
+/// - Process arguments from `std::env::args`.
+///
+/// Output:
+/// - Process exit code returned by the selected command.
+///
+/// Transformation:
+/// - Drops the executable path and delegates all CLI behavior to `run_cli`.
 fn main() -> ExitCode {
     run_cli(std::env::args().skip(1).collect())
 }
 
+/// Runs the Terlan CLI dispatcher.
+///
+/// Inputs:
+/// - `args`: command-line arguments after the executable name.
+///
+/// Output:
+/// - Exit code from help/version handling, argument parsing, or command module
+///   execution.
+///
+/// Transformation:
+/// - Handles top-level help/version fast paths, parses global options, then
+///   routes the command to the implementation module.
 fn run_cli(args: Vec<String>) -> ExitCode {
     if args.is_empty() {
         print_usage();
@@ -139,6 +224,7 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "init" => commands::init::run(cmd),
         "bind" => commands::bind::run(cmd),
         "build" => commands::build::run(cmd, state),
+        "serve" => commands::serve::run(cmd, state),
         "check" => commands::check::run(cmd, state),
         "emit" => commands::emit::run(cmd, state),
         "emit-static" => commands::static_site::run_emit_static(cmd, state),
@@ -306,10 +392,13 @@ fn print_command_help(command: &str) -> ExitCode {
 fn print_command_usage(command: &str) -> bool {
     match command {
         "help" => println!("terlc help [command]"),
-        "init" => println!("terlc init [project-name]"),
+        "init" => println!("terlc init [project-name] [--profile default|web]"),
         "bind" => println!("terlc bind rust --crate <crate-name> --out <dir>"),
         "check" => println!("terlc check <file.terl|file.terli|dir> [--emit-phase-manifest <path>]"),
-        "build" => println!("terlc build [file.terl|dir] [--target erlang] [--out-dir <dir>]"),
+        "build" => println!("terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]"),
+        "serve" => println!(
+            "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]"
+        ),
         "emit" => println!("terlc emit <file.terl> [--out-dir <dir>] [--no-emit] [--incremental]"),
         "emit-static" => println!(
             "terlc emit-static <file.terl> [--out-dir <dir>] [--validate-output] [--asset-include <pattern>] [--asset-exclude <pattern>]"
@@ -319,7 +408,7 @@ fn print_command_usage(command: &str) -> bool {
         ),
         "emit-js" => println!("terlc emit-js <file.terl> [--out-dir <dir>] [--declarations]"),
         "test" => println!(
-            "terlc test [file.terl|dir] [--target erlang] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
+            "terlc test [file.terl|dir] [--target erlang|js] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
         ),
         "interface" => println!("terlc interface <file.terli> [--out-dir <dir>]"),
         "doc" => println!(
@@ -366,6 +455,7 @@ fn command_has_usage(command: &str) -> bool {
             | "bind"
             | "check"
             | "build"
+            | "serve"
             | "emit"
             | "emit-static"
             | "serve-static"
@@ -458,6 +548,17 @@ fn command_local_help_request(args: &[String]) -> Option<&str> {
     }
 }
 
+/// Parses global options and separates the command-local argument tail.
+///
+/// Inputs:
+/// - `args`: raw command-line arguments after the executable name.
+///
+/// Output:
+/// - Parsed `CliState` and `CliCommand`.
+///
+/// Transformation:
+/// - Consumes known global flags until the first command verb, forwarding
+///   unknown or command-local options to the selected command.
 fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
     let mut state = CliState {
         no_emit: false,
@@ -670,6 +771,9 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
                     "a0.19-erlang" => TargetProfile::A019Erlang,
                     "a0.20-erlang" => TargetProfile::A020Erlang,
                     "a0.21-erlang" => TargetProfile::A021Erlang,
+                    "js" | "js.shared" => TargetProfile::JsShared,
+                    "js.browser" => TargetProfile::JsBrowser,
+                    "js.worker" => TargetProfile::JsWorker,
                     "core-v0" => TargetProfile::CoreV0,
                     other => {
                         eprintln!("unsupported target profile: {}", other);

@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "std" / "RUST_BACKED_MANIFEST.tsv"
 EXPECTED_HEADER = ["module", "source", "crate", "operation", "function", "arity"]
-ALLOWED_CRATES = {"serde_json", "base64", "std::path", "url"}
+ALLOWED_CRATES = {"serde_json", "base64", "std::path", "url", "std::http"}
 ADAPTERS = {
     "std.data.Json": ("serde_json", ROOT / "crates" / "terlan_safenative" / "src" / "json.rs"),
     "std.encoding.Base64": (
@@ -21,6 +21,14 @@ ADAPTERS = {
     ),
     "std.io.Path": ("std::path", ROOT / "crates" / "terlan_safenative" / "src" / "path.rs"),
     "std.net.Uri": ("url", ROOT / "crates" / "terlan_safenative" / "src" / "uri.rs"),
+    "std.http.Request": (
+        "std::http",
+        ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
+    ),
+    "std.http.Response": (
+        "std::http",
+        ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
+    ),
 }
 
 
@@ -354,10 +362,9 @@ def rust_public_functions(path: Path) -> tuple[set[str], list[str]]:
         return set(), [f"missing SafeNative adapter: {path.relative_to(ROOT)}"]
 
     source = path.read_text(encoding="utf-8")
-    functions = {
-        match.group(1)
-        for match in re.finditer(r"(?m)^\s*pub\s+fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", source)
-    }
+    functions = set()
+    for match in re.finditer(r"(?m)^\s*pub\s+fn\s+(?:r#)?([A-Za-z_][A-Za-z0-9_]*)\s*\(", source):
+        functions.add(match.group(1))
     return functions, []
 
 
@@ -410,6 +417,111 @@ def validate_adapter_symbols(rows: list[ManifestRow]) -> list[str]:
     return errors
 
 
+def rust_test_path(adapter_path: Path) -> Path:
+    """Return the adjacent Rust test module path for one adapter.
+
+    Inputs:
+    - `adapter_path`: absolute SafeNative adapter path.
+
+    Outputs:
+    - Absolute adjacent test path with `_test.rs` suffix.
+
+    Transformation:
+    - Replaces the adapter file suffix with the project's adjacent test-module
+      naming convention.
+    """
+
+    return adapter_path.with_name(f"{adapter_path.stem}_test.rs")
+
+
+def rust_test_references(path: Path) -> tuple[str, list[str]]:
+    """Read one adjacent Rust test module.
+
+    Inputs:
+    - `path`: absolute test module path.
+
+    Outputs:
+    - Test source text and validation diagnostics.
+
+    Transformation:
+    - Converts a missing or non-test file into normal manifest diagnostics so
+      the release gate explains which adapter lacks executable test coverage.
+    """
+
+    if not path.is_file():
+        return "", [f"missing SafeNative adapter test: {path.relative_to(ROOT)}"]
+    source = path.read_text(encoding="utf-8")
+    if "#[test]" not in source:
+        return source, [f"{path.relative_to(ROOT)}: missing #[test] functions"]
+    return source, []
+
+
+def references_function(source: str, function: str) -> bool:
+    """Return whether a Rust test source references an adapter function.
+
+    Inputs:
+    - `source`: adjacent Rust test source text.
+    - `function`: manifest function name without raw-identifier prefix.
+
+    Outputs:
+    - `True` when the test source calls the function by normal or raw
+      identifier spelling.
+
+    Transformation:
+    - Uses a lightweight Rust-call pattern because the manifest gate only needs
+      coverage evidence; Rust's own test runner validates the call typechecks.
+    """
+
+    pattern = rf"(?<![A-Za-z0-9_])(?:r#)?{re.escape(function)}\s*\("
+    return re.search(pattern, source) is not None
+
+
+def validate_adapter_tests(rows: list[ManifestRow]) -> list[str]:
+    """Validate adjacent SafeNative test coverage for manifest functions.
+
+    Inputs:
+    - `rows`: parsed Rust-backed manifest rows.
+
+    Outputs:
+    - Human-readable diagnostics for missing adapter tests or unreferenced
+      manifest functions.
+
+    Transformation:
+    - Groups rows by Terlan module, resolves the known adapter mapping, loads
+      the adjacent `_test.rs` module once, and requires each manifest function
+      to appear in an executable test source.
+    """
+
+    errors: list[str] = []
+    rows_by_module: dict[str, list[ManifestRow]] = {}
+    for row in rows:
+        rows_by_module.setdefault(row.module, []).append(row)
+
+    test_cache: dict[Path, str] = {}
+    for module, module_rows in sorted(rows_by_module.items()):
+        adapter = ADAPTERS.get(module)
+        if adapter is None:
+            continue
+        _expected_crate, adapter_path = adapter
+        test_path = rust_test_path(adapter_path)
+        source = test_cache.get(test_path)
+        if source is None:
+            source, read_errors = rust_test_references(test_path)
+            test_cache[test_path] = source
+            errors.extend(read_errors)
+        if not source:
+            continue
+
+        for row in module_rows:
+            if not references_function(source, row.function):
+                errors.append(
+                    f"{row.source}: `{row.operation}` maps to `{row.function}`, "
+                    f"but {test_path.relative_to(ROOT)} does not reference it"
+                )
+
+    return errors
+
+
 def main() -> int:
     """Validate the checked-in Rust-backed std operation manifest.
 
@@ -429,6 +541,7 @@ def main() -> int:
     rows, errors = load_manifest(MANIFEST)
     errors.extend(validate_manifest(rows))
     errors.extend(validate_adapter_symbols(rows))
+    errors.extend(validate_adapter_tests(rows))
     if errors:
         print("[rust-backed-std-manifest] failures:", file=sys.stderr)
         for error in errors:
