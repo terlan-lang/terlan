@@ -21,8 +21,8 @@ module.exports = grammar({
 
   conflicts: ($) => [
     [$._top_level_item, $.function_declaration],
-    [$.expression, $.qualified_identifier],
-    [$.expression, $.raw_macro_expression]
+    [$.expression, $.raw_macro_expression],
+    [$.expression, $._name_ref]
   ],
 
   rules: {
@@ -52,19 +52,14 @@ module.exports = grammar({
         "import",
         optional("type"),
         field("path", $.qualified_identifier),
-        optional($.import_selection),
+        optional(seq(".", $.import_selection)),
         "."
       ),
 
     import_selection: ($) =>
       seq("{", commaSep1(choice($.identifier, $.type_identifier)), "}"),
 
-    annotation: ($) =>
-      seq(
-        "@",
-        field("name", $.qualified_identifier),
-        optional($.annotation_body)
-      ),
+    annotation: ($) => seq("@", field("name", $._name_ref), optional($.annotation_body)),
 
     annotation_body: ($) => seq("{", repeat($._annotation_item), "}"),
 
@@ -79,7 +74,7 @@ module.exports = grammar({
 
     type_declaration: ($) =>
       seq(
-        optional("pub"),
+        optional($.pub_keyword),
         optional("opaque"),
         "type",
         field("name", $.type_identifier),
@@ -91,7 +86,7 @@ module.exports = grammar({
 
     struct_declaration: ($) =>
       seq(
-        optional("pub"),
+        optional($.pub_keyword),
         "struct",
         field("name", $.type_identifier),
         optional($.type_parameters),
@@ -107,7 +102,7 @@ module.exports = grammar({
 
     trait_declaration: ($) =>
       seq(
-        optional("pub"),
+        optional($.pub_keyword),
         "trait",
         field("name", $.type_identifier),
         optional($.type_parameters),
@@ -119,7 +114,7 @@ module.exports = grammar({
 
     impl_declaration: ($) =>
       seq(
-        optional("pub"),
+        optional($.pub_keyword),
         "impl",
         field("trait", $.type_expression),
         "for",
@@ -147,7 +142,7 @@ module.exports = grammar({
 
     constructor_declaration: ($) =>
       seq(
-        optional("pub"),
+        optional($.pub_keyword),
         "constructor",
         field("name", $.type_identifier),
         optional($.type_parameters),
@@ -158,17 +153,20 @@ module.exports = grammar({
       ),
 
     function_declaration: ($) =>
-      seq(
-        repeat($.annotation),
-        optional("pub"),
-        optional($.receiver),
-        field("name", $.identifier),
-        optional($.type_parameters),
-        $.parameters,
-        optional(seq(":", $.type_expression)),
-        "->",
-        $.expression,
-        "."
+      prec.right(
+        1,
+        seq(
+          repeat($.annotation),
+          optional($.pub_keyword),
+          optional($.receiver),
+          field("name", $.identifier),
+          optional($.type_parameters),
+          $.parameters,
+          optional(seq(":", $.type_expression)),
+          "->",
+          $.expression,
+          "."
+        )
       ),
 
     function_signature: ($) =>
@@ -198,6 +196,7 @@ module.exports = grammar({
 
     type_expression: ($) =>
       choice(
+        $.type_identifier,
         $.qualified_identifier,
         $.generic_type,
         $.tuple_type,
@@ -205,7 +204,7 @@ module.exports = grammar({
         $.atom_type
       ),
 
-    generic_type: ($) => seq($.qualified_identifier, "[", commaSep1($.type_expression), "]"),
+    generic_type: ($) => seq($._type_name_ref, "[", commaSep1($.type_expression), "]"),
 
     tuple_type: ($) => seq("{", optional(commaSep1($.type_expression)), "}"),
 
@@ -219,6 +218,7 @@ module.exports = grammar({
         $.case_expression,
         $.if_expression,
         $.lambda_expression,
+        $.method_call_expression,
         $.call_expression,
         $.field_expression,
         $.binary_expression,
@@ -245,7 +245,10 @@ module.exports = grammar({
 
     lambda_expression: ($) => seq($.parameters, "->", $.expression),
 
-    call_expression: ($) => seq($.qualified_identifier, $.arguments),
+    call_expression: ($) => seq($._name_ref, $.arguments),
+
+    method_call_expression: ($) =>
+      prec.left(4, seq($.expression, ".", $._field_identifier, $.arguments)),
 
     field_expression: ($) => prec.left(3, seq($.expression, ".", $._field_identifier)),
 
@@ -265,14 +268,20 @@ module.exports = grammar({
 
     atom_literal: ($) => seq("Atom", "[", $.string, "]"),
 
-    qualified_identifier: ($) =>
-      prec.right(seq(choice($.identifier, $.type_identifier), repeat(seq(token.immediate("."), choice($.identifier, $.type_identifier))))),
+    qualified_identifier: () =>
+      token(/([a-z_][A-Za-z0-9_]*\.)*[A-Z][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*/),
+
+    _name_ref: ($) => choice($.qualified_identifier, $.identifier, $.type_identifier),
+
+    _type_name_ref: ($) => choice($.qualified_identifier, $.type_identifier),
 
     _field_identifier: ($) => choice($.identifier, $.private_field_identifier),
 
     private_field_identifier: ($) => seq("#", $.identifier),
 
-    identifier: () => /[a-z_][A-Za-z0-9_]*/,
+    pub_keyword: () => token(prec(1, "pub")),
+
+    identifier: () => token(prec(-1, /[a-z_][A-Za-z0-9_]*/)),
 
     type_identifier: () => /[A-Z][A-Za-z0-9_]*/,
 

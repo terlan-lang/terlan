@@ -303,15 +303,16 @@ function testCorpusCoverage() {
     "user.display_name()",
     "sql {",
     "${count.to_string()}",
-    "(interpolation)"
+    "(interpolation",
+    "(method_call_expression"
   ];
   const requiredNodes = [
-    "(module_declaration)",
-    "(import_declaration)",
-    "(trait_declaration)",
-    "(struct_declaration)",
-    "(template_declaration)",
-    "(function_declaration)"
+    "(module_declaration",
+    "(import_declaration",
+    "(trait_declaration",
+    "(struct_declaration",
+    "(template_declaration",
+    "(function_declaration"
   ];
 
   for (const snippet of requiredSnippets) {

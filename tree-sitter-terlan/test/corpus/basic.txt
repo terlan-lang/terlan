@@ -12,9 +12,25 @@ pub main(): Unit ->
 ---
 
 (source_file
-  (module_declaration)
-  (import_declaration)
-  (function_declaration))
+  (module_declaration
+    (qualified_identifier))
+  (import_declaration
+    (qualified_identifier)
+    (import_selection
+      (identifier)))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters)
+    (type_expression
+      (qualified_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (expression
+              (string))))))))
 
 ==================
 struct and trait
@@ -35,9 +51,44 @@ pub struct User implements Show[User] {
 ---
 
 (source_file
-  (module_declaration)
-  (trait_declaration)
-  (struct_declaration))
+  (module_declaration
+    (qualified_identifier))
+  (trait_declaration
+    (pub_keyword)
+    (type_identifier)
+    (type_parameters
+      (type_identifier))
+    (function_signature
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_expression
+            (qualified_identifier))))
+      (type_expression
+        (qualified_identifier))))
+  (struct_declaration
+    (pub_keyword)
+    (type_identifier)
+    (implements_clause
+      (type_expression
+        (generic_type
+          (qualified_identifier)
+          (type_expression
+            (qualified_identifier)))))
+    (field_declaration
+      (identifier)
+      (type_expression
+        (qualified_identifier)))
+    (field_declaration
+      (identifier)
+      (type_expression
+        (qualified_identifier)))
+    (field_declaration
+      (private_field_identifier
+        (identifier))
+      (type_expression
+        (qualified_identifier)))))
 
 ==================
 template declaration
@@ -57,10 +108,31 @@ pub page(): Template.Html ->
 ---
 
 (source_file
-  (module_declaration)
-  (import_declaration)
-  (template_declaration)
-  (function_declaration))
+  (module_declaration
+    (qualified_identifier))
+  (import_declaration
+    (qualified_identifier))
+  (template_declaration
+    (type_identifier)
+    (string)
+    (template_parameter
+      (identifier)
+      (type_expression
+        (qualified_identifier))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters)
+    (type_expression
+      (qualified_identifier))
+    (expression
+      (call_expression
+        (qualified_identifier)
+        (arguments
+          (argument
+            (identifier)
+            (expression
+              (string))))))))
 
 ==================
 template expression island
@@ -71,7 +143,13 @@ ${count.to_string()}
 ---
 
 (source_file
-  (interpolation))
+  (interpolation
+    (expression
+      (method_call_expression
+        (expression
+          (identifier))
+        (identifier)
+        (arguments)))))
 
 ==================
 0.0.5 web handler syntax
@@ -112,11 +190,120 @@ pub lookup(): Query ->
 ---
 
 (source_file
-  (module_declaration)
-  (import_declaration)
-  (import_declaration)
-  (function_declaration)
-  (function_declaration)
-  (function_declaration)
-  (function_declaration)
-  (function_declaration))
+  (module_declaration
+    (qualified_identifier))
+  (import_declaration
+    (qualified_identifier))
+  (import_declaration
+    (qualified_identifier))
+  (function_declaration
+    (annotation
+      (identifier)
+      (annotation_body
+        (annotation_assignment
+          (identifier)
+          (expression
+            (string)))
+        (annotation_assignment
+          (identifier)
+          (expression
+            (string)))))
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (qualified_identifier))))
+    (type_expression
+      (qualified_identifier))
+    (expression
+      (call_expression
+        (qualified_identifier)
+        (arguments
+          (argument
+            (expression
+              (string)))
+          (argument
+            (identifier)
+            (expression
+              (number)))))))
+  (function_declaration
+    (pub_keyword)
+    (receiver
+      (identifier)
+      (type_expression
+        (qualified_identifier)))
+    (identifier)
+    (parameters)
+    (type_expression
+      (qualified_identifier))
+    (expression
+      (case_expression
+        (expression
+          (field_expression
+            (expression
+              (identifier))
+            (identifier)))
+        (case_arm
+          (pattern
+            (string))
+          (expression
+            (string)))
+        (case_arm
+          (pattern)
+          (expression
+            (field_expression
+              (expression
+                (identifier))
+              (identifier)))))))
+  (function_declaration
+    (pub_keyword)
+    (receiver
+      (identifier)
+      (type_expression
+        (qualified_identifier)))
+    (identifier)
+    (parameters)
+    (type_expression
+      (qualified_identifier))
+    (expression
+      (field_expression
+        (expression
+          (identifier))
+        (private_field_identifier
+          (identifier)))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (qualified_identifier))))
+    (type_expression
+      (qualified_identifier))
+    (expression
+      (if_expression
+        (case_arm
+          (pattern
+            (type_identifier))
+          (expression
+            (method_call_expression
+              (expression
+                (identifier))
+              (identifier)
+              (arguments))))
+        (case_arm
+          (pattern)
+          (expression
+            (string))))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters)
+    (type_expression
+      (qualified_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))))

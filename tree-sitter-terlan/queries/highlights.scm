@@ -2,24 +2,23 @@
   "case"
   "if"
   "let"
-  "with"
 ] @keyword.control
 
 [
   "constructor"
-  "extends"
   "implements"
   "import"
   "module"
   "opaque"
-  "pub"
   "struct"
   "template"
   "trait"
   "type"
 ] @keyword
 
-(annotation "@" @punctuation.special name: (qualified_identifier) @attribute)
+(pub_keyword) @keyword
+
+(annotation "@" @punctuation.special name: (_) @attribute)
 
 (module_declaration name: (qualified_identifier) @namespace)
 
@@ -32,6 +31,8 @@
 (template_declaration name: (type_identifier) @function)
 
 (call_expression (qualified_identifier) @function.call)
+
+(method_call_expression (identifier) @function.method)
 
 (type_identifier) @type
 
