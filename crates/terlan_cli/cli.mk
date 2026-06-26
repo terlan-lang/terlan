@@ -72,7 +72,8 @@ cli-test-fast:
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::build_command_emits_erlang_source_and_beam_for_single_file -- --exact
 
 cli-test-full:
-	$(CARGO) test --locked --workspace
+	$(CARGO) build --locked --bin terlc
+	PATH="$(CURDIR)/target/debug:$$PATH" $(CARGO) test --locked --workspace
 
 cli-test-release: cli-test-full
 
