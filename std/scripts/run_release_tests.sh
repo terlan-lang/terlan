@@ -4,7 +4,8 @@ set -euo pipefail
 # Inputs:
 # - tests/std/RELEASE_API_TESTS.tsv, which identifies adjacent stdlib
 #   release-test files.
-# - The `terlan` Cargo package providing the `terlc test` command.
+# - The Cargo package providing the `terlc test` command. Current workspaces
+#   use `terlan`; older release branches used `terlan_cli`.
 # - TERLC_BIN, optionally overriding the compiler binary used for each test.
 # - TERLAN_STD_TEST_TIMEOUT_SECONDS, optionally overriding the per-file timeout.
 #
@@ -24,6 +25,36 @@ manifest="tests/std/RELEASE_API_TESTS.tsv"
 test_timeout_seconds="${TERLAN_STD_TEST_TIMEOUT_SECONDS:-30}"
 terlc_bin="${TERLC_BIN:-${CARGO_TARGET_DIR:-target}/debug/terlc}"
 failures=0
+
+# Inputs:
+# - Cargo workspace metadata from the current checkout.
+#
+# Output:
+# - Cargo package name that owns the `terlc` binary.
+#
+# Transformation:
+# - Prefers the consolidated `terlan` crate and falls back to the older
+#   `terlan_cli` package so release tests work across the crate-consolidation
+#   boundary.
+terlc_cargo_package() {
+  cargo metadata --no-deps --format-version 1 |
+    python3 -c '
+import json
+import sys
+
+metadata = json.load(sys.stdin)
+names = {package["name"] for package in metadata.get("packages", [])}
+for candidate in ("terlan", "terlan_cli"):
+    if candidate in names:
+        print(candidate)
+        raise SystemExit(0)
+print(
+    "cannot find Cargo package that provides terlc; expected terlan or terlan_cli",
+    file=sys.stderr,
+)
+raise SystemExit(1)
+'
+}
 
 # Inputs:
 # - $1: stdlib release-test file path.
@@ -54,7 +85,8 @@ fi
 
 if [[ -z "${TERLC_BIN:-}" ]]; then
   printf 'building terlc for stdlib release tests: %s\n' "$terlc_bin"
-  cargo build -q -p terlan --bin terlc
+  terlc_package="$(terlc_cargo_package)"
+  cargo build -q -p "$terlc_package" --bin terlc
 fi
 
 if [[ ! -x "$terlc_bin" ]]; then
