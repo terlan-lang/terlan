@@ -4,7 +4,8 @@ set -euo pipefail
 # Inputs:
 # - tests/std/RELEASE_API_TESTS.tsv, which identifies adjacent stdlib
 #   release-test files.
-# - The `terlan_cli` Cargo package providing the `terlc test` command.
+# - The `terlan` Cargo package providing the `terlc test` command.
+# - TERLC_BIN, optionally overriding the compiler binary used for each test.
 # - TERLAN_STD_TEST_TIMEOUT_SECONDS, optionally overriding the per-file timeout.
 #
 # Output:
@@ -21,6 +22,7 @@ set -euo pipefail
 
 manifest="tests/std/RELEASE_API_TESTS.tsv"
 test_timeout_seconds="${TERLAN_STD_TEST_TIMEOUT_SECONDS:-30}"
+terlc_bin="${TERLC_BIN:-${CARGO_TARGET_DIR:-target}/debug/terlc}"
 failures=0
 
 # Inputs:
@@ -50,6 +52,16 @@ if [[ ! -f "$manifest" ]]; then
   exit 1
 fi
 
+if [[ -z "${TERLC_BIN:-}" ]]; then
+  printf 'building terlc for stdlib release tests: %s\n' "$terlc_bin"
+  cargo build -q -p terlan --bin terlc
+fi
+
+if [[ ! -x "$terlc_bin" ]]; then
+  printf 'terlc binary is missing or not executable after build: %s\n' "$terlc_bin" >&2
+  exit 1
+fi
+
 test_files="$(mktemp -t terlan-std-tests.XXXXXX)"
 trap 'rm -f "$test_files"' EXIT
 
@@ -73,7 +85,7 @@ while IFS= read -r test_file; do
   printf '[stdlib-release-test] %s\n' "$test_file"
   status=0
   read -r -a target_args <<< "$(test_target_args "$test_file")"
-  timeout "${test_timeout_seconds}s" cargo run -q -p terlan_cli -- test "$test_file" "${target_args[@]}" || status="$?"
+  timeout "${test_timeout_seconds}s" "$terlc_bin" test "$test_file" "${target_args[@]}" || status="$?"
   if [[ "$status" -eq 0 ]]; then
     continue
   fi
