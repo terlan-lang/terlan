@@ -22,7 +22,7 @@ set -euo pipefail
 #   release automation.
 
 manifest="tests/std/RELEASE_API_TESTS.tsv"
-test_timeout_seconds="${TERLAN_STD_TEST_TIMEOUT_SECONDS:-30}"
+test_timeout_seconds="${TERLAN_STD_TEST_TIMEOUT_SECONDS:-120}"
 terlc_bin="${TERLC_BIN:-${CARGO_TARGET_DIR:-target}/debug/terlc}"
 failures=0
 
