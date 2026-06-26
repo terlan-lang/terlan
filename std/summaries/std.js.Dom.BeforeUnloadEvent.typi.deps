@@ -1,0 +1,8 @@
+module=std.js.Dom.BeforeUnloadEvent
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=6059919781740354086
+interface_hash=1816015464874728410
+interface_doc_hash=1816015464874728410
+deps=0

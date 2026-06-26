@@ -1,0 +1,63 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface LargestContentfulPaint
+ */
+
+module std.js.Dom.LargestContentfulPaint.
+
+/**
+ * The `LargestContentfulPaint` interface provides timing information about the largest image or text paint before user input on a web page.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint)
+ */
+pub opaque type LargestContentfulPaint.
+
+/**
+ * The **`element`** read-only property of the LargestContentfulPaint interface returns an object representing the Element that is the largest contentful paint.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/element)
+ */
+pub (value: LargestContentfulPaint) element(): Option[Element].
+
+/**
+ * The **`id`** read-only property of the LargestContentfulPaint interface returns the ID of the element that is the largest contentful paint.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/id)
+ */
+pub (value: LargestContentfulPaint) id(): std.js.String.JsString.
+
+/**
+ * The **`loadTime`** read-only property of the LargestContentfulPaint interface returns the time that the element was loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/loadTime)
+ */
+pub (value: LargestContentfulPaint) load_time(): DOMHighResTimeStamp.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/renderTime)
+ */
+pub (value: LargestContentfulPaint) render_time(): DOMHighResTimeStamp.
+
+/**
+ * The **`size`** read-only property of the LargestContentfulPaint interface returns the intrinsic size of the element that is the largest contentful paint.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/size)
+ */
+pub (value: LargestContentfulPaint) size(): std.js.Number.JsNumber.
+
+/**
+ * The **`url`** read-only property of the LargestContentfulPaint interface returns the request URL of the element, if the element is an image.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/url)
+ */
+pub (value: LargestContentfulPaint) url(): std.js.String.JsString.

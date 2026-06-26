@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
+use crate::support::{is_valid_sha256_hex, sha256sum_file};
 use serde::Deserialize;
 
 /// Expected schema for committed TypeScript input manifests.
@@ -224,9 +224,9 @@ fn validate_input_file(repo_root: &Path, input: &TsInputFile) -> Result<(), Stri
             input.kind
         ));
     }
-    if input.namespace != "std.js.Dom" {
+    if !matches!(input.namespace.as_str(), "std.js" | "std.js.Dom") {
         return Err(format!(
-            "ts_bindgen.input_manifest_namespace: expected `std.js.Dom`, found `{}`",
+            "ts_bindgen.input_manifest_namespace: expected `std.js` or `std.js.Dom`, found `{}`",
             input.namespace
         ));
     }
@@ -244,7 +244,8 @@ fn validate_input_file(repo_root: &Path, input: &TsInputFile) -> Result<(), Stri
             input.path
         ));
     }
-    let actual = sha256sum_file(&input_path)?;
+    let actual = sha256sum_file(&input_path)
+        .map_err(|error| format!("ts_bindgen.input_manifest_sha256_tool_failed: {error}"))?;
     if actual != input.sha256 {
         return Err(format!(
             "ts_bindgen.input_manifest_sha256_mismatch: `{}` expected `{}`, found `{actual}`",
@@ -278,64 +279,4 @@ pub(super) fn safe_repo_relative_path(path: &str) -> Result<PathBuf, String> {
         return Err("ts_bindgen.input_manifest_path_parent_dir".to_string());
     }
     Ok(path.to_path_buf())
-}
-
-/// Checks whether a string is lowercase SHA-256 hex.
-///
-/// Inputs:
-/// - `value`: candidate manifest hash.
-///
-/// Output:
-/// - `true` when `value` is exactly 64 lowercase hexadecimal characters.
-///
-/// Transformation:
-/// - Performs a byte-level check so malformed hashes fail before invoking any
-///   external hash tool.
-fn is_valid_sha256_hex(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-}
-
-/// Computes a file SHA-256 with the local system hash tool.
-///
-/// Inputs:
-/// - `path`: existing file path to hash.
-///
-/// Output:
-/// - `Ok(String)` with lowercase hex SHA-256.
-/// - `Err(String)` when `sha256sum` is unavailable or returns malformed output.
-///
-/// Transformation:
-/// - Invokes `sha256sum`, reads the first whitespace-delimited field, and
-///   validates it as lowercase SHA-256 hex before returning it.
-fn sha256sum_file(path: &Path) -> Result<String, String> {
-    let output = Command::new("sha256sum")
-        .arg(path)
-        .output()
-        .map_err(|err| {
-            format!(
-            "ts_bindgen.input_manifest_sha256_tool_failed: cannot run sha256sum for `{}`: {err}",
-            path.display()
-        )
-        })?;
-    if !output.status.success() {
-        return Err(format!(
-            "ts_bindgen.input_manifest_sha256_tool_failed: sha256sum failed for `{}`",
-            path.display()
-        ));
-    }
-    let stdout = String::from_utf8(output.stdout).map_err(|err| {
-        format!("ts_bindgen.input_manifest_sha256_tool_output_invalid_utf8: {err}")
-    })?;
-    let Some(hash) = stdout.split_whitespace().next() else {
-        return Err("ts_bindgen.input_manifest_sha256_tool_output_empty".to_string());
-    };
-    if !is_valid_sha256_hex(hash) {
-        return Err(format!(
-            "ts_bindgen.input_manifest_sha256_tool_output_invalid: `{hash}`"
-        ));
-    }
-    Ok(hash.to_string())
 }

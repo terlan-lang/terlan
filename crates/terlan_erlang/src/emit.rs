@@ -21,7 +21,9 @@ mod util;
 
 use core::*;
 use erl::*;
-pub use runtime::emit_html_runtime_to_erlang;
+pub use runtime::{
+    emit_html_runtime_to_erlang, emit_native_vector_runtime_to_erlang, emit_sql_runtime_to_erlang,
+};
 use syntax::{lower_syntax_module_output, lower_syntax_struct_headers_to_hrl};
 use util::*;
 
@@ -241,6 +243,12 @@ fn unsupported_direct_syntax_emit_message(module: &SyntaxModuleOutput) -> String
     )
 }
 
+#[cfg(test)]
+#[path = "emit/beam_epmd_emit_test.rs"]
+mod beam_epmd_emit_test;
+#[cfg(test)]
+#[path = "emit/beam_port_emit_test.rs"]
+mod beam_port_emit_test;
 #[cfg(test)]
 #[path = "emit/collection_emit_test.rs"]
 mod collection_emit_test;

@@ -1,7 +1,11 @@
-use oxc_ast::ast::{
-    BindingPattern, FormalParameter, PropertyKey, Statement, TSLiteral, TSSignature, TSType,
-    TSTypeAnnotation, TSTypeName,
+use oxc_ast::{
+    ast::{
+        BindingPattern, FormalParameter, PropertyKey, Statement, TSLiteral, TSSignature, TSType,
+        TSTypeAnnotation, TSTypeName, TSTypeParameterDeclaration,
+    },
+    Comment,
 };
+use oxc_span::Span;
 
 use super::ts_type_mapping::{TsPrimitiveType, TsRecordField, TsTypeRef};
 
@@ -35,6 +39,27 @@ pub(super) struct TsDeclarationFile {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum TsDeclaration {
     Interface(TsInterfaceDeclaration),
+    Unsupported(TsUnsupportedDeclaration),
+}
+
+/// Neutral TypeScript declaration skipped during parsing.
+///
+/// Inputs:
+/// - Produced when a top-level TypeScript declaration is outside the current
+///   generated binding surface.
+///
+/// Output:
+/// - Source label, stable reason code, and detail text consumed by generated
+///   skip manifests.
+///
+/// Transformation:
+/// - Makes broad standard-library generation auditable: top-level declarations
+///   that are not emitted must be justified rather than silently ignored.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct TsUnsupportedDeclaration {
+    pub(super) source: String,
+    pub(super) reason: &'static str,
+    pub(super) detail: String,
 }
 
 /// Neutral TypeScript interface declaration.
@@ -50,7 +75,10 @@ pub(super) enum TsDeclaration {
 ///   scope metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TsInterfaceDeclaration {
+    pub(super) namespace: String,
     pub(super) name: String,
+    pub(super) doc: Option<String>,
+    pub(super) type_params: Vec<String>,
     pub(super) members: Vec<TsInterfaceMember>,
 }
 
@@ -69,6 +97,27 @@ pub(super) struct TsInterfaceDeclaration {
 pub(super) enum TsInterfaceMember {
     Property(TsPropertyDeclaration),
     Method(TsMethodDeclaration),
+    Unsupported(TsUnsupportedMember),
+}
+
+/// Neutral TypeScript interface member skipped during parsing.
+///
+/// Inputs:
+/// - Produced when Oxc parses a member shape that the current generator cannot
+///   preserve safely.
+///
+/// Output:
+/// - Source label, stable reason code, and detail text consumed by the DOM
+///   mapping stage.
+///
+/// Transformation:
+/// - Keeps broad TypeScript library generation non-fatal while still recording
+///   every unsupported member in generated skip manifests.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct TsUnsupportedMember {
+    pub(super) source: String,
+    pub(super) reason: &'static str,
+    pub(super) detail: String,
 }
 
 /// Neutral TypeScript interface property.
@@ -85,6 +134,7 @@ pub(super) enum TsInterfaceMember {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TsPropertyDeclaration {
     pub(super) name: String,
+    pub(super) doc: Option<String>,
     pub(super) readonly: bool,
     pub(super) optional: bool,
     pub(super) ty: TsTypeRef,
@@ -104,6 +154,7 @@ pub(super) struct TsPropertyDeclaration {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TsMethodDeclaration {
     pub(super) name: String,
+    pub(super) doc: Option<String>,
     pub(super) optional: bool,
     pub(super) params: Vec<TsParameterDeclaration>,
     pub(super) return_type: TsTypeRef,
@@ -172,12 +223,214 @@ pub(super) fn parse_ts_declaration_file(source: &str) -> Result<TsDeclarationFil
 
     let mut declarations = Vec::new();
     for statement in &parsed.program.body {
-        if let Statement::TSInterfaceDeclaration(interface) = statement {
-            declarations.push(TsDeclaration::Interface(parse_interface(interface)?));
-        }
+        declarations.push(parse_top_level_statement(
+            source,
+            &parsed.program.comments,
+            statement,
+        )?);
     }
 
     Ok(TsDeclarationFile { declarations })
+}
+
+/// Converts one top-level Oxc statement into a neutral declaration.
+///
+/// Inputs:
+/// - `statement`: Oxc program statement from a `.d.ts` input.
+///
+/// Output:
+/// - Supported interface declarations or explicit unsupported declaration rows.
+///
+/// Transformation:
+/// - Admits TypeScript interfaces for generation and records all other
+///   top-level declarations as skip-manifest entries.
+fn parse_top_level_statement(
+    source: &str,
+    comments: &[Comment],
+    statement: &Statement<'_>,
+) -> Result<TsDeclaration, TsParseError> {
+    match statement {
+        Statement::TSInterfaceDeclaration(interface) => {
+            parse_interface(source, comments, interface).map(TsDeclaration::Interface)
+        }
+        Statement::VariableDeclaration(variable) => Ok(unsupported_declaration(
+            top_level_variable_source(variable),
+            "ts_bindgen.unsupported_top_level_variable",
+            "top-level variables and constructors are not emitted yet",
+        )),
+        Statement::TSTypeAliasDeclaration(alias) => Ok(unsupported_declaration(
+            alias.id.name.as_str(),
+            "ts_bindgen.unsupported_top_level_type_alias",
+            "type aliases are not emitted yet",
+        )),
+        Statement::TSEnumDeclaration(enumeration) => Ok(unsupported_declaration(
+            enumeration.id.name.as_str(),
+            "ts_bindgen.unsupported_top_level_enum",
+            "TypeScript enums are not emitted yet",
+        )),
+        Statement::TSModuleDeclaration(module) => Ok(unsupported_declaration(
+            top_level_module_source(module),
+            "ts_bindgen.unsupported_top_level_module",
+            "ambient TypeScript modules are not emitted yet",
+        )),
+        Statement::TSGlobalDeclaration(_) => Ok(unsupported_declaration(
+            "global",
+            "ts_bindgen.unsupported_top_level_module",
+            "ambient TypeScript modules are not emitted yet",
+        )),
+        Statement::TSImportEqualsDeclaration(_) => Ok(unsupported_declaration(
+            "import_equals",
+            "ts_bindgen.unsupported_top_level_import_equals",
+            "TypeScript import-equals declarations are not emitted yet",
+        )),
+        Statement::ImportDeclaration(_) => Ok(unsupported_declaration(
+            "import",
+            "ts_bindgen.unsupported_top_level_import",
+            "TypeScript imports are not emitted yet",
+        )),
+        Statement::ExportAllDeclaration(_)
+        | Statement::ExportDefaultDeclaration(_)
+        | Statement::ExportNamedDeclaration(_)
+        | Statement::TSExportAssignment(_)
+        | Statement::TSNamespaceExportDeclaration(_) => Ok(unsupported_declaration(
+            "export",
+            "ts_bindgen.unsupported_top_level_export",
+            "TypeScript exports are not emitted yet",
+        )),
+        Statement::FunctionDeclaration(function) => Ok(unsupported_declaration(
+            function
+                .id
+                .as_ref()
+                .map(|id| id.name.as_str())
+                .unwrap_or("function"),
+            "ts_bindgen.unsupported_top_level_function",
+            "top-level functions are not emitted yet",
+        )),
+        Statement::ClassDeclaration(class) => Ok(unsupported_declaration(
+            class
+                .id
+                .as_ref()
+                .map(|id| id.name.as_str())
+                .unwrap_or("class"),
+            "ts_bindgen.unsupported_top_level_class",
+            "classes are not emitted yet",
+        )),
+        other => Ok(unsupported_declaration(
+            top_level_statement_label(other),
+            "ts_bindgen.unsupported_top_level_statement",
+            "statement is outside the TypeScript declaration binding surface",
+        )),
+    }
+}
+
+/// Returns a stable source label for an unsupported top-level variable.
+///
+/// Inputs:
+/// - `variable`: parsed Oxc variable declaration.
+///
+/// Output:
+/// - Borrowed simple binding name when the declaration has exactly one named
+///   binding, otherwise the coarse `variable` label.
+///
+/// Transformation:
+/// - Makes generated skip manifests reviewable for normal declaration files
+///   while keeping destructuring and multi-bind declarations conservative.
+fn top_level_variable_source<'a>(variable: &'a oxc_ast::ast::VariableDeclaration<'a>) -> &'a str {
+    if variable.declarations.len() != 1 {
+        return "variable";
+    }
+    match &variable.declarations[0].id {
+        BindingPattern::BindingIdentifier(id) => id.name.as_str(),
+        BindingPattern::ObjectPattern(_)
+        | BindingPattern::ArrayPattern(_)
+        | BindingPattern::AssignmentPattern(_) => "variable",
+    }
+}
+
+/// Returns a stable source label for an unsupported ambient module.
+///
+/// Inputs:
+/// - `module`: parsed Oxc TypeScript module declaration.
+///
+/// Output:
+/// - Module identifier, quoted module string, or coarse `module` label.
+///
+/// Transformation:
+/// - Preserves the declared module name in skip manifests without exposing Oxc
+///   debug formatting.
+fn top_level_module_source<'a>(module: &'a oxc_ast::ast::TSModuleDeclaration<'a>) -> &'a str {
+    match &module.id {
+        oxc_ast::ast::TSModuleDeclarationName::Identifier(id) => id.name.as_str(),
+        oxc_ast::ast::TSModuleDeclarationName::StringLiteral(literal) => literal.value.as_str(),
+    }
+}
+
+/// Builds a neutral unsupported declaration.
+///
+/// Inputs:
+/// - `source`: source declaration label.
+/// - `reason`: stable skip reason code.
+/// - `detail`: human-readable skip detail.
+///
+/// Output:
+/// - Unsupported declaration row.
+///
+/// Transformation:
+/// - Wraps top-level parser skips in the same neutral declaration stream as
+///   supported interfaces.
+fn unsupported_declaration(source: &str, reason: &'static str, detail: &str) -> TsDeclaration {
+    TsDeclaration::Unsupported(TsUnsupportedDeclaration {
+        source: source.to_string(),
+        reason,
+        detail: detail.to_string(),
+    })
+}
+
+/// Returns a stable label for an unsupported top-level statement.
+///
+/// Inputs:
+/// - `statement`: Oxc statement.
+///
+/// Output:
+/// - Stable coarse statement label.
+///
+/// Transformation:
+/// - Avoids debug-formatting parser internals in generated skip manifests.
+fn top_level_statement_label(statement: &Statement<'_>) -> &'static str {
+    match statement {
+        Statement::BlockStatement(_) => "block",
+        Statement::BreakStatement(_) => "break",
+        Statement::ContinueStatement(_) => "continue",
+        Statement::DebuggerStatement(_) => "debugger",
+        Statement::DoWhileStatement(_) => "do_while",
+        Statement::EmptyStatement(_) => "empty",
+        Statement::ExpressionStatement(_) => "expression",
+        Statement::ForInStatement(_) => "for_in",
+        Statement::ForOfStatement(_) => "for_of",
+        Statement::ForStatement(_) => "for",
+        Statement::IfStatement(_) => "if",
+        Statement::LabeledStatement(_) => "labeled",
+        Statement::ReturnStatement(_) => "return",
+        Statement::SwitchStatement(_) => "switch",
+        Statement::ThrowStatement(_) => "throw",
+        Statement::TryStatement(_) => "try",
+        Statement::WhileStatement(_) => "while",
+        Statement::WithStatement(_) => "with",
+        Statement::VariableDeclaration(_) => "variable",
+        Statement::FunctionDeclaration(_) => "function",
+        Statement::ClassDeclaration(_) => "class",
+        Statement::TSTypeAliasDeclaration(_) => "type_alias",
+        Statement::TSInterfaceDeclaration(_) => "interface",
+        Statement::TSEnumDeclaration(_) => "enum",
+        Statement::TSModuleDeclaration(_) | Statement::TSGlobalDeclaration(_) => "module",
+        Statement::TSImportEqualsDeclaration(_) => "import_equals",
+        Statement::ImportDeclaration(_) => "import",
+        Statement::ExportAllDeclaration(_) => "export_all",
+        Statement::ExportDefaultDeclaration(_) => "export_default",
+        Statement::ExportNamedDeclaration(_) => "export_named",
+        Statement::TSExportAssignment(_) => "export_assignment",
+        Statement::TSNamespaceExportDeclaration(_) => "namespace_export",
+    }
 }
 
 /// Converts one Oxc interface declaration into the neutral model.
@@ -193,19 +446,50 @@ pub(super) fn parse_ts_declaration_file(source: &str) -> Result<TsDeclarationFil
 /// - Copies the interface name and delegates member conversion while preserving
 ///   source member order.
 fn parse_interface(
+    source: &str,
+    comments: &[Comment],
     interface: &oxc_ast::ast::TSInterfaceDeclaration<'_>,
 ) -> Result<TsInterfaceDeclaration, TsParseError> {
     let members = interface
         .body
         .body
         .iter()
-        .map(parse_interface_member)
-        .collect::<Result<Vec<_>, _>>()?;
+        .map(|member| parse_interface_member(source, comments, member))
+        .collect::<Vec<_>>();
 
     Ok(TsInterfaceDeclaration {
+        namespace: String::new(),
         name: interface.id.name.to_string(),
+        doc: leading_jsdoc(source, comments, interface.span),
+        type_params: parse_type_parameter_names(interface.type_parameters.as_deref()),
         members,
     })
+}
+
+/// Extracts TypeScript interface type parameter names.
+///
+/// Inputs:
+/// - `type_parameters`: optional Oxc type-parameter declaration.
+///
+/// Output:
+/// - Type parameter names in source order.
+///
+/// Transformation:
+/// - Preserves only names for Terlan generic declarations. Constraints and
+///   defaults are intentionally ignored until Terlan has a matching type-level
+///   constraint model.
+fn parse_type_parameter_names(
+    type_parameters: Option<&TSTypeParameterDeclaration<'_>>,
+) -> Vec<String> {
+    type_parameters
+        .map(|type_parameters| {
+            type_parameters
+                .params
+                .iter()
+                .map(|parameter| parameter.name.name.to_string())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// Converts one Oxc interface signature into a neutral member.
@@ -214,17 +498,23 @@ fn parse_interface(
 /// - `member`: Oxc TypeScript interface signature.
 ///
 /// Output:
-/// - `Ok(TsInterfaceMember)` for property and method signatures.
-/// - `Err(TsParseError)` for index, call, and construct signatures.
+/// - Property or method members for supported signatures.
+/// - Unsupported members carrying stable skip metadata for unsupported shapes.
 ///
 /// Transformation:
 /// - Locks the first DOM binding slice to named members before broader
-///   TypeScript declarations are admitted.
-fn parse_interface_member(member: &TSSignature<'_>) -> Result<TsInterfaceMember, TsParseError> {
-    match member {
+///   TypeScript declarations are admitted while allowing large standard libs to
+///   keep generating around unsupported members.
+fn parse_interface_member(
+    source: &str,
+    comments: &[Comment],
+    member: &TSSignature<'_>,
+) -> TsInterfaceMember {
+    let parsed = (|| match member {
         TSSignature::TSPropertySignature(property) => {
             Ok(TsInterfaceMember::Property(TsPropertyDeclaration {
                 name: property_key_name(&property.key)?,
+                doc: leading_jsdoc(source, comments, property.span),
                 readonly: property.readonly,
                 optional: property.optional,
                 ty: parse_optional_type_annotation(property.type_annotation.as_deref())?,
@@ -239,6 +529,7 @@ fn parse_interface_member(member: &TSSignature<'_>) -> Result<TsInterfaceMember,
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(TsInterfaceMember::Method(TsMethodDeclaration {
                 name: property_key_name(&method.key)?,
+                doc: leading_jsdoc(source, comments, method.span),
                 optional: method.optional,
                 params,
                 return_type: parse_optional_type_annotation(method.return_type.as_deref())?,
@@ -250,6 +541,97 @@ fn parse_interface_member(member: &TSSignature<'_>) -> Result<TsInterfaceMember,
             "ts_bindgen.unsupported_interface_signature",
             "only named properties and methods are supported",
         )),
+    })();
+
+    parsed.unwrap_or_else(|error| {
+        TsInterfaceMember::Unsupported(TsUnsupportedMember {
+            source: interface_member_source(member),
+            reason: error.reason,
+            detail: error.message,
+        })
+    })
+}
+
+/// Extracts the leading JSDoc block attached to one TypeScript AST node.
+///
+/// Inputs:
+/// - `source`: original `.d.ts` source text.
+/// - `comments`: Oxc comments collected while parsing the source.
+/// - `span`: AST span for the declaration or member whose docs should be read.
+///
+/// Output:
+/// - Normalized doc body when a leading JSDoc comment is attached to `span`.
+/// - `None` when the node has no leading JSDoc.
+///
+/// Transformation:
+/// - Uses Oxc's comment attachment metadata instead of scanning arbitrary
+///   source text, then normalizes the comment body for Terlan block docs.
+fn leading_jsdoc(source: &str, comments: &[Comment], span: Span) -> Option<String> {
+    comments
+        .iter()
+        .rev()
+        .find(|comment| comment.attached_to == span.start && comment.is_jsdoc())
+        .and_then(|comment| normalize_jsdoc(source, *comment))
+}
+
+/// Normalizes one raw TypeScript JSDoc comment body.
+///
+/// Inputs:
+/// - `source`: original `.d.ts` source text.
+/// - `comment`: Oxc comment known to be a JSDoc comment.
+///
+/// Output:
+/// - Cleaned doc text without `/**`, leading `*`, or closing `*/`.
+/// - `None` when normalization removes all content.
+///
+/// Transformation:
+/// - Slices the comment through Oxc spans and converts TypeScript JSDoc into a
+///   language-neutral body that the Terlan generator can re-wrap.
+fn normalize_jsdoc(source: &str, comment: Comment) -> Option<String> {
+    let span = comment.content_span();
+    let body = source.get(span.start as usize..span.end as usize)?;
+    let normalized = body
+        .lines()
+        .map(|line| line.trim().strip_prefix('*').unwrap_or(line.trim()).trim())
+        .collect::<Vec<_>>();
+    let first = normalized
+        .iter()
+        .position(|line| !line.is_empty())
+        .unwrap_or(normalized.len());
+    let last = normalized
+        .iter()
+        .rposition(|line| !line.is_empty())
+        .map(|index| index + 1)
+        .unwrap_or(first);
+    if first >= last {
+        None
+    } else {
+        Some(normalized[first..last].join("\n"))
+    }
+}
+
+/// Builds a source label for an interface member.
+///
+/// Inputs:
+/// - `member`: Oxc interface member signature.
+///
+/// Output:
+/// - Best-effort source member label.
+///
+/// Transformation:
+/// - Reads static property or method keys when available and otherwise falls
+///   back to `member` so unsupported skip rows remain deterministic.
+fn interface_member_source(member: &TSSignature<'_>) -> String {
+    match member {
+        TSSignature::TSPropertySignature(property) => {
+            property_key_name(&property.key).unwrap_or_else(|_| "property".to_string())
+        }
+        TSSignature::TSMethodSignature(method) => {
+            property_key_name(&method.key).unwrap_or_else(|_| "method".to_string())
+        }
+        TSSignature::TSIndexSignature(_) => "index_signature".to_string(),
+        TSSignature::TSCallSignatureDeclaration(_) => "call_signature".to_string(),
+        TSSignature::TSConstructSignatureDeclaration(_) => "construct_signature".to_string(),
     }
 }
 

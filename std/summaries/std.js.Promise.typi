@@ -23,7 +23,7 @@ pub opaque type Promise[T].
 /// Transformation: asks the JavaScript target backend to expose the portable
 /// task as a promise at the target boundary.
 
-pub from_task(task: Task[T]): Promise[T].
+pub from_task[T](task: Task[T]): Promise[T].
 
 /// Converts a JavaScript-native promise into a portable task.
 ///

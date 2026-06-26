@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_binary_eq
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 export=same/2
 function=same/2 public=true params=x:Int:core=Int,y:Int:core=Int return=Bool return_core=Bool
 function_clause=same/2#0 patterns=Var:text=x:arity=0,Var:text=y:arity=0 core_patterns=Var(x),Var(y) pattern_proof=lean-covered,lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(x)),structural-core-pattern(freshness=runtime-bindings-required;target=Var(y)) guard=none body=BinaryOp:core=BinaryOp(==;Var(x), Var(y)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=BinaryOp(==;Var(x), Var(y))):proof=lean-covered:op===:arity=2:children=[Var:core=Var(x):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(x)):proof=lean-covered:text=x:arity=0;Var:core=Var(y):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(y)):proof=lean-covered:text=y:arity=0]

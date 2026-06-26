@@ -1,0 +1,8 @@
+module=std.js.Dom.OES_vertex_array_object
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=538181712774099512
+interface_hash=12931980597722322506
+interface_doc_hash=12931980597722322506
+deps=0

@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 terlan_syntax = { path = "../terlan_syntax" }
 terlan_hir = { path = "../terlan_hir" }
+terlan_html = { path = "../terlan_html" }
 terlan_typeck = { path = "../terlan_typeck" }
 tokio = { version = "1", features = ["io-std", "io-util", "rt-multi-thread", "macros", "time"] }
 tower-lsp = "0.20"

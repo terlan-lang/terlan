@@ -1,0 +1,70 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCTransportStats
+ */
+
+module std.js.Dom.RTCTransportStatsTest.
+
+import type std.js.Dom.RTCTransportStats.RTCTransportStats.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub bytes_received_typechecks(receiver: RTCTransportStats): std.js.Number.JsNumber ->
+    receiver.bytes_received().
+
+pub bytes_sent_typechecks(receiver: RTCTransportStats): std.js.Number.JsNumber ->
+    receiver.bytes_sent().
+
+pub dtls_cipher_typechecks(receiver: RTCTransportStats): std.js.String.JsString ->
+    receiver.dtls_cipher().
+
+pub dtls_role_typechecks(receiver: RTCTransportStats): RTCDtlsRole ->
+    receiver.dtls_role().
+
+pub dtls_state_typechecks(receiver: RTCTransportStats): RTCDtlsTransportState ->
+    receiver.dtls_state().
+
+pub ice_local_username_fragment_typechecks(receiver: RTCTransportStats): std.js.String.JsString ->
+    receiver.ice_local_username_fragment().
+
+pub ice_role_typechecks(receiver: RTCTransportStats): RTCIceRole ->
+    receiver.ice_role().
+
+pub ice_state_typechecks(receiver: RTCTransportStats): RTCIceTransportState ->
+    receiver.ice_state().
+
+pub local_certificate_id_typechecks(receiver: RTCTransportStats): std.js.String.JsString ->
+    receiver.local_certificate_id().
+
+pub packets_received_typechecks(receiver: RTCTransportStats): std.js.Number.JsNumber ->
+    receiver.packets_received().
+
+pub packets_sent_typechecks(receiver: RTCTransportStats): std.js.Number.JsNumber ->
+    receiver.packets_sent().
+
+pub remote_certificate_id_typechecks(receiver: RTCTransportStats): std.js.String.JsString ->
+    receiver.remote_certificate_id().
+
+pub selected_candidate_pair_changes_typechecks(receiver: RTCTransportStats): std.js.Number.JsNumber ->
+    receiver.selected_candidate_pair_changes().
+
+pub selected_candidate_pair_id_typechecks(receiver: RTCTransportStats): std.js.String.JsString ->
+    receiver.selected_candidate_pair_id().
+
+pub srtp_cipher_typechecks(receiver: RTCTransportStats): std.js.String.JsString ->
+    receiver.srtp_cipher().
+
+pub tls_version_typechecks(receiver: RTCTransportStats): std.js.String.JsString ->
+    receiver.tls_version().

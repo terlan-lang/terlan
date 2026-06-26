@@ -1,0 +1,8 @@
+module=std.js.Dom.LargestContentfulPaint
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=17298825978417615544
+interface_hash=17274150969574538050
+interface_doc_hash=17274150969574538050
+deps=0

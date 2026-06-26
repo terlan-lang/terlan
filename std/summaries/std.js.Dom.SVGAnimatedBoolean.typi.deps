@@ -1,0 +1,8 @@
+module=std.js.Dom.SVGAnimatedBoolean
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=17371663081481810708
+interface_hash=594499245572656961
+interface_doc_hash=594499245572656961
+deps=0

@@ -41,6 +41,23 @@ Important invariants:
 - Parser tests live outside implementation modules as adjacent `*_test.rs`
   files.
 
+Implementation layout:
+
+- `lexer`: tokenizes Terlan source/interface files.
+- `parser`: parses Terlan source/interface files into the internal parse tree.
+- `ebnf_lexer`: tokenizes canonical EBNF contract source for `ebnf`.
+- `ebnf`: parses and serializes the canonical EBNF grammar contract.
+- `syntax_output`: converts internal parse-tree nodes to stable syntax-output
+  DTOs for downstream compiler phases.
+  - `syntax_output::model`: syntax-output DTO structs and enums.
+  - `syntax_output::text`: source-like expression/type text rendering helpers
+    used by generated summaries and diagnostics.
+- `formatter`: formats parsed Terlan modules and interface summaries back to
+  canonical source text.
+  - `formatter::declarations`: declaration formatting for types, structs,
+    constructors, functions, methods, traits, impls, templates, and raw
+    declarations.
+
 ## Integration Points
 
 - `docs/grammar/TERLAN_SYNTAX_SPEC.ebnf`: canonical syntax contract.

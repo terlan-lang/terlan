@@ -5,5 +5,4 @@
 4837548287ee8b56	13	2	crates/terlan_cli/src/commands/emit_js/declarations.rs:224:typescript_string_literal;crates/terlan_cli/src/commands/emit_rust/mod.rs:442:rust_string_literal
 7b38eea7b268a71e	14	2	crates/terlan_cli/src/commands/emit_native_metadata/artifacts.rs:419:find_matching_paren;crates/terlan_syntax/src/native.rs:272:find_matching_paren
 965637938ff8398c	15	2	crates/terlan_cli/src/commands/hover/mod.rs:551:hover_pascal_to_snake_case;crates/terlan_typeck/src/html_typecheck.rs:437:pascal_to_snake_case
-db426ad3c83b210f	215	2	crates/terlan_erlang/src/emit/core/annotations.rs:474:core_primitive_intrinsic_return_type;crates/terlan_typeck/src/core_intrinsic_lowering.rs:808:core_primitive_intrinsic_return_type
 e53dfbf2e5ec3e48	13	3	crates/terlan_erlang/src/emit/util.rs:829:unquote_type_atom;crates/terlan_syntax/src/parser.rs:685:unquote_single_quoted_atom;crates/terlan_typeck/src/type_system.rs:205:unquote_type_atom

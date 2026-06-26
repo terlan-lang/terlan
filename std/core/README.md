@@ -13,8 +13,8 @@ must preserve.
 
 ## Public Surface
 
-- Primitive/core value modules: `Atom`, `Bool`, `Int`, `Float`, `String`, and
-  `Unit`.
+- Primitive/core value modules: `Atom`, `Bool`, `Int`, `Float`, `String`,
+  `Object`, and `Unit`.
 - Algebraic modules: `Option`, `Result`, `Ordering`, and `Task`.
 - Trait modules: `Equal`, error, parse/show-related contracts, and ordering
   contracts.
@@ -61,11 +61,14 @@ Important invariants:
 `Result[T, E]`
 : Success or error result type.
 
+`Object[V]`
+: Dynamic string-keyed object type backed by `Map[String, V]`.
+
 `Equal[T]`
 : Equality trait used by core and collection APIs.
 
 ## Testing Notes
 
-- Positive tests live beside modules as `std/core/*_test.terl`.
+- Positive tests live beside modules as `std/core/*Test.terl`.
 - Primitive backend call drift is checked by stdlib validation.
 - Core behavior should be covered before adding target-specific adapters.

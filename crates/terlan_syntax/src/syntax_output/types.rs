@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::SyntaxExprOutput;
 use crate::ebnf::EbnfSourceSpan;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,19 +24,28 @@ pub struct SyntaxTypeOutput {
 /// Serializable callable parameter emitted by syntax output.
 ///
 /// Inputs:
-/// - Parsed parameter name, type annotation, mutability flag, and span.
+/// - Parsed parameter name, type annotation, mutability flag, optional default,
+///   and span.
 ///
 /// Outputs:
 /// - Stable parameter payload for functions, methods, lambdas, and
 ///   constructors.
 ///
 /// Transformation:
-/// - Preserves receiver/parameter mutability as metadata before typechecking.
+/// - Preserves receiver/parameter mutability and default metadata before
+///   typechecking. `default` keeps the structured expression tree, while
+///   `default_text` keeps a source-like spelling for interface summaries.
 pub struct SyntaxParamOutput {
     pub name: String,
     pub annotation: SyntaxTypeOutput,
     #[serde(default, rename = "mutable", skip_serializing_if = "is_false")]
     pub is_mutable: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub has_default: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<SyntaxExprOutput>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_text: Option<String>,
     pub span: EbnfSourceSpan,
 }
 

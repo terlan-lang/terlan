@@ -32,7 +32,7 @@ fn build_command_compiles_project_with_local_path_dependency() {
         .expect("failed to write app manifest");
     fs::write(
             dep_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"local_utils\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+            "[package]\nname = \"local_utils\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[native.rust]\ncrate = \"local_utils_native\"\npath = \"native\"\nhelper = \"local-utils-safe-native\"\nhelper_env = \"LOCAL_UTILS_SAFE_NATIVE_PATH\"\n",
         )
         .expect("failed to write dependency manifest");
     fs::write(
@@ -94,6 +94,32 @@ fn build_command_compiles_project_with_local_path_dependency() {
     assert_eq!(dependencies[0]["path"], "../local_utils");
     assert!(dependencies[0].get("package").is_none());
     assert!(dependencies[0].get("version").is_none());
+    let native_dependencies = package_metadata["native"]["rust_dependencies"]
+        .as_array()
+        .expect("native rust dependencies");
+    assert_eq!(native_dependencies.len(), 1);
+    assert_eq!(native_dependencies[0]["package"], "local_utils");
+    assert_eq!(
+        native_dependencies[0]["rust"]["crate"],
+        "local_utils_native"
+    );
+    assert_eq!(native_dependencies[0]["rust"]["path"], "native");
+    assert_eq!(
+        native_dependencies[0]["rust"]["helper"],
+        "local-utils-safe-native"
+    );
+    assert_eq!(
+        native_dependencies[0]["rust"]["helper_env"],
+        "LOCAL_UTILS_SAFE_NATIVE_PATH"
+    );
+    assert_eq!(
+        native_dependencies[0]["rust"]["package_dir"],
+        dep_dir
+            .canonicalize()
+            .expect("canonical dependency dir")
+            .display()
+            .to_string()
+    );
 }
 
 /// Verifies local path dependencies require their own manifest.

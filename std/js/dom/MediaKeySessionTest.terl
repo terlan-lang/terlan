@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MediaKeySession
+ */
+
+module std.js.Dom.MediaKeySessionTest.
+
+import type std.js.Dom.MediaKeySession.MediaKeySession.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub closed_typechecks(receiver: MediaKeySession): std.js.Promise[MediaKeySessionClosedReason] ->
+    receiver.closed().
+
+pub expiration_typechecks(receiver: MediaKeySession): std.js.Number.JsNumber ->
+    receiver.expiration().
+
+pub key_statuses_typechecks(receiver: MediaKeySession): MediaKeyStatusMap ->
+    receiver.key_statuses().
+
+pub session_id_typechecks(receiver: MediaKeySession): std.js.String.JsString ->
+    receiver.session_id().
+
+pub close_typechecks(receiver: MediaKeySession): std.js.Promise[std.core.Unit] ->
+    receiver.close().
+
+pub generate_request_typechecks(receiver: MediaKeySession, init_data_type: std.js.String.JsString, init_data: BufferSource): std.js.Promise[std.core.Unit] ->
+    receiver.generate_request(init_data_type, init_data).
+
+pub load_typechecks(receiver: MediaKeySession, session_id: std.js.String.JsString): std.js.Promise[std.core.Bool] ->
+    receiver.load(session_id).
+
+pub remove_typechecks(receiver: MediaKeySession): std.js.Promise[std.core.Unit] ->
+    receiver.remove().
+
+pub update_typechecks(receiver: MediaKeySession, response: BufferSource): std.js.Promise[std.core.Unit] ->
+    receiver.update(response).
+
+pub add_event_listener_typechecks(receiver: MediaKeySession, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: MediaKeySession, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

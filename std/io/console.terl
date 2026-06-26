@@ -1,8 +1,8 @@
 /**
- *Portable console output.
+ * Portable console output.
  *
- *`std.io.Console` exposes target-neutral console operations. Backends own
- *the concrete runtime calls needed to implement these operations.
+ * `std.io.Console` exposes target-neutral console operations. Backends own
+ * the concrete runtime calls needed to implement these operations.
  */
 
 module std.io.Console.
@@ -10,21 +10,21 @@ module std.io.Console.
 import std.core.Unit.{Unit}.
 
 /**
- *Writes a string followed by one line terminator.
+ * Writes a string followed by one line terminator.
  *
- *Input: one UTF-8 `String` value.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned
- *`runtime.console.println` capability for each selected target backend. The
- *BEAM target may use Erlang `io:format("~ts~n", [Text])` internally, but
- *portable Terlan source must call this function instead of backend modules.
+ * Input: one UTF-8 `String` value.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned
+ * `runtime.console.println` capability for each selected target backend. The
+ * BEAM target may use Erlang `io:format("~ts~n", [Text])` internally, but
+ * portable Terlan source must call this function instead of backend modules.
  *
- *```terlan
- *module console_println_example.
+ * ```terlan
+ * module console_println_example.
  *
- *pub demo(): Unit ->
+ * pub demo(): Unit ->
  *    std.io.Console.println("hello").
- *```
+ * ```
  */
 @compiler.intrinsic
 pub println(value: String): Unit ->

@@ -1,0 +1,8 @@
+module=std.js.Dom.ClientQueryOptions
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16738869778282369713
+interface_hash=12123464712386539224
+interface_doc_hash=12123464712386539224
+deps=0

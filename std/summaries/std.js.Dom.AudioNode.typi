@@ -1,0 +1,93 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface AudioNode
+ */
+
+module std.js.Dom.AudioNode.
+
+/**
+ * The **`AudioNode`** interface is a generic interface for representing an audio processing module.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode)
+ */
+pub opaque type AudioNode.
+
+/**
+ * The **`channelCount`** property of the AudioNode interface represents an integer used to determine how many channels are used when up-mixing and down-mixing connections to any inputs to the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelCount)
+ */
+pub (value: AudioNode) channel_count(): std.js.Number.JsNumber.
+
+/**
+ * The `channelCountMode` property of the AudioNode interface represents an enumerated value describing the way channels must be matched between the node's inputs and outputs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelCountMode)
+ */
+pub (value: AudioNode) channel_count_mode(): ChannelCountMode.
+
+/**
+ * The **`channelInterpretation`** property of the AudioNode interface represents an enumerated value describing how input channels are mapped to output channels when the number of inputs/outputs is different.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelInterpretation)
+ */
+pub (value: AudioNode) channel_interpretation(): ChannelInterpretation.
+
+/**
+ * The read-only `context` property of the the node is participating in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/context)
+ */
+pub (value: AudioNode) context(): BaseAudioContext.
+
+/**
+ * The `numberOfInputs` property of the AudioNode interface returns the number of inputs feeding the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/numberOfInputs)
+ */
+pub (value: AudioNode) number_of_inputs(): std.js.Number.JsNumber.
+
+/**
+ * The `numberOfOutputs` property of the AudioNode interface returns the number of outputs coming out of the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/numberOfOutputs)
+ */
+pub (value: AudioNode) number_of_outputs(): std.js.Number.JsNumber.
+
+/**
+ * The `connect()` method of the AudioNode interface lets you connect one of the node's outputs to a target, which may be either another `AudioNode` (thereby directing the sound data to the specified node) or an change the value of that parameter over time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/connect)
+ */
+pub (value: AudioNode) connect(destination_node: AudioNode, output: std.js.Number.JsNumber, input: std.js.Number.JsNumber): AudioNode.
+
+pub (value: AudioNode) connect(destination_param: AudioParam, output: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`disconnect()`** method of the AudioNode interface lets you disconnect one or more nodes from the node on which the method is called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/disconnect)
+ */
+pub (value: AudioNode) disconnect(): std.core.Unit.
+
+pub (value: AudioNode) disconnect(output: std.js.Number.JsNumber): std.core.Unit.
+
+pub (value: AudioNode) disconnect(destination_node: AudioNode): std.core.Unit.
+
+pub (value: AudioNode) disconnect(destination_node: AudioNode, output: std.js.Number.JsNumber): std.core.Unit.
+
+pub (value: AudioNode) disconnect(destination_node: AudioNode, output: std.js.Number.JsNumber, input: std.js.Number.JsNumber): std.core.Unit.
+
+pub (value: AudioNode) disconnect(destination_param: AudioParam): std.core.Unit.
+
+pub (value: AudioNode) disconnect(destination_param: AudioParam, output: std.js.Number.JsNumber): std.core.Unit.

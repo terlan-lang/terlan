@@ -1,11 +1,13 @@
+use terlan_hir::module_path_to_safe_native_module;
 use terlan_syntax::syntax_output::{SyntaxAnnotationOutput, SyntaxDeclarationPayload};
 use terlan_syntax::{SyntaxDeclarationOutput, SyntaxParamOutput};
 use terlan_typeck::{
-    CoreEffectSet, CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic,
-    CoreRuntimeCapability, CoreTupleTypeElem, CoreType,
+    core_primitive_intrinsic_return_type, CoreEffectSet, CoreExpr, CoreIntrinsicCall,
+    CoreIntrinsicId, CorePrimitiveIntrinsic, CoreRuntimeCapability, CoreType,
 };
 
 use super::super::erl::ErlExpr;
+use super::super::sanitize_erlang_var;
 use super::lower_core_intrinsic_call_to_erlang;
 
 /// Lowers an annotated syntax declaration body through the CoreIR intrinsic backend.
@@ -56,11 +58,17 @@ pub(in crate::emit) fn lower_intrinsic_annotation_body_for_names<'a>(
     arg_names: impl Iterator<Item = &'a str>,
     module_name: &str,
 ) -> Option<ErlExpr> {
+    let arg_names = arg_names.collect::<Vec<_>>();
+    if let Some(expr) = lower_compiler_native_annotation_body(decl, &arg_names, module_name) {
+        return Some(expr);
+    }
+
     let id = decl
         .annotations
         .iter()
         .find_map(|annotation| core_intrinsic_id_from_annotation(decl, module_name, annotation))?;
     let args = arg_names
+        .iter()
         .map(|name| CoreExpr::Var(name.to_string()))
         .collect::<Vec<_>>();
     let call = CoreIntrinsicCall {
@@ -71,6 +79,80 @@ pub(in crate::emit) fn lower_intrinsic_annotation_body_for_names<'a>(
         span: decl.span.into(),
     };
     lower_core_intrinsic_call_to_erlang(&call)
+}
+
+/// Lowers a generic `@compiler.native {operation}` declaration to its
+/// package-local SafeNative Erlang module.
+///
+/// Inputs:
+/// - `decl`: syntax-output declaration carrying annotations.
+/// - `arg_names`: backend argument names in declaration order.
+/// - `module_name`: canonical source module that owns the declaration.
+///
+/// Output:
+/// - `Some(ErlExpr)` for a compiler-native operation annotation.
+/// - `None` when the declaration does not use `@compiler.native`.
+///
+/// Transformation:
+/// - Maps `polars.DataFrame.read_csv` style source declarations to
+///   `polars_data_frame_safe_native:read_csv(...)`. The generated SafeNative
+///   module owns not-loaded behavior until a concrete native adapter transport
+///   is attached.
+fn lower_compiler_native_annotation_body(
+    decl: &SyntaxDeclarationOutput,
+    arg_names: &[&str],
+    module_name: &str,
+) -> Option<ErlExpr> {
+    let function = declaration_function_name(decl)?;
+    decl.annotations
+        .iter()
+        .find_map(|annotation| compiler_native_operation(annotation))
+        .map(|_operation| ErlExpr::Call {
+            module: Some(module_path_to_safe_native_module(module_name)),
+            function: function.to_string(),
+            args: arg_names
+                .iter()
+                .map(|name| ErlExpr::Var(sanitize_erlang_var(name)))
+                .collect(),
+        })
+}
+
+/// Extracts the operation id from a compiler-native annotation.
+///
+/// Inputs:
+/// - `annotation`: syntax-output annotation metadata.
+///
+/// Output:
+/// - Operation id text for `@compiler.native {operation}`.
+/// - `None` for other annotations.
+///
+/// Transformation:
+/// - Reuses the annotation metadata normalization shape used by explicit
+///   compiler-intrinsic annotations.
+fn compiler_native_operation(annotation: &SyntaxAnnotationOutput) -> Option<&str> {
+    if annotation.path != ["compiler", "native"] {
+        return None;
+    }
+    normalized_intrinsic_annotation_key(annotation.args.as_deref()?)
+}
+
+/// Returns the backend function name for function and method declarations.
+///
+/// Inputs:
+/// - `decl`: syntax-output declaration.
+///
+/// Output:
+/// - Source function/method name, or `None` for non-callable declarations.
+///
+/// Transformation:
+/// - Keeps generic compiler-native lowering independent from specific package
+///   operation ids while preserving the declaration's existing Erlang ABI.
+fn declaration_function_name(decl: &SyntaxDeclarationOutput) -> Option<&str> {
+    match &decl.payload {
+        SyntaxDeclarationPayload::Function { name, .. }
+        | SyntaxDeclarationPayload::Method { name, .. } => Some(name),
+        _ => None,
+    }
 }
 
 /// Parses a supported CoreIR intrinsic key from an annotation.
@@ -286,6 +368,9 @@ fn core_intrinsic_id_from_key(key: &str) -> Option<CoreIntrinsicId> {
             CorePrimitiveIntrinsic::IteratorNext,
         )),
         "core.map.new" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapNew)),
+        "core.map.from_entries" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::MapFromEntries,
+        )),
         "core.map.is_empty" => Some(CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::MapIsEmpty,
         )),
@@ -303,6 +388,9 @@ fn core_intrinsic_id_from_key(key: &str) -> Option<CoreIntrinsicId> {
         )),
         "core.map.clear" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapClear)),
         "core.set.new" => Some(CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::SetNew)),
+        "core.set.from_list" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::SetFromList,
+        )),
         "core.set.is_empty" => Some(CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::SetIsEmpty,
         )),
@@ -455,236 +543,6 @@ fn core_intrinsic_effect_set(id: &CoreIntrinsicId) -> CoreEffectSet {
             | CoreRuntimeCapability::FileDelete,
         ) => CoreEffectSet {
             effects: vec!["io".to_string()],
-        },
-    }
-}
-
-/// Returns the CoreIR return type for a primitive intrinsic key.
-///
-/// Inputs:
-/// - `intrinsic`: compiler-owned primitive intrinsic identity.
-///
-/// Output:
-/// - Backend-neutral CoreIR return type for the intrinsic.
-///
-/// Transformation:
-/// - Mirrors the documented primitive intrinsic registry so annotation-driven
-///   backend emission can construct a typed CoreIR intrinsic call without
-///   re-reading source function signatures.
-fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> CoreType {
-    match intrinsic {
-        CorePrimitiveIntrinsic::TypeOf => CoreType::Named("Type".to_string()),
-        CorePrimitiveIntrinsic::IsType => CoreType::Bool,
-        CorePrimitiveIntrinsic::BoolToString
-        | CorePrimitiveIntrinsic::AtomToString
-        | CorePrimitiveIntrinsic::IntToString
-        | CorePrimitiveIntrinsic::FloatToString
-        | CorePrimitiveIntrinsic::StringToString
-        | CorePrimitiveIntrinsic::StringAppend
-        | CorePrimitiveIntrinsic::StringConcat
-        | CorePrimitiveIntrinsic::StringLowercase
-        | CorePrimitiveIntrinsic::StringUppercase
-        | CorePrimitiveIntrinsic::StringTrim
-        | CorePrimitiveIntrinsic::StringTrimStart
-        | CorePrimitiveIntrinsic::StringTrimEnd
-        | CorePrimitiveIntrinsic::StringReplace => CoreType::String,
-        CorePrimitiveIntrinsic::BoolEqual => CoreType::Bool,
-        CorePrimitiveIntrinsic::BoolCompare => {
-            CoreType::Named("std.core.Ordering.Comparison".to_string())
-        }
-        CorePrimitiveIntrinsic::StringCompare => {
-            CoreType::Named("std.core.Ordering.Comparison".to_string())
-        }
-        CorePrimitiveIntrinsic::BoolFromString => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Bool],
-        },
-        CorePrimitiveIntrinsic::StringFromString => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::String],
-        },
-        CorePrimitiveIntrinsic::IntFromString => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Int],
-        },
-        CorePrimitiveIntrinsic::FloatFromString => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Float],
-        },
-        CorePrimitiveIntrinsic::StringEqual
-        | CorePrimitiveIntrinsic::StringIsEmpty
-        | CorePrimitiveIntrinsic::StringContains
-        | CorePrimitiveIntrinsic::StringStartsWith
-        | CorePrimitiveIntrinsic::StringEndsWith => CoreType::Bool,
-        CorePrimitiveIntrinsic::StringLength | CorePrimitiveIntrinsic::StringByteSize => {
-            CoreType::Int
-        }
-        CorePrimitiveIntrinsic::StringSplit => CoreType::List(Box::new(CoreType::String)),
-        CorePrimitiveIntrinsic::StringSplitOnce => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Tuple(vec![
-                CoreTupleTypeElem::Type(CoreType::String),
-                CoreTupleTypeElem::Type(CoreType::String),
-            ])],
-        },
-        CorePrimitiveIntrinsic::ListNew
-        | CorePrimitiveIntrinsic::ListIterator
-        | CorePrimitiveIntrinsic::ListPush
-        | CorePrimitiveIntrinsic::ListClear => {
-            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
-        }
-        CorePrimitiveIntrinsic::ListIsEmpty => CoreType::Bool,
-        CorePrimitiveIntrinsic::ListLength => CoreType::Int,
-        CorePrimitiveIntrinsic::ListFirst => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
-        },
-        CorePrimitiveIntrinsic::IteratorNext => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
-        },
-        CorePrimitiveIntrinsic::MapNew
-        | CorePrimitiveIntrinsic::MapPut
-        | CorePrimitiveIntrinsic::MapRemove
-        | CorePrimitiveIntrinsic::MapClear => CoreType::Named("Map".to_string()),
-        CorePrimitiveIntrinsic::MapIsEmpty | CorePrimitiveIntrinsic::MapContainsKey => {
-            CoreType::Bool
-        }
-        CorePrimitiveIntrinsic::MapSize => CoreType::Int,
-        CorePrimitiveIntrinsic::MapGet => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
-        },
-        CorePrimitiveIntrinsic::MapIterator => CoreType::List(Box::new(CoreType::Tuple(vec![
-            CoreTupleTypeElem::Type(CoreType::Named("Dynamic".to_string())),
-            CoreTupleTypeElem::Type(CoreType::Named("Dynamic".to_string())),
-        ]))),
-        CorePrimitiveIntrinsic::SetNew
-        | CorePrimitiveIntrinsic::SetAdd
-        | CorePrimitiveIntrinsic::SetRemove
-        | CorePrimitiveIntrinsic::SetClear => CoreType::Named("Set".to_string()),
-        CorePrimitiveIntrinsic::SetIsEmpty | CorePrimitiveIntrinsic::SetContains => CoreType::Bool,
-        CorePrimitiveIntrinsic::SetSize => CoreType::Int,
-        CorePrimitiveIntrinsic::SetIterator => {
-            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string())))
-        }
-        CorePrimitiveIntrinsic::TaskDone => CoreType::Apply {
-            constructor: "Task".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
-        },
-        CorePrimitiveIntrinsic::TaskResult => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Named("Dynamic".to_string()),
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamAgentStart => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Apply {
-                    constructor: "Agent".to_string(),
-                    args: vec![CoreType::Named("Dynamic".to_string())],
-                },
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamAgentGet | CorePrimitiveIntrinsic::BeamAgentGetAndUpdate => {
-            CoreType::Named("Dynamic".to_string())
-        }
-        CorePrimitiveIntrinsic::BeamAgentUpdate
-        | CorePrimitiveIntrinsic::BeamAgentCast
-        | CorePrimitiveIntrinsic::BeamAgentStop => CoreType::Apply {
-            constructor: "Agent".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
-        },
-        CorePrimitiveIntrinsic::BeamGenServerStart => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Apply {
-                    constructor: "ServerRef".to_string(),
-                    args: vec![
-                        CoreType::Named("Dynamic".to_string()),
-                        CoreType::Named("Dynamic".to_string()),
-                        CoreType::Named("Dynamic".to_string()),
-                        CoreType::Named("Dynamic".to_string()),
-                    ],
-                },
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamGenServerCall => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Named("Dynamic".to_string()),
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamGenServerCast | CorePrimitiveIntrinsic::BeamGenServerStop => {
-            CoreType::Apply {
-                constructor: "ServerRef".to_string(),
-                args: vec![
-                    CoreType::Named("Dynamic".to_string()),
-                    CoreType::Named("Dynamic".to_string()),
-                    CoreType::Named("Dynamic".to_string()),
-                    CoreType::Named("Dynamic".to_string()),
-                ],
-            }
-        }
-        CorePrimitiveIntrinsic::BeamNativeBridgeStart => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Apply {
-                    constructor: "NativeBridge".to_string(),
-                    args: vec![CoreType::Named("Dynamic".to_string())],
-                },
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamNativeBridgeCall => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Named("Dynamic".to_string()),
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamNativeBridgeDispose
-        | CorePrimitiveIntrinsic::BeamNativeBridgeStop => CoreType::Apply {
-            constructor: "NativeBridge".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
-        },
-        CorePrimitiveIntrinsic::BeamSupervisorChildSpec => CoreType::Apply {
-            constructor: "ChildSpec".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
-        },
-        CorePrimitiveIntrinsic::BeamSupervisorStart => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Named("Dynamic".to_string()),
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamSupervisorStop => CoreType::Named("Supervisor".to_string()),
-        CorePrimitiveIntrinsic::BeamTaskStart => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Apply {
-                    constructor: "Task".to_string(),
-                    args: vec![CoreType::Named("Dynamic".to_string())],
-                },
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamTaskResult => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Named("Dynamic".to_string()),
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamTaskCancel => CoreType::Apply {
-            constructor: "Task".to_string(),
-            args: vec![CoreType::Named("Dynamic".to_string())],
         },
     }
 }

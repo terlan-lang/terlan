@@ -1,0 +1,8 @@
+module=std.js.Dom.RTCStats
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=2554876006663418549
+interface_hash=7762039197974167960
+interface_doc_hash=7762039197974167960
+deps=0

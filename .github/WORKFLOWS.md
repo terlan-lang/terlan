@@ -27,6 +27,8 @@ change:
 - Cargo workspace files
 - `crates/**`
 - `std/**`
+- `editors/**`
+- `tree-sitter-terlan/**`
 - `tests/**`
 - `docs/grammar/**`
 - `tools/**`
@@ -34,17 +36,26 @@ change:
 - `Makefile`
 - compiler workflow configuration
 
-It installs Rust and Erlang/OTP 29, then runs:
+It installs Rust, Erlang/OTP 29, Node.js, and the local Tree-sitter package
+dependencies, then runs a fast developer gate followed by the release-scale
+gate:
 
 ```sh
 make check
-make test
-make release-0-0-4-preflight
+make test          # fast workspace library tests plus CLI smoke tests
+make test-release  # full workspace tests plus ignored release-scale sweeps
+make test-release
+make editor-check
+make tree-sitter-cli-check
+make release-0-0-5-preflight
 ```
 
-The 0.0.4 preflight is the compiler CI gate for the JavaScript target path,
-generated `std.js` binding drift, Oxc validation, and target-profile rejection
-fixtures.
+The 0.0.5 preflight is the compiler CI gate for the JavaScript target path,
+generated `std.js` binding drift, Oxc validation, target-profile rejection
+fixtures, editor package checks, and current web/runtime regressions. Compiler
+CI installs the local `tree-sitter-terlan` npm dependencies before running the
+real Tree-sitter CLI grammar check; the default local `make editor-check` path
+stays dependency-free.
 
 ## Release Artifacts
 
@@ -54,12 +65,17 @@ fixtures.
 v0.0.4
 ```
 
-It validates the compiler and generated std summaries with:
+It validates the compiler and generated std summaries with the same fast/full
+split:
 
 ```sh
 make check
 make test
-make release-0-0-4-preflight
+make test-release
+make test-release
+make editor-check
+make tree-sitter-cli-check
+make release-0-0-5-preflight
 ```
 
 Then it builds the Linux x86_64 `terlc` artifact with:

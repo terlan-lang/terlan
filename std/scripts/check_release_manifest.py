@@ -7,7 +7,7 @@ Inputs:
 - Generated summaries under `std/summaries/`.
 - Generated docs under `/tmp/terlan-std-docs` by default.
 - Exact API test coverage rows in `tests/std/RELEASE_API_TESTS.tsv`,
-  pointing at adjacent std `*_test.terl` files.
+  pointing at adjacent std `*Test.terl` files.
 
 Outputs:
 - Exit status 0 when the release manifest is complete.
@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "std" / "RELEASE_MANIFEST.tsv"
 DEFAULT_DOCS_DIR = Path("/tmp/terlan-std-docs")
 HEADER = ["kind", "id", "source", "summary", "tests", "docs"]
+MODULE_RE = re.compile(r"^\s*module\s+([A-Za-z_][A-Za-z0-9_.]*)\s*\.\s*$")
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,11 @@ def parse_args() -> argparse.Namespace:
         "--docs-dir",
         default=str(DEFAULT_DOCS_DIR),
         help="directory containing generated `terlc doc std` HTML output",
+    )
+    parser.add_argument(
+        "--generate-docs",
+        action="store_true",
+        help="generate docs for manifest module rows before validating artifacts",
     )
     return parser.parse_args()
 
@@ -152,6 +159,177 @@ def check_manifest_artifacts(rows: list[ManifestRow], docs_dir: Path) -> list[st
             doc_path = docs_dir / row.docs
             if not doc_path.is_file():
                 diagnostics.append(f"{row.identifier}: missing generated docs page `{doc_path}`")
+    return diagnostics
+
+
+def generate_manifest_docs(rows: list[ManifestRow], docs_dir: Path) -> list[str]:
+    """Generate docs required by the release manifest checker.
+
+    Inputs:
+    - `rows`: parsed release-manifest rows.
+    - `docs_dir`: empty documentation output directory.
+
+    Outputs:
+    - Diagnostics for failed `terlc doc` invocations.
+
+    Transformation:
+    - Invokes the public compiler documentation command once per manifest module
+      row and once per hand-authored std doc-inventory source, while avoiding
+      the entire generated TypeScript-backed `std.js` inventory.
+    """
+
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    diagnostics: list[str] = []
+    sources = {
+        ROOT / row.source
+        for row in rows
+        if row.kind == "module"
+    }
+    sources.update(iter_std_doc_sources())
+    for source in sorted(sources):
+        relative_source = source.relative_to(ROOT)
+        result = subprocess.run(
+            [
+                "cargo",
+                "run",
+                "-q",
+                "-p",
+                "terlan_cli",
+                "--",
+                "--out-dir",
+                str(docs_dir),
+                "doc",
+                relative_source.as_posix(),
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if result.returncode != 0:
+            diagnostics.append(
+                f"{relative_source}: failed to generate docs: "
+                f"{result.stderr.strip() or result.stdout.strip()}"
+            )
+    return diagnostics
+
+
+def iter_std_doc_sources() -> list[Path]:
+    """Return std source files that must have generated documentation.
+
+    Inputs:
+    - Repository `std/` tree.
+
+    Outputs:
+    - Sorted list of release-owned non-test `.terl` source paths.
+
+    Transformation:
+    - Mirrors std summary inventory source selection so generated docs are
+      required for hand-authored standard-library modules. TypeScript-backed
+      `std.js` bindings are excluded from this broad docs inventory because
+      their preserved upstream documentation is already covered by the generated
+      binding drift and review-surface gates.
+    """
+
+    std_dir = ROOT / "std"
+    return sorted(
+        path
+        for path in std_dir.rglob("*.terl")
+        if path.is_file()
+        and not is_test_source_name(path.name)
+        and "summaries" not in path.relative_to(std_dir).parts
+        and "disabled" not in path.relative_to(std_dir).parts
+        and not is_generated_typescript_binding_source(path)
+    )
+
+
+def is_test_source_name(name: str) -> bool:
+    """Return whether a filename is a Terlan test source.
+
+    Inputs:
+    - `name`: filesystem basename for a candidate source file.
+
+    Output:
+    - `True` when the file uses the canonical `*Test.terl` source suffix.
+
+    Transformation:
+    - Keeps release-manifest module inventory aligned with `terlc test`.
+    """
+
+    return name.endswith("Test.terl")
+
+
+def is_generated_typescript_binding_source(path: Path) -> bool:
+    """Return whether a std source is generated from TypeScript declarations.
+
+    Inputs:
+    - `path`: std `.terl` source path.
+
+    Outputs:
+    - `True` for generated TypeScript-backed `std.js` binding sources.
+    - `False` for hand-authored std modules and other generated artifacts.
+
+    Transformation:
+    - Reads only the small provenance header and checks the generator profile
+      marker emitted by `terlc bind js-dom`.
+    """
+
+    header = "\n".join(path.read_text(encoding="utf-8").splitlines()[:20])
+    return (
+        "@generated true" in header
+        and "@generator-profile typescript-standard-js-dom" in header
+    )
+
+
+def read_source_module(path: Path) -> str | None:
+    """Read a module declaration from one std source file.
+
+    Inputs:
+    - `path`: Terlan source path.
+
+    Outputs:
+    - Module name when a declaration is present.
+    - `None` when no module declaration can be found.
+
+    Transformation:
+    - Performs a small line scan instead of parsing the source because docs
+      generation already validates parseability.
+    """
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = MODULE_RE.match(line)
+        if match:
+            return match.group(1)
+    return None
+
+
+def check_docs_inventory(docs_dir: Path) -> list[str]:
+    """Validate generated docs exist for every std source module.
+
+    Inputs:
+    - `docs_dir`: output directory produced by `terlc doc std`.
+    - Release-owned std source files.
+
+    Outputs:
+    - Diagnostics for missing module declarations or missing docs pages.
+
+    Transformation:
+    - Maps each source module to `<module>.html` and checks that generated
+      documentation covers the complete standard library, including generated
+      `std.js` bindings.
+    """
+
+    diagnostics: list[str] = []
+    for source in iter_std_doc_sources():
+        module = read_source_module(source)
+        relative = source.relative_to(ROOT)
+        if module is None:
+            diagnostics.append(f"{relative}: missing module declaration for docs inventory")
+            continue
+        doc_path = docs_dir / f"{module}.html"
+        if not doc_path.is_file():
+            diagnostics.append(f"{relative}: missing generated docs page `{doc_path}`")
     return diagnostics
 
 
@@ -303,7 +481,10 @@ def main() -> int:
     args = parse_args()
     rows, diagnostics = read_manifest(MANIFEST)
     docs_dir = Path(args.docs_dir)
+    if args.generate_docs and not diagnostics:
+        diagnostics.extend(generate_manifest_docs(rows, docs_dir))
     diagnostics.extend(check_manifest_artifacts(rows, docs_dir))
+    diagnostics.extend(check_docs_inventory(docs_dir))
     diagnostics.extend(check_api_coverage(rows))
     if diagnostics:
         print("[std-release-manifest] failures:", file=sys.stderr)

@@ -1,0 +1,8 @@
+module=std.js.Dom.DoubleRange
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=10219981988021782002
+interface_hash=8163417261915391944
+interface_doc_hash=8163417261915391944
+deps=0

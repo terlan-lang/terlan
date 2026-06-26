@@ -1,0 +1,8 @@
+module=std.js.Dom.PhotoCapabilities
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=5566997680492276061
+interface_hash=3829370950032763706
+interface_doc_hash=3829370950032763706
+deps=0

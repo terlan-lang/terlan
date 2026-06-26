@@ -1,0 +1,89 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CSSStyleSheet
+ */
+
+module std.js.Dom.CSSStyleSheet.
+
+/**
+ * The **`CSSStyleSheet`** interface represents a single CSS stylesheet, and lets you inspect and modify the list of rules contained in the stylesheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet)
+ */
+pub opaque type CSSStyleSheet.
+
+/**
+ * The read-only CSSStyleSheet property **`cssRules`** returns a live CSSRuleList which provides a real-time, up-to-date list of every CSS rule which comprises the stylesheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/cssRules)
+ */
+pub (value: CSSStyleSheet) css_rules(): CSSRuleList.
+
+/**
+ * The read-only CSSStyleSheet property **`ownerRule`** returns the CSSImportRule corresponding to the @import at-rule which imported the stylesheet into the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/ownerRule)
+ */
+pub (value: CSSStyleSheet) owner_rule(): Option[CSSRule].
+
+/**
+ * **`rules`** is a _deprecated_ _legacy property_ of the CSSStyleSheet interface.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/rules)
+ */
+pub (value: CSSStyleSheet) rules(): CSSRuleList.
+
+/**
+ * The obsolete CSSStyleSheet interface's **`addRule()`** _legacy method_ adds a new rule to the stylesheet.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/addRule)
+ */
+pub (value: CSSStyleSheet) add_rule(selector: std.js.String.JsString, style: std.js.String.JsString, index: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * The CSSStyleSheet method **`deleteRule()`** removes a rule from the stylesheet object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/deleteRule)
+ */
+pub (value: CSSStyleSheet) delete_rule(index: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`CSSStyleSheet.insertRule()`** method inserts a new CSS rule into the current style sheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/insertRule)
+ */
+pub (value: CSSStyleSheet) insert_rule(rule: std.js.String.JsString, index: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * The obsolete CSSStyleSheet method **`removeRule()`** removes a rule from the stylesheet object.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/removeRule)
+ */
+pub (value: CSSStyleSheet) remove_rule(index: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`replace()`** method of the CSSStyleSheet interface asynchronously replaces the content of the stylesheet with the content passed into it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/replace)
+ */
+pub (value: CSSStyleSheet) replace(text: std.js.String.JsString): std.js.Promise[CSSStyleSheet].
+
+/**
+ * The **`replaceSync()`** method of the CSSStyleSheet interface synchronously replaces the content of the stylesheet with the content passed into it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/replaceSync)
+ */
+pub (value: CSSStyleSheet) replace_sync(text: std.js.String.JsString): std.core.Unit.

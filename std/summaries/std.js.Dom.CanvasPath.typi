@@ -1,0 +1,63 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CanvasPath
+ */
+
+module std.js.Dom.CanvasPath.
+
+pub opaque type CanvasPath.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arc)
+ */
+pub (value: CanvasPath) arc(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, radius: std.js.Number.JsNumber, start_angle: std.js.Number.JsNumber, end_angle: std.js.Number.JsNumber, counterclockwise: std.core.Bool): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arcTo)
+ */
+pub (value: CanvasPath) arc_to(x1: std.js.Number.JsNumber, y1: std.js.Number.JsNumber, x2: std.js.Number.JsNumber, y2: std.js.Number.JsNumber, radius: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/bezierCurveTo)
+ */
+pub (value: CanvasPath) bezier_curve_to(cp1x: std.js.Number.JsNumber, cp1y: std.js.Number.JsNumber, cp2x: std.js.Number.JsNumber, cp2y: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/closePath)
+ */
+pub (value: CanvasPath) close_path(): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/ellipse)
+ */
+pub (value: CanvasPath) ellipse(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, radius_x: std.js.Number.JsNumber, radius_y: std.js.Number.JsNumber, rotation: std.js.Number.JsNumber, start_angle: std.js.Number.JsNumber, end_angle: std.js.Number.JsNumber, counterclockwise: std.core.Bool): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineTo)
+ */
+pub (value: CanvasPath) line_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/moveTo)
+ */
+pub (value: CanvasPath) move_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/quadraticCurveTo)
+ */
+pub (value: CanvasPath) quadratic_curve_to(cpx: std.js.Number.JsNumber, cpy: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rect)
+ */
+pub (value: CanvasPath) rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.

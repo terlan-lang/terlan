@@ -8,9 +8,9 @@ module std.io.File.
 
 /// Portable file error returned by `std.io.File`.
 ///
-/// Input: inherits the neutral `code` and `message` fields from
+/// Input: includes the neutral `code` and `message` fields from
 /// `std.core.Error.Error` and adds the target-interpreted path.
-/// Output: a typed error value that can be used anywhere `Error`-derived values
+/// Output: a typed error value that can be used anywhere `Error`-including values
 /// are accepted.
 /// Transformation: keeps backend filesystem reasons behind a portable struct
 /// instead of exposing backend-specific error atoms directly.
@@ -63,7 +63,7 @@ pub append_text(path: String, content: String): Result[Unit, FileError].
 ///
 /// Input: one `FileError`.
 /// Output: `Atom` identifying the portable file failure category.
-/// Transformation: reads the inherited `code` field without exposing backend
+/// Transformation: reads the included `code` field without exposing backend
 /// filesystem reason values.
 
 pub code(error: FileError): Atom.
@@ -91,7 +91,7 @@ pub exists(path: String): Bool.
 ///
 /// Input: one `FileError`.
 /// Output: human-readable UTF-8 message.
-/// Transformation: reads the inherited `message` field.
+/// Transformation: reads the included `message` field.
 
 pub message(error: FileError): String.
 
@@ -99,7 +99,7 @@ pub message(error: FileError): String.
 ///
 /// Input: a symbolic file error code, human-readable message, and source path.
 /// Output: `FileError`.
-/// Transformation: stores the portable code and message inherited from
+/// Transformation: stores the portable code and message included from
 /// `std.core.Error.Error` plus file-specific path context.
 
 pub new(code: Atom, message: String, path: String): FileError.

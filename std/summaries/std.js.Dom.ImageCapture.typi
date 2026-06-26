@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ImageCapture
+ */
+
+module std.js.Dom.ImageCapture.
+
+/**
+ * The **`ImageCapture`** interface of the MediaStream Image Capture API provides methods to enable the capture of images or photos from a camera or other photographic device.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture)
+ */
+pub opaque type ImageCapture.
+
+/**
+ * The **`track`** read-only property of the A MediaStreamTrack object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/track)
+ */
+pub (value: ImageCapture) track(): MediaStreamTrack.
+
+/**
+ * The **`getPhotoCapabilities()`** method of the ImageCapture interface returns a Promise that resolves with an object containing the ranges of available configuration options.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/getPhotoCapabilities)
+ */
+pub (value: ImageCapture) get_photo_capabilities(): std.js.Promise[PhotoCapabilities].
+
+/**
+ * The **`getPhotoSettings()`** method of the ImageCapture interface returns a Promise that resolves with an object containing the current photo configuration settings.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/getPhotoSettings)
+ */
+pub (value: ImageCapture) get_photo_settings(): std.js.Promise[PhotoSettings].
+
+/**
+ * The **`takePhoto()`** method of the device sourcing a MediaStreamTrack and returns a Promise that resolves with a Blob containing the data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/takePhoto)
+ */
+pub (value: ImageCapture) take_photo(photo_settings: PhotoSettings): std.js.Promise[Blob].

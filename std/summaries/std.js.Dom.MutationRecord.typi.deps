@@ -1,0 +1,8 @@
+module=std.js.Dom.MutationRecord
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=15134443057150574517
+interface_hash=10085070417438977077
+interface_doc_hash=10085070417438977077
+deps=0

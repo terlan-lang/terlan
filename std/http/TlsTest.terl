@@ -1,0 +1,62 @@
+module std.http.TlsTest.
+
+import type std.collections.List.
+import type std.core.Option.Option.
+import type std.http.Tls.{Config, Mode, Provider}.
+import std.http.Tls.{auto, internal, manual}.
+
+pub accepts_mode(value: Mode): Mode ->
+    value.
+
+pub accepts_provider(value: Provider): Provider ->
+    value.
+
+pub accepts_config(value: Config): Config ->
+    value.
+
+pub accepts_domains(value: List[String]): List[String] ->
+    value.
+
+pub accepts_optional_provider(value: Option[Provider]): Option[Provider] ->
+    value.
+
+/**
+ * Confirms automatic TLS helper calls typecheck as `Config`.
+ *
+ * Input: one list of domain names.
+ * Output: automatic TLS `Config`.
+ * Transformation: delegates to the public helper so summary consumers verify
+ * the imported function return shape.
+ */
+pub auto_helper_typechecks(domains: List[String]): Config ->
+    auto(domains, "admin@example.com").
+
+/**
+ * Confirms manual TLS helper calls typecheck as `Config`.
+ *
+ * Input: no value input.
+ * Output: manual certificate TLS `Config`.
+ * Transformation: delegates to the public helper with deterministic fixture
+ * paths.
+ */
+pub manual_helper_typechecks(): Config ->
+    manual("certs/dev.pem", "certs/dev-key.pem").
+
+/**
+ * Confirms internal TLS helper calls typecheck as `Config`.
+ *
+ * Input: no value input.
+ * Output: local/internal TLS `Config`.
+ * Transformation: delegates to the public helper with a deterministic local
+ * server name.
+ */
+pub internal_helper_typechecks(): Config ->
+    internal("localhost").
+
+@test
+pub tls_surface_is_declared(): Bool ->
+    true.
+
+@test
+pub tls_config_helpers_are_declared(): Bool ->
+    true.

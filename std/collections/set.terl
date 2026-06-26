@@ -1,117 +1,145 @@
 /**
- *Core set collection contract.
+ * Core set collection contract.
  *
- *`std.collections.Set` is the portable unique-value collection surface.
+ * `std.collections.Set` is the portable unique-value collection surface.
  */
 
 module std.collections.Set.
 
+import type std.collections.List.
 import std.core.Unit.{Unit}.
 import std.collections.Iterator.{Iterator}.
 
 /**
- *Set represents a collection of unique values.
+ * Set represents a collection of unique values.
  *
- *Input: type parameter `T`.
- *Output: an opaque unique-value collection type.
- *Transformation: hides the selected backend representation behind the
- *portable `std.collections.Set` API.
+ * Input: type parameter `T`.
+ * Output: an opaque unique-value collection type.
+ * Transformation: hides the selected backend representation behind the
+ * portable `std.collections.Set` API.
  */
 pub opaque type Set[T].
 
 /**
- *Creates an empty set.
+ * Constructs a set from positional values.
  *
- *Input: no value input.
- *Output: an empty `Set[T]`.
- *Transformation: lowers through the compiler-owned `core.set.new`
- *intrinsic, using the selected backend's canonical empty-set value.
+ * Input: zero or more values of the same element type `T`.
+ * Output: a `Set[T]` containing each distinct supplied value.
+ * Transformation: uses constructor varargs to pack positional values into a
+ * portable list and delegates to `from_list` so backend-specific set
+ * representation stays behind the intrinsic boundary.
+ */
+pub constructor Set[T] {
+    (...items: T): Set[T] ->
+        from_list(items)
+}.
+
+/**
+ * Creates an empty set.
+ *
+ * Input: no value input.
+ * Output: an empty `Set[T]`.
+ * Transformation: lowers through the compiler-owned `core.set.new`
+ * intrinsic, using the selected backend's canonical empty-set value.
  */
 @compiler.intrinsic
 pub new[T](): Set[T] ->
     [].
 
 /**
- *Returns whether a set contains no values.
+ * Creates a set from list values.
  *
- *Input: one `Set[T]`.
- *Output: `true` when the set is empty; otherwise `false`.
- *Transformation: lowers through the compiler-owned `core.set.is_empty`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `List[T]`.
+ * Output: a `Set[T]` containing each distinct list value.
+ * Transformation: lowers through the compiler-owned `core.set.from_list`
+ * intrinsic. Backends choose the efficient set representation and duplicate
+ * handling behind the portable `Set[T]` contract.
+ */
+@compiler.intrinsic
+pub from_list[T](values: List[T]): Set[T] ->
+    new().
+
+/**
+ * Returns whether a set contains no values.
+ *
+ * Input: one `Set[T]`.
+ * Output: `true` when the set is empty; otherwise `false`.
+ * Transformation: lowers through the compiler-owned `core.set.is_empty`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (set: Set[T]) is_empty(): Bool ->
     true.
 
 /**
- *Returns the number of unique values in a set.
+ * Returns the number of unique values in a set.
  *
- *Input: one `Set[T]`.
- *Output: the number of unique values currently visible in the set.
- *Transformation: lowers through the compiler-owned `core.set.size`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `Set[T]`.
+ * Output: the number of unique values currently visible in the set.
+ * Transformation: lowers through the compiler-owned `core.set.size`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (set: Set[T]) size(): Int ->
     0.
 
 /**
- *Returns whether a value exists in a set.
+ * Returns whether a value exists in a set.
  *
- *Input: one `Set[T]` receiver and one value of type `T`.
- *Output: `true` when the value exists; otherwise `false`.
- *Transformation: lowers through the compiler-owned `core.set.contains`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `Set[T]` receiver and one value of type `T`.
+ * Output: `true` when the value exists; otherwise `false`.
+ * Transformation: lowers through the compiler-owned `core.set.contains`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (set: Set[T]) contains(value: T): Bool ->
     false.
 
 /**
- *Creates an iterator over set values.
+ * Creates an iterator over set values.
  *
- *Input: one `Set[T]`.
- *Output: an `Iterator[T]` yielding each unique value.
- *Transformation: lowers through the compiler-owned `core.set.iterator`
- *intrinsic. Backends choose their own traversal order and representation while
- *preserving the portable value-yielding contract.
+ * Input: one `Set[T]`.
+ * Output: an `Iterator[T]` yielding each unique value.
+ * Transformation: lowers through the compiler-owned `core.set.iterator`
+ * intrinsic. Backends choose their own traversal order and representation while
+ * preserving the portable value-yielding contract.
  */
 @compiler.intrinsic
 pub (set: Set[T]) iterator(): Iterator[T] ->
     set.
 
 /**
- *Adds a value to a set.
+ * Adds a value to a set.
  *
- *Input: a mutable `Set[T]` receiver and one value of type `T`.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.set.add`
- *intrinsic and updates the receiver binding in source order. Pipe chains
- *continue with the updated receiver.
+ * Input: a mutable `Set[T]` receiver and one value of type `T`.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.set.add`
+ * intrinsic and updates the receiver binding in source order. Pipe chains
+ * continue with the updated receiver.
  */
 @compiler.intrinsic
 pub (mut set: Set[T]) add(value: T): Unit ->
     set.
 
 /**
- *Removes a value from a set.
+ * Removes a value from a set.
  *
- *Input: a mutable `Set[T]` receiver and one value of type `T`.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.set.remove`
- *intrinsic and updates the receiver binding in source order.
+ * Input: a mutable `Set[T]` receiver and one value of type `T`.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.set.remove`
+ * intrinsic and updates the receiver binding in source order.
  */
 @compiler.intrinsic
 pub (mut set: Set[T]) remove(value: T): Unit ->
     set.
 
 /**
- *Removes every value from a set.
+ * Removes every value from a set.
  *
- *Input: a mutable `Set[T]` receiver.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.set.clear`
- *intrinsic and updates the receiver binding so it becomes empty.
+ * Input: a mutable `Set[T]` receiver.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.set.clear`
+ * intrinsic and updates the receiver binding so it becomes empty.
  */
 @compiler.intrinsic
 pub (mut set: Set[T]) clear(): Unit ->

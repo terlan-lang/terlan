@@ -406,19 +406,25 @@ pub(super) fn lower_core_string_is_empty(args: Vec<ErlExpr>) -> Option<ErlExpr> 
     Some(erl_exact_eq(value, ErlExpr::Binary("\"\"".to_string())))
 }
 
-/// Lowers `core.string.concat` to Erlang list append.
+/// Lowers `core.string.concat` to a binary-safe Erlang string conversion.
 ///
 /// Inputs:
 /// - `args`: one lowered Erlang list expression containing strings.
 ///
 /// Output:
-/// - `Some(lists:append(strings))` when arity is one.
+/// - `Some(unicode:characters_to_list(strings))` when arity is one.
 /// - `None` for malformed arity.
 ///
 /// Transformation:
-/// - Maps collection concatenation to Erlang's list append operation.
+/// - Treats the input collection as Unicode character data/iolist and returns
+///   the canonical Erlang charlist representation used by current BEAM string
+///   literals.
 pub(super) fn lower_core_string_concat(args: Vec<ErlExpr>) -> Option<ErlExpr> {
-    Some(erl_remote_call("lists", "append", exact_args(args, 1)?))
+    Some(erl_remote_call(
+        "unicode",
+        "characters_to_list",
+        exact_args(args, 1)?,
+    ))
 }
 
 /// Lowers `core.string.contains` to a nomatch case expression.

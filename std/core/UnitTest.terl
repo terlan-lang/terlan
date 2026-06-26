@@ -1,0 +1,50 @@
+module std.core.UnitTest.
+
+import std.core.Ordering.{Eq, Ordering}.
+import std.core.Option.{None, Some}.
+import type std.core.Ordering.Comparison.
+import type std.core.Unit.
+
+pub value(): Unit ->
+    Unit.
+
+pub ordering_compare(left: Unit, right: Unit): Comparison ->
+    Ordering.compare(left, right).
+
+@test
+pub unit_value_matches_unit(): Bool ->
+    std.test.Test.assert(value() == Unit).
+
+@test
+pub equal_accepts_singleton_values(): Bool ->
+    std.test.Test.assert(std.core.Unit.equal(Unit, Unit)).
+
+@test
+pub compare_accepts_singleton_values(): Bool ->
+    std.test.Test.assert_equal(Eq, std.core.Unit.compare(Unit, Unit)).
+
+@test
+pub ordering_trait_accepts_singleton_values(): Bool ->
+    std.test.Test.assert_equal(Eq, ordering_compare(Unit, Unit)).
+
+@test
+pub to_string_renders_unit(): Bool ->
+    std.test.Test.assert_equal("unit", std.core.Unit.to_string(Unit)).
+
+@test
+pub from_string_parses_unit(): Bool ->
+    case std.core.Unit.from_string("unit") {
+        Some(_value) ->
+            true;
+        None ->
+            false
+    }.
+
+@test
+pub from_string_rejects_unknown_text(): Bool ->
+    case std.core.Unit.from_string("done") {
+        None ->
+            true;
+        Some(_value) ->
+            false
+    }.

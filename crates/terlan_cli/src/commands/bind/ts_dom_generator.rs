@@ -3,12 +3,15 @@ use std::path::Path;
 
 use serde_json::json;
 
+use crate::commands::artifacts::{fingerprint, DependencyManifest};
+use crate::validation::phase_manifest::current_syntax_contract_identity;
+
 use super::ts_dom_module_mapping::{
     map_ts_declarations_to_dom_modules, DomMemberPlan, DomMethodPlan, DomModuleMapping,
     DomModulePlan, DomParamPlan, DomPropertyPlan, DomSkippedDeclaration,
 };
 use super::ts_input_manifest::{load_ts_input_manifest, safe_repo_relative_path, TsInputManifest};
-use super::ts_parser_adapter::{parse_ts_declaration_file, TsDeclarationFile};
+use super::ts_parser_adapter::{parse_ts_declaration_file, TsDeclaration, TsDeclarationFile};
 
 /// Dynamic generated file emitted by the TypeScript DOM binding generator.
 ///
@@ -90,9 +93,39 @@ fn parse_manifest_inputs(
                 err.message
             )
         })?;
-        declarations.extend(parsed.declarations);
+        declarations.extend(
+            parsed
+                .declarations
+                .into_iter()
+                .map(|declaration| declaration_with_namespace(declaration, &input.namespace)),
+        );
     }
     Ok(TsDeclarationFile { declarations })
+}
+
+/// Applies a manifest namespace to one parsed TypeScript declaration.
+///
+/// Inputs:
+/// - `declaration`: parsed declaration without repository namespace metadata.
+/// - `namespace`: manifest-owned Terlan namespace for the input file.
+///
+/// Output:
+/// - Declaration carrying the namespace used for generated module paths.
+///
+/// Transformation:
+/// - Keeps Oxc parsing independent from repository layout while allowing one
+///   manifest to generate both `std.js.*` and `std.js.Dom.*` surfaces.
+fn declaration_with_namespace(declaration: TsDeclaration, namespace: &str) -> TsDeclaration {
+    match declaration {
+        TsDeclaration::Interface(mut interface) => {
+            interface.namespace = namespace.to_string();
+            TsDeclaration::Interface(interface)
+        }
+        TsDeclaration::Unsupported(mut unsupported) => {
+            unsupported.source = format!("{namespace}.{}", unsupported.source);
+            TsDeclaration::Unsupported(unsupported)
+        }
+    }
 }
 
 /// Builds all generated files for a DOM module mapping.
@@ -117,21 +150,29 @@ fn generated_files(
 ) -> Result<Vec<GeneratedBindingFile>, String> {
     let mut files = Vec::new();
     for module in &mapping.modules {
+        let source = render_module_source(module, manifest, manifest_path);
+        let interface = render_module_interface(module, manifest, manifest_path);
+        let summary = render_module_summary(module, manifest, manifest_path);
+        let test = render_module_test(module, manifest, manifest_path);
         files.push(GeneratedBindingFile {
             path: module.source_path.clone(),
-            contents: render_module_source(module, manifest, manifest_path),
+            contents: source.clone(),
         });
         files.push(GeneratedBindingFile {
             path: module.interface_path.clone(),
-            contents: render_module_interface(module, manifest, manifest_path),
+            contents: interface,
         });
         files.push(GeneratedBindingFile {
             path: module.summary_path.clone(),
-            contents: render_module_summary(module, manifest, manifest_path),
+            contents: summary.clone(),
+        });
+        files.push(GeneratedBindingFile {
+            path: format!("{}.deps", module.summary_path),
+            contents: render_module_summary_deps(module, &source, &summary)?,
         });
         files.push(GeneratedBindingFile {
             path: module.test_path.clone(),
-            contents: render_module_test(module, manifest, manifest_path),
+            contents: test,
         });
     }
     files.push(GeneratedBindingFile {
@@ -143,6 +184,37 @@ fn generated_files(
         contents: render_skipped_manifest(manifest, manifest_path, mapping)?,
     });
     Ok(files)
+}
+
+/// Renders generated summary dependency metadata for one module.
+///
+/// Inputs:
+/// - `module`: generated module plan.
+/// - `source`: generated source text.
+/// - `summary`: generated summary text.
+///
+/// Output:
+/// - Encoded `.typi.deps` manifest text.
+///
+/// Transformation:
+/// - Produces the cache metadata required by std summary inventory checks
+///   without running generated TypeScript bindings back through the full
+///   compiler pipeline.
+fn render_module_summary_deps(
+    module: &DomModulePlan,
+    source: &str,
+    summary: &str,
+) -> Result<String, String> {
+    let syntax_contract_identity = current_syntax_contract_identity()?;
+    Ok(DependencyManifest {
+        module: module.module_path.clone(),
+        syntax_contract_identity,
+        source_hash: fingerprint(source.as_bytes()),
+        interface_hash: fingerprint(summary.as_bytes()),
+        interface_doc_hash: fingerprint(summary.as_bytes()),
+        dependencies: Vec::new(),
+    }
+    .encode())
 }
 
 /// Renders generated Terlan source for one DOM module.
@@ -264,7 +336,13 @@ fn render_module_contract(
 ) -> String {
     let mut output = render_module_header(module, manifest, manifest_path, kind);
     output.push_str(&format!("module {}.\n\n", module.module_path));
-    output.push_str(&format!("pub opaque type {}.\n", module.type_name));
+    if let Some(doc) = &module.doc {
+        output.push_str(&render_doc_block(doc));
+    }
+    output.push_str(&format!(
+        "pub opaque type {}.\n",
+        render_type_declaration_name(module)
+    ));
     for member in &module.members {
         output.push('\n');
         output.push_str(&render_member(module, member, include_bodies));
@@ -360,11 +438,18 @@ fn render_property(
     property: &DomPropertyPlan,
     include_body: bool,
 ) -> String {
+    let mut output = String::new();
+    if let Some(doc) = &property.doc {
+        output.push_str(&render_doc_block(doc));
+    }
     let signature = format!(
         "pub (value: {}) {}(): {}",
-        module.type_name, property.terlan_name, property.terlan_type
+        render_type_reference_name(module),
+        property.terlan_name,
+        property.terlan_type
     );
-    render_signature(signature, include_body)
+    output.push_str(&render_signature(signature, include_body));
+    output
 }
 
 /// Renders one DOM method as a receiver method declaration.
@@ -380,14 +465,98 @@ fn render_property(
 /// - Emits normalized Terlan parameter names while retaining original JS names
 ///   in the module plan for later backend lowering.
 fn render_method(module: &DomModulePlan, method: &DomMethodPlan, include_body: bool) -> String {
+    let mut output = String::new();
+    if let Some(doc) = &method.doc {
+        output.push_str(&render_doc_block(doc));
+    }
     let signature = format!(
         "pub (value: {}) {}({}): {}",
-        module.type_name,
+        render_type_reference_name(module),
         method.terlan_name,
         render_params(&method.params),
         method.return_type
     );
-    render_signature(signature, include_body)
+    output.push_str(&render_signature(signature, include_body));
+    output
+}
+
+/// Renders TypeScript-sourced documentation as a Terlan doc block.
+///
+/// Inputs:
+/// - `doc`: normalized JSDoc body without comment delimiters.
+///
+/// Output:
+/// - Terlan block documentation ending with one blank line.
+///
+/// Transformation:
+/// - Re-wraps TypeScript documentation in Terlan's block-comment style while
+///   preserving `@param`, `@returns`, and free-form text lines.
+fn render_doc_block(doc: &str) -> String {
+    let mut output = String::new();
+    output.push_str("/**\n");
+    for line in doc.lines() {
+        if line.is_empty() {
+            output.push_str(" *\n");
+        } else {
+            output.push_str(" * ");
+            output.push_str(&line.replace("*/", "* /"));
+            output.push('\n');
+        }
+    }
+    output.push_str(" */\n");
+    output
+}
+
+/// Renders a generated type declaration name.
+///
+/// Inputs:
+/// - `module`: generated DOM module plan.
+///
+/// Output:
+/// - Type name with Terlan type parameters when the source interface is
+///   generic.
+///
+/// Transformation:
+/// - Converts TypeScript angle-bracket interface parameters into Terlan's
+///   bracketed type parameter syntax.
+fn render_type_declaration_name(module: &DomModulePlan) -> String {
+    render_type_name(&module.type_name, &module.type_params)
+}
+
+/// Renders a generated type reference name.
+///
+/// Inputs:
+/// - `module`: generated DOM module plan.
+///
+/// Output:
+/// - Receiver type reference using the same type parameter names as the
+///   generated type declaration.
+///
+/// Transformation:
+/// - Keeps generated receiver methods generic whenever their source interface
+///   is generic.
+fn render_type_reference_name(module: &DomModulePlan) -> String {
+    render_type_name(&module.type_name, &module.type_params)
+}
+
+/// Renders a Terlan type name with optional type parameters.
+///
+/// Inputs:
+/// - `name`: base type name.
+/// - `type_params`: source type parameter names.
+///
+/// Output:
+/// - `Name` for non-generic types or `Name[T, U]` for generic types.
+///
+/// Transformation:
+/// - Applies Terlan generic syntax without interpreting TypeScript constraints
+///   or defaults.
+fn render_type_name(name: &str, type_params: &[String]) -> String {
+    if type_params.is_empty() {
+        name.to_string()
+    } else {
+        format!("{name}[{}]", type_params.join(", "))
+    }
 }
 
 /// Renders a signature as either a source body or declaration.
@@ -443,8 +612,11 @@ fn render_member_test(module: &DomModulePlan, member: &DomMemberPlan) -> String 
 ///   property method and mapped return type.
 fn render_property_test(module: &DomModulePlan, property: &DomPropertyPlan) -> String {
     format!(
-        "pub {}_typechecks(value: {}): {} ->\n    value.{}().\n",
-        property.terlan_name, module.type_name, property.terlan_type, property.terlan_name
+        "pub {}_typechecks(receiver: {}): {} ->\n    receiver.{}().\n",
+        property.terlan_name,
+        render_type_reference_name(module),
+        property.terlan_type,
+        property.terlan_name
     )
 }
 
@@ -458,25 +630,77 @@ fn render_property_test(module: &DomModulePlan, property: &DomPropertyPlan) -> S
 /// - Parameterized Terlan function returning the method call type.
 ///
 /// Transformation:
-/// - Reuses generated parameter names to call the receiver method and pin the
-///   mapped argument and return types in generated test source.
+/// - Reuses generated parameter names where possible while reserving the
+///   receiver helper name so source JavaScript parameters named `value` cannot
+///   shadow the method-call receiver in generated tests.
 fn render_method_test(module: &DomModulePlan, method: &DomMethodPlan) -> String {
-    let receiver_param = format!("value: {}", module.type_name);
+    let receiver_param = format!("receiver: {}", render_type_reference_name(module));
     let mut params = vec![receiver_param];
+    let argument_names = collision_free_test_argument_names(&method.params);
     params.extend(
         method
             .params
             .iter()
-            .map(|param| format!("{}: {}", param.terlan_name, param.terlan_type)),
+            .zip(argument_names.iter())
+            .map(|(param, name)| format!("{}: {}", name, param.terlan_type)),
     );
     format!(
-        "pub {}_typechecks({}): {} ->\n    value.{}({}).\n",
+        "pub {}_typechecks({}): {} ->\n    receiver.{}({}).\n",
         method.terlan_name,
         params.join(", "),
         method.return_type,
         method.terlan_name,
-        render_param_names(&method.params)
+        argument_names.join(", ")
     )
+}
+
+/// Builds collision-free generated test argument names.
+///
+/// Inputs:
+/// - `params`: planned DOM method parameters.
+///
+/// Output:
+/// - Parameter names safe to use beside the generated `receiver` binding.
+///
+/// Transformation:
+/// - Preserves each generated parameter name unless it collides with the
+///   receiver binding or an earlier parameter, appending a stable numeric
+///   suffix for collisions.
+fn collision_free_test_argument_names(params: &[DomParamPlan]) -> Vec<String> {
+    let mut used = vec!["receiver".to_string()];
+    params
+        .iter()
+        .map(|param| unique_test_argument_name(&param.terlan_name, &mut used))
+        .collect()
+}
+
+/// Selects one generated helper argument name.
+///
+/// Inputs:
+/// - `base`: preferred generated parameter name.
+/// - `used`: names already reserved in the helper declaration.
+///
+/// Output:
+/// - Unique helper parameter name.
+///
+/// Transformation:
+/// - Returns `base` when unused, otherwise appends `_2`, `_3`, and so on until
+///   the name is unique, then records that name in `used`.
+fn unique_test_argument_name(base: &str, used: &mut Vec<String>) -> String {
+    if !used.iter().any(|name| name == base) {
+        used.push(base.to_string());
+        return base.to_string();
+    }
+
+    for suffix in 2.. {
+        let candidate = format!("{base}_{suffix}");
+        if !used.iter().any(|name| name == &candidate) {
+            used.push(candidate.clone());
+            return candidate;
+        }
+    }
+
+    unreachable!("unbounded suffix search should always find a unique name")
 }
 
 /// Renders method parameters.
@@ -493,24 +717,6 @@ fn render_params(params: &[DomParamPlan]) -> String {
     params
         .iter()
         .map(|param| format!("{}: {}", param.terlan_name, param.terlan_type))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-/// Renders method parameter names for a generated call expression.
-///
-/// Inputs:
-/// - `params`: planned DOM parameters.
-///
-/// Output:
-/// - Comma-separated Terlan argument name list.
-///
-/// Transformation:
-/// - Drops type annotations and preserves normalized parameter ordering.
-fn render_param_names(params: &[DomParamPlan]) -> String {
-    params
-        .iter()
-        .map(|param| param.terlan_name.clone())
         .collect::<Vec<_>>()
         .join(", ")
 }

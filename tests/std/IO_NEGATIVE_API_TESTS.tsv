@@ -15,8 +15,8 @@
 #
 # Format:
 # api_id<TAB>fixture<TAB>expected_diagnostic_substring
-std.io.Console.println.value_string	tests/std/negative/io/console_println_rejects_int_test.terl	type mismatch
-std.io.File.exists.path_string	tests/std/negative/io/file_exists_rejects_int_path_test.terl	type mismatch
-std.io.File.write_text.content_string	tests/std/negative/io/file_write_text_rejects_int_content_test.terl	type mismatch
-std.io.File.append_text.content_string	tests/std/negative/io/file_append_text_rejects_int_content_test.terl	type mismatch
-std.io.File.delete.path_string	tests/std/negative/io/file_delete_rejects_int_path_test.terl	type mismatch
+std.io.Console.println.value_string	tests/std/negative/io/ConsolePrintlnRejectsIntTest.terl	type mismatch
+std.io.File.exists.path_string	tests/std/negative/io/FileExistsRejectsIntPathTest.terl	type mismatch
+std.io.File.write_text.content_string	tests/std/negative/io/FileWriteTextRejectsIntContentTest.terl	type mismatch
+std.io.File.append_text.content_string	tests/std/negative/io/FileAppendTextRejectsIntContentTest.terl	type mismatch
+std.io.File.delete.path_string	tests/std/negative/io/FileDeleteRejectsIntPathTest.terl	type mismatch

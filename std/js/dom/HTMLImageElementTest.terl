@@ -1,0 +1,100 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLImageElement
+ */
+
+module std.js.Dom.HTMLImageElementTest.
+
+import type std.js.Dom.HTMLImageElement.HTMLImageElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub align_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.align().
+
+pub alt_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.alt().
+
+pub border_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.border().
+
+pub complete_typechecks(receiver: HTMLImageElement): std.core.Bool ->
+    receiver.complete().
+
+pub cross_origin_typechecks(receiver: HTMLImageElement): Option[std.js.String.JsString] ->
+    receiver.cross_origin().
+
+pub current_src_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.current_src().
+
+pub height_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.height().
+
+pub hspace_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.hspace().
+
+pub is_map_typechecks(receiver: HTMLImageElement): std.core.Bool ->
+    receiver.is_map().
+
+pub long_desc_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.long_desc().
+
+pub lowsrc_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.lowsrc().
+
+pub name_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.name().
+
+pub natural_height_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.natural_height().
+
+pub natural_width_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.natural_width().
+
+pub referrer_policy_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.referrer_policy().
+
+pub sizes_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.sizes().
+
+pub src_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.src().
+
+pub srcset_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.srcset().
+
+pub use_map_typechecks(receiver: HTMLImageElement): std.js.String.JsString ->
+    receiver.use_map().
+
+pub vspace_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.vspace().
+
+pub width_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.width().
+
+pub x_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.x().
+
+pub y_typechecks(receiver: HTMLImageElement): std.js.Number.JsNumber ->
+    receiver.y().
+
+pub decode_typechecks(receiver: HTMLImageElement): std.js.Promise[std.core.Unit] ->
+    receiver.decode().
+
+pub add_event_listener_typechecks(receiver: HTMLImageElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: HTMLImageElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

@@ -1,0 +1,74 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCOutboundRtpStreamStats
+ */
+
+module std.js.Dom.RTCOutboundRtpStreamStats.
+
+pub opaque type RTCOutboundRtpStreamStats.
+
+pub (value: RTCOutboundRtpStreamStats) active(): std.core.Bool.
+
+pub (value: RTCOutboundRtpStreamStats) fir_count(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) frame_height(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) frame_width(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) frames_encoded(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) frames_per_second(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) frames_sent(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) header_bytes_sent(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) huge_frames_sent(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) key_frames_encoded(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) media_source_id(): std.js.String.JsString.
+
+pub (value: RTCOutboundRtpStreamStats) mid(): std.js.String.JsString.
+
+pub (value: RTCOutboundRtpStreamStats) nack_count(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) pli_count(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) qp_sum(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) quality_limitation_durations(): Record[std.js.String.JsString, std.js.Number.JsNumber].
+
+pub (value: RTCOutboundRtpStreamStats) quality_limitation_reason(): RTCQualityLimitationReason.
+
+pub (value: RTCOutboundRtpStreamStats) quality_limitation_resolution_changes(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) remote_id(): std.js.String.JsString.
+
+pub (value: RTCOutboundRtpStreamStats) retransmitted_bytes_sent(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) retransmitted_packets_sent(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) rid(): std.js.String.JsString.
+
+pub (value: RTCOutboundRtpStreamStats) rtx_ssrc(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) scalability_mode(): std.js.String.JsString.
+
+pub (value: RTCOutboundRtpStreamStats) target_bitrate(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) total_encode_time(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) total_encoded_bytes_target(): std.js.Number.JsNumber.
+
+pub (value: RTCOutboundRtpStreamStats) total_packet_send_delay(): std.js.Number.JsNumber.

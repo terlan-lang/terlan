@@ -1,503 +1,13 @@
 use super::*;
 
-/// Validates one parsed explicit trait implementation against its trait.
-///
-/// Inputs:
-/// - `impl_decl`: parsed impl target, owner type, and method signatures.
-/// - `impl_span`: source span used for impl-level diagnostics.
-/// - `trait_map`: known local/imported trait signatures.
-/// - `inheritance_cache`: memoized inherited method sets by trait name.
-/// - `diagnostics`: output diagnostic buffer.
-///
-/// Output:
-/// - No direct return value.
-///
-/// Transformation:
-/// - Resolves inherited trait methods, specializes trait type parameters with
-///   impl arguments, checks method arity, mutability, parameter types, return
-///   type, and required method coverage.
-fn check_parsed_trait_impl_signature(
-    impl_decl: &ParsedTraitImpl,
-    impl_span: Span,
-    trait_map: &HashMap<String, ParsedTraitSignature>,
-    inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
-    diagnostics: &mut Vec<Diagnostic>,
-) {
-    let Some(trait_signature) = trait_map.get(&impl_decl.target.name) else {
-        diagnostics.push(Diagnostic {
-            span: impl_span,
-            message: format!("unknown trait `{}` in impl", impl_decl.target.name,),
-            severity: DiagSeverity::Error,
-        });
-        return;
-    };
+mod impls;
+mod syntax;
 
-    let inherited_methods = collect_trait_methods_with_inheritance(
-        trait_map,
-        &impl_decl.target.name,
-        inheritance_cache,
-        &mut HashSet::new(),
-    )
-    .unwrap_or_default();
-
-    if impl_decl.target.type_args.len() != trait_signature.type_params.len() {
-        diagnostics.push(Diagnostic {
-            span: impl_span,
-            message: format!(
-                "trait `{}` expects {} type parameter(s), found {}",
-                impl_decl.target.name,
-                trait_signature.type_params.len(),
-                impl_decl.target.type_args.len()
-            ),
-            severity: DiagSeverity::Error,
-        });
-        return;
-    };
-
-    if let Some(for_type) = &impl_decl.for_type {
-        if for_type.trim().is_empty() {
-            diagnostics.push(Diagnostic {
-                span: impl_span,
-                message: format!(
-                    "impl of trait `{}` must declare a non-empty owner type",
-                    impl_decl.target.name
-                ),
-                severity: DiagSeverity::Error,
-            });
-            return;
-        }
-    }
-
-    let mut seen_methods = HashSet::new();
-
-    for method in &impl_decl.methods {
-        if !seen_methods.insert(method.name.clone()) {
-            diagnostics.push(Diagnostic {
-                span: method.span,
-                message: format!(
-                    "duplicate method `{}` in impl {}",
-                    method.name, impl_decl.target.name
-                ),
-                severity: DiagSeverity::Error,
-            });
-            continue;
-        }
-
-        let Some(expected) = inherited_methods.get(&method.name) else {
-            diagnostics.push(Diagnostic {
-                span: method.span,
-                message: format!(
-                    "method `{}` is not declared in trait `{}`",
-                    method.name, impl_decl.target.name
-                ),
-                severity: DiagSeverity::Error,
-            });
-            continue;
-        };
-
-        let specialized_params = expected
-            .params
-            .iter()
-            .map(|param| {
-                specialize_trait_type_text(
-                    &param.ty,
-                    &trait_signature.type_params,
-                    &impl_decl.target.type_args,
-                )
-            })
-            .collect::<Vec<_>>();
-        let specialized_return = specialize_trait_type_text(
-            &expected.return_type,
-            &trait_signature.type_params,
-            &impl_decl.target.type_args,
-        );
-
-        if specialized_params.len() != method.params.len() {
-            diagnostics.push(Diagnostic {
-                span: method.span,
-                message: format!(
-                    "method `{}` in trait `{}` has arity {}, found {}",
-                    method.name,
-                    impl_decl.target.name,
-                    specialized_params.len(),
-                    method.params.len()
-                ),
-                severity: DiagSeverity::Error,
-            });
-            continue;
-        }
-
-        for (idx, (expected_type, found_type)) in
-            specialized_params.iter().zip(&method.params).enumerate()
-        {
-            if expected.params[idx].is_mutable
-                && !method.mutable_params.get(idx).copied().unwrap_or(false)
-            {
-                diagnostics.push(Diagnostic {
-                    span: method.span,
-                    message: format!(
-                        "method `{}` parameter {} in trait `{}` must be mutable",
-                        method.name,
-                        idx + 1,
-                        impl_decl.target.name
-                    ),
-                    severity: DiagSeverity::Error,
-                });
-            }
-            if !found_type.trim().is_empty() && !trait_type_text_equal(expected_type, found_type) {
-                diagnostics.push(Diagnostic {
-                    span: method.span,
-                    message: format!(
-                        "method `{}` parameter {} in trait `{}` expects {}, found {}",
-                        method.name,
-                        idx + 1,
-                        impl_decl.target.name,
-                        expected_type,
-                        found_type
-                    ),
-                    severity: DiagSeverity::Error,
-                });
-            }
-        }
-
-        if !method.return_type.trim().is_empty()
-            && !trait_type_text_equal(&specialized_return, &method.return_type)
-        {
-            diagnostics.push(Diagnostic {
-                span: method.span,
-                message: format!(
-                    "method `{}` return type in trait `{}` expects {}, found {}",
-                    method.name, impl_decl.target.name, specialized_return, method.return_type
-                ),
-                severity: DiagSeverity::Error,
-            });
-        }
-    }
-
-    for (expected_method, expected_signature) in &inherited_methods {
-        if !impl_decl
-            .methods
-            .iter()
-            .any(|method| &method.name == expected_method)
-            && !expected_signature.has_default
-        {
-            diagnostics.push(Diagnostic {
-                span: impl_span,
-                message: format!(
-                    "missing method `{}` in impl of trait `{}`",
-                    expected_method, impl_decl.target.name
-                ),
-                severity: DiagSeverity::Error,
-            });
-        }
-    }
-}
-
-/// Collects syntax-level kind diagnostics across type annotations.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing declarations with type
-///   annotations.
-///
-/// Output:
-/// - Diagnostics for kind-level mismatches detected directly from annotation
-///   text.
-///
-/// Transformation:
-/// - Walks declaration annotations and delegates each annotation to the narrow
-///   kind-diagnostic helper. This remains text-based until the kind checker is
-///   backed by structured type expressions.
-pub(super) fn collect_syntax_kind_diagnostics(module: &SyntaxModuleOutput) -> Vec<Diagnostic> {
-    let mut diagnostics = Vec::new();
-    for declaration in &module.declarations {
-        match &declaration.payload {
-            SyntaxDeclarationPayload::Function {
-                params,
-                return_type,
-                ..
-            } => {
-                for param in params {
-                    collect_kind_diagnostic_for_syntax_type(&param.annotation, &mut diagnostics);
-                }
-                collect_kind_diagnostic_for_syntax_type(return_type, &mut diagnostics);
-            }
-            SyntaxDeclarationPayload::Type { variants, .. } => {
-                for variant in variants {
-                    collect_kind_diagnostic_for_syntax_type(variant, &mut diagnostics);
-                }
-            }
-            SyntaxDeclarationPayload::Struct { fields, .. } => {
-                for field in fields {
-                    collect_kind_diagnostic_for_syntax_type(&field.annotation, &mut diagnostics);
-                }
-            }
-            SyntaxDeclarationPayload::Constructor { clauses, .. } => {
-                for clause in clauses {
-                    for param in &clause.params {
-                        collect_kind_diagnostic_for_syntax_type(
-                            &param.annotation,
-                            &mut diagnostics,
-                        );
-                    }
-                    collect_kind_diagnostic_for_syntax_type(&clause.return_type, &mut diagnostics);
-                }
-            }
-            SyntaxDeclarationPayload::Trait { methods, .. } => {
-                for method in methods {
-                    for param in &method.params {
-                        collect_kind_diagnostic_for_syntax_type(
-                            &param.annotation,
-                            &mut diagnostics,
-                        );
-                    }
-                    collect_kind_diagnostic_for_syntax_type(&method.return_type, &mut diagnostics);
-                }
-            }
-            SyntaxDeclarationPayload::Template { props, .. } => {
-                for prop in props {
-                    collect_kind_diagnostic_for_syntax_type(&prop.annotation, &mut diagnostics);
-                }
-            }
-            _ => {}
-        }
-    }
-    diagnostics
-}
-
-/// Adds one kind diagnostic for a syntax type annotation when needed.
-///
-/// Inputs:
-/// - `ty`: syntax-output type annotation to inspect.
-/// - `diagnostics`: output diagnostic buffer.
-///
-/// Output:
-/// - No direct return value.
-///
-/// Transformation:
-/// - Checks the annotation text for the currently recognized functor kind
-///   mismatch and appends a stable diagnostic at the annotation span.
-fn collect_kind_diagnostic_for_syntax_type(
-    ty: &SyntaxTypeOutput,
-    diagnostics: &mut Vec<Diagnostic>,
-) {
-    if type_text_has_functor_type_argument_mismatch(&ty.text) {
-        diagnostics.push(Diagnostic {
-            span: ty.span.into(),
-            message: "kind mismatch: Functor expects a type constructor of kind Type -> Type, found Int of kind Type".to_string(),
-            severity: DiagSeverity::Error,
-        });
-    }
-}
-
-/// Detects the currently supported textual functor kind mismatch.
-///
-/// Inputs:
-/// - `text`: source type annotation text.
-///
-/// Output:
-/// - `true` when the compacted annotation contains `Functor[Int]`.
-///
-/// Transformation:
-/// - Normalizes whitespace and performs the narrow text check used by the
-///   current kind-diagnostic compatibility path.
-fn type_text_has_functor_type_argument_mismatch(text: &str) -> bool {
-    let compact = compact_spaces(text);
-    compact.contains("Functor[Int]")
-}
-
-/// Checks public constructor signatures for private local return-type leaks.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing constructor declarations.
-/// - `resolved`: resolved module carrying local type visibility.
-/// - `alias_names`: visible type names used to parse constructor return
-///   annotations.
-///
-/// Output:
-/// - One error diagnostic for each public constructor clause whose return type
-///   exposes a private local type.
-///
-/// Transformation:
-/// - Parses constructor return annotations into the type model and recursively
-///   scans compound return types for private local type names. Imported or
-///   module-qualified names are not treated as local private leaks here.
-pub(super) fn check_syntax_public_constructor_return_visibility(
-    module: &SyntaxModuleOutput,
-    resolved: &ResolvedModule,
-    alias_names: &HashSet<String>,
-) -> Vec<Diagnostic> {
-    let mut diagnostics = Vec::new();
-
-    for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Constructor {
-            name,
-            is_public,
-            clauses,
-            ..
-        } = &declaration.payload
-        else {
-            continue;
-        };
-        if !*is_public {
-            continue;
-        }
-
-        for clause in clauses {
-            let mut vars = HashMap::new();
-            let mut next_var: TypeVarId = 0;
-            let ret = parse_type_expr(
-                &clause.return_type.text,
-                alias_names,
-                &mut vars,
-                &mut next_var,
-            )
-            .unwrap_or(Type::Dynamic);
-
-            if let Some(private_type) =
-                first_private_local_type_name(&ret, &resolved.local_type_names)
-            {
-                diagnostics.push(Diagnostic {
-                    span: clause.return_type.span.into(),
-                    message: format!(
-                        "public constructor {} exposes private return type {}",
-                        name, private_type
-                    ),
-                    severity: DiagSeverity::Error,
-                });
-            }
-        }
-    }
-
-    diagnostics
-}
-
-/// Finds the first private local type mentioned by a parsed type expression.
-///
-/// Inputs:
-/// - `ty`: parsed type expression to inspect.
-/// - `local_type_names`: resolver map of local type names to visibility.
-///
-/// Output:
-/// - `Some(name)` for the first private unqualified local type reference.
-/// - `None` when the type does not expose a private local type.
-///
-/// Transformation:
-/// - Recursively walks lists, tuples, unions, maps, function types, fixed
-///   arrays, and named type arguments while ignoring primitives, variables,
-///   literals, and qualified/imported type names.
-fn first_private_local_type_name(
-    ty: &Type,
-    local_type_names: &HashMap<String, TypeVisibility>,
-) -> Option<String> {
-    match ty {
-        Type::Named {
-            module: None,
-            name,
-            args,
-        } => {
-            if local_type_names.get(name) == Some(&TypeVisibility::Private) {
-                return Some(name.clone());
-            }
-            args.iter()
-                .find_map(|arg| first_private_local_type_name(arg, local_type_names))
-        }
-        Type::Named { args, .. } => args
-            .iter()
-            .find_map(|arg| first_private_local_type_name(arg, local_type_names)),
-        Type::List(inner) => first_private_local_type_name(inner, local_type_names),
-        Type::Tuple(items) | Type::Union(items) => items
-            .iter()
-            .find_map(|item| first_private_local_type_name(item, local_type_names)),
-        Type::Map(fields) => fields
-            .iter()
-            .find_map(|field| first_private_local_type_name(&field.value, local_type_names)),
-        Type::Function { params, ret } => params
-            .iter()
-            .chain(std::iter::once(ret.as_ref()))
-            .find_map(|item| first_private_local_type_name(item, local_type_names)),
-        Type::FixedArray { elem, .. } => first_private_local_type_name(elem, local_type_names),
-        Type::Int
-        | Type::Float
-        | Type::Number
-        | Type::Binary
-        | Type::Atom
-        | Type::Bool
-        | Type::Term
-        | Type::Dynamic
-        | Type::Never
-        | Type::LiteralAtom(_)
-        | Type::LiteralInt(_)
-        | Type::Var(_) => None,
-    }
-}
-
-/// Validates macro function return signatures.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing function declarations.
-///
-/// Output:
-/// - Diagnostics for macro declarations whose return type is not `Ast[T]`.
-///
-/// Transformation:
-/// - Scans only functions marked as macros and validates their return
-///   annotation with the macro return-type shape helper.
-pub(super) fn check_syntax_macro_decl_signatures(module: &SyntaxModuleOutput) -> Vec<Diagnostic> {
-    let mut diagnostics = Vec::new();
-
-    for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Function {
-            name,
-            return_type,
-            is_macro,
-            ..
-        } = &declaration.payload
-        else {
-            continue;
-        };
-        if !is_macro {
-            continue;
-        }
-
-        if !is_valid_macro_return_type(&return_type.text) {
-            diagnostics.push(Diagnostic {
-                span: return_type.span.into(),
-                message: format!(
-                    "macro `{}` must return Ast[T], found {}",
-                    name, return_type.text
-                ),
-                severity: DiagSeverity::Error,
-            });
-        }
-    }
-
-    diagnostics
-}
-
-/// Checks whether a macro return annotation has the required `Ast[T]` shape.
-///
-/// Inputs:
-/// - `annotation`: source return type annotation text.
-///
-/// Output:
-/// - `true` when the annotation is an `Ast` application with exactly one
-///   non-empty type argument.
-///
-/// Transformation:
-/// - Compacts whitespace, splits a named type application, and validates only
-///   the structural return-type shape required for macro declarations.
-fn is_valid_macro_return_type(annotation: &str) -> bool {
-    let src = compact_spaces(annotation);
-    let Some((base, args)) = split_named_type(&src) else {
-        return false;
-    };
-    if base != "Ast" {
-        return false;
-    }
-
-    let args = split_top_level_csv(&args);
-    args.len() == 1 && !args[0].trim().is_empty()
-}
+use impls::check_parsed_trait_impl_signature;
+pub(super) use syntax::{
+    check_syntax_macro_decl_signatures, check_syntax_public_constructor_return_visibility,
+    collect_syntax_kind_diagnostics,
+};
 
 /// Validates trait declaration identity and inheritance references.
 ///
@@ -656,6 +166,7 @@ pub(super) fn collect_imported_syntax_struct_fields(
                         text: field.annotation.clone(),
                         span: Default::default(),
                     },
+                    is_private: field.is_private,
                     docs: Vec::new(),
                     has_default: false,
                     default: None,
@@ -668,10 +179,10 @@ pub(super) fn collect_imported_syntax_struct_fields(
     structs
 }
 
-/// Returns whether a derive parent name is visible as a local or imported type.
+/// Returns whether an included parent name is visible as a local or imported type.
 ///
 /// Inputs:
-/// - `parent_name`: source text inside a struct `derives` clause.
+/// - `parent_name`: source text inside a struct `includes` clause.
 /// - `local_structs`: local struct declarations keyed by name.
 /// - `imported_structs`: imported struct declarations keyed by local import
 ///   name.
@@ -681,10 +192,10 @@ pub(super) fn collect_imported_syntax_struct_fields(
 /// - `true` when the parent is a local struct or imported public struct name.
 ///
 /// Transformation:
-/// - Keeps struct derivation validation separate from trait lookup. Imported
+/// - Keeps struct inclusion validation separate from trait lookup. Imported
 ///   names are accepted only when their provider interface exposes structured
 ///   public field metadata.
-fn is_visible_struct_derive_parent(
+fn is_visible_struct_include_parent(
     parent_name: &str,
     local_structs: &HashMap<String, Vec<SyntaxStructFieldOutput>>,
     imported_structs: &HashMap<String, Vec<SyntaxStructFieldOutput>>,
@@ -695,19 +206,19 @@ fn is_visible_struct_derive_parent(
             && imported_structs.contains_key(parent_name))
 }
 
-/// Validates source-level struct derivation clauses.
+/// Validates source-level struct inclusion clauses.
 ///
 /// Inputs:
 /// - `module`: syntax-output module containing struct declarations.
 /// - `resolved`: resolved module context containing imported type names.
 ///
 /// Output:
-/// - Diagnostics for duplicate, self, or unknown derived parent structs.
+/// - Diagnostics for duplicate, self, or unknown included parent structs.
 ///
 /// Transformation:
-/// - Treats `derives` as struct-to-struct shape derivation only. It does not
+/// - Treats `includes` as struct-to-struct shape inclusion only. It does not
 ///   parse trait instances and does not produce trait conformance facts.
-pub(super) fn check_syntax_struct_derives(
+pub(super) fn check_syntax_struct_includes(
     module: &SyntaxModuleOutput,
     resolved: &ResolvedModule,
 ) -> Vec<Diagnostic> {
@@ -716,17 +227,17 @@ pub(super) fn check_syntax_struct_derives(
     let imported_structs = collect_imported_syntax_struct_fields(resolved);
 
     for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Struct { name, derives, .. } = &declaration.payload else {
+        let SyntaxDeclarationPayload::Struct { name, includes, .. } = &declaration.payload else {
             continue;
         };
 
         let mut seen = HashSet::new();
-        for parent_name in derives {
+        for parent_name in includes {
             if parent_name.contains('[') {
                 diagnostics.push(Diagnostic {
                     span: declaration.span.into(),
                     message: format!(
-                        "derived struct `{}` in declaration of struct `{}` must be a struct name, not a trait or generic instance",
+                        "included struct `{}` in declaration of struct `{}` must be a struct name, not a trait or generic instance",
                         parent_name, name
                     ),
                     severity: DiagSeverity::Error,
@@ -737,7 +248,7 @@ pub(super) fn check_syntax_struct_derives(
             if parent_name == name {
                 diagnostics.push(Diagnostic {
                     span: declaration.span.into(),
-                    message: format!("struct `{}` cannot derive from itself", name),
+                    message: format!("struct `{}` cannot include itself", name),
                     severity: DiagSeverity::Error,
                 });
                 continue;
@@ -747,7 +258,7 @@ pub(super) fn check_syntax_struct_derives(
                 diagnostics.push(Diagnostic {
                     span: declaration.span.into(),
                     message: format!(
-                        "duplicate derived struct `{}` in declaration of struct `{}`",
+                        "duplicate included struct `{}` in declaration of struct `{}`",
                         parent_name, name
                     ),
                     severity: DiagSeverity::Error,
@@ -755,7 +266,7 @@ pub(super) fn check_syntax_struct_derives(
                 continue;
             }
 
-            if !is_visible_struct_derive_parent(
+            if !is_visible_struct_include_parent(
                 parent_name,
                 &local_structs,
                 &imported_structs,
@@ -764,7 +275,7 @@ pub(super) fn check_syntax_struct_derives(
                 diagnostics.push(Diagnostic {
                     span: declaration.span.into(),
                     message: format!(
-                        "unknown derived struct `{}` in declaration of struct `{}`",
+                        "unknown included struct `{}` in declaration of struct `{}`",
                         parent_name, name
                     ),
                     severity: DiagSeverity::Error,

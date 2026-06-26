@@ -1,0 +1,72 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Screen
+ */
+
+module std.js.Dom.Screen.
+
+/**
+ * The `Screen` interface represents a screen, usually the one on which the current window is being rendered, and is obtained using window.screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen)
+ */
+pub opaque type Screen.
+
+/**
+ * The read-only Screen interface's **`availHeight`** property returns the height, in CSS pixels, of the space available for Web content on the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/availHeight)
+ */
+pub (value: Screen) avail_height(): std.js.Number.JsNumber.
+
+/**
+ * The **`Screen.availWidth`** property returns the amount of horizontal space (in CSS pixels) available to the window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/availWidth)
+ */
+pub (value: Screen) avail_width(): std.js.Number.JsNumber.
+
+/**
+ * The **`Screen.colorDepth`** read-only property returns the color depth of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/colorDepth)
+ */
+pub (value: Screen) color_depth(): std.js.Number.JsNumber.
+
+/**
+ * The **`Screen.height`** read-only property returns the height of the screen in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/height)
+ */
+pub (value: Screen) height(): std.js.Number.JsNumber.
+
+/**
+ * The **`orientation`** read-only property of the An instance of ScreenOrientation representing the orientation of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/orientation)
+ */
+pub (value: Screen) orientation(): ScreenOrientation.
+
+/**
+ * Returns the bit depth of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/pixelDepth)
+ */
+pub (value: Screen) pixel_depth(): std.js.Number.JsNumber.
+
+/**
+ * The **`Screen.width`** read-only property returns the width of the screen in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/width)
+ */
+pub (value: Screen) width(): std.js.Number.JsNumber.

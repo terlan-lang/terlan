@@ -2,14 +2,14 @@
 
 This directory owns `terlc test`, the command that discovers Terlan `@test`
 declarations and executes them against the selected target platform. The
-implementation in `mod.rs` is centered on a formal-pipeline compile followed by
-a target-owned runtime runner. The command must not invent a host-side test
-model that bypasses CoreIR or backend emission.
+implementation is centered on a formal-pipeline compile followed by a
+target-owned runtime runner. The command must not invent a host-side test model
+that bypasses CoreIR or backend emission.
 
 ## Responsibilities
 
 - Parse command-local test flags such as `--target erlang`, `--target js`,
-  `--emit-test-manifest <path>`, and
+  `--name <test_function>`, `--emit-test-manifest <path>`, and
   `--emit-test-result-manifest <path>`.
 - Compile the source module through the formal compiler pipeline.
 - Discover and validate `@test` function declarations from syntax output.
@@ -43,7 +43,9 @@ browser, worker, Node, or Oxc runtime code yet, and its output marks tests as
 
 The command accepts either no path, one test file, or one test directory. With
 no path, `terlc test` uses the project `tests` directory. Directory runs
-discover `*_test.terl` files recursively in deterministic order. Manifest output
+discover `*Test.terl` files recursively in deterministic order. `--name`
+selects one exact `@test` function after discovery; this is the compiler-backed
+contract used by editor integrations for individual test runs. Manifest output
 flags are single-file only until an aggregate manifest format is promoted.
 
 The main flow is:
@@ -80,6 +82,12 @@ Important invariants:
 - `formal_pipeline`: compiles source through the canonical compiler path.
 - `terlan_erlang`: emits Erlang from CoreIR plus syntax bridge data.
 - `commands::artifacts`: collects imported file, template, and markdown inputs.
+- `beam_runner`: owns temporary BEAM workspace cleanup, Erlang emission,
+  `erlc` compilation, EUnit wrapper validation, and direct BEAM test execution.
+- `manifest`: owns source-level test manifest JSON, result manifest JSON, and
+  in-memory pass/fail report shapes.
+- `release_support`: owns the embedded std support inventory and selection
+  logic for installed `terlc test` runs.
 - Erlang runtime tools: `erlc` builds BEAM artifacts and `erl` executes tests.
 - Target profiles: JS validation uses `js.shared`, `js.browser`, or `js.worker`
   profile checks without runtime artifact execution.
@@ -89,6 +97,19 @@ Important invariants:
 - EUnit: the runner generates a backend-owned wrapper module for passing-run
   validation. This wrapper is not Terlan source syntax and is not a public
   standard-library API.
+
+## File Layout
+
+- `mod.rs`: command argument parsing, formal compilation, test discovery,
+  target runner dispatch, and directory traversal.
+- `beam_runner.rs`: temporary BEAM workspace ownership, emitted Erlang
+  compilation, test-only exports, EUnit wrapper generation, and direct test
+  execution.
+- `command_runner.rs`: OS command execution helpers used by the runtime runner.
+- `manifest.rs`: serializable manifest/result artifacts plus in-memory
+  pass/fail report construction and rendering helpers.
+- `release_support.rs`: embedded std release support modules and dependency
+  selection for installed test execution.
 
 ## Edge Cases
 
@@ -119,21 +140,22 @@ validates JS-profile test modules without runtime execution in 0.0.4.
 report user-facing results.
 
 `TestManifest`
-: Serializable test-runner metadata emitted by `--emit-test-manifest`.
+: Serializable test-runner metadata emitted by `--emit-test-manifest`; owned by
+`manifest.rs`.
 
 `TestManifestEntry`
 : Serializable metadata for one discovered source-level test.
 
 `TestResultManifest`
 : Serializable test-runner result metadata emitted by
-`--emit-test-result-manifest`.
+`--emit-test-result-manifest`; owned by `manifest.rs`.
 
 `TestResultManifestEntry`
 : Serializable execution result for one discovered source-level test.
 
 `TestRunReport`
 : In-memory aggregate pass/fail report produced by direct BEAM execution or
-JS validation.
+JS validation; owned by `manifest.rs`.
 
 `TestRunResult`
 : In-memory result for one executed source-level test.
@@ -143,7 +165,11 @@ JS validation.
 
 `TempBeamWorkspace`
 : Temporary directory owner used for emitted `.erl` files and compiled `.beam`
-artifacts.
+artifacts; owned by `beam_runner.rs`.
+
+`ReleaseSupportModule`
+: Embedded `.terl` source module compiled into temporary test workspaces when
+runtime tests need std support; owned by `release_support.rs`.
 
 ## Testing Notes
 

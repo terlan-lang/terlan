@@ -1,0 +1,8 @@
+module=std.js.Dom.EncodedAudioChunkInit
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=6424246063231040468
+interface_hash=613464422920578433
+interface_doc_hash=613464422920578433
+deps=0

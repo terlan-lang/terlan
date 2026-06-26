@@ -2,7 +2,9 @@ use std::fs;
 #[cfg(not(coverage))]
 use std::io::IsTerminal;
 use std::path::Path;
+use std::process::Command;
 
+use crate::commands::json::json_string;
 use crate::{ColorChoice, DiagnosticFormat};
 
 /// Selects the effective color policy for diagnostic rendering.
@@ -57,10 +59,10 @@ pub(crate) fn emit_diagnostic(
         }
         DiagnosticFormat::Json => {
             println!(
-                "{{\"kind\":\"{}\",\"message\":\"{}\",\"path\":\"{}\",\"start\":{},\"end\":{}}}",
-                kind,
-                escape_json(message),
-                escape_json(path),
+                "{{\"kind\":{},\"message\":{},\"path\":{},\"start\":{},\"end\":{}}}",
+                json_string(kind),
+                json_string(message),
+                json_string(path),
                 start,
                 end
             );
@@ -326,17 +328,47 @@ fn auto_diagnostic_color_enabled() -> bool {
 /// Transformation:
 /// - Narrows type-mismatch diagnostics to the returned expression when possible
 ///   and leaves all other diagnostics unchanged.
-fn diagnostic_display_span(
+pub(crate) fn diagnostic_display_span(
     kind: &str,
     message: &str,
     source: &str,
     start: usize,
     end: usize,
 ) -> (usize, usize) {
+    if kind == "type_error" {
+        if let Some(constructor) = unknown_constructor_name(message) {
+            if let Some(offset) = source
+                .get(start..end)
+                .and_then(|slice| slice.find(constructor))
+            {
+                let display_start = start + offset;
+                return (display_start, display_start + constructor.len());
+            }
+        }
+    }
+
     if kind != "type_error" || expected_found(message).is_none() {
         return (start, end);
     }
     returned_expression_span(source, start, end).unwrap_or((start, end))
+}
+
+/// Extracts the constructor name from a stable unknown-constructor diagnostic.
+///
+/// Inputs:
+/// - `message`: typechecker diagnostic message.
+///
+/// Output:
+/// - Constructor name when the message has `unknown constructor Name / arity`
+///   shape.
+///
+/// Transformation:
+/// - Parses only the stable diagnostic prefix used for constructor calls and
+///   avoids changing the diagnostic message itself.
+fn unknown_constructor_name(message: &str) -> Option<&str> {
+    let rest = message.strip_prefix("unknown constructor ")?;
+    let (name, _) = rest.split_once(" / ")?;
+    (!name.is_empty()).then_some(name)
 }
 
 /// Finds the returned expression inside a function body span.
@@ -522,25 +554,6 @@ pub(crate) fn read_file(path: &str) -> Result<String, String> {
     }
 }
 
-/// Escapes text for the compact CLI JSON diagnostic format.
-///
-/// Inputs:
-/// - `input`: unescaped string content.
-///
-/// Output:
-/// - JSON-safe string content without surrounding quotes.
-///
-/// Transformation:
-/// - Escapes backslash, double quote, newline, carriage return, and tab.
-fn escape_json(input: &str) -> String {
-    input
-        .replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
-        .replace('\t', "\\t")
-}
-
 /// Writes bytes while preserving incremental no-op behavior.
 ///
 /// Inputs:
@@ -568,6 +581,56 @@ pub(crate) fn write_if_changed_or_forced(
     }
 
     fs::write(path, bytes)
+}
+
+/// Checks whether a string is lowercase SHA-256 hex.
+///
+/// Inputs:
+/// - `value`: candidate hash text.
+///
+/// Output:
+/// - `true` when `value` is exactly 64 lowercase hexadecimal characters.
+///
+/// Transformation:
+/// - Performs a byte-level check so malformed hashes can be rejected before
+///   comparing generated or external checksum values.
+pub(crate) fn is_valid_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+/// Computes a file SHA-256 with the local system hash tool.
+///
+/// Inputs:
+/// - `path`: existing file path to hash.
+///
+/// Output:
+/// - `Ok(String)` with lowercase hex SHA-256.
+/// - `Err(String)` when `sha256sum` is unavailable or returns malformed
+///   output.
+///
+/// Transformation:
+/// - Invokes `sha256sum`, reads the first whitespace-delimited field, and
+///   validates it as lowercase SHA-256 hex before returning it.
+pub(crate) fn sha256sum_file(path: &Path) -> Result<String, String> {
+    let output = Command::new("sha256sum")
+        .arg(path)
+        .output()
+        .map_err(|error| format!("cannot run sha256sum for `{}`: {error}", path.display()))?;
+    if !output.status.success() {
+        return Err(format!("sha256sum failed for `{}`", path.display()));
+    }
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|error| format!("sha256sum output was not UTF-8: {error}"))?;
+    let Some(hash) = stdout.split_whitespace().next() else {
+        return Err("sha256sum output was empty".to_string());
+    };
+    if !is_valid_sha256_hex(hash) {
+        return Err(format!("sha256sum output was not SHA-256 hex: `{hash}`"));
+    }
+    Ok(hash.to_string())
 }
 
 /// Converts a Terlan module name into an Erlang output file stem.

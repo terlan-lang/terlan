@@ -58,6 +58,7 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         }
         SyntaxExprKind::Try => core_try_expr_from_syntax(expr),
         SyntaxExprKind::If => core_if_expr_from_syntax(expr),
+        SyntaxExprKind::RawMacro => sql_query_core_expr_from_syntax(expr),
         SyntaxExprKind::Fun if expr.clauses.len() == 1 => {
             let clause = &expr.clauses[0];
             if clause.guard.is_some() {
@@ -83,11 +84,38 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         | SyntaxExprKind::Call
         | SyntaxExprKind::Case
         | SyntaxExprKind::Macro
-        | SyntaxExprKind::RawMacro
         | SyntaxExprKind::HtmlBlock
         | SyntaxExprKind::Quote
         | SyntaxExprKind::Unquote => None,
     }
+}
+
+/// Converts a ready syntax-output SQL raw macro into a CoreIR query payload.
+///
+/// Inputs:
+/// - `expr`: syntax-output raw macro expression, expected to be `sql[Row]`.
+///
+/// Output:
+/// - `Some(CoreExpr::SqlQuery)` when the SQL form has a wrapper plan.
+/// - `None` for non-SQL raw macros or SQL forms blocked by wrapper readiness.
+///
+/// Transformation:
+/// - Reuses SQL wrapper analysis to preserve row type, bound SQL, parameter
+///   count, cardinality, result type, and simple projection fields at the
+///   backend-neutral CoreIR boundary without emitting backend code.
+pub fn sql_query_core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+    let plan = crate::sql_forms::build_sql_wrapper_plan(expr, expr.children.len())
+        .ok()
+        .flatten()?;
+
+    Some(CoreExpr::SqlQuery {
+        row_type: plan.row_type,
+        bound_sql: plan.bound_sql,
+        parameter_count: plan.parameter_count,
+        cardinality: plan.cardinality.as_diagnostic_label().to_string(),
+        result_type: plan.result_type,
+        projection_fields: plan.projection_fields.unwrap_or_default(),
+    })
 }
 
 /// Converts syntax-output expression children into typed Core expression children.
@@ -255,8 +283,8 @@ fn core_list_comprehension_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<C
 /// Converts a syntax-output let expression into typed Core.
 ///
 /// Inputs:
-/// - `expr`: syntax-output let expression whose patterns are binding names and
-///   whose children are binding values plus a required final body.
+/// - `expr`: syntax-output let expression whose patterns are binding patterns
+///   and whose children are binding values plus a required final body.
 ///
 /// Output:
 /// - `Some(CoreExpr::Let)` when every binding value and body lowers to typed
@@ -265,9 +293,9 @@ fn core_list_comprehension_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<C
 ///   unsupported.
 ///
 /// Transformation:
-/// - Pairs each binding-name pattern with its value child and lowers the final
-///   child as the explicit result expression. Bodyless let expressions are
-///   rejected as malformed input.
+/// - Pairs each binding pattern with its value child and lowers the final child
+///   as the explicit result expression. Bodyless let expressions are rejected
+///   as malformed input.
 fn core_let_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     if !matches!(expr.kind, SyntaxExprKind::Let)
         || expr.patterns.is_empty()
@@ -281,11 +309,8 @@ fn core_let_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
         .iter()
         .zip(expr.children.iter())
         .map(|(pattern, value)| {
-            if !matches!(pattern.kind, terlan_syntax::SyntaxPatternKind::Var) {
-                return None;
-            }
             Some(CoreLetBinding {
-                name: pattern.text.clone()?,
+                pattern: core_pattern_from_syntax(pattern)?,
                 value: core_expr_from_syntax(value)?,
             })
         })
@@ -513,7 +538,7 @@ fn core_template_instantiate_expr_from_syntax(expr: &SyntaxExprOutput) -> Option
 ///
 /// Transformation:
 /// - Preserves constructor-chain candidate identity as backend-neutral CoreIR
-///   without resolving derives/parent eligibility or rewriting the chain into
+///   without resolving includes/parent eligibility or rewriting the chain into
 ///   backend record construction.
 fn core_constructor_chain_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     if !matches!(expr.kind, SyntaxExprKind::ConstructorChain) || expr.children.len() != 2 {

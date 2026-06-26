@@ -40,7 +40,7 @@ pub(super) fn lower_syntax_list_comprehension_source(
     ctx: &SyntaxLowerCtx,
     env: &SyntaxLowerEnv,
 ) -> Option<LoweredComprehensionSource> {
-    let Some(receiver_type) = infer_syntax_trait_dispatch_type(source, env) else {
+    let Some(receiver_type) = infer_syntax_trait_dispatch_type(source, ctx, env) else {
         return lower_syntax_expr_with_env(source, ctx, env)
             .map(LoweredComprehensionSource::NativeList);
     };

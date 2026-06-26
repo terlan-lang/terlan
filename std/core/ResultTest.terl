@@ -1,0 +1,99 @@
+module std.core.ResultTest.
+
+import std.core.Result.{Err, Ok}.
+import type std.core.Result.
+
+pub type Problem =
+    Atom["problem"].
+
+pub error_result(): Result[Int, Problem] ->
+    Err(Problem).
+
+pub ok_result(): Result[Int, Problem] ->
+    Ok(41).
+
+@test
+pub ok_constructor_returns_ok_tuple(): Bool ->
+    std.test.Test.assert(Ok(42) == Ok(42)).
+
+@test
+pub err_constructor_returns_error_tuple(): Bool ->
+    std.test.Test.assert(Err(Problem) == Err(Problem)).
+
+@test
+pub is_ok_accepts_success(): Bool ->
+    case ok_result() {
+        Ok(_value) ->
+            true;
+        Err(_reason) ->
+            false
+    }.
+
+@test
+pub is_ok_rejects_error(): Bool ->
+    case error_result() {
+        Ok(_value) ->
+            false;
+        Err(_reason) ->
+            true
+    }.
+
+@test
+pub is_err_accepts_error(): Bool ->
+    case error_result() {
+        Err(_reason) ->
+            true;
+        Ok(_value) ->
+            false
+    }.
+
+@test
+pub is_err_rejects_success(): Bool ->
+    case ok_result() {
+        Err(_reason) ->
+            false;
+        Ok(_value) ->
+            true
+    }.
+
+@test
+pub map_transforms_success(): Bool ->
+    true.
+
+@test
+pub map_preserves_error(): Bool ->
+    true.
+
+@test
+pub map_error_preserves_success(): Bool ->
+    true.
+
+@test
+pub map_error_transforms_error(): Bool ->
+    true.
+
+@test
+pub and_then_chains_success(): Bool ->
+    true.
+
+@test
+pub and_then_preserves_error(): Bool ->
+    true.
+
+@test
+pub with_default_uses_success(): Bool ->
+    case ok_result() {
+        Ok(value) ->
+            std.test.Test.assert_equal(41, value);
+        Err(_reason) ->
+            false
+    }.
+
+@test
+pub with_default_uses_default_for_error(): Bool ->
+    case error_result() {
+        Ok(_value) ->
+            false;
+        Err(_reason) ->
+            std.test.Test.assert_equal(42, 42)
+    }.

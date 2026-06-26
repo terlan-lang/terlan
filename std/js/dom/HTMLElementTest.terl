@@ -1,0 +1,106 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLElement
+ */
+
+module std.js.Dom.HTMLElementTest.
+
+import type std.js.Dom.HTMLElement.HTMLElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub access_key_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.access_key().
+
+pub access_key_label_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.access_key_label().
+
+pub autocapitalize_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.autocapitalize().
+
+pub autocorrect_typechecks(receiver: HTMLElement): std.core.Bool ->
+    receiver.autocorrect().
+
+pub dir_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.dir().
+
+pub draggable_typechecks(receiver: HTMLElement): std.core.Bool ->
+    receiver.draggable().
+
+pub hidden_typechecks(receiver: HTMLElement): std.core.Bool ->
+    receiver.hidden().
+
+pub inert_typechecks(receiver: HTMLElement): std.core.Bool ->
+    receiver.inert().
+
+pub inner_text_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.inner_text().
+
+pub lang_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.lang().
+
+pub offset_height_typechecks(receiver: HTMLElement): std.js.Number.JsNumber ->
+    receiver.offset_height().
+
+pub offset_left_typechecks(receiver: HTMLElement): std.js.Number.JsNumber ->
+    receiver.offset_left().
+
+pub offset_parent_typechecks(receiver: HTMLElement): Option[Element] ->
+    receiver.offset_parent().
+
+pub offset_top_typechecks(receiver: HTMLElement): std.js.Number.JsNumber ->
+    receiver.offset_top().
+
+pub offset_width_typechecks(receiver: HTMLElement): std.js.Number.JsNumber ->
+    receiver.offset_width().
+
+pub outer_text_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.outer_text().
+
+pub popover_typechecks(receiver: HTMLElement): Option[std.js.String.JsString] ->
+    receiver.popover().
+
+pub spellcheck_typechecks(receiver: HTMLElement): std.core.Bool ->
+    receiver.spellcheck().
+
+pub title_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.title().
+
+pub translate_typechecks(receiver: HTMLElement): std.core.Bool ->
+    receiver.translate().
+
+pub writing_suggestions_typechecks(receiver: HTMLElement): std.js.String.JsString ->
+    receiver.writing_suggestions().
+
+pub attach_internals_typechecks(receiver: HTMLElement): ElementInternals ->
+    receiver.attach_internals().
+
+pub click_typechecks(receiver: HTMLElement): std.core.Unit ->
+    receiver.click().
+
+pub hide_popover_typechecks(receiver: HTMLElement): std.core.Unit ->
+    receiver.hide_popover().
+
+pub show_popover_typechecks(receiver: HTMLElement): std.core.Unit ->
+    receiver.show_popover().
+
+pub toggle_popover_typechecks(receiver: HTMLElement, options: std.core.Bool): std.core.Bool ->
+    receiver.toggle_popover(options).
+
+pub add_event_listener_typechecks(receiver: HTMLElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: HTMLElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

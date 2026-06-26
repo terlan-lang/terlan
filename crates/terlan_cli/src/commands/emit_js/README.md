@@ -68,8 +68,12 @@ split:
 - `core_lowering`: converts `CoreModule` / `CoreExpr` into backend decisions
   and owns Terlan semantics.
 - `direct_ast`: converts the currently supported direct CoreIR subset into Oxc
-  AST nodes and prints them with Oxc codegen. This module also owns direct
-  reachability filtering for public exports and private local helpers.
+  AST nodes and prints them with Oxc codegen.
+- `direct_helpers`: owns the small shared Oxc helper surface for direct AST
+  emission, including arena string copies, conservative identifier validation,
+  safe numeric-literal checks, and CoreIR operator mappings.
+- `direct_reachability`: owns direct backend reachability filtering for public
+  exports and private local helpers before Oxc AST construction begins.
 - `oxc_backend`: exposes the command-facing JS backend facade and the
   parser/codegen fallback while bootstrap string lowering remains in use.
 - `target_contract`: owns target spelling, output layout, module format, and

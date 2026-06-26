@@ -1,0 +1,8 @@
+module=std.js.Dom.ImageTrack
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=17077361291659921891
+interface_hash=888499886780668478
+interface_doc_hash=888499886780668478
+deps=0

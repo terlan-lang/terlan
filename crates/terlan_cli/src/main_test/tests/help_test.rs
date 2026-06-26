@@ -5,8 +5,31 @@ fn parse_args_defaults_output_directory_to_build() {
     let (state, cmd) = parse_args(vec!["build".into()]);
 
     assert_eq!(state.out_dir, PathBuf::from("_build"));
+    assert!(!state.experimental);
     assert_eq!(cmd.verb.as_deref(), Some("build"));
     assert!(cmd.args.is_empty());
+}
+
+#[test]
+fn parse_args_accepts_hidden_experimental_flag() {
+    let (state, cmd) = parse_args(vec![
+        "--experimental".into(),
+        "deploy".into(),
+        "plan".into(),
+        "app".into(),
+    ]);
+
+    assert!(state.experimental);
+    assert_eq!(cmd.verb.as_deref(), Some("deploy"));
+    assert_eq!(cmd.args, vec!["plan".to_string(), "app".to_string()]);
+}
+
+#[test]
+fn run_cli_rejects_deploy_without_hidden_experimental_flag() {
+    assert_eq!(
+        run_cli(vec!["deploy".to_string(), "plan".to_string()]),
+        ExitCode::from(2)
+    );
 }
 
 /// Verifies CLI argument parsing defaults documentation to HTML.
@@ -105,11 +128,14 @@ fn top_level_usage_hides_internal_scratch_commands() {
 
     for public_command in [
         "terlc help [command]",
-        "terlc init [project-name] [--profile default|web]",
+        "terlc init [project-name] [--profile default|web|static]",
         "terlc check <file.terl|file.terli|dir>",
         "terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]",
-        "terlc test [file.terl|dir] [--target erlang|js]",
+        "terlc run [project-dir] [--target erlang]",
+        "terlc test [file.terl|dir] [--target erlang|js] [--name <test_function>]",
+        "terlc static <emit|serve|check> <file.terl>",
         "terlc doc <file.terl|dir|std>",
+        "terlc db <init|new|validate|status|migrate|rebuild|reset>",
         "terlc repl [--help]",
         "terlc fmt <file.terl>",
         "terlc version | terlc --version | terlc -V",
@@ -123,6 +149,8 @@ fn top_level_usage_hides_internal_scratch_commands() {
 
     for internal_command in [
         "bind rust",
+        "--experimental",
+        "deploy",
         "emit <file.terl>",
         "emit-static",
         "serve-static",
@@ -197,7 +225,9 @@ fn run_cli_accepts_help_command_short_help() {
 ///   a successful user request instead of an unknown `help` command.
 #[test]
 fn run_cli_accepts_help_command_for_known_commands() {
-    for command in ["help", "init", "bind", "build", "test", "doc", "repl"] {
+    for command in [
+        "help", "init", "bind", "build", "run", "static", "test", "doc", "db", "repl",
+    ] {
         assert_eq!(
             run_cli(vec!["help".to_string(), command.to_string()]),
             ExitCode::SUCCESS,
@@ -328,13 +358,14 @@ fn run_cli_accepts_command_local_help_for_known_commands() {
         "bind",
         "check",
         "build",
+        "run",
+        "static",
         "emit",
-        "emit-static",
-        "serve-static",
         "emit-js",
         "test",
         "interface",
         "doc",
+        "db",
         "doctest",
         "emit-native-metadata",
         "repl",
@@ -420,6 +451,14 @@ fn run_cli_accepts_generic_command_local_help_after_global_options() {
 fn run_cli_rejects_help_command_for_unknown_command() {
     assert_eq!(
         run_cli(vec!["help".to_string(), "unknown".to_string()]),
+        ExitCode::from(2)
+    );
+}
+
+#[test]
+fn run_cli_keeps_experimental_deploy_hidden_from_command_help() {
+    assert_eq!(
+        run_cli(vec!["help".to_string(), "deploy".to_string()]),
         ExitCode::from(2)
     );
 }
@@ -534,7 +573,7 @@ fn run_cli_rejects_version_command_extra_arguments() {
 ///   successful user request, not an invalid command option.
 #[test]
 fn run_cli_accepts_release_command_long_help() {
-    for command in ["init", "build", "test", "doc"] {
+    for command in ["init", "build", "run", "test", "doc"] {
         assert_eq!(
             run_cli(vec![command.to_string(), "--help".to_string()]),
             ExitCode::SUCCESS,
@@ -556,7 +595,7 @@ fn run_cli_accepts_release_command_long_help() {
 ///   aliases follow the same successful routing as `--help`.
 #[test]
 fn run_cli_accepts_release_command_short_help() {
-    for command in ["init", "build", "test", "doc"] {
+    for command in ["init", "build", "run", "test", "doc"] {
         assert_eq!(
             run_cli(vec![command.to_string(), "-h".to_string()]),
             ExitCode::SUCCESS,

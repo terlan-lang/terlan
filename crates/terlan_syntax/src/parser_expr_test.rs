@@ -29,6 +29,74 @@ mod tests {
         ));
     }
 
+    /// Verifies `if` fallback clauses accept `_` without allowing wildcard as
+    /// a general expression.
+    ///
+    /// Inputs:
+    /// - An `if` expression with `_ ->` as the final clause.
+    /// - A standalone wildcard expression.
+    ///
+    /// Output:
+    /// - Test passes when the `if` fallback parses and standalone `_` remains
+    ///   rejected.
+    ///
+    /// Transformation:
+    /// - Confirms the parser normalizes `_` only in `if` clause-head position.
+    #[test]
+    fn if_expr_accepts_wildcard_fallback_clause_only_in_clause_head() {
+        let expr =
+            parse_terlan_expr("if { ready -> 1; _ -> 0 }").expect("parse if fallback clause");
+        let Expr::If { clauses } = expr else {
+            panic!("expected if expression");
+        };
+        assert_eq!(clauses.len(), 2);
+        assert!(matches!(&clauses[1].condition, Expr::Var(name) if name == "true"));
+
+        let error = parse_terlan_expr("_").expect_err("standalone wildcard should fail");
+        assert!(error
+            .message
+            .contains("wildcard '_' is only valid in pattern position"));
+    }
+
+    /// Verifies module function bodies accept `_ ->` fallback clauses in nested
+    /// `if` expressions.
+    ///
+    /// Inputs:
+    /// - Source module containing nested `if { ... }` expressions with `_`
+    ///   fallback clauses.
+    ///
+    /// Output:
+    /// - Test passes when the full module parser accepts both fallback clauses.
+    ///
+    /// Transformation:
+    /// - Exercises the same parser entry point used by `terlc build` instead
+    ///   of only the isolated expression parser.
+    #[test]
+    fn module_if_expr_accepts_nested_wildcard_fallback_clauses() {
+        parse_module(
+            r#"
+module test.Other.
+
+pub binary_search_range(items: Vector<Int>, target: Int, low: Int, high: Int): Option<Int> ->
+    if {
+      low > high -> None;
+      _ ->
+        let mid = low + ((high - low) / 2);
+            value = items[mid];
+        case value == target {
+          true -> Some(mid);
+          false ->
+            if {
+              value < target -> binary_search_range(items, target, mid + 1, high);
+              _ -> binary_search_range(items, target, low, mid - 1)
+            }
+        }
+    }.
+"#,
+        )
+        .expect("parse nested if wildcard fallbacks");
+    }
+
     /// Verifies the boolean precedence chain introduced by the canonical EBNF.
     ///
     /// Inputs:
@@ -391,39 +459,33 @@ mod tests {
         assert!(!fields[1].required);
     }
 
-    /// Verifies binary segment syntax is preserved by the syntax parser.
+    /// Verifies Erlang binary segment syntax is rejected by the syntax parser.
     ///
     /// Inputs:
-    /// - A binary literal containing size and segment-type annotations.
+    /// - An Erlang binary literal containing size and segment-type annotations.
     ///
     /// Output:
-    /// - Test passes when the parser preserves the full binary literal text.
+    /// - Test passes when the parser rejects the source-level Erlang syntax.
     ///
     /// Transformation:
-    /// - Parses the binary literal as an expression and checks that semantic
-    ///   segment lowering remains deferred beyond the syntax phase.
+    /// - Keeps backend Erlang binary syntax out of canonical Terlan source.
 
-    /// Verifies binary segment syntax is preserved by the syntax parser.
+    /// Verifies Erlang binary segment syntax is rejected by the syntax parser.
     ///
     /// Inputs:
-    /// - A binary literal containing size and segment-type annotations.
+    /// - An Erlang binary literal containing size and segment-type annotations.
     ///
     /// Output:
-    /// - Test passes when the parser preserves the full binary literal text.
+    /// - Test passes when the parser rejects the source-level Erlang syntax.
     ///
     /// Transformation:
-    /// - Parses the binary literal as an expression and checks that semantic
-    ///   segment lowering remains deferred beyond the syntax phase.
+    /// - Keeps backend Erlang binary syntax out of canonical Terlan source.
     #[test]
-    fn formal_binary_segments_are_preserved_as_binary_literal_text() {
-        let expr = parse_terlan_expr("<<head:16/big-unsigned-integer, tail/binary>>")
-            .expect("parse binary segment literal");
+    fn formal_binary_segments_are_rejected_as_erlang_source_syntax() {
+        let error = parse_terlan_expr("<<head:16/big-unsigned-integer, tail/binary>>")
+            .expect_err("Erlang binary segment literal should be rejected");
 
-        let Expr::Binary(text) = expr else {
-            panic!("expected binary literal");
-        };
-        assert!(text.contains("head:16/big-unsigned-integer"));
-        assert!(text.contains("tail/binary"));
+        assert!(error.message.contains("Erlang binary literal syntax"));
     }
 
     /// Verifies process-message receive syntax is not canonical Terlan source.
@@ -673,6 +735,172 @@ mod tests {
         assert!(matches!(value.as_ref(), Expr::Var(name) if name == "user"));
     }
 
+    /// Verifies method-call suffixes can follow call results.
+    ///
+    /// Inputs:
+    /// - Expression source using `Router.new().get("/", home)`.
+    ///
+    /// Output:
+    /// - Test passes when the outer expression is a receiver-method call whose
+    ///   receiver is the inner `Router.new()` call.
+    ///
+    /// Transformation:
+    /// - Exercises the postfix suffix loop after uppercase dotted calls so
+    ///   router-builder chains remain normal expression syntax.
+    #[test]
+    fn formal_method_call_suffix_parses_after_call_result() {
+        let expr = parse_terlan_expr(r#"Router.new().get("/", home)"#)
+            .expect("parse call-result method call suffix");
+        let Expr::Call {
+            callee,
+            args,
+            is_fun_value,
+            ..
+        } = expr
+        else {
+            panic!("expected outer method call expression");
+        };
+        assert!(!is_fun_value);
+        assert_eq!(args.len(), 2);
+        let Expr::FieldAccess { value, field } = callee.as_ref() else {
+            panic!("expected outer field-access callee");
+        };
+        assert_eq!(field, "get");
+        let Expr::Call {
+            callee: inner_callee,
+            args: inner_args,
+            remote: inner_remote,
+            ..
+        } = value.as_ref()
+        else {
+            panic!("expected call-result receiver");
+        };
+        assert!(inner_args.is_empty());
+        assert_eq!(inner_remote.as_deref(), Some("Router"));
+        assert!(matches!(inner_callee.as_ref(), Expr::Atom(name) if name == "new"));
+    }
+
+    /// Verifies generic type arguments on dotted calls parse before call args.
+    ///
+    /// Inputs:
+    /// - Expression source using `Vector.new[String]()`.
+    ///
+    /// Output:
+    /// - Test passes when the call is remote `Vector.new` with one explicit
+    ///   call type argument.
+    ///
+    /// Transformation:
+    /// - Exercises the dotted-call parser path that must consume `[String]`
+    ///   as call metadata rather than mistaking it for an index expression.
+    #[test]
+    fn formal_dotted_call_preserves_explicit_type_args() {
+        let expr = parse_terlan_expr("Vector.new[String]()").expect("parse generic dotted call");
+        let Expr::Call {
+            callee,
+            type_args,
+            args,
+            remote,
+            is_fun_value,
+            ..
+        } = expr
+        else {
+            panic!("expected generic dotted call");
+        };
+
+        assert!(!is_fun_value);
+        assert!(args.is_empty());
+        assert_eq!(remote.as_deref(), Some("Vector"));
+        assert_eq!(type_args.len(), 1);
+        assert_eq!(type_args[0].text, "String");
+        assert!(matches!(callee.as_ref(), Expr::Atom(name) if name == "new"));
+    }
+
+    /// Verifies generic type arguments on bare calls parse before call args.
+    ///
+    /// Inputs:
+    /// - Expression source using `identity[Option, Int](value)`.
+    ///
+    /// Output:
+    /// - Test passes when the call is local and carries both explicit call type
+    ///   arguments.
+    ///
+    /// Transformation:
+    /// - Exercises the bare-call parser path so local HKT helpers can accept
+    ///   constructor and value type arguments without being parsed as index
+    ///   syntax.
+    #[test]
+    fn formal_bare_call_preserves_multiple_explicit_type_args() {
+        let expr =
+            parse_terlan_expr("identity[Option, Int](value)").expect("parse generic bare call");
+        let Expr::Call {
+            callee,
+            type_args,
+            args,
+            remote,
+            is_fun_value,
+            ..
+        } = expr
+        else {
+            panic!("expected generic bare call");
+        };
+
+        assert!(!is_fun_value);
+        assert_eq!(args.len(), 1);
+        assert!(remote.is_none());
+        assert_eq!(type_args.len(), 2);
+        assert_eq!(type_args[0].text, "Option");
+        assert_eq!(type_args[1].text, "Int");
+        assert!(matches!(callee.as_ref(), Expr::Var(name) if name == "identity"));
+    }
+
+    /// Verifies named call-site arguments are preserved in source order.
+    ///
+    /// Inputs:
+    /// - A call with two positional arguments followed by one named argument.
+    ///
+    /// Output:
+    /// - Test passes when argument expressions and their optional names remain
+    ///   parallel in the parsed call expression.
+    ///
+    /// Transformation:
+    /// - Parses `name = expr` only in call-argument position without changing
+    ///   the positional expression list consumed by downstream phases.
+    #[test]
+    fn formal_named_call_arguments_preserve_parallel_names() {
+        let expr = parse_terlan_expr(r#"create_user(1, "Alice", active = True)"#)
+            .expect("parse named call arguments");
+        let Expr::Call {
+            args, arg_names, ..
+        } = expr
+        else {
+            panic!("expected call expression");
+        };
+
+        assert_eq!(args.len(), 3);
+        assert_eq!(arg_names, vec![None, None, Some("active".to_string())]);
+    }
+
+    /// Verifies named arguments close the positional call-argument segment.
+    ///
+    /// Inputs:
+    /// - A call with a positional argument after a named argument.
+    ///
+    /// Output:
+    /// - Test passes when parsing fails with a stable ordering diagnostic.
+    ///
+    /// Transformation:
+    /// - Rejects ambiguous call-site ordering before semantic name resolution
+    ///   or default-argument lowering runs.
+    #[test]
+    fn formal_named_call_arguments_reject_positional_after_named() {
+        let err = parse_terlan_expr(r#"create_user(active = True, "Alice")"#)
+            .expect_err("reject positional argument after named argument");
+
+        assert!(err
+            .message
+            .contains("positional arguments must come before named arguments"));
+    }
+
     #[test]
     fn formal_unary_expr_preserves_precedence() {
         let expr = parse_terlan_expr("not Ready == false").expect("parse unary not precedence");
@@ -716,6 +944,7 @@ mod tests {
             remote,
             args,
             is_fun_value: _,
+            ..
         } = left.as_ref()
         else {
             panic!("expected remote call expression as pipe left side");
@@ -767,7 +996,11 @@ mod tests {
         assert!(matches!(op, crate::parse_tree::BinaryOp::PipeForward));
         assert!(matches!(
             left.as_ref(),
-            Expr::RawMacro { name, raw } if name == "sql" && raw == "select * from users"
+            Expr::RawMacro { name, type_args, interpolations, raw }
+                if name == "sql"
+                    && type_args.is_empty()
+                    && interpolations.is_empty()
+                    && raw == "select * from users"
         ));
 
         let spaced = parse_terlan_expr("sql {select * from users}");
@@ -775,6 +1008,67 @@ mod tests {
             spaced.is_err(),
             "spaced raw macro should not parse as expression"
         );
+    }
+
+    #[test]
+    fn formal_typed_sql_raw_macro_expr_parses_result_type() {
+        let expr = parse_terlan_expr("sql[UserRow] {select * from users}")
+            .expect("parse typed sql raw macro expr");
+        let Expr::RawMacro {
+            name,
+            type_args,
+            interpolations,
+            raw,
+        } = expr
+        else {
+            panic!("expected typed sql raw macro expression");
+        };
+
+        assert_eq!(name, "sql");
+        assert_eq!(type_args.len(), 1);
+        assert_eq!(type_args[0].text, "UserRow");
+        assert!(interpolations.is_empty());
+        assert_eq!(raw, "select * from users");
+    }
+
+    #[test]
+    fn formal_typed_sql_raw_macro_expr_parses_interpolation_expressions() {
+        let expr = parse_terlan_expr("sql[UserRow] {select * from users where id = ${user.id}}")
+            .expect("parse typed sql raw macro interpolation");
+        let Expr::RawMacro { interpolations, .. } = expr else {
+            panic!("expected typed sql raw macro expression");
+        };
+
+        assert_eq!(interpolations.len(), 1);
+        assert!(matches!(
+            &interpolations[0],
+            Expr::FieldAccess { field, .. } if field == "id"
+        ));
+    }
+
+    #[test]
+    fn formal_typed_sql_raw_macro_expr_ignores_comment_interpolation_text() {
+        let expr = parse_terlan_expr(
+            "sql[UserRow] {/* ${ignored} */ select * from users where id = ${user.id} /* ${also_ignored} */}",
+        )
+        .expect("parse typed sql raw macro comment interpolation text");
+        let Expr::RawMacro { interpolations, .. } = expr else {
+            panic!("expected typed sql raw macro expression");
+        };
+
+        assert_eq!(interpolations.len(), 1);
+        assert!(matches!(
+            &interpolations[0],
+            Expr::FieldAccess { field, .. } if field == "id"
+        ));
+    }
+
+    #[test]
+    fn formal_typed_sql_raw_macro_expr_rejects_bad_interpolation() {
+        let err = parse_terlan_expr("sql[UserRow] {select * from users where id = ${}}")
+            .expect_err("empty sql interpolation should fail");
+
+        assert!(err.message.contains("empty SQL interpolation expression"));
     }
 
     #[test]
@@ -935,6 +1229,41 @@ pub name(User: User): Text ->
                 }
             }
             _ => panic!("expected field access"),
+        }
+    }
+
+    /// Verifies private struct field access syntax.
+    ///
+    /// Inputs:
+    /// - A function body containing `receiver.#field`.
+    ///
+    /// Output:
+    /// - Test passes when the parser preserves the private marker on the field
+    ///   access expression.
+    ///
+    /// Transformation:
+    /// - Reuses the normal field-access expression node while keeping `#` in
+    ///   the field text for later privacy enforcement.
+    #[test]
+    fn parses_private_struct_field_access_sugar() {
+        let source = r#"
+module private_fields.
+
+pub email(user: User): String ->
+    user.#email.
+"#;
+
+        let module = parse_module(source).expect("parse private field access");
+        let function = match &module.declarations[0] {
+            Decl::Function(function) => function,
+            _ => panic!("expected function"),
+        };
+        match &function.clauses[0].body {
+            Expr::FieldAccess { value, field } => {
+                assert_eq!(field, "#email");
+                assert!(matches!(value.as_ref(), Expr::Var(name) if name == "user"));
+            }
+            _ => panic!("expected private field access"),
         }
     }
 

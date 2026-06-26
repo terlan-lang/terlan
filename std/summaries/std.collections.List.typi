@@ -78,7 +78,7 @@ pub (list: List[T]) length(): Int.
 /// Transformation: lowers through the compiler-owned `core.list.new`
 /// intrinsic, using the selected backend's canonical empty-list value.
 
-pub new(): List[T].
+pub new[T](): List[T].
 
 /// Appends a value to the end of a list.
 ///
@@ -89,4 +89,16 @@ pub new(): List[T].
 /// continue with the updated receiver.
 
 pub (mut list: List[T]) push(value: T): Unit.
+
+/// Constructs a list from positional values.
+///
+/// Input: zero or more values of the same element type `T`.
+/// Output: a `List[T]` containing the supplied values in source order.
+/// Transformation: uses constructor varargs to pack positional values into the
+/// portable list representation.
+
+pub constructor List[T] {
+    (...items: T): List[T] ->
+        items
+}.
 

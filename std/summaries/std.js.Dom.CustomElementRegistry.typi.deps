@@ -1,0 +1,8 @@
+module=std.js.Dom.CustomElementRegistry
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=204481542476578205
+interface_hash=7520327205289553545
+interface_doc_hash=7520327205289553545
+deps=0

@@ -1,0 +1,15 @@
+module std.template.TemplateTest.
+
+import std.template.Template.
+import type std.collections.List.
+import type std.template.Template.Html.
+
+pub accepts_html(value: Html): Html ->
+    value.
+
+pub accepts_html_list(value: List[Html]): List[Html] ->
+    value.
+
+@test
+pub template_surface_is_declared(): Bool ->
+    true.

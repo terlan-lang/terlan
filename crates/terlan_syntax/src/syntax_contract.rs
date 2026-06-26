@@ -445,7 +445,7 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
     require_rule_reference(contract, "IndexAssignExpr", "Expr", &mut diagnostics);
     require_rule_reference(contract, "LetExpr", "LetBinding", &mut diagnostics);
     require_rule_reference(contract, "LetExpr", "Expr", &mut diagnostics);
-    require_rule_reference(contract, "LetBinding", "Binding", &mut diagnostics);
+    require_rule_reference(contract, "LetBinding", "Pattern", &mut diagnostics);
     require_rule_reference(contract, "LetBinding", "Expr", &mut diagnostics);
     require_rule_reference(contract, "PipeExpr", "OrExpr", &mut diagnostics);
     require_rule_reference(contract, "OrExpr", "AndExpr", &mut diagnostics);

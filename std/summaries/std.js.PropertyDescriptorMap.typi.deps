@@ -1,0 +1,8 @@
+module=std.js.PropertyDescriptorMap
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=12195014837209019377
+interface_hash=3409577653443197492
+interface_doc_hash=3409577653443197492
+deps=0

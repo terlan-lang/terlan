@@ -1,0 +1,8 @@
+module=std.js.Dom.AesDerivedKeyParams
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=15905560520131041012
+interface_hash=16100343543049886147
+interface_doc_hash=16100343543049886147
+deps=0

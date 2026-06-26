@@ -1,29 +1,42 @@
-use serde::{Deserialize, Serialize};
-
 mod annotations;
 mod config;
 mod declarations;
 mod expressions;
 mod html;
 mod imports;
+mod model;
 mod modules;
 mod patterns;
+mod text;
 mod types;
 
 use annotations::{
     annotation_output, annotation_schema_entry_output, validate_builtin_annotation_schemas,
 };
 use config::{config_declaration_target, is_config_declaration_kind, parse_config_entries};
+pub use config::{SyntaxConfigEntryOutput, SyntaxConfigValueOutput};
 use declarations::{declaration_docs, declaration_payload};
 pub use expressions::{
     SyntaxClauseOutput, SyntaxExprFieldOutput, SyntaxExprKind, SyntaxExprOutput,
     SyntaxTryAfterOutput,
 };
 use html::html_node_output;
+pub use html::{
+    SyntaxHtmlAttrOutput, SyntaxHtmlAttrValueOutput, SyntaxHtmlElementOutput,
+    SyntaxHtmlNamedSlotOutput, SyntaxHtmlNodeOutput,
+};
 pub use imports::{SyntaxExportItem, SyntaxImportItem, SyntaxImportKind};
+pub use model::{
+    SyntaxAnnotationEntryOutput, SyntaxAnnotationKeyOptionOutput, SyntaxAnnotationOutput,
+    SyntaxAnnotationSchemaEntryOutput, SyntaxAnnotationValueOutput, SyntaxConstructorClauseOutput,
+    SyntaxConstructorParamOutput, SyntaxDeclarationOutput, SyntaxDeclarationPayload,
+    SyntaxFunctionClauseOutput, SyntaxImplMethodOutput, SyntaxStructFieldOutput,
+    SyntaxTemplatePropOutput, SyntaxTraitMethodOutput,
+};
 pub use modules::{SyntaxModuleOutput, SyntaxSourceKind, SYNTAX_MODULE_OUTPUT_SCHEMA};
-use patterns::{pattern_leaf, pattern_output};
+use patterns::pattern_output;
 pub use patterns::{SyntaxPatternFieldOutput, SyntaxPatternKind, SyntaxPatternOutput};
+use text::{binary_op_text, expr_to_output_text, type_expr_output, unary_op_text};
 pub use types::{SyntaxParamOutput, SyntaxTypeOutput};
 
 use crate::{
@@ -31,428 +44,14 @@ use crate::{
     lexer::lex,
     parse_tree::{
         Annotation, AnnotationEntry, AnnotationKeyOption, AnnotationSchemaEntry, AnnotationValue,
-        BinaryOp, CaseClause, ConstructorClause, ConstructorParam, Decl, Expr, FunctionClause,
-        FunctionDecl, HtmlAttr, HtmlAttrValue, HtmlElement, HtmlNamedSlot, HtmlNode, IfClause,
-        MapExprField, Module, Param, TraitMethodDecl, TypeExpr, UnaryOp,
+        CaseClause, ConstructorClause, ConstructorParam, Decl, Expr, FunctionClause, FunctionDecl,
+        IfClause, MapExprField, Module, Param, TraitMethodDecl, TypeExpr,
     },
     parser::{parse_interface_module, parse_module},
     parser_contract::{contract_decl_class, decl_span, module_as_contract},
     syntax_contract::cached_canonical_terlan_syntax_contract_identity,
     token::{Token, TokenKind},
 };
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// One declaration in syntax-output form.
-///
-/// Inputs: parsed declaration plus docs/annotations. Output: stable
-/// declaration record. Transformation: attaches index, class, span, docs,
-/// annotations, and normalized payload for downstream compiler phases.
-pub struct SyntaxDeclarationOutput {
-    pub index: usize,
-    pub class: String,
-    pub span: EbnfSourceSpan,
-    pub docs: Vec<String>,
-    pub annotations: Vec<SyntaxAnnotationOutput>,
-    pub payload: SyntaxDeclarationPayload,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Annotation instance in syntax-output form.
-///
-/// Inputs: parsed annotation path, args, entries, values, and span. Output:
-/// serializable annotation record. Transformation: separates positional values
-/// from keyed entries while preserving source span.
-pub struct SyntaxAnnotationOutput {
-    pub path: Vec<String>,
-    pub args: Option<String>,
-    pub entries: Vec<SyntaxAnnotationEntryOutput>,
-    pub values: Vec<SyntaxAnnotationValueOutput>,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Keyed annotation entry.
-///
-/// Inputs: annotation key path, value, and span. Output: serializable key/value
-/// pair. Transformation: keeps dotted keys as segment vectors.
-pub struct SyntaxAnnotationEntryOutput {
-    pub key: Vec<String>,
-    pub value: SyntaxAnnotationValueOutput,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-/// Annotation value represented by the syntax-output contract.
-///
-/// Inputs: parsed annotation literal or compound value. Output: tagged value
-/// payload. Transformation: normalizes names, scalars, lists, and objects into
-/// JSON-serializable variants.
-pub enum SyntaxAnnotationValueOutput {
-    Name {
-        segments: Vec<String>,
-    },
-    Bool {
-        value: bool,
-    },
-    Int {
-        text: String,
-    },
-    Float {
-        text: String,
-    },
-    String {
-        text: String,
-    },
-    List {
-        values: Vec<SyntaxAnnotationValueOutput>,
-    },
-    Object {
-        entries: Vec<SyntaxAnnotationEntryOutput>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-/// Declaration-specific syntax-output payload.
-///
-/// Inputs: parsed declaration variants. Output: tagged declaration payload.
-/// Transformation: preserves declaration semantics while removing parser-only
-/// enum shapes from the compiler handoff contract.
-pub enum SyntaxDeclarationPayload {
-    Import {
-        import_kind: SyntaxImportKind,
-        module_name: String,
-        items: Vec<SyntaxImportItem>,
-        is_type: bool,
-        source_path: Option<String>,
-    },
-    Export {
-        items: Vec<SyntaxExportItem>,
-    },
-    Type {
-        name: String,
-        params: Vec<String>,
-        is_public: bool,
-        is_opaque: bool,
-        implements: Vec<SyntaxTypeOutput>,
-        variants: Vec<SyntaxTypeOutput>,
-    },
-    Struct {
-        name: String,
-        derives: Vec<String>,
-        implements: Vec<SyntaxTypeOutput>,
-        is_public: bool,
-        fields: Vec<SyntaxStructFieldOutput>,
-    },
-    Constructor {
-        name: String,
-        params: Vec<String>,
-        is_public: bool,
-        clauses: Vec<SyntaxConstructorClauseOutput>,
-    },
-    Function {
-        name: String,
-        params: Vec<SyntaxParamOutput>,
-        return_type: SyntaxTypeOutput,
-        is_public: bool,
-        is_macro: bool,
-        generic_bounds: Vec<String>,
-        clauses: Vec<SyntaxFunctionClauseOutput>,
-    },
-    Method {
-        receiver: SyntaxParamOutput,
-        name: String,
-        params: Vec<SyntaxParamOutput>,
-        return_type: SyntaxTypeOutput,
-        is_public: bool,
-        generic_bounds: Vec<String>,
-        clauses: Vec<SyntaxFunctionClauseOutput>,
-    },
-    Trait {
-        name: String,
-        params: Vec<String>,
-        super_traits: Vec<String>,
-        is_public: bool,
-        methods: Vec<SyntaxTraitMethodOutput>,
-    },
-    TraitImpl {
-        trait_ref: SyntaxTypeOutput,
-        for_type: SyntaxTypeOutput,
-        is_public: bool,
-        methods: Vec<SyntaxImplMethodOutput>,
-    },
-    AnnotationSchema {
-        path: Vec<String>,
-        is_public: bool,
-        entries: Vec<SyntaxAnnotationSchemaEntryOutput>,
-    },
-    Template {
-        name: String,
-        source_path: String,
-        props: Vec<SyntaxTemplatePropOutput>,
-    },
-    Config {
-        name: String,
-        target: String,
-        text: String,
-        entries: Vec<SyntaxConfigEntryOutput>,
-    },
-    Raw {
-        raw_kind: String,
-        text: String,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-/// Annotation schema entry in syntax-output form.
-///
-/// Inputs: parsed annotation schema declaration entry. Output: applies-to or
-/// key definition payload. Transformation: keeps schema metadata structured for
-/// compile-time annotation validation.
-pub enum SyntaxAnnotationSchemaEntryOutput {
-    AppliesTo {
-        targets: Vec<String>,
-        span: EbnfSourceSpan,
-    },
-    Key {
-        key: Vec<String>,
-        value_type: String,
-        options: Vec<SyntaxAnnotationKeyOptionOutput>,
-        span: EbnfSourceSpan,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-/// Annotation key option in syntax-output form.
-///
-/// Inputs: parsed option attached to an annotation schema key. Output:
-/// required/repeatable/default/applies-to payload. Transformation: carries
-/// option spans so schema diagnostics can point at the exact option.
-pub enum SyntaxAnnotationKeyOptionOutput {
-    Required {
-        value: bool,
-        span: EbnfSourceSpan,
-    },
-    Repeatable {
-        value: bool,
-        span: EbnfSourceSpan,
-    },
-    Default {
-        value: SyntaxAnnotationValueOutput,
-        span: EbnfSourceSpan,
-    },
-    AppliesTo {
-        targets: Vec<String>,
-        span: EbnfSourceSpan,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Config block key/value entry.
-///
-/// Inputs: parsed config key and value. Output: serializable config entry.
-/// Transformation: keeps config keys as source text and values as structured
-/// config payloads.
-pub struct SyntaxConfigEntryOutput {
-    pub key: String,
-    pub value: SyntaxConfigValueOutput,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-/// Config value represented by syntax output.
-///
-/// Inputs: parsed config literal or compound value. Output: tagged config
-/// value. Transformation: normalizes bools, symbols, numbers, strings, lists,
-/// and maps for target-profile validation.
-pub enum SyntaxConfigValueOutput {
-    Bool {
-        value: bool,
-    },
-    Symbol {
-        value: String,
-    },
-    Int {
-        value: String,
-    },
-    Float {
-        value: String,
-    },
-    String {
-        value: String,
-    },
-    List {
-        values: Vec<SyntaxConfigValueOutput>,
-    },
-    Map {
-        entries: Vec<SyntaxConfigEntryOutput>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Struct field represented by syntax output.
-///
-/// Inputs: parsed field declaration, docs, default expression, and span.
-/// Output: field record. Transformation: preserves type annotation and optional
-/// default as syntax-output data.
-pub struct SyntaxStructFieldOutput {
-    pub name: String,
-    pub annotation: SyntaxTypeOutput,
-    #[serde(default)]
-    pub docs: Vec<String>,
-    pub has_default: bool,
-    #[serde(default)]
-    pub default: Option<SyntaxExprOutput>,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Constructor parameter represented by syntax output.
-///
-/// Inputs: parsed constructor parameter. Output: parameter record with optional
-/// default and varargs flag. Transformation: keeps source type annotation and
-/// default expression in normalized syntax-output form.
-pub struct SyntaxConstructorParamOutput {
-    pub name: String,
-    pub annotation: SyntaxTypeOutput,
-    pub has_default: bool,
-    #[serde(default)]
-    pub default: Option<SyntaxExprOutput>,
-    pub is_varargs: bool,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Constructor clause represented by syntax output.
-///
-/// Inputs: parsed constructor clause. Output: params, return type, body, body
-/// text, and span. Transformation: stores both structured body and source-like
-/// text for diagnostics/contracts.
-pub struct SyntaxConstructorClauseOutput {
-    pub params: Vec<SyntaxConstructorParamOutput>,
-    pub return_type: SyntaxTypeOutput,
-    pub body: SyntaxExprOutput,
-    pub body_text: String,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Function clause represented by syntax output.
-///
-/// Inputs: parsed function clause. Output: patterns, optional guard, body, and
-/// span. Transformation: normalizes guard presence and expression/pattern
-/// payloads for typechecking.
-pub struct SyntaxFunctionClauseOutput {
-    pub patterns: Vec<SyntaxPatternOutput>,
-    pub guard: Option<SyntaxExprOutput>,
-    pub body: SyntaxExprOutput,
-    pub has_guard: bool,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-/// HTML node represented in syntax output.
-///
-/// Inputs: parsed HTML block node. Output: tagged text, expression, element, or
-/// named-slot node. Transformation: converts HTML parser structures into
-/// syntax-output records.
-pub enum SyntaxHtmlNodeOutput {
-    Text { text: String },
-    Expr { expr: Box<SyntaxExprOutput> },
-    Element { element: SyntaxHtmlElementOutput },
-    NamedSlot { slot: SyntaxHtmlNamedSlotOutput },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// HTML element represented in syntax output.
-///
-/// Inputs: parsed HTML element. Output: name, attributes, and children.
-/// Transformation: recursively maps child nodes and attributes.
-pub struct SyntaxHtmlElementOutput {
-    pub name: String,
-    pub attrs: Vec<SyntaxHtmlAttrOutput>,
-    pub children: Vec<SyntaxHtmlNodeOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Named HTML slot represented in syntax output.
-///
-/// Inputs: parsed slot name and children. Output: named-slot record.
-/// Transformation: preserves slot children as syntax-output HTML nodes.
-pub struct SyntaxHtmlNamedSlotOutput {
-    pub name: String,
-    pub children: Vec<SyntaxHtmlNodeOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// HTML attribute represented in syntax output.
-///
-/// Inputs: parsed HTML attribute. Output: name and optional value.
-/// Transformation: maps static or expression-backed values into tagged output.
-pub struct SyntaxHtmlAttrOutput {
-    pub name: String,
-    pub value: Option<SyntaxHtmlAttrValueOutput>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-/// HTML attribute value represented in syntax output.
-///
-/// Inputs: parsed attribute value. Output: static text or expression payload.
-/// Transformation: boxes expression values so attribute payload shape remains
-/// compact and recursive.
-pub enum SyntaxHtmlAttrValueOutput {
-    Text { text: String },
-    Expr { expr: Box<SyntaxExprOutput> },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Trait method declaration represented in syntax output.
-///
-/// Inputs: parsed trait method. Output: signature, bounds, optional default
-/// body, visibility, docs, and span. Transformation: normalizes default methods
-/// into expression output while preserving signature text.
-pub struct SyntaxTraitMethodOutput {
-    pub name: String,
-    pub params: Vec<SyntaxParamOutput>,
-    pub return_type: SyntaxTypeOutput,
-    pub generic_bounds: Vec<String>,
-    #[serde(default)]
-    pub default_body: Option<SyntaxExprOutput>,
-    pub is_public: bool,
-    pub docs: Vec<String>,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Explicit trait implementation method represented in syntax output.
-///
-/// Inputs: parsed impl method. Output: signature and clauses. Transformation:
-/// normalizes implementation clauses for typechecking and trait conformance.
-pub struct SyntaxImplMethodOutput {
-    pub name: String,
-    pub params: Vec<SyntaxParamOutput>,
-    pub return_type: SyntaxTypeOutput,
-    pub generic_bounds: Vec<String>,
-    pub clauses: Vec<SyntaxFunctionClauseOutput>,
-    pub span: EbnfSourceSpan,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// Template property represented in syntax output.
-///
-/// Inputs: parsed template property. Output: name, annotation, and span.
-/// Transformation: keeps template property type metadata structured for
-/// template lowering.
-pub struct SyntaxTemplatePropOutput {
-    pub name: String,
-    pub annotation: SyntaxTypeOutput,
-    pub span: EbnfSourceSpan,
-}
 
 /// Parses a Terlan module into syntax-output form.
 ///
@@ -707,7 +306,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
                 children,
                 bindings
                     .iter()
-                    .map(|binding| pattern_leaf(SyntaxPatternKind::Var, Some(binding.name.clone())))
+                    .map(|binding| pattern_output(&binding.pattern))
                     .collect(),
                 Vec::new(),
                 Vec::new(),
@@ -717,14 +316,16 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
         }
         Expr::Call {
             callee,
+            type_args,
             args,
+            arg_names,
             remote,
             is_fun_value,
         } => {
             let mut children = Vec::with_capacity(args.len() + 1);
             children.push(expr_output_with_span(callee, span));
             children.extend(args.iter().map(|arg| expr_output_with_span(arg, span)));
-            expr_node(
+            let mut output = expr_node(
                 if *is_fun_value {
                     SyntaxExprKind::FunctionCall
                 } else {
@@ -739,7 +340,10 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
                 Vec::new(),
                 span,
             )
-            .with_arity(args.len())
+            .with_arity(args.len());
+            output.arg_names = arg_names.clone();
+            output.type_args = type_args.iter().map(type_expr_output).collect();
+            output
         }
         Expr::Case { scrutinee, clauses } => expr_node(
             SyntaxExprKind::Case,
@@ -827,19 +431,28 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             span,
         )
         .with_arity(args.len()),
-        Expr::RawMacro { name, raw } => {
+        Expr::RawMacro {
+            name,
+            type_args,
+            interpolations,
+            raw,
+        } => {
             let mut output = expr_node(
                 SyntaxExprKind::RawMacro,
                 Some(name.clone()),
                 None,
                 None,
-                Vec::new(),
+                interpolations
+                    .iter()
+                    .map(|expr| expr_output_with_span(expr, span))
+                    .collect(),
                 Vec::new(),
                 Vec::new(),
                 Vec::new(),
                 span,
             );
             output.raw = Some(raw.clone());
+            output.type_args = type_args.iter().map(type_expr_output).collect();
             output
         }
         Expr::HtmlBlock(block) => {
@@ -1116,8 +729,10 @@ fn expr_node(
         text,
         span,
         raw: None,
+        type_args: Vec::new(),
         operator,
         remote,
+        arg_names: Vec::new(),
         children,
         patterns,
         fields,
@@ -1228,153 +843,6 @@ fn function_clause_output_with_span(
             .as_deref()
             .map(|guard| Box::new(expr_output_with_span(guard, span))),
         body: Box::new(expr_output_with_span(&clause.body, span)),
-    }
-}
-
-/// Renders parser expression text for syntax-output summaries.
-///
-/// Inputs: parsed expression. Output: compact source-like text. Transformation:
-/// recursively formats expression variants used by declarations that preserve
-/// body/default text for diagnostics and contracts.
-fn expr_to_output_text(expr: &Expr) -> String {
-    match expr {
-        Expr::Int(value) => value.to_string(),
-        Expr::Float(value) => value.to_string(),
-        Expr::Atom(name) | Expr::AtomLiteral(name) | Expr::Var(name) => name.clone(),
-        Expr::Binary(value) => value.clone(),
-        Expr::Tuple(items) => format!(
-            "{{{}}}",
-            items
-                .iter()
-                .map(expr_to_output_text)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        Expr::List(items) => format!(
-            "[{}]",
-            items
-                .iter()
-                .map(expr_to_output_text)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        Expr::ListCons(head, tail) => format!(
-            "[{} | {}]",
-            expr_to_output_text(head),
-            expr_to_output_text(tail)
-        ),
-        Expr::IndexAssign {
-            collection,
-            index,
-            value,
-        } => format!(
-            "{}[{}] = {}",
-            expr_to_output_text(collection),
-            expr_to_output_text(index),
-            expr_to_output_text(value)
-        ),
-        Expr::Let { bindings, body } => {
-            let mut parts = bindings
-                .iter()
-                .map(|binding| {
-                    format!("{} = {}", binding.name, expr_to_output_text(&binding.value))
-                })
-                .collect::<Vec<_>>();
-            if let Some(body) = body {
-                parts.push(expr_to_output_text(body));
-            }
-            format!("let {}", parts.join("; "))
-        }
-        Expr::Call {
-            callee,
-            args,
-            remote,
-            is_fun_value,
-        } => {
-            let args = args
-                .iter()
-                .map(expr_to_output_text)
-                .collect::<Vec<_>>()
-                .join(", ");
-            match remote {
-                Some(module) => format!("{}.{}({})", module, expr_to_output_text(callee), args),
-                None if *is_fun_value => format!("{}.({})", expr_to_output_text(callee), args),
-                None => format!("{}({})", expr_to_output_text(callee), args),
-            }
-        }
-        Expr::FieldAccess { value, field } => {
-            format!("{}.{}", expr_to_output_text(value), field)
-        }
-        Expr::TemplateInstantiate { name, fields } => {
-            let body = fields
-                .iter()
-                .map(|field| format!("{} = {}", field.key, expr_to_output_text(&field.value)))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("{} {{{}}}", name, body)
-        }
-        Expr::ConstructorChain { base, record } => {
-            format!(
-                "{} with {}",
-                expr_to_output_text(base),
-                expr_to_output_text(record)
-            )
-        }
-        Expr::UnaryOp { op, expr } => {
-            format!("{} {}", unary_op_text(op), expr_to_output_text(expr))
-        }
-        Expr::Cast { expr, target_type } => {
-            format!("{} as {}", expr_to_output_text(expr), target_type.text)
-        }
-        Expr::BinaryOp { op, left, right } => format!(
-            "{} {} {}",
-            expr_to_output_text(left),
-            binary_op_text(op),
-            expr_to_output_text(right)
-        ),
-        Expr::MacroCall { name, args } if args.is_empty() => format!("?{}", name),
-        Expr::MacroCall { name, args } => format!(
-            "?{}({})",
-            name,
-            args.iter()
-                .map(expr_to_output_text)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        Expr::RawMacro { name, raw } => format!("{} {{{}}}", name, raw),
-        _ => "terlan_interface_constructor".to_string(),
-    }
-}
-
-fn unary_op_text(op: &UnaryOp) -> &'static str {
-    match op {
-        UnaryOp::Neg => "-",
-        UnaryOp::Not => "not",
-        UnaryOp::Bang => "!",
-    }
-}
-
-/// Returns the source spelling for a binary operator.
-///
-/// Inputs: parser binary operator. Output: canonical operator text.
-/// Transformation: maps the closed operator enum to its syntax spelling.
-fn binary_op_text(op: &BinaryOp) -> &'static str {
-    match op {
-        BinaryOp::Add => "+",
-        BinaryOp::Sub => "-",
-        BinaryOp::Mul => "*",
-        BinaryOp::Div => "/",
-        BinaryOp::EqEq => "==",
-        BinaryOp::NotEq => "!=",
-        BinaryOp::Lt => "<",
-        BinaryOp::Gt => ">",
-        BinaryOp::LtEq => "<=",
-        BinaryOp::GtEq => ">=",
-        BinaryOp::DivRem => "div",
-        BinaryOp::Rem => "rem",
-        BinaryOp::And => "and",
-        BinaryOp::Or => "or",
-        BinaryOp::PipeForward => "|>",
     }
 }
 

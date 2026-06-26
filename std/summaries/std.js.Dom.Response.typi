@@ -1,0 +1,79 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Response
+ */
+
+module std.js.Dom.Response.
+
+/**
+ * The **`Response`** interface of the Fetch API represents the response to a request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response)
+ */
+pub opaque type Response.
+
+/**
+ * The **`headers`** read-only property of the with the response.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/headers)
+ */
+pub (value: Response) headers(): Headers.
+
+/**
+ * The **`ok`** read-only property of the Response interface contains a Boolean stating whether the response was successful (status in the range 200-299) or not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/ok)
+ */
+pub (value: Response) ok(): std.core.Bool.
+
+/**
+ * The **`redirected`** read-only property of the Response interface indicates whether or not the response is the result of a request you made which was redirected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirected)
+ */
+pub (value: Response) redirected(): std.core.Bool.
+
+/**
+ * The **`status`** read-only property of the Response interface contains the HTTP status codes of the response.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/status)
+ */
+pub (value: Response) status(): std.js.Number.JsNumber.
+
+/**
+ * The **`statusText`** read-only property of the Response interface contains the status message corresponding to the HTTP status code in Response.status.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/statusText)
+ */
+pub (value: Response) status_text(): std.js.String.JsString.
+
+/**
+ * The **`type`** read-only property of the Response interface contains the type of the response.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/type)
+ */
+pub (value: Response) type_(): ResponseType.
+
+/**
+ * The **`url`** read-only property of the Response interface contains the URL of the response.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/url)
+ */
+pub (value: Response) url(): std.js.String.JsString.
+
+/**
+ * The **`clone()`** method of the Response interface creates a clone of a response object, identical in every way, but stored in a different variable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/clone)
+ */
+pub (value: Response) clone(): Response.

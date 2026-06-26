@@ -1,6 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{erlang_type_param_name, is_generic_type_var, map_module_name, map_struct_name};
+use super::{erlang_type_param_name, map_module_name, map_struct_name};
+
+mod types;
+pub(super) use types::*;
+
+mod operators;
+pub(super) use operators::*;
 
 /// Erlang module render model.
 ///
@@ -386,232 +392,6 @@ impl ErlFunctionClause {
     }
 }
 
-/// Erlang type expression render model.
-///
-/// Inputs:
-/// - Lowered type fragments from syntax or CoreIR type lowering.
-///
-/// Output:
-/// - Erlang type syntax through `render`.
-///
-/// Transformation:
-/// - Represents common type shapes structurally while allowing raw fragments
-///   for backend-owned spec forms.
-#[derive(Debug, Clone)]
-pub(super) enum ErlType {
-    Raw(String),
-    Named {
-        name: String,
-        args: Vec<ErlType>,
-    },
-    Tuple(Vec<ErlType>),
-    List(Box<ErlType>),
-    Map(Vec<ErlMapTypeField>),
-    Union(Vec<ErlType>),
-    Fun {
-        args: Vec<ErlType>,
-        ret: Box<ErlType>,
-    },
-}
-
-impl ErlType {
-    /// Renders an Erlang type expression.
-    ///
-    /// Input is an internal type expression. Output is Erlang type syntax. The
-    /// transformation recursively renders named, tuple, list, union, and
-    /// function types while preserving raw backend fragments.
-    pub(super) fn render(&self) -> String {
-        match self {
-            ErlType::Raw(text) => text.clone(),
-            ErlType::Named { name, args } if args.is_empty() => format!("{}()", name),
-            ErlType::Named { name, args } => {
-                let args = args
-                    .iter()
-                    .map(ErlType::render)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{}({})", name, args)
-            }
-            ErlType::Tuple(items) => {
-                let items = items
-                    .iter()
-                    .map(ErlType::render)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{{{}}}", items)
-            }
-            ErlType::List(inner) => format!("[{}]", inner.render()),
-            ErlType::Map(fields) => {
-                let fields = fields
-                    .iter()
-                    .map(ErlMapTypeField::render)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("#{{{}}}", fields)
-            }
-            ErlType::Union(items) => items
-                .iter()
-                .map(ErlType::render)
-                .collect::<Vec<_>>()
-                .join(" | "),
-            ErlType::Fun { args, ret } if args.is_empty() => format!("fun(() -> {})", ret.render()),
-            ErlType::Fun { args, ret } => {
-                let args = args
-                    .iter()
-                    .map(ErlType::render)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("fun(({}) -> {})", args, ret.render())
-            }
-        }
-    }
-
-    /// Normalizes degenerate Erlang type expressions.
-    ///
-    /// Input is an owned type expression. Output is the same expression with
-    /// single-item unions collapsed. The transformation keeps all other type
-    /// shapes unchanged.
-    pub(super) fn normalized(self) -> Self {
-        match self {
-            ErlType::Union(items) if items.len() == 1 => items.into_iter().next().unwrap(),
-            other => other,
-        }
-    }
-
-    /// Counts generic type variable occurrences.
-    ///
-    /// Inputs are a type expression and mutable occurrence map. Output is the
-    /// mutated map. The transformation walks nested type shapes and increments
-    /// counts only for raw names classified as generic type variables.
-    fn collect_type_vars(&self, vars: &mut BTreeMap<String, usize>) {
-        match self {
-            ErlType::Raw(text) if is_generic_type_var(text) => {
-                *vars.entry(text.clone()).or_insert(0) += 1;
-            }
-            ErlType::Raw(_) => {}
-            ErlType::Named { args, .. } | ErlType::Tuple(args) | ErlType::Union(args) => {
-                for arg in args {
-                    arg.collect_type_vars(vars);
-                }
-            }
-            ErlType::List(inner) => inner.collect_type_vars(vars),
-            ErlType::Map(fields) => {
-                for field in fields {
-                    field.value.collect_type_vars(vars);
-                }
-            }
-            ErlType::Fun { args, ret } => {
-                for arg in args {
-                    arg.collect_type_vars(vars);
-                }
-                ret.collect_type_vars(vars);
-            }
-        }
-    }
-
-    /// Renders an Erlang type expression with phantom variables marked.
-    ///
-    /// Inputs are a type expression and the set of variable names considered
-    /// phantom. Output is Erlang type syntax. The transformation recursively
-    /// renders the type while prefixing phantom raw variables with `_`.
-    fn render_with_phantom_vars(&self, phantom_vars: &BTreeSet<String>) -> String {
-        match self {
-            ErlType::Raw(text) if phantom_vars.contains(text) => format!("_{}", text),
-            ErlType::Raw(text) => text.clone(),
-            ErlType::Named { name, args } if args.is_empty() => format!("{}()", name),
-            ErlType::Named { name, args } => {
-                let args = args
-                    .iter()
-                    .map(|arg| arg.render_with_phantom_vars(phantom_vars))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{}({})", name, args)
-            }
-            ErlType::Tuple(items) => {
-                let items = items
-                    .iter()
-                    .map(|item| item.render_with_phantom_vars(phantom_vars))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{{{}}}", items)
-            }
-            ErlType::List(inner) => format!("[{}]", inner.render_with_phantom_vars(phantom_vars)),
-            ErlType::Map(fields) => {
-                let fields = fields
-                    .iter()
-                    .map(|field| field.render_with_phantom_vars(phantom_vars))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("#{{{}}}", fields)
-            }
-            ErlType::Union(items) => items
-                .iter()
-                .map(|item| item.render_with_phantom_vars(phantom_vars))
-                .collect::<Vec<_>>()
-                .join(" | "),
-            ErlType::Fun { args, ret } if args.is_empty() => {
-                format!("fun(() -> {})", ret.render_with_phantom_vars(phantom_vars))
-            }
-            ErlType::Fun { args, ret } => {
-                let args = args
-                    .iter()
-                    .map(|arg| arg.render_with_phantom_vars(phantom_vars))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!(
-                    "fun(({}) -> {})",
-                    args,
-                    ret.render_with_phantom_vars(phantom_vars)
-                )
-            }
-        }
-    }
-}
-
-/// Erlang map type field render model.
-///
-/// Inputs:
-/// - Key text, value type, and requiredness marker.
-///
-/// Output:
-/// - Map type field syntax.
-///
-/// Transformation:
-/// - Selects Erlang `:=` or `=>` separators from the requiredness flag.
-#[derive(Debug, Clone)]
-pub(super) struct ErlMapTypeField {
-    pub(super) key: String,
-    pub(super) value: ErlType,
-    pub(super) required: bool,
-}
-
-impl ErlMapTypeField {
-    /// Renders an Erlang map type field.
-    ///
-    /// Input is a key, lowered value type, and requiredness flag. Output is
-    /// Erlang map type syntax. The transformation selects `:=` for required
-    /// keys and `=>` for optional/associative keys.
-    fn render(&self) -> String {
-        let sep = if self.required { ":=" } else { "=>" };
-        format!("{}{}{}", self.key, sep, self.value.render())
-    }
-
-    /// Renders an Erlang map type field with phantom type variables marked.
-    ///
-    /// Inputs are one map type field and the phantom-variable set collected
-    /// from the enclosing spec. Output is Erlang map type syntax. The
-    /// transformation delegates value rendering to the nested type mapper.
-    fn render_with_phantom_vars(&self, phantom_vars: &BTreeSet<String>) -> String {
-        let sep = if self.required { ":=" } else { "=>" };
-        format!(
-            "{}{}{}",
-            self.key,
-            sep,
-            self.value.render_with_phantom_vars(phantom_vars)
-        )
-    }
-}
-
 /// Erlang expression render model.
 ///
 /// Inputs:
@@ -785,7 +565,7 @@ impl ErlExpr {
                 for binding in bindings {
                     out.push_str(&format!(
                         "    {} = {},\n",
-                        binding.name,
+                        binding.pattern.render(),
                         binding.value.render()
                     ));
                 }
@@ -911,7 +691,12 @@ impl ErlExpr {
                 format!("?{}({})", name, args)
             }
             ErlExpr::BinaryOp { op, left, right } => {
-                format!("{} {} {}", left.render(), op.render(), right.render())
+                format!(
+                    "{} {} {}",
+                    render_binary_operand(left),
+                    op.render(),
+                    render_binary_operand(right)
+                )
             }
             ErlExpr::UnaryOp { op, expr } => match op {
                 ErlUnaryOp::Neg => format!("-{}", expr.render()),
@@ -922,6 +707,26 @@ impl ErlExpr {
             }
             ErlExpr::Raw(text) => text.clone(),
         }
+    }
+}
+
+/// Renders one operand inside an Erlang binary expression.
+///
+/// Inputs:
+/// - `expr`: lowered Erlang operand expression.
+///
+/// Output:
+/// - Erlang expression text suitable for a binary operator operand.
+///
+/// Transformation:
+/// - Parenthesizes nested binary expressions so source-level arithmetic and
+///   boolean grouping cannot be flattened by the backend renderer.
+fn render_binary_operand(expr: &ErlExpr) -> String {
+    let rendered = expr.render();
+    if matches!(expr, ErlExpr::BinaryOp { .. }) {
+        format!("({rendered})")
+    } else {
+        rendered
     }
 }
 
@@ -938,7 +743,7 @@ impl ErlExpr {
 ///   body expression.
 #[derive(Debug, Clone)]
 pub(super) struct ErlLetBinding {
-    pub(super) name: String,
+    pub(super) pattern: ErlPattern,
     pub(super) value: ErlExpr,
 }
 
@@ -1169,85 +974,6 @@ impl ErlPatternMapField {
     }
 }
 
-/// Erlang binary operator identity.
-///
-/// Inputs:
-/// - Terlan/CoreIR operator lowering decisions.
-///
-/// Output:
-/// - Backend operator spelling through `render`.
-///
-/// Transformation:
-/// - Keeps source/operator normalization separate from expression rendering.
-#[derive(Debug, Clone)]
-pub(super) enum ErlBinaryOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Eq,
-    EqEq,
-    EqEqEq,
-    NotEq,
-    NotEqEq,
-    GtEq,
-    Lt,
-    Gt,
-    LtEq,
-    DivRem,
-    Rem,
-    And,
-    Or,
-    PipeForward,
-    Send,
-}
-
-/// Erlang unary operator identity.
-///
-/// Inputs:
-/// - Terlan/CoreIR unary operator lowering decisions.
-///
-/// Output:
-/// - Backend unary operator spelling selected during expression rendering.
-///
-/// Transformation:
-/// - Represents negation and logical-not independently from operand lowering.
-#[derive(Debug, Clone)]
-pub(super) enum ErlUnaryOp {
-    Neg,
-    Not,
-}
-
-impl ErlBinaryOp {
-    /// Renders an Erlang binary operator token.
-    ///
-    /// Input is a lowered operator identity. Output is the Erlang token used by
-    /// expression rendering. The transformation maps Terlan/CoreIR logical and
-    /// arithmetic identities onto BEAM-compatible operator spellings.
-    pub(super) fn render(&self) -> &'static str {
-        match self {
-            ErlBinaryOp::Add => "+",
-            ErlBinaryOp::Sub => "-",
-            ErlBinaryOp::Mul => "*",
-            ErlBinaryOp::Div => "/",
-            ErlBinaryOp::Eq => "==",
-            ErlBinaryOp::EqEq => "=:=",
-            ErlBinaryOp::EqEqEq => "=:=",
-            ErlBinaryOp::NotEq => "/=",
-            ErlBinaryOp::NotEqEq => "=/=",
-            ErlBinaryOp::GtEq => ">=",
-            ErlBinaryOp::Lt => "<",
-            ErlBinaryOp::Gt => ">",
-            ErlBinaryOp::LtEq => "=<",
-            ErlBinaryOp::DivRem => "div",
-            ErlBinaryOp::Rem => "rem",
-            ErlBinaryOp::And => "andalso",
-            ErlBinaryOp::Or => "orelse",
-            ErlBinaryOp::PipeForward => "|>",
-            ErlBinaryOp::Send => "!",
-        }
-    }
-}
 /// Renders an Erlang record expression fragment.
 ///
 /// Inputs are a Terlan record/struct name and lowered fields. Output is

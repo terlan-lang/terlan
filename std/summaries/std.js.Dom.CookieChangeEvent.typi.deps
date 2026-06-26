@@ -1,0 +1,8 @@
+module=std.js.Dom.CookieChangeEvent
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=2735616880586602166
+interface_hash=1502134030588242077
+interface_doc_hash=1502134030588242077
+deps=0

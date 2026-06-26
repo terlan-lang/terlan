@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Request
+ */
+
+module std.js.Dom.RequestTest.
+
+import type std.js.Dom.Request.Request.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub cache_typechecks(receiver: Request): RequestCache ->
+    receiver.cache().
+
+pub credentials_typechecks(receiver: Request): RequestCredentials ->
+    receiver.credentials().
+
+pub destination_typechecks(receiver: Request): RequestDestination ->
+    receiver.destination().
+
+pub headers_typechecks(receiver: Request): Headers ->
+    receiver.headers().
+
+pub integrity_typechecks(receiver: Request): std.js.String.JsString ->
+    receiver.integrity().
+
+pub keepalive_typechecks(receiver: Request): std.core.Bool ->
+    receiver.keepalive().
+
+pub method_typechecks(receiver: Request): std.js.String.JsString ->
+    receiver.method().
+
+pub mode_typechecks(receiver: Request): RequestMode ->
+    receiver.mode().
+
+pub redirect_typechecks(receiver: Request): RequestRedirect ->
+    receiver.redirect().
+
+pub referrer_typechecks(receiver: Request): std.js.String.JsString ->
+    receiver.referrer().
+
+pub referrer_policy_typechecks(receiver: Request): ReferrerPolicy ->
+    receiver.referrer_policy().
+
+pub signal_typechecks(receiver: Request): AbortSignal ->
+    receiver.signal().
+
+pub url_typechecks(receiver: Request): std.js.String.JsString ->
+    receiver.url().
+
+pub clone_typechecks(receiver: Request): Request ->
+    receiver.clone().

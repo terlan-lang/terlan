@@ -76,7 +76,9 @@ pub fn lower_syntax_module_output_to_core(
     }
 
     let receiver_methods = core_receiver_method_dispatch_signatures(module, resolved);
-    let mut function_clauses = core_syntax_function_clauses(module, &receiver_methods);
+    let template_prop_order = core_syntax_template_prop_order(module);
+    let mut function_clauses =
+        core_syntax_function_clauses(module, &receiver_methods, &template_prop_order);
     let constructor_identities = core_constructor_identities(module, resolved, &core.constructors);
     resolve_constructor_identities_in_function_clauses(
         &mut function_clauses,
@@ -90,6 +92,34 @@ pub fn lower_syntax_module_output_to_core(
     }
     core.metadata = core_module_metadata(&core.functions, &core.types, &core.constructors);
     core
+}
+
+/// Collects declaration-order template props for CoreIR template-call lowering.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing template declarations.
+///
+/// Output:
+/// - Template name to declaration-order prop-name list.
+///
+/// Transformation:
+/// - Preserves only the metadata needed to map `Page(...)` positional calls
+///   into backend-neutral template-instantiation fields.
+fn core_syntax_template_prop_order(module: &SyntaxModuleOutput) -> HashMap<String, Vec<String>> {
+    module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Template { name, props, .. } => Some((
+                name.clone(),
+                props
+                    .iter()
+                    .map(|prop| prop.name.clone())
+                    .collect::<Vec<_>>(),
+            )),
+            _ => None,
+        })
+        .collect()
 }
 
 use super::core_interface::*;

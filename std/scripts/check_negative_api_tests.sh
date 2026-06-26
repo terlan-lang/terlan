@@ -34,8 +34,8 @@ while IFS=$'\t' read -r api_id fixture expected extra; do
     continue
   fi
 
-  if [[ "$fixture" != tests/std/negative/*/*_test.terl && "$fixture" != tests/std/negative/*/*/*_test.terl ]]; then
-    printf '%s: API `%s` negative fixture path must be tests/std/negative/<feature>/*_test.terl, got `%s`\n' \
+  if [[ "$fixture" != tests/std/negative/*/*Test.terl && "$fixture" != tests/std/negative/*/*/*Test.terl ]]; then
+    printf '%s: API `%s` negative fixture path must be tests/std/negative/<feature>/*Test.terl, got `%s`\n' \
       "$manifest" "$api_id" "$fixture" >&2
     failures=1
     continue

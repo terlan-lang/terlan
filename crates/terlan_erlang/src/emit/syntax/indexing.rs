@@ -40,7 +40,7 @@ pub(super) fn lower_syntax_index_expr(
         return Some(expr);
     }
 
-    if let Some(collection_type) = infer_syntax_trait_dispatch_type(collection, env) {
+    if let Some(collection_type) = infer_syntax_trait_dispatch_type(collection, ctx, env) {
         if let Some(wrapper) =
             ctx.typed_trait_method_wrapper("IndexGet", "get_at", &collection_type)
         {
@@ -56,6 +56,13 @@ pub(super) fn lower_syntax_index_expr(
                 function: wrapper.clone(),
                 args: lowered_args,
             });
+        }
+
+        if receiver_type_head(&collection_type) == "List" {
+            return lower_syntax_list_index_expr(collection, index, ctx, env);
+        }
+        if receiver_type_head(&collection_type) == "Vector" {
+            return lower_syntax_native_vector_index_expr(collection, index, ctx, env);
         }
     }
 
@@ -77,6 +84,71 @@ pub(super) fn lower_syntax_index_expr(
     Some(ErlExpr::Index {
         value: Box::new(lower_syntax_expr_with_env(collection, ctx, env)?),
         index: Box::new(lower_syntax_expr_with_env(index, ctx, env)?),
+    })
+}
+
+/// Lowers a known `List` bracket read to BEAM list indexing.
+///
+/// Inputs:
+/// - `collection`: source expression known to have nominal `List` type.
+/// - `index`: zero-based Terlan index expression.
+/// - `ctx`, `env`: active syntax lowering context and local environment.
+///
+/// Output:
+/// - Erlang `lists:nth(Index + 1, Collection)` call.
+/// - `None` when either operand cannot lower.
+///
+/// Transformation:
+/// - Converts Terlan's zero-based portable list indexing into Erlang's
+///   one-based `lists:nth/2` without exposing that representation to source.
+fn lower_syntax_list_index_expr(
+    collection: &SyntaxExprOutput,
+    index: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    Some(ErlExpr::Call {
+        module: Some("lists".to_string()),
+        function: "nth".to_string(),
+        args: vec![
+            ErlExpr::BinaryOp {
+                op: ErlBinaryOp::Add,
+                left: Box::new(lower_syntax_expr_with_env(index, ctx, env)?),
+                right: Box::new(ErlExpr::Int(1)),
+            },
+            lower_syntax_expr_with_env(collection, ctx, env)?,
+        ],
+    })
+}
+
+/// Lowers a known native `Vector` bracket read to the SafeNative bridge.
+///
+/// Inputs:
+/// - `collection`: source expression known to have nominal `Vector` type.
+/// - `index`: zero-based Terlan index expression.
+/// - `ctx`, `env`: active syntax lowering context and local environment.
+///
+/// Output:
+/// - Erlang call to `std_native_collections_vector_safe_native:get_at/2`.
+/// - `None` when either operand cannot lower.
+///
+/// Transformation:
+/// - Preserves native-vector representation opacity by routing indexed access
+///   through the same SafeNative boundary used by explicit `Vector.get_at`
+///   calls instead of applying a BEAM collection operator.
+fn lower_syntax_native_vector_index_expr(
+    collection: &SyntaxExprOutput,
+    index: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    Some(ErlExpr::Call {
+        module: Some("std_native_collections_vector_safe_native".to_string()),
+        function: "get_at".to_string(),
+        args: vec![
+            lower_syntax_expr_with_env(collection, ctx, env)?,
+            lower_syntax_expr_with_env(index, ctx, env)?,
+        ],
     })
 }
 
@@ -102,7 +174,7 @@ pub(super) fn lower_syntax_index_assign_expr(
     let value = lower_syntax_index_assign_update_call(expr, ctx, env)?;
     Some(ErlExpr::Let {
         bindings: vec![ErlLetBinding {
-            name: "_TerlanIndexAssignIgnored".to_string(),
+            pattern: ErlPattern::Var("_TerlanIndexAssignIgnored".to_string()),
             value,
         }],
         body: Box::new(ErlExpr::Atom("unit".to_string())),
@@ -137,7 +209,18 @@ pub(super) fn lower_syntax_index_assign_update_call(
     let collection = expr.children.first()?;
     let index = expr.children.get(1)?;
     let value = expr.children.get(2)?;
-    let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+    let collection_type = infer_syntax_trait_dispatch_type(collection, ctx, env)?;
+
+    if is_native_vector_receiver_type(&collection_type) {
+        return lower_syntax_native_vector_receiver_call(
+            &collection_type,
+            "set_at",
+            collection,
+            &[index.clone(), value.clone()],
+            ctx,
+            env,
+        );
+    }
 
     if ctx
         .receiver_method_target(&collection_type, "set_at", 2)

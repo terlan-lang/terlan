@@ -59,7 +59,7 @@ Flow:
 - `type_check_syntax_module_output` from `terlan_typeck` on formal paths.
 - CoreIR-gated Erlang emission and syntax-output header emission from
   `terlan_erlang`.
-- Uses `ammonia` for doc HTML handling.
+- Uses `terlan_html` for documentation and static-site HTML helpers.
 
 ## Edge Cases
 

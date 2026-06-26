@@ -1,0 +1,144 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Console
+ */
+
+module std.js.Dom.Console.
+
+/**
+ * The **`console`** object provides access to the debugging console (e.g., the Web console in Firefox).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console)
+ */
+pub opaque type Console.
+
+/**
+ * The **`console.assert()`** static method writes an error message to the console if the assertion is false.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/assert_static)
+ */
+pub (value: Console) assert(condition: std.core.Bool): std.core.Unit.
+
+/**
+ * The **`console.clear()`** static method clears the console if possible.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/clear_static)
+ */
+pub (value: Console) clear(): std.core.Unit.
+
+/**
+ * The **`console.count()`** static method logs the number of times that this particular call to `count()` has been called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/count_static)
+ */
+pub (value: Console) count(label: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`console.countReset()`** static method resets counter used with console/count_static.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/countReset_static)
+ */
+pub (value: Console) count_reset(label: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`console.debug()`** static method outputs a message to the console at the 'debug' log level.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/debug_static)
+ */
+pub (value: Console) debug(): std.core.Unit.
+
+/**
+ * The **`console.dirxml()`** static method displays an interactive tree of the descendant elements of the specified XML/HTML element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/dirxml_static)
+ */
+pub (value: Console) dirxml(): std.core.Unit.
+
+/**
+ * The **`console.error()`** static method outputs a message to the console at the 'error' log level.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/error_static)
+ */
+pub (value: Console) error(): std.core.Unit.
+
+/**
+ * The **`console.group()`** static method creates a new inline group in the Web console log, causing any subsequent console messages to be indented by an additional level, until console/groupEnd_static is called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/group_static)
+ */
+pub (value: Console) group(): std.core.Unit.
+
+/**
+ * The **`console.groupCollapsed()`** static method creates a new inline group in the console.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/groupCollapsed_static)
+ */
+pub (value: Console) group_collapsed(): std.core.Unit.
+
+/**
+ * The **`console.groupEnd()`** static method exits the current inline group in the console.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/groupEnd_static)
+ */
+pub (value: Console) group_end(): std.core.Unit.
+
+/**
+ * The **`console.info()`** static method outputs a message to the console at the 'info' log level.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/info_static)
+ */
+pub (value: Console) info(): std.core.Unit.
+
+/**
+ * The **`console.log()`** static method outputs a message to the console.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/log_static)
+ */
+pub (value: Console) log(): std.core.Unit.
+
+/**
+ * The **`console.time()`** static method starts a timer you can use to track how long an operation takes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/time_static)
+ */
+pub (value: Console) time(label: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`console.timeEnd()`** static method stops a timer that was previously started by calling console/time_static.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/timeEnd_static)
+ */
+pub (value: Console) time_end(label: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`console.timeLog()`** static method logs the current value of a timer that was previously started by calling console/time_static.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/timeLog_static)
+ */
+pub (value: Console) time_log(label: std.js.String.JsString): std.core.Unit.
+
+pub (value: Console) time_stamp(label: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`console.trace()`** static method outputs a stack trace to the console.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/trace_static)
+ */
+pub (value: Console) trace(): std.core.Unit.
+
+/**
+ * The **`console.warn()`** static method outputs a warning message to the console at the 'warning' log level.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/warn_static)
+ */
+pub (value: Console) warn(): std.core.Unit.

@@ -170,6 +170,74 @@ fn build_command_compiles_project_manifest_source_root() {
     );
 }
 
+/// Verifies project builds support template-backed web handlers.
+///
+/// Inputs:
+/// - A manifest-backed project with `src/app/Http.terl`.
+/// - A `template Page from "../../templates/page.terl.html"` declaration.
+/// - A public HTTP handler returning `Response.html(Page(title = ...))`.
+///
+/// Output:
+/// - Test passes when `terlc build <project> --target erlang` emits Erlang
+///   source and BEAM artifacts for the handler module.
+///
+/// Transformation:
+/// - Exercises external template loading plus generated template-call lowering
+///   in an ordinary project build, matching the web-profile frontend shape.
+#[test]
+fn build_command_compiles_project_template_backed_http_handler() {
+    let dir = make_temp_dir("directory_project_template_http_handler");
+    let project_dir = dir.join("project");
+    let app_dir = project_dir.join("src/app");
+    let template_dir = project_dir.join("templates");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+    fs::create_dir_all(&template_dir).expect("failed to create project templates dir");
+    fs::write(
+        project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n\n[web.assets]\ndirectory = \"assets\"\npublic_path = \"/assets\"\n",
+    )
+    .expect("failed to write project manifest fixture");
+    fs::write(
+        template_dir.join("page.terl.html"),
+        "<main><h1>{title}</h1></main>",
+    )
+    .expect("failed to write page template fixture");
+    fs::write(
+        app_dir.join("Http.terl"),
+        "module app.Http.\n\nimport std.http.Response.\nimport std.template.Template.\nimport type std.http.Request.{Request}.\nimport type std.http.Response.{Response}.\n\ntemplate Page from \"../../templates/page.terl.html\" {\n    title: String\n}.\n\npub page(): Template.Html ->\n    Page(title = \"Terlan Cloud\").\n\npub dashboard(_request: Request): Response ->\n    Response.html(page()).\n",
+    )
+    .expect("failed to write template-backed http handler module");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            project_dir.display().to_string(),
+            "--target".to_string(),
+            "erlang".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let erlang_source_path = out_dir.join("src/app_http.erl");
+    assert!(erlang_source_path.exists());
+    assert!(out_dir.join("ebin/app_http.beam").exists());
+    let erlang_source = fs::read_to_string(erlang_source_path).expect("read emitted erlang");
+    assert!(erlang_source.contains("page() ->"));
+    assert!(erlang_source.contains("typer_html:escape(\"Terlan Cloud\")"));
+    assert!(
+        !erlang_source.contains("Page("),
+        "template call should lower before Erlang emission:\n{}",
+        erlang_source
+    );
+}
+
 /// Verifies manifest-backed library packages do not require an executable
 /// entrypoint.
 ///
@@ -374,7 +442,7 @@ fn build_command_preserves_erlang_package_adapter_metadata_without_rebar3_files(
     fs::create_dir_all(&app_dir).expect("failed to create project src dir");
     fs::write(
             project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[target.erlang.package]\nadapter = \"rebar3-compatible\"\n",
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[native.rust]\ncrate = \"app_native\"\npath = \"native\"\nhelper = \"app-safe-native\"\nhelper_env = \"APP_SAFE_NATIVE_PATH\"\n\n[target.erlang.package]\nadapter = \"rebar3-compatible\"\n",
         )
         .expect("failed to write project manifest fixture");
     fs::write(
@@ -418,6 +486,16 @@ fn build_command_preserves_erlang_package_adapter_metadata_without_rebar3_files(
     assert_eq!(adapters.len(), 1);
     assert_eq!(adapters[0]["target"], "erlang");
     assert_eq!(adapters[0]["adapter"], "rebar3-compatible");
+    assert_eq!(package_metadata["native"]["rust"]["crate"], "app_native");
+    assert_eq!(package_metadata["native"]["rust"]["path"], "native");
+    assert_eq!(
+        package_metadata["native"]["rust"]["helper"],
+        "app-safe-native"
+    );
+    assert_eq!(
+        package_metadata["native"]["rust"]["helper_env"],
+        "APP_SAFE_NATIVE_PATH"
+    );
 }
 
 /// Verifies project manifests build multiple declared source roots.

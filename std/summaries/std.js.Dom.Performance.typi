@@ -1,0 +1,127 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Performance
+ */
+
+module std.js.Dom.Performance.
+
+/**
+ * The **`Performance`** interface provides access to performance-related information for the current page.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance)
+ */
+pub opaque type Performance.
+
+/**
+ * The read-only `performance.eventCounts` property is an EventCounts map containing the number of events which have been dispatched per event type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/eventCounts)
+ */
+pub (value: Performance) event_counts(): EventCounts.
+
+/**
+ * The legacy **`Performance.navigation`** read-only property returns a PerformanceNavigation object representing the type of navigation that occurs in the given browsing context, such as the number of redirections needed to fetch the resource.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/navigation)
+ */
+pub (value: Performance) navigation(): PerformanceNavigation.
+
+/**
+ * The **`timeOrigin`** read-only property of the Performance interface returns the high resolution timestamp that is used as the baseline for performance-related timestamps.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/timeOrigin)
+ */
+pub (value: Performance) time_origin(): DOMHighResTimeStamp.
+
+/**
+ * The legacy **`Performance.timing`** read-only property returns a PerformanceTiming object containing latency-related performance information.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/timing)
+ */
+pub (value: Performance) timing(): PerformanceTiming.
+
+/**
+ * The **`clearMarks()`** method removes all or specific PerformanceMark objects from the browser's performance timeline.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/clearMarks)
+ */
+pub (value: Performance) clear_marks(mark_name: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`clearMeasures()`** method removes all or specific PerformanceMeasure objects from the browser's performance timeline.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/clearMeasures)
+ */
+pub (value: Performance) clear_measures(measure_name: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`clearResourceTimings()`** method removes all performance entries with an PerformanceEntry.entryType of `'resource'` from the browser's performance timeline and sets the size of the performance resource data buffer to zero.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/clearResourceTimings)
+ */
+pub (value: Performance) clear_resource_timings(): std.core.Unit.
+
+/**
+ * The **`getEntries()`** method returns an array of all PerformanceEntry objects currently present in the performance timeline.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/getEntries)
+ */
+pub (value: Performance) get_entries(): PerformanceEntryList.
+
+/**
+ * The **`getEntriesByName()`** method returns an array of PerformanceEntry objects currently present in the performance timeline with the given _name_ and _type_.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/getEntriesByName)
+ */
+pub (value: Performance) get_entries_by_name(name: std.js.String.JsString, type_: std.js.String.JsString): PerformanceEntryList.
+
+/**
+ * The **`getEntriesByType()`** method returns an array of PerformanceEntry objects currently present in the performance timeline for a given _type_.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/getEntriesByType)
+ */
+pub (value: Performance) get_entries_by_type(type_: std.js.String.JsString): PerformanceEntryList.
+
+/**
+ * The **`mark()`** method creates a named PerformanceMark object representing a high resolution timestamp marker in the browser's performance timeline.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/mark)
+ */
+pub (value: Performance) mark(mark_name: std.js.String.JsString, mark_options: PerformanceMarkOptions): PerformanceMark.
+
+/**
+ * The **`measure()`** method creates a named PerformanceMeasure object representing a time measurement between two marks in the browser's performance timeline.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/measure)
+ */
+pub (value: Performance) measure(measure_name: std.js.String.JsString, start_or_measure_options: PerformanceMeasureOptions | std.js.String.JsString, end_mark: std.js.String.JsString): PerformanceMeasure.
+
+/**
+ * The **`performance.now()`** method returns a high resolution timestamp in milliseconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/now)
+ */
+pub (value: Performance) now(): DOMHighResTimeStamp.
+
+/**
+ * The **`setResourceTimingBufferSize()`** method sets the desired size of the browser's resource timing buffer which stores the `'resource'` performance entries.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/setResourceTimingBufferSize)
+ */
+pub (value: Performance) set_resource_timing_buffer_size(max_size: std.js.Number.JsNumber): std.core.Unit.
+
+pub (value: Performance) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: Performance) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

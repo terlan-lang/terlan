@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGAnimatedBoolean
+ */
+
+module std.js.Dom.SVGAnimatedBoolean.
+
+/**
+ * The **`SVGAnimatedBoolean`** interface is used for attributes of type boolean which can be animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedBoolean)
+ */
+pub opaque type SVGAnimatedBoolean.
+
+/**
+ * The **`animVal`** read-only property of the SVGAnimatedBoolean interface represents the current animated value of the associated animatable boolean SVG attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedBoolean/animVal)
+ */
+pub (value: SVGAnimatedBoolean) anim_val(): std.core.Bool ->
+    native.
+
+/**
+ * The **`baseVal`** property of the SVGAnimatedBoolean interface is the value of the associated animatable boolean SVG attribute in its base (none-animated) state.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedBoolean/baseVal)
+ */
+pub (value: SVGAnimatedBoolean) base_val(): std.core.Bool ->
+    native.

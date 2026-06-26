@@ -1,0 +1,8 @@
+module=std.js.Dom.CustomStateSet
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=397082299841724329
+interface_hash=15796819108789708196
+interface_doc_hash=15796819108789708196
+deps=0

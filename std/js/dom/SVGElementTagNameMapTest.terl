@@ -1,0 +1,211 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGElementTagNameMap
+ */
+
+module std.js.Dom.SVGElementTagNameMapTest.
+
+import type std.js.Dom.SVGElementTagNameMap.SVGElementTagNameMap.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub a_typechecks(receiver: SVGElementTagNameMap): SVGAElement ->
+    receiver.a().
+
+pub animate_typechecks(receiver: SVGElementTagNameMap): SVGAnimateElement ->
+    receiver.animate().
+
+pub animate_motion_typechecks(receiver: SVGElementTagNameMap): SVGAnimateMotionElement ->
+    receiver.animate_motion().
+
+pub animate_transform_typechecks(receiver: SVGElementTagNameMap): SVGAnimateTransformElement ->
+    receiver.animate_transform().
+
+pub circle_typechecks(receiver: SVGElementTagNameMap): SVGCircleElement ->
+    receiver.circle().
+
+pub clip_path_typechecks(receiver: SVGElementTagNameMap): SVGClipPathElement ->
+    receiver.clip_path().
+
+pub defs_typechecks(receiver: SVGElementTagNameMap): SVGDefsElement ->
+    receiver.defs().
+
+pub desc_typechecks(receiver: SVGElementTagNameMap): SVGDescElement ->
+    receiver.desc().
+
+pub ellipse_typechecks(receiver: SVGElementTagNameMap): SVGEllipseElement ->
+    receiver.ellipse().
+
+pub fe_blend_typechecks(receiver: SVGElementTagNameMap): SVGFEBlendElement ->
+    receiver.fe_blend().
+
+pub fe_color_matrix_typechecks(receiver: SVGElementTagNameMap): SVGFEColorMatrixElement ->
+    receiver.fe_color_matrix().
+
+pub fe_component_transfer_typechecks(receiver: SVGElementTagNameMap): SVGFEComponentTransferElement ->
+    receiver.fe_component_transfer().
+
+pub fe_composite_typechecks(receiver: SVGElementTagNameMap): SVGFECompositeElement ->
+    receiver.fe_composite().
+
+pub fe_convolve_matrix_typechecks(receiver: SVGElementTagNameMap): SVGFEConvolveMatrixElement ->
+    receiver.fe_convolve_matrix().
+
+pub fe_diffuse_lighting_typechecks(receiver: SVGElementTagNameMap): SVGFEDiffuseLightingElement ->
+    receiver.fe_diffuse_lighting().
+
+pub fe_displacement_map_typechecks(receiver: SVGElementTagNameMap): SVGFEDisplacementMapElement ->
+    receiver.fe_displacement_map().
+
+pub fe_distant_light_typechecks(receiver: SVGElementTagNameMap): SVGFEDistantLightElement ->
+    receiver.fe_distant_light().
+
+pub fe_drop_shadow_typechecks(receiver: SVGElementTagNameMap): SVGFEDropShadowElement ->
+    receiver.fe_drop_shadow().
+
+pub fe_flood_typechecks(receiver: SVGElementTagNameMap): SVGFEFloodElement ->
+    receiver.fe_flood().
+
+pub fe_func_a_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncAElement ->
+    receiver.fe_func_a().
+
+pub fe_func_b_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncBElement ->
+    receiver.fe_func_b().
+
+pub fe_func_g_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncGElement ->
+    receiver.fe_func_g().
+
+pub fe_func_r_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncRElement ->
+    receiver.fe_func_r().
+
+pub fe_gaussian_blur_typechecks(receiver: SVGElementTagNameMap): SVGFEGaussianBlurElement ->
+    receiver.fe_gaussian_blur().
+
+pub fe_image_typechecks(receiver: SVGElementTagNameMap): SVGFEImageElement ->
+    receiver.fe_image().
+
+pub fe_merge_typechecks(receiver: SVGElementTagNameMap): SVGFEMergeElement ->
+    receiver.fe_merge().
+
+pub fe_merge_node_typechecks(receiver: SVGElementTagNameMap): SVGFEMergeNodeElement ->
+    receiver.fe_merge_node().
+
+pub fe_morphology_typechecks(receiver: SVGElementTagNameMap): SVGFEMorphologyElement ->
+    receiver.fe_morphology().
+
+pub fe_offset_typechecks(receiver: SVGElementTagNameMap): SVGFEOffsetElement ->
+    receiver.fe_offset().
+
+pub fe_point_light_typechecks(receiver: SVGElementTagNameMap): SVGFEPointLightElement ->
+    receiver.fe_point_light().
+
+pub fe_specular_lighting_typechecks(receiver: SVGElementTagNameMap): SVGFESpecularLightingElement ->
+    receiver.fe_specular_lighting().
+
+pub fe_spot_light_typechecks(receiver: SVGElementTagNameMap): SVGFESpotLightElement ->
+    receiver.fe_spot_light().
+
+pub fe_tile_typechecks(receiver: SVGElementTagNameMap): SVGFETileElement ->
+    receiver.fe_tile().
+
+pub fe_turbulence_typechecks(receiver: SVGElementTagNameMap): SVGFETurbulenceElement ->
+    receiver.fe_turbulence().
+
+pub filter_typechecks(receiver: SVGElementTagNameMap): SVGFilterElement ->
+    receiver.filter().
+
+pub foreign_object_typechecks(receiver: SVGElementTagNameMap): SVGForeignObjectElement ->
+    receiver.foreign_object().
+
+pub g_typechecks(receiver: SVGElementTagNameMap): SVGGElement ->
+    receiver.g().
+
+pub image_typechecks(receiver: SVGElementTagNameMap): SVGImageElement ->
+    receiver.image().
+
+pub line_typechecks(receiver: SVGElementTagNameMap): SVGLineElement ->
+    receiver.line().
+
+pub linear_gradient_typechecks(receiver: SVGElementTagNameMap): SVGLinearGradientElement ->
+    receiver.linear_gradient().
+
+pub marker_typechecks(receiver: SVGElementTagNameMap): SVGMarkerElement ->
+    receiver.marker().
+
+pub mask_typechecks(receiver: SVGElementTagNameMap): SVGMaskElement ->
+    receiver.mask().
+
+pub metadata_typechecks(receiver: SVGElementTagNameMap): SVGMetadataElement ->
+    receiver.metadata().
+
+pub mpath_typechecks(receiver: SVGElementTagNameMap): SVGMPathElement ->
+    receiver.mpath().
+
+pub path_typechecks(receiver: SVGElementTagNameMap): SVGPathElement ->
+    receiver.path().
+
+pub pattern_typechecks(receiver: SVGElementTagNameMap): SVGPatternElement ->
+    receiver.pattern().
+
+pub polygon_typechecks(receiver: SVGElementTagNameMap): SVGPolygonElement ->
+    receiver.polygon().
+
+pub polyline_typechecks(receiver: SVGElementTagNameMap): SVGPolylineElement ->
+    receiver.polyline().
+
+pub radial_gradient_typechecks(receiver: SVGElementTagNameMap): SVGRadialGradientElement ->
+    receiver.radial_gradient().
+
+pub rect_typechecks(receiver: SVGElementTagNameMap): SVGRectElement ->
+    receiver.rect().
+
+pub script_typechecks(receiver: SVGElementTagNameMap): SVGScriptElement ->
+    receiver.script().
+
+pub set_typechecks(receiver: SVGElementTagNameMap): SVGSetElement ->
+    receiver.set().
+
+pub stop_typechecks(receiver: SVGElementTagNameMap): SVGStopElement ->
+    receiver.stop().
+
+pub style_typechecks(receiver: SVGElementTagNameMap): SVGStyleElement ->
+    receiver.style().
+
+pub svg_typechecks(receiver: SVGElementTagNameMap): SVGSVGElement ->
+    receiver.svg().
+
+pub switch_typechecks(receiver: SVGElementTagNameMap): SVGSwitchElement ->
+    receiver.switch().
+
+pub symbol_typechecks(receiver: SVGElementTagNameMap): SVGSymbolElement ->
+    receiver.symbol().
+
+pub text_typechecks(receiver: SVGElementTagNameMap): SVGTextElement ->
+    receiver.text().
+
+pub text_path_typechecks(receiver: SVGElementTagNameMap): SVGTextPathElement ->
+    receiver.text_path().
+
+pub title_typechecks(receiver: SVGElementTagNameMap): SVGTitleElement ->
+    receiver.title().
+
+pub tspan_typechecks(receiver: SVGElementTagNameMap): SVGTSpanElement ->
+    receiver.tspan().
+
+pub use_typechecks(receiver: SVGElementTagNameMap): SVGUseElement ->
+    receiver.use().
+
+pub view_typechecks(receiver: SVGElementTagNameMap): SVGViewElement ->
+    receiver.view().

@@ -1,9 +1,9 @@
 module=std.beam.Agent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 source_hash=6206838937420803655
-interface_hash=1188807689727217029
+interface_hash=15873353158965448260
 interface_doc_hash=1293841258498677589
 deps=3
 std.core.Error=9899337511333859675

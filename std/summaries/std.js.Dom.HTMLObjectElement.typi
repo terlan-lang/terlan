@@ -1,0 +1,190 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLObjectElement
+ */
+
+module std.js.Dom.HTMLObjectElement.
+
+/**
+ * The **`HTMLObjectElement`** interface provides special properties and methods (beyond those on the HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of object element, representing external resources.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement)
+ */
+pub opaque type HTMLObjectElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) align(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) archive(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) border(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) code(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) code_base(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) code_type(): std.js.String.JsString.
+
+/**
+ * The **`contentDocument`** read-only property of the HTMLObjectElement interface Returns a Document representing the active document of the object element's nested browsing context, if any; otherwise null.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/contentDocument)
+ */
+pub (value: HTMLObjectElement) content_document(): Option[Document].
+
+/**
+ * The **`contentWindow`** read-only property of the HTMLObjectElement interface returns a WindowProxy representing the window proxy of the object element's nested browsing context, if any; otherwise null.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/contentWindow)
+ */
+pub (value: HTMLObjectElement) content_window(): Option[WindowProxy].
+
+/**
+ * The **`data`** property of the reflects the `data` HTML attribute, specifying the address of a resource's data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/data)
+ */
+pub (value: HTMLObjectElement) data(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) declare(): std.core.Bool.
+
+/**
+ * The **`form`** read-only property of the HTMLObjectElement interface returns an HTMLFormElement object that owns this object, or `null` if this object element is not owned by any form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/form)
+ */
+pub (value: HTMLObjectElement) form(): Option[HTMLFormElement].
+
+/**
+ * The **`height`** property of the reflects the `height` HTML attribute, specifying the displayed height of the resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/height)
+ */
+pub (value: HTMLObjectElement) height(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) hspace(): std.js.Number.JsNumber.
+
+/**
+ * The **`name`** property of the reflects the `name` HTML attribute, specifying the name of the browsing context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/name)
+ */
+pub (value: HTMLObjectElement) name(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) standby(): std.js.String.JsString.
+
+/**
+ * The **`type`** property of the reflects the `type` HTML attribute, specifying the MIME type of the resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/type)
+ */
+pub (value: HTMLObjectElement) type_(): std.js.String.JsString.
+
+/**
+ * The **`useMap`** property of the reflects the `usemap` HTML attribute, specifying a A string.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/useMap)
+ */
+pub (value: HTMLObjectElement) use_map(): std.js.String.JsString.
+
+/**
+ * The **`validationMessage`** read-only property of the HTMLObjectElement interface returns a string representing a localized message that describes the validation constraints that the control does not satisfy (if any).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/validationMessage)
+ */
+pub (value: HTMLObjectElement) validation_message(): std.js.String.JsString.
+
+/**
+ * The **`validity`** read-only property of the HTMLObjectElement interface returns a ValidityState object that represents the validity states this element is in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/validity)
+ */
+pub (value: HTMLObjectElement) validity(): ValidityState.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLObjectElement) vspace(): std.js.Number.JsNumber.
+
+/**
+ * The **`width`** property of the reflects the `width` HTML attribute, specifying the displayed width of the resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/width)
+ */
+pub (value: HTMLObjectElement) width(): std.js.String.JsString.
+
+/**
+ * The **`willValidate`** read-only property of the HTMLObjectElement interface returns `false`, because object elements are not candidates for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/willValidate)
+ */
+pub (value: HTMLObjectElement) will_validate(): std.core.Bool.
+
+/**
+ * The **`checkValidity()`** method of the HTMLObjectElement interface checks if the element is valid, but always returns true because object elements are never candidates for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/checkValidity)
+ */
+pub (value: HTMLObjectElement) check_validity(): std.core.Bool.
+
+/**
+ * The **`getSVGDocument()`** method of the HTMLObjectElement interface returns the Document object of the embedded SVG.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/getSVGDocument)
+ */
+pub (value: HTMLObjectElement) get_svg_document(): Option[Document].
+
+/**
+ * The **`reportValidity()`** method of the HTMLObjectElement interface performs the same validity checking steps as the HTMLObjectElement.checkValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/reportValidity)
+ */
+pub (value: HTMLObjectElement) report_validity(): std.core.Bool.
+
+/**
+ * The **`setCustomValidity()`** method of the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/setCustomValidity)
+ */
+pub (value: HTMLObjectElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
+
+pub (value: HTMLObjectElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: HTMLObjectElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

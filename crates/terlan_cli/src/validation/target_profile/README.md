@@ -51,6 +51,18 @@ Validation is a pure traversal over `CoreModule::functions`:
 - each typed `CoreExpr` shape is additionally validated against the profile
   form matrix.
 
+Implementation layout:
+
+- `mod`: public target-profile entry points, constructor-resolution metadata
+  gates, and command-level validation options.
+- `profile`: named target profiles and profile capability tables.
+- `std_runtime`: std-family import and runtime-operation gates, including
+  backend-specific type-only contracts.
+- `core_traversal`: recursive `CoreExprSummary`, `CoreExpr`, and `CorePattern`
+  traversal.
+- `summary_shape`: source-summary shape gates that are separate from recursive
+  CoreIR walking.
+
 ## CoreV0 Coverage Matrix
 
 `core-v0` is the portable, Lean-covered baseline. The Erlang profile remains

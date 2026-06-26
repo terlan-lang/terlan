@@ -1,0 +1,8 @@
+module=std.js.Dom.RTCDtlsTransport
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=6929046185719697159
+interface_hash=15511883152186892320
+interface_doc_hash=15511883152186892320
+deps=0

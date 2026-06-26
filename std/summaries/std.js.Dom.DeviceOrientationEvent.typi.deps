@@ -1,0 +1,8 @@
+module=std.js.Dom.DeviceOrientationEvent
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=10461998146280305298
+interface_hash=7613548791579758128
+interface_doc_hash=7613548791579758128
+deps=0

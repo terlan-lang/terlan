@@ -1,0 +1,112 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ServiceWorkerRegistration
+ */
+
+module std.js.Dom.ServiceWorkerRegistration.
+
+/**
+ * The **`ServiceWorkerRegistration`** interface of the Service Worker API represents the service worker registration.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration)
+ */
+pub opaque type ServiceWorkerRegistration.
+
+/**
+ * The **`active`** read-only property of the This property is initially set to `null`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/active)
+ */
+pub (value: ServiceWorkerRegistration) active(): Option[ServiceWorker].
+
+/**
+ * The **`cookies`** read-only property of the ServiceWorkerRegistration interface returns a reference to the CookieStoreManager interface, which enables a web app to subscribe to and unsubscribe from cookie change events in a service worker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/cookies)
+ */
+pub (value: ServiceWorkerRegistration) cookies(): CookieStoreManager.
+
+/**
+ * The **`installing`** read-only property of the initially set to `null`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/installing)
+ */
+pub (value: ServiceWorkerRegistration) installing(): Option[ServiceWorker].
+
+/**
+ * The **`navigationPreload`** read-only property of the ServiceWorkerRegistration interface returns the NavigationPreloadManager associated with the current service worker registration.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/navigationPreload)
+ */
+pub (value: ServiceWorkerRegistration) navigation_preload(): NavigationPreloadManager.
+
+/**
+ * The **`pushManager`** read-only property of the support for subscribing, getting an active subscription, and accessing push permission status.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/pushManager)
+ */
+pub (value: ServiceWorkerRegistration) push_manager(): PushManager.
+
+/**
+ * The **`scope`** read-only property of the ServiceWorkerRegistration interface returns a string representing a URL that defines a service worker's registration scope; that is, the range of URLs a service worker can control.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/scope)
+ */
+pub (value: ServiceWorkerRegistration) scope(): std.js.String.JsString.
+
+/**
+ * The **`updateViaCache`** read-only property of the ServiceWorkerRegistration interface returns the value of the setting used to determine the circumstances in which the browser will consult the HTTP cache when it tries to update the service worker or any scripts that are imported via WorkerGlobalScope.importScripts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/updateViaCache)
+ */
+pub (value: ServiceWorkerRegistration) update_via_cache(): ServiceWorkerUpdateViaCache.
+
+/**
+ * The **`waiting`** read-only property of the set to `null`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/waiting)
+ */
+pub (value: ServiceWorkerRegistration) waiting(): Option[ServiceWorker].
+
+/**
+ * The **`getNotifications()`** method of the ServiceWorkerRegistration interface returns a list of the notifications in the order that they were created from the current origin via the current service worker registration.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/getNotifications)
+ */
+pub (value: ServiceWorkerRegistration) get_notifications(filter: GetNotificationOptions): std.js.Promise[std.js.Array[Notification]].
+
+/**
+ * The **`showNotification()`** method of the service worker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/showNotification)
+ */
+pub (value: ServiceWorkerRegistration) show_notification(title: std.js.String.JsString, options: NotificationOptions): std.js.Promise[std.core.Unit].
+
+/**
+ * The **`unregister()`** method of the registration and returns a Promise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/unregister)
+ */
+pub (value: ServiceWorkerRegistration) unregister(): std.js.Promise[std.core.Bool].
+
+/**
+ * The **`update()`** method of the worker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/update)
+ */
+pub (value: ServiceWorkerRegistration) update(): std.js.Promise[ServiceWorkerRegistration].
+
+pub (value: ServiceWorkerRegistration) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: ServiceWorkerRegistration) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

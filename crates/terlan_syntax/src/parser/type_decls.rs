@@ -8,7 +8,7 @@ impl Parser {
     /// - Parser cursor positioned at the `struct` keyword.
     ///
     /// Output:
-    /// - A structured `StructDecl` with fields, derives, implements clauses,
+    /// - A structured `StructDecl` with fields, includes, implements clauses,
     ///   visibility, and source span.
     ///
     /// Transformation:
@@ -19,10 +19,10 @@ impl Parser {
         let start = self.current().start;
         self.expect_keyword(TokenKind::Struct)?;
         let name = self.expect_type_name()?;
-        let mut derives = Vec::new();
-        if self.consume_if(TokenKind::Derives) {
+        let mut includes = Vec::new();
+        if self.consume_if(TokenKind::Includes) {
             loop {
-                derives.push(
+                includes.push(
                     self.parse_type_expr(&[
                         TokenKind::Comma,
                         TokenKind::Implements,
@@ -45,8 +45,8 @@ impl Parser {
                 let docs = self.take_item_docs();
                 self.skip_comments();
                 let field_start = self.current().start;
-                let field_name =
-                    self.expect_lower_ident("expected lower-case struct field name")?;
+                let field_key =
+                    self.parse_record_field_key("expected lower-case struct field name")?;
                 self.expect(TokenKind::Colon)?;
                 let annotation = self.parse_type_expr(&[
                     TokenKind::Comma,
@@ -59,9 +59,10 @@ impl Parser {
                     None
                 };
                 fields.push(StructFieldDecl {
-                    name: field_name,
+                    name: field_key.name,
                     annotation,
                     default,
+                    is_private: field_key.is_private,
                     docs,
                     span: Span::new(field_start, self.previous().end),
                 });
@@ -78,7 +79,7 @@ impl Parser {
         self.expect(TokenKind::Dot)?;
         Ok(Decl::Struct(StructDecl {
             name,
-            derives,
+            includes,
             implements,
             fields,
             is_public,
@@ -275,7 +276,7 @@ impl Parser {
     fn parse_trait_method(&mut self, docs: Vec<String>) -> ParseResult<TraitMethodDecl> {
         let start = self.current().start;
         let name = self.expect_lower_ident("expected lower-case trait method name")?;
-        self.consume_generic_params_if_present()?;
+        let generic_params = self.consume_generic_params_if_present()?;
         let mut generic_bounds = self.consume_angle_generic_params_if_present()?;
 
         self.expect(TokenKind::LParen)?;
@@ -289,6 +290,7 @@ impl Parser {
             }
         }
         self.expect(TokenKind::RParen)?;
+        self.validate_param_defaults_trailing(&params)?;
         generic_bounds.extend(self.consume_constraint_list_if_present()?);
         self.expect(TokenKind::Colon)?;
         let return_type = self.parse_type_expr(&[TokenKind::Arrow, TokenKind::Dot])?;
@@ -301,6 +303,7 @@ impl Parser {
 
         Ok(TraitMethodDecl {
             name,
+            generic_params,
             params,
             return_type,
             generic_bounds,
@@ -453,10 +456,91 @@ impl Parser {
     /// - Preserved type parameter text.
     ///
     /// Transformation:
-    /// - Reuses type-expression parsing until the next generic-parameter
-    ///   separator so declaration and callable generic syntax share one parser.
+    /// - Accepts first-order parameters such as `T`, variance-marked
+    ///   parameters such as `-E`, and higher-kinded constructor parameters
+    ///   such as `F[_]` or `M[_, _]`.
     pub(super) fn parse_type_param_text(&mut self) -> ParseResult<String> {
-        let ty = self.parse_type_expr(&[TokenKind::Comma, TokenKind::RBracket])?;
-        Ok(ty.text)
+        let start = self.current().start;
+        let mut text = String::new();
+
+        if self.check(TokenKind::Plus) || self.check(TokenKind::Minus) {
+            text.push_str(&self.bump().text);
+        }
+
+        let name = self.current().clone();
+        if name.kind != TokenKind::Var {
+            return Err(ParseError {
+                message: "expected upper-case type parameter name".to_string(),
+                span: name.span(),
+            });
+        }
+        self.bump();
+        text.push_str(&name.text);
+
+        if self.consume_if(TokenKind::LBracket) {
+            text.push('[');
+            self.parse_higher_kind_slots(&mut text, start)?;
+            self.expect(TokenKind::RBracket)?;
+            text.push(']');
+        }
+
+        Ok(text)
+    }
+
+    /// Parses `_` slots for a higher-kinded type parameter.
+    ///
+    /// Inputs:
+    /// - `text`: output buffer already containing the constructor name and `[`.
+    /// - `start`: start byte of the enclosing type parameter for diagnostics.
+    ///
+    /// Output:
+    /// - Mutated output text containing one or more `_`, `+_`, or `-_` slots.
+    ///
+    /// Transformation:
+    /// - Requires placeholder slots rather than concrete type names so
+    ///   declaration parameters express kind arity, not type application.
+    ///   Optional variance markers are preserved on the slot for downstream
+    ///   typechecking.
+    fn parse_higher_kind_slots(&mut self, text: &mut String, start: usize) -> ParseResult<()> {
+        if self.check(TokenKind::RBracket) {
+            return Err(ParseError {
+                message: "higher-kinded type parameter requires at least one `_` slot".to_string(),
+                span: Span::new(start, self.current().end),
+            });
+        }
+
+        let mut first = true;
+        loop {
+            let variance = if self.check(TokenKind::Plus) || self.check(TokenKind::Minus) {
+                let marker = self.current().text.clone();
+                self.bump();
+                Some(marker)
+            } else {
+                None
+            };
+            let slot = self.current().clone();
+            if slot.text != "_" {
+                return Err(ParseError {
+                    message: "higher-kinded type parameter slots must be `_`, `+_`, or `-_`"
+                        .to_string(),
+                    span: slot.span(),
+                });
+            }
+            self.bump();
+            if !first {
+                text.push_str(", ");
+            }
+            if let Some(marker) = variance {
+                text.push_str(&marker);
+            }
+            text.push('_');
+            first = false;
+
+            if !self.consume_if(TokenKind::Comma) {
+                break;
+            }
+        }
+
+        Ok(())
     }
 }

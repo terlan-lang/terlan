@@ -51,7 +51,7 @@ pub (mut server_ref: ServerRef[State, Request, Reply, Event]) cast(event: Event)
 /// start a process-backed callback loop. The concrete callback dispatch remains
 /// target-owned.
 
-pub start(server: Server): Result[ServerRef[State, Request, Reply, Event], Error].
+pub start[Server, State, Request, Reply, Event](server: Server): Result[ServerRef[State, Request, Reply, Event], Error].
 
 /// Stops a running GenServer.
 ///

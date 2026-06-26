@@ -14,9 +14,15 @@ expression module so each language feature can be tested independently.
 ## Public Surface
 
 - `calls`: function, method, and constructor-call checking.
+- `casts`: explicit `as` conversion inference and conversion-trait checks.
 - `construction`: record, struct, map, list, and constructor construction.
 - `control_flow`: case, if, let, and related flow expressions.
 - `indexing`: index get/set validation.
+- `operators`: unary, binary, boolean, comparison, arithmetic, and pipe
+  operator inference.
+- `sql`: SQL raw-form row type validation and wrapper result inference.
+- `values`: variable, singleton alias, implicit value, and function-value
+  lookup.
 
 ## Core Model
 
@@ -54,6 +60,9 @@ Important invariants:
 : Checks ordinary calls, receiver methods, constructor calls, and function
 value invocation.
 
+`casts`
+: Checks explicit conversion expressions without lowering backend artifacts.
+
 `construction`
 : Checks construction expressions and constructor chaining.
 
@@ -62,6 +71,16 @@ value invocation.
 
 `indexing`
 : Checks indexed reads and writes through index contracts.
+
+`operators`
+: Checks expression operators while keeping pipe behavior routed through call
+resolution.
+
+`sql`
+: Checks compiler-known SQL raw macros against visible row types.
+
+`values`
+: Checks bare names and singleton alias values.
 
 ## Testing Notes
 

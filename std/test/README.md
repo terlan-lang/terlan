@@ -39,7 +39,7 @@ Important invariants:
 
 - `terlc test`: discovers and executes `@test` functions.
 - `tests/std/RELEASE_API_TESTS.tsv`: records release API test coverage.
-- Adjacent `*_test.terl` files: own positive std behavior coverage.
+- Adjacent `*Test.terl` files: own positive std behavior coverage.
 
 ## Edge Cases
 
@@ -54,7 +54,7 @@ Important invariants:
 
 ## Testing Notes
 
-- `std/test/assertions_test.terl` validates the assertion helper surface.
+- `std/test/AssertionsTest.terl` validates the assertion helper surface.
 - New std modules should add adjacent tests rather than relying only on release
   orchestration.
 - Doctest-style examples belong to later CLI/docs work.

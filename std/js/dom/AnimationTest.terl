@@ -1,0 +1,85 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Animation
+ */
+
+module std.js.Dom.AnimationTest.
+
+import type std.js.Dom.Animation.Animation.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub current_time_typechecks(receiver: Animation): Option[CSSNumberish] ->
+    receiver.current_time().
+
+pub effect_typechecks(receiver: Animation): Option[AnimationEffect] ->
+    receiver.effect().
+
+pub finished_typechecks(receiver: Animation): std.js.Promise[Animation] ->
+    receiver.finished().
+
+pub id_typechecks(receiver: Animation): std.js.String.JsString ->
+    receiver.id().
+
+pub pending_typechecks(receiver: Animation): std.core.Bool ->
+    receiver.pending().
+
+pub play_state_typechecks(receiver: Animation): AnimationPlayState ->
+    receiver.play_state().
+
+pub playback_rate_typechecks(receiver: Animation): std.js.Number.JsNumber ->
+    receiver.playback_rate().
+
+pub ready_typechecks(receiver: Animation): std.js.Promise[Animation] ->
+    receiver.ready().
+
+pub replace_state_typechecks(receiver: Animation): AnimationReplaceState ->
+    receiver.replace_state().
+
+pub start_time_typechecks(receiver: Animation): Option[CSSNumberish] ->
+    receiver.start_time().
+
+pub timeline_typechecks(receiver: Animation): Option[AnimationTimeline] ->
+    receiver.timeline().
+
+pub cancel_typechecks(receiver: Animation): std.core.Unit ->
+    receiver.cancel().
+
+pub commit_styles_typechecks(receiver: Animation): std.core.Unit ->
+    receiver.commit_styles().
+
+pub finish_typechecks(receiver: Animation): std.core.Unit ->
+    receiver.finish().
+
+pub pause_typechecks(receiver: Animation): std.core.Unit ->
+    receiver.pause().
+
+pub persist_typechecks(receiver: Animation): std.core.Unit ->
+    receiver.persist().
+
+pub play_typechecks(receiver: Animation): std.core.Unit ->
+    receiver.play().
+
+pub reverse_typechecks(receiver: Animation): std.core.Unit ->
+    receiver.reverse().
+
+pub update_playback_rate_typechecks(receiver: Animation, playback_rate: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.update_playback_rate(playback_rate).
+
+pub add_event_listener_typechecks(receiver: Animation, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: Animation, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

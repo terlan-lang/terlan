@@ -1,0 +1,79 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Gamepad
+ */
+
+module std.js.Dom.Gamepad.
+
+/**
+ * The **`Gamepad`** interface of the Gamepad API defines an individual gamepad or other controller, allowing access to information such as button presses, axis positions, and id.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad)
+ */
+pub opaque type Gamepad.
+
+/**
+ * The **`Gamepad.axes`** property of the Gamepad interface returns an array representing the controls with axes present on the device (e.g., analog thumb sticks).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/axes)
+ */
+pub (value: Gamepad) axes(): std.js.Array[std.js.Number.JsNumber].
+
+/**
+ * The **`buttons`** property of the Gamepad interface returns an array of GamepadButton objects representing the buttons present on the device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/buttons)
+ */
+pub (value: Gamepad) buttons(): std.js.Array[GamepadButton].
+
+/**
+ * The **`Gamepad.connected`** property of the still connected to the system.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/connected)
+ */
+pub (value: Gamepad) connected(): std.core.Bool.
+
+/**
+ * The **`Gamepad.id`** property of the Gamepad interface returns a string containing some information about the controller.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/id)
+ */
+pub (value: Gamepad) id(): std.js.String.JsString.
+
+/**
+ * The **`Gamepad.index`** property of the Gamepad interface returns an integer that is auto-incremented to be unique for each device currently connected to the system.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/index)
+ */
+pub (value: Gamepad) index(): std.js.Number.JsNumber.
+
+/**
+ * The **`Gamepad.mapping`** property of the remapped the controls on the device to a known layout.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/mapping)
+ */
+pub (value: Gamepad) mapping(): GamepadMappingType.
+
+/**
+ * The **`Gamepad.timestamp`** property of the representing the last time the data for this gamepad was updated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/timestamp)
+ */
+pub (value: Gamepad) timestamp(): DOMHighResTimeStamp.
+
+/**
+ * The **`vibrationActuator`** read-only property of the Gamepad interface returns a GamepadHapticActuator object, which represents haptic feedback hardware available on the controller.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/vibrationActuator)
+ */
+pub (value: Gamepad) vibration_actuator(): GamepadHapticActuator.

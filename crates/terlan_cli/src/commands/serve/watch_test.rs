@@ -51,31 +51,33 @@ fn write_watched_package(web_root: &Path) {
 }
 
 #[test]
-fn reload_watch_backend_documents_polling_compatibility_policy() {
+fn reload_watch_backend_uses_notify() {
     let backend = ReloadWatchBackend::selected();
 
-    assert_eq!(backend, ReloadWatchBackend::PollCompatibility);
-    assert_eq!(backend.name(), "poll-compatibility");
-    assert!(backend.policy().contains("Oxc has no live-reload owner"));
-    assert!(backend.policy().contains("Rsbuild/Rspack is reserved"));
+    assert_eq!(backend, ReloadWatchBackend::Notify);
+    assert_eq!(backend.name(), "notify");
+    assert!(backend.policy().contains("notify"));
     assert!(backend.policy().contains("_build/web"));
 }
 
 #[test]
-fn web_package_snapshot_changes_when_asset_content_changes() {
-    let dir = temp_dir("snapshot_changes");
+fn should_reload_for_event_accepts_artifact_changes() {
+    use notify::event::{AccessKind, CreateKind, DataChange, ModifyKind};
+    use notify::{Event, EventKind};
+
+    let dir = temp_dir("event_changes");
     let web_root = dir.join("web");
     write_watched_package(&web_root);
-    let first = web_package_snapshot(&web_root).expect("first snapshot");
 
-    fs::write(
-        web_root.join("assets/js/modules/app.js"),
-        "export const value = 2;\n",
-    )
-    .expect("change js asset");
-    let second = web_package_snapshot(&web_root).expect("second snapshot");
-
-    assert_ne!(first, second);
+    assert!(should_reload_for_event(&Event::new(EventKind::Modify(
+        ModifyKind::Data(DataChange::Content)
+    ))));
+    assert!(should_reload_for_event(&Event::new(EventKind::Create(
+        CreateKind::File
+    ))));
+    assert!(!should_reload_for_event(&Event::new(EventKind::Access(
+        AccessKind::Read
+    ))));
     fs::remove_dir_all(dir).expect("cleanup");
 }
 

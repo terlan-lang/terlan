@@ -73,8 +73,8 @@ while IFS=$'\t' read -r api_id test_file test_function extra; do
     continue
   fi
 
-  if [[ "$test_file" != std/*/*_test.terl && "$test_file" != std/*/*/*_test.terl ]]; then
-    printf '%s: API `%s` test path must be adjacent std source `std/<feature>/*_test.terl`, got `%s`\n' \
+  if [[ "$test_file" != std/*/*Test.terl && "$test_file" != std/*/*/*Test.terl ]]; then
+    printf '%s: API `%s` test path must be adjacent std source `std/<feature>/*Test.terl`, got `%s`\n' \
       "$manifest" "$api_id" "$test_file" >&2
     failures=1
     continue

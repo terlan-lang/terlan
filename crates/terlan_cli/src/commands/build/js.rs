@@ -2,9 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
-use serde::Serialize;
-
-use crate::commands::artifacts::{collect_syntax_asset_imports, SyntaxAssetImportInput};
+use crate::commands::artifacts::collect_syntax_asset_imports;
 use crate::commands::emit_js::target_contract::{
     js_declaration_artifact_relative_path, js_metadata_relative_path,
     js_module_artifact_relative_path, js_target_contract, JsTargetContract, JS_DIAGNOSTICS_FILE,
@@ -19,11 +17,22 @@ use crate::support::read_file;
 use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions};
 use crate::CliState;
 
-use super::js_browser::{write_browser_package, BrowserStaticAssetConfig};
+use super::js_assets::browser_static_assets_from_manifest;
+use super::js_browser::{
+    write_browser_package_with_route_sources, BrowserStaticAssetConfig, WebRouteSourceArtifact,
+};
+pub(super) use super::js_model::JsModuleArtifact;
+use super::js_model::{
+    JsBuildManifest, JsDeclarationArtifact, JsDiagnosticsMetadata, JsTargetProfileMetadata,
+};
+use super::js_source_classification::{
+    should_skip_browser_backend_source, web_route_source_artifact_from_file,
+};
 use super::{
-    project_manifest_path, reject_unsupported_external_dependencies,
-    reject_unsupported_target_std_source, resolve_project_build_roots, write_build_file, BuildArgs,
-    BuildOneError, ProjectSourceRoot, SourceRootBuildUnit,
+    prepare_source_root_interfaces, project_manifest_path,
+    reject_unsupported_external_dependencies, reject_unsupported_target_std_source,
+    resolve_project_build_roots, write_build_file, BuildArgs, BuildOneError, BuildTimings,
+    ProjectSourceRoot, SourceRootBuildUnit,
 };
 
 /// Runs the JavaScript build path.
@@ -62,6 +71,7 @@ pub(super) fn run_js_build(args: &BuildArgs, state: &CliState, profile: TargetPr
             &js_build_root(&js_state),
             contract,
             vec![artifact],
+            Vec::new(),
             js_state.incremental,
             None,
         ),
@@ -223,6 +233,7 @@ fn run_js_source_roots_build(
     emit_declarations: bool,
     browser_static_assets: Option<BrowserStaticAssetConfig>,
 ) -> ExitCode {
+    let mut timings = BuildTimings::new(state.timings);
     let mut files = Vec::new();
     for root in source_roots {
         let root_files = match crate::formal_pipeline::terlan_sources_in_dir(&root.path) {
@@ -251,114 +262,157 @@ fn run_js_source_roots_build(
         }
         files.extend(root_files);
     }
+    timings.mark("js.scan");
 
     let mut directory_state = state.clone();
     if directory_state.cache_dir.is_none() {
         directory_state.cache_dir = Some(js_build_root(state).join(".terlan"));
     }
 
-    for root in source_roots {
-        let check_status = crate::commands::check::run_check_dir(
-            &root.path.to_string_lossy(),
-            directory_state.clone(),
-            None,
-        );
+    if directory_state.incremental {
+        for root in source_roots {
+            if let Err(message) = prepare_source_root_interfaces(&root.path, &directory_state) {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        }
+        timings.mark("js.interface-prepass");
+    } else {
+        let check_status = run_full_js_source_root_checks(source_roots, &directory_state);
         if check_status != ExitCode::SUCCESS {
             return check_status;
         }
-    }
-    if state.no_emit {
-        return ExitCode::SUCCESS;
+        timings.mark("js.full-check");
     }
 
-    let mut artifacts = Vec::new();
-    for file in files {
-        match build_one_js_source_artifact(
-            &file.to_string_lossy(),
-            &directory_state,
-            contract,
-            emit_declarations,
-        ) {
-            Ok(Some(artifact)) => artifacts.push(artifact),
-            Ok(None) => {}
-            Err(err) => return err.into_exit_code(),
+    let (artifacts, route_sources) = match build_js_source_artifacts(
+        &files,
+        &directory_state,
+        contract,
+        emit_declarations,
+        browser_static_assets.is_some(),
+    ) {
+        Ok(artifacts) => artifacts,
+        Err(err) => {
+            if !directory_state.incremental {
+                return err.into_exit_code();
+            }
+            let check_status = run_full_js_source_root_checks(source_roots, &directory_state);
+            if check_status != ExitCode::SUCCESS {
+                return check_status;
+            }
+            match build_js_source_artifacts(
+                &files,
+                &directory_state,
+                contract,
+                emit_declarations,
+                browser_static_assets.is_some(),
+            ) {
+                Ok(artifacts) => artifacts,
+                Err(err) => return err.into_exit_code(),
+            }
         }
+    };
+    timings.mark("js.compile");
+
+    if state.no_emit {
+        return ExitCode::SUCCESS;
     }
 
     write_js_manifest_or_exit(
         &js_build_root(state),
         contract,
         artifacts,
+        route_sources,
         state.incremental,
         browser_static_assets.as_ref(),
     )
 }
 
-/// Converts parsed manifest web asset metadata into browser package input.
+/// Runs formal source-root checks before JavaScript artifact generation.
 ///
 /// Inputs:
-/// - `project_dir`: directory containing `terlan.toml`.
-/// - `assets`: parsed `[web.assets]` metadata.
+/// - `source_roots`: source roots selected for the JS build.
+/// - `state`: CLI state reused by the check command.
 ///
 /// Output:
-/// - `Ok(BrowserStaticAssetConfig)` for a valid existing asset directory.
-/// - `Err(String)` when the configured source directory is missing or the
-///   public path cannot become a safe web-relative path.
+/// - Success when all roots pass, or the first failing check exit code.
 ///
 /// Transformation:
-/// - Resolves the user-facing manifest directory against the project root and
-///   normalizes the public path into the browser package path prefix.
-fn browser_static_assets_from_manifest(
-    project_dir: &Path,
-    assets: &super::project_manifest::ProjectWebAssets,
-) -> Result<BrowserStaticAssetConfig, String> {
-    let source_dir = project_dir.join(&assets.directory);
-    if !source_dir.is_dir() {
-        return Err(format!(
-            "project manifest [web.assets] directory does not exist: {}",
-            source_dir.display()
-        ));
+/// - Reuses `terlc check` so JS builds do not bypass syntax/type validation.
+fn run_full_js_source_root_checks(
+    source_roots: &[SourceRootBuildUnit],
+    state: &CliState,
+) -> ExitCode {
+    for root in source_roots {
+        let check_status = crate::commands::check::run_check_dir(
+            &root.path.to_string_lossy(),
+            state.clone(),
+            None,
+        );
+        if check_status != ExitCode::SUCCESS {
+            return check_status;
+        }
     }
-    let web_path_prefix = web_asset_public_path_prefix(assets.public_path.as_deref())?;
-    Ok(BrowserStaticAssetConfig {
-        source_dir,
-        source_label: assets.directory.clone(),
-        web_path_prefix,
-        inline_limit: assets.inline_limit,
-    })
+    ExitCode::SUCCESS
 }
 
-/// Normalizes a public asset path into a package-relative output path.
+/// Builds JavaScript artifacts and route-source metadata from Terlan files.
 ///
 /// Inputs:
-/// - `public_path`: optional manifest `public_path` value.
+/// - `files`: source files selected for the JS target.
+/// - `state`: CLI state with output/cache paths.
+/// - `contract`: target profile and backend contract.
+/// - `emit_declarations`: whether `.d.ts` artifacts should be emitted.
+/// - `has_browser_static_assets`: whether the package has browser assets.
 ///
 /// Output:
-/// - Safe relative path under `_build/web`.
-/// - `Err(String)` when the value is empty after trimming or contains unsafe
-///   path components.
+/// - JavaScript module artifacts plus route-source artifacts.
 ///
 /// Transformation:
-/// - Defaults to `assets`, strips a leading slash for URL-style paths, and
-///   rejects absolute, parent, or empty output paths.
-fn web_asset_public_path_prefix(public_path: Option<&str>) -> Result<PathBuf, String> {
-    let raw = public_path.unwrap_or("assets").trim();
-    let trimmed = raw.trim_start_matches('/');
-    if trimmed.is_empty() {
-        return Err("project manifest [web.assets] public_path cannot resolve to web root".into());
+/// - Splits server route metadata from browser-emittable modules and compiles
+///   only the files appropriate for the selected JS profile.
+fn build_js_source_artifacts(
+    files: &[PathBuf],
+    state: &CliState,
+    contract: JsTargetContract,
+    emit_declarations: bool,
+    has_browser_static_assets: bool,
+) -> Result<(Vec<JsModuleArtifact>, Vec<WebRouteSourceArtifact>), BuildOneError> {
+    let mut artifacts = Vec::new();
+    let mut route_sources = Vec::new();
+    for file in files {
+        match web_route_source_artifact_from_file(file) {
+            Ok(Some(route_source)) => {
+                route_sources.push(route_source);
+                continue;
+            }
+            Ok(None) => {}
+            Err(message) => return Err(BuildOneError::Message(message)),
+        }
+        match should_skip_browser_backend_source(file, contract.profile, has_browser_static_assets)
+        {
+            Ok(true) => continue,
+            Ok(false) => {}
+            Err(message) => return Err(BuildOneError::Message(message)),
+        }
+        match build_one_js_source_artifact(
+            &file.to_string_lossy(),
+            state,
+            contract,
+            emit_declarations,
+        ) {
+            Ok(Some(artifact)) => artifacts.push(artifact),
+            Ok(None) => {}
+            Err(BuildOneError::Message(message))
+                if has_browser_static_assets && message.contains("error[js_emit_unsupported]") =>
+            {
+                continue;
+            }
+            Err(err) => return Err(err),
+        }
     }
-    let path = PathBuf::from(trimmed);
-    if path.components().any(|component| {
-        !matches!(
-            component,
-            std::path::Component::Normal(_) | std::path::Component::CurDir
-        )
-    }) {
-        return Err(format!(
-            "project manifest [web.assets] public_path `{raw}` must be a safe relative web path"
-        ));
-    }
-    Ok(path)
+    Ok((artifacts, route_sources))
 }
 
 /// Builds one Terlan source file into one JavaScript artifact.
@@ -385,8 +439,13 @@ fn build_one_js_source_artifact(
     emit_declarations: bool,
 ) -> Result<Option<JsModuleArtifact>, BuildOneError> {
     let source = read_file(path).map_err(BuildOneError::Message)?;
-    if let Err(message) = reject_unsupported_target_std_source(path, &source, state.target_profile)
-    {
+    let target_profile_options = js_target_profile_check_options(state.target_profile);
+    if let Err(message) = reject_unsupported_target_std_source(
+        path,
+        &source,
+        state.target_profile,
+        target_profile_options,
+    ) {
         return Err(BuildOneError::Message(message));
     }
 
@@ -398,7 +457,7 @@ fn build_one_js_source_artifact(
             state.cache_dir.as_deref(),
             state.native_policy,
             state.target_profile,
-            js_target_profile_check_options(state.target_profile),
+            target_profile_options,
         ) {
             Ok(compiled) => compiled,
             Err(exit_code) => return Err(BuildOneError::Exit(exit_code)),
@@ -428,6 +487,7 @@ fn build_one_js_source_artifact(
 fn js_target_profile_check_options(profile: TargetProfile) -> TargetProfileCheckOptions {
     TargetProfileCheckOptions {
         allow_asset_imports: profile == TargetProfile::JsBrowser,
+        allow_rust_backed_std_modules: false,
     }
 }
 
@@ -659,6 +719,7 @@ fn write_js_manifest_or_exit(
     js_root: &Path,
     contract: JsTargetContract,
     modules: Vec<JsModuleArtifact>,
+    route_sources: Vec<WebRouteSourceArtifact>,
     incremental: bool,
     browser_static_assets: Option<&BrowserStaticAssetConfig>,
 ) -> ExitCode {
@@ -666,6 +727,7 @@ fn write_js_manifest_or_exit(
         js_root,
         contract,
         modules,
+        route_sources,
         incremental,
         browser_static_assets,
     ) {
@@ -683,6 +745,7 @@ fn write_js_manifest_or_exit(
 /// - `js_root`: root JS output directory.
 /// - `contract`: selected JS artifact contract.
 /// - `modules`: emitted module artifacts.
+/// - `route_sources`: Terlan source modules used for web route discovery.
 /// - `incremental`: whether unchanged writes may be skipped.
 ///
 /// Output:
@@ -698,6 +761,7 @@ fn write_js_manifest_and_browser_package(
     js_root: &Path,
     contract: JsTargetContract,
     modules: Vec<JsModuleArtifact>,
+    route_sources: Vec<WebRouteSourceArtifact>,
     incremental: bool,
     browser_static_assets: Option<&BrowserStaticAssetConfig>,
 ) -> Result<(), String> {
@@ -754,10 +818,11 @@ fn write_js_manifest_and_browser_package(
     )?;
 
     if contract.profile == TargetProfile::JsBrowser {
-        write_browser_package(
+        write_browser_package_with_route_sources(
             js_root,
             contract,
             &modules,
+            &route_sources,
             browser_static_assets,
             incremental,
         )?;
@@ -779,109 +844,4 @@ fn write_js_manifest_and_browser_package(
 ///   so default builds land in `_build/js`.
 fn js_build_root(state: &CliState) -> PathBuf {
     state.out_dir.join("js")
-}
-
-/// JavaScript build manifest.
-///
-/// Inputs:
-/// - Created after successful JS module emission.
-///
-/// Output:
-/// - Serializable manifest stored at `_build/js/manifest.json`.
-///
-/// Transformation:
-/// - Records the selected target profile, module format, extension, and emitted
-///   module list for downstream release checks.
-#[derive(Debug, Serialize)]
-struct JsBuildManifest<'a> {
-    schema: &'static str,
-    target_profile: &'static str,
-    module_format: &'static str,
-    module_extension: &'static str,
-    modules: &'a [JsModuleArtifact],
-}
-
-/// JavaScript module artifact manifest entry.
-///
-/// Inputs:
-/// - Created per emitted Terlan module.
-///
-/// Output:
-/// - Serializable module entry inside `manifest.json`.
-///
-/// Transformation:
-/// - Records source, artifact, CoreIR hash, target profile, and validation
-///   status without embedding JavaScript source text.
-#[derive(Debug, Serialize)]
-pub(super) struct JsModuleArtifact {
-    pub(super) module: String,
-    pub(super) source_path: String,
-    pub(super) artifact_path: String,
-    pub(super) relative_path: String,
-    pub(super) core_ir_hash: u64,
-    pub(super) target_profile: String,
-    pub(super) validation_status: String,
-    pub(super) runtime_smoke_status: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) declaration_path: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) declaration_relative_path: Option<String>,
-    #[serde(skip)]
-    pub(super) asset_imports: Vec<SyntaxAssetImportInput>,
-}
-
-/// JavaScript declaration artifact manifest metadata.
-///
-/// Inputs:
-/// - Created when `terlc build --target js --declarations` writes a `.d.ts`
-///   file for one emitted module.
-///
-/// Output:
-/// - Paths copied into the corresponding JS module manifest entry.
-///
-/// Transformation:
-/// - Separates declaration path construction from module metadata assembly so
-///   the manifest can omit declaration fields when the user did not request
-///   them.
-#[derive(Debug)]
-struct JsDeclarationArtifact {
-    artifact_path: String,
-    relative_path: String,
-}
-
-/// JavaScript target-profile metadata file.
-///
-/// Inputs:
-/// - Created from the selected `JsTargetContract`.
-///
-/// Output:
-/// - Serializable metadata stored at `_build/js/metadata/target-profile.json`.
-///
-/// Transformation:
-/// - Captures profile and module-format facts separately from the module
-///   manifest so target validators can read them directly later.
-#[derive(Debug, Serialize)]
-struct JsTargetProfileMetadata {
-    target_profile: &'static str,
-    module_format: &'static str,
-    module_extension: &'static str,
-    unsupported_feature_code: &'static str,
-}
-
-/// JavaScript diagnostics metadata file.
-///
-/// Inputs:
-/// - Created after successful JS emission.
-///
-/// Output:
-/// - Serializable empty diagnostics payload stored under JS metadata.
-///
-/// Transformation:
-/// - Pins the diagnostics family and unsupported-feature code even before J0.6
-///   starts recording rejected feature metadata.
-#[derive(Debug, Serialize)]
-struct JsDiagnosticsMetadata {
-    diagnostic_family: &'static str,
-    unsupported_feature_code: &'static str,
-    diagnostics: Vec<String>,
 }

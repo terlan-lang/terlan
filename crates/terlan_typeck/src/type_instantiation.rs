@@ -71,6 +71,7 @@ pub(super) fn instantiate_function_scheme_from(
     FunctionScheme {
         params,
         ret,
+        generic_params: scheme.generic_params.clone(),
         bounds,
     }
 }
@@ -107,6 +108,7 @@ pub(super) fn instantiate_constructor_scheme(
     };
 
     ConstructorScheme {
+        param_names: scheme.param_names.clone(),
         fixed_params: scheme
             .fixed_params
             .iter()
@@ -200,6 +202,11 @@ fn next_type_var(args: &[Type], subst: &HashMap<TypeVarId, Type>) -> TypeVarId {
 pub(super) fn max_type_var(ty: &Type) -> Option<TypeVarId> {
     match ty {
         Type::Var(id) => Some(*id),
+        Type::Apply { constructor, args } => args
+            .iter()
+            .filter_map(max_type_var)
+            .chain(std::iter::once(Some(*constructor)).flatten())
+            .max(),
         Type::List(inner) | Type::FixedArray { elem: inner, .. } => max_type_var(inner),
         Type::Tuple(items) | Type::Union(items) => items.iter().filter_map(max_type_var).max(),
         Type::Map(fields) => fields
@@ -234,6 +241,10 @@ where
 {
     match ty {
         Type::Var(id) => Type::Var(remap(id)),
+        Type::Apply { constructor, args } => Type::Apply {
+            constructor: remap(constructor),
+            args: args.iter().map(|arg| remap_type(arg, remap)).collect(),
+        },
         Type::List(inner) => Type::List(Box::new(remap_type(inner, remap))),
         Type::Tuple(items) => {
             Type::Tuple(items.iter().map(|item| remap_type(item, remap)).collect())

@@ -42,7 +42,7 @@ pub (agent: Agent[T]) get(): T.
 /// BEAM-owned process. The receiver handle remains stable; the target runtime
 /// owns the state transition.
 
-pub (agent: Agent[T]) get_and_update(writer: (T ) -> {state : T, value : U}): U.
+pub (agent: Agent[T]) get_and_update[U](writer: (T ) -> {state : T, value : U}): U.
 
 /// Starts an agent with an initial value.
 ///
@@ -51,7 +51,7 @@ pub (agent: Agent[T]) get_and_update(writer: (T ) -> {state : T, value : U}): U.
 /// Transformation: asks the BEAM runtime to start a supervised state process and
 /// normalizes startup failure into the standard typed error channel.
 
-pub start(initial: T): Result[Agent[T], Error].
+pub start[T](initial: T): Result[Agent[T], Error].
 
 /// Stops the agent.
 ///

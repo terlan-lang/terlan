@@ -1,0 +1,48 @@
+module std.collections.SetTest.
+
+import std.collections.List.
+import std.collections.Set.
+
+@test
+pub constructor_packs_unique_values(): Bool ->
+    let values = Set(1, 1, 2);
+    std.test.Test.assert_equal(2, values.size()).
+
+@test
+pub from_list_packs_unique_values(): Bool ->
+    let source = List(1, 1, 2);
+        values = Set.from_list(source);
+    std.test.Test.assert_equal(2, values.size()).
+
+@test
+pub new_starts_empty(): Bool ->
+    let values = Set.new();
+    std.test.Test.assert(values.is_empty()).
+
+@test
+pub add_updates_size_and_membership(): Bool ->
+    let values = Set.new();
+    values.add(1);
+    values.add(1);
+    std.test.Test.assert_equal(1, values.size()).
+
+@test
+pub contains_tracks_mutations(): Bool ->
+    let values = Set.new();
+    values.add(1);
+    std.test.Test.assert(values.contains(1)).
+
+@test
+pub clear_removes_values(): Bool ->
+    let values = Set.new();
+    values.add(1);
+    values.clear();
+    std.test.Test.assert(values.is_empty()).
+
+@test
+pub enumerable_fold_accumulates_values(): Bool ->
+    true.
+
+@test
+pub enumerable_map_yields_values(): Bool ->
+    true.

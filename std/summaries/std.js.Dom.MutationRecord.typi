@@ -1,0 +1,86 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MutationRecord
+ */
+
+module std.js.Dom.MutationRecord.
+
+/**
+ * The **`MutationRecord`** is a read-only interface that represents an individual DOM mutation observed by a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord)
+ */
+pub opaque type MutationRecord.
+
+/**
+ * The MutationRecord read-only property **`addedNodes`** is a NodeList of nodes added to a target node by a mutation observed with a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/addedNodes)
+ */
+pub (value: MutationRecord) added_nodes(): NodeList.
+
+/**
+ * The MutationRecord read-only property **`attributeName`** contains the name of a changed attribute belonging to a node that is observed by a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/attributeName)
+ */
+pub (value: MutationRecord) attribute_name(): Option[std.js.String.JsString].
+
+/**
+ * The MutationRecord read-only property **`attributeNamespace`** is the namespace of the mutated attribute in the MutationRecord observed by a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/attributeNamespace)
+ */
+pub (value: MutationRecord) attribute_namespace(): Option[std.js.String.JsString].
+
+/**
+ * The MutationRecord read-only property **`nextSibling`** is the next sibling of an added or removed child node of the `target` of a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/nextSibling)
+ */
+pub (value: MutationRecord) next_sibling(): Option[Node].
+
+/**
+ * The MutationRecord read-only property **`oldValue`** contains the character data or attribute value of an observed node before it was changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/oldValue)
+ */
+pub (value: MutationRecord) old_value(): Option[std.js.String.JsString].
+
+/**
+ * The MutationRecord read-only property **`previousSibling`** is the previous sibling of an added or removed child node of the `target` of a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/previousSibling)
+ */
+pub (value: MutationRecord) previous_sibling(): Option[Node].
+
+/**
+ * The MutationRecord read-only property **`removedNodes`** is a NodeList of nodes removed from a target node by a mutation observed with a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/removedNodes)
+ */
+pub (value: MutationRecord) removed_nodes(): NodeList.
+
+/**
+ * The MutationRecord read-only property **`target`** is the target (i.e., the mutated/changed node) of a mutation observed with a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/target)
+ */
+pub (value: MutationRecord) target_(): Node.
+
+/**
+ * The MutationRecord read-only property **`type`** is the type of the MutationRecord observed by a MutationObserver.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/type)
+ */
+pub (value: MutationRecord) type_(): MutationRecordType.

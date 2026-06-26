@@ -1,0 +1,100 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Math
+ */
+
+module std.js.MathTest.
+
+import type std.js.Math.Math.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub e_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.e().
+
+pub ln10_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.ln10().
+
+pub ln2_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.ln2().
+
+pub log2_e_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.log2_e().
+
+pub log10_e_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.log10_e().
+
+pub pi_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.pi().
+
+pub sqrt1_2_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.sqrt1_2().
+
+pub sqrt2_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.sqrt2().
+
+pub abs_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.abs(x).
+
+pub acos_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.acos(x).
+
+pub asin_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.asin(x).
+
+pub atan_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.atan(x).
+
+pub atan2_typechecks(receiver: Math, y: std.js.Number.JsNumber, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.atan2(y, x).
+
+pub ceil_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.ceil(x).
+
+pub cos_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.cos(x).
+
+pub exp_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.exp(x).
+
+pub floor_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.floor(x).
+
+pub log_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.log(x).
+
+pub max_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.max().
+
+pub min_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.min().
+
+pub pow_typechecks(receiver: Math, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.pow(x, y).
+
+pub random_typechecks(receiver: Math): std.js.Number.JsNumber ->
+    receiver.random().
+
+pub round_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.round(x).
+
+pub sin_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.sin(x).
+
+pub sqrt_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.sqrt(x).
+
+pub tan_typechecks(receiver: Math, x: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.tan(x).

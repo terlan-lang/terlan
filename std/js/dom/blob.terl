@@ -1,0 +1,79 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Blob
+ */
+
+module std.js.Dom.Blob.
+
+/**
+ * The **`Blob`** interface represents a blob, which is a file-like object of immutable, raw data; they can be read as text or binary data, or converted into a ReadableStream so its methods can be used for processing the data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob)
+ */
+pub opaque type Blob.
+
+/**
+ * The **`size`** read-only property of the Blob interface returns the size of the Blob or File in bytes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/size)
+ */
+pub (value: Blob) size(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`type`** read-only property of the Blob interface returns the MIME type of the file.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/type)
+ */
+pub (value: Blob) type_(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`arrayBuffer()`** method of the Blob interface returns a Promise that resolves with the contents of the blob as binary data contained in an ArrayBuffer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/arrayBuffer)
+ */
+pub (value: Blob) array_buffer(): std.js.Promise[ArrayBuffer] ->
+    native.
+
+/**
+ * The **`bytes()`** method of the Blob interface returns a Promise that resolves with a Uint8Array containing the contents of the blob as an array of bytes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/bytes)
+ */
+pub (value: Blob) bytes(): std.js.Promise[Uint8Array[ArrayBuffer]] ->
+    native.
+
+/**
+ * The **`slice()`** method of the Blob interface creates and returns a new `Blob` object which contains data from a subset of the blob on which it's called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/slice)
+ */
+pub (value: Blob) slice(start: std.js.Number.JsNumber, end: std.js.Number.JsNumber, content_type: std.js.String.JsString): Blob ->
+    native.
+
+/**
+ * The **`stream()`** method of the Blob interface returns a ReadableStream which upon reading returns the data contained within the `Blob`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/stream)
+ */
+pub (value: Blob) stream(): ReadableStream[Uint8Array[ArrayBuffer]] ->
+    native.
+
+/**
+ * The **`text()`** method of the string containing the contents of the blob, interpreted as UTF-8.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/text)
+ */
+pub (value: Blob) text(): std.js.Promise[std.js.String.JsString] ->
+    native.

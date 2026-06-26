@@ -1,0 +1,75 @@
+module std.http.ResponseTest.
+
+import std.http.Response.
+import std.core.Unit.{Unit}.
+import type std.data.Json.Json.
+import type std.http.Response.Response.
+import type std.template.Template.Html.
+
+pub accepts_response(value: Response): Response ->
+    value.
+
+pub sample_json(value: Json): Response ->
+    Response.json(value).
+
+pub sample_text(): Response ->
+    Response.text("ok").
+
+pub sample_html_text(): Response ->
+    Response.html("<main>ok</main>").
+
+pub sample_html_template(value: Html): Response ->
+    Response.html(value).
+
+pub sample_file(): Response ->
+    Response.file("downloads/report.txt", content_type = "text/plain").
+
+pub sample_redirect(): Response ->
+    Response.redirect("/login").
+
+pub sample_status(response: Response): Unit ->
+    response.status(201).
+
+pub sample_header(response: Response): Unit ->
+    response.header("x-terlan", "yes").
+
+pub sample_with_status(response: Response): Response ->
+    response.with_status(202).
+
+pub sample_with_header(response: Response): Response ->
+    response.with_header("x-terlan", "yes").
+
+pub sample_set_cookie_header(response: Response): Unit ->
+    response.set_cookie_header("session=abc123; Path=/; HttpOnly").
+
+pub sample_cookie(response: Response): Unit ->
+    response.cookie("session", "abc123", http_only = true).
+
+pub sample_cookie_with_options(response: Response): Unit ->
+    response.cookie_with_options(
+        "session",
+        "abc123",
+        path = "/account",
+        domain = "example.com",
+        max_age = 3600,
+        include_max_age = true,
+        expires = "Wed, 21 Oct 2015 07:28:00 GMT",
+        http_only = true,
+        secure = true,
+        same_site = "strict"
+    ).
+
+pub sample_delete_cookie(response: Response): Unit ->
+    response.delete_cookie("session").
+
+@test
+pub response_surface_is_declared(): Bool ->
+    true.
+
+@test
+pub response_cookie_helpers_are_declared(): Bool ->
+    true.
+
+@test
+pub response_chainable_metadata_helpers_are_declared(): Bool ->
+    true.

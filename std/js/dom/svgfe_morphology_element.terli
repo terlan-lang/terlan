@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGFEMorphologyElement
+ */
+
+module std.js.Dom.SVGFEMorphologyElement.
+
+/**
+ * The **`SVGFEMorphologyElement`** interface corresponds to the feMorphology element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEMorphologyElement)
+ */
+pub opaque type SVGFEMorphologyElement.
+
+/**
+ * The **`in1`** read-only property of the SVGFEMorphologyElement interface reflects the in attribute of the given feMorphology element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEMorphologyElement/in1)
+ */
+pub (value: SVGFEMorphologyElement) in1(): SVGAnimatedString.
+
+/**
+ * The **`operator`** read-only property of the SVGFEMorphologyElement interface reflects the operator attribute of the given feMorphology element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEMorphologyElement/operator)
+ */
+pub (value: SVGFEMorphologyElement) operator(): SVGAnimatedEnumeration.
+
+/**
+ * The **`radiusX`** read-only property of the SVGFEMorphologyElement interface reflects the X component of the radius attribute of the given feMorphology element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEMorphologyElement/radiusX)
+ */
+pub (value: SVGFEMorphologyElement) radius_x(): SVGAnimatedNumber.
+
+/**
+ * The **`radiusY`** read-only property of the SVGFEMorphologyElement interface reflects the Y component of the radius attribute of the given feMorphology element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEMorphologyElement/radiusY)
+ */
+pub (value: SVGFEMorphologyElement) radius_y(): SVGAnimatedNumber.
+
+pub (value: SVGFEMorphologyElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: SVGFEMorphologyElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

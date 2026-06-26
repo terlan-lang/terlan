@@ -7,7 +7,8 @@ It is called only after static output has already been rendered or copied.
 
 ## Responsibilities
 
-- Validate generated HTML files before `emit-static --validate-output` succeeds.
+- Validate generated HTML files before `terlc static emit --validate-output`
+  succeeds.
 - Validate copied CSS imports that are emitted as static assets.
 - Convert structured `terlan_html` diagnostics into newline-separated CLI
   messages.
@@ -30,7 +31,7 @@ to `terlan_html`.
 
 The main flow is:
 
-1. `emit-static` renders or copies static artifacts.
+1. `terlc static emit` renders or copies static artifacts.
 2. The command calls the appropriate validator when `--validate-output` is set.
 3. The validator delegates to `terlan_html`.
 4. Diagnostics are formatted with file paths and returned to the command.

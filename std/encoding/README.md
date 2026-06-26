@@ -51,7 +51,7 @@ Important invariants:
 
 ## Testing Notes
 
-- Positive tests should live beside the module as
-  `std/encoding/base64_test.terl`.
+- Positive tests should live beside the module as `*Test.terl` sources when
+  the API becomes release-tested.
 - Native artifact drift is checked by `make stdlib-check`.
 - Add negative fixtures for malformed input when typed decoding errors land.

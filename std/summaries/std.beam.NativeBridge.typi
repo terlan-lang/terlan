@@ -22,7 +22,7 @@ pub opaque type NativeBridge[Resource].
 /// Transformation: routes command execution through the BEAM/SafeNative bridge
 /// and normalizes adapter failures into the standard typed error channel.
 
-pub (bridge: NativeBridge[Resource]) call(command: Command): Result[Reply, Error].
+pub (bridge: NativeBridge[Resource]) call[Command, Reply](command: Command): Result[Reply, Error].
 
 /// Disposes the native resource owned by a bridge worker.
 ///
@@ -40,7 +40,7 @@ pub (mut bridge: NativeBridge[Resource]) dispose(): Unit.
 /// Transformation: asks the BEAM runtime to attach a supervised SafeNative
 /// worker while keeping native ownership outside portable Terlan semantics.
 
-pub start(resource: Resource): Result[NativeBridge[Resource], Error].
+pub start[Resource](resource: Resource): Result[NativeBridge[Resource], Error].
 
 /// Stops the BEAM bridge process.
 ///

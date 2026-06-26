@@ -1,0 +1,168 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Math
+ */
+
+module std.js.Math.
+
+pub opaque type Math.
+
+/**
+ * The mathematical constant e. This is Euler's number, the base of natural logarithms.
+ */
+pub (value: Math) e(): std.js.Number.JsNumber.
+
+/**
+ * The natural logarithm of 10.
+ */
+pub (value: Math) ln10(): std.js.Number.JsNumber.
+
+/**
+ * The natural logarithm of 2.
+ */
+pub (value: Math) ln2(): std.js.Number.JsNumber.
+
+/**
+ * The base-2 logarithm of e.
+ */
+pub (value: Math) log2_e(): std.js.Number.JsNumber.
+
+/**
+ * The base-10 logarithm of e.
+ */
+pub (value: Math) log10_e(): std.js.Number.JsNumber.
+
+/**
+ * Pi. This is the ratio of the circumference of a circle to its diameter.
+ */
+pub (value: Math) pi(): std.js.Number.JsNumber.
+
+/**
+ * The square root of 0.5, or, equivalently, one divided by the square root of 2.
+ */
+pub (value: Math) sqrt1_2(): std.js.Number.JsNumber.
+
+/**
+ * The square root of 2.
+ */
+pub (value: Math) sqrt2(): std.js.Number.JsNumber.
+
+/**
+ * Returns the absolute value of a number (the value without regard to whether it is positive or negative).
+ * For example, the absolute value of -5 is the same as the absolute value of 5.
+ * @param x A numeric expression for which the absolute value is needed.
+ */
+pub (value: Math) abs(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the arc cosine (or inverse cosine) of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) acos(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the arcsine of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) asin(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the arctangent of a number.
+ * @param x A numeric expression for which the arctangent is needed.
+ */
+pub (value: Math) atan(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the angle (in radians) between the X axis and the line going through both the origin and the given point.
+ * @param y A numeric expression representing the cartesian y-coordinate.
+ * @param x A numeric expression representing the cartesian x-coordinate.
+ */
+pub (value: Math) atan2(y: std.js.Number.JsNumber, x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the smallest integer greater than or equal to its numeric argument.
+ * @param x A numeric expression.
+ */
+pub (value: Math) ceil(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the cosine of a number.
+ * @param x A numeric expression that contains an angle measured in radians.
+ */
+pub (value: Math) cos(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns e (the base of natural logarithms) raised to a power.
+ * @param x A numeric expression representing the power of e.
+ */
+pub (value: Math) exp(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the greatest integer less than or equal to its numeric argument.
+ * @param x A numeric expression.
+ */
+pub (value: Math) floor(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the natural logarithm (base e) of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) log(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the larger of a set of supplied numeric expressions.
+ * @param values Numeric expressions to be evaluated.
+ */
+pub (value: Math) max(): std.js.Number.JsNumber.
+
+/**
+ * Returns the smaller of a set of supplied numeric expressions.
+ * @param values Numeric expressions to be evaluated.
+ */
+pub (value: Math) min(): std.js.Number.JsNumber.
+
+/**
+ * Returns the value of a base expression taken to a specified power.
+ * @param x The base value of the expression.
+ * @param y The exponent value of the expression.
+ */
+pub (value: Math) pow(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns a pseudorandom number between 0 and 1.
+ */
+pub (value: Math) random(): std.js.Number.JsNumber.
+
+/**
+ * Returns a supplied numeric expression rounded to the nearest integer.
+ * @param x The value to be rounded to the nearest integer.
+ */
+pub (value: Math) round(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the sine of a number.
+ * @param x A numeric expression that contains an angle measured in radians.
+ */
+pub (value: Math) sin(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the square root of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) sqrt(x: std.js.Number.JsNumber): std.js.Number.JsNumber.
+
+/**
+ * Returns the tangent of a number.
+ * @param x A numeric expression that contains an angle measured in radians.
+ */
+pub (value: Math) tan(x: std.js.Number.JsNumber): std.js.Number.JsNumber.

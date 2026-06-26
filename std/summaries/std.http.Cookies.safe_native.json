@@ -1,0 +1,38 @@
+{
+  "functions": [
+    {
+      "arity": 2,
+      "name": "get",
+      "operation": "std.http.cookies.get"
+    },
+    {
+      "arity": 6,
+      "name": "set",
+      "operation": "std.http.cookies.set"
+    },
+    {
+      "arity": 3,
+      "name": "delete",
+      "operation": "std.http.cookies.delete"
+    },
+    {
+      "arity": 5,
+      "name": "set_header",
+      "operation": "std.http.cookies.set_header"
+    },
+    {
+      "arity": 10,
+      "name": "set_header_with_options",
+      "operation": "std.http.cookies.set_header_with_options"
+    },
+    {
+      "arity": 2,
+      "name": "delete_header",
+      "operation": "std.http.cookies.delete_header"
+    }
+  ],
+  "module": "std_http_cookies_safe_native",
+  "native_policy": "safe_native_optional",
+  "scheduler": "normal",
+  "source_module": "std.http.Cookies"
+}

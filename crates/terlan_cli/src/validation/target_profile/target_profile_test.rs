@@ -20,6 +20,7 @@ mod tests {
     mod a0_progression_test;
     mod direct_core_shape_test;
     mod std_bridge_test;
+    mod target_family_test;
 
     /// Lowers source text to a typed Core module through the formal syntax-output
     /// path.

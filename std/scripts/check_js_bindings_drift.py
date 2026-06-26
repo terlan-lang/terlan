@@ -4,10 +4,8 @@
 Inputs:
 - `std/js/manifests/std_js_dom_inputs.json`, the pinned TypeScript fixture
   input manifest.
-- Committed generated `std.js` sources, interfaces, summaries, tests, and
-  binding manifests. `.typi` summaries are intentionally excluded because
-  `std/scripts/check_summary_drift.py` is the single authority for normalized
-  committed summary artifacts.
+- Committed generated `std.js` sources, interfaces, summaries, dependency
+  manifests, tests, and binding manifests.
 
 Outputs:
 - Exit status 0 with a compact success message when generated artifacts match.
@@ -111,15 +109,16 @@ def is_binding_artifact(path: Path) -> bool:
     - `path`: generated path relative to the temporary output directory.
 
     Output:
-    - `True` for generated binding sources, interfaces, tests, and manifests.
-    - `False` for summary artifacts owned by the std summary drift checker.
+    - `True` for generated binding sources, interfaces, summaries, dependency
+      manifests, tests, and manifests.
+    - `False` for no generated artifacts.
 
     Transformation:
-    - Keeps generated API-surface drift separate from normalized `.typi`
-      summary drift so release preflight has one authority per artifact class.
+    - Keeps all TypeScript-generated JS standard-library artifacts under one
+      drift authority.
     """
 
-    return path.suffix not in {".typi", ".deps"}
+    return True
 
 
 def generated_files(out_dir: Path) -> list[Path]:

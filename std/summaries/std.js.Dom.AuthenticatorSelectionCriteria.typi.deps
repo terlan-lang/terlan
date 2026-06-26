@@ -1,0 +1,8 @@
+module=std.js.Dom.AuthenticatorSelectionCriteria
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=5095607115404492356
+interface_hash=6425712620500924991
+interface_doc_hash=6425712620500924991
+deps=0

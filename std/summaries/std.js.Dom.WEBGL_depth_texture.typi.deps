@@ -1,0 +1,8 @@
+module=std.js.Dom.WEBGL_depth_texture
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=15632671175190142343
+interface_hash=873876230733051327
+interface_doc_hash=873876230733051327
+deps=0

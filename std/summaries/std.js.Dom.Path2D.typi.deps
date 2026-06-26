@@ -1,0 +1,8 @@
+module=std.js.Dom.Path2D
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16239802958060402023
+interface_hash=8039239095114786328
+interface_doc_hash=8039239095114786328
+deps=0

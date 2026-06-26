@@ -1,0 +1,8 @@
+module=std.js.Dom.SubtleCrypto
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=12480744580858417478
+interface_hash=5523644044713288997
+interface_doc_hash=5523644044713288997
+deps=0

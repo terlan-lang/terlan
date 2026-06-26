@@ -115,6 +115,7 @@ pub(in crate::emit) fn lower_core_expr_to_erlang(expr: &CoreExpr) -> Option<ErlE
         | CoreExpr::RemoteFunRef { .. }
         | CoreExpr::ConstructorCall { .. }
         | CoreExpr::MutableReceiverCall { .. }
+        | CoreExpr::SqlQuery { .. }
         | CoreExpr::Case { .. }
         | CoreExpr::Try { .. }
         | CoreExpr::If { .. } => None,

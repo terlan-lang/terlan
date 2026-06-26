@@ -69,6 +69,6 @@ Important invariants:
 
 ## Testing Notes
 
-- Positive tests live beside modules as `std/collections/*_test.terl`.
+- Positive tests live beside modules as `std/collections/*Test.terl`.
 - Release API coverage is recorded in `tests/std/RELEASE_API_TESTS.tsv`.
 - Backend lowering tests should cover each target-specific representation.

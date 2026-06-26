@@ -1,5 +1,9 @@
 use super::*;
 
+mod constructor_validation;
+
+use constructor_validation::validate_constructor_clause_shapes;
+
 impl Parser {
     /// Parses a receiver method declaration as a validated preserved form.
     ///
@@ -29,7 +33,7 @@ impl Parser {
         self.expect(TokenKind::RParen)?;
 
         let name = self.expect_lower_ident("expected lower-case method name")?;
-        self.consume_generic_params_if_present()?;
+        let generic_params = self.consume_generic_params_if_present()?;
         let mut generic_bounds = self.consume_angle_generic_params_if_present()?;
         self.expect(TokenKind::LParen)?;
         let mut params = Vec::new();
@@ -42,6 +46,7 @@ impl Parser {
             }
         }
         self.expect(TokenKind::RParen)?;
+        self.validate_param_defaults_trailing(&params)?;
         generic_bounds.extend(self.consume_constraint_list_if_present()?);
         self.expect(TokenKind::Colon)?;
         let return_type = self.parse_type_expr(&[TokenKind::Arrow])?;
@@ -54,9 +59,11 @@ impl Parser {
                 name: receiver_name,
                 annotation: receiver_type,
                 is_mutable: receiver_is_mutable,
+                default: None,
                 span: Span::new(receiver_start, receiver_end),
             },
             name,
+            generic_params,
             params,
             return_type,
             is_public,
@@ -98,7 +105,7 @@ impl Parser {
         self.expect(TokenKind::RParen)?;
 
         let name = self.expect_lower_ident("expected lower-case method name")?;
-        self.consume_generic_params_if_present()?;
+        let generic_params = self.consume_generic_params_if_present()?;
         let mut generic_bounds = self.consume_angle_generic_params_if_present()?;
         self.expect(TokenKind::LParen)?;
         let mut params = Vec::new();
@@ -111,6 +118,7 @@ impl Parser {
             }
         }
         self.expect(TokenKind::RParen)?;
+        self.validate_param_defaults_trailing(&params)?;
         generic_bounds.extend(self.consume_constraint_list_if_present()?);
         self.expect(TokenKind::Colon)?;
         if self.check(TokenKind::Dot) {
@@ -127,9 +135,11 @@ impl Parser {
                 name: receiver_name,
                 annotation: receiver_type,
                 is_mutable: receiver_is_mutable,
+                default: None,
                 span: Span::new(receiver_start, receiver_end),
             },
             name,
+            generic_params,
             params,
             return_type,
             is_public,
@@ -397,7 +407,7 @@ impl Parser {
     ) -> ParseResult<Decl> {
         let start = self.current().start;
         let name = self.expect_lower_ident("expected lower-case function name")?;
-        self.consume_generic_params_if_present()?;
+        let generic_params = self.consume_generic_params_if_present()?;
         let mut generic_bounds = self.consume_angle_generic_params_if_present()?;
 
         self.expect(TokenKind::LParen)?;
@@ -411,6 +421,7 @@ impl Parser {
             }
         }
         self.expect(TokenKind::RParen)?;
+        self.validate_param_defaults_trailing(&params)?;
         generic_bounds.extend(self.consume_constraint_list_if_present()?);
 
         self.expect(TokenKind::Colon)?;
@@ -426,6 +437,7 @@ impl Parser {
 
         Ok(Decl::Function(FunctionDecl {
             name,
+            generic_params,
             params,
             return_type,
             is_public,
@@ -457,7 +469,7 @@ impl Parser {
     ) -> ParseResult<Decl> {
         let start = self.current().start;
         let name = self.expect_lower_ident("expected lower-case function name")?;
-        self.consume_generic_params_if_present()?;
+        let generic_params = self.consume_generic_params_if_present()?;
         let mut generic_bounds = self.consume_angle_generic_params_if_present()?;
 
         self.expect(TokenKind::LParen)?;
@@ -465,6 +477,7 @@ impl Parser {
             return self.parse_untyped_function_decl_after_name(
                 start,
                 name,
+                generic_params,
                 is_public,
                 is_macro,
                 generic_bounds,
@@ -480,6 +493,7 @@ impl Parser {
             }
         }
         self.expect(TokenKind::RParen)?;
+        self.validate_param_defaults_trailing(&params)?;
         generic_bounds.extend(self.consume_constraint_list_if_present()?);
 
         self.expect(TokenKind::Colon)?;
@@ -510,6 +524,7 @@ impl Parser {
 
             return Ok(Decl::Function(FunctionDecl {
                 name,
+                generic_params: generic_params.clone(),
                 params,
                 return_type,
                 is_public,
@@ -565,6 +580,7 @@ impl Parser {
 
         Ok(Decl::Function(FunctionDecl {
             name,
+            generic_params,
             params,
             return_type,
             is_public,
@@ -580,6 +596,7 @@ impl Parser {
     /// Inputs:
     /// - `start`: source start offset for the function group.
     /// - `name`: already-consumed function name.
+    /// - `generic_params`: source generic parameters parsed after the name.
     /// - `is_public`: declaration-site visibility.
     /// - `is_macro`: macro declaration marker.
     /// - `generic_bounds`: bounds parsed before the first clause parameter.
@@ -594,6 +611,7 @@ impl Parser {
         &mut self,
         start: usize,
         name: String,
+        generic_params: Vec<String>,
         is_public: bool,
         is_macro: bool,
         generic_bounds: Vec<String>,
@@ -670,6 +688,7 @@ impl Parser {
         let arity = arity.unwrap_or(0);
         Ok(Decl::Function(FunctionDecl {
             name,
+            generic_params,
             params: (0..arity)
                 .map(|index| Param {
                     name: format!("_Arg{}", index + 1),
@@ -678,6 +697,7 @@ impl Parser {
                         span: Span::new(start, start),
                     },
                     is_mutable: false,
+                    default: None,
                     span: Span::new(start, start),
                 })
                 .collect(),
@@ -780,11 +800,12 @@ impl Parser {
     ///   name.
     ///
     /// Output:
-    /// - A `Param` with name, type annotation, mutability, and span.
+    /// - A `Param` with name, type annotation, mutability, optional default,
+    ///   and span.
     ///
     /// Transformation:
-    /// - Consumes `mut name: Type` or `name: Type` and rejects currently
-    ///   unsupported function varargs/default-parameter syntax.
+    /// - Consumes `mut name: Type`, `name: Type`, or `name: Type = expr` and
+    ///   rejects currently unsupported function varargs syntax.
     pub(super) fn parse_param(&mut self) -> ParseResult<Param> {
         let start = self.current().start;
         if self.consume_if(TokenKind::Ellipsis) {
@@ -805,20 +826,47 @@ impl Parser {
         } else {
             self.parse_type_expr(&[TokenKind::Comma, TokenKind::RParen, TokenKind::Equals])?
         };
-        if self.consume_if(TokenKind::Equals) {
-            return Err(ParseError {
-                message: "function default parameters are not supported in Terlan 0.0.1"
-                    .to_string(),
-                span: Span::new(start, self.previous().end),
-            });
-        }
+        let default = if self.consume_if(TokenKind::Equals) {
+            Some(self.parse_single_expr()?)
+        } else {
+            None
+        };
 
         Ok(Param {
             name,
             annotation,
             is_mutable,
+            default,
             span: Span::new(start, self.previous().end),
         })
+    }
+
+    /// Validates default-parameter ordering for function-like parameters.
+    ///
+    /// Inputs:
+    /// - `params`: parsed callable parameters in source order.
+    ///
+    /// Output:
+    /// - `Ok(())` when all defaulted parameters are trailing.
+    /// - `Err(ParseError)` anchored to the first required parameter after a
+    ///   default.
+    ///
+    /// Transformation:
+    /// - Scans left to right, records when a default appears, and rejects a
+    ///   later required parameter so call-site arity remains deterministic.
+    pub(super) fn validate_param_defaults_trailing(&self, params: &[Param]) -> ParseResult<()> {
+        let mut seen_default = false;
+        for param in params {
+            if param.default.is_some() {
+                seen_default = true;
+            } else if seen_default {
+                return Err(ParseError {
+                    message: "default parameters must be trailing".to_string(),
+                    span: param.span,
+                });
+            }
+        }
+        Ok(())
     }
     /// Reports whether the current cursor starts a typed parameter.
     ///
@@ -849,38 +897,13 @@ impl Parser {
     /// - Parser cursor positioned at `[` or the next callable token.
     ///
     /// Output:
-    /// - `Ok(())` after consuming a balanced generic parameter block, or no
-    ///   tokens when absent.
+    /// - Preserved generic parameter texts, or an empty list when absent.
     ///
     /// Transformation:
-    /// - Preserves square-bracket callable generic syntax by skipping its
-    ///   balanced token block before parsing constraints.
-    pub(super) fn consume_generic_params_if_present(&mut self) -> ParseResult<()> {
-        if !self.consume_if(TokenKind::LBracket) {
-            return Ok(());
-        }
-
-        let start = self.previous().start;
-        let mut depth = 1usize;
-        while !self.check(TokenKind::EOF) {
-            if self.consume_if(TokenKind::LBracket) {
-                depth += 1;
-                continue;
-            }
-            if self.consume_if(TokenKind::RBracket) {
-                depth -= 1;
-                if depth == 0 {
-                    return Ok(());
-                }
-                continue;
-            }
-            self.bump();
-        }
-
-        Err(ParseError {
-            message: "unterminated generic parameter list".to_string(),
-            span: Span::new(start, self.current().end),
-        })
+    /// - Reuses declaration type-parameter parsing so function generics and
+    ///   type generics preserve the same HKT and variance surface syntax.
+    pub(super) fn consume_generic_params_if_present(&mut self) -> ParseResult<Vec<String>> {
+        self.parse_optional_type_params()
     }
     /// Consumes angle-bracket callable constraints when present.
     ///
@@ -1131,82 +1154,4 @@ impl Parser {
         matches!(next, Some(token) if token.kind == TokenKind::Atom && token.text == clause_name)
             && matches!(next_next, Some(token) if token.kind == TokenKind::LParen)
     }
-}
-
-/// Validates constructor clause ambiguity rules.
-///
-/// Inputs:
-/// - `clauses`: constructor clauses parsed from one constructor declaration.
-///
-/// Output:
-/// - `Ok(())` when clause shapes are unambiguous.
-/// - `Err(ParseError)` for duplicate vararg clauses or overlapping fixed
-///   arity/default ranges.
-///
-/// Transformation:
-/// - Compares every pair of clauses so later phases can select constructors by
-///   arity without resolving ambiguous source shapes.
-fn validate_constructor_clause_shapes(clauses: &[ConstructorClause]) -> ParseResult<()> {
-    for (idx, left) in clauses.iter().enumerate() {
-        for right in clauses.iter().skip(idx + 1) {
-            let left_varargs = left.params.iter().any(|param| param.is_varargs);
-            let right_varargs = right.params.iter().any(|param| param.is_varargs);
-
-            if left_varargs && right_varargs {
-                return Err(ParseError {
-                    message: "constructor has ambiguous varargs clauses".to_string(),
-                    span: right.span,
-                });
-            }
-
-            if !left_varargs && !right_varargs {
-                let left_range = constructor_clause_arity_range(left);
-                let right_range = constructor_clause_arity_range(right);
-                if ranges_overlap(left_range, right_range) {
-                    return Err(ParseError {
-                        message: "constructor has ambiguous arity clauses".to_string(),
-                        span: right.span,
-                    });
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-/// Returns the accepted arity range for one constructor clause.
-///
-/// Inputs:
-/// - `clause`: constructor clause with fixed, defaulted, and possible vararg
-///   parameters already parsed.
-///
-/// Output:
-/// - `(minimum, maximum)` accepted arity for non-vararg ambiguity checks.
-///
-/// Transformation:
-/// - Treats defaulted parameters as optional and required parameters as part
-///   of the minimum arity while preserving the declared maximum parameter
-///   count.
-fn constructor_clause_arity_range(clause: &ConstructorClause) -> (usize, usize) {
-    let max = clause.params.len();
-    let min = clause
-        .params
-        .iter()
-        .filter(|param| param.default.is_none())
-        .count();
-    (min, max)
-}
-/// Returns whether two inclusive arity ranges overlap.
-///
-/// Inputs:
-/// - `left` and `right`: `(minimum, maximum)` arity ranges.
-///
-/// Output:
-/// - `true` when a call arity could match both ranges.
-///
-/// Transformation:
-/// - Applies inclusive range overlap logic for constructor clause ambiguity
-///   detection.
-fn ranges_overlap(left: (usize, usize), right: (usize, usize)) -> bool {
-    left.0 <= right.1 && right.0 <= left.1
 }

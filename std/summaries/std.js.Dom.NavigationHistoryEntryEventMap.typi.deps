@@ -1,0 +1,8 @@
+module=std.js.Dom.NavigationHistoryEntryEventMap
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=11201864396705956803
+interface_hash=17345097099288697243
+interface_doc_hash=17345097099288697243
+deps=0

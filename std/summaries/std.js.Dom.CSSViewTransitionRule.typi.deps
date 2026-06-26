@@ -1,0 +1,8 @@
+module=std.js.Dom.CSSViewTransitionRule
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=1774346259907406247
+interface_hash=4143233554807247323
+interface_doc_hash=4143233554807247323
+deps=0

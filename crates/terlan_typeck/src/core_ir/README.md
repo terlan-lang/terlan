@@ -13,6 +13,10 @@ separate from the top-level CoreIR model.
 
 ## Public Surface
 
+- `intrinsics`: CoreIR intrinsic identities, runtime capabilities, and effect
+  sets.
+- `module`: Core module payload, metadata, contract rendering, and runtime
+  boundary discovery.
 - `patterns`: CoreIR pattern helpers.
 - `proof_payloads`: proof-facing CoreIR payload structures.
 - `types`: CoreIR type helpers.
@@ -51,6 +55,13 @@ Important invariants:
 
 `patterns`
 : Pattern-focused CoreIR helpers.
+
+`intrinsics`
+: Backend-neutral intrinsic and runtime capability identifiers.
+
+`module`
+: Core module metadata, contract snapshots, and module-wide runtime boundary
+discovery.
 
 `proof_payloads`
 : Structures emitted for proof and conformance checks.

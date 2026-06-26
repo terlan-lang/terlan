@@ -83,8 +83,12 @@ mod tests {
     mod executable_language_test;
     mod import_constructor_test;
     mod project_layout_test;
+    mod sql_runtime_test;
+    mod std_collection_mutator_test;
     mod std_collection_test;
     mod std_import_test;
     mod std_runtime_test;
     mod std_trait_test;
+    mod wasm_artifact_metadata_test;
+    mod wasm_build_target_test;
 }

@@ -1,0 +1,8 @@
+module=std.js.Dom.CSSAnimation
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=3622214342143676483
+interface_hash=7887768899494835574
+interface_doc_hash=7887768899494835574
+deps=0

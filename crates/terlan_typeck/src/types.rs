@@ -41,6 +41,15 @@ pub enum Type {
     LiteralInt(i64),
 
     Var(TypeVarId),
+    Placeholder,
+    Apply {
+        constructor: TypeVarId,
+        args: Vec<Type>,
+    },
+    Existential {
+        params: Vec<TypeVarId>,
+        body: Box<Type>,
+    },
     List(Box<Type>),
     Tuple(Vec<Type>),
     Union(Vec<Type>),
@@ -78,6 +87,22 @@ pub struct MapFieldType {
     pub(crate) key: String,
     pub(crate) value: Type,
     pub(crate) required: bool,
+}
+
+/// Visibility metadata for one struct field during typechecking.
+///
+/// Inputs:
+/// - Source struct field declaration metadata from syntax output.
+///
+/// Output:
+/// - Boolean privacy flag keyed separately from field type information.
+///
+/// Transformation:
+/// - Preserves the source visibility rule without changing the internal `Type`
+///   representation used by inference and unification.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct StructFieldVisibility {
+    pub(crate) is_private: bool,
 }
 
 /// Diagnostic severity emitted by type checking.
@@ -141,6 +166,23 @@ pub fn pretty_type(ty: &Type) -> String {
         Type::LiteralAtom(atom) => atom.to_string(),
         Type::LiteralInt(value) => format!("{}", value),
         Type::Var(id) => format!("T{}", id),
+        Type::Placeholder => "_".to_string(),
+        Type::Apply { constructor, args } => {
+            format!(
+                "T{}[{}]",
+                constructor,
+                args.iter().map(pretty_type).collect::<Vec<_>>().join(", ")
+            )
+        }
+        Type::Existential { params, body } => format!(
+            "exists {}. {}",
+            params
+                .iter()
+                .map(|param| format!("T{}", param))
+                .collect::<Vec<_>>()
+                .join(", "),
+            pretty_type(body)
+        ),
         Type::List(inner) => format!("List[{}]", pretty_type(inner)),
         Type::FixedArray { size, elem } => {
             format!("FixedArray[{}, {}]", size, pretty_type(elem))

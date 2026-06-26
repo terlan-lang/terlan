@@ -1,0 +1,154 @@
+/**
+ * Portable HTTP TLS configuration contract.
+ *
+ * `std.http.Tls` describes the source-visible TLS configuration shape used by
+ * Terlan HTTP servers. Runtime certificate loading, ACME, rustls integration,
+ * and certificate cache state remain target-owned implementation details.
+ */
+
+module std.http.Tls.
+
+import type std.collections.List.
+import type std.core.Option.
+
+/**
+ * Auto represents automatic public certificate management.
+ *
+ * Input: no value input.
+ * Output: atom-backed TLS mode value.
+ * Transformation: gives configuration code a stable typed mode without
+ * exposing ACME provider internals.
+ */
+pub type Auto =
+    Atom["auto"].
+
+/**
+ * Manual represents explicit certificate and key file configuration.
+ *
+ * Input: no value input.
+ * Output: atom-backed TLS mode value.
+ * Transformation: gives configuration code a stable typed mode for
+ * user-managed certificate files.
+ */
+pub type Manual =
+    Atom["manual"].
+
+/**
+ * Internal represents local/internal development certificate management.
+ *
+ * Input: no value input.
+ * Output: atom-backed TLS mode value.
+ * Transformation: gives configuration code a stable typed mode for local
+ * trust roots and internal CAs.
+ */
+pub type Internal =
+    Atom["internal"].
+
+/**
+ * Mode represents the supported TLS configuration modes.
+ *
+ * Input: no type parameter.
+ * Output: one of the supported TLS mode atoms.
+ * Transformation: narrows server TLS configuration to the roadmap-approved
+ * modes before target-specific validation runs.
+ */
+pub type Mode =
+      Auto
+    | Manual
+    | Internal.
+
+/**
+ * LetsEncrypt represents the Let's Encrypt ACME provider.
+ *
+ * Input: no value input.
+ * Output: atom-backed ACME provider value.
+ * Transformation: records provider intent without binding source code to one
+ * ACME client implementation.
+ */
+pub type LetsEncrypt =
+    Atom["letsencrypt"].
+
+/**
+ * ZeroSsl represents the ZeroSSL ACME provider.
+ *
+ * Input: no value input.
+ * Output: atom-backed ACME provider value.
+ * Transformation: records fallback provider intent without binding source
+ * code to one ACME client implementation.
+ */
+pub type ZeroSsl =
+    Atom["zerossl"].
+
+/**
+ * Provider represents the public ACME providers supported by 0.0.5 planning.
+ *
+ * Input: no type parameter.
+ * Output: one of the supported provider atoms.
+ * Transformation: narrows provider names before manifest and runtime
+ * validation choose the concrete Rust ACME integration.
+ */
+pub type Provider =
+      LetsEncrypt
+    | ZeroSsl.
+
+/**
+ * Config represents declarative HTTP TLS configuration.
+ *
+ * Input: no type parameter.
+ * Output: typed configuration record shared by source docs, project manifests,
+ * and future runtime validation.
+ * Transformation: keeps all optional fields explicit so `terlan.toml`
+ * validation can enforce mode-specific requirements without changing the
+ * source-visible TLS model.
+ */
+pub type Config = {
+    mode: Mode,
+    domains: List[String],
+    email: Option[String],
+    primary_provider: Option[Provider],
+    fallback_provider: Option[Provider],
+    cert: Option[String],
+    key: Option[String],
+    passphrase_env: Option[String],
+    ca: Option[String],
+    server_name: Option[String],
+    trust_local: Bool
+}.
+
+/**
+ * Builds automatic public TLS configuration.
+ *
+ * Input: one domain list and one ACME account email address.
+ * Output: a `Config` value using automatic public certificate management.
+ * Transformation: fills the public ACME provider defaults while leaving
+ * manual certificate fields empty so manifest validation can focus on
+ * deployment-specific requirements.
+ */
+@compiler.native {std.http.tls.auto}
+pub auto(domains: List[String], email: String): Config ->
+    native.
+
+/**
+ * Builds manual certificate TLS configuration.
+ *
+ * Input: one certificate path and one private-key path.
+ * Output: a `Config` value using user-managed certificate files.
+ * Transformation: records explicit certificate paths while leaving ACME and
+ * local trust settings empty.
+ */
+@compiler.native {std.http.tls.manual}
+pub manual(cert: String, key: String): Config ->
+    native.
+
+/**
+ * Builds local/internal TLS configuration.
+ *
+ * Input: one local server name.
+ * Output: a `Config` value using internal development certificate handling.
+ * Transformation: records the intended local server identity and marks the
+ * config as locally trusted while leaving public ACME and manual certificate
+ * file settings empty.
+ */
+@compiler.native {std.http.tls.internal}
+pub internal(server_name: String): Config ->
+    native.

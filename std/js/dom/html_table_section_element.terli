@@ -1,0 +1,80 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLTableSectionElement
+ */
+
+module std.js.Dom.HTMLTableSectionElement.
+
+/**
+ * The **`HTMLTableSectionElement`** interface provides special properties and methods (beyond the HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of sections, that is headers, footers and bodies (thead, tfoot, and tbody, respectively) in an HTML table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement)
+ */
+pub opaque type HTMLTableSectionElement.
+
+/**
+ * The **`align`** property of the HTMLTableSectionElement interface is a string indicating how to horizontally align text in a thead, tbody or tfoot table section.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/align)
+ */
+pub (value: HTMLTableSectionElement) align(): std.js.String.JsString.
+
+/**
+ * The **`ch`** property of the HTMLTableSectionElement interface does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/ch)
+ */
+pub (value: HTMLTableSectionElement) ch(): std.js.String.JsString.
+
+/**
+ * The **`chOff`** property of the HTMLTableSectionElement interface does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/chOff)
+ */
+pub (value: HTMLTableSectionElement) ch_off(): std.js.String.JsString.
+
+/**
+ * The **`rows`** read-only property of the HTMLTableSectionElement interface returns a live HTMLCollection containing the rows in the section.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/rows)
+ */
+pub (value: HTMLTableSectionElement) rows(): HTMLCollectionOf[HTMLTableRowElement].
+
+/**
+ * The **`vAlign`** property of the HTMLTableSectionElement interface is a string indicating how to vertically align text in a thead, tbody or tfoot table section.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/vAlign)
+ */
+pub (value: HTMLTableSectionElement) v_align(): std.js.String.JsString.
+
+/**
+ * The **`deleteRow()`** method of the HTMLTableSectionElement interface removes a specific row (tr) from a given section.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/deleteRow)
+ */
+pub (value: HTMLTableSectionElement) delete_row(index: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`insertRow()`** method of the HTMLTableSectionElement interface inserts a new row (tr) in the given table sectioning element (thead, tfoot, or ```js-nolint insertRow() insertRow(index) ``` - `index` [MISSING: optional_inline] - : The row index of the new row.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/insertRow)
+ */
+pub (value: HTMLTableSectionElement) insert_row(index: std.js.Number.JsNumber): HTMLTableRowElement.
+
+pub (value: HTMLTableSectionElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: HTMLTableSectionElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

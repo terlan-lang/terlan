@@ -12,7 +12,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "std" / "RUST_BACKED_MANIFEST.tsv"
 EXPECTED_HEADER = ["module", "source", "crate", "operation", "function", "arity"]
-ALLOWED_CRATES = {"serde_json", "base64", "std::path", "url", "std::http"}
+ALLOWED_CRATES = {
+    "serde_json",
+    "base64",
+    "std::path",
+    "url",
+    "std::http",
+    "tokio-postgres",
+    "std::vec",
+}
 ADAPTERS = {
     "std.data.Json": ("serde_json", ROOT / "crates" / "terlan_safenative" / "src" / "json.rs"),
     "std.encoding.Base64": (
@@ -25,9 +33,21 @@ ADAPTERS = {
         "std::http",
         ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
     ),
+    "std.http.Cookies": (
+        "std::http",
+        ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
+    ),
     "std.http.Response": (
         "std::http",
         ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
+    ),
+    "std.db.Postgres": (
+        "tokio-postgres",
+        ROOT / "crates" / "terlan_safenative" / "src" / "postgres.rs",
+    ),
+    "std.native.collections.Vector": (
+        "std::vec",
+        ROOT / "crates" / "terlan_safenative" / "src" / "vector.rs",
     ),
 }
 
@@ -363,7 +383,10 @@ def rust_public_functions(path: Path) -> tuple[set[str], list[str]]:
 
     source = path.read_text(encoding="utf-8")
     functions = set()
-    for match in re.finditer(r"(?m)^\s*pub\s+fn\s+(?:r#)?([A-Za-z_][A-Za-z0-9_]*)\s*\(", source):
+    for match in re.finditer(
+        r"(?m)^\s*pub\s+fn\s+(?:r#)?([A-Za-z_][A-Za-z0-9_]*)(?:<[^>]+>)?\s*\(",
+        source,
+    ):
         functions.add(match.group(1))
     return functions, []
 

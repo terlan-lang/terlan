@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCDTMFSender
+ */
+
+module std.js.Dom.RTCDTMFSender.
+
+/**
+ * The **`RTCDTMFSender`** interface provides a mechanism for transmitting DTMF codes on a WebRTC RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDTMFSender)
+ */
+pub opaque type RTCDTMFSender.
+
+/**
+ * The **`canInsertDTMF`** read-only property of the RTCDTMFSender interface returns a boolean value which indicates whether the `RTCDTMFSender` is capable of sending DTMF tones over the RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDTMFSender/canInsertDTMF)
+ */
+pub (value: RTCDTMFSender) can_insert_dtmf(): std.core.Bool.
+
+/**
+ * The RTCDTMFSender interface's toneBuffer property returns a string containing a list of the DTMF tones currently queued for sending to the remote peer over the RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDTMFSender/toneBuffer)
+ */
+pub (value: RTCDTMFSender) tone_buffer(): std.js.String.JsString.
+
+/**
+ * The **`insertDTMF()`** method of the RTCDTMFSender interface sends DTMF tones to the remote peer over the RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDTMFSender/insertDTMF)
+ */
+pub (value: RTCDTMFSender) insert_dtmf(tones: std.js.String.JsString, duration: std.js.Number.JsNumber, inter_tone_gap: std.js.Number.JsNumber): std.core.Unit.
+
+pub (value: RTCDTMFSender) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: RTCDTMFSender) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

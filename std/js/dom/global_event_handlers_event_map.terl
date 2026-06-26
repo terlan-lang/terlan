@@ -1,0 +1,333 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface GlobalEventHandlersEventMap
+ */
+
+module std.js.Dom.GlobalEventHandlersEventMap.
+
+pub opaque type GlobalEventHandlersEventMap.
+
+pub (value: GlobalEventHandlersEventMap) abort(): UIEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) animationcancel(): AnimationEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) animationend(): AnimationEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) animationiteration(): AnimationEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) animationstart(): AnimationEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) auxclick(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) beforeinput(): InputEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) beforematch(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) beforetoggle(): ToggleEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) blur(): FocusEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) cancel(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) canplay(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) canplaythrough(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) change(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) click(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) close(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) compositionend(): CompositionEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) compositionstart(): CompositionEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) compositionupdate(): CompositionEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) contextlost(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) contextmenu(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) contextrestored(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) copy(): ClipboardEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) cuechange(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) cut(): ClipboardEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) dblclick(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) drag(): DragEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) dragend(): DragEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) dragenter(): DragEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) dragleave(): DragEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) dragover(): DragEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) dragstart(): DragEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) drop(): DragEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) durationchange(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) emptied(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) ended(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) error(): ErrorEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) focus(): FocusEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) focusin(): FocusEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) focusout(): FocusEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) formdata(): FormDataEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) gotpointercapture(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) input(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) invalid(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) keydown(): KeyboardEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) keypress(): KeyboardEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) keyup(): KeyboardEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) load(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) loadeddata(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) loadedmetadata(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) loadstart(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) lostpointercapture(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) mousedown(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) mouseenter(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) mouseleave(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) mousemove(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) mouseout(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) mouseover(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) mouseup(): MouseEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) paste(): ClipboardEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pause(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) play(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) playing(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointercancel(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointerdown(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointerenter(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointerleave(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointermove(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointerout(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointerover(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointerrawupdate(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) pointerup(): PointerEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) progress(): ProgressEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) ratechange(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) reset(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) resize(): UIEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) scroll(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) scrollend(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) securitypolicyviolation(): SecurityPolicyViolationEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) seeked(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) seeking(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) select(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) selectionchange(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) selectstart(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) slotchange(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) stalled(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) submit(): SubmitEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) suspend(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) timeupdate(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) toggle(): ToggleEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) touchcancel(): TouchEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) touchend(): TouchEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) touchmove(): TouchEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) touchstart(): TouchEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) transitioncancel(): TransitionEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) transitionend(): TransitionEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) transitionrun(): TransitionEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) transitionstart(): TransitionEvent ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) volumechange(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) waiting(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) webkitanimationend(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) webkitanimationiteration(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) webkitanimationstart(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) webkittransitionend(): Event ->
+    native.
+
+pub (value: GlobalEventHandlersEventMap) wheel(): WheelEvent ->
+    native.

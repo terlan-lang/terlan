@@ -1,6 +1,7 @@
 use terlan_typeck::{CoreExpr, CorePrimitiveIntrinsic};
 
-use super::direct_ast::{core_expr_to_oxc_expression, oxc_ident_name, oxc_string_value};
+use super::direct_ast::core_expr_to_oxc_expression;
+use super::direct_helpers::{oxc_ident_name, oxc_string_value};
 
 /// Lowers a supported `std.core.String` intrinsic call into an Oxc expression.
 ///

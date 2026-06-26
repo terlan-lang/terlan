@@ -1,0 +1,247 @@
+module std.db.PostgresTest.
+
+import type std.collections.List.
+import type std.core.Error.{Error}.
+import type std.core.Option.Option.
+import type std.core.Result.{Result}.
+import std.core.Result.{Err, Ok}.
+import type std.data.Json.Json.
+import std.db.Postgres.{connect, execute, query, query_one, transaction}.
+import type std.db.Postgres.{Config, Connection, Pool, Row}.
+
+/**
+ * Accepts a Postgres pool handle.
+ *
+ * Input: one opaque `Pool`.
+ * Output: the same `Pool`.
+ * Transformation: proves the pool type is visible in std tests.
+ */
+pub accepts_pool(value: Pool): Pool ->
+    value.
+
+/**
+ * Accepts a transaction connection handle.
+ *
+ * Input: one opaque `Connection`.
+ * Output: the same `Connection`.
+ * Transformation: proves transaction-scoped connection types are visible.
+ */
+pub accepts_connection(value: Connection): Connection ->
+    value.
+
+/**
+ * Accepts a Postgres row handle.
+ *
+ * Input: one opaque `Row`.
+ * Output: the same `Row`.
+ * Transformation: proves row handles are visible in std tests.
+ */
+pub accepts_row(value: Row): Row ->
+    value.
+
+/**
+ * Accepts Postgres connection configuration.
+ *
+ * Input: one `Config`.
+ * Output: the same `Config`.
+ * Transformation: proves the connection configuration type is visible.
+ */
+pub accepts_config(value: Config): Config ->
+    value.
+
+/**
+ * Accepts a pool-producing result.
+ *
+ * Input: one `Result[Pool, Error]`.
+ * Output: the same result.
+ * Transformation: proves the connect result shape is expressible.
+ */
+pub accepts_pool_result(value: Result[Pool, Error]): Result[Pool, Error] ->
+    value.
+
+/**
+ * Accepts a query result containing rows.
+ *
+ * Input: one `Result[List[Row], Error]`.
+ * Output: the same result.
+ * Transformation: proves the multi-row query result shape is expressible.
+ */
+pub accepts_rows_result(value: Result[List[Row], Error]): Result[List[Row], Error] ->
+    value.
+
+/**
+ * Accepts a single-row query result.
+ *
+ * Input: one `Result[Option[Row], Error]`.
+ * Output: the same result.
+ * Transformation: proves optional-row query results are expressible.
+ */
+pub accepts_optional_row_result(value: Result[Option[Row], Error]): Result[Option[Row], Error] ->
+    value.
+
+/**
+ * Accepts JSON query parameters.
+ *
+ * Input: one `List[Json]`.
+ * Output: the same parameter list.
+ * Transformation: proves the first Postgres parameter surface uses JSON.
+ */
+pub accepts_json_params(value: List[Json]): List[Json] ->
+    value.
+
+/**
+ * Matches the result returned by `connect`.
+ *
+ * Input: one Postgres `Config`.
+ * Output: `true` for either result branch.
+ * Transformation: proves `connect` is callable and returns matchable
+ * `Ok`/`Err` result variants without opening a database connection.
+ */
+pub connect_result_is_matchable(config: Config): Bool ->
+    case connect(config) {
+        Ok(_pool) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches the result returned by `query`.
+ *
+ * Input: one pool, SQL string, and JSON parameter list.
+ * Output: `true` for either result branch.
+ * Transformation: proves multi-row query calls expose matchable results.
+ */
+pub query_result_is_matchable(pool: Pool, sql: String, params: List[Json]): Bool ->
+    case query(pool, sql, params) {
+        Ok(_rows) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches the result returned by `query_one`.
+ *
+ * Input: one pool, SQL string, and JSON parameter list.
+ * Output: `true` for either result branch.
+ * Transformation: proves single-row query calls expose matchable results.
+ */
+pub query_one_result_is_matchable(pool: Pool, sql: String, params: List[Json]): Bool ->
+    case query_one(pool, sql, params) {
+        Ok(_row) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches the result returned by `execute`.
+ *
+ * Input: one pool, SQL string, and JSON parameter list.
+ * Output: `true` for either result branch.
+ * Transformation: proves command execution calls expose matchable results.
+ */
+pub execute_result_is_matchable(pool: Pool, sql: String, params: List[Json]): Bool ->
+    case execute(pool, sql, params) {
+        Ok(_count) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches the result returned by `transaction`.
+ *
+ * Input: one Postgres pool.
+ * Output: `true` for either result branch.
+ * Transformation: proves transaction callbacks typecheck through the public
+ * Postgres API shape without executing the adapter.
+ */
+pub transaction_result_is_matchable(pool: Pool): Bool ->
+    case transaction(pool, (_connection: Connection) -> Ok(1)) {
+        Ok(_count) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches a string row accessor result.
+ *
+ * Input: one row and column name.
+ * Output: `true` for either result branch.
+ * Transformation: proves the `Row.string` receiver API is callable.
+ */
+pub row_string_result_is_matchable(row: Row, name: String): Bool ->
+    case row.string(name) {
+        Ok(_value) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches an integer row accessor result.
+ *
+ * Input: one row and column name.
+ * Output: `true` for either result branch.
+ * Transformation: proves the `Row.int` receiver API is callable.
+ */
+pub row_int_result_is_matchable(row: Row, name: String): Bool ->
+    case row.int(name) {
+        Ok(_value) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches a boolean row accessor result.
+ *
+ * Input: one row and column name.
+ * Output: `true` for either result branch.
+ * Transformation: proves the `Row.bool` receiver API is callable.
+ */
+pub row_bool_result_is_matchable(row: Row, name: String): Bool ->
+    case row.bool(name) {
+        Ok(_value) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Matches a JSON row accessor result.
+ *
+ * Input: one row and column name.
+ * Output: `true` for either result branch.
+ * Transformation: proves the `Row.json` receiver API is callable.
+ */
+pub row_json_result_is_matchable(row: Row, name: String): Bool ->
+    case row.json(name) {
+        Ok(_value) ->
+            true;
+
+        Err(_error) ->
+            true
+    }.
+
+/**
+ * Confirms the Postgres std surface is present.
+ *
+ * Input: no runtime data.
+ * Output: `true` when the module typechecks.
+ * Transformation: keeps `terlc test std/db` anchored on one executable test.
+ */
+@test
+pub postgres_surface_is_declared(): Bool ->
+    true.

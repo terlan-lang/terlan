@@ -4,8 +4,8 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use terlan_erlang::{
-    emit_html_runtime_to_erlang, try_emit_core_module_to_erlang_with_syntax_bridge,
-    try_emit_syntax_struct_headers_to_hrl,
+    emit_html_runtime_to_erlang, emit_sql_runtime_to_erlang,
+    try_emit_core_module_to_erlang_with_syntax_bridge, try_emit_syntax_struct_headers_to_hrl,
 };
 
 use crate::commands::artifacts::{
@@ -60,6 +60,8 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             state.target_profile,
             TargetProfileCheckOptions {
                 allow_asset_imports: true,
+                allow_rust_backed_std_modules: state.native_policy
+                    != crate::validation::native_policy::NativePolicy::Pure,
             },
         ) {
             Ok(compiled) => compiled,
@@ -189,6 +191,18 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             state.incremental,
         ) {
             eprintln!("failed to write html runtime: {}", err);
+            return ExitCode::from(1);
+        }
+    }
+
+    if compiled.core.uses_sql_runtime_boundary() {
+        let runtime_target = state.out_dir.join("terlan_sql_runtime.erl");
+        if let Err(err) = crate::support::write_if_changed_or_forced(
+            &runtime_target,
+            emit_sql_runtime_to_erlang().as_bytes(),
+            state.incremental,
+        ) {
+            eprintln!("failed to write sql runtime: {}", err);
             return ExitCode::from(1);
         }
     }

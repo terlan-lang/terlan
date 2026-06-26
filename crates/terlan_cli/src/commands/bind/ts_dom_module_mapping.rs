@@ -1,6 +1,7 @@
 use super::ts_parser_adapter::{
     TsDeclaration, TsDeclarationFile, TsInterfaceDeclaration, TsInterfaceMember,
-    TsMethodDeclaration, TsParameterDeclaration, TsPropertyDeclaration,
+    TsMethodDeclaration, TsParameterDeclaration, TsPropertyDeclaration, TsUnsupportedDeclaration,
+    TsUnsupportedMember,
 };
 use super::ts_type_mapping::{map_ts_type_to_terlan, TsTypeMapping, TsTypeSkip};
 
@@ -37,7 +38,9 @@ pub(super) struct DomModuleMapping {
 pub(super) struct DomModulePlan {
     pub(super) module_path: String,
     pub(super) source_interface: String,
+    pub(super) doc: Option<String>,
     pub(super) type_name: String,
+    pub(super) type_params: Vec<String>,
     pub(super) source_path: String,
     pub(super) interface_path: String,
     pub(super) summary_path: String,
@@ -77,6 +80,7 @@ pub(super) enum DomMemberPlan {
 pub(super) struct DomPropertyPlan {
     pub(super) js_name: String,
     pub(super) terlan_name: String,
+    pub(super) doc: Option<String>,
     pub(super) readonly: bool,
     pub(super) optional: bool,
     pub(super) terlan_type: String,
@@ -97,6 +101,7 @@ pub(super) struct DomPropertyPlan {
 pub(super) struct DomMethodPlan {
     pub(super) js_name: String,
     pub(super) terlan_name: String,
+    pub(super) doc: Option<String>,
     pub(super) optional: bool,
     pub(super) params: Vec<DomParamPlan>,
     pub(super) return_type: String,
@@ -158,12 +163,36 @@ pub(super) fn map_ts_declarations_to_dom_modules(
     for declaration in &declarations.declarations {
         match declaration {
             TsDeclaration::Interface(interface) => {
-                modules.push(map_interface_to_module(interface, &mut skipped));
+                if let Some(module) = map_interface_to_module(interface, &mut skipped) {
+                    modules.push(module);
+                }
+            }
+            TsDeclaration::Unsupported(unsupported) => {
+                skipped.push(map_unsupported_declaration(unsupported));
             }
         }
     }
 
     DomModuleMapping { modules, skipped }
+}
+
+/// Converts a parser-level unsupported top-level declaration into a DOM skip row.
+///
+/// Inputs:
+/// - `unsupported`: parser adapter skip metadata.
+///
+/// Output:
+/// - DOM-level skipped declaration row.
+///
+/// Transformation:
+/// - Preserves manifest namespace and stable reason text for declarations that
+///   are intentionally absent from generated std.js output.
+fn map_unsupported_declaration(unsupported: &TsUnsupportedDeclaration) -> DomSkippedDeclaration {
+    DomSkippedDeclaration {
+        source: unsupported.source.clone(),
+        reason: unsupported.reason,
+        detail: unsupported.detail.clone(),
+    }
 }
 
 /// Maps one TypeScript interface into a DOM module plan.
@@ -182,7 +211,17 @@ pub(super) fn map_ts_declarations_to_dom_modules(
 fn map_interface_to_module(
     interface: &TsInterfaceDeclaration,
     skipped: &mut Vec<DomSkippedDeclaration>,
-) -> DomModulePlan {
+) -> Option<DomModulePlan> {
+    if reserved_bridge_interface_reason(&interface.name).is_some() {
+        skipped.push(DomSkippedDeclaration {
+            source: interface.name.clone(),
+            reason: "ts_bindgen.reserved_bridge_interface",
+            detail: "interface is owned by a hand-authored Terlan JavaScript bridge wrapper"
+                .to_string(),
+        });
+        return None;
+    }
+
     let mut members = Vec::new();
     for member in &interface.members {
         match member {
@@ -196,19 +235,111 @@ fn map_interface_to_module(
                     members.push(DomMemberPlan::Method(plan));
                 }
             }
+            TsInterfaceMember::Unsupported(unsupported) => {
+                skipped.push(map_unsupported_member(&interface.name, unsupported));
+            }
         }
     }
 
+    let namespace = binding_namespace(&interface.namespace);
     let file_stem = interface_name_to_file_stem(&interface.name);
-    DomModulePlan {
-        module_path: format!("std.js.Dom.{}", interface.name),
+    let module_path = format!("{namespace}.{}", interface.name);
+    let source_dir = namespace_to_source_dir(namespace);
+    Some(DomModulePlan {
+        module_path: module_path.clone(),
         source_interface: interface.name.clone(),
+        doc: interface.doc.clone(),
         type_name: interface.name.clone(),
-        source_path: format!("std/js/dom/{file_stem}.terl"),
-        interface_path: format!("std/js/dom/{file_stem}.terli"),
-        summary_path: format!("std/summaries/std.js.Dom.{}.typi", interface.name),
-        test_path: format!("std/js/dom/{file_stem}_test.terl"),
+        type_params: interface.type_params.clone(),
+        source_path: format!("{source_dir}/{file_stem}.terl"),
+        interface_path: format!("{source_dir}/{file_stem}.terli"),
+        summary_path: format!("std/summaries/{module_path}.typi"),
+        test_path: format!("{source_dir}/{}Test.terl", interface.name),
         members,
+    })
+}
+
+/// Returns why a TypeScript interface is reserved for a hand-authored bridge.
+///
+/// Inputs:
+/// - `name`: TypeScript interface name.
+///
+/// Output:
+/// - Skip reason detail when the interface must not be generated.
+/// - `None` when normal generation may continue.
+///
+/// Transformation:
+/// - Protects Terlan-owned bridge modules from full `lib.es5.d.ts` generation
+///   while still recording a stable skip row for absent TypeScript interfaces.
+fn reserved_bridge_interface_reason(name: &str) -> Option<&'static str> {
+    match name {
+        "Array" | "ArrayConstructor" | "String" | "StringConstructor" | "Number"
+        | "NumberConstructor" | "Promise" | "PromiseConstructor" => {
+            Some("hand-authored bridge wrapper")
+        }
+        _ => None,
+    }
+}
+
+/// Returns the Terlan namespace used for one TypeScript binding.
+///
+/// Inputs:
+/// - `namespace`: manifest-provided namespace, or an empty namespace for older
+///   parser-only tests and fixtures.
+///
+/// Output:
+/// - Namespace used to construct generated module paths and output paths.
+///
+/// Transformation:
+/// - Preserves explicit manifest namespaces and falls back to the original DOM
+///   namespace for direct parser fixtures that bypass the input manifest.
+fn binding_namespace(namespace: &str) -> &str {
+    if namespace.is_empty() {
+        "std.js.Dom"
+    } else {
+        namespace
+    }
+}
+
+/// Converts a Terlan namespace into a generated source directory.
+///
+/// Inputs:
+/// - `namespace`: manifest-owned module namespace such as `std.js.Dom`.
+///
+/// Output:
+/// - Repository-relative directory path.
+///
+/// Transformation:
+/// - Maps dotted module namespace segments to the checked-in stdlib directory
+///   layout used by generated TypeScript bindings.
+fn namespace_to_source_dir(namespace: &str) -> String {
+    namespace
+        .split('.')
+        .map(interface_name_to_file_stem)
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// Converts a parser-level unsupported member into a DOM skip row.
+///
+/// Inputs:
+/// - `interface_name`: source TypeScript interface name.
+/// - `unsupported`: parser adapter skip metadata.
+///
+/// Output:
+/// - DOM-level skipped declaration row.
+///
+/// Transformation:
+/// - Prefixes the member source with the interface name so generated skip
+///   manifests explain every absent TypeScript member by source path.
+fn map_unsupported_member(
+    interface_name: &str,
+    unsupported: &TsUnsupportedMember,
+) -> DomSkippedDeclaration {
+    DomSkippedDeclaration {
+        source: format!("{interface_name}.{}", unsupported.source),
+        reason: unsupported.reason,
+        detail: unsupported.detail.clone(),
     }
 }
 
@@ -241,6 +372,7 @@ fn map_property(
     Some(DomPropertyPlan {
         js_name: property.name.clone(),
         terlan_name: js_name_to_terlan_name(&property.name),
+        doc: property.doc.clone(),
         readonly: property.readonly,
         optional: property.optional,
         terlan_type,
@@ -280,6 +412,7 @@ fn map_method(
     Some(DomMethodPlan {
         js_name: method.name.clone(),
         terlan_name: js_name_to_terlan_name(&method.name),
+        doc: method.doc.clone(),
         optional: method.optional,
         params,
         return_type,
@@ -387,11 +520,129 @@ fn js_name_to_terlan_name(name: &str) -> String {
         let prev = index.checked_sub(1).and_then(|prev| chars.get(prev));
         let next = chars.get(index + 1);
         if should_insert_separator(prev.copied(), *ch, next.copied()) {
-            output.push('_');
+            push_identifier_char(&mut output, '_');
         }
-        output.push(ch.to_ascii_lowercase());
+        push_identifier_char(&mut output, ch.to_ascii_lowercase());
     }
-    output
+    while output.ends_with('_') {
+        output.pop();
+    }
+    if output.is_empty()
+        || !output
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_lowercase())
+    {
+        output.insert_str(0, "value_");
+    }
+    sanitize_terlan_identifier(output)
+}
+
+/// Appends one normalized character to a generated Terlan identifier.
+///
+/// Inputs:
+/// - `output`: identifier text being built.
+/// - `ch`: normalized source character.
+///
+/// Output:
+/// - Mutated identifier text.
+///
+/// Transformation:
+/// - Preserves ASCII alphanumeric and underscore characters, converts every
+///   other source character to a single underscore, and collapses duplicate
+///   underscores.
+fn push_identifier_char(output: &mut String, ch: char) {
+    let next = if ch.is_ascii_alphanumeric() || ch == '_' {
+        ch
+    } else {
+        '_'
+    };
+    if next == '_' && output.ends_with('_') {
+        return;
+    }
+    output.push(next);
+}
+
+/// Sanitizes a generated Terlan identifier.
+///
+/// Inputs:
+/// - `name`: normalized lowercase identifier text.
+///
+/// Output:
+/// - Identifier text that is not a reserved Terlan keyword.
+///
+/// Transformation:
+/// - Appends `_` for keyword collisions so source JavaScript names such as
+///   `type` remain generated and parseable in Terlan.
+fn sanitize_terlan_identifier(name: String) -> String {
+    if is_terlan_keyword(&name) {
+        format!("{name}_")
+    } else {
+        name
+    }
+}
+
+/// Returns whether a generated identifier collides with Terlan syntax.
+///
+/// Inputs:
+/// - `name`: lowercase identifier candidate.
+///
+/// Output:
+/// - `true` when the candidate is a reserved Terlan keyword.
+/// - `false` otherwise.
+///
+/// Transformation:
+/// - Centralizes keyword collision handling for generated TypeScript bindings.
+fn is_terlan_keyword(name: &str) -> bool {
+    matches!(
+        name,
+        "after"
+            | "and"
+            | "annotation"
+            | "as"
+            | "case"
+            | "constructor"
+            | "catch"
+            | "css"
+            | "div"
+            | "extends"
+            | "false"
+            | "file"
+            | "for"
+            | "from"
+            | "html"
+            | "if"
+            | "implements"
+            | "impl"
+            | "includes"
+            | "import"
+            | "let"
+            | "machine"
+            | "macro"
+            | "markdown"
+            | "module"
+            | "mut"
+            | "native"
+            | "nominal"
+            | "not"
+            | "opaque"
+            | "or"
+            | "pub"
+            | "quote"
+            | "rem"
+            | "static"
+            | "struct"
+            | "target"
+            | "template"
+            | "trait"
+            | "true"
+            | "try"
+            | "type"
+            | "unquote"
+            | "when"
+            | "where"
+            | "with"
+    )
 }
 
 /// Converts a TypeScript interface name into a lowercase file stem.

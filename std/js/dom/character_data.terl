@@ -1,0 +1,88 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CharacterData
+ */
+
+module std.js.Dom.CharacterData.
+
+/**
+ * The **`CharacterData`** abstract interface represents a Node object that contains characters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData)
+ */
+pub opaque type CharacterData.
+
+/**
+ * The **`data`** property of the CharacterData interface represent the value of the current object's data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/data)
+ */
+pub (value: CharacterData) data(): std.js.String.JsString ->
+    native.
+
+/**
+ * The read-only **`CharacterData.length`** property returns the number of characters in the contained data, as a positive integer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/length)
+ */
+pub (value: CharacterData) length(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: CharacterData) owner_document(): Document ->
+    native.
+
+/**
+ * The **`appendData()`** method of the CharacterData interface adds the provided data to the end of the node's current data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/appendData)
+ */
+pub (value: CharacterData) append_data(data: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`deleteData()`** method of the CharacterData interface removes all or part of the data from this `CharacterData` node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/deleteData)
+ */
+pub (value: CharacterData) delete_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+/**
+ * The **`insertData()`** method of the CharacterData interface inserts the provided data into this `CharacterData` node's current data, at the provided offset from the start of the existing data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/insertData)
+ */
+pub (value: CharacterData) insert_data(offset: std.js.Number.JsNumber, data: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`replaceData()`** method of the CharacterData interface removes a certain number of characters of the existing text in a given `CharacterData` node and replaces those characters with the text provided.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/replaceData)
+ */
+pub (value: CharacterData) replace_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber, data: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`substringData()`** method of the CharacterData interface returns a portion of the existing data, starting at the specified index and extending for a given number of characters afterwards.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/substringData)
+ */
+pub (value: CharacterData) substring_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber): std.js.String.JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent)
+ */
+pub (value: CharacterData) text_content(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MediaSession
+ */
+
+module std.js.Dom.MediaSession.
+
+/**
+ * The **`MediaSession`** interface of the Media Session API allows a web page to provide custom behaviors for standard media playback interactions, and to report metadata that can be sent by the user agent to the device or operating system for presentation in standardized user interface elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession)
+ */
+pub opaque type MediaSession.
+
+/**
+ * The **`metadata`** property of the MediaSession interface contains a MediaMetadata object providing descriptive information about the currently playing media, or `null` if the metadata has not been set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/metadata)
+ */
+pub (value: MediaSession) metadata(): Option[MediaMetadata].
+
+/**
+ * The **`playbackState`** property of the playing or paused.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/playbackState)
+ */
+pub (value: MediaSession) playback_state(): MediaSessionPlaybackState.
+
+/**
+ * The **`setActionHandler()`** method of the MediaSession interface sets a handler for a media session action.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setActionHandler)
+ */
+pub (value: MediaSession) set_action_handler(action: MediaSessionAction, handler: Option[MediaSessionActionHandler]): std.core.Unit.
+
+/**
+ * The **`setCameraActive()`** method of the MediaSession interface is used to indicate to the user agent whether the user's camera is considered to be active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setCameraActive)
+ */
+pub (value: MediaSession) set_camera_active(active: std.core.Bool): std.js.Promise[std.core.Unit].
+
+/**
+ * The **`setMicrophoneActive()`** method of the MediaSession interface is used to indicate to the user agent whether the user's microphone is considered to be currently muted.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setMicrophoneActive)
+ */
+pub (value: MediaSession) set_microphone_active(active: std.core.Bool): std.js.Promise[std.core.Unit].
+
+/**
+ * The **`setPositionState()`** method of the document's media playback position and speed for presentation by user's device in any kind of interface that provides details about ongoing media.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setPositionState)
+ */
+pub (value: MediaSession) set_position_state(state: MediaPositionState): std.core.Unit.

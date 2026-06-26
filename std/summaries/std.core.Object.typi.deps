@@ -1,0 +1,9 @@
+module=std.core.Object
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=3126955666730032032
+interface_hash=11851780092163082275
+interface_doc_hash=6177365892403868267
+deps=1
+std.core.Option=14899874158328836456

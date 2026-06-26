@@ -23,7 +23,7 @@ module std.core.Atom.
 ///    std.core.Atom.equal(Ready, Ready).
 /// ```
 
-pub equal(left: T, right: T): Bool.
+pub equal[T](left: T, right: T): Bool.
 
 /// Renders a singleton atom-backed value as canonical text.
 ///

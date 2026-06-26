@@ -6,16 +6,38 @@
 TERLC := $(CARGO) run -p terlan_cli --
 EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
 TERLC_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan_cli
-BROWSER_PACKAGE_PREFLIGHT_DIR ?= /tmp/terlan-0-0-4-browser-preflight
+BROWSER_PACKAGE_PREFLIGHT_DIR ?= /tmp/terlan-0-0-5-browser-preflight
+STATIC_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_static_preflight
+STATIC_DOCS_PREFLIGHT_DIR ?= /tmp/terlan_static_docs_preflight
+WEB_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_web_profile_preflight
 
-.PHONY: cli-help cli-check cli-build cli-test cli-release-artifact-linux cli-clean typecheck-fixture emit-fixture smoke browser-package-preflight release-0-0-4-preflight formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
+.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-linux cli-clean typecheck-fixture emit-fixture smoke browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check web-compose-check template-contract-check private-field-check db-command-check repl-check sql-form-check sql-runtime-check runtime-release-dependency-check release-0-0-4-preflight release-0-0-5-preflight formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
 cli-help:
 	@echo "  make typecheck-fixture - terlan check fixture"
 	@echo "  make emit-fixture      - emit fixture .erl/.typi to $(OUT_DIR)"
 	@echo "  make smoke             - emit + erlc + runtime smoke test"
 	@echo "  make browser-package-preflight - build and validate a JS browser package"
+	@echo "  make js-stdlib-smoke-check - run bounded generated std.js test coverage"
+	@echo "  make static-profile-preflight - build and validate a static profile site"
+	@echo "  make static-docs-check - build and validate a docs-shaped static site"
+	@echo "  make web-profile-preflight - scaffold and validate a web profile package"
+	@echo "  make serve-static-smoke - run static profile serve smoke"
+	@echo "  make serve-web-smoke - run web profile serve smoke"
+	@echo "  make static-command-check - run public static command wrapper regressions"
+	@echo "  make http-router-check - run HTTP router matcher and route-validation regressions"
+	@echo "  make http-observability-check - run HTTP log/error/header regressions"
+	@echo "  make http-tls-check - run HTTP TLS manifest and serve guard regressions"
+	@echo "  make web-compose-check - run web-profile Docker Compose contract regressions"
+	@echo "  make template-contract-check - run typed template metadata/render regressions"
+	@echo "  make private-field-check - run private struct field visibility regressions"
+	@echo "  make db-command-check - run Postgres migration command regressions"
+	@echo "  make repl-check - run REPL evaluator regressions"
+	@echo "  make sql-form-check - run typed SQL form parser/typechecker regressions"
+	@echo "  make sql-runtime-check - run typed SQL runtime emission regressions"
+	@echo "  make runtime-release-dependency-check - require committed live Postgres/TLS runtime dependencies"
 	@echo "  make release-0-0-4-preflight - run current 0.0.4 JS target release gate"
+	@echo "  make release-0-0-5-preflight - run current 0.0.5 web/editor release gate"
 	@echo "  make formal-cli-phase-contract-gate - run CLI phase-contract golden/parity regressions"
 	@echo "  make formal-cli-build-gate - run CLI build artifact/debug-map regressions"
 	@echo "  make formal-cli-js-gate - run CLI JavaScript/Oxc output regressions"
@@ -42,7 +64,17 @@ cli-build:
 	$(CARGO) build --locked --bin terlc
 
 cli-test:
+	$(MAKE) --no-print-directory cli-test-fast
+
+cli-test-fast:
+	$(CARGO) test --locked --workspace --lib
+	$(TERLC_EXACT_TEST) main_test::tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
+	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::build_command_emits_erlang_source_and_beam_for_single_file -- --exact
+
+cli-test-full:
 	$(CARGO) test --locked --workspace
+
+cli-test-release: cli-test-full
 
 cli-release-artifact-linux:
 	$(CARGO) build --release --locked --bin terlc
@@ -80,6 +112,275 @@ browser-package-preflight:
 	$(PYTHON) -c "import json,pathlib,sys; root=pathlib.Path(sys.argv[1]); manifest=json.loads((root/'manifest.json').read_text()); assert manifest['schema']=='terlan-web-build-v1', manifest; assert manifest['target_profile']=='js.browser', manifest; assert manifest['source_js_manifest']=='../js/manifest.json', manifest; assert (root/manifest['index']).is_file(), manifest['index']; assets=manifest['assets']; assert assets, manifest; missing=[entry['web_relative_path'] for entry in assets if not (root/entry['web_relative_path']).is_file()]; assert not missing, missing; kinds=[entry['kind'] for entry in assets]; assert 'javascript-module' in kinds, kinds; assert 'asset-css' in kinds, kinds; assert 'asset-file' in kinds, kinds" $(BROWSER_PACKAGE_PREFLIGHT_DIR)/_build/web
 	$(TERLC) serve $(BROWSER_PACKAGE_PREFLIGHT_DIR)/_build/web --check
 
+js-stdlib-smoke-check:
+	$(TERLC) test std/js/StringTest.terl --target js
+	$(TERLC) --target-profile js.browser test std/js/ArrayTest.terl --target js
+	$(TERLC) --target-profile js.browser test std/js/MapTest.terl --target js
+	$(TERLC) --target-profile js.browser test std/js/SetTest.terl --target js
+	$(TERLC) --target-profile js.browser test std/js/dom/DocumentTest.terl --target js
+	$(TERLC) --target-profile js.browser test std/js/dom/HTMLElementTest.terl --target js
+
+static-profile-preflight:
+	rm -rf $(STATIC_PROFILE_PREFLIGHT_DIR)
+	$(TERLC) init $(STATIC_PROFILE_PREFLIGHT_DIR) --profile static
+	$(TERLC) static emit $(STATIC_PROFILE_PREFLIGHT_DIR)/src/terlan_static_preflight/Site.terl --out-dir $(STATIC_PROFILE_PREFLIGHT_DIR)/_build/web --validate-output --base-path /static-preflight
+	test -f $(STATIC_PROFILE_PREFLIGHT_DIR)/_build/web/index.html
+	grep -F '<base href="/static-preflight/">' $(STATIC_PROFILE_PREFLIGHT_DIR)/_build/web/index.html
+	$(TERLC) static check $(STATIC_PROFILE_PREFLIGHT_DIR)/src/terlan_static_preflight/Site.terl --out-dir $(STATIC_PROFILE_PREFLIGHT_DIR)/_build/web --base-path /static-preflight
+	$(TERLC) static serve $(STATIC_PROFILE_PREFLIGHT_DIR)/src/terlan_static_preflight/Site.terl --out-dir $(STATIC_PROFILE_PREFLIGHT_DIR)/_build/web --validate-output --base-path /static-preflight --check
+
+static-docs-check:
+	rm -rf $(STATIC_DOCS_PREFLIGHT_DIR)
+	$(TERLC) init $(STATIC_DOCS_PREFLIGHT_DIR) --profile static
+	mkdir -p $(STATIC_DOCS_PREFLIGHT_DIR)/content/guides $(STATIC_DOCS_PREFLIGHT_DIR)/content/api
+	printf '%s\n' 'module terlan_static_docs_preflight.Site.' '' 'import css "../../assets/site.css" as SiteCss.' 'import file "../../assets/logo.txt" as Logo.' 'import file "../../assets/site.terl.json" as SiteJson.' 'import file "../../assets/deploy.terl.yaml" as DeployYaml.' 'import file "../../assets/config.terl.toml" as ConfigToml.' 'import markdown "../../content/index.terl.md" as HomeContent.' 'import markdown "../../content/guides/install.terl.md" as InstallContent.' 'import markdown "../../content/api/router.terl.md" as RouterContent.' '' 'template Layout from "../../templates/layout.terl.html" {' '    title: String' '}.' > $(STATIC_DOCS_PREFLIGHT_DIR)/src/terlan_static_docs_preflight/Site.terl
+	printf '%s\n' 'main { max-width: 72rem; }' > $(STATIC_DOCS_PREFLIGHT_DIR)/assets/site.css
+	printf '%s\n' 'terlan docs' > $(STATIC_DOCS_PREFLIGHT_DIR)/assets/logo.txt
+	printf '%s\n' '{"name": "terlan", "version": $${version}}' > $(STATIC_DOCS_PREFLIGHT_DIR)/assets/site.terl.json
+	printf '%s\n' 'site:' '  name: $${name}' '  deploy: github-pages' > $(STATIC_DOCS_PREFLIGHT_DIR)/assets/deploy.terl.yaml
+	printf '%s\n' 'name = $${name}' 'target = "github-pages"' > $(STATIC_DOCS_PREFLIGHT_DIR)/assets/config.terl.toml
+	printf '%s\n' '@page { title = "Install", layout = "Layout" }' '' '# Install' '' 'Run `terlc init docs --profile static`.' > $(STATIC_DOCS_PREFLIGHT_DIR)/content/guides/install.terl.md
+	printf '%s\n' '@page { title = "Router", layout = "Layout" }' '' '# Router' '' 'Static docs can describe typed routes.' > $(STATIC_DOCS_PREFLIGHT_DIR)/content/api/router.terl.md
+	$(TERLC) static emit $(STATIC_DOCS_PREFLIGHT_DIR)/src/terlan_static_docs_preflight/Site.terl --out-dir $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web --validate-output --base-path /terlan
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/index.html
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/guides/install/index.html
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/api/router/index.html
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/site.css
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/logo.txt
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/site.terl.json
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/deploy.terl.yaml
+	test -f $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/config.terl.toml
+	grep -F '<base href="/terlan/">' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/index.html
+	grep -F '<base href="/terlan/">' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/guides/install/index.html
+	grep -F '<base href="/terlan/">' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/api/router/index.html
+	grep -F 'main { max-width: 72rem; }' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/site.css
+	grep -F 'terlan docs' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/logo.txt
+	grep -F '"version": $${version}' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/site.terl.json
+	grep -F 'name: $${name}' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/deploy.terl.yaml
+	grep -F 'name = $${name}' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/config.terl.toml
+	$(TERLC) static check $(STATIC_DOCS_PREFLIGHT_DIR)/src/terlan_static_docs_preflight/Site.terl --out-dir $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web --base-path /terlan
+
+static-command-check:
+	$(PYTHON) tools/check_static_route_boundary.py
+	$(TERLC_EXACT_TEST) commands::static_site::mod_test::static_check_args_adds_check_and_validation_flags -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::mod_test::static_check_args_preserves_existing_flags -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_infer_nested_content_path -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_infer_index_content_paths -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_infer_generated_relative_content_imports -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_default_title_from_first_heading -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_prefer_explicit_title_over_heading -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_use_page_route_override -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_reject_duplicate_paths -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_reject_parent_directory_segments -- --exact
+	$(TERLC_EXACT_TEST) main_test::tests::static_site_test::run_cli_static_emit_accepts_out_dir_after_source_path -- --exact
+	$(TERLC_EXACT_TEST) main_test::tests::static_site_test::run_cli_static_check_accepts_out_dir_after_source_path -- --exact
+	$(TERLC_EXACT_TEST) main_test::tests::static_site_test::parse_static_routes_text_accepts_compact_singular_route -- --exact
+	$(TERLC_EXACT_TEST) main_test::tests::static_site_test::parse_static_routes_text_accepts_compact_route_block -- --exact
+	$(TERLC_EXACT_TEST) main_test::tests::static_site_test::formal_static_emit_injects_base_path_when_requested -- --exact
+
+web-profile-preflight:
+	rm -rf $(WEB_PROFILE_PREFLIGHT_DIR)
+	$(TERLC) init $(WEB_PROFILE_PREFLIGHT_DIR) --profile web
+	$(TERLC) --target-profile js.browser --out-dir $(WEB_PROFILE_PREFLIGHT_DIR)/_build build $(WEB_PROFILE_PREFLIGHT_DIR) --target js.browser
+	test -f $(WEB_PROFILE_PREFLIGHT_DIR)/_build/js/manifest.json
+	test -f $(WEB_PROFILE_PREFLIGHT_DIR)/_build/web/manifest.json
+	$(PYTHON) -c "import json,pathlib,sys; manifest=json.loads(pathlib.Path(sys.argv[1]).read_text()); responses=manifest.get('static_responses', []); handlers=manifest.get('handlers', []); static_routes={(r.get('method'), r.get('route')) for r in responses}; handler_routes={(r.get('method'), r.get('route')) for r in handlers}; required_static={('GET','/users/:id'),('GET','*'),('HEAD','*'),('OPTIONS','*')}; missing_static=required_static-static_routes; assert not missing_static, {'missing_static_routes': sorted(missing_static), 'responses': responses}; assert ('GET','/') in handler_routes, {'handlers': handlers}" $(WEB_PROFILE_PREFLIGHT_DIR)/_build/web/manifest.json
+	$(TERLC) serve $(WEB_PROFILE_PREFLIGHT_DIR)/_build/web --check
+
+serve-static-smoke: static-profile-preflight
+
+serve-web-smoke: web-profile-preflight
+
+http-router-check:
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::discover_web_handlers_from_modules_extracts_router_builder_calls -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::discover_web_handlers_from_modules_extracts_receiver_router_builder_calls -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::discover_web_handlers_from_modules_extracts_grouped_router_builder_calls -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::write_browser_package_serializes_discovered_router_handlers -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::discover_web_error_handler_from_modules_extracts_router_error_handler -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::write_browser_package_serializes_router_error_handler -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_prefers_explicit_head -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_matches_route_params -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_matches_typed_route_params -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_rejects_invalid_int_route_param -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_matches_bool_route_params -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_decodes_route_params -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_matches_wildcard_route -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_decodes_wildcard_route_params -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_rejects_invalid_utf8_route_param -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_applies_route_precedence -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_matches_canonical_fallback_route -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::manifest_handler_for_request_applies_canonical_fallback_precedence -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_accepts_options_method -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_rejects_non_final_wildcard -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_rejects_empty_route_segment -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_routes_rejects_same_shape_param_routes -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_routes_rejects_colon_and_typed_param_same_shape -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_routes_rejects_duplicate_fallback_shapes -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_accepts_request_plus_route_params -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::handler::handler_test::validate_handler_rejects_route_param_arity_mismatch -- --exact
+
+http-observability-check:
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_handler_log_line_includes_handler_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_handler_log_line_includes_optional_source_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_static_log_line_includes_asset_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_static_route_log_line_includes_route_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_file_route_log_line_includes_route_and_file_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_dev_error_page_includes_escaped_handler_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_dev_error_page_omits_absent_source_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::build_http_response_preserves_server_response_contract -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::build_http_response_appends_validated_dynamic_headers -- --exact
+
+http-tls-check:
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_accepts_absent_server_tls_config -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_parses_server_tls_auto_config -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_parses_server_tls_internal_config -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_parses_server_tls_manual_config -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_rejects_server_tls_auto_without_domains -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_rejects_server_tls_auto_manual_or_internal_fields -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_rejects_server_tls_internal_with_public_fields -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_rejects_server_tls_manual_acme_provider -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_rejects_server_tls_manual_without_key -- --exact
+	$(TERLC_EXACT_TEST) commands::build::project_manifest::project_manifest_test::project_manifest_rejects_server_tls_without_mode -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_accepts_adjacent_project_manifest_tls -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_rejects_invalid_adjacent_project_manifest_tls -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_rejects_missing_manual_tls_files -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_rejects_missing_manual_tls_ca_file -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_rejects_manual_tls_paths_outside_project -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::runtime_tls_config_returns_none_for_plain_http_package -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::runtime_tls_config_rejects_invalid_manual_tls_files -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::runtime_tls_config_accepts_manual_certificate_tls -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::runtime_tls_config_accepts_internal_local_tls -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_runtime_plan_defaults_to_lets_encrypt_production -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_runtime_plan_preserves_zerossl_fallback_provider -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_domain_identifiers_preserve_dns_names -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_domain_identifiers_reject_empty_domains -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_contact_strings_wrap_optional_email -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::pending_http01_challenges_select_pending_http_challenges -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::pending_http01_challenges_skip_valid_authorizations -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::pending_http01_challenges_reject_missing_http01 -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::generate_acme_csr_returns_der_and_private_key_pem -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::issue_acme_certificate_cache_rejects_zerossl_before_network -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_account_credentials_round_trip_through_cache -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_account_credentials_cache_reports_invalid_json -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_http01_challenge_cache_writes_valid_token -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_http01_challenge_cache_rejects_invalid_token -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::acme_certificate_cache_write_feeds_runtime_tls_config -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::runtime_tls_config_accepts_auto_tls_certificate_cache -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::tls::tls_test::runtime_tls_config_rejects_auto_tls_without_certificate_cache -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_serves_acme_http01_challenge_from_auto_tls_cache -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_returns_404_for_missing_acme_http01_challenge -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_rejects_invalid_acme_http01_token -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_keeps_acme_like_static_files_for_plain_http_package -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::run_live_serve_rejects_auto_tls_without_certificate_cache -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::serve_web_package_rejects_auto_tls_without_certificate_cache -- --exact
+
+web-compose-check:
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_accepts_postgres_dev_service -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_accepts_long_loopback_postgres_port -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_accepts_list_form_postgres_environment -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_empty_map_form_postgres_environment -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_empty_list_form_postgres_environment -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_malformed_yaml -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_missing_postgres_service -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_disabled_postgres_healthcheck -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_postgres_healthcheck_without_test -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_postgres_healthcheck_none_test -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_postgres_without_healthcheck -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::validate_project_compose_rejects_public_postgres_port_binding -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::start_project_compose_dependencies_ignores_missing_compose -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::compose_check::compose_test::docker_compose_up_command_targets_postgres_service_only -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_accepts_adjacent_postgres_compose -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_rejects_invalid_adjacent_postgres_compose -- --exact
+
+template-contract-check:
+	$(PYTHON) tools/check_html_boundary.py
+	$(TERLC_EXACT_TEST) commands::artifacts::artifacts_test::collect_syntax_template_frontend_inputs_preserves_normalized_template_metadata -- --exact
+	$(TERLC_EXACT_TEST) commands::artifacts::artifacts_test::collect_syntax_template_frontend_inputs_rejects_template_metadata_mismatch -- --exact
+	$(TERLC_EXACT_TEST) commands::artifacts::artifacts_test::collect_syntax_markdown_frontend_inputs_preserves_page_metadata -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_prop_signature_rejects_duplicate_props -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_prop_signature_rejects_reserved_children_prop -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_slot_typecheck_rejects_record_value_in_text_context -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_slot_typecheck_accepts_scalar_struct_field_in_text_context -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_slot_typecheck_rejects_html_fragment_in_attribute_context -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_slot_typecheck_accepts_arithmetic_expression_in_text_context -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_slot_typecheck_accepts_receiver_method_expression_in_attribute_context -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_component_prop_accepts_expression_slot_matching_expected_type -- --exact
+	$(TERLC_EXACT_TEST) validation::template_contract::template_contract_test::template_component_prop_rejects_expression_slot_mismatching_expected_type -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::render::render_test::renders_named_template_call -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::render::render_test::renders_positional_template_call_with_default_prop -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::render::render_test::rejects_template_call_missing_required_prop -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::render::render_test::rejects_template_call_unknown_named_prop -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::render::render_test::rejects_template_call_duplicate_named_prop -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::render::render_test::renders_template_text_slot_escaped_by_default -- --exact
+	$(TERLC_EXACT_TEST) commands::static_site::render::render_test::renders_template_attribute_slot_escaped_by_default -- --exact
+	$(TERLC_EXACT_TEST) main_test::tests::static_site_test::formal_static_emit_accepts_template_html_route_return_type -- --exact
+
+private-field-check:
+	$(EXACT_CARGO_TEST) -p terlan_typeck expression_test::syntax_output_accepts_local_private_struct_field_access -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck expression_test::syntax_output_accepts_local_private_struct_field_update -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck expression_test::syntax_output_accepts_local_private_struct_field_pattern -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck expression_test::syntax_output_rejects_bare_access_to_private_struct_field -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck expression_test::syntax_output_rejects_bare_update_to_private_struct_field -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck expression_test::syntax_output_rejects_bare_pattern_for_private_struct_field -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck import_test::syntax_output_rejects_imported_private_struct_field_access -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck import_test::syntax_output_rejects_imported_private_struct_field_update -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck import_test::syntax_output_rejects_imported_private_struct_field_pattern -- --exact
+
+db-command-check:
+	$(PYTHON) tools/check_db_command_boundary.py
+	$(TERLC_EXACT_TEST) commands::db::mod_test::parse_db_command_accepts_help_for_documented_subcommands -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::parse_db_command_accepts_migrate_database_url_and_directory -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::parse_db_command_accepts_rebuild_with_dev_and_directory -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::parse_db_command_accepts_reset_with_dev_and_directory -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::parse_db_command_accepts_status_database_url_and_directory -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::parse_db_command_rejects_duplicate_dev_flag -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::run_new_creates_valid_migration_template -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::run_validate_accepts_valid_migration_directory -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::run_migrate_validates_then_reports_unreachable_executor -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::run_status_with_database_url_reports_unreachable_history_loader -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::run_rebuild_rejects_missing_dev_flag -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::run_rebuild_with_dev_rejects_non_development_database_url -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::run_reset_with_dev_validates_then_reports_unreachable_executor -- --exact
+	$(TERLC_EXACT_TEST) commands::db::mod_test::live_postgres_url_reports_stable_skip_message_when_unconfigured -- --exact
+	$(TERLC_EXACT_TEST) commands::db::migration_test::split_migration_sections_accepts_up_and_down -- --exact
+	$(TERLC_EXACT_TEST) commands::db::migration_test::split_migration_sections_rejects_missing_up -- --exact
+	$(TERLC_EXACT_TEST) commands::db::migration_test::migration_file_inventory_rejects_duplicate_timestamps -- --exact
+	$(TERLC_EXACT_TEST) commands::db::migration_test::migration_history_table_sql_defines_required_columns -- --exact
+	$(TERLC_EXACT_TEST) commands::db::migration_test::migration_status_classifies_applied_pending_missing_and_divergent -- --exact
+	$(TERLC_EXACT_TEST) commands::db::migration_test::pending_migration_engine_inputs_rejects_divergent_history -- --exact
+	$(TERLC_EXACT_TEST) commands::db::history::history_test::applied_migration_from_postgres_row_accepts_valid_row -- --exact
+	$(TERLC_EXACT_TEST) commands::db::history::history_test::applied_migration_from_postgres_row_rejects_missing_column -- --exact
+	$(TERLC_EXACT_TEST) commands::db::history::history_test::applied_migration_from_postgres_row_rejects_invalid_row_content -- --exact
+
+repl-check:
+	$(TERLC_EXACT_TEST) commands::repl::evaluator::evaluator_test::evaluator_applies_lambda_function_value_call -- --exact
+	$(TERLC_EXACT_TEST) commands::repl::repl_test::repl_expression_with_bindings_parenthesizes_lambda_binding_values -- --exact
+
+sql-form-check:
+	$(PYTHON) tools/check_sql_form_boundary.py
+	$(EXACT_CARGO_TEST) -p terlan_syntax parser::parser_expr_test::tests::formal_typed_sql_raw_macro_expr_parses_result_type -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_syntax parser::parser_expr_test::tests::formal_typed_sql_raw_macro_expr_parses_interpolation_expressions -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_syntax parser::parser_expr_test::tests::formal_typed_sql_raw_macro_expr_rejects_bad_interpolation -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_syntax parser::parser_expr_test::tests::formal_typed_sql_raw_macro_expr_ignores_comment_interpolation_text -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_syntax syntax_output::syntax_output_expr_test::tests::syntax_output_includes_typed_sql_raw_macro_expr_trees -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_syntax syntax_output::syntax_output_expr_test::tests::syntax_output_includes_typed_sql_interpolation_children -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_syntax syntax_output::syntax_output_expr_test::tests::syntax_output_ignores_typed_sql_comment_interpolation_text -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck sql_forms_test::infers_select_limit_one_as_optional_one -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck sql_forms_test::infers_mutating_statement_without_returning_as_affected_rows -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck sql_forms_test::rewrites_interpolations_to_postgres_placeholders_in_order -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck sql_forms_test::reports_ready_sql_wrapper_lowering_front_door -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck sql_forms_test::builds_ready_sql_wrapper_plan -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck diagnostic_test::syntax_output_rejects_sql_projection_field_not_on_row_struct -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck diagnostic_test::syntax_output_uses_sql_wrapper_result_type_for_return_checking -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_typeck core_lowering_test::syntax_output_lowering_to_core_records_sql_query_payload -- --exact
+
+sql-runtime-check:
+	$(TERLC_EXACT_TEST) commands::emit::emit_test::run_emit_writes_sql_runtime_for_typed_sql_forms -- --exact
+	$(TERLC_EXACT_TEST) commands::build::build_test::tests::sql_runtime_test::build_command_emits_sql_runtime_for_typed_sql_forms -- --exact
+
+runtime-release-dependency-check:
+	$(PYTHON) tools/check_runtime_release_dependencies.py
+
 release-0-0-4-preflight:
 	$(CARGO) fmt --all -- --check
 	$(MAKE) --no-print-directory release-boundary-check
@@ -98,7 +399,7 @@ release-0-0-4-preflight:
 	$(MAKE) --no-print-directory module-readme-check
 	$(MAKE) --no-print-directory rustdoc-check
 	$(MAKE) --no-print-directory cli-check
-	$(MAKE) --no-print-directory stdlib-check
+	$(MAKE) --no-print-directory stdlib-release-check
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::build_command_emits_erlang_source_and_beam_for_single_file -- --exact
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::build_command_emits_js_module_and_manifest_for_single_file -- --exact
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::build_command_emits_js_std_core_string_intrinsics -- --exact
@@ -121,8 +422,9 @@ release-0-0-4-preflight:
 	$(TERLC_EXACT_TEST) commands::serve::serve_test::validate_web_package_rejects_missing_manifest_asset -- --exact
 	$(TERLC_EXACT_TEST) commands::serve::serve_test::validate_web_package_rejects_unsafe_manifest_path -- --exact
 	$(TERLC_EXACT_TEST) commands::serve::serve_test::inject_reload_script_inserts_before_body_close -- --exact
-	$(TERLC_EXACT_TEST) commands::serve::serve_test::render_reload_sse_headers_preserves_live_reload_response_contract -- --exact
-	$(TERLC_EXACT_TEST) commands::serve::watch::watch_test::web_package_snapshot_changes_when_asset_content_changes -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::reload_sse_response_preserves_live_reload_response_contract -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::watch::watch_test::reload_watch_backend_uses_notify -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::watch::watch_test::should_reload_for_event_accepts_artifact_changes -- --exact
 	$(TERLC_EXACT_TEST) commands::serve::watch::watch_test::broadcast_reload_removes_disconnected_subscribers -- --exact
 	$(TERLC_EXACT_TEST) main_test::tests::static_site_test::parse_serve_static_args_preserves_shared_server_settings -- --exact
 	$(TERLC_EXACT_TEST) main_test::tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
@@ -141,8 +443,7 @@ release-0-0-4-preflight:
 	$(TERLC_EXACT_TEST) commands::test::test_command_test::effective_js_test_profile_defaults_to_shared_js_profile -- --exact
 	$(TERLC_EXACT_TEST) commands::test::test_command_test::validation_pass_report_marks_all_tests_as_validated -- --exact
 	$(TERLC_EXACT_TEST) commands::test::test_command_test::run_js_tests_writes_validation_manifests -- --exact
-	$(TERLC) test std/js/string_test.terl --target js
-	$(TERLC) --target-profile js.browser test std/js --target js
+	$(MAKE) --no-print-directory js-stdlib-smoke-check
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::embedded_std_interfaces_include_js_std_contracts -- --exact
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::compile_syntax_module_with_js_profile_resolves_js_string_summary -- --exact
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::compile_syntax_module_with_browser_profile_resolves_generated_dom_summary -- --exact
@@ -151,6 +452,34 @@ release-0-0-4-preflight:
 	$(TERLC_EXACT_TEST) validation::target_profile::target_profile_test::tests::std_bridge_test::rejects_js_std_module_for_non_js_profiles -- --exact
 	$(TERLC_EXACT_TEST) validation::target_profile::target_profile_test::tests::std_bridge_test::rejects_browser_dom_js_std_module_for_shared_js_profile -- --exact
 
+release-0-0-5-preflight: release-0-0-4-preflight
+	$(MAKE) --no-print-directory runtime-release-dependency-check
+	$(MAKE) --no-print-directory http-runtime-stack-check
+	$(MAKE) --no-print-directory editor-check
+	$(MAKE) --no-print-directory lsp-check
+	$(MAKE) --no-print-directory safenative-postgres-check
+	$(MAKE) --no-print-directory safenative-http-cookie-check
+	$(MAKE) --no-print-directory safenative-postgres-docker-check
+	$(MAKE) --no-print-directory http-router-check
+	$(MAKE) --no-print-directory http-observability-check
+	$(MAKE) --no-print-directory http-tls-check
+	$(MAKE) --no-print-directory web-compose-check
+	$(MAKE) --no-print-directory stdlib-data-check
+	$(MAKE) --no-print-directory stdlib-db-check
+	$(MAKE) --no-print-directory stdlib-http-check
+	$(MAKE) --no-print-directory stdlib-log-check
+	$(MAKE) --no-print-directory stdlib-sync-check
+	$(MAKE) --no-print-directory template-contract-check
+	$(MAKE) --no-print-directory artifact-template-check
+	$(MAKE) --no-print-directory private-field-check
+	$(MAKE) --no-print-directory db-command-check
+	$(MAKE) --no-print-directory static-command-check
+	$(MAKE) --no-print-directory repl-check
+	$(MAKE) --no-print-directory sql-form-check
+	$(MAKE) --no-print-directory sql-runtime-check
+	$(MAKE) --no-print-directory web-profile-preflight
+	$(MAKE) --no-print-directory static-profile-preflight
+	$(MAKE) --no-print-directory static-docs-check
 formal-cli-phase-contract-gate:
 	$(TERLC_EXACT_TEST) main_test::tests::run_phase_contract_fixtures_backend_parity -- --exact
 	$(TERLC_EXACT_TEST) main_test::tests::run_phase_contract_fixtures_match_golden -- --exact
@@ -409,21 +738,21 @@ formal-cli-a0-61-lexical-and-name-contract-gate:
 	$(TERLC_EXACT_TEST) main_test::tests::check_target_profile_progression_test::run_check_single_file_keeps_constructor_pattern_out_of_a0_12_erlang_target_profile -- --exact
 
 formal-cli-js-gate:
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_to_js_uses_core_function_exports -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_to_js_handles_integer_division -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_to_js_handles_pipe_forward_to_named_call -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_to_js_handles_integer_literal_case_expr -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_to_js_handles_float_literal_case_expr -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_to_js_handles_bool_literal_case_expr -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_uses_core_function_exports -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_integer_division -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_pipe_forward_to_named_call -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_integer_literal_case_expr -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_float_literal_case_expr -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_bool_literal_case_expr -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_js_with_oxc_codegen_reprints_module_source -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_oxc_codegen_emits_core_surface -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_minimal_direct_oxc_ast_module_prints_export -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_arithmetic_function -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_integer_literal -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_float_literal -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_string_like_literals -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_bool_literals -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_total_if_expr -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::direct_ast_test::emit_minimal_direct_oxc_ast_module_prints_export -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::direct_ast_test::emit_core_module_with_direct_oxc_ast_handles_arithmetic_function -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::direct_ast_test::emit_core_module_with_direct_oxc_ast_handles_integer_literal -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::direct_ast_test::emit_core_module_with_direct_oxc_ast_handles_float_literal -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::direct_ast_test::emit_core_module_with_direct_oxc_ast_handles_string_like_literals -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::direct_ast_test::emit_core_module_with_direct_oxc_ast_handles_bool_literals -- --exact
+	$(TERLC_EXACT_TEST) commands::emit_js::direct_ast_test::emit_core_module_with_direct_oxc_ast_handles_total_if_expr -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_oxc_codegen_falls_back_for_partial_if_expr -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_literal_case_expr -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::emit_core_module_with_direct_oxc_ast_handles_integer_literal_case_expr -- --exact

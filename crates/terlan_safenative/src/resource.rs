@@ -7,7 +7,7 @@
 use std::collections::BTreeMap;
 
 use crate::handle::SafeNativeHandle;
-use crate::{http, json, path, uri};
+use crate::{http, json, path, postgres, uri, vector};
 
 /// Resource kind stored in the SafeNative registry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -18,10 +18,18 @@ pub enum ResourceKind {
     HttpRequest,
     /// `std.http.Response.Response`.
     HttpResponse,
+    /// `std.http.Cookies.Jar`.
+    HttpCookieJar,
     /// `std.io.Path.Path`.
     Path,
     /// `std.net.Uri.Uri`.
     Uri,
+    /// `std.db.Postgres.Pool`.
+    PostgresPool,
+    /// `std.db.Postgres.Row`.
+    PostgresRow,
+    /// `std.native.collections.Vector.Vector[T]`.
+    NativeVector,
 }
 
 /// Adapter-owned opaque resource value.
@@ -33,10 +41,18 @@ pub enum ResourceValue {
     HttpRequest(http::Request),
     /// HTTP response resource owned by the Rust HTTP adapter.
     HttpResponse(http::Response),
+    /// HTTP cookie jar resource owned by the Rust HTTP adapter.
+    HttpCookieJar(http::CookieJar),
     /// Path resource owned by the Rust path adapter.
     Path(path::Path),
     /// URI resource owned by the Rust URI adapter.
     Uri(uri::Uri),
+    /// Postgres pool resource owned by the Rust Postgres adapter.
+    PostgresPool(postgres::Pool),
+    /// Postgres row resource owned by the Rust Postgres adapter.
+    PostgresRow(postgres::Row),
+    /// Native vector resource owned by the Rust vector adapter.
+    NativeVector(vector::NativeVector),
 }
 
 impl ResourceValue {
@@ -55,8 +71,12 @@ impl ResourceValue {
             Self::Json(_) => ResourceKind::Json,
             Self::HttpRequest(_) => ResourceKind::HttpRequest,
             Self::HttpResponse(_) => ResourceKind::HttpResponse,
+            Self::HttpCookieJar(_) => ResourceKind::HttpCookieJar,
             Self::Path(_) => ResourceKind::Path,
             Self::Uri(_) => ResourceKind::Uri,
+            Self::PostgresPool(_) => ResourceKind::PostgresPool,
+            Self::PostgresRow(_) => ResourceKind::PostgresRow,
+            Self::NativeVector(_) => ResourceKind::NativeVector,
         }
     }
 }
@@ -266,6 +286,59 @@ impl ResourceStore {
         }
     }
 
+    /// Returns an HTTP cookie jar resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify an HTTP cookie jar
+    ///   resource.
+    ///
+    /// Output:
+    /// - `Ok(&CookieJar)` for a live cookie jar resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before borrowing the value.
+    pub fn http_cookie_jar(
+        &self,
+        handle: SafeNativeHandle,
+    ) -> Result<&http::CookieJar, ResourceError> {
+        match &self.slot(handle)?.value {
+            ResourceValue::HttpCookieJar(value) => Ok(value),
+            other => Err(kind_error(
+                handle,
+                ResourceKind::HttpCookieJar,
+                other.kind(),
+            )),
+        }
+    }
+
+    /// Returns a mutable HTTP cookie jar resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify an HTTP cookie jar
+    ///   resource.
+    ///
+    /// Output:
+    /// - `Ok(&mut CookieJar)` for a live cookie jar resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before mutably borrowing the
+    ///   value for receiver-method updates.
+    pub fn http_cookie_jar_mut(
+        &mut self,
+        handle: SafeNativeHandle,
+    ) -> Result<&mut http::CookieJar, ResourceError> {
+        match &mut self.slot_mut(handle)?.value {
+            ResourceValue::HttpCookieJar(value) => Ok(value),
+            other => Err(kind_error(
+                handle,
+                ResourceKind::HttpCookieJar,
+                other.kind(),
+            )),
+        }
+    }
+
     /// Returns a path resource for a live handle.
     ///
     /// Inputs:
@@ -302,6 +375,88 @@ impl ResourceStore {
         }
     }
 
+    /// Returns a Postgres pool resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify a Postgres pool.
+    ///
+    /// Output:
+    /// - `Ok(&Pool)` for a live Postgres pool resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before borrowing the value.
+    pub fn postgres_pool(
+        &self,
+        handle: SafeNativeHandle,
+    ) -> Result<&postgres::Pool, ResourceError> {
+        match &self.slot(handle)?.value {
+            ResourceValue::PostgresPool(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::PostgresPool, other.kind())),
+        }
+    }
+
+    /// Returns a Postgres row resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify a Postgres row.
+    ///
+    /// Output:
+    /// - `Ok(&Row)` for a live Postgres row resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before borrowing the value.
+    pub fn postgres_row(&self, handle: SafeNativeHandle) -> Result<&postgres::Row, ResourceError> {
+        match &self.slot(handle)?.value {
+            ResourceValue::PostgresRow(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::PostgresRow, other.kind())),
+        }
+    }
+
+    /// Returns a native vector resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify a native vector.
+    ///
+    /// Output:
+    /// - `Ok(&NativeVector)` for a live native vector resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before borrowing the value.
+    pub fn native_vector(
+        &self,
+        handle: SafeNativeHandle,
+    ) -> Result<&vector::NativeVector, ResourceError> {
+        match &self.slot(handle)?.value {
+            ResourceValue::NativeVector(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::NativeVector, other.kind())),
+        }
+    }
+
+    /// Returns a mutable native vector resource for a live handle.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle expected to identify a native vector.
+    ///
+    /// Output:
+    /// - `Ok(&mut NativeVector)` for a live native vector resource.
+    /// - `Err(ResourceError)` for stale handles or kind mismatches.
+    ///
+    /// Transformation:
+    /// - Validates liveness and resource kind before mutably borrowing the
+    ///   vector for indexed updates.
+    pub fn native_vector_mut(
+        &mut self,
+        handle: SafeNativeHandle,
+    ) -> Result<&mut vector::NativeVector, ResourceError> {
+        match &mut self.slot_mut(handle)?.value {
+            ResourceValue::NativeVector(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::NativeVector, other.kind())),
+        }
+    }
+
     /// Disposes a live resource handle.
     ///
     /// Inputs:
@@ -332,6 +487,25 @@ impl ResourceStore {
     /// - Applies the same stale-handle rule as the proof-track handle module.
     fn slot(&self, handle: SafeNativeHandle) -> Result<&ResourceSlot, ResourceError> {
         match self.resources.get(&handle.id) {
+            Some(slot) if slot.generation == handle.generation => Ok(slot),
+            _ => Err(stale_error(handle)),
+        }
+    }
+
+    /// Returns a mutable live resource slot.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle supplied by bridge-side code.
+    ///
+    /// Output:
+    /// - `Ok(&mut ResourceSlot)` when id and generation match.
+    /// - `Err(ResourceError)` when the handle is stale or missing.
+    ///
+    /// Transformation:
+    /// - Applies the same stale-handle rule as immutable lookup before
+    ///   exposing mutable adapter state.
+    fn slot_mut(&mut self, handle: SafeNativeHandle) -> Result<&mut ResourceSlot, ResourceError> {
+        match self.resources.get_mut(&handle.id) {
             Some(slot) if slot.generation == handle.generation => Ok(slot),
             _ => Err(stale_error(handle)),
         }

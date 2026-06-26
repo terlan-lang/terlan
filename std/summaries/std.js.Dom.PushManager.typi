@@ -1,0 +1,45 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface PushManager
+ */
+
+module std.js.Dom.PushManager.
+
+/**
+ * The **`PushManager`** interface of the Push API provides a way to receive notifications from third-party servers as well as request URLs for push notifications.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushManager)
+ */
+pub opaque type PushManager.
+
+/**
+ * The **`PushManager.getSubscription()`** method of the PushManager interface retrieves an existing push subscription.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushManager/getSubscription)
+ */
+pub (value: PushManager) get_subscription(): std.js.Promise[Option[PushSubscription]].
+
+/**
+ * The **`permissionState()`** method of the string indicating the permission state of the push manager.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushManager/permissionState)
+ */
+pub (value: PushManager) permission_state(options: PushSubscriptionOptionsInit): std.js.Promise[PermissionState].
+
+/**
+ * The **`subscribe()`** method of the PushManager interface subscribes to a push service.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushManager/subscribe)
+ */
+pub (value: PushManager) subscribe(options: PushSubscriptionOptionsInit): std.js.Promise[PushSubscription].

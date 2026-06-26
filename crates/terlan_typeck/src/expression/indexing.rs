@@ -167,9 +167,13 @@ fn infer_index_get_trait_call(
             }
 
             let mut trial_subst = subst.clone();
-            if let Ok(return_type) =
-                infer_function_call(&impl_candidate.scheme, &arg_types, ctx, &mut trial_subst)
-            {
+            if let Ok(return_type) = infer_function_with_bounds(
+                &impl_candidate.scheme,
+                None,
+                &arg_types,
+                ctx,
+                &mut trial_subst,
+            ) {
                 matches += 1;
                 if selected.is_none() {
                     selected = Some((return_type, trial_subst));
@@ -260,9 +264,13 @@ fn infer_index_set_trait_call(
             }
 
             let mut trial_subst = subst.clone();
-            if let Ok(return_type) =
-                infer_function_call(&impl_candidate.scheme, &arg_types, ctx, &mut trial_subst)
-            {
+            if let Ok(return_type) = infer_function_with_bounds(
+                &impl_candidate.scheme,
+                None,
+                &arg_types,
+                ctx,
+                &mut trial_subst,
+            ) {
                 matches += 1;
                 if selected.is_none() {
                     selected = Some((return_type, trial_subst));

@@ -1,0 +1,8 @@
+module=std.js.Dom.Geolocation
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=1177159550525732040
+interface_hash=10470411556584594709
+interface_doc_hash=10470411556584594709
+deps=0

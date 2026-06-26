@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGAngle
+ */
+
+module std.js.Dom.SVGAngle.
+
+/**
+ * The `SVGAngle` interface is used to represent a value that can be an &lt;angle&gt; or &lt;number&gt; value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle)
+ */
+pub opaque type SVGAngle.
+
+/**
+ * The **`unitType`** property of the SVGAngle interface is one of the unit type constants and represents the units in which this angle's value is expressed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/unitType)
+ */
+pub (value: SVGAngle) unit_type(): std.js.Number.JsNumber.
+
+/**
+ * The `value` property of the SVGAngle interface represents the floating point value of the `<angle>` in degrees.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/value)
+ */
+pub (value: SVGAngle) value(): std.js.Number.JsNumber.
+
+/**
+ * The `valueAsString` property of the SVGAngle interface represents the angle's value as a string, in the units expressed by SVGAngle.unitType.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/valueAsString)
+ */
+pub (value: SVGAngle) value_as_string(): std.js.String.JsString.
+
+/**
+ * The `valueInSpecifiedUnits` property of the SVGAngle interface represents the value of this angle as a number, in the units expressed by the angle's SVGAngle.unitType.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/valueInSpecifiedUnits)
+ */
+pub (value: SVGAngle) value_in_specified_units(): std.js.Number.JsNumber.
+
+/**
+ * The `convertToSpecifiedUnits()` method of the SVGAngle interface allows you to convert the angle's value to the specified unit type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/convertToSpecifiedUnits)
+ */
+pub (value: SVGAngle) convert_to_specified_units(unit_type: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The `newValueSpecifiedUnits()` method of the SVGAngle interface sets the value to a number with an associated SVGAngle.unitType, thereby replacing the values for all of the attributes on the object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/newValueSpecifiedUnits)
+ */
+pub (value: SVGAngle) new_value_specified_units(unit_type: std.js.Number.JsNumber, value_in_specified_units: std.js.Number.JsNumber): std.core.Unit.

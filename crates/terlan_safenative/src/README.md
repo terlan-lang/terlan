@@ -7,7 +7,7 @@ readable while test coverage stays close.
 ## Responsibilities
 
 - Implement native helper modules for JSON, HTTP, URI, path, Base64, request,
-  resource, runtime, and worker behavior.
+  resource, runtime, metadata, and worker behavior.
 - Keep dispatch inputs and outputs explicit.
 - Avoid unsafe code and panic-oriented failure handling.
 - Preserve small functions suitable for later verification work.
@@ -16,6 +16,7 @@ readable while test coverage stays close.
 
 - `lib.rs`: crate module exports and safety denies.
 - `dispatch.rs`: operation dispatch helpers.
+- `metadata.rs`: static worker ownership and bridge-selection contracts.
 - `resource.rs`, `handle.rs`, `runtime.rs`, and `worker.rs`: runtime state
   helpers.
 - Data/protocol helper modules such as `json.rs`, `http.rs`, `uri.rs`, and
@@ -59,6 +60,10 @@ Important invariants:
 
 `runtime`
 : Owns runtime state transitions for resources and workers.
+
+`metadata`
+: Describes worker-level adapter ownership before transport-specific code is
+  connected.
 
 `term`
 : Defines boundary values accepted by native helpers.

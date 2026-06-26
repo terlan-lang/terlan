@@ -21,6 +21,7 @@ use crate::{
 mod annotations;
 mod callables;
 mod expressions;
+mod field_keys;
 mod html;
 mod imports;
 mod modules;
@@ -281,10 +282,20 @@ impl Parser {
                 let prop_start = self.current().start;
                 let prop_name = self.expect_ident()?;
                 self.expect(TokenKind::Colon)?;
-                let annotation = self.parse_type_expr(&[TokenKind::Comma, TokenKind::RBrace])?;
+                let annotation = self.parse_type_expr(&[
+                    TokenKind::Comma,
+                    TokenKind::RBrace,
+                    TokenKind::Equals,
+                ])?;
+                let default = if self.consume_if(TokenKind::Equals) {
+                    Some(self.parse_single_expr()?)
+                } else {
+                    None
+                };
                 props.push(TemplatePropDecl {
                     name: prop_name,
                     annotation,
+                    default,
                     span: Span::new(prop_start, self.previous().end),
                 });
 
@@ -293,6 +304,7 @@ impl Parser {
                 }
                 break;
             }
+            self.validate_template_prop_defaults_trailing(&props)?;
 
             self.expect(TokenKind::RBrace)?;
         }
@@ -327,6 +339,37 @@ impl Parser {
                 self.tokens.get(self.pos + 2),
                 Some(token) if token.text == "from"
             )
+    }
+
+    /// Validates default-property ordering for generated template signatures.
+    ///
+    /// Inputs:
+    /// - `props`: parsed template properties in declaration order.
+    ///
+    /// Output:
+    /// - `Ok(())` when all defaulted template properties are trailing.
+    /// - `Err(ParseError)` anchored at the first required property after a
+    ///   default.
+    ///
+    /// Transformation:
+    /// - Treats template declarations as generated callable signatures for
+    ///   0.0.5 named/default argument semantics.
+    fn validate_template_prop_defaults_trailing(
+        &self,
+        props: &[TemplatePropDecl],
+    ) -> ParseResult<()> {
+        let mut seen_default = false;
+        for prop in props {
+            if prop.default.is_some() {
+                seen_default = true;
+            } else if seen_default {
+                return Err(ParseError {
+                    message: "template default properties must be trailing".to_string(),
+                    span: prop.span,
+                });
+            }
+        }
+        Ok(())
     }
 
     /// Parses a raw unsupported declaration block.
@@ -665,55 +708,6 @@ impl Parser {
                 span: token.span(),
             }),
         }
-    }
-
-    /// Parses a canonical `Binding` name.
-    ///
-    /// Inputs:
-    /// - Parser cursor at the token that should name a local binding.
-    ///
-    /// Output:
-    /// - Accepted binding name text.
-    ///
-    /// Transformation:
-    /// - Accepts lower identifiers and ignored lower identifiers while
-    ///   rejecting `_` and uppercase names in value-binding position.
-    fn expect_binding_name(&mut self) -> ParseResult<String> {
-        let token = self.current().clone();
-        if self.is_binding_token(&token) {
-            self.bump();
-            Ok(token.text)
-        } else {
-            Err(ParseError {
-                message: "expected lower-case binding name".to_string(),
-                span: token.span(),
-            })
-        }
-    }
-
-    /// Reports whether a token is a canonical `Binding` token.
-    ///
-    /// Inputs:
-    /// - `token`: token candidate from the parser stream.
-    ///
-    /// Output:
-    /// - `true` for `LowerIdent` and `_LowerIdent` spellings.
-    ///
-    /// Transformation:
-    /// - Applies the EBNF `Binding ::= LowerIdent | "_" LowerIdent` rule to
-    ///   already-lexed identifier tokens.
-    fn is_binding_token(&self, token: &Token) -> bool {
-        matches!(token.kind, TokenKind::Atom)
-            && token.text != "_"
-            && token
-                .text
-                .strip_prefix('_')
-                .map(|tail| {
-                    tail.chars()
-                        .next()
-                        .is_some_and(|ch| ch.is_ascii_lowercase())
-                })
-                .unwrap_or(true)
     }
 
     /// Parses an atom literal payload after `:`.
@@ -1223,6 +1217,10 @@ fn join_parts(parts: &[String]) -> String {
 #[cfg(test)]
 #[path = "parser_decl_test.rs"]
 mod parser_decl_test;
+
+#[cfg(test)]
+#[path = "parser_decl_surface_test.rs"]
+mod parser_decl_surface_test;
 
 #[cfg(test)]
 #[path = "parser_expr_test.rs"]

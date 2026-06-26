@@ -1,0 +1,69 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface TextTrackCue
+ */
+
+module std.js.Dom.TextTrackCue.
+
+/**
+ * The **`TextTrackCue`** interface of the WebVTT API is the abstract base class for the various derived cue types, such as VTTCue; you will work with these derived types rather than the base class.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue)
+ */
+pub opaque type TextTrackCue.
+
+/**
+ * The **`endTime`** property of the TextTrackCue interface returns and sets the end time of the cue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/endTime)
+ */
+pub (value: TextTrackCue) end_time(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`id`** property of the TextTrackCue interface returns and sets the identifier for this cue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/id)
+ */
+pub (value: TextTrackCue) id(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`pauseOnExit`** property of the TextTrackCue interface returns or sets the flag indicating whether playback of the media should pause when the end of the range to which this cue applies is reached.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/pauseOnExit)
+ */
+pub (value: TextTrackCue) pause_on_exit(): std.core.Bool ->
+    native.
+
+/**
+ * The **`startTime`** property of the TextTrackCue interface returns and sets the start time of the cue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/startTime)
+ */
+pub (value: TextTrackCue) start_time(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`track`** read-only property of the TextTrackCue interface returns the TextTrack object that this cue belongs to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/track)
+ */
+pub (value: TextTrackCue) track(): Option[TextTrack] ->
+    native.
+
+pub (value: TextTrackCue) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: TextTrackCue) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

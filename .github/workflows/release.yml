@@ -26,14 +26,31 @@ jobs:
         with:
           otp-version: "29"
 
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Tree-sitter package dependencies
+        run: npm install --prefix tree-sitter-terlan --no-audit --no-fund
+
       - name: Check
         run: make check
 
       - name: Test
         run: make test
 
-      - name: JS release preflight
-        run: make release-0-0-4-preflight
+      - name: Release-scale tests
+        run: make test-release
+
+      - name: Editor package checks
+        run: make editor-check
+
+      - name: Tree-sitter CLI grammar check
+        run: make tree-sitter-cli-check
+
+      - name: 0.0.5 release preflight
+        run: make release-0-0-5-preflight
 
       - name: Build artifact
         run: make release-artifact-linux

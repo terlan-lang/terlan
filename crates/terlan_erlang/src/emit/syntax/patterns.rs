@@ -82,6 +82,208 @@ pub(super) fn lower_syntax_pattern(
     }
 }
 
+/// Collects value names bound by a syntax-output pattern.
+///
+/// Inputs:
+/// - `pattern`: source pattern that controls a local scope.
+/// - `locals`: mutable local-name set to extend.
+///
+/// Output:
+/// - None.
+///
+/// Transformation:
+/// - Walks nested tuple/list/map/record/constructor pattern structure and adds
+///   every ordinary variable binding. Boolean literals and wildcard-like
+///   patterns do not introduce value locals.
+pub(super) fn collect_syntax_pattern_value_locals(
+    pattern: &SyntaxPatternOutput,
+    locals: &mut BTreeSet<String>,
+) {
+    if matches!(pattern.kind, SyntaxPatternKind::Var) {
+        if let Some(name) = pattern.text.as_deref() {
+            if !is_bool_literal_name(name) {
+                locals.insert(name.to_string());
+            }
+        }
+    }
+
+    for child in &pattern.children {
+        collect_syntax_pattern_value_locals(child, locals);
+    }
+    for field in &pattern.fields {
+        collect_syntax_pattern_value_locals(&field.value, locals);
+    }
+}
+
+/// Collects inferred value types for names bound by a pattern.
+///
+/// Inputs:
+/// - `pattern`: source pattern that controls a local scope.
+/// - `type_text`: inferred source type matched by the pattern.
+/// - `value_types`: mutable local type table to extend.
+///
+/// Output:
+/// - None.
+///
+/// Transformation:
+/// - Propagates simple structural type information through visible alias
+///   constructor, tuple, and list patterns. This lets method calls on
+///   destructured values keep using primitive receiver lowering even before
+///   full typed syntax annotations are available on pattern nodes.
+pub(super) fn collect_syntax_pattern_value_types(
+    pattern: &SyntaxPatternOutput,
+    type_text: &str,
+    ctx: &SyntaxLowerCtx,
+    value_types: &mut BTreeMap<String, String>,
+) {
+    if matches!(pattern.kind, SyntaxPatternKind::Var) {
+        if let Some(name) = pattern.text.as_deref() {
+            if !is_bool_literal_name(name) {
+                value_types.insert(name.to_string(), normalize_trait_type_text(type_text));
+                return;
+            }
+        }
+    }
+
+    match pattern.kind {
+        SyntaxPatternKind::Constructor => {
+            if let Some(name) = pattern.text.as_deref() {
+                if ctx
+                    .alias_constructor_target(name, pattern.children.len())
+                    .is_some()
+                {
+                    let type_args = named_type_args(type_text);
+                    for (child, child_type) in pattern.children.iter().zip(type_args.iter()) {
+                        collect_syntax_pattern_value_types(child, child_type, ctx, value_types);
+                    }
+                }
+            }
+        }
+        SyntaxPatternKind::Tuple => {
+            if let Some(types) = tuple_type_args(type_text) {
+                for (child, child_type) in pattern.children.iter().zip(types.iter()) {
+                    collect_syntax_pattern_value_types(child, child_type, ctx, value_types);
+                }
+            }
+        }
+        SyntaxPatternKind::List => {
+            if let Some(element_type) = first_named_type_arg(type_text) {
+                for child in &pattern.children {
+                    collect_syntax_pattern_value_types(child, &element_type, ctx, value_types);
+                }
+            }
+        }
+        SyntaxPatternKind::ListCons => {
+            if let Some(element_type) = first_named_type_arg(type_text) {
+                for child in &pattern.children {
+                    collect_syntax_pattern_value_types(child, &element_type, ctx, value_types);
+                }
+            }
+        }
+        SyntaxPatternKind::Map | SyntaxPatternKind::Record | SyntaxPatternKind::MapField => {}
+        SyntaxPatternKind::Wildcard
+        | SyntaxPatternKind::Ignore
+        | SyntaxPatternKind::Placeholder
+        | SyntaxPatternKind::Var
+        | SyntaxPatternKind::Int
+        | SyntaxPatternKind::Float
+        | SyntaxPatternKind::Atom => {}
+    }
+}
+
+/// Extracts the first named type argument from type text.
+///
+/// Inputs:
+/// - `type_text`: normalized or source-shaped type text.
+///
+/// Output:
+/// - First type argument when the type is an application.
+///
+/// Transformation:
+/// - Reuses named type argument parsing and drops all but the first argument.
+fn first_named_type_arg(type_text: &str) -> Option<String> {
+    named_type_args(type_text).into_iter().next()
+}
+
+/// Extracts normalized arguments from a named type application.
+///
+/// Inputs:
+/// - `type_text`: type text such as `Option[Int]`.
+///
+/// Output:
+/// - Normalized type argument text in declaration order.
+///
+/// Transformation:
+/// - Compacts whitespace/application syntax, parses the argument list, and
+///   normalizes each nested type.
+fn named_type_args(type_text: &str) -> Vec<String> {
+    let compact = compact_type_application(&compact_spaces(type_text));
+    parse_named_type_args(&compact)
+        .map(|(_, args)| {
+            args.into_iter()
+                .map(|arg| normalize_trait_type_text(&arg))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Extracts normalized element types from tuple type text.
+///
+/// Inputs:
+/// - `type_text`: type text expected to be shaped like `{A, B}`.
+///
+/// Output:
+/// - Tuple element type text when the input is a tuple.
+///
+/// Transformation:
+/// - Strips tuple delimiters and splits top-level comma-separated elements.
+fn tuple_type_args(type_text: &str) -> Option<Vec<String>> {
+    let compact = compact_type_application(&compact_spaces(type_text));
+    let inner = compact.strip_prefix('{')?.strip_suffix('}')?;
+    Some(
+        split_top_level_type_args(inner)
+            .into_iter()
+            .map(|arg| normalize_trait_type_text(&arg))
+            .collect(),
+    )
+}
+
+/// Splits a type-argument list on top-level commas.
+///
+/// Inputs:
+/// - `src`: inner type-argument text without surrounding delimiters.
+///
+/// Output:
+/// - Trimmed type argument segments.
+///
+/// Transformation:
+/// - Tracks nested delimiter depth so commas inside tuples, calls, or generic
+///   applications do not split the outer list.
+fn split_top_level_type_args(src: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (index, ch) in src.char_indices() {
+        match ch {
+            '[' | '{' | '<' | '(' => depth += 1,
+            ']' | '}' | '>' | ')' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                let arg = src[start..index].trim();
+                if !arg.is_empty() {
+                    args.push(arg.to_string());
+                }
+                start = index + ch.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    let arg = src[start..].trim();
+    if !arg.is_empty() {
+        args.push(arg.to_string());
+    }
+    args
+}
+
 /// Lowers one map or record pattern field.
 ///
 /// Inputs:

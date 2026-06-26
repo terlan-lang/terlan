@@ -1,4 +1,96 @@
-use super::*;
+use serde::{Deserialize, Serialize};
+
+use super::{expr_output_with_span, SyntaxExprOutput};
+use crate::{
+    ebnf::EbnfSourceSpan,
+    parse_tree::{HtmlAttr, HtmlAttrValue, HtmlElement, HtmlNamedSlot, HtmlNode},
+};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+/// HTML node represented in syntax output.
+///
+/// Inputs:
+/// - Parsed HTML block node.
+///
+/// Output:
+/// - Tagged text, expression, element, or named-slot node.
+///
+/// Transformation:
+/// - Converts HTML parser structures into syntax-output records.
+pub enum SyntaxHtmlNodeOutput {
+    Text { text: String },
+    Expr { expr: Box<SyntaxExprOutput> },
+    Element { element: SyntaxHtmlElementOutput },
+    NamedSlot { slot: SyntaxHtmlNamedSlotOutput },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// HTML element represented in syntax output.
+///
+/// Inputs:
+/// - Parsed HTML element.
+///
+/// Output:
+/// - Name, attributes, and children.
+///
+/// Transformation:
+/// - Recursively maps child nodes and attributes.
+pub struct SyntaxHtmlElementOutput {
+    pub name: String,
+    pub attrs: Vec<SyntaxHtmlAttrOutput>,
+    pub children: Vec<SyntaxHtmlNodeOutput>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Named HTML slot represented in syntax output.
+///
+/// Inputs:
+/// - Parsed slot name and children.
+///
+/// Output:
+/// - Named-slot record.
+///
+/// Transformation:
+/// - Preserves slot children as syntax-output HTML nodes.
+pub struct SyntaxHtmlNamedSlotOutput {
+    pub name: String,
+    pub children: Vec<SyntaxHtmlNodeOutput>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// HTML attribute represented in syntax output.
+///
+/// Inputs:
+/// - Parsed HTML attribute.
+///
+/// Output:
+/// - Name and optional value.
+///
+/// Transformation:
+/// - Maps static or expression-backed values into tagged output.
+pub struct SyntaxHtmlAttrOutput {
+    pub name: String,
+    pub value: Option<SyntaxHtmlAttrValueOutput>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+/// HTML attribute value represented in syntax output.
+///
+/// Inputs:
+/// - Parsed attribute value.
+///
+/// Output:
+/// - Static text or expression payload.
+///
+/// Transformation:
+/// - Boxes expression values so attribute payload shape remains compact and
+///   recursive.
+pub enum SyntaxHtmlAttrValueOutput {
+    Text { text: String },
+    Expr { expr: Box<SyntaxExprOutput> },
+}
 
 /// Converts a parsed HTML node into syntax output.
 ///

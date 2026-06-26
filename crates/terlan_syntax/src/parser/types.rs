@@ -28,6 +28,7 @@ impl Parser {
                 && depth_b == 0
                 && depth_bra == 0
                 && !self.is_qualified_type_dot(&parts)
+                && !self.is_existential_type_dot(&parts)
             {
                 break;
             }
@@ -106,6 +107,54 @@ impl Parser {
             _ => false,
         }
     }
+
+    /// Reports whether the current dot separates existential binders from body.
+    ///
+    /// Inputs:
+    /// - `parts`: already-collected type-expression token texts.
+    ///
+    /// Output:
+    /// - `true` when the current `.` belongs to `exists T. Body` instead of
+    ///   terminating the surrounding declaration.
+    ///
+    /// Transformation:
+    /// - Recognizes the restricted existential binder prefix while rejecting
+    ///   later dots after the body has started, so declaration terminators keep
+    ///   their normal meaning.
+    fn is_existential_type_dot(&self, parts: &[String]) -> bool {
+        if !self.check(TokenKind::Dot)
+            || parts.first().map(String::as_str) != Some("exists")
+            || parts.iter().any(|part| part == ".")
+            || parts.len() < 2
+        {
+            return false;
+        }
+
+        parts[1..]
+            .iter()
+            .enumerate()
+            .all(|(index, part)| match index % 2 {
+                0 => is_upper_type_identifier(part),
+                _ => part == ",",
+            })
+    }
+}
+
+/// Validates a source type-variable name inside an existential binder.
+///
+/// Inputs:
+/// - `text`: candidate binder token text.
+///
+/// Output:
+/// - `true` when the token is an uppercase Terlan type identifier.
+///
+/// Transformation:
+/// - Keeps the syntax-level existential recognizer aligned with ordinary type
+///   variable spelling without allocating semantic type variables here.
+fn is_upper_type_identifier(text: &str) -> bool {
+    let mut chars = text.chars();
+    matches!(chars.next(), Some(ch) if ch.is_ascii_uppercase())
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
 /// Finds runtime-expression tokens that are invalid in type text.

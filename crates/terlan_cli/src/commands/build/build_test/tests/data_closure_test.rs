@@ -222,7 +222,7 @@ name: String\n\
 }.\n\
 \n\
 pub make_user(id: Int, name: String): User ->\n\
-#User{id = id, name = name}.\n\
+User(id = id, name = name).\n\
 \n\
 pub display_name(user: User): String ->\n\
 user.name.\n\
@@ -456,7 +456,7 @@ case values {\n\
 }.\n\
 \n\
 pub main(): Unit ->\n\
-println(Int.to_string(sum_first_two(selected(#IntCollection{values = [0, 2, 4, 7]})))).\n",
+println(Int.to_string(sum_first_two(selected(IntCollection(values = [0, 2, 4, 7]))))).\n",
     )
     .expect("failed to write iterable comprehension source module");
 
@@ -654,7 +654,7 @@ size: Int\n\
 }.\n\
 \n\
 pub constructor Map {\n\
-(size: Int): Map -> #Map{ size = size }\n\
+(size: Int): Map -> Map(size = size)\n\
 }.\n\
 \n\
 pub (mut map: Map) put(): Map ->\n\

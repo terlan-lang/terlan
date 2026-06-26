@@ -21,10 +21,11 @@ pub(crate) fn core_syntax_imports(module: &SyntaxModuleOutput) -> Vec<CoreImport
                 module_name,
                 items,
                 source_path,
+                is_type,
                 ..
             } => Some(CoreImport {
                 module: core_import_identity(import_kind, module_name, items, source_path),
-                kind: core_import_kind(*import_kind),
+                kind: core_import_kind(*import_kind, *is_type),
             }),
             _ => None,
         })
@@ -44,13 +45,14 @@ pub(crate) fn core_syntax_imports(module: &SyntaxModuleOutput) -> Vec<CoreImport
 /// - `resolved`: resolver artifact containing imported type and trait aliases.
 ///
 /// Output:
-/// - Core module imports for the actual provider modules backing those aliases.
+/// - Core type-module imports for the actual provider modules backing those
+///   aliases.
 ///
 /// Transformation:
 /// - Converts alias-level resolver facts such as `Task -> std.core.Task.Task`
-///   into module-level CoreIR imports such as `std.core.Task`. This preserves
-///   default-export imports in target-profile validation without relying on the
-///   raw parser split between module prefixes and imported symbols.
+///   into type-module CoreIR imports such as `std.core.Task`. Executable source
+///   imports are preserved separately by `core_syntax_imports`, so resolved
+///   type facts do not force runtime target-profile support by themselves.
 pub(crate) fn core_resolved_imported_modules(resolved: &ResolvedModule) -> Vec<CoreImport> {
     let mut imports = resolved
         .imported_types
@@ -58,7 +60,7 @@ pub(crate) fn core_resolved_imported_modules(resolved: &ResolvedModule) -> Vec<C
         .chain(resolved.imported_traits.values())
         .map(|imported| CoreImport {
             module: imported.source_module.clone(),
-            kind: CoreImportKind::Module,
+            kind: CoreImportKind::TypeModule,
         })
         .collect::<Vec<_>>();
     imports.sort_by(|left, right| left.module.cmp(&right.module));
@@ -99,8 +101,8 @@ pub(crate) fn merge_core_imports(imports: &mut Vec<CoreImport>, extra: Vec<CoreI
 /// Transformation:
 /// - Converts declaration-site `implements` and explicit `impl Trait for Type`
 ///   blocks into backend-neutral conformance facts while preserving source
-///   category and visibility. Struct `derives` is not included because it is
-///   struct-to-struct shape derivation, not trait conformance.
+///   category and visibility. Struct `includes` is not included because it is
+///   struct-to-struct shape inclusion, not trait conformance.
 pub(crate) fn core_syntax_trait_conformances(
     module: &SyntaxModuleOutput,
 ) -> Vec<CoreTraitConformance> {
@@ -161,19 +163,21 @@ pub(crate) fn core_syntax_trait_conformances(
 ///
 /// Inputs:
 /// - `kind`: parser-preserved syntax import kind.
+/// - `is_type`: whether the source used `import type`.
 ///
 /// Output:
 /// - Matching CoreIR import kind.
 ///
 /// Transformation:
-/// - Copies the import family tag while keeping target resolver behavior out of
-///   CoreIR.
-fn core_import_kind(kind: SyntaxImportKind) -> CoreImportKind {
-    match kind {
-        SyntaxImportKind::Module => CoreImportKind::Module,
-        SyntaxImportKind::File => CoreImportKind::File,
-        SyntaxImportKind::Css => CoreImportKind::Css,
-        SyntaxImportKind::Markdown => CoreImportKind::Markdown,
+/// - Copies the import family tag while preserving type-only module imports as
+///   non-executable CoreIR dependencies.
+fn core_import_kind(kind: SyntaxImportKind, is_type: bool) -> CoreImportKind {
+    match (kind, is_type) {
+        (SyntaxImportKind::Module, true) => CoreImportKind::TypeModule,
+        (SyntaxImportKind::Module, false) => CoreImportKind::Module,
+        (SyntaxImportKind::File, _) => CoreImportKind::File,
+        (SyntaxImportKind::Css, _) => CoreImportKind::Css,
+        (SyntaxImportKind::Markdown, _) => CoreImportKind::Markdown,
     }
 }
 
@@ -199,7 +203,7 @@ fn core_import_identity(
     source_path: &Option<String>,
 ) -> String {
     match kind {
-        SyntaxImportKind::Module => module_name.to_string(),
+        SyntaxImportKind::Module => module_import_identity(module_name, items),
         SyntaxImportKind::File | SyntaxImportKind::Css | SyntaxImportKind::Markdown => {
             let alias = items
                 .first()
@@ -208,5 +212,38 @@ fn core_import_identity(
             let source = source_path.as_deref().unwrap_or("<missing-source>");
             format!("{alias}<-{source}")
         }
+    }
+}
+
+/// Builds the CoreIR identity for a source module import.
+///
+/// Inputs:
+/// - `module_name`: parser-preserved import module prefix.
+/// - `items`: selected/default import items.
+///
+/// Output:
+/// - Fully qualified module identity used by CoreIR imports.
+///
+/// Transformation:
+/// - Preserves braced selected imports such as `std.core.Option.{Some}` as the
+///   provider module `std.core.Option`.
+/// - Reconstructs default-export module imports such as `std.data.Json.` from
+///   parser parts `std.data` + `Json` when the prefix ends in a lower-case
+///   package segment.
+fn module_import_identity(module_name: &str, items: &[terlan_syntax::SyntaxImportItem]) -> String {
+    let Some(item) = items.first() else {
+        return module_name.to_string();
+    };
+    if items.len() == 1
+        && item.as_alias.is_none()
+        && module_name
+            .rsplit('.')
+            .next()
+            .and_then(|segment| segment.chars().next())
+            .is_some_and(|first| first.is_ascii_lowercase())
+    {
+        format!("{module_name}.{}", item.name)
+    } else {
+        module_name.to_string()
     }
 }

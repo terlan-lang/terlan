@@ -1,0 +1,92 @@
+//! Core functional abstraction traits.
+//!
+//! `std.core.Functional` defines higher-kinded traits for container-like
+//! computations. These traits are intentionally small: they describe the
+//! portable function shapes that targets must preserve without imposing a
+//! specific runtime representation.
+
+module std.core.Functional.
+
+/// Applicative describes functors that can lift values and apply lifted
+/// functions.
+///
+/// Input: a unary type constructor `F[_]`.
+/// Output: a trait requiring `pure` and `apply`, while inheriting `Functor`.
+/// Transformation: lifts plain values into `F` and applies functions already
+/// inside `F` to values inside `F`.
+
+pub trait Applicative[F[_]] extends Functor[F] {
+    apply[A, B](f: F[(A ) -> B], value: F[A]): F[B].
+    pure[A](value: A): F[A].
+}.
+
+/// Functor describes values that can map over one contained type parameter.
+///
+/// Input: a unary type constructor `F[_]`.
+/// Output: a trait requiring `map`.
+/// Transformation: maps `F[A]` to `F[B]` by applying a pure function to each
+/// present value according to the concrete implementation.
+
+pub trait Functor[F[_]] {
+    map[A, B](value: F[A], f: (A ) -> B): F[B].
+}.
+
+/// Monad describes applicatives that can sequence dependent computations.
+///
+/// Input: a unary type constructor `F[_]`.
+/// Output: a trait requiring `flat_map`, while inheriting `Applicative`.
+/// Transformation: feeds a contained value into a function that returns the
+/// same context constructor.
+
+pub trait Monad[F[_]] extends Applicative[F] {
+    flat_map[A, B](value: F[A], f: (A ) -> F[B]): F[B].
+}.
+
+/// ResultFunctor describes success/error containers with two type parameters.
+///
+/// Input: a binary type constructor `F[_, _]`.
+/// Output: a trait requiring success and error mapping.
+/// Transformation: maps either side of a result-like value while preserving the
+/// other side. This is the current Terlan form for binary constructors until
+/// type lambdas can express `Result[E, _]` as a unary `Monad`.
+
+pub trait ResultFunctor[F[_, _]] {
+    map[A, B, E](value: F[A, E], f: (A ) -> B): F[B, E].
+    map_error[A, E, G](value: F[A, E], f: (E ) -> G): F[A, G].
+}.
+
+/// ResultMonad describes sequencing for success/error containers.
+///
+/// Input: a binary type constructor `F[_, _]`.
+/// Output: a trait requiring success-value sequencing with a fixed error type.
+/// Transformation: chains successful values into the next result-like
+/// computation while preserving errors unchanged.
+
+pub trait ResultMonad[F[_, _]] extends ResultFunctor[F] {
+    flat_map[A, B, E](value: F[A, E], f: (A ) -> F[B, E]): F[B, E].
+}.
+
+pub impl Applicative[std.collections.List.List] for std.collections.List.List {
+}.
+
+pub impl Applicative[std.core.Option.Option] for std.core.Option.Option {
+}.
+
+pub impl Functor[std.collections.List.List] for std.collections.List.List {
+}.
+
+pub impl Functor[std.core.Option.Option] for std.core.Option.Option {
+}.
+
+pub impl Monad[std.collections.List.List] for std.collections.List.List {
+}.
+
+pub impl Monad[std.core.Option.Option] for std.core.Option.Option {
+}.
+
+pub impl ResultFunctor[std.core.Result.Result] for std.core.Result.Result {
+}.
+
+pub impl ResultMonad[std.core.Result.Result] for std.core.Result.Result {
+}.
+

@@ -1,7 +1,7 @@
 module=std.collections.Index
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 source_hash=2296802985059252609
 interface_hash=6676691833875931145
 interface_doc_hash=6103494022842773686

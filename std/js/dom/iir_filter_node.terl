@@ -1,0 +1,31 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IIRFilterNode
+ */
+
+module std.js.Dom.IIRFilterNode.
+
+/**
+ * The **`IIRFilterNode`** interface of the Web Audio API is a AudioNode processor which implements a general **infinite impulse response** (IIR) filter; this type of filter can be used to implement tone control devices and graphic equalizers as well.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IIRFilterNode)
+ */
+pub opaque type IIRFilterNode.
+
+/**
+ * The `getFrequencyResponse()` method of the IIRFilterNode interface takes the current filtering algorithm's settings and calculates the frequency response for frequencies specified in a specified array of frequencies.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IIRFilterNode/getFrequencyResponse)
+ */
+pub (value: IIRFilterNode) get_frequency_response(frequency_hz: Float32Array[ArrayBuffer], mag_response: Float32Array[ArrayBuffer], phase_response: Float32Array[ArrayBuffer]): std.core.Unit ->
+    native.

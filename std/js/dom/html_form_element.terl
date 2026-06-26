@@ -1,0 +1,173 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLFormElement
+ */
+
+module std.js.Dom.HTMLFormElement.
+
+/**
+ * The **`HTMLFormElement`** interface represents a form element in the DOM.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement)
+ */
+pub opaque type HTMLFormElement.
+
+/**
+ * The **`HTMLFormElement.acceptCharset`** property represents the character encoding for the given form element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/acceptCharset)
+ */
+pub (value: HTMLFormElement) accept_charset(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLFormElement.action`** property represents the action of the form element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/action)
+ */
+pub (value: HTMLFormElement) action(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`autocomplete`** property of the HTMLFormElement interface indicates whether the value of the form's controls can be automatically completed by the browser.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/autocomplete)
+ */
+pub (value: HTMLFormElement) autocomplete(): AutoFillBase ->
+    native.
+
+/**
+ * The HTMLFormElement property **`elements`** returns an the form element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/elements)
+ */
+pub (value: HTMLFormElement) elements(): HTMLFormControlsCollection ->
+    native.
+
+/**
+ * The **`HTMLFormElement.encoding`** property is an alternative name for the HTMLFormElement.enctype element on the DOM HTMLFormElement object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/encoding)
+ */
+pub (value: HTMLFormElement) encoding(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLFormElement.enctype`** property is the MIME_type of content that is used to submit the form to the server.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/enctype)
+ */
+pub (value: HTMLFormElement) enctype(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLFormElement.length`** read-only property returns the number of controls in the form element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/length)
+ */
+pub (value: HTMLFormElement) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`HTMLFormElement.method`** property represents the Unless explicitly specified, the default method is 'get'.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/method)
+ */
+pub (value: HTMLFormElement) method(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLFormElement.name`** property represents the name of the current form element as a string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/name)
+ */
+pub (value: HTMLFormElement) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`noValidate`** property of the HTMLFormElement interface is a boolean value indicating if the form will bypass constraint validation when submitted.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/noValidate)
+ */
+pub (value: HTMLFormElement) no_validate(): std.core.Bool ->
+    native.
+
+/**
+ * The **`rel`** property of the HTMLFormElement interface reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/rel)
+ */
+pub (value: HTMLFormElement) rel(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`relList`** read-only property of the HTMLFormElement interface reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/relList)
+ */
+pub (value: HTMLFormElement) rel_list(): DOMTokenList ->
+    native.
+
+/**
+ * The **`target`** property of the HTMLFormElement interface represents the target of the form's action (i.e., the frame in which to render its output).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/target)
+ */
+pub (value: HTMLFormElement) target_(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`checkValidity()`** method of the HTMLFormElement interface returns a boolean value which indicates if all associated controls meet any constraint validation rules applied to them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/checkValidity)
+ */
+pub (value: HTMLFormElement) check_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`reportValidity()`** method of the HTMLFormElement interface performs the same validity checking steps as the HTMLFormElement.checkValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/reportValidity)
+ */
+pub (value: HTMLFormElement) report_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The HTMLFormElement method **`requestSubmit()`** requests that the form be submitted using a specific submit button.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/requestSubmit)
+ */
+pub (value: HTMLFormElement) request_submit(submitter: Option[HTMLElement]): std.core.Unit ->
+    native.
+
+/**
+ * The **`HTMLFormElement.reset()`** method restores a form element's default values.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/reset)
+ */
+pub (value: HTMLFormElement) reset(): std.core.Unit ->
+    native.
+
+/**
+ * The **`HTMLFormElement.submit()`** method submits a given This method is similar, but not identical to, activating a form's submit - No HTMLFormElement/submit_event event is raised.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/submit)
+ */
+pub (value: HTMLFormElement) submit(): std.core.Unit ->
+    native.
+
+pub (value: HTMLFormElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLFormElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

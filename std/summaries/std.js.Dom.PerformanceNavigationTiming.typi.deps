@@ -1,0 +1,8 @@
+module=std.js.Dom.PerformanceNavigationTiming
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=1436185110064018987
+interface_hash=3912308752375821730
+interface_doc_hash=3912308752375821730
+deps=0

@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ReadableStream
+ */
+
+module std.js.Dom.ReadableStream.
+
+/**
+ * The `ReadableStream` interface of the Streams API represents a readable stream of byte data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream)
+ */
+pub opaque type ReadableStream[R].
+
+/**
+ * The **`locked`** read-only property of the ReadableStream interface returns whether or not the readable stream is locked to a reader.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/locked)
+ */
+pub (value: ReadableStream[R]) locked(): std.core.Bool.
+
+pub (value: ReadableStream[R]) get_reader(): ReadableStreamDefaultReader[R].
+
+pub (value: ReadableStream[R]) get_reader(options: ReadableStreamGetReaderOptions): ReadableStreamReader[R].
+
+/**
+ * The **`pipeThrough()`** method of the ReadableStream interface provides a chainable way of piping the current stream through a transform stream or any other writable/readable pair.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeThrough)
+ */
+pub (value: ReadableStream[R]) pipe_through(transform: ReadableWritablePair[T, R], options: StreamPipeOptions): ReadableStream[T].
+
+/**
+ * The **`pipeTo()`** method of the ReadableStream interface pipes the current `ReadableStream` to a given WritableStream and returns a Promise that fulfills when the piping process completes successfully, or rejects if any errors were encountered.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeTo)
+ */
+pub (value: ReadableStream[R]) pipe_to(destination: WritableStream[R], options: StreamPipeOptions): std.js.Promise[std.core.Unit].

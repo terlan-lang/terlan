@@ -1,0 +1,42 @@
+module std.http.CookiesTest.
+
+import type std.core.Option.Option.
+import std.http.Cookies.{delete_header, set_header, set_header_options}.
+import type std.http.Cookies.{Jar, Options, SameSite}.
+
+pub accepts_same_site(value: SameSite): SameSite ->
+    value.
+
+pub accepts_options(value: Options): Options ->
+    value.
+
+pub accepts_optional_same_site(value: Option[SameSite]): Option[SameSite] ->
+    value.
+
+pub accepts_jar(value: Jar): Jar ->
+    value.
+
+pub sample_set_cookie_header(): String ->
+    set_header("session", "abc123", http_only = true).
+
+pub sample_delete_cookie_header(): String ->
+    delete_header("session").
+
+pub sample_set_cookie_header_options(options: Options): String ->
+    set_header_options("session", "abc123", options).
+
+@test
+pub cookies_surface_is_declared(): Bool ->
+    true.
+
+@test
+pub cookies_header_builders_are_declared(): Bool ->
+    true.
+
+@test
+pub cookies_option_header_builder_is_declared(): Bool ->
+    true.
+
+@test
+pub cookies_jar_surface_is_declared(): Bool ->
+    true.

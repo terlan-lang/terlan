@@ -1,0 +1,8 @@
+module=std.js.Dom.MediaStreamAudioDestinationNode
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=1517213771023533054
+interface_hash=7289824577958005490
+interface_doc_hash=7289824577958005490
+deps=0

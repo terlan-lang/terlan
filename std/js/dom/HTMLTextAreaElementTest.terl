@@ -1,0 +1,115 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLTextAreaElement
+ */
+
+module std.js.Dom.HTMLTextAreaElementTest.
+
+import type std.js.Dom.HTMLTextAreaElement.HTMLTextAreaElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub autocomplete_typechecks(receiver: HTMLTextAreaElement): AutoFill ->
+    receiver.autocomplete().
+
+pub cols_typechecks(receiver: HTMLTextAreaElement): std.js.Number.JsNumber ->
+    receiver.cols().
+
+pub default_value_typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.default_value().
+
+pub dir_name_typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.dir_name().
+
+pub disabled_typechecks(receiver: HTMLTextAreaElement): std.core.Bool ->
+    receiver.disabled().
+
+pub form_typechecks(receiver: HTMLTextAreaElement): Option[HTMLFormElement] ->
+    receiver.form().
+
+pub labels_typechecks(receiver: HTMLTextAreaElement): NodeListOf[HTMLLabelElement] ->
+    receiver.labels().
+
+pub max_length_typechecks(receiver: HTMLTextAreaElement): std.js.Number.JsNumber ->
+    receiver.max_length().
+
+pub min_length_typechecks(receiver: HTMLTextAreaElement): std.js.Number.JsNumber ->
+    receiver.min_length().
+
+pub name_typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.name().
+
+pub placeholder_typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.placeholder().
+
+pub read_only_typechecks(receiver: HTMLTextAreaElement): std.core.Bool ->
+    receiver.read_only().
+
+pub required_typechecks(receiver: HTMLTextAreaElement): std.core.Bool ->
+    receiver.required().
+
+pub rows_typechecks(receiver: HTMLTextAreaElement): std.js.Number.JsNumber ->
+    receiver.rows().
+
+pub selection_end_typechecks(receiver: HTMLTextAreaElement): std.js.Number.JsNumber ->
+    receiver.selection_end().
+
+pub selection_start_typechecks(receiver: HTMLTextAreaElement): std.js.Number.JsNumber ->
+    receiver.selection_start().
+
+pub text_length_typechecks(receiver: HTMLTextAreaElement): std.js.Number.JsNumber ->
+    receiver.text_length().
+
+pub type__typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.type_().
+
+pub validation_message_typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.validation_message().
+
+pub validity_typechecks(receiver: HTMLTextAreaElement): ValidityState ->
+    receiver.validity().
+
+pub value_typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.value().
+
+pub will_validate_typechecks(receiver: HTMLTextAreaElement): std.core.Bool ->
+    receiver.will_validate().
+
+pub wrap_typechecks(receiver: HTMLTextAreaElement): std.js.String.JsString ->
+    receiver.wrap().
+
+pub check_validity_typechecks(receiver: HTMLTextAreaElement): std.core.Bool ->
+    receiver.check_validity().
+
+pub report_validity_typechecks(receiver: HTMLTextAreaElement): std.core.Bool ->
+    receiver.report_validity().
+
+pub select_typechecks(receiver: HTMLTextAreaElement): std.core.Unit ->
+    receiver.select().
+
+pub set_custom_validity_typechecks(receiver: HTMLTextAreaElement, error: std.js.String.JsString): std.core.Unit ->
+    receiver.set_custom_validity(error).
+
+pub set_range_text_typechecks(receiver: HTMLTextAreaElement, replacement: std.js.String.JsString): std.core.Unit ->
+    receiver.set_range_text(replacement).
+
+pub set_range_text_typechecks(receiver: HTMLTextAreaElement, replacement: std.js.String.JsString, start: std.js.Number.JsNumber, end: std.js.Number.JsNumber, selection_mode: SelectionMode): std.core.Unit ->
+    receiver.set_range_text(replacement, start, end, selection_mode).
+
+pub add_event_listener_typechecks(receiver: HTMLTextAreaElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: HTMLTextAreaElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

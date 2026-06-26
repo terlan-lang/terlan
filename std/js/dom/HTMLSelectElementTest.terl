@@ -1,0 +1,103 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLSelectElement
+ */
+
+module std.js.Dom.HTMLSelectElementTest.
+
+import type std.js.Dom.HTMLSelectElement.HTMLSelectElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub autocomplete_typechecks(receiver: HTMLSelectElement): AutoFill ->
+    receiver.autocomplete().
+
+pub disabled_typechecks(receiver: HTMLSelectElement): std.core.Bool ->
+    receiver.disabled().
+
+pub form_typechecks(receiver: HTMLSelectElement): Option[HTMLFormElement] ->
+    receiver.form().
+
+pub labels_typechecks(receiver: HTMLSelectElement): NodeListOf[HTMLLabelElement] ->
+    receiver.labels().
+
+pub length_typechecks(receiver: HTMLSelectElement): std.js.Number.JsNumber ->
+    receiver.length().
+
+pub multiple_typechecks(receiver: HTMLSelectElement): std.core.Bool ->
+    receiver.multiple().
+
+pub name_typechecks(receiver: HTMLSelectElement): std.js.String.JsString ->
+    receiver.name().
+
+pub options_typechecks(receiver: HTMLSelectElement): HTMLOptionsCollection ->
+    receiver.options().
+
+pub required_typechecks(receiver: HTMLSelectElement): std.core.Bool ->
+    receiver.required().
+
+pub selected_index_typechecks(receiver: HTMLSelectElement): std.js.Number.JsNumber ->
+    receiver.selected_index().
+
+pub selected_options_typechecks(receiver: HTMLSelectElement): HTMLCollectionOf[HTMLOptionElement] ->
+    receiver.selected_options().
+
+pub size_typechecks(receiver: HTMLSelectElement): std.js.Number.JsNumber ->
+    receiver.size().
+
+pub validation_message_typechecks(receiver: HTMLSelectElement): std.js.String.JsString ->
+    receiver.validation_message().
+
+pub validity_typechecks(receiver: HTMLSelectElement): ValidityState ->
+    receiver.validity().
+
+pub value_typechecks(receiver: HTMLSelectElement): std.js.String.JsString ->
+    receiver.value().
+
+pub will_validate_typechecks(receiver: HTMLSelectElement): std.core.Bool ->
+    receiver.will_validate().
+
+pub add_typechecks(receiver: HTMLSelectElement, element: HTMLOptGroupElement | HTMLOptionElement, before: Option[HTMLElement | std.js.Number.JsNumber]): std.core.Unit ->
+    receiver.add(element, before).
+
+pub check_validity_typechecks(receiver: HTMLSelectElement): std.core.Bool ->
+    receiver.check_validity().
+
+pub item_typechecks(receiver: HTMLSelectElement, index: std.js.Number.JsNumber): Option[HTMLOptionElement] ->
+    receiver.item(index).
+
+pub named_item_typechecks(receiver: HTMLSelectElement, name: std.js.String.JsString): Option[HTMLOptionElement] ->
+    receiver.named_item(name).
+
+pub remove_typechecks(receiver: HTMLSelectElement): std.core.Unit ->
+    receiver.remove().
+
+pub remove_typechecks(receiver: HTMLSelectElement, index: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.remove(index).
+
+pub report_validity_typechecks(receiver: HTMLSelectElement): std.core.Bool ->
+    receiver.report_validity().
+
+pub set_custom_validity_typechecks(receiver: HTMLSelectElement, error: std.js.String.JsString): std.core.Unit ->
+    receiver.set_custom_validity(error).
+
+pub show_picker_typechecks(receiver: HTMLSelectElement): std.core.Unit ->
+    receiver.show_picker().
+
+pub add_event_listener_typechecks(receiver: HTMLSelectElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: HTMLSelectElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

@@ -1,4 +1,15 @@
+use super::beam_runner::{add_test_exports_to_erlang_source, render_eunit_wrapper_source};
+use super::command_runner::quote_erlang_atom;
+use super::command_runner::run_command_with_timeout;
+use super::manifest::{TestRunReport, TestRunResult, TestRunStatus};
+use super::release_support::{
+    direct_release_support_module_names, release_support_modules, release_support_modules_by_name,
+    source_release_support_module_names,
+};
 use super::*;
+use std::process::Command;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use terlan_typeck::{CoreImport, CoreImportKind};
 
 /// Parsed release-manifest module ownership used by support-module tests.
 ///
@@ -36,6 +47,7 @@ fn parse_test_args_accepts_default_erlang_target() {
     let parsed = parse_test_args(&args(&["tests/sample.terl"])).expect("test args");
     assert_eq!(parsed.path, "tests/sample.terl");
     assert_eq!(parsed.target, TestTarget::Erlang);
+    assert_eq!(parsed.test_name, None);
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
 }
@@ -57,6 +69,7 @@ fn parse_test_args_defaults_to_tests_directory() {
 
     assert_eq!(parsed.path, "tests");
     assert_eq!(parsed.target, TestTarget::Erlang);
+    assert_eq!(parsed.test_name, None);
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
 }
@@ -67,6 +80,7 @@ fn parse_test_args_accepts_explicit_erlang_target() {
         parse_test_args(&args(&["tests/sample.terl", "--target", "erlang"])).expect("test args");
     assert_eq!(parsed.path, "tests/sample.terl");
     assert_eq!(parsed.target, TestTarget::Erlang);
+    assert_eq!(parsed.test_name, None);
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
 }
@@ -84,11 +98,55 @@ fn parse_test_args_accepts_explicit_erlang_target() {
 #[test]
 fn parse_test_args_accepts_explicit_js_target() {
     let parsed =
-        parse_test_args(&args(&["std/js/string_test.terl", "--target", "js"])).expect("test args");
-    assert_eq!(parsed.path, "std/js/string_test.terl");
+        parse_test_args(&args(&["std/js/StringTest.terl", "--target", "js"])).expect("test args");
+    assert_eq!(parsed.path, "std/js/StringTest.terl");
     assert_eq!(parsed.target, TestTarget::Js);
+    assert_eq!(parsed.test_name, None);
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
+}
+
+/// Verifies parsing for exact test-name selection.
+///
+/// Inputs:
+/// - Synthetic CLI arguments with a source path and `--name`.
+///
+/// Output:
+/// - Parsed args with the exact test function selector.
+///
+/// Transformation:
+/// - Parses command-local arguments without touching the filesystem.
+#[test]
+fn parse_test_args_accepts_test_name_selector() {
+    let parsed = parse_test_args(&args(&["tests/SampleTest.terl", "--name", "smoke_test"]))
+        .expect("test args");
+
+    assert_eq!(parsed.path, "tests/SampleTest.terl");
+    assert_eq!(parsed.test_name.as_deref(), Some("smoke_test"));
+}
+
+/// Verifies duplicate test-name selectors are rejected.
+///
+/// Inputs:
+/// - Synthetic CLI arguments with two `--name` flags.
+///
+/// Output:
+/// - Assertion over the exact parser diagnostic.
+///
+/// Transformation:
+/// - Parses command-local arguments and expects a duplicate-flag error.
+#[test]
+fn parse_test_args_rejects_duplicate_test_name_selector() {
+    let error = parse_test_args(&args(&[
+        "tests/SampleTest.terl",
+        "--name",
+        "one",
+        "--name",
+        "two",
+    ]))
+    .expect_err("error");
+
+    assert_eq!(error, "duplicate --name");
 }
 
 /// Verifies parsing for the opt-in test manifest flag.
@@ -104,12 +162,12 @@ fn parse_test_args_accepts_explicit_js_target() {
 #[test]
 fn parse_test_args_accepts_test_manifest_path() {
     let parsed = parse_test_args(&args(&[
-        "tests/sample_test.terl",
+        "tests/SampleTest.terl",
         "--emit-test-manifest",
         "target/sample.test-manifest.json",
     ]))
     .expect("test args");
-    assert_eq!(parsed.path, "tests/sample_test.terl");
+    assert_eq!(parsed.path, "tests/SampleTest.terl");
     assert_eq!(
         parsed.emit_test_manifest,
         Some(PathBuf::from("target/sample.test-manifest.json"))
@@ -129,7 +187,7 @@ fn parse_test_args_accepts_test_manifest_path() {
 #[test]
 fn parse_test_args_rejects_duplicate_test_manifest_path() {
     let error = parse_test_args(&args(&[
-        "tests/sample_test.terl",
+        "tests/SampleTest.terl",
         "--emit-test-manifest",
         "target/one.json",
         "--emit-test-manifest",
@@ -153,12 +211,12 @@ fn parse_test_args_rejects_duplicate_test_manifest_path() {
 #[test]
 fn parse_test_args_accepts_test_result_manifest_path() {
     let parsed = parse_test_args(&args(&[
-        "tests/sample_test.terl",
+        "tests/SampleTest.terl",
         "--emit-test-result-manifest",
         "target/sample.test-results.json",
     ]))
     .expect("test args");
-    assert_eq!(parsed.path, "tests/sample_test.terl");
+    assert_eq!(parsed.path, "tests/SampleTest.terl");
     assert_eq!(
         parsed.emit_test_result_manifest,
         Some(PathBuf::from("target/sample.test-results.json"))
@@ -178,7 +236,7 @@ fn parse_test_args_accepts_test_result_manifest_path() {
 #[test]
 fn parse_test_args_rejects_duplicate_test_result_manifest_path() {
     let error = parse_test_args(&args(&[
-        "tests/sample_test.terl",
+        "tests/SampleTest.terl",
         "--emit-test-result-manifest",
         "target/one.json",
         "--emit-test-result-manifest",
@@ -274,7 +332,7 @@ fn supported_test_return_types_reject_unit() {
 /// - A temporary directory containing nested test and non-test `.terl` files.
 ///
 /// Output:
-/// - Discovered path list containing only `*_test.terl` files.
+/// - Discovered path list containing only `*Test.terl` files.
 ///
 /// Transformation:
 /// - Walks the directory through `collect_test_files`, then removes the
@@ -292,7 +350,7 @@ fn collect_test_files_finds_only_test_sources() {
     fs::create_dir_all(root.join("std/core")).expect("create nested test dir");
     fs::create_dir_all(root.join("helpers")).expect("create helper dir");
     fs::write(
-        root.join("std/core/bool_test.terl"),
+        root.join("std/core/BoolTest.terl"),
         "module std.core.BoolTest.\n",
     )
     .expect("write bool test");
@@ -310,14 +368,15 @@ fn collect_test_files_finds_only_test_sources() {
     let _ = fs::remove_dir_all(&root);
 
     assert_eq!(paths.len(), 1);
-    assert!(paths[0].ends_with("std/core/bool_test.terl"));
+    assert!(paths[0].ends_with("std/core/BoolTest.terl"));
 }
 
 #[test]
 fn test_source_path_requires_test_suffix() {
-    assert!(is_test_source_path("std/core/bool_test.terl"));
-    assert!(!is_test_source_path("std/core/bool.terl"));
-    assert!(!is_test_source_path("std/core/bool_test.md"));
+    assert!(is_test_source_path("std/core/BoolTest.terl"));
+    assert!(!is_test_source_path("std/core/bool_test.terl"));
+    assert!(!is_test_source_path("std/core/Bool.terl"));
+    assert!(!is_test_source_path("std/core/BoolTest.md"));
 }
 
 /// Verifies release support modules are embedded for installed test runs.
@@ -384,6 +443,94 @@ fn release_api_test_modules_have_embedded_runner_support() {
             owner.source
         );
     }
+}
+
+/// Verifies embedded support lookup is keyed by declared module name.
+///
+/// Inputs:
+/// - Static embedded release support inventory.
+///
+/// Output:
+/// - Test passes when representative std modules can be found by canonical
+///   module name.
+///
+/// Transformation:
+/// - Builds the dependency-planning index without compiling support modules.
+#[test]
+fn release_support_modules_by_name_indexes_declared_modules() {
+    let support_by_name = release_support_modules_by_name();
+
+    assert!(support_by_name.contains_key("std.test.Test"));
+    assert!(support_by_name.contains_key("std.core.String"));
+    assert!(support_by_name.contains_key("std.core.Object"));
+    assert!(support_by_name.contains_key("std.collections.Map"));
+}
+
+/// Verifies runtime support planning does not compile unused std modules.
+///
+/// Inputs:
+/// - Empty import list and representative CoreIR imports.
+///
+/// Output:
+/// - Empty plan for no imports; exact std support module for a matching import.
+///
+/// Transformation:
+/// - Exercises import filtering without invoking the formal compiler or Erlang.
+#[test]
+fn direct_release_support_module_names_follows_core_module_imports() {
+    let support_by_name = release_support_modules_by_name();
+    assert!(direct_release_support_module_names(&[], &support_by_name).is_empty());
+
+    let imports = vec![
+        CoreImport {
+            module: "std.core.Bool".to_string(),
+            kind: CoreImportKind::Module,
+        },
+        CoreImport {
+            module: "std.core.Bool".to_string(),
+            kind: CoreImportKind::Css,
+        },
+        CoreImport {
+            module: "project.Local".to_string(),
+            kind: CoreImportKind::Module,
+        },
+    ];
+
+    let selected = direct_release_support_module_names(&imports, &support_by_name);
+
+    assert_eq!(
+        selected,
+        ["std.core.Bool".to_string()].into_iter().collect()
+    );
+}
+
+/// Verifies fully-qualified std references select embedded runtime support.
+///
+/// Inputs:
+/// - Synthetic source containing fully-qualified calls without imports.
+///
+/// Output:
+/// - Support module names for the referenced std modules.
+///
+/// Transformation:
+/// - Exercises the source-reference fallback used by installed `terlc test`
+///   for explicit calls such as `std.test.Test.assert(...)`.
+#[test]
+fn source_release_support_module_names_follows_qualified_references() {
+    let support_by_name = release_support_modules_by_name();
+    let source = "\
+module sample.Test.
+
+@test
+pub passes(): Bool ->
+    std.test.Test.assert(std.core.Bool.is_true(true)).
+";
+
+    let selected = source_release_support_module_names(source, &support_by_name);
+
+    assert!(selected.contains("std.test.Test"));
+    assert!(selected.contains("std.core.Bool"));
+    assert!(!selected.contains("std.core.Int"));
 }
 
 /// Parses release module ownership rows from the std release manifest.
@@ -467,18 +614,47 @@ fn owning_release_module<'a>(
 ///   manifest.
 ///
 /// Output:
-/// - `true` when the source has no compiler-native body and should therefore
-///   be embedded for installed `terlc test` runs.
-/// - `false` when native/runtime lowering owns execution coverage.
+/// - `true` when the source has executable functions with no compiler-owned
+///   body and should therefore be embedded for installed `terlc test` runs.
+/// - `false` when native, intrinsic, or runtime lowering owns execution
+///   coverage.
 ///
 /// Transformation:
-/// - Reads the source file from the repository checkout and treats the literal
-///   `native` body as a marker that the ordinary Erlang test workspace cannot
-///   compile the full support module.
+/// - Reads the source file from the repository checkout, ignores type-only
+///   modules, and treats native or intrinsic annotations/bodies as markers
+///   that the ordinary Erlang test workspace should not compile the full
+///   support module.
 fn release_module_requires_embedded_support(source_path: &str) -> bool {
     let source = std::fs::read_to_string(repo_root_for_test().join(source_path))
         .unwrap_or_else(|err| panic!("read release module source `{source_path}`: {err}"));
-    !source.contains("->\n    native.")
+    has_executable_public_function(&source)
+        && !source.contains("->\n    native.")
+        && !source.contains("@compiler.intrinsic")
+}
+
+/// Returns whether a Terlan source contains public executable functions.
+///
+/// Inputs:
+/// - `source`: Terlan module source text from the release manifest.
+///
+/// Output:
+/// - `true` when a line looks like a public function or receiver method.
+///
+/// Transformation:
+/// - Uses line starts to distinguish executable declarations from public type
+///   declarations without parsing the full module in this unit test.
+fn has_executable_public_function(source: &str) -> bool {
+    source.lines().any(|line| {
+        let trimmed = line.trim_start();
+        trimmed.starts_with("pub (") || trimmed.starts_with("pub mut (") || {
+            trimmed.starts_with("pub ")
+                && !trimmed.starts_with("pub type ")
+                && !trimmed.starts_with("pub opaque type ")
+                && !trimmed.starts_with("pub struct ")
+                && !trimmed.starts_with("pub trait ")
+                && trimmed.contains('(')
+        }
+    })
 }
 
 /// Returns the repository root used by filesystem-backed unit tests.
@@ -522,7 +698,7 @@ fn write_test_manifest_records_source_target_and_spans() {
     ));
     write_test_manifest(
         &path,
-        "tests/sample_test.terl",
+        "tests/SampleTest.terl",
         "tests.SampleTest",
         "erlang",
         "erlang",
@@ -530,6 +706,7 @@ fn write_test_manifest_records_source_target_and_spans() {
             name: "sample".to_string(),
             span_start: 12,
             span_end: 34,
+            literal_bool_result: Some(true),
         }],
     )
     .expect("write manifest");
@@ -539,7 +716,7 @@ fn write_test_manifest_records_source_target_and_spans() {
             .expect("manifest json");
     let _ = fs::remove_file(&path);
 
-    assert_eq!(json["source_path"], "tests/sample_test.terl");
+    assert_eq!(json["source_path"], "tests/SampleTest.terl");
     assert_eq!(json["module_name"], "tests.SampleTest");
     assert_eq!(json["target"], "erlang");
     assert_eq!(json["target_profile"], "erlang");
@@ -591,7 +768,7 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
     };
     write_test_result_manifest(
         &path,
-        "tests/sample_test.terl",
+        "tests/SampleTest.terl",
         "tests.SampleTest",
         "erlang",
         "erlang",
@@ -604,7 +781,7 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
             .expect("manifest json");
     let _ = fs::remove_file(&path);
 
-    assert_eq!(json["source_path"], "tests/sample_test.terl");
+    assert_eq!(json["source_path"], "tests/SampleTest.terl");
     assert_eq!(json["passed"], 1);
     assert_eq!(json["failed"], 1);
     assert_eq!(json["tests"][0]["name"], "passes");
@@ -633,6 +810,7 @@ fn validation_pass_report_marks_all_tests_as_validated() {
         name: "smoke".to_string(),
         span_start: 7,
         span_end: 19,
+        literal_bool_result: Some(true),
     }]);
 
     assert_eq!(report.passed, 1);
@@ -645,6 +823,103 @@ fn validation_pass_report_marks_all_tests_as_validated() {
     );
     assert_eq!(report.results[0].span_start, 7);
     assert_eq!(report.results[0].span_end, 19);
+}
+
+/// Verifies literal bool tests do not require release support modules.
+///
+/// Inputs:
+/// - Synthetic discovered test metadata for one surface marker and one runtime
+///   test.
+///
+/// Output:
+/// - Test passes when only the runtime test requires support modules.
+///
+/// Transformation:
+/// - Exercises the runner decision without spawning Erlang or compiling std
+///   support modules.
+#[test]
+fn tests_require_release_support_only_for_non_literal_tests() {
+    let surface_test = DiscoveredTest {
+        name: "surface".to_string(),
+        span_start: 1,
+        span_end: 2,
+        literal_bool_result: Some(true),
+    };
+    let runtime_test = DiscoveredTest {
+        name: "runtime".to_string(),
+        span_start: 3,
+        span_end: 4,
+        literal_bool_result: None,
+    };
+
+    assert!(!tests_require_release_support(&[surface_test]));
+    assert!(tests_require_release_support(&[runtime_test]));
+}
+
+/// Verifies exact test selection keeps only the named test.
+///
+/// Inputs:
+/// - Synthetic discovered tests and selector `second`.
+///
+/// Output:
+/// - A one-element selected test list.
+///
+/// Transformation:
+/// - Applies the same exact-name filter used by `terlc test --name`.
+#[test]
+fn select_tests_keeps_exact_selected_test() {
+    let selected = select_tests(
+        vec![
+            DiscoveredTest {
+                name: "first".to_string(),
+                span_start: 1,
+                span_end: 2,
+                literal_bool_result: Some(true),
+            },
+            DiscoveredTest {
+                name: "second".to_string(),
+                span_start: 3,
+                span_end: 4,
+                literal_bool_result: Some(true),
+            },
+        ],
+        Some("second"),
+        "tests/SampleTest.terl",
+    )
+    .expect("selected tests");
+
+    assert_eq!(selected.len(), 1);
+    assert_eq!(selected[0].name, "second");
+}
+
+/// Verifies missing exact test selection produces a clear diagnostic.
+///
+/// Inputs:
+/// - Synthetic discovered tests and missing selector.
+///
+/// Output:
+/// - Stable missing-test diagnostic.
+///
+/// Transformation:
+/// - Applies the same exact-name filter used by `terlc test --name`.
+#[test]
+fn select_tests_rejects_missing_test_name() {
+    let error = select_tests(
+        vec![DiscoveredTest {
+            name: "present".to_string(),
+            span_start: 1,
+            span_end: 2,
+            literal_bool_result: Some(true),
+        }],
+        Some("missing"),
+        "tests/SampleTest.terl",
+    )
+    .expect_err("missing selector");
+
+    assert_eq!(
+        error,
+        "no @test declaration named `missing` found in tests/SampleTest.terl"
+    );
 }
 
 /// Verifies JS validation writes source and result manifests.
@@ -670,7 +945,7 @@ fn run_js_tests_writes_validation_manifests() {
             .as_nanos()
     ));
     fs::create_dir_all(&root).expect("create temp js test dir");
-    let source_path = root.join("manifest_test.terl");
+    let source_path = root.join("ManifestTest.terl");
     let manifest_path = root.join("test-manifest.json");
     let result_path = root.join("test-results.json");
     fs::write(
@@ -739,6 +1014,7 @@ fn render_eunit_wrapper_source_delegates_to_target_tests() {
             name: "passes".to_string(),
             span_start: 1,
             span_end: 2,
+            literal_bool_result: Some(true),
         }],
     );
     assert!(
@@ -777,6 +1053,7 @@ fn add_test_exports_to_erlang_source_inserts_test_only_export() {
             name: "hidden".to_string(),
             span_start: 1,
             span_end: 2,
+            literal_bool_result: Some(true),
         }],
     );
     assert!(
@@ -790,4 +1067,52 @@ fn add_test_exports_to_erlang_source_inserts_test_only_export() {
 fn quote_erlang_atom_escapes_quotes_and_backslashes() {
     assert_eq!(quote_erlang_atom("std_test"), "'std_test'");
     assert_eq!(quote_erlang_atom("a'b\\c"), "'a\\'b\\\\c'");
+}
+
+/// Verifies bounded command execution preserves successful child output.
+///
+/// Inputs:
+/// - A shell command that exits quickly after writing to stdout.
+///
+/// Output:
+/// - Successful output object containing the child stdout.
+///
+/// Transformation:
+/// - Runs the helper with a generous timeout and asserts it behaves like
+///   `Command::output` for normal processes.
+#[test]
+fn run_command_with_timeout_collects_successful_output() {
+    let mut command = Command::new("sh");
+    command.arg("-c").arg("printf ready");
+
+    let output = run_command_with_timeout(&mut command, "test-shell", Duration::from_secs(2))
+        .expect("command output");
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "ready");
+}
+
+/// Verifies bounded command execution kills long-running children.
+///
+/// Inputs:
+/// - A shell command that sleeps longer than the supplied timeout.
+///
+/// Output:
+/// - Timeout diagnostic naming the command label.
+///
+/// Transformation:
+/// - Runs the helper with a short timeout and asserts the caller gets a stable
+///   error instead of an unbounded wait.
+#[test]
+fn run_command_with_timeout_reports_timeout() {
+    let mut command = Command::new("sh");
+    command.arg("-c").arg("sleep 2");
+
+    let message = run_command_with_timeout(&mut command, "test-shell", Duration::from_millis(50))
+        .expect_err("timeout diagnostic");
+
+    assert!(
+        message.contains("test-shell timed out after 0 seconds"),
+        "{message}"
+    );
 }

@@ -22,7 +22,7 @@ fn run_emit_js_writes_js_and_declarations() {
     let dir = make_temp_dir("emit_js_success");
     let path = fixture(
             &dir,
-            "module js_demo.\n\npub type Option[T] =\n      none\n    | {some, T}.\n\npub type Result[T, E] =\n      {ok, T}\n    | {error, E}.\n\ntype PrivateAlias = Int.\n\npub validate_age(Age: Int): Result[Int, invalid_age] ->\n    case Age >= 0 {\n        true -> {ok, Age};\n        false -> {error, invalid_age}\n    }.\n\nprivate_flag(Name: Text): Bool ->\n    Name >= <<\"a\">>.\n",
+            "module js_demo.\n\npub type Option[T] =\n      none\n    | {some, T}.\n\npub type Result[T, E] =\n      {ok, T}\n    | {error, E}.\n\ntype PrivateAlias = Int.\n\npub validate_age(Age: Int): Result[Int, invalid_age] ->\n    case Age >= 0 {\n        true -> {ok, Age};\n        false -> {error, invalid_age}\n    }.\n\nprivate_flag(Name: Text): Bool ->\n    Name >= \"a\".\n",
         );
     let out_dir = dir.join("js");
     let parsed = commands::emit_js::parse_emit_js_args(&[path.clone(), "--declarations".into()])

@@ -1,0 +1,34 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Float32ArrayConstructor
+ */
+
+module std.js.Float32ArrayConstructorTest.
+
+import type std.js.Float32ArrayConstructor.Float32ArrayConstructor.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub prototype_typechecks(receiver: Float32ArrayConstructor): Float32Array[ArrayBufferLike] ->
+    receiver.prototype().
+
+pub bytes_per_element_typechecks(receiver: Float32ArrayConstructor): std.js.Number.JsNumber ->
+    receiver.bytes_per_element().
+
+pub of_typechecks(receiver: Float32ArrayConstructor): Float32Array[ArrayBuffer] ->
+    receiver.of().
+
+pub from__typechecks(receiver: Float32ArrayConstructor, array_like: ArrayLike[std.js.Number.JsNumber]): Float32Array[ArrayBuffer] ->
+    receiver.from_(array_like).

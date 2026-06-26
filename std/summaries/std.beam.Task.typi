@@ -41,5 +41,5 @@ pub (task: Task[T]) result(): Result[T, Error].
 /// Transformation: asks the BEAM runtime to spawn supervised work and
 /// normalizes startup failure into the standard typed error channel.
 
-pub start(work: () -> T): Result[Task[T], Error].
+pub start[T](work: () -> T): Result[Task[T], Error].
 

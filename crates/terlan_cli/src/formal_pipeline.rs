@@ -4,15 +4,14 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use terlan_hir::{
-    load_interfaces_from_dir, load_interfaces_from_file_set,
-    resolve_syntax_module_output_with_interfaces, syntax_module_output_to_interface,
-    ModuleInterface,
+    load_interfaces_from_dir, resolve_syntax_module_output_with_interfaces,
+    syntax_module_output_to_interface, ModuleInterface,
 };
 use terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
     SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
 };
-use terlan_typeck::{expand_syntax_derives, expand_syntax_raw_macros};
+use terlan_typeck::{expand_syntax_includes, expand_syntax_raw_macros};
 
 use crate::validation::config_contract::check_config_declarations_syntax_output;
 use crate::validation::native_policy::{validate_native_policy, NativePolicy};
@@ -56,7 +55,7 @@ pub(crate) struct CompileSyntaxModuleThroughPhasesResult {
     pub(crate) artifacts: Option<CheckedSyntaxModuleArtifacts>,
     pub(crate) parse_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) macro_expansion_diagnostics: Vec<PhaseManifestDiagnostic>,
-    pub(crate) derive_expansion_diagnostics: Vec<PhaseManifestDiagnostic>,
+    pub(crate) include_expansion_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) resolve_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) typecheck_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) core_diagnostics: Vec<PhaseManifestDiagnostic>,
@@ -73,18 +72,42 @@ pub(crate) struct CompileSyntaxModuleThroughPhasesResult {
 /// - Interface map keyed by module name.
 ///
 /// Transformation:
-/// - Starts with interfaces from the source file set, loads cached/generated
-///   interfaces when a cache directory is configured, then fills only missing
-///   stdlib interfaces from summaries embedded in the compiler binary.
+/// - Starts with interfaces adjacent to the source file, loads
+///   cached/generated interfaces when a cache directory is configured, then
+///   fills only missing stdlib interfaces from summaries embedded in the
+///   compiler binary. The formal path intentionally avoids recursively
+///   scanning `std/summaries` because generated platform bindings can contain
+///   thousands of summaries and release std contracts are embedded.
 pub(crate) fn load_external_interfaces(
     path: &str,
     cache_dir: Option<&Path>,
 ) -> HashMap<String, ModuleInterface> {
-    let mut interfaces = load_interfaces_from_file_set(path);
+    let mut interfaces = load_adjacent_interfaces_from_file_set(path);
     if let Some(cache_dir) = cache_dir {
         load_interfaces_from_dir(cache_dir, &mut interfaces);
     }
     load_embedded_std_interfaces(&mut interfaces);
+    interfaces
+}
+
+/// Loads interfaces that sit next to one source file.
+///
+/// Inputs:
+/// - `path`: source file path used to locate sibling `.terli`/`.typi` files.
+///
+/// Output:
+/// - Interface map keyed by module name.
+///
+/// Transformation:
+/// - Resolves the source directory and loads only direct interface files from
+///   that directory. Standard-library contracts are added separately from the
+///   compiler-embedded release summaries, keeping normal compile startup
+///   bounded even when the repository contains a large generated std inventory.
+fn load_adjacent_interfaces_from_file_set(path: &str) -> HashMap<String, ModuleInterface> {
+    let mut interfaces = HashMap::new();
+    let current = Path::new(path);
+    let base = current.parent().unwrap_or(Path::new("."));
+    load_interfaces_from_dir(base, &mut interfaces);
     interfaces
 }
 
@@ -132,29 +155,41 @@ fn parse_embedded_std_interface(summary: &str) -> Option<(String, ModuleInterfac
 const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.beam.Agent.typi"),
     include_str!("../../../std/summaries/std.beam.Backpressure.typi"),
+    include_str!("../../../std/summaries/std.beam.Bytes.typi"),
     include_str!("../../../std/summaries/std.beam.GenServer.typi"),
     include_str!("../../../std/summaries/std.beam.Message.typi"),
     include_str!("../../../std/summaries/std.beam.NativeBridge.typi"),
+    include_str!("../../../std/summaries/std.beam.Port.typi"),
     include_str!("../../../std/summaries/std.beam.Process.typi"),
     include_str!("../../../std/summaries/std.beam.Supervisor.typi"),
     include_str!("../../../std/summaries/std.beam.Task.typi"),
+    include_str!("../../../std/summaries/std.beam.Tcp.typi"),
+    include_str!("../../../std/summaries/std.beam.Timeout.typi"),
+    include_str!("../../../std/summaries/std.core.Add.typi"),
     include_str!("../../../std/summaries/std.core.Atom.typi"),
     include_str!("../../../std/summaries/std.core.Bool.typi"),
     include_str!("../../../std/summaries/std.core.Equal.typi"),
     include_str!("../../../std/summaries/std.core.Error.typi"),
     include_str!("../../../std/summaries/std.core.Float.typi"),
+    include_str!("../../../std/summaries/std.core.Functional.typi"),
     include_str!("../../../std/summaries/std.core.Int.typi"),
+    include_str!("../../../std/summaries/std.core.Object.typi"),
     include_str!("../../../std/summaries/std.collections.Enumerable.typi"),
+    include_str!("../../../std/summaries/std.collections.Index.typi"),
     include_str!("../../../std/summaries/std.collections.Iterable.typi"),
     include_str!("../../../std/summaries/std.collections.Iterator.typi"),
     include_str!("../../../std/summaries/std.collections.List.typi"),
     include_str!("../../../std/summaries/std.collections.Map.typi"),
     include_str!("../../../std/summaries/std.data.Json.typi"),
+    include_str!("../../../std/summaries/std.db.Postgres.typi"),
     include_str!("../../../std/summaries/std.encoding.Base64.typi"),
     include_str!("../../../std/summaries/std.http.typi"),
+    include_str!("../../../std/summaries/std.http.Cookies.typi"),
     include_str!("../../../std/summaries/std.http.Error.typi"),
     include_str!("../../../std/summaries/std.http.Request.typi"),
     include_str!("../../../std/summaries/std.http.Response.typi"),
+    include_str!("../../../std/summaries/std.http.Router.typi"),
+    include_str!("../../../std/summaries/std.http.Tls.typi"),
     include_str!("../../../std/summaries/std.native.collections.Vector.typi"),
     include_str!("../../../std/summaries/std.core.Option.typi"),
     include_str!("../../../std/summaries/std.core.Ordering.typi"),
@@ -168,12 +203,16 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.io.File.typi"),
     include_str!("../../../std/summaries/std.io.Path.typi"),
     include_str!("../../../std/summaries/std.io.typi"),
+    include_str!("../../../std/summaries/std.log.typi"),
     include_str!("../../../std/summaries/std.js.Array.typi"),
     include_str!("../../../std/summaries/std.js.Dom.Document.typi"),
     include_str!("../../../std/summaries/std.js.Dom.HTMLElement.typi"),
+    include_str!("../../../std/summaries/std.js.Number.typi"),
     include_str!("../../../std/summaries/std.js.Promise.typi"),
     include_str!("../../../std/summaries/std.js.String.typi"),
     include_str!("../../../std/summaries/std.net.Uri.typi"),
+    include_str!("../../../std/summaries/std.sync.Resource.typi"),
+    include_str!("../../../std/summaries/std.template.Template.typi"),
     include_str!("../../../std/summaries/std.test.Test.typi"),
 ];
 
@@ -188,8 +227,10 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
 ///
 /// Transformation:
 /// - Recursively walks deterministic directory entries and keeps files with the
-///   `tl` extension so directory-mode compiler commands can consume package-
-///   rooted source layouts.
+///   `.terl` extension so directory-mode compiler commands can consume
+///   package-rooted source layouts. Nested child directories containing
+///   `terlan.toml` are treated as project boundaries and are not scanned from
+///   the parent source root.
 pub(crate) fn terlan_sources_in_dir(dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
     collect_terlan_sources_recursive(dir, &mut files)?;
@@ -209,8 +250,8 @@ pub(crate) fn terlan_sources_in_dir(dir: &Path) -> Result<Vec<PathBuf>, String> 
 ///
 /// Transformation:
 /// - Reads one directory level, sorts child paths for stable traversal, appends
-///   `.terl` files, and recurses into child directories without following
-///   symlinked directories.
+///   `.terl` files, and recurses into child directories that are not nested
+///   project roots, without following symlinked directories.
 fn collect_terlan_sources_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
     let entries = fs::read_dir(dir)
         .map_err(|err| format!("failed to read dir {}: {}", dir.display(), err))?;
@@ -229,6 +270,9 @@ fn collect_terlan_sources_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Res
 
     for (path, file_type) in children {
         if file_type.is_dir() {
+            if is_nested_terlan_project_root(&path) {
+                continue;
+            }
             collect_terlan_sources_recursive(&path, files)?;
         } else if file_type.is_file()
             && path.extension().and_then(|ext| ext.to_str()) == Some("terl")
@@ -237,6 +281,21 @@ fn collect_terlan_sources_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Res
         }
     }
     Ok(())
+}
+
+/// Returns whether a directory is a nested Terlan project boundary.
+///
+/// Inputs:
+/// - `dir`: directory discovered while recursively scanning a source root.
+///
+/// Output:
+/// - `true` when the directory owns a `terlan.toml` manifest.
+///
+/// Transformation:
+/// - Checks for the canonical project manifest filename without reading or
+///   parsing it, allowing source discovery to avoid crossing project roots.
+fn is_nested_terlan_project_root(dir: &Path) -> bool {
+    dir.join("terlan.toml").is_file()
 }
 
 /// Returns whether a formal syntax-output module references changed interfaces.
@@ -397,7 +456,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
         artifacts: None,
         parse_diagnostics: Vec::new(),
         macro_expansion_diagnostics: Vec::new(),
-        derive_expansion_diagnostics: Vec::new(),
+        include_expansion_diagnostics: Vec::new(),
         resolve_diagnostics: Vec::new(),
         typecheck_diagnostics: Vec::new(),
         core_diagnostics: Vec::new(),
@@ -508,9 +567,9 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
         });
     }
 
-    let (syntax_output, derive_expansion_diagnostics) =
-        expand_syntax_derives(syntax_output, &resolved);
-    for diag in derive_expansion_diagnostics.iter() {
+    let (syntax_output, include_expansion_diagnostics) =
+        expand_syntax_includes(syntax_output, &resolved);
+    for diag in include_expansion_diagnostics.iter() {
         crate::support::emit_diagnostic(
             "type_error",
             &diag.message,
@@ -520,9 +579,9 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
             diagnostic_format,
         );
         result
-            .derive_expansion_diagnostics
+            .include_expansion_diagnostics
             .push(PhaseManifestDiagnostic {
-                code: "derive_expansion_error",
+                code: "include_expansion_error",
                 severity: "error",
                 message: diag.message.clone(),
                 path: path.to_string(),
@@ -532,7 +591,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
             });
     }
 
-    if !result.derive_expansion_diagnostics.is_empty() {
+    if !result.include_expansion_diagnostics.is_empty() {
         result.exit_code = ExitCode::from(1);
         return result;
     }

@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface XSLTProcessor
+ */
+
+module std.js.Dom.XSLTProcessor.
+
+/**
+ * An **`XSLTProcessor`** applies an XSLT stylesheet transformation to an XML document to produce a new XML document as output.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor)
+ */
+pub opaque type XSLTProcessor.
+
+/**
+ * The `clearParameters()` method of the XSLTProcessor interface removes all parameters (`<xsl:param>`) and their values from the stylesheet imported in the processor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/clearParameters)
+ */
+pub (value: XSLTProcessor) clear_parameters(): std.core.Unit.
+
+/**
+ * The `importStylesheet()` method of the XSLTProcessor interface imports an XSLT stylesheet for the processor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/importStylesheet)
+ */
+pub (value: XSLTProcessor) import_stylesheet(style: Node): std.core.Unit.
+
+/**
+ * The `removeParameter()` method of the XSLTProcessor interface removes the parameter (`<xsl:param>`) and its value from the stylesheet imported in the processor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/removeParameter)
+ */
+pub (value: XSLTProcessor) remove_parameter(namespace_uri: Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The `reset()` method of the XSLTProcessor interface removes all parameters (`<xsl:param>`) and the XSLT stylesheet from the processor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/reset)
+ */
+pub (value: XSLTProcessor) reset(): std.core.Unit.
+
+/**
+ * The `transformToDocument()` method of the XSLTProcessor interface transforms the provided Node source to a Document using the XSLT stylesheet associated with `XSLTProcessor`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToDocument)
+ */
+pub (value: XSLTProcessor) transform_to_document(source: Node): Document.
+
+/**
+ * The `transformToFragment()` method of the XSLTProcessor interface transforms a provided Node source to a DocumentFragment using the XSLT stylesheet associated with the `XSLTProcessor`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToFragment)
+ */
+pub (value: XSLTProcessor) transform_to_fragment(source: Node, output: Document): DocumentFragment.

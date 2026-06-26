@@ -1,0 +1,82 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RegExpConstructor
+ */
+
+module std.js.RegExpConstructorTest.
+
+import type std.js.RegExpConstructor.RegExpConstructor.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub prototype_typechecks(receiver: RegExpConstructor): RegExp ->
+    receiver.prototype().
+
+pub value__1_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__1().
+
+pub value__2_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__2().
+
+pub value__3_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__3().
+
+pub value__4_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__4().
+
+pub value__5_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__5().
+
+pub value__6_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__6().
+
+pub value__7_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__7().
+
+pub value__8_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__8().
+
+pub value__9_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value__9().
+
+pub input_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.input().
+
+pub value__typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_().
+
+pub last_match_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.last_match().
+
+pub value__typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_().
+
+pub last_paren_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.last_paren().
+
+pub value__typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_().
+
+pub left_context_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.left_context().
+
+pub value__typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_().
+
+pub right_context_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.right_context().
+
+pub value__typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_().

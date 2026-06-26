@@ -187,7 +187,7 @@ pub selected(values: List[Int]): List[Int] ->
 
     assert!(
         output.contains(
-            "selected(Values) ->\n    [Value || Value <- Values, Value > 0 andalso Value < 10]."
+            "selected(Values) ->\n    [Value || Value <- Values, (Value > 0) andalso (Value < 10)]."
         ),
         "output:\n{}",
         output

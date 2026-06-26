@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface AudioProcessingEvent
+ */
+
+module std.js.Dom.AudioProcessingEvent.
+
+/**
+ * The `AudioProcessingEvent` interface of the Web Audio API represents events that occur when a ScriptProcessorNode input buffer is ready to be processed.
+ * @deprecated As of the August 29 2014 Web Audio API spec publication, this feature has been marked as deprecated, and is soon to be replaced by AudioWorklet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioProcessingEvent)
+ */
+pub opaque type AudioProcessingEvent.
+
+/**
+ * The **`inputBuffer`** read-only property of the AudioProcessingEvent interface represents the input buffer of an audio processing event.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioProcessingEvent/inputBuffer)
+ */
+pub (value: AudioProcessingEvent) input_buffer(): AudioBuffer ->
+    native.
+
+/**
+ * The **`outputBuffer`** read-only property of the AudioProcessingEvent interface represents the output buffer of an audio processing event.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioProcessingEvent/outputBuffer)
+ */
+pub (value: AudioProcessingEvent) output_buffer(): AudioBuffer ->
+    native.
+
+/**
+ * The **`playbackTime`** read-only property of the AudioProcessingEvent interface represents the time when the audio will be played.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioProcessingEvent/playbackTime)
+ */
+pub (value: AudioProcessingEvent) playback_time(): std.js.Number.JsNumber ->
+    native.

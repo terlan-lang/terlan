@@ -25,7 +25,7 @@ pub opaque type Task[T].
 /// Transformation: preserves the distinction between a lazy task and an
 /// already-running task so target profiles can enforce their scheduling model.
 
-pub deferred(work: () -> T): Task[T].
+pub deferred[T](work: () -> T): Task[T].
 
 /// Creates an already-successful task.
 ///
@@ -34,7 +34,7 @@ pub deferred(work: () -> T): Task[T].
 /// Transformation: wraps an immediate value in the selected target's completed
 /// task representation without starting runtime work.
 
-pub done(value: T): Task[T].
+pub done[T](value: T): Task[T].
 
 /// Creates an already-failed task.
 ///
@@ -43,7 +43,7 @@ pub done(value: T): Task[T].
 /// Transformation: wraps a typed recoverable error in the selected target's
 /// failed task representation without throwing a target exception.
 
-pub failed(error: Error): Task[T].
+pub failed[T](error: Error): Task[T].
 
 /// Maps a successful task value.
 ///
@@ -52,7 +52,7 @@ pub failed(error: Error): Task[T].
 /// Transformation: composes the mapper with the task's success channel while
 /// preserving the original error channel.
 
-pub (task: Task[T]) map(mapper: (T ) -> U): Task[U].
+pub (task: Task[T]) map[U](mapper: (T ) -> U): Task[U].
 
 /// Recovers a failed task into a success value.
 ///
@@ -82,7 +82,7 @@ pub (task: Task[T]) result(): Result[T, Error].
 /// intentionally a named effectful function, not constructor syntax, so source
 /// code makes the start boundary explicit.
 
-pub spawn(work: () -> T): Task[T].
+pub spawn[T](work: () -> T): Task[T].
 
 /// Chains a task into another task-producing computation.
 ///
@@ -91,5 +91,5 @@ pub spawn(work: () -> T): Task[T].
 /// Transformation: provides monadic bind for task sequencing without forcing
 /// nested callback chains into the user-facing source.
 
-pub (task: Task[T]) then(next: (T ) -> Task[U]): Task[U].
+pub (task: Task[T]) then[U](next: (T ) -> Task[U]): Task[U].
 

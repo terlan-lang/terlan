@@ -1,0 +1,8 @@
+module=std.js.Dom.MIDIInputEventMap
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=540367772388329103
+interface_hash=8902193052092377463
+interface_doc_hash=8902193052092377463
+deps=0

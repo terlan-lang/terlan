@@ -1,0 +1,83 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLOptionElement
+ */
+
+module std.js.Dom.HTMLOptionElement.
+
+/**
+ * The **`HTMLOptionElement`** interface represents option elements and inherits all properties and methods of the HTMLElement interface.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement)
+ */
+pub opaque type HTMLOptionElement.
+
+/**
+ * The **`defaultSelected`** property of the HTMLOptionElement interface specifies the default selected state of the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/defaultSelected)
+ */
+pub (value: HTMLOptionElement) default_selected(): std.core.Bool.
+
+/**
+ * The **`disabled`** property of the HTMLOptionElement is a boolean value that indicates whether the option element is unavailable to be selected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/disabled)
+ */
+pub (value: HTMLOptionElement) disabled(): std.core.Bool.
+
+/**
+ * The **`form`** read-only property of the HTMLOptionElement interface returns an HTMLFormElement object that owns the HTMLSelectElement associated with this option, or `null` if this option is not associated with a select owned by a form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/form)
+ */
+pub (value: HTMLOptionElement) form(): Option[HTMLFormElement].
+
+/**
+ * The read-only **`index`** property of the HTMLOptionElement interface specifies the 0-based index of the element; that is, the position of the option within the list of options it belongs to, in tree-order, as an integer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/index)
+ */
+pub (value: HTMLOptionElement) index(): std.js.Number.JsNumber.
+
+/**
+ * The **`label`** property of the HTMLOptionElement represents the text displayed for an option in a select element or as part of a list of suggestions in a datalist element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/label)
+ */
+pub (value: HTMLOptionElement) label(): std.js.String.JsString.
+
+/**
+ * The **`selected`** property of the HTMLOptionElement interface specifies the current selectedness of the element; that is, whether the option is selected or not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/selected)
+ */
+pub (value: HTMLOptionElement) selected(): std.core.Bool.
+
+/**
+ * The **`text`** property of the HTMLOptionElement represents the text inside the option element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/text)
+ */
+pub (value: HTMLOptionElement) text(): std.js.String.JsString.
+
+/**
+ * The **`value`** property of the HTMLOptionElement interface represents the value of the option element as a string, or the empty string if no value is set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/value)
+ */
+pub (value: HTMLOptionElement) value(): std.js.String.JsString.
+
+pub (value: HTMLOptionElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: HTMLOptionElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

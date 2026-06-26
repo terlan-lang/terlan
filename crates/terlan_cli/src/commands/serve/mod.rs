@@ -1,56 +1,63 @@
+use std::convert::Infallible;
 use std::fs;
 use std::net as std_net;
 use std::path::{Component, Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::{mpsc as std_mpsc, Arc, Mutex};
 use std::thread;
+use std::time::Instant;
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use bytes::Bytes;
+use http_body_util::{combinators::BoxBody, BodyExt, Channel, Full};
+use hyper::body::Frame;
+use hyper::server::conn::http1;
+use hyper::service::service_fn;
+use hyper::{Request, Response};
+use hyper_util::rt::TokioIo;
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpListener;
 use tokio::sync::mpsc;
+use tokio_rustls::TlsAcceptor;
 
 use crate::{CliCommand, CliState};
 
+mod args;
+pub(crate) mod compose_check;
 mod handler;
+mod logging;
 mod manifest;
+mod response;
+mod tls;
 mod watch;
+mod websocket;
 
-use handler::{execute_beam_handler, http_reason_phrase, manifest_handler_for_request};
-use manifest::manifest_static_file_for_request;
+use handler::{
+    execute_beam_error_handler, execute_beam_handler, handler_log_identity, http_reason_phrase,
+    manifest_error_handler, manifest_file_response_for_request, manifest_handler_for_request,
+    manifest_static_response_for_request, static_response_header_tuples, WebPackageFileResponse,
+};
+use logging::{
+    log_file_route_result, log_handler_result, log_static_result, log_static_route_result,
+    next_request_id, render_dev_error_page,
+};
 pub(crate) use manifest::validate_web_package;
+use manifest::{manifest_build_id, manifest_static_file_for_request};
+use response::{build_http_response, inject_reload_script};
+use terlan_safenative::http::content_type_for_path;
+use tls::{acme_http01_challenge, runtime_tls_config, AcmeHttp01Challenge, RuntimeTlsConfig};
 use watch::{spawn_reload_watcher, ReloadHub, ReloadWatchBackend};
+use websocket::{
+    is_websocket_upgrade, manifest_websocket_for_request, serve_websocket_upgrade, websocket_hub,
+    websocket_upgrade_response, WebSocketHub,
+};
 
-/// Default host for `terlc serve`.
-const DEFAULT_SERVE_HOST: &str = "127.0.0.1";
+pub(crate) use args::{parse_serve_args, ServeArgs};
 
-/// Default port for `terlc serve`.
-const DEFAULT_SERVE_PORT: u16 = 3000;
+/// Boxed body type used by the Hyper development server.
+type ServeBody = BoxBody<Bytes, Infallible>;
 
 /// Local live-reload endpoint reserved by `terlc serve`.
 const RELOAD_ENDPOINT: &str = "/__terlan/reload";
-
-/// Default live-reload polling interval in milliseconds.
-const DEFAULT_POLL_MS: u64 = 500;
-
-/// Parsed `terlc serve` arguments.
-///
-/// Inputs:
-/// - Produced from command-local CLI arguments and global CLI state.
-///
-/// Output:
-/// - Normalized web package root, host, port, and validation-only mode.
-///
-/// Transformation:
-/// - Keeps path and network settings explicit so command execution can validate
-///   the package before binding a socket.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ServeArgs {
-    pub(crate) web_root: PathBuf,
-    pub(crate) host: String,
-    pub(crate) port: u16,
-    pub(crate) poll_ms: u64,
-    pub(crate) check_only: bool,
-}
 
 /// Background local directory server handle.
 ///
@@ -96,6 +103,12 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     if args.check_only {
         return ExitCode::SUCCESS;
     }
+    if let Some(project_root) = manifest::adjacent_project_root(&args.web_root) {
+        if let Err(message) = compose_check::start_project_compose_dependencies(&project_root) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    }
 
     match serve_web_package(&args) {
         Ok(()) => ExitCode::SUCCESS,
@@ -104,82 +117,6 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             ExitCode::from(1)
         }
     }
-}
-
-/// Parses command-local `terlc serve` arguments.
-///
-/// Inputs:
-/// - `args`: arguments after the `serve` verb.
-/// - `state`: global CLI state used for the default `_build/web` directory.
-///
-/// Output:
-/// - Parsed serve arguments or a user-facing error string.
-///
-/// Transformation:
-/// - Accepts at most one package directory, parses `--host`, `--port`,
-///   `--poll-ms`, and `--check`, and preserves unknown option failures as
-///   stable CLI errors.
-pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<ServeArgs, String> {
-    let mut web_root = None;
-    let mut host = DEFAULT_SERVE_HOST.to_string();
-    let mut port = DEFAULT_SERVE_PORT;
-    let mut poll_ms = DEFAULT_POLL_MS;
-    let mut check_only = false;
-    let mut index = 0;
-
-    while index < args.len() {
-        match args[index].as_str() {
-            "--host" => {
-                index += 1;
-                let Some(value) = args.get(index) else {
-                    return Err("terlc serve --host requires a value".to_string());
-                };
-                host = value.clone();
-            }
-            "--port" => {
-                index += 1;
-                let Some(value) = args.get(index) else {
-                    return Err("terlc serve --port requires a value".to_string());
-                };
-                port = value.parse::<u16>().map_err(|_| {
-                    format!("terlc serve --port expects a u16 value, got `{value}`")
-                })?;
-            }
-            "--poll-ms" => {
-                index += 1;
-                let Some(value) = args.get(index) else {
-                    return Err("terlc serve --poll-ms requires a value".to_string());
-                };
-                poll_ms = value.parse::<u64>().map_err(|_| {
-                    format!("terlc serve --poll-ms expects a u64 value, got `{value}`")
-                })?;
-                if poll_ms == 0 {
-                    return Err("terlc serve --poll-ms must be greater than 0".to_string());
-                }
-            }
-            "--check" => {
-                check_only = true;
-            }
-            option if option.starts_with('-') => {
-                return Err(format!("unsupported serve option: {option}"));
-            }
-            path => {
-                if web_root.is_some() {
-                    return Err("terlc serve expects at most one web package directory".to_string());
-                }
-                web_root = Some(PathBuf::from(path));
-            }
-        }
-        index += 1;
-    }
-
-    Ok(ServeArgs {
-        web_root: web_root.unwrap_or_else(|| state.out_dir.join("web")),
-        host,
-        port,
-        poll_ms,
-        check_only,
-    })
 }
 
 /// Starts the local browser package HTTP server.
@@ -193,13 +130,15 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
 ///
 /// Transformation:
 /// - Builds the Tokio runtime boundary for the CLI command and delegates the
-///   async listener loop to `serve_web_package_async`.
+///   async listener loop to `serve_web_package_async` after the TLS runtime
+///   boundary accepts the current package configuration.
 fn serve_web_package(args: &ServeArgs) -> Result<(), String> {
+    let tls_config = runtime_tls_config(&args.web_root)?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_io()
+        .enable_all()
         .build()
         .map_err(|err| format!("error[serve_runtime]: failed to start Tokio runtime: {err}"))?;
-    runtime.block_on(serve_web_package_async(args))
+    runtime.block_on(serve_web_package_async(args, tls_config))
 }
 
 /// Spawns a detached server for an already-generated directory.
@@ -236,7 +175,7 @@ pub(crate) fn spawn_directory_server(
 
     thread::spawn(move || {
         let runtime = match tokio::runtime::Builder::new_multi_thread()
-            .enable_io()
+            .enable_all()
             .build()
         {
             Ok(runtime) => runtime,
@@ -249,7 +188,7 @@ pub(crate) fn spawn_directory_server(
         };
         let _ = startup_tx.send(Ok(thread_addr));
         if let Err(message) = runtime.block_on(serve_bound_directory_async(
-            listener, web_root, poll_ms, log_prefix,
+            listener, web_root, poll_ms, log_prefix, None,
         )) {
             eprintln!("{message}");
         }
@@ -297,9 +236,19 @@ fn bind_std_listener(host: &str, port: u16) -> Result<std_net::TcpListener, Stri
 /// Transformation:
 /// - Binds a Tokio TCP listener, prints the serving URL, and spawns one async
 ///   task per accepted connection.
-async fn serve_web_package_async(args: &ServeArgs) -> Result<(), String> {
+async fn serve_web_package_async(
+    args: &ServeArgs,
+    tls_config: Option<RuntimeTlsConfig>,
+) -> Result<(), String> {
     let listener = bind_std_listener(&args.host, args.port)?;
-    serve_bound_directory_async(listener, args.web_root.clone(), args.poll_ms, "terlc serve").await
+    serve_bound_directory_async(
+        listener,
+        args.web_root.clone(),
+        args.poll_ms,
+        "terlc serve",
+        tls_config,
+    )
+    .await
 }
 
 /// Serves one bound directory listener through Tokio.
@@ -321,6 +270,7 @@ async fn serve_bound_directory_async(
     web_root: PathBuf,
     poll_ms: u64,
     log_prefix: &str,
+    tls_config: Option<RuntimeTlsConfig>,
 ) -> Result<(), String> {
     let listener = TcpListener::from_std(listener)
         .map_err(|err| format!("error[serve_bind]: failed to adopt TCP listener: {err}"))?;
@@ -329,7 +279,12 @@ async fn serve_bound_directory_async(
         .map(|addr| addr.to_string())
         .unwrap_or_else(|_| "unknown".to_string());
     eprintln!("{log_prefix}: serving {}", web_root.display());
-    eprintln!("{log_prefix}: http://{local_addr}");
+    let scheme = if tls_config.is_some() {
+        "https"
+    } else {
+        "http"
+    };
+    eprintln!("{log_prefix}: {scheme}://{local_addr}");
     eprintln!("{log_prefix}: reload stream {RELOAD_ENDPOINT}");
     eprintln!(
         "{log_prefix}: reload watcher {}",
@@ -337,120 +292,392 @@ async fn serve_bound_directory_async(
     );
 
     let reload_hub = Arc::new(Mutex::new(Vec::new()));
+    let websocket_hub = websocket_hub();
     spawn_reload_watcher(web_root.clone(), poll_ms, Arc::clone(&reload_hub));
+    let tls_acceptor = tls_config.map(|config| TlsAcceptor::from(config.server_config));
     loop {
         match listener.accept().await {
             Ok((stream, _peer_addr)) => {
                 let root = web_root.clone();
                 let reload_hub = Arc::clone(&reload_hub);
+                let websocket_hub = Arc::clone(&websocket_hub);
+                let tls_acceptor = tls_acceptor.clone();
                 tokio::spawn(async move {
-                    handle_web_connection(stream, &root, reload_hub).await;
+                    if let Some(tls_acceptor) = tls_acceptor {
+                        match tls_acceptor.accept(stream).await {
+                            Ok(tls_stream) => {
+                                serve_connection(
+                                    tls_stream,
+                                    root,
+                                    reload_hub,
+                                    websocket_hub,
+                                    "HTTPS",
+                                )
+                                .await;
+                            }
+                            Err(err) => {
+                                eprintln!("error[serve_tls]: TLS handshake failed: {err}");
+                            }
+                        }
+                    } else {
+                        serve_connection(stream, root, reload_hub, websocket_hub, "HTTP").await;
+                    }
                 });
             }
             Err(err) => {
                 return Err(format!(
-                    "error[serve_accept]: failed to accept HTTP connection: {err}"
+                    "error[serve_accept]: failed to accept {scheme} connection: {err}"
                 ));
             }
         }
     }
 }
 
-/// Handles one HTTP request for the browser package server.
+/// Serves one accepted HTTP or HTTPS stream.
 ///
 /// Inputs:
-/// - `stream`: accepted TCP stream.
-/// - `web_root`: validated package root.
-/// - `reload_hub`: shared reload subscriber registry.
+/// - `stream`: accepted socket or rustls stream.
+/// - `root`: package root for request routing.
+/// - `reload_hub`: shared reload subscribers.
+/// - `websocket_hub`: shared WebSocket room state.
+/// - `protocol`: diagnostic protocol label.
 ///
 /// Output:
-/// - Future that writes one HTTP response when possible.
+/// - None; connection diagnostics are written to stderr.
 ///
 /// Transformation:
-/// - Parses a minimal HTTP request, serves `GET`/`HEAD` files from the package
-///   root, and rejects unsupported methods or unsafe paths.
-async fn handle_web_connection(mut stream: TcpStream, web_root: &Path, reload_hub: ReloadHub) {
-    let mut buffer = [0; 8192];
-    let Ok(read) = stream.read(&mut buffer).await else {
-        return;
-    };
-    if read == 0 {
-        return;
+/// - Adapts the stream into Hyper's Tokio IO wrapper and delegates all request
+///   behavior to the shared `handle_hyper_request` function.
+async fn serve_connection<S>(
+    stream: S,
+    root: PathBuf,
+    reload_hub: ReloadHub,
+    websocket_hub: WebSocketHub,
+    protocol: &str,
+) where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    let io = TokioIo::new(stream);
+    let service = service_fn(move |request| {
+        let root = root.clone();
+        let reload_hub = Arc::clone(&reload_hub);
+        let websocket_hub = Arc::clone(&websocket_hub);
+        async move {
+            Ok::<_, Infallible>(
+                handle_hyper_request(request, root, reload_hub, websocket_hub).await,
+            )
+        }
+    });
+    let connection = http1::Builder::new().serve_connection(io, service);
+    if let Err(err) = connection.with_upgrades().await {
+        eprintln!("error[serve_http]: {protocol} connection failed: {err}");
+    }
+}
+
+/// Handles one Hyper request for the browser package server.
+///
+/// Inputs:
+/// - `request`: Hyper request accepted by the local HTTP service.
+/// - `web_root`: validated package root owned by the connection task.
+/// - `reload_hub`: shared reload subscriber registry.
+/// - `websocket_hub`: shared WebSocket room state.
+///
+/// Output:
+/// - Hyper response carrying the selected route body.
+///
+/// Transformation:
+/// - Reads method, URI, headers, and body through Hyper/http types, then
+///   preserves the existing Terlan route-manifest and BEAM handler bridge
+///   behavior above the protocol layer.
+async fn handle_hyper_request<B>(
+    mut request: Request<B>,
+    web_root: PathBuf,
+    reload_hub: ReloadHub,
+    websocket_hub: WebSocketHub,
+) -> Response<ServeBody>
+where
+    B: hyper::body::Body<Data = Bytes> + Send + 'static,
+    B::Error: std::fmt::Display,
+{
+    let request_id = next_request_id();
+    let build_id = manifest_build_id(&web_root);
+    let method = request.method().as_str().to_string();
+    let request_path = request.uri().path().to_string();
+    let request_query = request.uri().query().unwrap_or("").to_string();
+    if let Some(websocket) = manifest_websocket_for_request(&web_root, &method, &request_path) {
+        if !is_websocket_upgrade(request.headers()) {
+            return serve_response(
+                426,
+                "Upgrade Required",
+                "text/plain; charset=utf-8",
+                &[("upgrade".to_string(), "websocket".to_string())],
+                b"websocket upgrade required",
+                false,
+            );
+        }
+        let upgrade = hyper::upgrade::on(&mut request);
+        let response = websocket_upgrade_response(&request);
+        tokio::spawn(serve_websocket_upgrade(
+            upgrade,
+            websocket_hub,
+            websocket,
+            request_query,
+        ));
+        return response;
     }
 
-    let request = String::from_utf8_lossy(&buffer[..read]);
-    let Some(first_line) = request.lines().next() else {
-        return;
-    };
-    let mut parts = first_line.split_whitespace();
-    let method = parts.next().unwrap_or("");
-    let target = parts.next().unwrap_or("/");
+    let (parts, body) = request.into_parts();
+    let request_headers = request_header_pairs(&parts.headers);
+    let cookie_header = parts
+        .headers
+        .get(http::header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("")
+        .to_string();
 
-    let request_path = target.split('?').next().unwrap_or("/");
     if request_path == RELOAD_ENDPOINT {
-        handle_reload_sse(stream, reload_hub).await;
-        return;
+        return reload_sse_response(reload_hub);
     }
 
     if method == "GET" || method == "HEAD" {
-        if let Some(response_path) = manifest_static_file_for_request(web_root, request_path) {
-            write_static_file_response(&mut stream, method, &response_path).await;
-            return;
+        match acme_http01_challenge(&web_root, &request_path) {
+            Ok(AcmeHttp01Challenge::Found(body)) => {
+                return serve_response(
+                    200,
+                    "OK",
+                    "text/plain; charset=utf-8",
+                    &[],
+                    body.as_bytes(),
+                    method == "HEAD",
+                );
+            }
+            Ok(AcmeHttp01Challenge::Missing) => {
+                return serve_response(
+                    404,
+                    "Not Found",
+                    "text/plain; charset=utf-8",
+                    &[],
+                    b"not found",
+                    method == "HEAD",
+                );
+            }
+            Ok(AcmeHttp01Challenge::Invalid(message)) => {
+                return serve_response(
+                    400,
+                    "Bad Request",
+                    "text/plain; charset=utf-8",
+                    &[],
+                    message.as_bytes(),
+                    method == "HEAD",
+                );
+            }
+            Ok(AcmeHttp01Challenge::NotMatched) => {}
+            Err(message) => {
+                return serve_response(
+                    500,
+                    "Internal Server Error",
+                    "text/plain; charset=utf-8",
+                    &[],
+                    message.as_bytes(),
+                    method == "HEAD",
+                );
+            }
         }
     }
 
-    if let Some(handler) = manifest_handler_for_request(web_root, method, request_path) {
-        match execute_beam_handler(web_root, &handler, method, request_path) {
+    let request_body = match body.collect().await {
+        Ok(collected) => String::from_utf8_lossy(&collected.to_bytes()).to_string(),
+        Err(err) => {
+            return serve_response(
+                400,
+                "Bad Request",
+                "text/plain; charset=utf-8",
+                &[],
+                format!("bad request body: {err}").as_bytes(),
+                method == "HEAD",
+            );
+        }
+    };
+
+    if let Some(response) = manifest_static_response_for_request(&web_root, &method, &request_path)
+    {
+        let started = Instant::now();
+        let status = response.status;
+        let headers = static_response_header_tuples(&response.headers).unwrap_or_else(|message| {
+            eprintln!("{message}");
+            Vec::new()
+        });
+        let output = serve_response(
+            response.status,
+            http_reason_phrase(response.status),
+            &response.content_type,
+            &headers,
+            response.body.as_bytes(),
+            method == "HEAD",
+        );
+        log_static_route_result(
+            request_id,
+            &build_id,
+            &method,
+            &request_path,
+            &response.method,
+            &response.route,
+            response.source.as_ref(),
+            status,
+            started.elapsed().as_millis(),
+        );
+        return output;
+    }
+
+    if let Some(handler) = manifest_handler_for_request(&web_root, &method, &request_path) {
+        let identity = handler_log_identity(&handler);
+        let started = Instant::now();
+        match execute_beam_handler(
+            &web_root,
+            &handler,
+            &method,
+            &request_path,
+            &request_query,
+            &request_headers,
+            &cookie_header,
+            &request_body,
+        ) {
             Ok(response) => {
-                let _ = write_http_response(
-                    &mut stream,
+                let output = serve_response(
                     response.status,
                     http_reason_phrase(response.status),
                     &response.content_type,
+                    &response.headers,
                     &response.body,
                     method == "HEAD",
-                )
-                .await;
+                );
+                log_handler_result(
+                    request_id,
+                    &build_id,
+                    &method,
+                    &request_path,
+                    &identity,
+                    response.status,
+                    started.elapsed().as_millis(),
+                );
+                return output;
             }
             Err(message) => {
-                let _ = write_http_response(
-                    &mut stream,
+                if let Some(error_handler) = manifest_error_handler(&web_root) {
+                    match execute_beam_error_handler(&web_root, &error_handler, &message) {
+                        Ok(response) => {
+                            let output = serve_response(
+                                response.status,
+                                http_reason_phrase(response.status),
+                                &response.content_type,
+                                &response.headers,
+                                &response.body,
+                                method == "HEAD",
+                            );
+                            log_handler_result(
+                                request_id,
+                                &build_id,
+                                &method,
+                                &request_path,
+                                &identity,
+                                response.status,
+                                started.elapsed().as_millis(),
+                            );
+                            return output;
+                        }
+                        Err(error_handler_message) => {
+                            eprintln!("{error_handler_message}");
+                        }
+                    }
+                }
+                let body = render_dev_error_page(
+                    request_id,
+                    &build_id,
+                    &method,
+                    &request_path,
+                    &identity,
+                    &message,
+                )
+                .into_bytes();
+                let output = serve_response(
                     502,
                     "Bad Gateway",
-                    "text/plain; charset=utf-8",
-                    message.as_bytes(),
+                    "text/html; charset=utf-8",
+                    &[],
+                    &body,
                     method == "HEAD",
-                )
-                .await;
+                );
+                log_handler_result(
+                    request_id,
+                    &build_id,
+                    &method,
+                    &request_path,
+                    &identity,
+                    502,
+                    started.elapsed().as_millis(),
+                );
+                return output;
             }
         }
-        return;
+    }
+
+    if method == "GET" || method == "HEAD" {
+        if let Some(response_path) = manifest_static_file_for_request(&web_root, &request_path) {
+            let started = Instant::now();
+            let (status, output) = static_file_response(&method, &response_path);
+            log_static_result(
+                request_id,
+                &build_id,
+                &method,
+                &request_path,
+                &response_path,
+                status,
+                started.elapsed().as_millis(),
+            );
+            return output;
+        }
+    }
+
+    if let Some((response, response_path)) =
+        manifest_file_response_for_request(&web_root, &method, &request_path)
+    {
+        let started = Instant::now();
+        let (status, output) = manifest_file_response(&method, &response_path, &response);
+        log_file_route_result(
+            request_id,
+            &build_id,
+            &method,
+            &request_path,
+            &response.method,
+            &response.route,
+            &response_path,
+            response.source.as_ref(),
+            status,
+            started.elapsed().as_millis(),
+        );
+        return output;
     }
 
     if method != "GET" && method != "HEAD" {
-        let _ = write_http_response(
-            &mut stream,
+        return serve_response(
             405,
             "Method Not Allowed",
             "text/plain; charset=utf-8",
+            &[],
             b"method not allowed",
             method == "HEAD",
-        )
-        .await;
-        return;
+        );
     }
 
-    let Some(file_path) = request_file_path(web_root, request_path) else {
-        let _ = write_http_response(
-            &mut stream,
+    let Some(file_path) = request_file_path(&web_root, &request_path) else {
+        return serve_response(
             400,
             "Bad Request",
             "text/plain; charset=utf-8",
+            &[],
             b"bad request",
             method == "HEAD",
-        )
-        .await;
-        return;
+        );
     };
     let response_path = if file_path.is_dir() {
         file_path.join("index.html")
@@ -462,38 +689,73 @@ async fn handle_web_connection(mut stream: TcpStream, web_root: &Path, reload_hu
         file_path
     };
 
-    write_static_file_response(&mut stream, method, &response_path).await;
+    let started = Instant::now();
+    let (status, output) = static_file_response(&method, &response_path);
+    log_static_result(
+        request_id,
+        &build_id,
+        &method,
+        &request_path,
+        &response_path,
+        status,
+        started.elapsed().as_millis(),
+    );
+    output
 }
 
-/// Writes one static file response for `terlc serve`.
+/// Extracts source-visible request header pairs from Hyper metadata.
 ///
 /// Inputs:
-/// - `stream`: accepted HTTP stream.
+/// - `headers`: Hyper/http request header map.
+///
+/// Output:
+/// - Header name/value pairs with lowercase header names and UTF-8-lossy
+///   values.
+///
+/// Transformation:
+/// - Converts the protocol-owned header map into the temporary BEAM handler
+///   request-map shape without exposing Hyper types to generated handler code.
+fn request_header_pairs(headers: &http::HeaderMap) -> Vec<(String, String)> {
+    headers
+        .iter()
+        .map(|(name, value)| {
+            (
+                name.as_str().to_ascii_lowercase(),
+                String::from_utf8_lossy(value.as_bytes()).into_owned(),
+            )
+        })
+        .collect()
+}
+
+/// Builds one static file response for `terlc serve`.
+///
+/// Inputs:
 /// - `method`: parsed request method.
 /// - `response_path`: resolved package file path to read.
 ///
 /// Output:
-/// - Future that writes a 200 response for readable files or a stable 404
-///   response when the file cannot be read.
+/// - Emitted status code for request logging.
+/// - Hyper response for the selected file or a stable 404.
 ///
 /// Transformation:
 /// - Reads the selected file, injects the local reload client for HTML
-///   responses, selects MIME type by extension, and delegates final header/body
-///   writing to the shared HTTP response helper.
-async fn write_static_file_response(stream: &mut TcpStream, method: &str, response_path: &Path) {
+///   responses, selects MIME type by extension, and builds a typed HTTP
+///   response for Hyper.
+fn static_file_response(method: &str, response_path: &Path) -> (u16, Response<ServeBody>) {
     let bytes = match fs::read(&response_path) {
         Ok(bytes) => bytes,
         Err(_) => {
-            let _ = write_http_response(
-                stream,
+            return (
                 404,
-                "Not Found",
-                "text/plain; charset=utf-8",
-                b"not found",
-                method == "HEAD",
-            )
-            .await;
-            return;
+                serve_response(
+                    404,
+                    "Not Found",
+                    "text/plain; charset=utf-8",
+                    &[],
+                    b"not found",
+                    method == "HEAD",
+                ),
+            );
         }
     };
     let content_type = content_type_for_path(&response_path);
@@ -504,71 +766,175 @@ async fn write_static_file_response(stream: &mut TcpStream, method: &str, respon
     } else {
         bytes
     };
-    let _ = write_http_response(stream, 200, "OK", content_type, &body, method == "HEAD").await;
+    (
+        200,
+        serve_response(200, "OK", &content_type, &[], &body, method == "HEAD"),
+    )
 }
 
-/// Handles one local live-reload SSE request.
+/// Builds one manifest file-route response for `terlc serve`.
 ///
 /// Inputs:
-/// - `stream`: accepted TCP stream.
+/// - `method`: parsed request method.
+/// - `response_path`: resolved package file path to read.
+/// - `response`: manifest file response metadata.
+///
+/// Output:
+/// - Emitted status code for request logging.
+/// - Hyper response for the configured file or a stable 404.
+///
+/// Transformation:
+/// - Reads the selected file, uses explicit manifest content type when
+///   supplied or infers it by path, and builds a typed HTTP response without
+///   modifying the file bytes.
+fn manifest_file_response(
+    method: &str,
+    response_path: &Path,
+    response: &WebPackageFileResponse,
+) -> (u16, Response<ServeBody>) {
+    let bytes = match fs::read(response_path) {
+        Ok(bytes) => bytes,
+        Err(_) => {
+            return (
+                404,
+                serve_response(
+                    404,
+                    "Not Found",
+                    "text/plain; charset=utf-8",
+                    &[],
+                    b"not found",
+                    method == "HEAD",
+                ),
+            );
+        }
+    };
+    let inferred_content_type;
+    let content_type = match response.content_type.as_deref() {
+        Some(content_type) => content_type,
+        None => {
+            inferred_content_type = content_type_for_path(response_path);
+            inferred_content_type.as_str()
+        }
+    };
+    (
+        response.status,
+        serve_response(
+            response.status,
+            http_reason_phrase(response.status),
+            content_type,
+            &[],
+            &bytes,
+            method == "HEAD",
+        ),
+    )
+}
+
+/// Builds one local live-reload SSE response.
+///
+/// Inputs:
 /// - `reload_hub`: shared reload subscriber registry.
 ///
 /// Output:
-/// - Future that writes the SSE stream until the client disconnects.
+/// - Streaming Hyper response for local reload events.
 ///
 /// Transformation:
-/// - Registers the connection as a reload subscriber, writes SSE headers, and
-///   forwards reload version values sent by the future watcher integration.
-async fn handle_reload_sse(mut stream: TcpStream, reload_hub: ReloadHub) {
-    let (tx, mut rx) = mpsc::unbounded_channel();
+/// - Registers the connection as a reload subscriber, emits the initial SSE
+///   comment, and forwards reload version values as streamed frames.
+fn reload_sse_response(reload_hub: ReloadHub) -> Response<ServeBody> {
+    let (tx, rx) = mpsc::unbounded_channel();
     if let Ok(mut subscribers) = reload_hub.lock() {
         subscribers.push(tx);
     }
 
-    if stream
-        .write_all(render_reload_sse_headers().as_bytes())
-        .await
-        .is_err()
-    {
-        return;
-    }
-    let _ = stream.flush().await;
+    let (mut sender, body) = Channel::new(8);
+    tokio::spawn(async move {
+        let _ = sender
+            .send(Frame::data(Bytes::from_static(b": connected\n\n")))
+            .await;
+        let mut rx = rx;
+        while let Some(version) = rx.recv().await {
+            let event = format!("event: reload\ndata: {version}\n\n");
+            if sender.send(Frame::data(Bytes::from(event))).await.is_err() {
+                break;
+            }
+        }
+    });
+    let body = body.boxed();
 
-    while let Some(version) = rx.recv().await {
-        let event = format!("event: reload\ndata: {version}\n\n");
-        if stream.write_all(event.as_bytes()).await.is_err() {
-            break;
-        }
-        if stream.flush().await.is_err() {
-            break;
-        }
+    http::Response::builder()
+        .status(200)
+        .header(http::header::CONTENT_TYPE, "text/event-stream")
+        .header(http::header::CACHE_CONTROL, "no-cache")
+        .header("x-content-type-options", "nosniff")
+        .header(http::header::CONNECTION, "keep-alive")
+        .header(http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .body(body)
+        .unwrap_or_else(|err| internal_error_response(format!("reload response failed: {err}")))
+}
+
+/// Builds one Hyper response from validated response metadata.
+///
+/// Inputs:
+/// - `status`: numeric response status.
+/// - `reason`: response reason phrase retained for fallback diagnostics.
+/// - `content_type`: response content type.
+/// - `extra_headers`: validated handler or manifest headers.
+/// - `body`: response body bytes.
+/// - `head_only`: whether to omit emitted body bytes.
+///
+/// Output:
+/// - Hyper response with a boxed body.
+///
+/// Transformation:
+/// - Builds a Rust `http::Response<Vec<u8>>` through the shared response
+///   helper, then converts its body into Hyper's boxed body type.
+fn serve_response(
+    status: u16,
+    reason: &str,
+    content_type: &str,
+    extra_headers: &[(String, String)],
+    body: &[u8],
+    head_only: bool,
+) -> Response<ServeBody> {
+    match build_http_response(status, content_type, extra_headers, body, head_only) {
+        Ok(response) => response.map(boxed_body),
+        Err(message) => internal_error_response(format!(
+            "response build failed for {status} {reason}: {message}"
+        )),
     }
 }
 
-/// Renders the local live-reload SSE response headers.
+/// Wraps bytes in the Hyper body type used by `terlc serve`.
 ///
 /// Inputs:
-/// - No dynamic input; reload responses always use the same local development
-///   stream contract.
+/// - `body`: response bytes selected by route handling.
 ///
 /// Output:
-/// - Static HTTP response header and initial SSE comment text.
+/// - Boxed Hyper body.
 ///
 /// Transformation:
-/// - Centralizes the reload endpoint header contract so it stays aligned with
-///   the rest of `terlc serve`: no cache, explicit event-stream content type,
-///   no-sniff protection, and a persistent local development connection.
-fn render_reload_sse_headers() -> &'static str {
-    concat!(
-        "HTTP/1.1 200 OK\r\n",
-        "Content-Type: text/event-stream\r\n",
-        "Cache-Control: no-cache\r\n",
-        "X-Content-Type-Options: nosniff\r\n",
-        "Connection: keep-alive\r\n",
-        "Access-Control-Allow-Origin: *\r\n",
-        "\r\n",
-        ": connected\n\n"
-    )
+/// - Converts concrete bytes into a single-frame body accepted by Hyper.
+fn boxed_body(body: Vec<u8>) -> ServeBody {
+    Full::new(Bytes::from(body)).boxed()
+}
+
+/// Builds a generic internal error response for protocol-boundary failures.
+///
+/// Inputs:
+/// - `message`: diagnostic text for local development response body.
+///
+/// Output:
+/// - Hyper response with status 500.
+///
+/// Transformation:
+/// - Avoids panics in the Hyper service by turning unexpected response build
+///   failures into ordinary local development responses.
+fn internal_error_response(message: String) -> Response<ServeBody> {
+    http::Response::builder()
+        .status(500)
+        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .body(boxed_body(message.into_bytes()))
+        .unwrap_or_else(|_| Response::new(boxed_body(b"internal server error".to_vec())))
 }
 
 /// Converts a URL request path into a package file path.
@@ -621,135 +987,6 @@ pub(super) fn package_relative_path(web_root: &Path, relative: &str) -> Option<P
         }
     }
     Some(output)
-}
-
-/// Returns a content type for one served package file.
-///
-/// Inputs:
-/// - `path`: response file path.
-///
-/// Output:
-/// - Static content-type string.
-///
-/// Transformation:
-/// - Maps common browser artifact extensions to MIME types and falls back to
-///   octet stream for opaque file assets.
-fn content_type_for_path(path: &Path) -> &'static str {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some("html") => "text/html; charset=utf-8",
-        Some("css") => "text/css; charset=utf-8",
-        Some("js") => "text/javascript; charset=utf-8",
-        Some("map") => "application/json; charset=utf-8",
-        Some("json") => "application/json; charset=utf-8",
-        Some("md") => "text/markdown; charset=utf-8",
-        Some("svg") => "image/svg+xml",
-        Some("png") => "image/png",
-        Some("jpg") | Some("jpeg") => "image/jpeg",
-        Some("gif") => "image/gif",
-        Some("webp") => "image/webp",
-        Some("avif") => "image/avif",
-        Some("ico") => "image/x-icon",
-        Some("wasm") => "application/wasm",
-        Some("woff") => "font/woff",
-        Some("woff2") => "font/woff2",
-        Some("ttf") => "font/ttf",
-        Some("otf") => "font/otf",
-        Some("txt") => "text/plain; charset=utf-8",
-        _ => "application/octet-stream",
-    }
-}
-
-/// Injects local live-reload wiring into one HTML document.
-///
-/// Inputs:
-/// - `html`: served HTML response text.
-///
-/// Output:
-/// - HTML response text with a local reload script inserted.
-///
-/// Transformation:
-/// - Preserves documents that already reference the reload endpoint, inserts
-///   before `</body>` when present, and appends otherwise. The packaged file on
-///   disk is never modified.
-fn inject_reload_script(html: &str) -> String {
-    if html.contains(RELOAD_ENDPOINT) {
-        return html.to_string();
-    }
-    let script = format!(
-        "<script>(()=>{{const es=new EventSource('{}');es.addEventListener('reload',()=>location.reload());}})();</script>",
-        RELOAD_ENDPOINT
-    );
-    if let Some(index) = html.rfind("</body>") {
-        let mut output = String::with_capacity(html.len() + script.len());
-        output.push_str(&html[..index]);
-        output.push_str(&script);
-        output.push_str(&html[index..]);
-        output
-    } else {
-        let mut output = String::with_capacity(html.len() + script.len());
-        output.push_str(html);
-        output.push_str(&script);
-        output
-    }
-}
-
-/// Writes a minimal HTTP response.
-///
-/// Inputs:
-/// - `stream`: TCP stream to write.
-/// - `status`: numeric HTTP status.
-/// - `reason`: status reason phrase.
-/// - `content_type`: response content type.
-/// - `body`: response body bytes.
-/// - `head_only`: whether to omit the body for HEAD requests.
-///
-/// Output:
-/// - I/O result for response writing.
-///
-/// Transformation:
-/// - Emits the stable response header block, then writes optional response body
-///   bytes for non-HEAD responses.
-async fn write_http_response(
-    stream: &mut TcpStream,
-    status: u16,
-    reason: &str,
-    content_type: &str,
-    body: &[u8],
-    head_only: bool,
-) -> std::io::Result<()> {
-    let headers = render_http_response_headers(status, reason, content_type, body.len());
-    stream.write_all(&headers).await?;
-    if !head_only {
-        stream.write_all(body).await?;
-    }
-    stream.flush().await
-}
-
-/// Renders the stable HTTP response headers used by `terlc serve`.
-///
-/// Inputs:
-/// - `status`: numeric HTTP status.
-/// - `reason`: HTTP reason phrase.
-/// - `content_type`: response content type.
-/// - `content_length`: byte length of the response body.
-///
-/// Output:
-/// - Complete HTTP/1.1 header block ending in the blank-line delimiter.
-///
-/// Transformation:
-/// - Centralizes local-development cache behavior, content length, connection
-///   close semantics, and MIME sniffing protection so route and static
-///   responses share one testable header contract.
-fn render_http_response_headers(
-    status: u16,
-    reason: &str,
-    content_type: &str,
-    content_length: usize,
-) -> Vec<u8> {
-    format!(
-        "HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nContent-Length: {content_length}\r\nCache-Control: no-cache\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n"
-    )
-    .into_bytes()
 }
 
 #[cfg(test)]

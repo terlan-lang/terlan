@@ -68,6 +68,6 @@ Important invariants:
 
 ## Testing Notes
 
-- Positive source tests live beside the module as `std/data/json_test.terl`.
+- Positive source tests live beside the module as `std/data/JsonTest.terl`.
 - Release API coverage is recorded in `tests/std/RELEASE_API_TESTS.tsv`.
 - Native artifact drift is checked by `make stdlib-check`.

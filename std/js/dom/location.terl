@@ -1,0 +1,130 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Location
+ */
+
+module std.js.Dom.Location.
+
+/**
+ * The **`Location`** interface represents the location (URL) of the object it is linked to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location)
+ */
+pub opaque type Location.
+
+/**
+ * The **`ancestorOrigins`** read-only property of the Location interface is a static browsing contexts of the document associated with the given Location object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/ancestorOrigins)
+ */
+pub (value: Location) ancestor_origins(): DOMStringList ->
+    native.
+
+/**
+ * The **`hash`** property of the Location interface is a string containing a `'#'` followed by the fragment identifier of the location URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/hash)
+ */
+pub (value: Location) hash(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`host`** property of the Location interface is a string containing the host, which is the Location.hostname, and then, if the port of the URL is nonempty, a `':'`, followed by the Location.port of the URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/host)
+ */
+pub (value: Location) host(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`hostname`** property of the Location interface is a string containing either the domain name or IP address of the location URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/hostname)
+ */
+pub (value: Location) hostname(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`href`** property of the Location interface is a stringifier that returns a string containing the whole URL, and allows the href to be updated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/href)
+ */
+pub (value: Location) href(): std.js.String.JsString ->
+    native.
+
+pub (value: Location) to_string(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`origin`** read-only property of the Location interface returns a string containing the Unicode serialization of the origin of the location's URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/origin)
+ */
+pub (value: Location) origin(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`pathname`** property of the Location interface is a string containing the path of the URL for the location.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/pathname)
+ */
+pub (value: Location) pathname(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`port`** property of the Location interface is a string containing the port number of the location's URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/port)
+ */
+pub (value: Location) port(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`protocol`** property of the Location interface is a string containing the protocol or scheme of the location's URL, including the final `':'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/protocol)
+ */
+pub (value: Location) protocol(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`search`** property of the Location interface is a search string, also called a _query string_, that is a string containing a `'?'` followed by the parameters of the location's URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/search)
+ */
+pub (value: Location) search(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`assign()`** method of the Location interface causes the window to load and display the document at the URL specified.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/assign)
+ */
+pub (value: Location) assign(url: URL | std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`reload()`** method of the Location interface reloads the current URL, like the Refresh button.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/reload)
+ */
+pub (value: Location) reload(): std.core.Unit ->
+    native.
+
+/**
+ * The **`replace()`** method of the Location interface replaces the current resource with the one at the provided URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/replace)
+ */
+pub (value: Location) replace(url: URL | std.js.String.JsString): std.core.Unit ->
+    native.

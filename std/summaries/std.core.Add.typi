@@ -1,0 +1,28 @@
+//! Core addition trait.
+//!
+//! `std.core.Add` defines the type-directed contract behind source `+` for
+//! values whose addition or concatenation is safe and predictable.
+
+module std.core.Add.
+
+/// Describes values that can be combined with `+`.
+///
+/// Input: a left value of type `Left` and right value of type `Right`.
+/// Output: a result value of type `Result`.
+/// Transformation: combines two values without mutating either input. Primitive
+/// implementations map to target-native numeric addition or string
+/// concatenation.
+
+pub trait Add[Left, Right, Result] {
+    add(left: Left, right: Right): Result.
+}.
+
+pub impl Add[Float, Float, Float] for Float {
+}.
+
+pub impl Add[Int, Int, Int] for Int {
+}.
+
+pub impl Add[String, String, String] for String {
+}.
+

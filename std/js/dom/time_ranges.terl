@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface TimeRanges
+ */
+
+module std.js.Dom.TimeRanges.
+
+/**
+ * When loading a media resource for use by an audio or video element, the **`TimeRanges`** interface is used for representing the time ranges of the media resource that have been buffered, the time ranges that have been played, and the time ranges that are seekable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TimeRanges)
+ */
+pub opaque type TimeRanges.
+
+/**
+ * The **`TimeRanges.length`** read-only property returns the number of ranges in the object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TimeRanges/length)
+ */
+pub (value: TimeRanges) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`end()`** method of the TimeRanges interface returns the time offset (in seconds) at which a specified time range ends.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TimeRanges/end)
+ */
+pub (value: TimeRanges) end(index: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`start()`** method of the TimeRanges interface returns the time offset (in seconds) at which a specified time range begins.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TimeRanges/start)
+ */
+pub (value: TimeRanges) start(index: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.

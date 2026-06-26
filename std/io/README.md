@@ -61,6 +61,6 @@ Important invariants:
 
 ## Testing Notes
 
-- Positive tests live beside modules as `std/io/*_test.terl`.
+- Positive tests live beside modules as `std/io/*Test.terl`.
 - Host-dependent behavior should use temporary directories in compiler tests.
 - Release examples should prefer console output for simple smoke tests.

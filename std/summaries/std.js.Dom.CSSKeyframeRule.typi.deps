@@ -1,0 +1,8 @@
+module=std.js.Dom.CSSKeyframeRule
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=14382435223662762469
+interface_hash=10214346647642930054
+interface_doc_hash=10214346647642930054
+deps=0

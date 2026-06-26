@@ -1,0 +1,19 @@
+module std.log.LogTest.
+
+import std.core.Unit.{Unit}.
+
+@test
+pub debug_returns_unit(): Bool ->
+    std.test.Test.assert_equal(Unit, std.log.debug("debug")).
+
+@test
+pub info_returns_unit(): Bool ->
+    std.test.Test.assert_equal(Unit, std.log.info("info")).
+
+@test
+pub warn_returns_unit(): Bool ->
+    std.test.Test.assert_equal(Unit, std.log.warn("warn")).
+
+@test
+pub error_returns_unit(): Bool ->
+    std.test.Test.assert_equal(Unit, std.log.error("error")).

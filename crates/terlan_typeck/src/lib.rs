@@ -6,14 +6,16 @@ use terlan_hir::{
     TypeVisibility,
 };
 use terlan_syntax::{
-    extract_native_function_signatures, span::Span, SyntaxDeclarationOutput,
-    SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput,
-    SyntaxImplMethodOutput, SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput,
-    SyntaxPatternKind, SyntaxPatternOutput, SyntaxStructFieldOutput, SyntaxTypeOutput,
+    extract_native_function_signatures, span::Span, SyntaxConstructorParamOutput,
+    SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput,
+    SyntaxFunctionClauseOutput, SyntaxImplMethodOutput, SyntaxImportKind, SyntaxModuleOutput,
+    SyntaxParamOutput, SyntaxPatternKind, SyntaxPatternOutput, SyntaxStructFieldOutput,
+    SyntaxTypeOutput,
 };
 
 mod types;
 
+pub(crate) use types::StructFieldVisibility;
 pub use types::{pretty_type, DiagSeverity, Diagnostic, MapFieldType, Type, TypeVarId};
 
 mod type_system;
@@ -25,14 +27,22 @@ pub use raw_macros::{
     expand_syntax_raw_macros,
 };
 
+mod sql_forms;
+
 mod import_maps;
 use import_maps::*;
 
 mod import_diagnostics;
 use import_diagnostics::*;
 
+mod field_visibility;
+use field_visibility::*;
+
 mod expression;
 use expression::*;
+
+mod named_args;
+use named_args::*;
 
 mod declarations;
 use declarations::*;
@@ -76,15 +86,18 @@ pub(crate) use core_ir::{core_type_from_body_variants, core_type_from_text};
 /// - Local/imported function signature metadata after type parsing.
 ///
 /// Output:
-/// - Parameter types, return type, and generic trait bounds.
+/// - Parameter types, return type, source generic parameter texts, and generic
+///   trait bounds.
 ///
 /// Transformation:
 /// - Stores one overload candidate in a compact form that can be instantiated
-///   during call resolution.
+///   during call resolution while retaining generic parameter spelling for
+///   HKT variance checks at explicit call sites.
 #[derive(Debug, Clone)]
 struct FunctionScheme {
     params: Vec<Type>,
     ret: Type,
+    generic_params: Vec<String>,
     bounds: Vec<FunctionBound>,
 }
 
@@ -118,6 +131,7 @@ struct FunctionBound {
 ///   data needed by ordinary call checking.
 #[derive(Debug, Clone)]
 struct ConstructorScheme {
+    param_names: Vec<String>,
     fixed_params: Vec<Type>,
     min_arity: usize,
     vararg: Option<Type>,
@@ -137,7 +151,26 @@ struct ConstructorScheme {
 ///   template instantiation expressions.
 #[derive(Debug, Clone)]
 struct TemplateScheme {
-    props: HashMap<String, Type>,
+    prop_order: Vec<String>,
+    props: HashMap<String, TemplatePropScheme>,
+}
+
+/// One template property typechecking scheme.
+///
+/// Inputs:
+/// - Parsed template declaration property type and optional default expression.
+///
+/// Output:
+/// - Expected property type plus structured default metadata.
+///
+/// Transformation:
+/// - Keeps template declaration defaults beside their property types so
+///   instantiation checking can accept omitted defaulted properties without
+///   treating every template field as required.
+#[derive(Debug, Clone)]
+struct TemplatePropScheme {
+    ty: Type,
+    default: Option<SyntaxExprOutput>,
 }
 
 /// Local or imported type alias model.
@@ -146,16 +179,39 @@ struct TemplateScheme {
 /// - Type/opaque type declarations after parsing their body into `Type`.
 ///
 /// Output:
-/// - Type parameters, alias body, and opacity flag.
+/// - Type parameters, alias body, source constructor parameter labels, and
+///   opacity flag.
 ///
 /// Transformation:
 /// - Keeps aliases available for expansion while preserving opacity decisions
-///   for constructor and pattern validation.
+///   for constructor and pattern validation. Constructor labels stay separate
+///   from the runtime type model because tuple field labels are source-facing
+///   call metadata, not structural runtime type identity.
 #[derive(Debug, Clone)]
 struct TypeAlias {
     params: Vec<TypeVarId>,
+    param_variance: Vec<Variance>,
     body: Type,
+    constructor_param_names: Vec<String>,
     is_opaque: bool,
+}
+
+/// Variance declared for one generic type parameter.
+///
+/// Inputs:
+/// - Source type parameter spelling such as `T`, `+T`, or `-T`.
+///
+/// Output:
+/// - Direction used by variance-aware subtype checks.
+///
+/// Transformation:
+/// - Keeps the default invariant and makes covariance/contravariance explicit
+///   so generic assignability never depends on inference magic.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Variance {
+    Invariant,
+    Covariant,
+    Contravariant,
 }
 
 /// Fully qualified imported type name.
@@ -200,6 +256,7 @@ struct TypeCheckInputs<'a> {
     function_signatures: HashMap<(String, usize), Vec<FunctionScheme>>,
     constructor_signatures: HashMap<String, Vec<ConstructorScheme>>,
     struct_fields: HashMap<String, HashMap<String, Type>>,
+    struct_field_visibility: HashMap<String, HashMap<String, StructFieldVisibility>>,
     receiver_methods: HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     template_schemes: HashMap<String, TemplateScheme>,
     syntax_function_module: &'a SyntaxModuleOutput,
@@ -260,6 +317,7 @@ fn type_check_syntax_module_with_inputs<'a>(
     let function_signatures = inputs.function_signatures;
     let constructor_signatures = inputs.constructor_signatures;
     let struct_fields = inputs.struct_fields;
+    let struct_field_visibility = inputs.struct_field_visibility;
     let receiver_methods = inputs.receiver_methods;
     let template_schemes = inputs.template_schemes;
     let import_maps = inputs.import_maps;
@@ -286,18 +344,27 @@ fn type_check_syntax_module_with_inputs<'a>(
         templates: &template_schemes,
         aliases: &aliases,
         struct_fields: &struct_fields,
+        struct_field_visibility: &struct_field_visibility,
         receiver_methods: &receiver_methods,
         trait_method_calls: &trait_method_calls,
         trait_bound_impl_type_args: &trait_bound_impl_type_args,
         trait_signatures: &trait_signatures,
         alias_names: &alias_names,
         current_bounds: &[],
+        current_constructor_target: None,
         trait_lookup_cache: &trait_lookup_cache,
     };
 
+    diagnostics.extend(check_syntax_constructor_param_defaults(
+        inputs.syntax_function_module,
+        &constructor_signatures,
+        &aliases,
+        &expr_ctx,
+    ));
     diagnostics.extend(check_syntax_module_functions(
         inputs.syntax_function_module,
         &function_signatures,
+        &constructor_signatures,
         &alias_names,
         &aliases,
         &imported_type_names,
@@ -331,7 +398,7 @@ pub fn type_check_syntax_module_output(
     let trait_method_calls =
         collect_syntax_trait_method_calls(module, &alias_names, &trait_signatures, resolved);
     let mut trait_decl_diagnostics = check_syntax_trait_decls(module, &trait_signatures);
-    trait_decl_diagnostics.extend(check_syntax_struct_derives(module, resolved));
+    trait_decl_diagnostics.extend(check_syntax_struct_includes(module, resolved));
     trait_decl_diagnostics.extend(check_syntax_declared_implements(module, &trait_signatures));
     let trait_impl_coherence_diagnostics = check_syntax_trait_impl_coherence(module);
     let trait_impl_signature_diagnostics =
@@ -345,11 +412,16 @@ pub fn type_check_syntax_module_output(
         &alias_names,
     ));
 
+    let mut struct_fields = collect_imported_struct_fields(resolved, &alias_names);
+    struct_fields.extend(collect_syntax_struct_fields(module, &alias_names));
+    let mut struct_field_visibility = collect_imported_struct_field_visibility(resolved);
+    struct_field_visibility.extend(collect_syntax_struct_field_visibility(module));
+
     let inputs = TypeCheckInputs {
-        import_maps: collect_syntax_import_maps(module),
+        import_maps: collect_syntax_import_maps(module, &resolved.interface_map),
         local_aliases: local_aliases.clone(),
         alias_extra_names: collect_syntax_alias_extra_names(module),
-        kind_diagnostics: collect_syntax_kind_diagnostics(module),
+        kind_diagnostics: collect_syntax_kind_diagnostics(module, &trait_signatures, &aliases),
         macro_decl_diagnostics: check_syntax_macro_decl_signatures(module),
         trait_decl_diagnostics,
         trait_impl_coherence_diagnostics,
@@ -376,7 +448,8 @@ pub fn type_check_syntax_module_output(
             &imported_aliases,
             &aliases,
         ),
-        struct_fields: collect_syntax_struct_fields(module, &alias_names),
+        struct_fields,
+        struct_field_visibility,
         template_schemes: collect_syntax_template_schemes(module, &alias_names),
         syntax_function_module: module,
         trait_signatures,
@@ -396,6 +469,8 @@ mod core_lowering;
 mod core_pattern_lowering;
 mod core_proof;
 
+pub use core_expr_lowering::sql_query_core_expr_from_syntax;
+pub use core_intrinsic_lowering::core_primitive_intrinsic_return_type;
 pub use core_lowering::{lower_resolved_module_to_core, lower_syntax_module_output_to_core};
 
 #[cfg(test)]
@@ -412,16 +487,16 @@ pub(crate) use core_intrinsic_lowering::{
 #[cfg(test)]
 pub(crate) use core_pattern_lowering::{core_pattern_from_syntax, core_pattern_proof_coverage};
 #[cfg(test)]
-pub(crate) use core_proof::{
+pub(crate) use core_proof::metadata::{
     core_module_proof_readiness, core_proof_readiness, CoreProofCoverageCounts,
     CoreTypePayloadCounts,
 };
 
-/// Expands struct derivation into explicit child fields.
+/// Expands struct inclusion into explicit child fields.
 ///
 /// Inputs:
 /// - `module`: mutable syntax-output module whose struct declarations may
-///   contain `derives` parent names.
+///   contain `includes` parent names.
 /// - `resolved`: resolved module context used to read imported parent struct
 ///   fields from module interfaces.
 ///
@@ -429,14 +504,14 @@ pub(crate) use core_proof::{
 /// - Diagnostics for invalid parent references or inherited-field conflicts.
 ///
 /// Transformation:
-/// - Validates the `derives` clauses with the same rules as formal
+/// - Validates the `includes` clauses with the same rules as formal
 ///   typechecking, then prepends fields from local or imported parent structs
 ///   to each child struct.
-fn expand_syntax_struct_derives(
+fn expand_syntax_struct_includes(
     module: &mut SyntaxModuleOutput,
     resolved: &ResolvedModule,
 ) -> Vec<Diagnostic> {
-    let mut diagnostics = check_syntax_struct_derives(module, resolved);
+    let mut diagnostics = check_syntax_struct_includes(module, resolved);
     if !diagnostics.is_empty() {
         return diagnostics;
     }
@@ -448,7 +523,7 @@ fn expand_syntax_struct_derives(
     for declaration in &mut module.declarations {
         let SyntaxDeclarationPayload::Struct {
             name,
-            derives,
+            includes,
             fields,
             ..
         } = &mut declaration.payload
@@ -462,7 +537,7 @@ fn expand_syntax_struct_derives(
             .map(|field| field.name.clone())
             .collect::<HashSet<_>>();
 
-        for parent_name in derives {
+        for parent_name in includes {
             let Some(parent_fields) = all_parent_fields.get(parent_name) else {
                 continue;
             };
@@ -472,7 +547,7 @@ fn expand_syntax_struct_derives(
                     diagnostics.push(Diagnostic {
                         span: declaration.span.into(),
                         message: format!(
-                            "derived struct `{}` field `{}` conflicts with declaration of struct `{}`",
+                            "included struct `{}` field `{}` conflicts with declaration of struct `{}`",
                             parent_name, parent_field.name, name
                         ),
                         severity: DiagSeverity::Error,
@@ -492,7 +567,7 @@ fn expand_syntax_struct_derives(
     diagnostics
 }
 
-/// Runs the syntax-output derive-expansion validation phase.
+/// Runs the syntax-output include-expansion validation phase.
 ///
 /// Inputs:
 /// - `module`: compiler-facing syntax output to validate.
@@ -500,16 +575,16 @@ fn expand_syntax_struct_derives(
 ///
 /// Output:
 /// - A tuple containing the expanded syntax-output module and one diagnostic per
-///   derive validation or expansion failure.
+///   include validation or expansion failure.
 ///
 /// Transformation:
-/// - Validates struct derive clauses against visible struct names and copies
+/// - Validates struct includes clauses against visible struct names and copies
 ///   fields from local or imported parent structs into child structs.
-pub fn expand_syntax_derives(
+pub fn expand_syntax_includes(
     mut module: SyntaxModuleOutput,
     resolved: &ResolvedModule,
 ) -> (SyntaxModuleOutput, Vec<Diagnostic>) {
-    let diagnostics = expand_syntax_struct_derives(&mut module, resolved);
+    let diagnostics = expand_syntax_struct_includes(&mut module, resolved);
     (module, diagnostics)
 }
 
@@ -561,7 +636,10 @@ pub fn infer_syntax_expression_type(
         &imported_aliases,
         &aliases,
     );
-    let struct_fields = collect_syntax_struct_fields(module, &alias_names);
+    let mut struct_fields = collect_imported_struct_fields(resolved, &alias_names);
+    struct_fields.extend(collect_syntax_struct_fields(module, &alias_names));
+    let mut struct_field_visibility = collect_imported_struct_field_visibility(resolved);
+    struct_field_visibility.extend(collect_syntax_struct_field_visibility(module));
     let receiver_methods = collect_syntax_receiver_method_dispatch_signatures_with_imports(
         module,
         resolved,
@@ -571,7 +649,7 @@ pub fn infer_syntax_expression_type(
         &local_aliases,
     );
     let template_schemes = collect_syntax_template_schemes(module, &alias_names);
-    let import_maps = collect_syntax_import_maps(module);
+    let import_maps = collect_syntax_import_maps(module, &resolved.interface_map);
     let imported_type_names = imported_type_names(resolved);
     let constructor_aliases = imported_type_names.clone();
     let trait_bound_impl_type_args = collect_trait_bound_impl_type_args(&trait_method_calls);
@@ -590,12 +668,14 @@ pub fn infer_syntax_expression_type(
         templates: &template_schemes,
         aliases: &aliases,
         struct_fields: &struct_fields,
+        struct_field_visibility: &struct_field_visibility,
         receiver_methods: &receiver_methods,
         trait_method_calls: &trait_method_calls,
         trait_bound_impl_type_args: &trait_bound_impl_type_args,
         trait_signatures: &trait_signatures,
         alias_names: &alias_names,
         current_bounds: &[],
+        current_constructor_target: None,
         trait_lookup_cache: &trait_lookup_cache,
     };
 
@@ -642,6 +722,46 @@ fn normalize_type_param_name(param: &str) -> String {
     }
 }
 
+/// Extracts variance from one generic type parameter declaration.
+///
+/// Inputs:
+/// - `param`: source type parameter text, possibly variance-prefixed.
+///
+/// Output:
+/// - `Covariant` for `+T`, `Contravariant` for `-T`, and `Invariant`
+///   otherwise.
+///
+/// Transformation:
+/// - Reads only the leading marker and deliberately ignores higher-kind slot
+///   text so alias-level parameter variance remains independent of HKT slot
+///   variance.
+fn type_param_variance(param: &str) -> Variance {
+    match param.trim().chars().next() {
+        Some('+') => Variance::Covariant,
+        Some('-') => Variance::Contravariant,
+        _ => Variance::Invariant,
+    }
+}
+
+/// Extracts variance metadata for generic type parameters.
+///
+/// Inputs:
+/// - `params`: source type parameter texts from a type declaration or
+///   interface summary.
+///
+/// Output:
+/// - One variance entry per parameter in declaration order.
+///
+/// Transformation:
+/// - Maps each parameter through `type_param_variance`, preserving arity and
+///   keeping invariant as the default.
+fn type_param_variances(params: &[String]) -> Vec<Variance> {
+    params
+        .iter()
+        .map(|param| type_param_variance(param))
+        .collect()
+}
+
 #[cfg(test)]
 mod expression_test;
 
@@ -676,6 +796,8 @@ mod primitive_test;
 
 #[cfg(test)]
 mod receiver_method_test;
+#[cfg(test)]
+mod sql_forms_test;
 #[cfg(test)]
 mod std_contract_test;
 #[cfg(test)]

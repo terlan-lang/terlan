@@ -12,7 +12,7 @@
 # Transformation:
 # - Ties each release-owned std module to its source, summary, generated docs,
 #   and exact API-test manifest. The API-test manifest rows point at adjacent
-#   std `*_test.terl` files, while each row here proves the owning module has
+#   std `*Test.terl` files, while each row here proves the owning module has
 #   source, summary, and documentation coverage.
 #
 # Format:
@@ -27,17 +27,39 @@ module	std.collections.List	std/collections/list.terl	std/summaries/std.collecti
 module	std.collections.Map	std/collections/map.terl	std/summaries/std.collections.Map.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Map.html
 module	std.collections.Set	std/collections/set.terl	std/summaries/std.collections.Set.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Set.html
 module	std.data.Json	std/data/json.terl	std/summaries/std.data.Json.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Json.html
+module	std.db.Postgres	std/db/postgres.terl	std/summaries/std.db.Postgres.typi	tests/std/RELEASE_API_TESTS.tsv	std.db.Postgres.html
 module	std.encoding.Base64	std/encoding/base64.terl	std/summaries/std.encoding.Base64.typi	tests/std/RELEASE_API_TESTS.tsv	std.encoding.Base64.html
 module	std.beam.Task	std/beam/task.terl	std/summaries/std.beam.Task.typi	tests/std/RELEASE_API_TESTS.tsv	std.beam.Task.html
+module	std.http.Cookies	std/http/cookies.terl	std/summaries/std.http.Cookies.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Cookies.html
 module	std.http.Error	std/http/error.terl	std/summaries/std.http.Error.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Error.html
 module	std.http.Request	std/http/request.terl	std/summaries/std.http.Request.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Request.html
 module	std.http.Response	std/http/response.terl	std/summaries/std.http.Response.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Response.html
+module	std.http.Router	std/http/router.terl	std/summaries/std.http.Router.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Router.html
+module	std.http.Tls	std/http/tls.terl	std/summaries/std.http.Tls.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Tls.html
+module	std.js.Array	std/js/array.terl	std/summaries/std.js.Array.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Array.html
+module	std.js.Dom.Document	std/js/dom/document.terl	std/summaries/std.js.Dom.Document.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Dom.Document.html
+module	std.js.Dom.HTMLElement	std/js/dom/html_element.terl	std/summaries/std.js.Dom.HTMLElement.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Dom.HTMLElement.html
+module	std.js.Map	std/js/map.terl	std/summaries/std.js.Map.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Map.html
+module	std.js.MapConstructor	std/js/map_constructor.terl	std/summaries/std.js.MapConstructor.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.MapConstructor.html
+module	std.js.Number	std/js/number.terl	std/summaries/std.js.Number.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Number.html
+module	std.js.Promise	std/js/promise.terl	std/summaries/std.js.Promise.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Promise.html
+module	std.js.ReadonlyMap	std/js/readonly_map.terl	std/summaries/std.js.ReadonlyMap.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.ReadonlyMap.html
+module	std.js.ReadonlySet	std/js/readonly_set.terl	std/summaries/std.js.ReadonlySet.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.ReadonlySet.html
+module	std.js.Set	std/js/set.terl	std/summaries/std.js.Set.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Set.html
+module	std.js.SetConstructor	std/js/set_constructor.terl	std/summaries/std.js.SetConstructor.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.SetConstructor.html
+module	std.js.String	std/js/string.terl	std/summaries/std.js.String.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.String.html
+module	std.js.WeakMap	std/js/weak_map.terl	std/summaries/std.js.WeakMap.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.WeakMap.html
+module	std.js.WeakMapConstructor	std/js/weak_map_constructor.terl	std/summaries/std.js.WeakMapConstructor.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.WeakMapConstructor.html
+module	std.js.WeakSet	std/js/weak_set.terl	std/summaries/std.js.WeakSet.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.WeakSet.html
+module	std.js.WeakSetConstructor	std/js/weak_set_constructor.terl	std/summaries/std.js.WeakSetConstructor.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.WeakSetConstructor.html
+module	std.template.Template	std/template/template.terl	std/summaries/std.template.Template.typi	tests/std/RELEASE_API_TESTS.tsv	std.template.Template.html
 module	std.core.Atom	std/core/atom.terl	std/summaries/std.core.Atom.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Atom.html
 module	std.core.Bool	std/core/bool.terl	std/summaries/std.core.Bool.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Bool.html
 module	std.core.Equal	std/core/equal.terl	std/summaries/std.core.Equal.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Equal.html
 module	std.core.Error	std/core/error.terl	std/summaries/std.core.Error.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Error.html
 module	std.core.Float	std/core/float.terl	std/summaries/std.core.Float.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Float.html
 module	std.core.Int	std/core/int.terl	std/summaries/std.core.Int.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Int.html
+module	std.core.Object	std/core/object.terl	std/summaries/std.core.Object.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Object.html
 module	std.core.Option	std/core/option.terl	std/summaries/std.core.Option.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Option.html
 module	std.core.Ordering	std/core/ordering.terl	std/summaries/std.core.Ordering.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Ordering.html
 module	std.core.Result	std/core/result.terl	std/summaries/std.core.Result.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Result.html
@@ -47,6 +69,8 @@ module	std.core.Unit	std/core/unit.terl	std/summaries/std.core.Unit.typi	tests/s
 module	std.io.Console	std/io/console.terl	std/summaries/std.io.Console.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Console.html
 module	std.io.File	std/io/file.terl	std/summaries/std.io.File.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.File.html
 module	std.io.Path	std/io/path.terl	std/summaries/std.io.Path.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Path.html
+module	std.log	std/log/log.terl	std/summaries/std.log.typi	tests/std/RELEASE_API_TESTS.tsv	std.log.html
 module	std.net.Uri	std/net/uri.terl	std/summaries/std.net.Uri.typi	tests/std/RELEASE_API_TESTS.tsv	std.net.Uri.html
 module	std.native.collections.Vector	std/native/collections/vector.terl	std/summaries/std.native.collections.Vector.typi	tests/std/RELEASE_API_TESTS.tsv	std.native.collections.Vector.html
+module	std.sync.Resource	std/sync/resource.terl	std/summaries/std.sync.Resource.typi	tests/std/RELEASE_API_TESTS.tsv	std.sync.Resource.html
 module	std.test.Test	std/test/test.terl	std/summaries/std.test.Test.typi	tests/std/RELEASE_API_TESTS.tsv	std.test.Test.html

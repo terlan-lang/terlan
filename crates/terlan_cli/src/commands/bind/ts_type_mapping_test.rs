@@ -48,54 +48,54 @@ fn maps_optional_array_to_option_list() {
     assert!(mapped.skipped.is_empty());
 }
 
-/// Verifies conservative literal unions remain Terlan unions.
+/// Verifies literal unions are skipped conservatively.
 ///
 /// Inputs:
 /// - A TypeScript string-literal union.
 ///
 /// Output:
-/// - Test passes when the mapper emits a deterministic Terlan union type.
+/// - Test passes when the mapper emits a stable skip reason.
 ///
 /// Transformation:
-/// - Preserves source union shape without inventing enum wrappers during the
-///   first generated-binding slice.
+/// - Prevents generated bindings from emitting literal type syntax that the
+///   current Terlan parser cannot accept in every type position.
 #[test]
-fn maps_simple_literal_union_to_terlan_union() {
+fn skips_simple_literal_union_with_stable_reason() {
     let mapped = map_ts_type_to_terlan(&TsTypeRef::Union(vec![
         TsTypeRef::StringLiteral("loading".to_string()),
         TsTypeRef::StringLiteral("complete".to_string()),
     ]));
 
+    assert!(mapped.terlan_type.is_none());
     assert_eq!(
-        mapped.terlan_type.as_deref(),
-        Some("\"complete\" | \"loading\"")
+        mapped.skipped[0].reason,
+        "ts_bindgen.unsupported_literal_type"
     );
-    assert!(mapped.skipped.is_empty());
 }
 
-/// Verifies nullable simple unions are wrapped in `Option`.
+/// Verifies nullable literal unions are skipped conservatively.
 ///
 /// Inputs:
 /// - A TypeScript literal union plus `null`.
 ///
 /// Output:
-/// - Test passes when the mapper emits `Option[<union>]`.
+/// - Test passes when the mapper emits a stable skip reason.
 ///
 /// Transformation:
-/// - Applies optional/null handling after conservative union normalization.
+/// - Avoids wrapping unsupported literal unions in `Option`.
 #[test]
-fn maps_nullable_simple_union_to_option_union() {
+fn skips_nullable_literal_union_with_stable_reason() {
     let mapped = map_ts_type_to_terlan(&TsTypeRef::Union(vec![
         TsTypeRef::StringLiteral("open".to_string()),
         TsTypeRef::StringLiteral("closed".to_string()),
         TsTypeRef::Null,
     ]));
 
+    assert!(mapped.terlan_type.is_none());
     assert_eq!(
-        mapped.terlan_type.as_deref(),
-        Some("Option[\"closed\" | \"open\"]")
+        mapped.skipped[0].reason,
+        "ts_bindgen.unsupported_literal_type"
     );
-    assert!(mapped.skipped.is_empty());
 }
 
 /// Verifies complex unions fail with a stable manifest reason.
@@ -267,28 +267,29 @@ fn maps_record_shape_to_named_tuple_type() {
     assert!(mapped.skipped.is_empty());
 }
 
-/// Verifies TypeScript callback shapes map to Terlan arrow types.
+/// Verifies TypeScript callback shapes are skipped conservatively.
 ///
 /// Inputs:
 /// - A callback accepting a string and returning void.
 ///
 /// Output:
-/// - Test passes when the mapper emits `(T) -> Unit` syntax.
+/// - Test passes when the mapper emits a stable skip reason.
 ///
 /// Transformation:
-/// - Pins callbacks to the EBNF-defined type-arrow form.
+/// - Prevents generated TypeScript bindings from emitting function-type syntax
+///   before that syntax is stable in public generated interfaces.
 #[test]
-fn maps_callback_shape_to_arrow_type() {
+fn skips_callback_shape_with_stable_reason() {
     let mapped = map_ts_type_to_terlan(&TsTypeRef::Callback {
         params: vec![TsTypeRef::Primitive(TsPrimitiveType::String)],
         return_type: Box::new(TsTypeRef::Primitive(TsPrimitiveType::Void)),
     });
 
+    assert!(mapped.terlan_type.is_none());
     assert_eq!(
-        mapped.terlan_type.as_deref(),
-        Some("(std.js.String.JsString) -> std.core.Unit")
+        mapped.skipped[0].reason,
+        "ts_bindgen.unsupported_callback_type"
     );
-    assert!(mapped.skipped.is_empty());
 }
 
 /// Verifies standalone nullish types are skipped.

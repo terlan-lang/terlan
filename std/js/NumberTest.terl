@@ -1,0 +1,16 @@
+module tests.js.std.NumberTest.
+
+import type std.js.Number.JsNumber.
+
+pub accepts_js_number(value: JsNumber): JsNumber ->
+    value.
+
+pub converts_to_float(value: JsNumber): Float ->
+    value.to_float().
+
+pub converts_from_float(value: Float): JsNumber ->
+    std.js.Number.from_float(value).
+
+@test
+pub generated_surface_is_declared(): Bool ->
+    true.

@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface KeyframeEffect
+ */
+
+module std.js.Dom.KeyframeEffect.
+
+/**
+ * The **`KeyframeEffect`** interface of the Web Animations API lets us create sets of animatable properties and values, called **keyframes.** These can then be played using the Animation.Animation constructor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect)
+ */
+pub opaque type KeyframeEffect.
+
+/**
+ * The **`composite`** property of a KeyframeEffect resolves how an element's animation impacts its underlying property values.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/composite)
+ */
+pub (value: KeyframeEffect) composite(): CompositeOperation.
+
+/**
+ * The **`iterationComposite`** property of a KeyframeEffect resolves how the animation's property value changes accumulate or override each other upon each of the animation's iterations.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/iterationComposite)
+ */
+pub (value: KeyframeEffect) iteration_composite(): IterationCompositeOperation.
+
+/**
+ * The **`pseudoElement`** property of a KeyframeEffect interface is a string representing the pseudo-element being animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/pseudoElement)
+ */
+pub (value: KeyframeEffect) pseudo_element(): Option[std.js.String.JsString].
+
+/**
+ * The **`target`** property of a KeyframeEffect interface represents the element or pseudo-element being animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/target)
+ */
+pub (value: KeyframeEffect) target_(): Option[Element].
+
+/**
+ * The **`getKeyframes()`** method of a KeyframeEffect returns an Array of the computed keyframes that make up this animation along with their computed offsets.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/getKeyframes)
+ */
+pub (value: KeyframeEffect) get_keyframes(): std.js.Array[ComputedKeyframe].
+
+/**
+ * The **`setKeyframes()`** method of the KeyframeEffect interface replaces the keyframes that make up the affected `KeyframeEffect` with a new set of keyframes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/setKeyframes)
+ */
+pub (value: KeyframeEffect) set_keyframes(keyframes: Option[PropertyIndexedKeyframes | std.js.Array[Keyframe]]): std.core.Unit.

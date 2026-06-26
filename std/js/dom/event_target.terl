@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface EventTarget
+ */
+
+module std.js.Dom.EventTarget.
+
+/**
+ * The **`EventTarget`** interface is implemented by objects that can receive events and may have listeners for them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget)
+ */
+pub opaque type EventTarget.
+
+/**
+ * The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)
+ */
+pub (value: EventTarget) add_event_listener(type_: std.js.String.JsString, callback: Option[EventListenerOrEventListenerObject], options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+/**
+ * The **`dispatchEvent()`** method of the EventTarget sends an Event to the object, (synchronously) invoking the affected event listeners in the appropriate order.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent)
+ */
+pub (value: EventTarget) dispatch_event(event: Event): std.core.Bool ->
+    native.
+
+/**
+ * The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)
+ */
+pub (value: EventTarget) remove_event_listener(type_: std.js.String.JsString, callback: Option[EventListenerOrEventListenerObject], options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

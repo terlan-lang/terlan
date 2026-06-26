@@ -1,0 +1,95 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SubtleCrypto
+ */
+
+module std.js.Dom.SubtleCrypto.
+
+/**
+ * The **`SubtleCrypto`** interface of the Web Crypto API provides a number of low-level cryptographic functions.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto)
+ */
+pub opaque type SubtleCrypto.
+
+/**
+ * The **`decrypt()`** method of the SubtleCrypto interface decrypts some encrypted data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt)
+ */
+pub (value: SubtleCrypto) decrypt(algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams, key: CryptoKey, data: BufferSource): std.js.Promise[ArrayBuffer].
+
+/**
+ * The **`deriveBits()`** method of the key.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/deriveBits)
+ */
+pub (value: SubtleCrypto) derive_bits(algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, base_key: CryptoKey, length: Option[std.js.Number.JsNumber]): std.js.Promise[ArrayBuffer].
+
+/**
+ * The **`deriveKey()`** method of the SubtleCrypto interface can be used to derive a secret key from a master key.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/deriveKey)
+ */
+pub (value: SubtleCrypto) derive_key(algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, base_key: CryptoKey, derived_key_type: AesDerivedKeyParams | AlgorithmIdentifier | HkdfParams | HmacImportParams | Pbkdf2Params, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey].
+
+/**
+ * The **`digest()`** method of the SubtleCrypto interface generates a _digest_ of the given data, using the specified hash function.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/digest)
+ */
+pub (value: SubtleCrypto) digest(algorithm: AlgorithmIdentifier, data: BufferSource): std.js.Promise[ArrayBuffer].
+
+/**
+ * The **`encrypt()`** method of the SubtleCrypto interface encrypts data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/encrypt)
+ */
+pub (value: SubtleCrypto) encrypt(algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams, key: CryptoKey, data: BufferSource): std.js.Promise[ArrayBuffer].
+
+pub (value: SubtleCrypto) export_key(format: KeyFormat, key: CryptoKey): std.js.Promise[ArrayBuffer | JsonWebKey].
+
+pub (value: SubtleCrypto) generate_key(algorithm: EcKeyGenParams | RsaHashedKeyGenParams, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKeyPair].
+
+pub (value: SubtleCrypto) generate_key(algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey].
+
+pub (value: SubtleCrypto) generate_key(algorithm: AlgorithmIdentifier, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey | CryptoKeyPair].
+
+/**
+ * The **`sign()`** method of the SubtleCrypto interface generates a digital signature.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/sign)
+ */
+pub (value: SubtleCrypto) sign(algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams, key: CryptoKey, data: BufferSource): std.js.Promise[ArrayBuffer].
+
+/**
+ * The **`unwrapKey()`** method of the SubtleCrypto interface 'unwraps' a key.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/unwrapKey)
+ */
+pub (value: SubtleCrypto) unwrap_key(format: KeyFormat, wrapped_key: BufferSource, unwrapping_key: CryptoKey, unwrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams, unwrapped_key_algorithm: AesKeyAlgorithm | AlgorithmIdentifier | EcKeyImportParams | HmacImportParams | RsaHashedImportParams, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey].
+
+/**
+ * The **`verify()`** method of the SubtleCrypto interface verifies a digital signature.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/verify)
+ */
+pub (value: SubtleCrypto) verify(algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams, key: CryptoKey, signature: BufferSource, data: BufferSource): std.js.Promise[std.core.Bool].
+
+/**
+ * The **`wrapKey()`** method of the SubtleCrypto interface 'wraps' a key.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/wrapKey)
+ */
+pub (value: SubtleCrypto) wrap_key(format: KeyFormat, key: CryptoKey, wrapping_key: CryptoKey, wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams): std.js.Promise[ArrayBuffer].

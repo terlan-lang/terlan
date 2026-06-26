@@ -1,0 +1,79 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IntersectionObserverEntry
+ */
+
+module std.js.Dom.IntersectionObserverEntry.
+
+/**
+ * The **`IntersectionObserverEntry`** interface of the Intersection Observer API describes the intersection between the target element and its root container at a specific moment of transition.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry)
+ */
+pub opaque type IntersectionObserverEntry.
+
+/**
+ * The IntersectionObserverEntry interface's read-only **`boundingClientRect`** property returns a smallest rectangle that contains the entire target element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/boundingClientRect)
+ */
+pub (value: IntersectionObserverEntry) bounding_client_rect(): DOMRectReadOnly ->
+    native.
+
+/**
+ * The IntersectionObserverEntry interface's read-only **`intersectionRatio`** property tells you how much of the target element is currently visible within the root's intersection ratio, as a value between 0.0 and 1.0.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/intersectionRatio)
+ */
+pub (value: IntersectionObserverEntry) intersection_ratio(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The IntersectionObserverEntry interface's read-only **`intersectionRect`** property is a contains the entire portion of the target element which is currently visible within the intersection root.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/intersectionRect)
+ */
+pub (value: IntersectionObserverEntry) intersection_rect(): DOMRectReadOnly ->
+    native.
+
+/**
+ * The IntersectionObserverEntry interface's read-only **`isIntersecting`** property is a Boolean value which is `true` if the target element intersects with the intersection observer's root.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/isIntersecting)
+ */
+pub (value: IntersectionObserverEntry) is_intersecting(): std.core.Bool ->
+    native.
+
+/**
+ * The IntersectionObserverEntry interface's read-only **`rootBounds`** property is a rectangle, offset by the IntersectionObserver.rootMargin if one is specified.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/rootBounds)
+ */
+pub (value: IntersectionObserverEntry) root_bounds(): Option[DOMRectReadOnly] ->
+    native.
+
+/**
+ * The IntersectionObserverEntry interface's read-only **`target`** property indicates which targeted root.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/target)
+ */
+pub (value: IntersectionObserverEntry) target_(): Element ->
+    native.
+
+/**
+ * The IntersectionObserverEntry interface's read-only **`time`** property is a change occurred relative to the time at which the document was created.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/time)
+ */
+pub (value: IntersectionObserverEntry) time(): DOMHighResTimeStamp ->
+    native.

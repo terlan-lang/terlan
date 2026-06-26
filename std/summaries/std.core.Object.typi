@@ -1,0 +1,107 @@
+//! Core dynamic object type.
+//!
+//! `std.core.Object` represents language-neutral string-keyed dynamic data.
+//! Structs remain fixed typed records; `Object[V]` is for JSON-like payloads,
+//! configuration fragments, OpenAPI data, and other variable-key values.
+
+module std.core.Object.
+
+/// Object represents a dynamic string-keyed value map.
+///
+/// Input: one value type parameter `V`.
+/// Output: an `Object[V]` whose keys are always portable UTF-8 `String` values.
+/// Transformation: aliases the portable `Map[String, V]` contract so Erlang can
+/// lower to native maps and Rust can lower to deterministic map storage without
+/// introducing a separate target-specific object model.
+
+pub type Object[V] =
+    std.collections.Map.Map[String, V].
+
+/// Removes every object member.
+///
+/// Input: a mutable `Object[V]` receiver.
+/// Output: `Unit`.
+/// Transformation: delegates to the map-backed `clear` receiver method.
+
+pub (mut object: Object[V]) clear(): Unit.
+
+/// Returns whether a key exists on an object.
+///
+/// Input: one `Object[V]` receiver and one `String` key.
+/// Output: `true` when the key exists; otherwise `false`.
+/// Transformation: delegates to the map-backed `contains_key` receiver method.
+
+pub (object: Object[V]) contains_key(key: String): Bool.
+
+/// Creates an object from explicit string-keyed entry tuples.
+///
+/// Input: one list of `{String, V}` entries.
+/// Output: an `Object[V]` containing the supplied entries.
+/// Transformation: delegates to `Map.from_entries` so duplicate-key handling and
+/// backend representation remain identical to `Map[String, V]`.
+
+pub from_entries[V](entries: List[{String, V}]): Object[V].
+
+/// Looks up an object member by key.
+///
+/// Input: one `Object[V]` receiver and one `String` key.
+/// Output: `Some(value)` when the member exists; otherwise `None`.
+/// Transformation: delegates to the map-backed `get` receiver method.
+
+pub (object: Object[V]) get(key: String): Option[V].
+
+/// Returns whether an object contains no members.
+///
+/// Input: one `Object[V]`.
+/// Output: `true` when the object has no members; otherwise `false`.
+/// Transformation: delegates to the map-backed `is_empty` receiver method.
+
+pub (object: Object[V]) is_empty(): Bool.
+
+/// Creates an empty object.
+///
+/// Input: no value input.
+/// Output: an empty `Object[V]`.
+/// Transformation: delegates to `Map.new`, preserving the map-backed runtime
+/// representation.
+
+pub new[V](): Object[V].
+
+/// Inserts or replaces an object member.
+///
+/// Input: a mutable `Object[V]` receiver, one `String` key, and one value.
+/// Output: `Unit`.
+/// Transformation: delegates to the map-backed `put` receiver method and keeps
+/// Terlan mutable-receiver rebinding semantics.
+
+pub (mut object: Object[V]) put(key: String, value: V): Unit.
+
+/// Removes an object member if it exists.
+///
+/// Input: a mutable `Object[V]` receiver and one `String` key.
+/// Output: `Unit`.
+/// Transformation: delegates to the map-backed `remove` receiver method.
+
+pub (mut object: Object[V]) remove(key: String): Unit.
+
+/// Returns the number of object members.
+///
+/// Input: one `Object[V]`.
+/// Output: the number of string-keyed members visible in the object.
+/// Transformation: delegates to the map-backed `size` receiver method.
+
+pub (object: Object[V]) size(): Int.
+
+/// Constructs an object from explicit string-keyed entry tuples.
+///
+/// Input: zero or more `{String, V}` entries.
+/// Output: an `Object[V]` containing the supplied entries.
+/// Transformation: delegates to `std.collections.Map.from_entries`, preserving
+/// the exact `Map[String, V]` runtime representation behind the `Object[V]`
+/// source contract.
+
+pub constructor Object[V] {
+    (...entries: {String, V}): Object[V] ->
+        Map.from_entries(entries)
+}.
+

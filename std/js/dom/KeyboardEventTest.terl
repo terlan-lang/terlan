@@ -1,0 +1,61 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface KeyboardEvent
+ */
+
+module std.js.Dom.KeyboardEventTest.
+
+import type std.js.Dom.KeyboardEvent.KeyboardEvent.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub alt_key_typechecks(receiver: KeyboardEvent): std.core.Bool ->
+    receiver.alt_key().
+
+pub char_code_typechecks(receiver: KeyboardEvent): std.js.Number.JsNumber ->
+    receiver.char_code().
+
+pub code_typechecks(receiver: KeyboardEvent): std.js.String.JsString ->
+    receiver.code().
+
+pub ctrl_key_typechecks(receiver: KeyboardEvent): std.core.Bool ->
+    receiver.ctrl_key().
+
+pub is_composing_typechecks(receiver: KeyboardEvent): std.core.Bool ->
+    receiver.is_composing().
+
+pub key_typechecks(receiver: KeyboardEvent): std.js.String.JsString ->
+    receiver.key().
+
+pub key_code_typechecks(receiver: KeyboardEvent): std.js.Number.JsNumber ->
+    receiver.key_code().
+
+pub location_typechecks(receiver: KeyboardEvent): std.js.Number.JsNumber ->
+    receiver.location().
+
+pub meta_key_typechecks(receiver: KeyboardEvent): std.core.Bool ->
+    receiver.meta_key().
+
+pub repeat_typechecks(receiver: KeyboardEvent): std.core.Bool ->
+    receiver.repeat().
+
+pub shift_key_typechecks(receiver: KeyboardEvent): std.core.Bool ->
+    receiver.shift_key().
+
+pub get_modifier_state_typechecks(receiver: KeyboardEvent, key_arg: std.js.String.JsString): std.core.Bool ->
+    receiver.get_modifier_state(key_arg).
+
+pub init_keyboard_event_typechecks(receiver: KeyboardEvent, type_arg: std.js.String.JsString, bubbles_arg: std.core.Bool, cancelable_arg: std.core.Bool, view_arg: Option[Window], key_arg: std.js.String.JsString, location_arg: std.js.Number.JsNumber, ctrl_key: std.core.Bool, alt_key: std.core.Bool, shift_key: std.core.Bool, meta_key: std.core.Bool): std.core.Unit ->
+    receiver.init_keyboard_event(type_arg, bubbles_arg, cancelable_arg, view_arg, key_arg, location_arg, ctrl_key, alt_key, shift_key, meta_key).

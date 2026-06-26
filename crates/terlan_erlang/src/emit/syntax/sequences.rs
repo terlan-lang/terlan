@@ -30,13 +30,14 @@ pub(super) fn lower_syntax_sequence_expr(
         if let Some((receiver_name, binding)) =
             lower_syntax_mutable_update_binding(child, ctx, &sequence_env, index)
         {
+            let binding_name = erl_let_binding_var_name(&binding)?;
             sequence_env
                 .value_replacements
-                .insert(receiver_name, ErlExpr::Var(binding.name.clone()));
+                .insert(receiver_name, ErlExpr::Var(binding_name.to_string()));
             bindings.push(binding);
         } else {
             bindings.push(ErlLetBinding {
-                name: format!("_TerlanSeqIgnored{index}"),
+                pattern: ErlPattern::Var(format!("_TerlanSeqIgnored{index}")),
                 value: lower_syntax_expr_with_env(child, ctx, &sequence_env)?,
             });
         }
@@ -45,7 +46,7 @@ pub(super) fn lower_syntax_sequence_expr(
     let body = if let Some((receiver_name, binding)) =
         lower_syntax_mutable_update_binding(last, ctx, &sequence_env, bindings.len())
     {
-        let updated_receiver = ErlExpr::Var(binding.name.clone());
+        let updated_receiver = ErlExpr::Var(erl_let_binding_var_name(&binding)?.to_string());
         sequence_env
             .value_replacements
             .insert(receiver_name, updated_receiver.clone());
@@ -127,25 +128,73 @@ fn lower_syntax_mutable_receiver_update_binding(
         return None;
     }
     let receiver_name = receiver.text.clone()?;
-    let receiver_type = infer_syntax_trait_dispatch_type(receiver, env)?;
+    let receiver_type = infer_syntax_trait_dispatch_type(receiver, ctx, env)?;
     let arity = expr.children.len().checked_sub(1)?;
-    let receiver_target_mutable = ctx
-        .receiver_method_target(&receiver_type, method, arity)
-        .is_some_and(|target| target.mutable)
+    let receiver_target = ctx.receiver_method_target(&receiver_type, method, arity);
+    let declared_receiver_target = receiver_target.filter(|target| target.mutable);
+    let receiver_target_mutable = declared_receiver_target.is_some()
         || is_mutating_primitive_receiver_method(&receiver_type, method, arity);
+    let receiver_target_mutable = receiver_target_mutable
+        || is_http_response_mutating_receiver_method(&receiver_type, method, arity);
+    let receiver_target_mutable = receiver_target_mutable
+        || is_native_vector_mutating_receiver_method(&receiver_type, method, arity);
     if !receiver_target_mutable {
         return None;
     }
 
-    let mut lowered_args = Vec::with_capacity(arity + 1);
-    lowered_args.push(lower_syntax_expr_with_env(receiver, ctx, env)?);
-    lowered_args.extend(
-        expr.children
-            .iter()
-            .skip(1)
-            .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
-            .collect::<Option<Vec<_>>>()?,
+    let args = &expr.children[1..];
+    if let Some(value) = lower_http_response_receiver_method_call(
+        &receiver_type,
+        method,
+        receiver,
+        args,
+        &expr.arg_names,
+        ctx,
+        env,
+    ) {
+        return Some((
+            receiver_name,
+            ErlLetBinding {
+                pattern: ErlPattern::Var(format!("_TerlanMutReceiver{index}")),
+                value,
+            },
+        ));
+    }
+
+    if let Some(value) =
+        lower_syntax_native_vector_receiver_call(&receiver_type, method, receiver, args, ctx, env)
+    {
+        return Some((
+            receiver_name,
+            ErlLetBinding {
+                pattern: ErlPattern::Var(format!("_TerlanMutReceiver{index}")),
+                value,
+            },
+        ));
+    }
+
+    let mut lowered_args = Vec::with_capacity(
+        declared_receiver_target
+            .map(|target| target.fixed_arity)
+            .unwrap_or(arity)
+            + 1,
     );
+    lowered_args.push(lower_syntax_expr_with_env(receiver, ctx, env)?);
+    if let Some(target) = declared_receiver_target {
+        lowered_args.extend(lower_syntax_defaulted_receiver_method_args(
+            args,
+            &expr.arg_names,
+            target,
+            ctx,
+            env,
+        )?);
+    } else {
+        lowered_args.extend(
+            args.iter()
+                .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                .collect::<Option<Vec<_>>>()?,
+        );
+    }
 
     let value = match primitive_receiver_method_intrinsic(&receiver_type, method, arity) {
         Some(intrinsic) => lower_core_primitive_intrinsic_to_erlang(&intrinsic, lowered_args)?,
@@ -159,7 +208,7 @@ fn lower_syntax_mutable_receiver_update_binding(
     Some((
         receiver_name,
         ErlLetBinding {
-            name: format!("_TerlanMutReceiver{index}"),
+            pattern: ErlPattern::Var(format!("_TerlanMutReceiver{index}")),
             value,
         },
     ))
@@ -203,10 +252,30 @@ fn lower_syntax_index_assign_update_binding(
     Some((
         collection_name,
         ErlLetBinding {
-            name: format!("_TerlanMutReceiver{index}"),
+            pattern: ErlPattern::Var(format!("_TerlanMutReceiver{index}")),
             value,
         },
     ))
+}
+
+/// Returns the Erlang variable name bound by a sequence temporary.
+///
+/// Inputs:
+/// - `binding`: sequence-local let binding created by mutable update lowering.
+///
+/// Output:
+/// - Variable name when the binding pattern is a simple variable.
+/// - `None` for non-variable patterns, which sequence mutation lowering never
+///   intentionally creates.
+///
+/// Transformation:
+/// - Keeps sequence state replacement separate from the more general
+///   pattern-capable `ErlLetBinding` render model.
+fn erl_let_binding_var_name(binding: &ErlLetBinding) -> Option<&str> {
+    match &binding.pattern {
+        ErlPattern::Var(name) => Some(name.as_str()),
+        _ => None,
+    }
 }
 
 /// Returns whether a primitive receiver method updates its receiver binding.
@@ -255,6 +324,9 @@ fn is_mutating_primitive_receiver_method(
             | ("Map", "put", 2)
             | ("Map", "remove", 1)
             | ("Map", "clear", 0)
+            | ("Object", "put", 2)
+            | ("Object", "remove", 1)
+            | ("Object", "clear", 0)
             | ("Set", "add", 1)
             | ("Set", "remove", 1)
             | ("Set", "clear", 0)

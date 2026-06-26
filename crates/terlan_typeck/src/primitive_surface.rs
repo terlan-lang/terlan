@@ -136,6 +136,7 @@ pub(super) fn primitive_receiver_method_scheme(
             ("to_string", 0) => Some(FunctionScheme {
                 params: Vec::new(),
                 ret: Type::Binary,
+                generic_params: Vec::new(),
                 bounds: Vec::new(),
             }),
             _ => None,
@@ -147,6 +148,7 @@ pub(super) fn primitive_receiver_method_scheme(
             ("to_string", 0) => Some(FunctionScheme {
                 params: Vec::new(),
                 ret: Type::Binary,
+                generic_params: Vec::new(),
                 bounds: Vec::new(),
             }),
             _ => None,
@@ -163,6 +165,7 @@ pub(super) fn primitive_receiver_method_scheme(
             Some(FunctionScheme {
                 params: vec![binary],
                 ret: Type::Bool,
+                generic_params: Vec::new(),
                 bounds: Vec::new(),
             })
         }
@@ -173,41 +176,49 @@ pub(super) fn primitive_receiver_method_scheme(
                 Type::LiteralAtom("eq".to_string()),
                 Type::LiteralAtom("gt".to_string()),
             ]),
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("append", 1) => Some(FunctionScheme {
             params: vec![binary],
             ret: Type::Binary,
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("from_string", 0) => Some(FunctionScheme {
             params: Vec::new(),
             ret: structural_option_type(Type::Binary),
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("is_empty", 0) => Some(FunctionScheme {
             params: Vec::new(),
             ret: Type::Bool,
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("replace", 2) => Some(FunctionScheme {
             params: vec![binary.clone(), binary],
             ret: Type::Binary,
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("split", 1) => Some(FunctionScheme {
             params: vec![binary],
             ret: Type::List(Box::new(Type::Binary)),
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("split_once", 1) => Some(FunctionScheme {
             params: vec![binary],
             ret: structural_option_type(Type::Tuple(vec![Type::Binary, Type::Binary])),
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("length", 0) | ("byte_size", 0) => Some(FunctionScheme {
             params: Vec::new(),
             ret: Type::Int,
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
         ("to_string", 0)
@@ -218,8 +229,63 @@ pub(super) fn primitive_receiver_method_scheme(
         | ("trim_end", 0) => Some(FunctionScheme {
             params: Vec::new(),
             ret: Type::Binary,
+            generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
+        _ => None,
+    }
+}
+
+/// Returns source parameter names for primitive receiver methods.
+///
+/// Inputs:
+/// - `receiver_type`: inferred receiver type.
+/// - `method`: receiver method name.
+/// - `arg_count`: number of non-receiver call arguments.
+///
+/// Output:
+/// - Parameter names for the primitive method when the receiver/method/arity is
+///   supported.
+/// - `None` when the primitive method is not part of the compiler-owned scalar
+///   surface.
+///
+/// Transformation:
+/// - Reuses primitive receiver method support as the gate, then supplies names
+///   used by named-argument validation and argument reordering.
+pub(super) fn primitive_receiver_method_param_names(
+    receiver_type: &Type,
+    method: &str,
+    arg_count: usize,
+) -> Option<Vec<&'static str>> {
+    primitive_receiver_method_scheme(receiver_type, method, arg_count)?;
+    primitive_receiver_method_arg_names(method, arg_count)
+}
+
+/// Returns source argument names for a primitive receiver method shape.
+///
+/// Inputs:
+/// - `method`: receiver method name.
+/// - `arg_count`: number of non-receiver call arguments.
+///
+/// Output:
+/// - Parameter names for compiler-owned primitive receiver method arguments.
+///
+/// Transformation:
+/// - Provides the method/arity portion of primitive receiver metadata so type
+///   inference and CoreIR lowering can share named-argument ordering rules.
+pub(super) fn primitive_receiver_method_arg_names(
+    method: &str,
+    arg_count: usize,
+) -> Option<Vec<&'static str>> {
+    match (method, arg_count) {
+        ("equal", 1) | ("compare", 1) => Some(vec!["other"]),
+        ("append", 1) => Some(vec!["suffix"]),
+        ("contains", 1) => Some(vec!["pattern"]),
+        ("starts_with", 1) => Some(vec!["prefix"]),
+        ("ends_with", 1) => Some(vec!["suffix"]),
+        ("replace", 2) => Some(vec!["pattern", "replacement"]),
+        ("split", 1) | ("split_once", 1) => Some(vec!["separator"]),
+        (_, 0) => Some(Vec::new()),
         _ => None,
     }
 }

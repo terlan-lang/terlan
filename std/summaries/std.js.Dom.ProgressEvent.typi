@@ -1,0 +1,46 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ProgressEvent
+ */
+
+module std.js.Dom.ProgressEvent.
+
+/**
+ * The **`ProgressEvent`** interface represents events that measure the progress of an underlying process, like an HTTP request (e.g., an `XMLHttpRequest`, or the loading of the underlying resource of an img, audio, video, style or link).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent)
+ */
+pub opaque type ProgressEvent[T].
+
+/**
+ * The **`ProgressEvent.lengthComputable`** read-only property is a boolean flag indicating if the resource concerned by the A boolean.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/lengthComputable)
+ */
+pub (value: ProgressEvent[T]) length_computable(): std.core.Bool.
+
+/**
+ * The **`ProgressEvent.loaded`** read-only property is a number indicating the size of the data already transmitted or processed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/loaded)
+ */
+pub (value: ProgressEvent[T]) loaded(): std.js.Number.JsNumber.
+
+pub (value: ProgressEvent[T]) target_(): Option[T].
+
+/**
+ * The **`ProgressEvent.total`** read-only property is a number indicating the total size of the data being transmitted or processed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/total)
+ */
+pub (value: ProgressEvent[T]) total(): std.js.Number.JsNumber.

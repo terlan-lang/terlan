@@ -1,0 +1,8 @@
+module=std.js.Dom.OVR_multiview2
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=12845955953723263454
+interface_hash=1133181995813511575
+interface_doc_hash=1133181995813511575
+deps=0

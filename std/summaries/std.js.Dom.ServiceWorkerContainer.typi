@@ -1,0 +1,70 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ServiceWorkerContainer
+ */
+
+module std.js.Dom.ServiceWorkerContainer.
+
+/**
+ * The **`ServiceWorkerContainer`** interface of the Service Worker API provides an object representing the service worker as an overall unit in the network ecosystem, including facilities to register, unregister and update service workers, and access the state of service workers and their registrations.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer)
+ */
+pub opaque type ServiceWorkerContainer.
+
+/**
+ * The **`controller`** read-only property of the ServiceWorkerContainer interface returns a `activated` (the same object returned by `null` if the request is a force refresh (_Shift_ + refresh) or if there is no active worker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/controller)
+ */
+pub (value: ServiceWorkerContainer) controller(): Option[ServiceWorker].
+
+/**
+ * The **`ready`** read-only property of the ServiceWorkerContainer interface provides a way of delaying code execution until a service worker is active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/ready)
+ */
+pub (value: ServiceWorkerContainer) ready(): std.js.Promise[ServiceWorkerRegistration].
+
+/**
+ * The **`getRegistration()`** method of the client URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/getRegistration)
+ */
+pub (value: ServiceWorkerContainer) get_registration(client_url: URL | std.js.String.JsString): std.js.Promise[Option[ServiceWorkerRegistration]].
+
+/**
+ * The **`getRegistrations()`** method of the `ServiceWorkerContainer`, in an array.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/getRegistrations)
+ */
+pub (value: ServiceWorkerContainer) get_registrations(): std.js.Promise[std.js.Array[ServiceWorkerRegistration]].
+
+/**
+ * The **`register()`** method of the ServiceWorkerContainer interface creates or updates a ServiceWorkerRegistration for the given scope.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/register)
+ */
+pub (value: ServiceWorkerContainer) register(script_url: URL | std.js.String.JsString, options: RegistrationOptions): std.js.Promise[ServiceWorkerRegistration].
+
+/**
+ * The **`startMessages()`** method of the ServiceWorkerContainer interface explicitly starts the flow of messages being dispatched from a service worker to pages under its control (e.g., sent via Client.postMessage()).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/startMessages)
+ */
+pub (value: ServiceWorkerContainer) start_messages(): std.core.Unit.
+
+pub (value: ServiceWorkerContainer) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: ServiceWorkerContainer) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

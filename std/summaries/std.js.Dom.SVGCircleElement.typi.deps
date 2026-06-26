@@ -1,0 +1,8 @@
+module=std.js.Dom.SVGCircleElement
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=3222882799212460817
+interface_hash=11661477667895020292
+interface_doc_hash=11661477667895020292
+deps=0

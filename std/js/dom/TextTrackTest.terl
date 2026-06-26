@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface TextTrack
+ */
+
+module std.js.Dom.TextTrackTest.
+
+import type std.js.Dom.TextTrack.TextTrack.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub active_cues_typechecks(receiver: TextTrack): Option[TextTrackCueList] ->
+    receiver.active_cues().
+
+pub cues_typechecks(receiver: TextTrack): Option[TextTrackCueList] ->
+    receiver.cues().
+
+pub id_typechecks(receiver: TextTrack): std.js.String.JsString ->
+    receiver.id().
+
+pub in_band_metadata_track_dispatch_type_typechecks(receiver: TextTrack): std.js.String.JsString ->
+    receiver.in_band_metadata_track_dispatch_type().
+
+pub kind_typechecks(receiver: TextTrack): TextTrackKind ->
+    receiver.kind().
+
+pub label_typechecks(receiver: TextTrack): std.js.String.JsString ->
+    receiver.label().
+
+pub language_typechecks(receiver: TextTrack): std.js.String.JsString ->
+    receiver.language().
+
+pub mode_typechecks(receiver: TextTrack): TextTrackMode ->
+    receiver.mode().
+
+pub add_cue_typechecks(receiver: TextTrack, cue: TextTrackCue): std.core.Unit ->
+    receiver.add_cue(cue).
+
+pub remove_cue_typechecks(receiver: TextTrack, cue: TextTrackCue): std.core.Unit ->
+    receiver.remove_cue(cue).
+
+pub add_event_listener_typechecks(receiver: TextTrack, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: TextTrack, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

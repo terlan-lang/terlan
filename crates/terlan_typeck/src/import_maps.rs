@@ -4,8 +4,9 @@ use terlan_hir::{ModuleInterface, ResolvedModule};
 use terlan_syntax::{span::Span, SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput};
 
 use super::{
-    interface_type_aliases, normalize_type_param_name, normalize_union, parse_type_expr,
-    QualifiedTypeName, Type, TypeAlias, TypeVarId,
+    alias_constructor_param_names_from_variants, expand_interface_global_aliases,
+    expand_type_aliases, interface_type_aliases, normalize_type_param_name, normalize_union,
+    parse_type_expr, type_param_variances, QualifiedTypeName, Type, TypeAlias, TypeVarId,
 };
 
 /// Import maps consumed by expression and declaration type checking.
@@ -59,12 +60,15 @@ pub(super) struct ImportedFunctionTarget {
 /// Transformation:
 /// - Delegates each import category to its specialized collector so callers
 ///   can build one inference context without knowing import declaration shape.
-pub(super) fn collect_syntax_import_maps(module: &SyntaxModuleOutput) -> TypeCheckImportMaps {
+pub(super) fn collect_syntax_import_maps(
+    module: &SyntaxModuleOutput,
+    interfaces: &HashMap<String, ModuleInterface>,
+) -> TypeCheckImportMaps {
     TypeCheckImportMaps {
-        module_aliases: collect_syntax_module_aliases(module),
+        module_aliases: collect_syntax_module_aliases(module, interfaces),
         file_imports: collect_syntax_file_imports(module),
         markdown_imports: collect_syntax_markdown_imports(module),
-        function_imports: collect_syntax_function_imports(module),
+        function_imports: collect_syntax_function_imports(module, interfaces),
     }
 }
 
@@ -108,10 +112,27 @@ pub(super) fn imported_type_names(resolved: &ResolvedModule) -> HashMap<String, 
 ///   exported opaque/struct types, and exposes selected non-opaque imports
 ///   under their local source alias.
 pub(super) fn imported_type_aliases(resolved: &ResolvedModule) -> HashMap<String, TypeAlias> {
+    let global_interface_aliases = resolved
+        .interface_map
+        .values()
+        .flat_map(|interface| {
+            interface_type_aliases(interface)
+                .into_iter()
+                .map(|(name, alias)| (format!("{}.{}", interface.module, name), alias))
+        })
+        .collect::<HashMap<_, _>>();
     let mut aliases = HashMap::new();
     for interface in resolved.interface_map.values() {
+        let interface_aliases = interface_type_aliases(interface);
         for (name, alias) in interface_type_aliases(interface) {
-            aliases.insert(format!("{}.{}", interface.module, name), alias);
+            aliases.insert(
+                format!("{}.{}", interface.module, name),
+                normalize_imported_provider_alias(
+                    &alias,
+                    &interface_aliases,
+                    &global_interface_aliases,
+                ),
+            );
         }
         for name in interface
             .public_types
@@ -133,10 +154,52 @@ pub(super) fn imported_type_aliases(resolved: &ResolvedModule) -> HashMap<String
         }
         let interface_aliases = interface_type_aliases(interface);
         if let Some(alias) = interface_aliases.get(&imported.source_name) {
-            aliases.insert(local_name.clone(), alias.clone());
+            aliases.insert(
+                local_name.clone(),
+                normalize_imported_provider_alias(
+                    alias,
+                    &interface_aliases,
+                    &global_interface_aliases,
+                ),
+            );
         }
     }
     aliases
+}
+
+/// Expands provider-local references inside one imported alias body.
+///
+/// Inputs:
+/// - `alias`: type alias selected through an import declaration.
+/// - `interface_aliases`: aliases declared by the provider module that owns
+///   the selected alias.
+/// - `global_aliases`: aliases from every loaded provider interface, keyed by
+///   fully qualified `module.Type`.
+///
+/// Output:
+/// - Cloned alias with the same parameters, constructor metadata, and opacity,
+///   but with nested provider-local and imported aliases expanded in the body.
+///
+/// Transformation:
+/// - Resolves dependencies such as `Config.mode: Mode` inside the provider
+///   module, then resolves unique global dependencies such as
+///   `Option[String]`, before the alias is exposed under the importing
+///   module's local name. This preserves imported outer identity while keeping
+///   structural field comparisons from seeing unresolved provider-local names.
+fn normalize_imported_provider_alias(
+    alias: &TypeAlias,
+    interface_aliases: &HashMap<String, TypeAlias>,
+    global_aliases: &HashMap<String, TypeAlias>,
+) -> TypeAlias {
+    let body = expand_type_aliases(&alias.body, interface_aliases);
+    let body = expand_interface_global_aliases(&body, global_aliases);
+    TypeAlias {
+        params: alias.params.clone(),
+        param_variance: alias.param_variance.clone(),
+        body,
+        constructor_param_names: alias.constructor_param_names.clone(),
+        is_opaque: alias.is_opaque,
+    }
 }
 
 /// Builds an identity alias for an exported interface type.
@@ -163,12 +226,18 @@ fn interface_identity_type_alias(interface: &ModuleInterface, name: &str) -> Typ
     let body_args = params.iter().map(|param| Type::Var(*param)).collect();
 
     TypeAlias {
+        param_variance: interface
+            .type_params
+            .get(name)
+            .map(|params| type_param_variances(params))
+            .unwrap_or_default(),
         params,
         body: Type::Named {
             module: Some(interface.module.clone()),
             name: name.to_string(),
             args: body_args,
         },
+        constructor_param_names: Vec::new(),
         is_opaque: true,
     }
 }
@@ -191,7 +260,10 @@ fn interface_identity_type_alias(interface: &ModuleInterface, name: &str) -> Typ
 ///   as binding `fmt` to `std.text.format`.
 /// - Skips type-only and asset imports because they do not create value-level
 ///   module call targets.
-fn collect_syntax_module_aliases(module: &SyntaxModuleOutput) -> HashMap<String, String> {
+fn collect_syntax_module_aliases(
+    module: &SyntaxModuleOutput,
+    interfaces: &HashMap<String, ModuleInterface>,
+) -> HashMap<String, String> {
     let mut aliases = HashMap::new();
 
     for declaration in &module.declarations {
@@ -219,6 +291,12 @@ fn collect_syntax_module_aliases(module: &SyntaxModuleOutput) -> HashMap<String,
 
         if items.len() == 1 {
             let item = &items[0];
+            if interfaces
+                .get(module_name)
+                .is_some_and(|interface| interface.traits.contains_key(&item.name))
+            {
+                continue;
+            }
             let full_module_name = format!("{}.{}", module_name, item.name);
             if let Some(alias) = &item.as_alias {
                 aliases.insert(alias.clone(), full_module_name);
@@ -251,6 +329,7 @@ fn collect_syntax_module_aliases(module: &SyntaxModuleOutput) -> HashMap<String,
 ///   against the provider interface.
 fn collect_syntax_function_imports(
     module: &SyntaxModuleOutput,
+    interfaces: &HashMap<String, ModuleInterface>,
 ) -> HashMap<String, ImportedFunctionTarget> {
     let mut imports = HashMap::new();
     for declaration in &module.declarations {
@@ -266,6 +345,24 @@ fn collect_syntax_function_imports(
         };
 
         for item in items {
+            if item.name == "*" {
+                let Some(interface) = interfaces.get(module_name) else {
+                    continue;
+                };
+                for signature in interface.functions.values() {
+                    if !signature.public || signature.receiver_method {
+                        continue;
+                    }
+                    imports.entry(signature.name.clone()).or_insert_with(|| {
+                        ImportedFunctionTarget {
+                            module: module_name.clone(),
+                            function: signature.name.clone(),
+                            span: item.span.into(),
+                        }
+                    });
+                }
+                continue;
+            }
             let local_name = item.as_alias.as_ref().unwrap_or(&item.name).clone();
             imports.insert(
                 local_name,
@@ -397,7 +494,14 @@ pub(super) fn collect_syntax_type_aliases(
                 name.clone(),
                 TypeAlias {
                     params: type_params,
+                    param_variance: type_param_variances(params),
                     body,
+                    constructor_param_names: alias_constructor_param_names_from_variants(
+                        &variants
+                            .iter()
+                            .map(|variant| variant.text.clone())
+                            .collect::<Vec<_>>(),
+                    ),
                     is_opaque: *is_opaque,
                 },
             );

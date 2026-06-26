@@ -1,0 +1,61 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface VTTCue
+ */
+
+module std.js.Dom.VTTCueTest.
+
+import type std.js.Dom.VTTCue.VTTCue.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub align_typechecks(receiver: VTTCue): AlignSetting ->
+    receiver.align().
+
+pub line_typechecks(receiver: VTTCue): LineAndPositionSetting ->
+    receiver.line().
+
+pub line_align_typechecks(receiver: VTTCue): LineAlignSetting ->
+    receiver.line_align().
+
+pub position_typechecks(receiver: VTTCue): LineAndPositionSetting ->
+    receiver.position().
+
+pub position_align_typechecks(receiver: VTTCue): PositionAlignSetting ->
+    receiver.position_align().
+
+pub region_typechecks(receiver: VTTCue): Option[VTTRegion] ->
+    receiver.region().
+
+pub size_typechecks(receiver: VTTCue): std.js.Number.JsNumber ->
+    receiver.size().
+
+pub snap_to_lines_typechecks(receiver: VTTCue): std.core.Bool ->
+    receiver.snap_to_lines().
+
+pub text_typechecks(receiver: VTTCue): std.js.String.JsString ->
+    receiver.text().
+
+pub vertical_typechecks(receiver: VTTCue): DirectionSetting ->
+    receiver.vertical().
+
+pub get_cue_as_html_typechecks(receiver: VTTCue): DocumentFragment ->
+    receiver.get_cue_as_html().
+
+pub add_event_listener_typechecks(receiver: VTTCue, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: VTTCue, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

@@ -3,20 +3,714 @@
  * @do-not-edit true
  * @generator terlc
  * @generator-version 0.0.4
- * @generator-profile tiny-dom-fixture
+ * @generator-profile typescript-standard-js-dom
  * @artifact-kind source
  * @input-manifest std/js/manifests/std_js_dom_inputs.json
- * @source-package typescript@fixture
- * @source-input std/js/dom/fixtures/document.d.ts sha256=704034867b337bd7ac6018794cf13f032c2a0fd5b56cd5d78d92232cb4ea62e1
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
  * @source-interface Document
  */
 
 module std.js.Dom.Document.
 
+/**
+ * The **`Document`** interface represents any web page loaded in the browser and serves as an entry point into the web page's content, which is the DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document)
+ */
 pub opaque type Document.
 
+/**
+ * The **`URL`** read-only property of the Document interface returns the document location as a string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/URL)
+ */
+pub (value: Document) url(): std.js.String.JsString ->
+    native.
+
+/**
+ * Returns or sets the color of an active link in the document body.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/alinkColor)
+ */
+pub (value: Document) alink_color(): std.js.String.JsString ->
+    native.
+
+/**
+ * The Document interface's read-only **`all`** property returns an HTMLAllCollection rooted at the document node.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/all)
+ */
+pub (value: Document) all(): HTMLAllCollection ->
+    native.
+
+/**
+ * The **`anchors`** read-only property of the An HTMLCollection.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/anchors)
+ */
+pub (value: Document) anchors(): HTMLCollectionOf[HTMLAnchorElement] ->
+    native.
+
+/**
+ * The **`applets`** property of the Document returns an empty HTMLCollection.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/applets)
+ */
+pub (value: Document) applets(): HTMLCollection ->
+    native.
+
+/**
+ * The deprecated `bgColor` property gets or sets the background color of the current document.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/bgColor)
+ */
+pub (value: Document) bg_color(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Document.body`** property represents the `null` if no such element exists.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/body)
+ */
+pub (value: Document) body(): HTMLElement ->
+    native.
+
+/**
+ * The **`Document.characterSet`** read-only property returns the character encoding of the document that it's currently rendered with.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/characterSet)
+ */
+pub (value: Document) character_set(): std.js.String.JsString ->
+    native.
+
+/**
+ * @deprecated This is a legacy alias of `characterSet`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/characterSet)
+ */
+pub (value: Document) charset(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Document.compatMode`** read-only property indicates whether the document is rendered in Quirks mode or Standards mode.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/compatMode)
+ */
+pub (value: Document) compat_mode(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Document.contentType`** read-only property returns the MIME type that the document is being rendered as.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/contentType)
+ */
+pub (value: Document) content_type(): std.js.String.JsString ->
+    native.
+
+/**
+ * The Document property `cookie` lets you read and write cookies associated with the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/cookie)
+ */
+pub (value: Document) cookie(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Document.currentScript`** property returns the script element whose script is currently being processed and isn't a JavaScript module.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/currentScript)
+ */
+pub (value: Document) current_script(): Option[HTMLOrSVGScriptElement] ->
+    native.
+
+/**
+ * **`document.designMode`** controls whether the entire document is editable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/designMode)
+ */
+pub (value: Document) design_mode(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Document.dir`** property is a string representing the directionality of the text of the document, whether left to right (default) or right to left.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/dir)
+ */
+pub (value: Document) dir(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`doctype`** read-only property of the Document interface is a DocumentType object representing the Doctype associated with the current document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/doctype)
+ */
+pub (value: Document) doctype(): Option[DocumentType] ->
+    native.
+
+/**
+ * The **`documentElement`** read-only property of the Document interface returns the example, the html element for HTML documents).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/documentElement)
+ */
+pub (value: Document) document_element(): HTMLElement ->
+    native.
+
+/**
+ * The **`documentURI`** read-only property of the A string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/documentURI)
+ */
+pub (value: Document) document_uri(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`domain`** property of the Document interface gets/sets the domain portion of the origin of the current document, as used by the same-origin policy.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/domain)
+ */
+pub (value: Document) domain(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`embeds`** read-only property of the An HTMLCollection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/embeds)
+ */
+pub (value: Document) embeds(): HTMLCollectionOf[HTMLEmbedElement] ->
+    native.
+
+/**
+ * **`fgColor`** gets/sets the foreground color, or text color, of the current document.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fgColor)
+ */
+pub (value: Document) fg_color(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`forms`** read-only property of the Document interface returns an HTMLCollection listing all the form elements contained in the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/forms)
+ */
+pub (value: Document) forms(): HTMLCollectionOf[HTMLFormElement] ->
+    native.
+
+/**
+ * The **`fragmentDirective`** read-only property of the Document interface returns the FragmentDirective for the current document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fragmentDirective)
+ */
+pub (value: Document) fragment_directive(): FragmentDirective ->
+    native.
+
+/**
+ * The obsolete Document interface's **`fullscreen`** read-only property reports whether or not the document is currently displaying content in fullscreen mode.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreen)
+ */
+pub (value: Document) fullscreen(): std.core.Bool ->
+    native.
+
+/**
+ * The read-only **`fullscreenEnabled`** property on the Document interface indicates whether or not fullscreen mode is available.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreenEnabled)
+ */
+pub (value: Document) fullscreen_enabled(): std.core.Bool ->
+    native.
+
+/**
+ * The **`head`** read-only property of the Document interface returns the head element of the current document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/head)
+ */
+pub (value: Document) head(): HTMLHeadElement ->
+    native.
+
+/**
+ * The **`Document.hidden`** read-only property returns a Boolean value indicating if the page is considered hidden or not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/hidden)
+ */
+pub (value: Document) hidden(): std.core.Bool ->
+    native.
+
+/**
+ * The **`images`** read-only property of the Document interface returns a collection of the images in the current HTML document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/images)
+ */
+pub (value: Document) images(): HTMLCollectionOf[HTMLImageElement] ->
+    native.
+
+/**
+ * The **`Document.implementation`** property returns a A DOMImplementation object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/implementation)
+ */
+pub (value: Document) implementation(): DOMImplementation ->
+    native.
+
+/**
+ * @deprecated This is a legacy alias of `characterSet`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/characterSet)
+ */
+pub (value: Document) input_encoding(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`lastModified`** property of the Document interface returns a string containing the date and local time on which the current document was last modified.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/lastModified)
+ */
+pub (value: Document) last_modified(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Document.linkColor`** property gets/sets the color of links within the document.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/linkColor)
+ */
+pub (value: Document) link_color(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`links`** read-only property of the Document interface returns a collection of all area elements and a elements in a document with a value for the href attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/links)
+ */
+pub (value: Document) links(): HTMLCollectionOf[HTMLAnchorElement | HTMLAreaElement] ->
+    native.
+
+/**
+ * The **`Document.location`** read-only property returns a and provides methods for changing that URL and loading another URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/location)
+ */
+pub (value: Document) location(): Location ->
+    native.
+
+/**
+ * The read-only **`pictureInPictureEnabled`** property of the available.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pictureInPictureEnabled)
+ */
+pub (value: Document) picture_in_picture_enabled(): std.core.Bool ->
+    native.
+
+/**
+ * The **`plugins`** read-only property of the containing one or more HTMLEmbedElements representing the An HTMLCollection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/plugins)
+ */
+pub (value: Document) plugins(): HTMLCollectionOf[HTMLEmbedElement] ->
+    native.
+
+/**
+ * The **`Document.readyState`** property describes the loading state of the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/readyState)
+ */
+pub (value: Document) ready_state(): DocumentReadyState ->
+    native.
+
+/**
+ * The **`Document.referrer`** property returns the URI of the page that linked to this page.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/referrer)
+ */
+pub (value: Document) referrer(): std.js.String.JsString ->
+    native.
+
+/**
+ * **`Document.rootElement`** returns the Element that is the root element of the document if it is an documents.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/rootElement)
+ */
+pub (value: Document) root_element(): Option[SVGSVGElement] ->
+    native.
+
+/**
+ * The **`scripts`** property of the Document interface returns a list of the script elements in the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/scripts)
+ */
+pub (value: Document) scripts(): HTMLCollectionOf[HTMLScriptElement] ->
+    native.
+
+/**
+ * The **`scrollingElement`** read-only property of the scrolls the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/scrollingElement)
+ */
+pub (value: Document) scrolling_element(): Option[Element] ->
+    native.
+
+/**
+ * The `timeline` readonly property of the Document interface represents the default timeline of the current document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/timeline)
+ */
+pub (value: Document) timeline(): DocumentTimeline ->
+    native.
+
+/**
+ * The **`document.title`** property gets or sets the current title of the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/title)
+ */
 pub (value: Document) title(): std.js.String.JsString ->
     native.
 
+/**
+ * The **`Document.visibilityState`** read-only property returns the visibility of the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/visibilityState)
+ */
+pub (value: Document) visibility_state(): DocumentVisibilityState ->
+    native.
+
+/**
+ * The **`Document.vlinkColor`** property gets/sets the color of links that the user has visited in the document.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/vlinkColor)
+ */
+pub (value: Document) vlink_color(): std.js.String.JsString ->
+    native.
+
+/**
+ * **`Document.adoptNode()`** transfers a node/dom from another Document into the method's document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/adoptNode)
+ */
+pub (value: Document) adopt_node(node: T): T ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: Document) capture_events(): std.core.Unit ->
+    native.
+
+/**
+ * The **`caretPositionFromPoint()`** method of the Document interface returns a CaretPosition object, containing the DOM node, along with the caret and caret's character offset within that node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/caretPositionFromPoint)
+ */
+pub (value: Document) caret_position_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, options: CaretPositionFromPointOptions): Option[CaretPosition] ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: Document) caret_range_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): Option[Range] ->
+    native.
+
+/**
+ * The **`Document.clear()`** method does nothing, but doesn't raise any error.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/clear)
+ */
+pub (value: Document) clear(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Document.close()`** method finishes writing to a document, opened with Document.open().
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/close)
+ */
+pub (value: Document) close(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Document.createAttribute()`** method creates a new attribute node, and returns it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createAttribute)
+ */
+pub (value: Document) create_attribute(local_name: std.js.String.JsString): Attr ->
+    native.
+
+/**
+ * The **`Document.createAttributeNS()`** method creates a new attribute node with the specified namespace URI and qualified name, and returns it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createAttributeNS)
+ */
+pub (value: Document) create_attribute_ns(namespace: Option[std.js.String.JsString], qualified_name: std.js.String.JsString): Attr ->
+    native.
+
+/**
+ * **`createCDATASection()`** creates a new CDATA section node, and returns it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createCDATASection)
+ */
+pub (value: Document) create_cdata_section(data: std.js.String.JsString): CDATASection ->
+    native.
+
+/**
+ * **`createComment()`** creates a new comment node, and returns it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createComment)
+ */
+pub (value: Document) create_comment(data: std.js.String.JsString): Comment ->
+    native.
+
+/**
+ * Creates a new empty DocumentFragment into which DOM nodes can be added to build an offscreen DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createDocumentFragment)
+ */
+pub (value: Document) create_document_fragment(): DocumentFragment ->
+    native.
+
+pub (value: Document) create_element(tag_name: std.js.String.JsString, options: ElementCreationOptions): HTMLElement ->
+    native.
+
+pub (value: Document) create_element_ns(namespace_uri: Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: ElementCreationOptions): Element ->
+    native.
+
+pub (value: Document) create_element_ns(namespace: Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: ElementCreationOptions | std.js.String.JsString): Element ->
+    native.
+
+pub (value: Document) create_event(event_interface: std.js.String.JsString): Event ->
+    native.
+
+/**
+ * The **`Document.createNodeIterator()`** method returns a new `NodeIterator` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createNodeIterator)
+ */
+pub (value: Document) create_node_iterator(root: Node, what_to_show: std.js.Number.JsNumber, filter: Option[NodeFilter]): NodeIterator ->
+    native.
+
+/**
+ * `createProcessingInstruction()` generates a new processing instruction node and returns it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createProcessingInstruction)
+ */
+pub (value: Document) create_processing_instruction(target_: std.js.String.JsString, data: std.js.String.JsString): ProcessingInstruction ->
+    native.
+
+/**
+ * The **`Document.createRange()`** method returns a new ```js-nolint createRange() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createRange)
+ */
+pub (value: Document) create_range(): Range ->
+    native.
+
+/**
+ * Creates a new Text node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createTextNode)
+ */
+pub (value: Document) create_text_node(data: std.js.String.JsString): Text ->
+    native.
+
+/**
+ * The **`Document.createTreeWalker()`** creator method returns a newly created TreeWalker object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createTreeWalker)
+ */
+pub (value: Document) create_tree_walker(root: Node, what_to_show: std.js.Number.JsNumber, filter: Option[NodeFilter]): TreeWalker ->
+    native.
+
+/**
+ * The **`execCommand`** method implements multiple different commands.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/execCommand)
+ */
+pub (value: Document) exec_command(command_id: std.js.String.JsString, show_ui: std.core.Bool, value: std.js.String.JsString): std.core.Bool ->
+    native.
+
+/**
+ * The Document method **`exitFullscreen()`** requests that the element on this document which is currently being presented in fullscreen mode be taken out of fullscreen mode, restoring the previous state of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitFullscreen)
+ */
+pub (value: Document) exit_fullscreen(): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`exitPictureInPicture()`** method of the Document interface requests that a video contained in this document, which is currently floating, be taken out of picture-in-picture mode, restoring the previous state of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitPictureInPicture)
+ */
+pub (value: Document) exit_picture_in_picture(): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`exitPointerLock()`** method of the Document interface asynchronously releases a pointer lock previously requested through Element.requestPointerLock.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitPointerLock)
+ */
+pub (value: Document) exit_pointer_lock(): std.core.Unit ->
+    native.
+
 pub (value: Document) get_element_by_id(element_id: std.js.String.JsString): Option[HTMLElement] ->
+    native.
+
+/**
+ * The **`getElementsByClassName`** method of of all child elements which have all of the given class name(s).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementsByClassName)
+ */
+pub (value: Document) get_elements_by_class_name(class_names: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    native.
+
+/**
+ * The **`getElementsByName()`** method of the Document object returns a NodeList Collection of elements with a given `name` attribute in the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementsByName)
+ */
+pub (value: Document) get_elements_by_name(element_name: std.js.String.JsString): NodeListOf[HTMLElement] ->
+    native.
+
+pub (value: Document) get_elements_by_tag_name(qualified_name: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    native.
+
+pub (value: Document) get_elements_by_tag_name_ns(namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    native.
+
+/**
+ * The **`getSelection()`** method of the Document interface returns the Selection object associated with this document, representing the range of text selected by the user, or the current position of the caret.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getSelection)
+ */
+pub (value: Document) get_selection(): Option[Selection] ->
+    native.
+
+/**
+ * The **`hasFocus()`** method of the Document interface returns a boolean value indicating whether the document or any element inside the document has focus.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/hasFocus)
+ */
+pub (value: Document) has_focus(): std.core.Bool ->
+    native.
+
+/**
+ * The **`hasStorageAccess()`** method of the Document interface returns a Promise that resolves with a boolean value indicating whether the document has access to third-party, unpartitioned cookies.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/hasStorageAccess)
+ */
+pub (value: Document) has_storage_access(): std.js.Promise[std.core.Bool] ->
+    native.
+
+/**
+ * The Document object's **`importNode()`** method creates a copy of a inserted into the current document later.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/importNode)
+ */
+pub (value: Document) import_node(node: T, options: ImportNodeOptions | std.core.Bool): T ->
+    native.
+
+/**
+ * The **`Document.open()`** method opens a document for This does come with some side effects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/open)
+ */
+pub (value: Document) open(unused1: std.js.String.JsString, unused2: std.js.String.JsString): Document ->
+    native.
+
+pub (value: Document) open(url: URL | std.js.String.JsString, name: std.js.String.JsString, features: std.js.String.JsString): Option[WindowProxy] ->
+    native.
+
+/**
+ * The **`Document.queryCommandEnabled()`** method reports whether or not the specified editor command is enabled by the browser.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/queryCommandEnabled)
+ */
+pub (value: Document) query_command_enabled(command_id: std.js.String.JsString): std.core.Bool ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: Document) query_command_indeterm(command_id: std.js.String.JsString): std.core.Bool ->
+    native.
+
+/**
+ * The **`queryCommandState()`** method will tell you if the current selection has a certain Document.execCommand() command applied.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/queryCommandState)
+ */
+pub (value: Document) query_command_state(command_id: std.js.String.JsString): std.core.Bool ->
+    native.
+
+/**
+ * The **`Document.queryCommandSupported()`** method reports whether or not the specified editor command is supported by the browser.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/queryCommandSupported)
+ */
+pub (value: Document) query_command_supported(command_id: std.js.String.JsString): std.core.Bool ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: Document) query_command_value(command_id: std.js.String.JsString): std.js.String.JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: Document) release_events(): std.core.Unit ->
+    native.
+
+/**
+ * The **`requestStorageAccess()`** method of the Document interface allows content loaded in a third-party context (i.e., embedded in an iframe) to request access to third-party cookies and unpartitioned state.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/requestStorageAccess)
+ */
+pub (value: Document) request_storage_access(): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`startViewTransition()`** method of the Document interface starts a new same-document (SPA) view transition and returns a ViewTransition object to represent it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/startViewTransition)
+ */
+pub (value: Document) start_view_transition(callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback): ViewTransition ->
+    native.
+
+/**
+ * The **`write()`** method of the Document interface writes text in one or more TrustedHTML or string parameters to a document stream opened by document.open().
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/write)
+ */
+pub (value: Document) write(): std.core.Unit ->
+    native.
+
+/**
+ * The **`writeln()`** method of the Document interface writes text in one or more TrustedHTML or string parameters to a document stream opened by document.open(), followed by a newline character.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/writeln)
+ */
+pub (value: Document) writeln(): std.core.Unit ->
+    native.
+
+pub (value: Document) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: Document) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
     native.

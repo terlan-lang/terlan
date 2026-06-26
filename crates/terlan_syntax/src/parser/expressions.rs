@@ -1,5 +1,10 @@
 use super::*;
 
+mod postfix;
+mod sql;
+
+use sql::parse_sql_interpolations;
+
 /// Expression field grammar context for key class and separator validation.
 ///
 /// Inputs: selected by the caller based on the production being parsed.
@@ -10,7 +15,6 @@ use super::*;
 enum ExprFieldKind {
     Map,
     TerlanRecord,
-    ErlangRecord,
 }
 
 impl Parser {
@@ -126,19 +130,19 @@ impl Parser {
     /// Parses one local binding inside a `let` expression.
     ///
     /// Inputs:
-    /// - Parser cursor positioned at a canonical `Binding` name.
+    /// - Parser cursor positioned at a canonical `Pattern`.
     ///
     /// Output:
-    /// - A `LetBinding` containing the binding name and value expression.
+    /// - A `LetBinding` containing the binding pattern and value expression.
     ///
     /// Transformation:
-    /// - Accepts only lower-case binding names or ignored lower-case binding
-    ///   names and rejects wildcard-only or uppercase constructor syntax.
+    /// - Reuses the normal pattern parser so tuple/list/wildcard destructuring
+    ///   in let bindings follows the same syntax as case/function patterns.
     fn parse_let_binding(&mut self) -> ParseResult<LetBinding> {
-        let name = self.expect_binding_name()?;
+        let pattern = self.parse_pattern()?;
         self.expect(TokenKind::Equals)?;
         let value = self.parse_single_expr()?;
-        Ok(LetBinding { name, value })
+        Ok(LetBinding { pattern, value })
     }
     /// Reports whether the current cursor starts another `let` binding.
     ///
@@ -146,16 +150,59 @@ impl Parser {
     /// - Parser cursor after a semicolon inside a `let` expression.
     ///
     /// Output:
-    /// - `true` when the next token pair is `Binding =`.
+    /// - `true` when the next tokens look like `Pattern =`.
     ///
     /// Transformation:
-    /// - Performs a non-consuming two-token lookahead so the parser can
-    ///   distinguish another binding from the final body expression.
+    /// - Performs a non-consuming balanced token scan and checks for a
+    ///   top-level `=` so the parser can distinguish another destructuring
+    ///   binding from the final body expression.
     fn is_let_binding_start(&self) -> bool {
-        let Some(next) = self.tokens.get(self.pos + 1) else {
+        let Some(first) = self.tokens.get(self.pos) else {
             return false;
         };
-        self.is_binding_token(self.current()) && next.kind == TokenKind::Equals
+        if !matches!(
+            first.kind,
+            TokenKind::Atom
+                | TokenKind::Var
+                | TokenKind::Int
+                | TokenKind::Float
+                | TokenKind::LParen
+                | TokenKind::LBracket
+                | TokenKind::LBrace
+                | TokenKind::Colon
+        ) {
+            return false;
+        }
+
+        let mut parens = 0usize;
+        let mut brackets = 0usize;
+        let mut braces = 0usize;
+        let mut index = self.pos;
+        let first_is_bare_name = matches!(first.kind, TokenKind::Atom | TokenKind::Var);
+
+        while let Some(token) = self.tokens.get(index) {
+            match token.kind {
+                TokenKind::LBracket if index == self.pos + 1 && first_is_bare_name => {
+                    return false;
+                }
+                TokenKind::LParen => parens += 1,
+                TokenKind::RParen => parens = parens.saturating_sub(1),
+                TokenKind::LBracket => brackets += 1,
+                TokenKind::RBracket => brackets = brackets.saturating_sub(1),
+                TokenKind::LBrace => braces += 1,
+                TokenKind::RBrace => braces = braces.saturating_sub(1),
+                TokenKind::Equals if parens == 0 && brackets == 0 && braces == 0 => return true,
+                TokenKind::Semicolon | TokenKind::Dot | TokenKind::EOF
+                    if parens == 0 && brackets == 0 && braces == 0 =>
+                {
+                    return false;
+                }
+                _ => {}
+            }
+            index += 1;
+        }
+
+        false
     }
     /// Parses binary, cast, boolean, and pipe expressions by precedence.
     ///
@@ -363,6 +410,15 @@ impl Parser {
                 Expr::MacroCall { name, args }
             }
             TokenKind::Atom
+                if token.text == "sql"
+                    && matches!(
+                        self.tokens.get(self.pos + 1),
+                        Some(next) if next.kind == TokenKind::LBracket
+                    ) =>
+            {
+                self.parse_typed_sql_raw_macro()?
+            }
+            TokenKind::Atom
                 if BuiltinBlockMacro::from_name(&token.text).is_some()
                     && matches!(
                         self.tokens.get(self.pos + 1),
@@ -386,6 +442,8 @@ impl Parser {
                 let raw = self.parse_raw_block()?;
                 Expr::RawMacro {
                     name: token.text.clone(),
+                    type_args: Vec::new(),
+                    interpolations: Vec::new(),
                     raw,
                 }
             }
@@ -417,11 +475,13 @@ impl Parser {
                     let fun =
                         self.expect_lower_ident("expected lower-case remote function name")?;
                     self.expect(TokenKind::LParen)?;
-                    let args = self.parse_expr_list(TokenKind::RParen)?;
+                    let (args, arg_names) = self.parse_call_arg_list(TokenKind::RParen)?;
                     self.expect(TokenKind::RParen)?;
                     Expr::Call {
                         callee: Box::new(Expr::Atom(fun)),
+                        type_args: Vec::new(),
                         args,
+                        arg_names,
                         remote: Some(token.text.clone()),
                         is_fun_value: false,
                     }
@@ -439,11 +499,13 @@ impl Parser {
                         let fun =
                             self.expect_lower_ident("expected lower-case trait method name")?;
                         self.expect(TokenKind::LParen)?;
-                        let args = self.parse_expr_list(TokenKind::RParen)?;
+                        let (args, arg_names) = self.parse_call_arg_list(TokenKind::RParen)?;
                         self.expect(TokenKind::RParen)?;
                         return Ok(Expr::Call {
                             callee: Box::new(Expr::Atom(fun)),
+                            type_args: Vec::new(),
                             args,
+                            arg_names,
                             remote: Some(format!("{}{type_args}", token.text)),
                             is_fun_value: false,
                         });
@@ -461,12 +523,7 @@ impl Parser {
                         lookahead += 2;
                     }
 
-                    if dotted.len() > 1
-                        && matches!(
-                            self.tokens.get(lookahead),
-                            Some(token) if token.kind == TokenKind::LParen
-                        )
-                    {
+                    if dotted.len() > 1 && self.call_starts_after_optional_type_args(lookahead) {
                         if token_kind == TokenKind::Atom
                             && dotted.len() == 2
                             && matches!(
@@ -481,15 +538,18 @@ impl Parser {
                             self.expect(TokenKind::Dot)?;
                             let field =
                                 self.expect_lower_ident("expected lower-case method name")?;
+                            let type_args = self.parse_optional_call_type_args()?;
                             self.expect(TokenKind::LParen)?;
-                            let args = self.parse_expr_list(TokenKind::RParen)?;
+                            let (args, arg_names) = self.parse_call_arg_list(TokenKind::RParen)?;
                             self.expect(TokenKind::RParen)?;
-                            return Ok(Expr::Call {
+                            return self.parse_expr_suffix(Expr::Call {
                                 callee: Box::new(Expr::FieldAccess {
                                     value: Box::new(base_expr),
                                     field,
                                 }),
+                                type_args,
                                 args,
+                                arg_names,
                                 remote: None,
                                 is_fun_value: false,
                             });
@@ -501,12 +561,16 @@ impl Parser {
                                 let fun = self.expect_lower_ident(
                                     "expected lower-case remote function name",
                                 )?;
+                                let type_args = self.parse_optional_call_type_args()?;
                                 self.expect(TokenKind::LParen)?;
-                                let args = self.parse_expr_list(TokenKind::RParen)?;
+                                let (args, arg_names) =
+                                    self.parse_call_arg_list(TokenKind::RParen)?;
                                 self.expect(TokenKind::RParen)?;
-                                return Ok(Expr::Call {
+                                return self.parse_expr_suffix(Expr::Call {
                                     callee: Box::new(Expr::Atom(fun)),
+                                    type_args,
                                     args,
+                                    arg_names,
                                     remote: Some(token.text.clone()),
                                     is_fun_value: false,
                                 });
@@ -530,22 +594,29 @@ impl Parser {
                                 remote_parts.push(self.expect_module_path_segment()?);
                             }
                         }
+                        let type_args = self.parse_optional_call_type_args()?;
                         self.expect(TokenKind::LParen)?;
                         let remote = remote_parts.join(".");
-                        let args = self.parse_expr_list(TokenKind::RParen)?;
+                        let (args, arg_names) = self.parse_call_arg_list(TokenKind::RParen)?;
                         self.expect(TokenKind::RParen)?;
                         Expr::Call {
                             callee: Box::new(Expr::Atom(fun)),
+                            type_args,
                             args,
+                            arg_names,
                             remote: Some(remote),
                             is_fun_value: false,
                         }
-                    } else if self.consume_if(TokenKind::LParen) {
-                        let args = self.parse_expr_list(TokenKind::RParen)?;
+                    } else if self.call_starts_after_optional_type_args(self.pos) {
+                        let type_args = self.parse_optional_call_type_args()?;
+                        self.expect(TokenKind::LParen)?;
+                        let (args, arg_names) = self.parse_call_arg_list(TokenKind::RParen)?;
                         self.expect(TokenKind::RParen)?;
                         Expr::Call {
                             callee: Box::new(base_expr),
+                            type_args,
                             args,
+                            arg_names,
                             remote: None,
                             is_fun_value: false,
                         }
@@ -559,8 +630,10 @@ impl Parser {
                 Expr::Binary(token.text)
             }
             TokenKind::Binary => {
-                self.bump();
-                Expr::Binary(token.text)
+                return Err(ParseError {
+                    message: "Erlang binary literal syntax is not valid Terlan source; use a normal string literal".to_string(),
+                    span: token.span(),
+                });
             }
             TokenKind::LParen => self.parse_paren_or_lambda_expr()?,
             TokenKind::LBracket => {
@@ -667,7 +740,7 @@ impl Parser {
                     let mut fields = Vec::new();
                     if !self.consume_if(TokenKind::RBrace) {
                         loop {
-                            fields.push(self.parse_record_expr_field(ExprFieldKind::ErlangRecord)?);
+                            fields.push(self.parse_record_expr_field(ExprFieldKind::TerlanRecord)?);
                             if !self.consume_if(TokenKind::Comma) {
                                 break;
                             }
@@ -726,7 +799,7 @@ impl Parser {
                 self.expect(TokenKind::LBrace)?;
                 let mut clauses = Vec::new();
                 loop {
-                    let condition = self.parse_single_expr()?;
+                    let condition = self.parse_if_condition()?;
                     self.expect(TokenKind::Arrow)?;
                     let body = self.parse_single_expr()?;
                     clauses.push(IfClause { condition, body });
@@ -757,6 +830,33 @@ impl Parser {
         };
 
         self.parse_expr_suffix(expr)
+    }
+
+    /// Parses the dedicated typed SQL raw-macro front door.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned at the `sql` identifier.
+    ///
+    /// Output:
+    /// - `Expr::RawMacro` named `sql` with one explicit result type argument.
+    ///
+    /// Transformation:
+    /// - Consumes `sql[TypeExpr] { raw sql }`, preserving the raw SQL body for
+    ///   the macro/typecheck gate while making the requested row type visible
+    ///   to syntax output.
+    fn parse_typed_sql_raw_macro(&mut self) -> ParseResult<Expr> {
+        let name = self.expect_ident()?;
+        self.expect(TokenKind::LBracket)?;
+        let result_type = self.parse_type_expr(&[TokenKind::RBracket])?;
+        self.expect(TokenKind::RBracket)?;
+        let raw = self.parse_raw_block()?;
+        let interpolations = parse_sql_interpolations(&raw, self.previous().span())?;
+        Ok(Expr::RawMacro {
+            name,
+            type_args: vec![result_type],
+            interpolations,
+            raw,
+        })
     }
     /// Parses explicit type arguments in a trait-targeted method call.
     ///
@@ -799,6 +899,87 @@ impl Parser {
 
         Ok(format!("[{}]", args.join(", ")))
     }
+
+    /// Parses optional explicit type arguments on a call head.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned either at `[` in `name[Type](...)` or at the
+    ///   following `(` when the call has no explicit type arguments.
+    ///
+    /// Output:
+    /// - Parsed type expressions supplied by the call site, or an empty vector
+    ///   when the call has no explicit type arguments.
+    ///
+    /// Transformation:
+    /// - Consumes a non-empty bracketed type-expression list and preserves each
+    ///   parsed type expression so syntax output can carry generic call metadata
+    ///   without encoding it into module or function names.
+    pub(super) fn parse_optional_call_type_args(&mut self) -> ParseResult<Vec<TypeExpr>> {
+        if !self.consume_if(TokenKind::LBracket) {
+            return Ok(Vec::new());
+        }
+
+        let mut args = Vec::new();
+        if self.check(TokenKind::RBracket) {
+            return Err(ParseError {
+                message: "call type arguments cannot be empty".to_string(),
+                span: self.current().span(),
+            });
+        }
+
+        loop {
+            args.push(self.parse_type_expr(&[TokenKind::Comma, TokenKind::RBracket])?);
+            if !self.consume_if(TokenKind::Comma) {
+                break;
+            }
+        }
+        self.expect(TokenKind::RBracket)?;
+
+        Ok(args)
+    }
+
+    /// Checks whether a dotted name tail is followed by call syntax.
+    ///
+    /// Inputs:
+    /// - `position`: token index immediately after the dotted name segments.
+    ///
+    /// Output:
+    /// - `true` when the next token begins either an ordinary call or an
+    ///   explicit generic call.
+    ///
+    /// Transformation:
+    /// - Performs a narrow syntactic lookahead used only to decide whether a
+    ///   dotted expression should enter call parsing; full type-argument
+    ///   validation remains in `parse_optional_call_type_args`.
+    fn call_starts_after_optional_type_args(&self, position: usize) -> bool {
+        match self.tokens.get(position) {
+            Some(token) if token.kind == TokenKind::LParen => true,
+            Some(token) if token.kind == TokenKind::LBracket => {
+                let mut index = position + 1;
+                let mut depth = 1i32;
+                while let Some(token) = self.tokens.get(index) {
+                    match token.kind {
+                        TokenKind::LBracket => depth += 1,
+                        TokenKind::RBracket => {
+                            depth -= 1;
+                            if depth == 0 {
+                                return matches!(
+                                    self.tokens.get(index + 1),
+                                    Some(next) if next.kind == TokenKind::LParen
+                                );
+                            }
+                        }
+                        TokenKind::EOF => return false,
+                        _ => {}
+                    }
+                    index += 1;
+                }
+                false
+            }
+            _ => false,
+        }
+    }
+
     /// Parses either a parenthesized expression or the canonical lambda syntax.
     ///
     /// Inputs:
@@ -930,254 +1111,6 @@ impl Parser {
             }
         }
     }
-    /// Parses postfix expression suffixes after a primary expression.
-    ///
-    /// Inputs:
-    /// - `expr`: already parsed expression that can receive postfix suffixes.
-    ///
-    /// Output:
-    /// - Expression with all immediately following postfix suffixes applied.
-    ///
-    /// Transformation:
-    /// - Repeatedly consumes record access/update, constructor extension,
-    ///   template instantiation, method call, field access, function-value
-    ///   invocation, and index suffixes, folding each suffix into the current
-    ///   expression tree.
-    fn parse_expr_suffix(&mut self, mut expr: Expr) -> ParseResult<Expr> {
-        loop {
-            if self.consume_if(TokenKind::Hash) {
-                let name = self.expect_ident()?;
-                if self.consume_if(TokenKind::LBrace) {
-                    let mut fields = Vec::new();
-                    if !self.consume_if(TokenKind::RBrace) {
-                        loop {
-                            fields.push(self.parse_record_expr_field(ExprFieldKind::ErlangRecord)?);
-                            if !self.consume_if(TokenKind::Comma) {
-                                break;
-                            }
-                        }
-                        self.expect(TokenKind::RBrace)?;
-                    }
-
-                    expr = Expr::RecordUpdate {
-                        value: Box::new(expr),
-                        name,
-                        fields,
-                    };
-                    continue;
-                }
-
-                self.expect(TokenKind::Dot)?;
-                let field = self.expect_ident()?;
-                expr = Expr::RecordAccess {
-                    value: Box::new(expr),
-                    name,
-                    field,
-                };
-                continue;
-            }
-
-            if self.consume_if(TokenKind::With) {
-                if !matches!(expr, Expr::Call { .. }) {
-                    return Err(ParseError {
-                        message: "constructor chain requires call expression before with"
-                            .to_string(),
-                        span: self.current().span(),
-                    });
-                }
-                let record = self.parse_record_expr()?;
-                expr = Expr::ConstructorChain {
-                    base: Box::new(expr),
-                    record: Box::new(record),
-                };
-                continue;
-            }
-
-            if self.check(TokenKind::LBrace)
-                && matches!(expr, Expr::Var(_))
-                && matches!(
-                    self.tokens.get(self.pos.saturating_sub(1)),
-                    Some(previous) if previous.end == self.current().start
-                )
-            {
-                self.bump();
-                let Expr::Var(name) = expr else {
-                    unreachable!("template instantiation receiver was checked above");
-                };
-                let mut fields = Vec::new();
-                if !self.consume_if(TokenKind::RBrace) {
-                    loop {
-                        fields.push(self.parse_record_expr_field(ExprFieldKind::TerlanRecord)?);
-                        if !self.consume_if(TokenKind::Comma) {
-                            break;
-                        }
-                    }
-                    self.expect(TokenKind::RBrace)?;
-                }
-                expr = Expr::TemplateInstantiate { name, fields };
-                continue;
-            }
-
-            if self.check(TokenKind::Dot)
-                && matches!(
-                        (self.tokens.get(self.pos), self.tokens.get(self.pos + 1)),
-                        (Some(dot), Some(token))
-                            if dot.end == token.start && token.kind == TokenKind::LParen
-                )
-            {
-                self.bump();
-                self.expect(TokenKind::LParen)?;
-                let args = self.parse_expr_list(TokenKind::RParen)?;
-                self.expect(TokenKind::RParen)?;
-                expr = Expr::Call {
-                    callee: Box::new(expr),
-                    args,
-                    remote: None,
-                    is_fun_value: true,
-                };
-                continue;
-            }
-
-            if self.check(TokenKind::Dot)
-                && matches!(
-                    (
-                        self.tokens.get(self.pos),
-                        self.tokens.get(self.pos + 1),
-                        self.tokens.get(self.pos + 2)
-                    ),
-                    (Some(dot), Some(name), Some(open))
-                        if dot.end == name.start
-                            && name.end == open.start
-                            && matches!(name.kind, TokenKind::Atom | TokenKind::Var)
-                            && open.kind == TokenKind::LParen
-                )
-            {
-                self.bump();
-                let field = self.expect_lower_ident("expected lower-case method name")?;
-                self.expect(TokenKind::LParen)?;
-                let args = self.parse_expr_list(TokenKind::RParen)?;
-                self.expect(TokenKind::RParen)?;
-                expr = Expr::Call {
-                    callee: Box::new(Expr::FieldAccess {
-                        value: Box::new(expr),
-                        field,
-                    }),
-                    args,
-                    remote: None,
-                    is_fun_value: false,
-                };
-                continue;
-            }
-
-            if self.check(TokenKind::Dot)
-                && matches!(
-                        (self.tokens.get(self.pos), self.tokens.get(self.pos + 1)),
-                        (Some(dot), Some(token))
-                            if dot.end == token.start
-                                && matches!(token.kind, TokenKind::Atom | TokenKind::Var)
-                )
-            {
-                self.bump();
-                let field = self.expect_lower_ident("expected lower-case field name")?;
-                expr = Expr::FieldAccess {
-                    value: Box::new(expr),
-                    field,
-                };
-                continue;
-            }
-
-            if self.consume_if(TokenKind::LBracket) {
-                let index = self.parse_expr()?;
-                self.expect(TokenKind::RBracket)?;
-                expr = Expr::Index(Box::new(expr), Box::new(index));
-                continue;
-            }
-
-            break;
-        }
-
-        Ok(expr)
-    }
-    /// Parses Terlan record construction.
-    ///
-    /// Inputs:
-    /// - Parser cursor at the record type name.
-    ///
-    /// Output:
-    /// - Record construction expression with parsed field assignments.
-    ///
-    /// Transformation:
-    /// - Consumes `TypeName { field = expr }` syntax and reuses expression
-    ///   field parsing so record construction follows the same field rules as
-    ///   template instantiation.
-    fn parse_record_expr(&mut self) -> ParseResult<Expr> {
-        let name = self.expect(TokenKind::Var)?.text;
-        self.expect(TokenKind::LBrace)?;
-        let mut fields = Vec::new();
-        if !self.consume_if(TokenKind::RBrace) {
-            loop {
-                fields.push(self.parse_record_expr_field(ExprFieldKind::TerlanRecord)?);
-                if !self.consume_if(TokenKind::Comma) {
-                    break;
-                }
-            }
-            self.expect(TokenKind::RBrace)?;
-        }
-        Ok(Expr::RecordConstruct { name, fields })
-    }
-    /// Parses one expression field in a map, Terlan record/template, or
-    /// Erlang record interop expression.
-    ///
-    /// Inputs: the parser cursor must point at the field key and `kind`
-    /// selects the grammar context for accepted key classes and separators.
-    /// Output: a structured expression field, or a syntax diagnostic at the
-    /// offending token.
-    /// Transformation: consumes the key, field separator, and value expression,
-    /// preserving the key spelling in the syntax tree.
-    fn parse_record_expr_field(&mut self, kind: ExprFieldKind) -> ParseResult<MapExprField> {
-        let key_token = self.current().clone();
-        let valid_key = match kind {
-            ExprFieldKind::Map | ExprFieldKind::ErlangRecord => {
-                key_token.kind == TokenKind::Atom || key_token.kind == TokenKind::Var
-            }
-            ExprFieldKind::TerlanRecord => key_token.kind == TokenKind::Atom,
-        };
-        if !valid_key {
-            return Err(ParseError {
-                message: match kind {
-                    ExprFieldKind::TerlanRecord => "expected lower-case field name".to_string(),
-                    ExprFieldKind::Map | ExprFieldKind::ErlangRecord => {
-                        "expected map field key atom".to_string()
-                    }
-                },
-                span: key_token.span(),
-            });
-        }
-
-        self.bump();
-        let required = if self.consume_if(TokenKind::Equals) {
-            true
-        } else if self.consume_if(TokenKind::FatArrow) && kind == ExprFieldKind::Map {
-            false
-        } else {
-            return Err(ParseError {
-                message: match kind {
-                    ExprFieldKind::Map => "expected := or => in map expression".to_string(),
-                    ExprFieldKind::TerlanRecord | ExprFieldKind::ErlangRecord => {
-                        "expected = in struct field".to_string()
-                    }
-                },
-                span: self.current().span(),
-            });
-        };
-
-        let value = self.parse_expr()?;
-        Ok(MapExprField {
-            key: key_token.text,
-            value: Box::new(value),
-            required,
-        })
-    }
     /// Parses one list-comprehension generator.
     ///
     /// Inputs:
@@ -1221,6 +1154,105 @@ impl Parser {
 
         Ok(args)
     }
+
+    /// Parses a comma-separated call-argument list.
+    ///
+    /// Inputs:
+    /// - `end`: token kind that terminates the call argument list.
+    /// - Parser cursor positioned at the first argument or terminator.
+    ///
+    /// Output:
+    /// - Ordered argument expressions and a parallel optional-name vector.
+    ///
+    /// Transformation:
+    /// - Parses `name = expr` as named call-site arguments, enforces that
+    ///   positional arguments cannot follow named arguments, and leaves the
+    ///   closing terminator for the caller to consume.
+    fn parse_call_arg_list(
+        &mut self,
+        end: TokenKind,
+    ) -> ParseResult<(Vec<Expr>, Vec<Option<String>>)> {
+        let mut args = Vec::new();
+        let mut arg_names = Vec::new();
+        let mut seen_named = false;
+        if self.check(end) {
+            return Ok((args, arg_names));
+        }
+
+        loop {
+            let named = self.peek_named_call_arg_name();
+            if let Some(name) = named {
+                self.bump();
+                self.expect(TokenKind::Equals)?;
+                args.push(self.parse_expr()?);
+                arg_names.push(Some(name));
+                seen_named = true;
+            } else {
+                if seen_named {
+                    return Err(ParseError {
+                        message: "positional arguments must come before named arguments"
+                            .to_string(),
+                        span: self.current().span(),
+                    });
+                }
+                args.push(self.parse_expr()?);
+                arg_names.push(None);
+            }
+
+            if !self.consume_if(TokenKind::Comma) {
+                break;
+            }
+        }
+
+        Ok((args, arg_names))
+    }
+
+    /// Returns a named call argument key at the current cursor.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned at a possible argument name.
+    ///
+    /// Output:
+    /// - `Some(name)` when the current token is a source identifier immediately
+    ///   followed by `=`.
+    /// - `None` otherwise.
+    ///
+    /// Transformation:
+    /// - Performs two-token lookahead only; it does not consume input.
+    fn peek_named_call_arg_name(&self) -> Option<String> {
+        let current = self.tokens.get(self.pos)?;
+        let next = self.tokens.get(self.pos + 1)?;
+        if matches!(current.kind, TokenKind::Atom | TokenKind::Var)
+            && next.kind == TokenKind::Equals
+        {
+            Some(current.text.clone())
+        } else {
+            None
+        }
+    }
+
+    /// Parses one `if` clause condition.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned at an `if` clause condition.
+    ///
+    /// Output:
+    /// - Parsed condition expression.
+    ///
+    /// Transformation:
+    /// - Accepts `_` only in this clause-head position and normalizes it to
+    ///   the existing `true` expression so downstream CoreIR and emitters keep
+    ///   one boolean fallback representation.
+    fn parse_if_condition(&mut self) -> ParseResult<Expr> {
+        let token = self.current().clone();
+        if token.kind == TokenKind::Atom && token.text == "_" {
+            self.bump();
+            Ok(Expr::Var("true".to_string()))
+        } else {
+            self.parse_single_expr()
+        }
+    }
+
     /// Parses a canonical `Atom["name"]` value expression.
     ///
     /// Inputs:

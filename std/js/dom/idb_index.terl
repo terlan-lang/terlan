@@ -1,0 +1,103 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IDBIndex
+ */
+
+module std.js.Dom.IDBIndex.
+
+/**
+ * `IDBIndex` interface of the IndexedDB API provides asynchronous access to an index in a database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex)
+ */
+pub opaque type IDBIndex.
+
+/**
+ * The **`keyPath`** property of the IDBIndex interface returns the key path of the current index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/keyPath)
+ */
+pub (value: IDBIndex) key_path(): std.js.Array[std.js.String.JsString] | std.js.String.JsString ->
+    native.
+
+/**
+ * The **`multiEntry`** read-only property of the behaves when the result of evaluating the index's key path yields an array.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/multiEntry)
+ */
+pub (value: IDBIndex) multi_entry(): std.core.Bool ->
+    native.
+
+/**
+ * The **`name`** property of the IDBIndex interface contains a string which names the index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/name)
+ */
+pub (value: IDBIndex) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`objectStore`** property of the IDBIndex interface returns the object store referenced by the current index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/objectStore)
+ */
+pub (value: IDBIndex) object_store(): IDBObjectStore ->
+    native.
+
+/**
+ * The **`unique`** read-only property returns a boolean that states whether the index allows duplicate keys.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/unique)
+ */
+pub (value: IDBIndex) unique(): std.core.Bool ->
+    native.
+
+/**
+ * The **`count()`** method of the IDBIndex interface returns an IDBRequest object, and in a separate thread, returns the number of records within a key range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/count)
+ */
+pub (value: IDBIndex) count(query: IDBKeyRange | IDBValidKey): IDBRequest[std.js.Number.JsNumber] ->
+    native.
+
+/**
+ * The **`getAllKeys()`** method of the IDBIndex interface asynchronously retrieves the primary keys of all objects inside the index, setting them as the `result` of the request object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getAllKeys)
+ */
+pub (value: IDBIndex) get_all_keys(query: Option[IDBKeyRange | IDBValidKey], count: std.js.Number.JsNumber): IDBRequest[std.js.Array[IDBValidKey]] ->
+    native.
+
+/**
+ * The **`getKey()`** method of the IDBIndex interface returns an IDBRequest object, and, in a separate thread, finds either the primary key that corresponds to the given key in this index or the first corresponding primary key, if `key` is set to an If a primary key is found, it is set as the `result` of the request object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getKey)
+ */
+pub (value: IDBIndex) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
+    native.
+
+/**
+ * The **`openCursor()`** method of the IDBIndex interface returns an IDBRequest object, and, in a separate thread, creates a cursor over the specified key range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openCursor)
+ */
+pub (value: IDBIndex) open_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+    native.
+
+/**
+ * The **`openKeyCursor()`** method of the a separate thread, creates a cursor over the specified key range, as arranged by this index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openKeyCursor)
+ */
+pub (value: IDBIndex) open_key_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+    native.

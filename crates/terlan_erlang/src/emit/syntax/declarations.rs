@@ -64,6 +64,8 @@ pub(in crate::emit) fn lower_syntax_module_output(
                 if *is_public {
                     if let Some(trait_name) = syntax_type_head_name(&trait_ref.text) {
                         let type_arg = normalize_trait_type_text(&for_type.text);
+                        let qualified_type_arg =
+                            qualify_imported_type_text(&type_arg, &ctx.imported_type_refs);
                         for method in methods {
                             exports.insert(format!(
                                 "{}/{}",
@@ -74,6 +76,17 @@ pub(in crate::emit) fn lower_syntax_module_output(
                                 ),
                                 method.params.len() + 1
                             ));
+                            if qualified_type_arg != type_arg {
+                                exports.insert(format!(
+                                    "{}/{}",
+                                    typed_trait_method_wrapper_name(
+                                        &trait_name,
+                                        &method.name,
+                                        &qualified_type_arg
+                                    ),
+                                    method.params.len() + 1
+                                ));
+                            }
                         }
                     }
                 }
@@ -251,7 +264,7 @@ fn lower_imported_syntax_struct_record_decls(
         .collect::<BTreeSet<_>>();
 
     let mut seen = BTreeSet::new();
-    module
+    let mut records = module
         .declarations
         .iter()
         .filter_map(|decl| match &decl.payload {
@@ -289,7 +302,99 @@ fn lower_imported_syntax_struct_record_decls(
                 })
                 .collect::<Vec<_>>()
         })
-        .collect()
+        .collect::<Vec<_>>();
+
+    if module_imports_value_module(module, "std.io.File") && !local_structs.contains("FileError") {
+        push_std_io_file_error_record(&mut records, interfaces, &mut seen);
+    }
+
+    records
+}
+
+/// Adds the `std.io.File.FileError` record declaration required by file runtime
+/// capabilities.
+///
+/// Inputs:
+/// - `records`: target Erlang record declarations.
+/// - `interfaces`: imported provider interfaces when available.
+/// - `seen`: record names already emitted into this module.
+///
+/// Output:
+/// - Mutates `records` at most once.
+///
+/// Transformation:
+/// - Prefers provider interface fields and falls back to the runtime-owned
+///   `FileError` ABI for value-only `std.io.File` imports, where no type
+///   import forces the provider interface into the bridge.
+fn push_std_io_file_error_record(
+    records: &mut Vec<ErlForm>,
+    interfaces: &BTreeMap<String, ModuleInterface>,
+    seen: &mut BTreeSet<String>,
+) {
+    if !seen.insert("FileError".to_string()) {
+        return;
+    }
+    let fields = interfaces
+        .get("std.io.File")
+        .and_then(|interface| interface.struct_fields.get("FileError"))
+        .map(|fields| {
+            fields
+                .iter()
+                .map(|field| field.name.clone())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| {
+            vec![
+                "code".to_string(),
+                "message".to_string(),
+                "path".to_string(),
+            ]
+        });
+    records.push(ErlForm::Record(ErlRecordDecl {
+        name: map_struct_name("FileError"),
+        fields: fields
+            .into_iter()
+            .map(|name| ErlRecordField {
+                name,
+                docs: Vec::new(),
+                default: None,
+            })
+            .collect(),
+    }));
+}
+
+/// Returns whether a module imports a provider for value-level use.
+///
+/// Inputs:
+/// - `module`: syntax-output module to inspect.
+/// - `provider`: fully qualified provider module path.
+///
+/// Output:
+/// - `true` when the source has an executable module import for `provider`.
+///
+/// Transformation:
+/// - Distinguishes value imports from type-only imports so runtime companion
+///   record declarations are emitted only for modules that may execute the
+///   provider capability.
+fn module_imports_value_module(module: &SyntaxModuleOutput, provider: &str) -> bool {
+    module.declarations.iter().any(|decl| match &decl.payload {
+        SyntaxDeclarationPayload::Import {
+            import_kind: SyntaxImportKind::Module,
+            module_name,
+            items,
+            is_type: false,
+            ..
+        } => {
+            if module_name == provider {
+                return true;
+            }
+            let Some((parent, child)) = provider.rsplit_once('.') else {
+                return false;
+            };
+            module_name == parent && items.iter().any(|item| item.name == child)
+        }
+        _ => false,
+    })
 }
 
 /// Collects syntax-output export payloads for direct Erlang lowering.
@@ -574,12 +679,34 @@ fn lower_syntax_trait_impl_decl(
 ) -> Option<Vec<ErlForm>> {
     let trait_name = syntax_type_head_name(&trait_ref.text)?;
     let type_arg = normalize_trait_type_text(&for_type.text);
+    let qualified_type_arg = qualify_imported_type_text(&type_arg, &ctx.imported_type_refs);
 
-    methods
+    let mut lowered = methods
         .iter()
         .map(|method| lower_syntax_trait_impl_method(decl, &trait_name, &type_arg, method, ctx))
-        .collect::<Option<Vec<_>>>()
-        .map(|forms| forms.into_iter().flatten().collect())
+        .collect::<Option<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    if qualified_type_arg != type_arg {
+        lowered.extend(
+            methods
+                .iter()
+                .map(|method| {
+                    lower_syntax_trait_impl_method(
+                        decl,
+                        &trait_name,
+                        &qualified_type_arg,
+                        method,
+                        ctx,
+                    )
+                })
+                .collect::<Option<Vec<_>>>()?
+                .into_iter()
+                .flatten(),
+        );
+    }
+    Some(lowered)
 }
 
 /// Lowers one explicit trait impl method into a typed wrapper function.

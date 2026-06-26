@@ -11,10 +11,28 @@ pub const NATIVE_MODULE: &str = "std_http_request_safe_native";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
+    ("method", 1),
+    ("path", 1),
+    ("param", 2),
+    ("query", 2),
+    ("query_string", 1),
+    ("header", 2),
+    ("cookie", 2),
+    ("cookies", 1),
+    ("body_text", 1),
     ("body_json", 1),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
+    ("method", "std.http.request.method", 1),
+    ("path", "std.http.request.path", 1),
+    ("param", "std.http.request.param", 2),
+    ("query", "std.http.request.query", 2),
+    ("query_string", "std.http.request.query_string", 1),
+    ("header", "std.http.request.header", 2),
+    ("cookie", "std.http.request.cookie", 2),
+    ("cookies", "std.http.request.cookies", 1),
+    ("body_text", "std.http.request.body_text", 1),
     ("body_json", "std.http.request.body_json", 1),
 ];
 
@@ -143,6 +161,15 @@ fn worker_loop(rx: Receiver<SafeNativeCommand>, credit_window: usize) {
             SafeNativeCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
+                        "std.http.request.method" => native_unimplemented_operation(operation),
+                        "std.http.request.path" => native_unimplemented_operation(operation),
+                        "std.http.request.param" => native_unimplemented_operation(operation),
+                        "std.http.request.query" => native_unimplemented_operation(operation),
+                        "std.http.request.query_string" => native_unimplemented_operation(operation),
+                        "std.http.request.header" => native_unimplemented_operation(operation),
+                        "std.http.request.cookie" => native_unimplemented_operation(operation),
+                        "std.http.request.cookies" => native_unimplemented_operation(operation),
+                        "std.http.request.body_text" => native_unimplemented_operation(operation),
                         "std.http.request.body_json" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },

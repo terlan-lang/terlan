@@ -1,0 +1,88 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCIceCandidatePairStats
+ */
+
+module std.js.Dom.RTCIceCandidatePairStatsTest.
+
+import type std.js.Dom.RTCIceCandidatePairStats.RTCIceCandidatePairStats.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub available_incoming_bitrate_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.available_incoming_bitrate().
+
+pub available_outgoing_bitrate_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.available_outgoing_bitrate().
+
+pub bytes_discarded_on_send_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.bytes_discarded_on_send().
+
+pub bytes_received_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.bytes_received().
+
+pub bytes_sent_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.bytes_sent().
+
+pub consent_requests_sent_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.consent_requests_sent().
+
+pub current_round_trip_time_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.current_round_trip_time().
+
+pub last_packet_received_timestamp_typechecks(receiver: RTCIceCandidatePairStats): DOMHighResTimeStamp ->
+    receiver.last_packet_received_timestamp().
+
+pub last_packet_sent_timestamp_typechecks(receiver: RTCIceCandidatePairStats): DOMHighResTimeStamp ->
+    receiver.last_packet_sent_timestamp().
+
+pub local_candidate_id_typechecks(receiver: RTCIceCandidatePairStats): std.js.String.JsString ->
+    receiver.local_candidate_id().
+
+pub nominated_typechecks(receiver: RTCIceCandidatePairStats): std.core.Bool ->
+    receiver.nominated().
+
+pub packets_discarded_on_send_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.packets_discarded_on_send().
+
+pub packets_received_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.packets_received().
+
+pub packets_sent_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.packets_sent().
+
+pub remote_candidate_id_typechecks(receiver: RTCIceCandidatePairStats): std.js.String.JsString ->
+    receiver.remote_candidate_id().
+
+pub requests_received_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.requests_received().
+
+pub requests_sent_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.requests_sent().
+
+pub responses_received_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.responses_received().
+
+pub responses_sent_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.responses_sent().
+
+pub state_typechecks(receiver: RTCIceCandidatePairStats): RTCStatsIceCandidatePairState ->
+    receiver.state().
+
+pub total_round_trip_time_typechecks(receiver: RTCIceCandidatePairStats): std.js.Number.JsNumber ->
+    receiver.total_round_trip_time().
+
+pub transport_id_typechecks(receiver: RTCIceCandidatePairStats): std.js.String.JsString ->
+    receiver.transport_id().

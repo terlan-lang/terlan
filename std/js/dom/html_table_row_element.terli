@@ -1,0 +1,102 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLTableRowElement
+ */
+
+module std.js.Dom.HTMLTableRowElement.
+
+/**
+ * The **`HTMLTableRowElement`** interface provides special properties and methods (beyond the HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of rows in an HTML table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement)
+ */
+pub opaque type HTMLTableRowElement.
+
+/**
+ * The **`align`** property of the HTMLTableRowElement interface is a string indicating how to horizontally align text in the tr table row.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/align)
+ */
+pub (value: HTMLTableRowElement) align(): std.js.String.JsString.
+
+/**
+ * The **`HTMLTableRowElement.bgColor`** property is used to set the background color of a row or retrieve the value of the obsolete `bgColor` attribute, if present.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/bgColor)
+ */
+pub (value: HTMLTableRowElement) bg_color(): std.js.String.JsString.
+
+/**
+ * The **`cells`** read-only property of the HTMLTableRowElement interface returns a live HTMLCollection containing the cells in the row.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/cells)
+ */
+pub (value: HTMLTableRowElement) cells(): HTMLCollectionOf[HTMLTableCellElement].
+
+/**
+ * The **`ch`** property of the HTMLTableRowElement interface does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/ch)
+ */
+pub (value: HTMLTableRowElement) ch(): std.js.String.JsString.
+
+/**
+ * The **`chOff`** property of the HTMLTableRowElement interface does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/chOff)
+ */
+pub (value: HTMLTableRowElement) ch_off(): std.js.String.JsString.
+
+/**
+ * The **`rowIndex`** read-only property of the HTMLTableRowElement interface represents the position of a row within the whole table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/rowIndex)
+ */
+pub (value: HTMLTableRowElement) row_index(): std.js.Number.JsNumber.
+
+/**
+ * The **`sectionRowIndex`** read-only property of the HTMLTableRowElement interface represents the position of a row within the current section (thead, tbody, or tfoot).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/sectionRowIndex)
+ */
+pub (value: HTMLTableRowElement) section_row_index(): std.js.Number.JsNumber.
+
+/**
+ * The **`vAlign`** property of the HTMLTableRowElement interface is a string indicating how to vertically align text in a tr table row.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/vAlign)
+ */
+pub (value: HTMLTableRowElement) v_align(): std.js.String.JsString.
+
+/**
+ * The **`deleteCell()`** method of the HTMLTableRowElement interface removes a specific row cell from a given tr.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/deleteCell)
+ */
+pub (value: HTMLTableRowElement) delete_cell(index: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`insertCell()`** method of the HTMLTableRowElement interface inserts a new cell (td) into a table row (tr) and returns a reference to the cell.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/insertCell)
+ */
+pub (value: HTMLTableRowElement) insert_cell(index: std.js.Number.JsNumber): HTMLTableCellElement.
+
+pub (value: HTMLTableRowElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: HTMLTableRowElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

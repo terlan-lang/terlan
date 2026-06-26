@@ -1,0 +1,125 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WindowOrWorkerGlobalScope
+ */
+
+module std.js.Dom.WindowOrWorkerGlobalScope.
+
+pub opaque type WindowOrWorkerGlobalScope.
+
+/**
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/caches)
+ */
+pub (value: WindowOrWorkerGlobalScope) caches(): CacheStorage ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/crossOriginIsolated)
+ */
+pub (value: WindowOrWorkerGlobalScope) cross_origin_isolated(): std.core.Bool ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/crypto)
+ */
+pub (value: WindowOrWorkerGlobalScope) crypto(): Crypto ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/indexedDB)
+ */
+pub (value: WindowOrWorkerGlobalScope) indexed_db(): IDBFactory ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/isSecureContext)
+ */
+pub (value: WindowOrWorkerGlobalScope) is_secure_context(): std.core.Bool ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/origin)
+ */
+pub (value: WindowOrWorkerGlobalScope) origin(): std.js.String.JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/performance)
+ */
+pub (value: WindowOrWorkerGlobalScope) performance(): Performance ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/atob)
+ */
+pub (value: WindowOrWorkerGlobalScope) atob(data: std.js.String.JsString): std.js.String.JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/btoa)
+ */
+pub (value: WindowOrWorkerGlobalScope) btoa(data: std.js.String.JsString): std.js.String.JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/clearInterval)
+ */
+pub (value: WindowOrWorkerGlobalScope) clear_interval(id: Option[std.js.Number.JsNumber]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/clearTimeout)
+ */
+pub (value: WindowOrWorkerGlobalScope) clear_timeout(id: Option[std.js.Number.JsNumber]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/createImageBitmap)
+ */
+pub (value: WindowOrWorkerGlobalScope) create_image_bitmap(image: ImageBitmapSource, options: ImageBitmapOptions): std.js.Promise[ImageBitmap] ->
+    native.
+
+pub (value: WindowOrWorkerGlobalScope) create_image_bitmap(image: ImageBitmapSource, sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber, sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, options: ImageBitmapOptions): std.js.Promise[ImageBitmap] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/fetch)
+ */
+pub (value: WindowOrWorkerGlobalScope) fetch(input: RequestInfo | URL, init: RequestInit): std.js.Promise[Response] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/queueMicrotask)
+ */
+pub (value: WindowOrWorkerGlobalScope) queue_microtask(callback: VoidFunction): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/setInterval)
+ */
+pub (value: WindowOrWorkerGlobalScope) set_interval(handler: TimerHandler, timeout: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/setTimeout)
+ */
+pub (value: WindowOrWorkerGlobalScope) set_timeout(handler: TimerHandler, timeout: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/structuredClone)
+ */
+pub (value: WindowOrWorkerGlobalScope) structured_clone(value: T, options: StructuredSerializeOptions): T ->
+    native.

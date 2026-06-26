@@ -47,7 +47,10 @@ Important invariants:
 - `terlan_syntax`: supplies `SyntaxModuleOutput`.
 - `terlan_typeck`: consumes `ResolvedModule` and `ModuleInterface`.
 - `terlan_cli`: loads interfaces during check, build, test, and LSP paths.
+- `imports`: resolves selected imports and module-default type imports.
+- `interface_loading`: discovers and parses `.terli` / `.typi` summaries.
 - `interface_render`: owns deterministic interface text rendering helpers.
+- `model`: owns HIR public data shapes and diagnostic/result payloads.
 
 ## Edge Cases
 
@@ -56,6 +59,15 @@ Important invariants:
 - Receiver method mutability must be preserved for type checking and lowering.
 
 ## Types And Interfaces
+
+`imports`
+: Selected import and default-type import resolution helpers.
+
+`interface_loading`
+: Interface-file discovery and duplicate-summary preference logic.
+
+`model`
+: Public HIR model structs re-exported by the crate root.
 
 `ModuleInterface`
 : Cross-module public/private declaration summary.

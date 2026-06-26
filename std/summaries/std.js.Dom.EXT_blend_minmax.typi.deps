@@ -1,0 +1,8 @@
+module=std.js.Dom.EXT_blend_minmax
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=15312047250577563026
+interface_hash=14248905588510962926
+interface_doc_hash=14248905588510962926
+deps=0

@@ -78,6 +78,60 @@ pub identity(task: Task[Int]): AsyncTask[Int] ->\n\
     );
 }
 
+/// Verifies wildcard imports expand public type and trait symbols.
+///
+/// Inputs:
+/// - Provider interface with public/private types, a public opaque type, and a
+///   public trait.
+/// - Consumer using `import provider.Surface.{*}.`.
+///
+/// Output:
+/// - Resolver imports only the provider's public type-like and trait surface.
+///
+/// Transformation:
+/// - Expands the wildcard against the loaded interface before applying normal
+///   duplicate and visibility import rules.
+#[test]
+fn wildcard_import_resolves_public_type_and_trait_surface() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module provider.Surface.\n\
+\n\
+pub type User = Int.\n\
+type Internal = Int.\n\
+pub opaque type Token.\n\
+pub trait VisibleTrait {}.\n",
+    )
+    .expect("parse wildcard provider interface");
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "provider.Surface".to_string(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let consumer = parse_module_as_syntax_output(
+        "\
+module wildcard_import_consumer.\n\
+\n\
+import provider.Surface.{*}.\n\
+\n\
+pub identity(user: User): User ->\n\
+    user.\n",
+    )
+    .expect("parse wildcard import consumer");
+
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+
+    assert!(resolved.imported_types.contains_key("User"));
+    assert!(resolved.imported_types.contains_key("Token"));
+    assert!(!resolved.imported_types.contains_key("Internal"));
+    assert!(resolved.imported_traits.contains_key("VisibleTrait"));
+    assert!(
+        resolved.diagnostics.is_empty(),
+        "unexpected wildcard import diagnostics: {:?}",
+        resolved.diagnostics
+    );
+}
+
 /// Verifies test-layout `std` directories do not shadow root std summaries.
 ///
 /// Inputs:
@@ -298,7 +352,7 @@ fn std_interface_loading_discovers_release_traversal_contracts() {
         "std.collections.Iterable",
         "Iterable",
         "iterator",
-        "Iterator[T]",
+        "std.collections.Iterator.Iterator[T]",
         "collection",
         "C",
     );
@@ -471,6 +525,50 @@ pub impl Show[Int] for Int {\n\
     );
 }
 
+/// Verifies interface rendering qualifies default-imported impl type heads.
+///
+/// Inputs:
+/// - A module that imports `std.collections.List.` through default-export
+///   syntax and implements a higher-kinded trait for `List`.
+///
+/// Output:
+/// - Generated interface text uses `std.collections.List.List`, the exported
+///   type constructor, rather than the module path `std.collections.List`.
+///
+/// Transformation:
+/// - Exercises syntax-output import selection metadata during conformance
+///   extraction so generated `.typi` summaries preserve HKT kind arity.
+#[test]
+fn interface_rendering_qualifies_default_imported_hkt_impl_type_heads() {
+    let module = parse_module_as_syntax_output(
+        "\
+module default_imported_hkt_impl.\n\
+\n\
+import std.collections.List.\n\
+import type std.collections.List.\n\
+\n\
+pub trait Functor[F[_]] {\n\
+    map[A, B](value: F[A], f: (A) -> B): F[B].\n\
+}.\n\
+\n\
+pub impl Functor[List] for List {\n\
+    map(value: List[A], f: (A) -> B): List[B] ->\n\
+        value.\n\
+}.\n",
+    )
+    .expect("parse default imported hkt impl");
+
+    let interface = syntax_module_output_to_interface(&module);
+    let rendered = interface.to_terlan_interface_text();
+
+    assert!(
+        rendered
+            .contains("pub impl Functor[std.collections.List.List] for std.collections.List.List"),
+        "rendered interface should qualify the default imported type constructor:\n{}",
+        rendered
+    );
+}
+
 /// Verifies interface rendering preserves trait default-method markers.
 ///
 /// Inputs:
@@ -577,6 +675,46 @@ pub pick(value: String): String.\n\
         .any(|signature| signature.return_type == "String"));
 }
 
+/// Verifies resolved source modules preserve implemented overloads in summaries.
+///
+/// Inputs:
+/// - A source module with two implemented public `pick/1` overloads
+///   distinguished by parameter type.
+///
+/// Output:
+/// - Test passes when the resolved interface summary text contains both
+///   overload signatures.
+///
+/// Transformation:
+/// - Parses ordinary source syntax, resolves it through HIR, then renders the
+///   module interface exactly as std summary generation does.
+#[test]
+fn resolved_interface_rendering_preserves_source_function_overloads() {
+    let source = "\
+module overload.SourceProvider.\n\
+\n\
+pub pick(value: Int): String ->\n\
+    value.to_string().\n\
+\n\
+pub pick(value: String): String ->\n\
+    value.\n\
+";
+    let parsed = parse_module_as_syntax_output(source).expect("parse overload source");
+    let resolved = resolve_syntax_module_output(&parsed);
+    let rendered = resolved.module.interface.to_terlan_interface_type_text();
+
+    assert!(
+        rendered.contains("pub pick(value: Int): String."),
+        "rendered source interface should contain Int overload:\n{}",
+        rendered
+    );
+    assert!(
+        rendered.contains("pub pick(value: String): String."),
+        "rendered source interface should contain String overload:\n{}",
+        rendered
+    );
+}
+
 /// Verifies public struct fields survive `.typi` rendering and parsing.
 ///
 /// Inputs:
@@ -598,7 +736,8 @@ module interface_struct_fields.\n\
 \n\
 pub struct Error {\n\
     code: Atom,\n\
-    message: String\n\
+    message: String,\n\
+    #internal_id: String\n\
 }.\n",
     )
     .expect("parse struct field source fixture");
@@ -608,16 +747,26 @@ pub struct Error {\n\
         .struct_fields
         .get("Error")
         .expect("direct struct field metadata");
-    assert_eq!(fields.len(), 2);
+    assert_eq!(fields.len(), 3);
     assert_eq!(fields[0].name, "code");
     assert_eq!(fields[0].annotation, "Atom");
+    assert!(!fields[0].is_private);
     assert_eq!(fields[1].name, "message");
     assert_eq!(fields[1].annotation, "String");
+    assert!(!fields[1].is_private);
+    assert_eq!(fields[2].name, "internal_id");
+    assert_eq!(fields[2].annotation, "String");
+    assert!(fields[2].is_private);
 
     let rendered = interface.to_terlan_interface_text();
     assert!(
         rendered.contains("pub struct Error"),
         "rendered interface should preserve struct declaration:\n{}",
+        rendered
+    );
+    assert!(
+        rendered.contains("#internal_id: String"),
+        "rendered interface should preserve private field syntax:\n{}",
         rendered
     );
     let reparsed = parse_interface_module_as_syntax_output(&rendered)
@@ -628,6 +777,98 @@ pub struct Error {\n\
         .get("Error")
         .expect("reparsed struct field metadata");
     assert_eq!(reparsed_fields, fields);
+}
+
+/// Verifies callable default parameters survive interface generation.
+///
+/// Inputs:
+/// - A source module containing a public function, receiver method, trait
+///   method, and constructor with defaulted parameters.
+///
+/// Output:
+/// - Test passes when generated interface text renders the defaults and the
+///   reparsed interface keeps the same default metadata.
+///
+/// Transformation:
+/// - Converts source syntax output to HIR interface metadata, renders a `.typi`
+///   compatible summary, reparses it as interface source, and checks that
+///   default parameter text remains available to downstream phases.
+#[test]
+fn interface_rendering_preserves_callable_parameter_defaults() {
+    let module = parse_module_as_syntax_output(
+        "\
+module interface_callable_defaults.\n\
+\n\
+pub type User = {name: String, active: Bool}.\n\
+\n\
+pub constructor User {\n\
+    (name: String, active: Bool = True): User ->\n\
+        User(name, active)\n\
+}.\n\
+\n\
+pub trait Label[T] {\n\
+    label(value: T, separator: String = \":\"): String.\n\
+}.\n\
+\n\
+pub greet(name: String, excited: Bool = False): String ->\n\
+    name.\n\
+\n\
+pub (name: String) pad(width: Int = 2): String ->\n\
+    name.\n",
+    )
+    .expect("parse callable defaults source fixture");
+
+    let interface = syntax_module_output_to_interface(&module);
+    let rendered = interface.to_terlan_interface_type_text();
+    assert!(
+        rendered.contains("pub greet(name: String, excited: Bool = False): String."),
+        "rendered interface should preserve function defaults:\n{}",
+        rendered
+    );
+    assert!(
+        rendered.contains("pub (name: String) pad(width: Int = 2): String."),
+        "rendered interface should preserve receiver-method defaults:\n{}",
+        rendered
+    );
+    assert!(
+        rendered.contains("label(value: T, separator: String = \":\"): String."),
+        "rendered interface should preserve trait-method defaults:\n{}",
+        rendered
+    );
+    assert!(
+        rendered.contains("(name: String, active: Bool = True): User"),
+        "rendered interface should preserve constructor defaults:\n{}",
+        rendered
+    );
+
+    let reparsed = parse_interface_module_as_syntax_output(&rendered)
+        .expect("parse rendered callable default interface");
+    let reparsed_interface = syntax_module_output_to_interface(&reparsed);
+    let greet = reparsed_interface
+        .functions
+        .get(&("greet".to_string(), 2))
+        .expect("reparsed greet signature");
+    assert_eq!(greet.params[1].default_text.as_deref(), Some("False"));
+
+    let pad = reparsed_interface
+        .functions
+        .get(&("pad".to_string(), 2))
+        .expect("reparsed receiver method signature");
+    assert_eq!(pad.params[1].default_text.as_deref(), Some("2"));
+
+    let label = reparsed_interface
+        .traits
+        .get("Label")
+        .and_then(|signature| signature.methods.get("label"))
+        .expect("reparsed label trait method");
+    assert_eq!(label.params[1].default_text.as_deref(), Some("\":\""));
+
+    let constructor = reparsed_interface
+        .constructors
+        .get("User")
+        .and_then(|signatures| signatures.first())
+        .expect("reparsed User constructor");
+    assert_eq!(constructor.params[1].default_text.as_deref(), Some("True"));
 }
 
 /// Verifies generated provider summaries with constructors and empty impls parse.
@@ -905,6 +1146,90 @@ pub constructor Items[T] {
     assert!(resolved.module.diagnostics.is_empty());
 }
 
+/// Verifies higher-kinded type parameters survive HIR interface extraction.
+///
+/// Inputs:
+/// - Public trait syntax with a unary higher-kinded parameter.
+///
+/// Output:
+/// - Interface metadata and rendered interface text preserving `F[_]`.
+///
+/// Transformation:
+/// - Parses source through syntax output, lowers to HIR interface metadata, and
+///   renders the importable `.typi` text without erasing kind arity.
+#[test]
+fn formal_hir_preserves_higher_kinded_trait_params() {
+    let syntax_module = parse_module_as_syntax_output(
+        r#"
+module formal_hkt_iface.
+
+pub trait Functor[F[_]] {
+    map(value: F[T], fn: (T) -> U): F[U].
+}.
+"#,
+    )
+    .expect("parse hkt syntax output");
+
+    let interface = syntax_module_output_to_interface(&syntax_module);
+    assert_eq!(
+        interface.traits["Functor"].type_params,
+        vec!["F[_]".to_string()]
+    );
+    assert!(interface
+        .to_terlan_interface_text()
+        .contains("pub trait Functor[F[_]]"));
+}
+
+/// Verifies higher-kinded callable params survive HIR interface extraction.
+///
+/// Inputs:
+/// - Public generic function syntax with a unary HKT parameter and a generic
+///   bound.
+///
+/// Output:
+/// - Interface metadata and rendered interface text preserving `F[_]`, `A`,
+///   and the generic bound text.
+///
+/// Transformation:
+/// - Parses source through syntax output, lowers to HIR interface metadata, and
+///   renders the importable `.typi` text without erasing callable generic
+///   parameters.
+#[test]
+fn formal_hir_preserves_higher_kinded_function_params() {
+    let syntax_module = parse_module_as_syntax_output(
+        r#"
+module formal_hkt_function_iface.
+
+pub trait Show[T] {
+    show(value: T): String.
+}.
+
+pub identity[F[_], A]<A: Show>(value: F[A]): F[A] ->
+    value.
+
+pub trait Functor[F[_]] {
+    map[A, B](value: F[A], f: (A) -> B): F[B].
+}.
+"#,
+    )
+    .expect("parse hkt function syntax output");
+
+    let interface = syntax_module_output_to_interface(&syntax_module);
+    let signature = interface
+        .functions
+        .get(&("identity".to_string(), 1))
+        .expect("identity signature");
+
+    assert_eq!(signature.generic_params, vec!["F[_]", "A"]);
+    assert_eq!(signature.generic_bounds, vec!["A : Show"]);
+    assert!(interface
+        .to_terlan_interface_text()
+        .contains("pub identity[F[_], A]<A : Show>(value: F[A]): F[A]."));
+    assert!(interface
+        .to_terlan_interface_text()
+        .contains("map[A, B](value: F[A], f: (A ) -> B): F[B]."));
+}
+
 /// Verifies release core collection contracts produce stable interfaces.
 ///
 /// Inputs:
@@ -1050,10 +1375,10 @@ fn hir_extracts_release_traversal_contracts_as_interfaces() {
     );
     assert_eq!(
         iterable_source_interface.traits["Iterable"].methods["iterator"].return_type,
-        "Iterator[T]"
+        "std.collections.Iterator.Iterator[T]"
     );
     assert_eq!(
         iterable_summary_interface.traits["Iterable"].methods["iterator"].return_type,
-        "Iterator[T]"
+        "std.collections.Iterator.Iterator[T]"
     );
 }

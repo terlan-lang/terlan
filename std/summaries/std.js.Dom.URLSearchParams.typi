@@ -1,0 +1,81 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface URLSearchParams
+ */
+
+module std.js.Dom.URLSearchParams.
+
+/**
+ * The **`URLSearchParams`** interface defines utility methods to work with the query string of a URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams)
+ */
+pub opaque type URLSearchParams.
+
+/**
+ * The **`size`** read-only property of the URLSearchParams interface indicates the total number of search parameter entries.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/size)
+ */
+pub (value: URLSearchParams) size(): std.js.Number.JsNumber.
+
+/**
+ * The **`append()`** method of the URLSearchParams interface appends a specified key/value pair as a new search parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/append)
+ */
+pub (value: URLSearchParams) append(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`delete()`** method of the URLSearchParams interface deletes specified parameters and their associated value(s) from the list of all search parameters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/delete)
+ */
+pub (value: URLSearchParams) delete(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`get()`** method of the URLSearchParams interface returns the first value associated to the given search parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/get)
+ */
+pub (value: URLSearchParams) get(name: std.js.String.JsString): Option[std.js.String.JsString].
+
+/**
+ * The **`getAll()`** method of the URLSearchParams interface returns all the values associated with a given search parameter as an array.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/getAll)
+ */
+pub (value: URLSearchParams) get_all(name: std.js.String.JsString): std.js.Array[std.js.String.JsString].
+
+/**
+ * The **`has()`** method of the URLSearchParams interface returns a boolean value that indicates whether the specified parameter is in the search parameters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/has)
+ */
+pub (value: URLSearchParams) has(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Bool.
+
+/**
+ * The **`set()`** method of the URLSearchParams interface sets the value associated with a given search parameter to the given value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/set)
+ */
+pub (value: URLSearchParams) set(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`URLSearchParams.sort()`** method sorts all key/value pairs contained in this object in place and returns `undefined`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/sort)
+ */
+pub (value: URLSearchParams) sort(): std.core.Unit.
+
+pub (value: URLSearchParams) to_string(): std.js.String.JsString.

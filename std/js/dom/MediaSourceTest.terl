@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MediaSource
+ */
+
+module std.js.Dom.MediaSourceTest.
+
+import type std.js.Dom.MediaSource.MediaSource.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub active_source_buffers_typechecks(receiver: MediaSource): SourceBufferList ->
+    receiver.active_source_buffers().
+
+pub duration_typechecks(receiver: MediaSource): std.js.Number.JsNumber ->
+    receiver.duration().
+
+pub ready_state_typechecks(receiver: MediaSource): ReadyState ->
+    receiver.ready_state().
+
+pub source_buffers_typechecks(receiver: MediaSource): SourceBufferList ->
+    receiver.source_buffers().
+
+pub add_source_buffer_typechecks(receiver: MediaSource, type_: std.js.String.JsString): SourceBuffer ->
+    receiver.add_source_buffer(type_).
+
+pub clear_live_seekable_range_typechecks(receiver: MediaSource): std.core.Unit ->
+    receiver.clear_live_seekable_range().
+
+pub end_of_stream_typechecks(receiver: MediaSource, error: EndOfStreamError): std.core.Unit ->
+    receiver.end_of_stream(error).
+
+pub remove_source_buffer_typechecks(receiver: MediaSource, source_buffer: SourceBuffer): std.core.Unit ->
+    receiver.remove_source_buffer(source_buffer).
+
+pub set_live_seekable_range_typechecks(receiver: MediaSource, start: std.js.Number.JsNumber, end: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.set_live_seekable_range(start, end).
+
+pub add_event_listener_typechecks(receiver: MediaSource, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: MediaSource, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

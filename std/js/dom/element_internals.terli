@@ -1,0 +1,100 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ElementInternals
+ */
+
+module std.js.Dom.ElementInternals.
+
+/**
+ * The **`ElementInternals`** interface of the Document Object Model gives web developers a way to allow custom elements to fully participate in HTML forms.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals)
+ */
+pub opaque type ElementInternals.
+
+/**
+ * The **`form`** read-only property of the ElementInternals interface returns the HTMLFormElement associated with this element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/form)
+ */
+pub (value: ElementInternals) form(): Option[HTMLFormElement].
+
+/**
+ * The **`labels`** read-only property of the ElementInternals interface returns the labels associated with the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/labels)
+ */
+pub (value: ElementInternals) labels(): NodeList.
+
+/**
+ * The **`shadowRoot`** read-only property of the ElementInternals interface returns the ShadowRoot for this element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/shadowRoot)
+ */
+pub (value: ElementInternals) shadow_root(): Option[ShadowRoot].
+
+/**
+ * The **`states`** read-only property of the ElementInternals interface returns a CustomStateSet representing the possible states of the custom element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/states)
+ */
+pub (value: ElementInternals) states(): CustomStateSet.
+
+/**
+ * The **`validationMessage`** read-only property of the ElementInternals interface returns the validation message for the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/validationMessage)
+ */
+pub (value: ElementInternals) validation_message(): std.js.String.JsString.
+
+/**
+ * The **`validity`** read-only property of the ElementInternals interface returns a ValidityState object which represents the different validity states the element can be in, with respect to constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/validity)
+ */
+pub (value: ElementInternals) validity(): ValidityState.
+
+/**
+ * The **`willValidate`** read-only property of the ElementInternals interface returns `true` if the element is a submittable element that is a candidate for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/willValidate)
+ */
+pub (value: ElementInternals) will_validate(): std.core.Bool.
+
+/**
+ * The **`checkValidity()`** method of the ElementInternals interface checks if the element meets any constraint validation rules applied to it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/checkValidity)
+ */
+pub (value: ElementInternals) check_validity(): std.core.Bool.
+
+/**
+ * The **`reportValidity()`** method of the ElementInternals interface checks if the element meets any constraint validation rules applied to it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/reportValidity)
+ */
+pub (value: ElementInternals) report_validity(): std.core.Bool.
+
+/**
+ * The **`setFormValue()`** method of the ElementInternals interface sets the element's submission value and state, communicating these to the user agent.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/setFormValue)
+ */
+pub (value: ElementInternals) set_form_value(value: Option[File | FormData | std.js.String.JsString], state: Option[File | FormData | std.js.String.JsString]): std.core.Unit.
+
+/**
+ * The **`setValidity()`** method of the ElementInternals interface sets the validity of the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/setValidity)
+ */
+pub (value: ElementInternals) set_validity(flags: ValidityStateFlags, message: std.js.String.JsString, anchor: HTMLElement): std.core.Unit.

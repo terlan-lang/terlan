@@ -1,14 +1,20 @@
 CARGO := cargo
 PYTHON := python3 -B
+SHELL := bash
+.SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan_cli/cli.mk
+include crates/terlan_html/html.mk
+include crates/terlan_lsp/lsp.mk
+include crates/terlan_safenative/safenative.mk
 include std/stdlib.mk
+include editors/editor.mk
 
 ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
 ifndef VERSION
-$(error VERSION is required. Use: make $(firstword $(MAKECMDGOALS)) VERSION=0.0.4)
+$(error VERSION is required. Use: make $(firstword $(MAKECMDGOALS)) VERSION=<release-version>)
 endif
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
@@ -27,16 +33,25 @@ check:
 	$(MAKE) cli-exact-selector-check
 	$(MAKE) shared-helper-check
 	$(MAKE) oxc-boundary-check
+	$(MAKE) http-tls-check
+	$(MAKE) http-runtime-stack-check
+	$(MAKE) runtime-release-dependency-self-test
 	$(MAKE) changelog-public-scope-check
 	$(MAKE) internal-docs-check
 	$(MAKE) module-readme-check
 	$(MAKE) rustdoc-check
 	$(MAKE) cli-check
 	$(MAKE) stdlib-check
+	$(MAKE) editor-check
+	$(MAKE) lsp-check
 	$(PYTHON) tools/validate_ebnf.py --strict
 
 test:
 	$(MAKE) cli-test
+
+test-release:
+	$(MAKE) cli-test-release
+	$(MAKE) stdlib-release-check
 
 build:
 	$(MAKE) cli-build
@@ -63,31 +78,44 @@ diff-whitespace-check:
 	git diff --check
 
 rust-quality-check:
-	$(PYTHON) tools/check_rust_quality.py
+	$(CARGO) run -p terlan_quality --quiet -- rust-quality
 
 test-hierarchy-check:
-	$(PYTHON) tools/check_test_hierarchy.py
+	$(CARGO) run -p terlan_quality --quiet -- test-hierarchy
 
 cli-exact-selector-check:
-	$(PYTHON) tools/check_cli_exact_selectors.py
+	$(CARGO) run -p terlan_quality --quiet -- cli-exact-selectors
 
 shared-helper-check:
 	$(PYTHON) tools/check_shared_helpers.py
 
 oxc-boundary-check:
-	$(PYTHON) tools/check_oxc_boundary.py
+	$(CARGO) run -p terlan_quality --quiet -- oxc-boundary
+
+http-runtime-stack-check:
+	$(PYTHON) tools/check_http_runtime_stack.py
+	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::build_command_emits_http_request_body_json_direct_erlang_lowering -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_serves_static_get_response -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_serves_static_file_with_query_string -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_omits_static_head_response_body -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_rejects_static_parent_path -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_rejects_unmatched_mutating_method -- --exact
+	$(TERLC_EXACT_TEST) commands::serve::serve_test::hyper_request_handler_streams_reload_sse_events -- --exact
+
+runtime-release-dependency-self-test:
+	$(PYTHON) tools/check_runtime_release_dependencies.py --self-test
 
 changelog-public-scope-check:
 	$(PYTHON) tools/check_changelog_public_scope.py
 
 internal-docs-check:
-	$(PYTHON) tools/check_internal_docs.py
+	$(CARGO) run -p terlan_quality --quiet -- internal-docs
 
 module-readme-check:
-	$(PYTHON) tools/check_module_readmes.py
+	$(CARGO) run -p terlan_quality --quiet -- module-readmes
 
 rustdoc-check:
-	$(PYTHON) tools/check_rust_docs.py
+	$(CARGO) run -p terlan_quality --quiet -- rust-docs
 
 release-artifact-linux:
 	$(MAKE) release-boundary-check
@@ -144,14 +172,19 @@ publish-preflight:
 		echo "remote tag v$(VERSION) already exists"; \
 		exit 1; \
 	fi
-	@if [ "$(VERSION)" = "0.0.4" ]; then \
+	@if [ "$(VERSION)" = "0.0.5" ]; then \
 		$(MAKE) check; \
-		$(MAKE) test; \
+		$(MAKE) test-release; \
+		$(MAKE) release-0-0-5-preflight; \
+		$(MAKE) release-artifact-linux; \
+	elif [ "$(VERSION)" = "0.0.4" ]; then \
+		$(MAKE) check; \
+		$(MAKE) test-release; \
 		$(MAKE) release-0-0-4-preflight; \
 		$(MAKE) release-artifact-linux; \
 	else \
 		$(MAKE) check; \
-		$(MAKE) test; \
+		$(MAKE) test-release; \
 	fi
 
 publish: publish-preflight

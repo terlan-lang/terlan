@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ShadowRoot
+ */
+
+module std.js.Dom.ShadowRootTest.
+
+import type std.js.Dom.ShadowRoot.ShadowRoot.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub clonable_typechecks(receiver: ShadowRoot): std.core.Bool ->
+    receiver.clonable().
+
+pub delegates_focus_typechecks(receiver: ShadowRoot): std.core.Bool ->
+    receiver.delegates_focus().
+
+pub host_typechecks(receiver: ShadowRoot): Element ->
+    receiver.host().
+
+pub inner_html_typechecks(receiver: ShadowRoot): std.js.String.JsString ->
+    receiver.inner_html().
+
+pub mode_typechecks(receiver: ShadowRoot): ShadowRootMode ->
+    receiver.mode().
+
+pub serializable_typechecks(receiver: ShadowRoot): std.core.Bool ->
+    receiver.serializable().
+
+pub slot_assignment_typechecks(receiver: ShadowRoot): SlotAssignmentMode ->
+    receiver.slot_assignment().
+
+pub get_html_typechecks(receiver: ShadowRoot, options: GetHTMLOptions): std.js.String.JsString ->
+    receiver.get_html(options).
+
+pub set_html_unsafe_typechecks(receiver: ShadowRoot, html_: std.js.String.JsString): std.core.Unit ->
+    receiver.set_html_unsafe(html_).
+
+pub add_event_listener_typechecks(receiver: ShadowRoot, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: ShadowRoot, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

@@ -1,0 +1,127 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IDBObjectStore
+ */
+
+module std.js.Dom.IDBObjectStore.
+
+/**
+ * The **`IDBObjectStore`** interface of the IndexedDB API represents an object store in a database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore)
+ */
+pub opaque type IDBObjectStore.
+
+/**
+ * The **`autoIncrement`** read-only property of the for this object store.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/autoIncrement)
+ */
+pub (value: IDBObjectStore) auto_increment(): std.core.Bool ->
+    native.
+
+/**
+ * The **`indexNames`** read-only property of the in this object store.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/indexNames)
+ */
+pub (value: IDBObjectStore) index_names(): DOMStringList ->
+    native.
+
+/**
+ * The **`keyPath`** read-only property of the If this property is null, the application must provide a key for each modification operation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/keyPath)
+ */
+pub (value: IDBObjectStore) key_path(): Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`name`** property of the IDBObjectStore interface indicates the name of this object store.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/name)
+ */
+pub (value: IDBObjectStore) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`transaction`** read-only property of the object store belongs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/transaction)
+ */
+pub (value: IDBObjectStore) transaction(): IDBTransaction ->
+    native.
+
+/**
+ * The **`count()`** method of the IDBObjectStore interface returns an IDBRequest object, and, in a separate thread, returns the total number of records that match the provided key or of records in the store.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/count)
+ */
+pub (value: IDBObjectStore) count(query: IDBKeyRange | IDBValidKey): IDBRequest[std.js.Number.JsNumber] ->
+    native.
+
+/**
+ * The **`createIndex()`** method of the field/column defining a new data point for each database record to contain.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/createIndex)
+ */
+pub (value: IDBObjectStore) create_index(name: std.js.String.JsString, key_path: std.js.Array[std.js.String.JsString] | std.js.String.JsString, options: IDBIndexParameters): IDBIndex ->
+    native.
+
+/**
+ * The **`deleteIndex()`** method of the the connected database, used during a version upgrade.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/deleteIndex)
+ */
+pub (value: IDBObjectStore) delete_index(name: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The `getAllKeys()` method of the IDBObjectStore interface returns an IDBRequest object retrieves record keys for all objects in the object store matching the specified parameter or all objects in the store if no parameters are given.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/getAllKeys)
+ */
+pub (value: IDBObjectStore) get_all_keys(query: Option[IDBKeyRange | IDBValidKey], count: std.js.Number.JsNumber): IDBRequest[std.js.Array[IDBValidKey]] ->
+    native.
+
+/**
+ * The **`getKey()`** method of the and, in a separate thread, returns the key selected by the specified query.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/getKey)
+ */
+pub (value: IDBObjectStore) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
+    native.
+
+/**
+ * The **`index()`** method of the IDBObjectStore interface opens a named index in the current object store, after which it can be used to, for example, return a series of records sorted by that index using a cursor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/index)
+ */
+pub (value: IDBObjectStore) index(name: std.js.String.JsString): IDBIndex ->
+    native.
+
+/**
+ * The **`openCursor()`** method of the and, in a separate thread, returns a new IDBCursorWithValue object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openCursor)
+ */
+pub (value: IDBObjectStore) open_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+    native.
+
+/**
+ * The **`openKeyCursor()`** method of the whose result will be set to an IDBCursor that can be used to iterate through matching results.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openKeyCursor)
+ */
+pub (value: IDBObjectStore) open_key_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+    native.

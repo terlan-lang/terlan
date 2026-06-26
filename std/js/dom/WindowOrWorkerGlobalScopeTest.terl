@@ -1,0 +1,76 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WindowOrWorkerGlobalScope
+ */
+
+module std.js.Dom.WindowOrWorkerGlobalScopeTest.
+
+import type std.js.Dom.WindowOrWorkerGlobalScope.WindowOrWorkerGlobalScope.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub caches_typechecks(receiver: WindowOrWorkerGlobalScope): CacheStorage ->
+    receiver.caches().
+
+pub cross_origin_isolated_typechecks(receiver: WindowOrWorkerGlobalScope): std.core.Bool ->
+    receiver.cross_origin_isolated().
+
+pub crypto_typechecks(receiver: WindowOrWorkerGlobalScope): Crypto ->
+    receiver.crypto().
+
+pub indexed_db_typechecks(receiver: WindowOrWorkerGlobalScope): IDBFactory ->
+    receiver.indexed_db().
+
+pub is_secure_context_typechecks(receiver: WindowOrWorkerGlobalScope): std.core.Bool ->
+    receiver.is_secure_context().
+
+pub origin_typechecks(receiver: WindowOrWorkerGlobalScope): std.js.String.JsString ->
+    receiver.origin().
+
+pub performance_typechecks(receiver: WindowOrWorkerGlobalScope): Performance ->
+    receiver.performance().
+
+pub atob_typechecks(receiver: WindowOrWorkerGlobalScope, data: std.js.String.JsString): std.js.String.JsString ->
+    receiver.atob(data).
+
+pub btoa_typechecks(receiver: WindowOrWorkerGlobalScope, data: std.js.String.JsString): std.js.String.JsString ->
+    receiver.btoa(data).
+
+pub clear_interval_typechecks(receiver: WindowOrWorkerGlobalScope, id: Option[std.js.Number.JsNumber]): std.core.Unit ->
+    receiver.clear_interval(id).
+
+pub clear_timeout_typechecks(receiver: WindowOrWorkerGlobalScope, id: Option[std.js.Number.JsNumber]): std.core.Unit ->
+    receiver.clear_timeout(id).
+
+pub create_image_bitmap_typechecks(receiver: WindowOrWorkerGlobalScope, image: ImageBitmapSource, options: ImageBitmapOptions): std.js.Promise[ImageBitmap] ->
+    receiver.create_image_bitmap(image, options).
+
+pub create_image_bitmap_typechecks(receiver: WindowOrWorkerGlobalScope, image: ImageBitmapSource, sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber, sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, options: ImageBitmapOptions): std.js.Promise[ImageBitmap] ->
+    receiver.create_image_bitmap(image, sx, sy, sw, sh, options).
+
+pub fetch_typechecks(receiver: WindowOrWorkerGlobalScope, input: RequestInfo | URL, init: RequestInit): std.js.Promise[Response] ->
+    receiver.fetch(input, init).
+
+pub queue_microtask_typechecks(receiver: WindowOrWorkerGlobalScope, callback: VoidFunction): std.core.Unit ->
+    receiver.queue_microtask(callback).
+
+pub set_interval_typechecks(receiver: WindowOrWorkerGlobalScope, handler: TimerHandler, timeout: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.set_interval(handler, timeout).
+
+pub set_timeout_typechecks(receiver: WindowOrWorkerGlobalScope, handler: TimerHandler, timeout: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.set_timeout(handler, timeout).
+
+pub structured_clone_typechecks(receiver: WindowOrWorkerGlobalScope, value: T, options: StructuredSerializeOptions): T ->
+    receiver.structured_clone(value, options).

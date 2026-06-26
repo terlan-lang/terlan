@@ -1,0 +1,2747 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CSSStyleDeclaration
+ */
+
+module std.js.Dom.CSSStyleDeclaration.
+
+/**
+ * The **`CSSStyleDeclaration`** interface represents an object that is a CSS declaration block, and exposes style information and various style-related methods and properties.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration)
+ */
+pub opaque type CSSStyleDeclaration.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/accent-color)
+ */
+pub (value: CSSStyleDeclaration) accent_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/align-content)
+ */
+pub (value: CSSStyleDeclaration) align_content(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/align-items)
+ */
+pub (value: CSSStyleDeclaration) align_items(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/align-self)
+ */
+pub (value: CSSStyleDeclaration) align_self(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/alignment-baseline)
+ */
+pub (value: CSSStyleDeclaration) alignment_baseline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/all)
+ */
+pub (value: CSSStyleDeclaration) all(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation)
+ */
+pub (value: CSSStyleDeclaration) animation(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-composition)
+ */
+pub (value: CSSStyleDeclaration) animation_composition(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-delay)
+ */
+pub (value: CSSStyleDeclaration) animation_delay(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-direction)
+ */
+pub (value: CSSStyleDeclaration) animation_direction(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-duration)
+ */
+pub (value: CSSStyleDeclaration) animation_duration(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-fill-mode)
+ */
+pub (value: CSSStyleDeclaration) animation_fill_mode(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-iteration-count)
+ */
+pub (value: CSSStyleDeclaration) animation_iteration_count(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-name)
+ */
+pub (value: CSSStyleDeclaration) animation_name(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-play-state)
+ */
+pub (value: CSSStyleDeclaration) animation_play_state(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-timing-function)
+ */
+pub (value: CSSStyleDeclaration) animation_timing_function(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/appearance)
+ */
+pub (value: CSSStyleDeclaration) appearance(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/aspect-ratio)
+ */
+pub (value: CSSStyleDeclaration) aspect_ratio(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/backdrop-filter)
+ */
+pub (value: CSSStyleDeclaration) backdrop_filter(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/backface-visibility)
+ */
+pub (value: CSSStyleDeclaration) backface_visibility(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background)
+ */
+pub (value: CSSStyleDeclaration) background(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-attachment)
+ */
+pub (value: CSSStyleDeclaration) background_attachment(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-blend-mode)
+ */
+pub (value: CSSStyleDeclaration) background_blend_mode(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-clip)
+ */
+pub (value: CSSStyleDeclaration) background_clip(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-color)
+ */
+pub (value: CSSStyleDeclaration) background_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-image)
+ */
+pub (value: CSSStyleDeclaration) background_image(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-origin)
+ */
+pub (value: CSSStyleDeclaration) background_origin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-position)
+ */
+pub (value: CSSStyleDeclaration) background_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-position-x)
+ */
+pub (value: CSSStyleDeclaration) background_position_x(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-position-y)
+ */
+pub (value: CSSStyleDeclaration) background_position_y(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-repeat)
+ */
+pub (value: CSSStyleDeclaration) background_repeat(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-size)
+ */
+pub (value: CSSStyleDeclaration) background_size(): std.js.String.JsString.
+
+pub (value: CSSStyleDeclaration) baseline_shift(): std.js.String.JsString.
+
+pub (value: CSSStyleDeclaration) baseline_source(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/block-size)
+ */
+pub (value: CSSStyleDeclaration) block_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border)
+ */
+pub (value: CSSStyleDeclaration) border(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block)
+ */
+pub (value: CSSStyleDeclaration) border_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-color)
+ */
+pub (value: CSSStyleDeclaration) border_block_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-end)
+ */
+pub (value: CSSStyleDeclaration) border_block_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-end-color)
+ */
+pub (value: CSSStyleDeclaration) border_block_end_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-end-style)
+ */
+pub (value: CSSStyleDeclaration) border_block_end_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-end-width)
+ */
+pub (value: CSSStyleDeclaration) border_block_end_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-start)
+ */
+pub (value: CSSStyleDeclaration) border_block_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-start-color)
+ */
+pub (value: CSSStyleDeclaration) border_block_start_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-start-style)
+ */
+pub (value: CSSStyleDeclaration) border_block_start_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-start-width)
+ */
+pub (value: CSSStyleDeclaration) border_block_start_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-style)
+ */
+pub (value: CSSStyleDeclaration) border_block_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-block-width)
+ */
+pub (value: CSSStyleDeclaration) border_block_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom)
+ */
+pub (value: CSSStyleDeclaration) border_bottom(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom-color)
+ */
+pub (value: CSSStyleDeclaration) border_bottom_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom-left-radius)
+ */
+pub (value: CSSStyleDeclaration) border_bottom_left_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom-right-radius)
+ */
+pub (value: CSSStyleDeclaration) border_bottom_right_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom-style)
+ */
+pub (value: CSSStyleDeclaration) border_bottom_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom-width)
+ */
+pub (value: CSSStyleDeclaration) border_bottom_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-collapse)
+ */
+pub (value: CSSStyleDeclaration) border_collapse(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-color)
+ */
+pub (value: CSSStyleDeclaration) border_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-end-end-radius)
+ */
+pub (value: CSSStyleDeclaration) border_end_end_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-end-start-radius)
+ */
+pub (value: CSSStyleDeclaration) border_end_start_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-image)
+ */
+pub (value: CSSStyleDeclaration) border_image(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-image-outset)
+ */
+pub (value: CSSStyleDeclaration) border_image_outset(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-image-repeat)
+ */
+pub (value: CSSStyleDeclaration) border_image_repeat(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-image-slice)
+ */
+pub (value: CSSStyleDeclaration) border_image_slice(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-image-source)
+ */
+pub (value: CSSStyleDeclaration) border_image_source(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-image-width)
+ */
+pub (value: CSSStyleDeclaration) border_image_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline)
+ */
+pub (value: CSSStyleDeclaration) border_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-color)
+ */
+pub (value: CSSStyleDeclaration) border_inline_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-end)
+ */
+pub (value: CSSStyleDeclaration) border_inline_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-end-color)
+ */
+pub (value: CSSStyleDeclaration) border_inline_end_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-end-style)
+ */
+pub (value: CSSStyleDeclaration) border_inline_end_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-end-width)
+ */
+pub (value: CSSStyleDeclaration) border_inline_end_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-start)
+ */
+pub (value: CSSStyleDeclaration) border_inline_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-start-color)
+ */
+pub (value: CSSStyleDeclaration) border_inline_start_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-start-style)
+ */
+pub (value: CSSStyleDeclaration) border_inline_start_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-start-width)
+ */
+pub (value: CSSStyleDeclaration) border_inline_start_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-style)
+ */
+pub (value: CSSStyleDeclaration) border_inline_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-inline-width)
+ */
+pub (value: CSSStyleDeclaration) border_inline_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-left)
+ */
+pub (value: CSSStyleDeclaration) border_left(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-left-color)
+ */
+pub (value: CSSStyleDeclaration) border_left_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-left-style)
+ */
+pub (value: CSSStyleDeclaration) border_left_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-left-width)
+ */
+pub (value: CSSStyleDeclaration) border_left_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-radius)
+ */
+pub (value: CSSStyleDeclaration) border_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-right)
+ */
+pub (value: CSSStyleDeclaration) border_right(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-right-color)
+ */
+pub (value: CSSStyleDeclaration) border_right_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-right-style)
+ */
+pub (value: CSSStyleDeclaration) border_right_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-right-width)
+ */
+pub (value: CSSStyleDeclaration) border_right_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-spacing)
+ */
+pub (value: CSSStyleDeclaration) border_spacing(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-start-end-radius)
+ */
+pub (value: CSSStyleDeclaration) border_start_end_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-start-start-radius)
+ */
+pub (value: CSSStyleDeclaration) border_start_start_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-style)
+ */
+pub (value: CSSStyleDeclaration) border_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top)
+ */
+pub (value: CSSStyleDeclaration) border_top(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top-color)
+ */
+pub (value: CSSStyleDeclaration) border_top_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top-left-radius)
+ */
+pub (value: CSSStyleDeclaration) border_top_left_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top-right-radius)
+ */
+pub (value: CSSStyleDeclaration) border_top_right_radius(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top-style)
+ */
+pub (value: CSSStyleDeclaration) border_top_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top-width)
+ */
+pub (value: CSSStyleDeclaration) border_top_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-width)
+ */
+pub (value: CSSStyleDeclaration) border_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/bottom)
+ */
+pub (value: CSSStyleDeclaration) bottom(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-decoration-break)
+ */
+pub (value: CSSStyleDeclaration) box_decoration_break(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-shadow)
+ */
+pub (value: CSSStyleDeclaration) box_shadow(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-sizing)
+ */
+pub (value: CSSStyleDeclaration) box_sizing(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/break-after)
+ */
+pub (value: CSSStyleDeclaration) break_after(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/break-before)
+ */
+pub (value: CSSStyleDeclaration) break_before(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/break-inside)
+ */
+pub (value: CSSStyleDeclaration) break_inside(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/caption-side)
+ */
+pub (value: CSSStyleDeclaration) caption_side(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/caret-color)
+ */
+pub (value: CSSStyleDeclaration) caret_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/clear)
+ */
+pub (value: CSSStyleDeclaration) clear(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/clip)
+ */
+pub (value: CSSStyleDeclaration) clip(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/clip-path)
+ */
+pub (value: CSSStyleDeclaration) clip_path(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/clip-rule)
+ */
+pub (value: CSSStyleDeclaration) clip_rule(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/color)
+ */
+pub (value: CSSStyleDeclaration) color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/color-interpolation)
+ */
+pub (value: CSSStyleDeclaration) color_interpolation(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/color-interpolation-filters)
+ */
+pub (value: CSSStyleDeclaration) color_interpolation_filters(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/color-scheme)
+ */
+pub (value: CSSStyleDeclaration) color_scheme(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-count)
+ */
+pub (value: CSSStyleDeclaration) column_count(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-fill)
+ */
+pub (value: CSSStyleDeclaration) column_fill(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-gap)
+ */
+pub (value: CSSStyleDeclaration) column_gap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-rule)
+ */
+pub (value: CSSStyleDeclaration) column_rule(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-rule-color)
+ */
+pub (value: CSSStyleDeclaration) column_rule_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-rule-style)
+ */
+pub (value: CSSStyleDeclaration) column_rule_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-rule-width)
+ */
+pub (value: CSSStyleDeclaration) column_rule_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-span)
+ */
+pub (value: CSSStyleDeclaration) column_span(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/column-width)
+ */
+pub (value: CSSStyleDeclaration) column_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/columns)
+ */
+pub (value: CSSStyleDeclaration) columns(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/contain)
+ */
+pub (value: CSSStyleDeclaration) contain(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/contain-intrinsic-block-size)
+ */
+pub (value: CSSStyleDeclaration) contain_intrinsic_block_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/contain-intrinsic-height)
+ */
+pub (value: CSSStyleDeclaration) contain_intrinsic_height(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/contain-intrinsic-inline-size)
+ */
+pub (value: CSSStyleDeclaration) contain_intrinsic_inline_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/contain-intrinsic-size)
+ */
+pub (value: CSSStyleDeclaration) contain_intrinsic_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/contain-intrinsic-width)
+ */
+pub (value: CSSStyleDeclaration) contain_intrinsic_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/container)
+ */
+pub (value: CSSStyleDeclaration) container(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/container-name)
+ */
+pub (value: CSSStyleDeclaration) container_name(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/container-type)
+ */
+pub (value: CSSStyleDeclaration) container_type(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/content)
+ */
+pub (value: CSSStyleDeclaration) content(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/content-visibility)
+ */
+pub (value: CSSStyleDeclaration) content_visibility(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/counter-increment)
+ */
+pub (value: CSSStyleDeclaration) counter_increment(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/counter-reset)
+ */
+pub (value: CSSStyleDeclaration) counter_reset(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/counter-set)
+ */
+pub (value: CSSStyleDeclaration) counter_set(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/cssFloat)
+ */
+pub (value: CSSStyleDeclaration) css_float(): std.js.String.JsString.
+
+/**
+ * The **`cssText`** property of the CSSStyleDeclaration interface returns or sets the text of the element's **inline** style declaration only.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/cssText)
+ */
+pub (value: CSSStyleDeclaration) css_text(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/cursor)
+ */
+pub (value: CSSStyleDeclaration) cursor(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/cx)
+ */
+pub (value: CSSStyleDeclaration) cx(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/cy)
+ */
+pub (value: CSSStyleDeclaration) cy(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/d)
+ */
+pub (value: CSSStyleDeclaration) d(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/direction)
+ */
+pub (value: CSSStyleDeclaration) direction(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/display)
+ */
+pub (value: CSSStyleDeclaration) display(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/dominant-baseline)
+ */
+pub (value: CSSStyleDeclaration) dominant_baseline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/empty-cells)
+ */
+pub (value: CSSStyleDeclaration) empty_cells(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/fill)
+ */
+pub (value: CSSStyleDeclaration) fill(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/fill-opacity)
+ */
+pub (value: CSSStyleDeclaration) fill_opacity(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/fill-rule)
+ */
+pub (value: CSSStyleDeclaration) fill_rule(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/filter)
+ */
+pub (value: CSSStyleDeclaration) filter(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex)
+ */
+pub (value: CSSStyleDeclaration) flex(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-basis)
+ */
+pub (value: CSSStyleDeclaration) flex_basis(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-direction)
+ */
+pub (value: CSSStyleDeclaration) flex_direction(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-flow)
+ */
+pub (value: CSSStyleDeclaration) flex_flow(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-grow)
+ */
+pub (value: CSSStyleDeclaration) flex_grow(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-shrink)
+ */
+pub (value: CSSStyleDeclaration) flex_shrink(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-wrap)
+ */
+pub (value: CSSStyleDeclaration) flex_wrap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/float)
+ */
+pub (value: CSSStyleDeclaration) float(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flood-color)
+ */
+pub (value: CSSStyleDeclaration) flood_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flood-opacity)
+ */
+pub (value: CSSStyleDeclaration) flood_opacity(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font)
+ */
+pub (value: CSSStyleDeclaration) font(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-family)
+ */
+pub (value: CSSStyleDeclaration) font_family(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-feature-settings)
+ */
+pub (value: CSSStyleDeclaration) font_feature_settings(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-kerning)
+ */
+pub (value: CSSStyleDeclaration) font_kerning(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-optical-sizing)
+ */
+pub (value: CSSStyleDeclaration) font_optical_sizing(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-palette)
+ */
+pub (value: CSSStyleDeclaration) font_palette(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-size)
+ */
+pub (value: CSSStyleDeclaration) font_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-size-adjust)
+ */
+pub (value: CSSStyleDeclaration) font_size_adjust(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-stretch)
+ */
+pub (value: CSSStyleDeclaration) font_stretch(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-style)
+ */
+pub (value: CSSStyleDeclaration) font_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-synthesis)
+ */
+pub (value: CSSStyleDeclaration) font_synthesis(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-synthesis-small-caps)
+ */
+pub (value: CSSStyleDeclaration) font_synthesis_small_caps(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-synthesis-style)
+ */
+pub (value: CSSStyleDeclaration) font_synthesis_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-synthesis-weight)
+ */
+pub (value: CSSStyleDeclaration) font_synthesis_weight(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variant)
+ */
+pub (value: CSSStyleDeclaration) font_variant(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variant-alternates)
+ */
+pub (value: CSSStyleDeclaration) font_variant_alternates(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variant-caps)
+ */
+pub (value: CSSStyleDeclaration) font_variant_caps(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variant-east-asian)
+ */
+pub (value: CSSStyleDeclaration) font_variant_east_asian(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variant-ligatures)
+ */
+pub (value: CSSStyleDeclaration) font_variant_ligatures(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variant-numeric)
+ */
+pub (value: CSSStyleDeclaration) font_variant_numeric(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variant-position)
+ */
+pub (value: CSSStyleDeclaration) font_variant_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-variation-settings)
+ */
+pub (value: CSSStyleDeclaration) font_variation_settings(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/font-weight)
+ */
+pub (value: CSSStyleDeclaration) font_weight(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/forced-color-adjust)
+ */
+pub (value: CSSStyleDeclaration) forced_color_adjust(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/gap)
+ */
+pub (value: CSSStyleDeclaration) gap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid)
+ */
+pub (value: CSSStyleDeclaration) grid(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-area)
+ */
+pub (value: CSSStyleDeclaration) grid_area(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-auto-columns)
+ */
+pub (value: CSSStyleDeclaration) grid_auto_columns(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-auto-flow)
+ */
+pub (value: CSSStyleDeclaration) grid_auto_flow(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-auto-rows)
+ */
+pub (value: CSSStyleDeclaration) grid_auto_rows(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-column)
+ */
+pub (value: CSSStyleDeclaration) grid_column(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-column-end)
+ */
+pub (value: CSSStyleDeclaration) grid_column_end(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `columnGap`.
+ */
+pub (value: CSSStyleDeclaration) grid_column_gap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-column-start)
+ */
+pub (value: CSSStyleDeclaration) grid_column_start(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `gap`.
+ */
+pub (value: CSSStyleDeclaration) grid_gap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-row)
+ */
+pub (value: CSSStyleDeclaration) grid_row(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-row-end)
+ */
+pub (value: CSSStyleDeclaration) grid_row_end(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `rowGap`.
+ */
+pub (value: CSSStyleDeclaration) grid_row_gap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-row-start)
+ */
+pub (value: CSSStyleDeclaration) grid_row_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-template)
+ */
+pub (value: CSSStyleDeclaration) grid_template(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-template-areas)
+ */
+pub (value: CSSStyleDeclaration) grid_template_areas(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-template-columns)
+ */
+pub (value: CSSStyleDeclaration) grid_template_columns(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/grid-template-rows)
+ */
+pub (value: CSSStyleDeclaration) grid_template_rows(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)
+ */
+pub (value: CSSStyleDeclaration) height(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/hyphenate-character)
+ */
+pub (value: CSSStyleDeclaration) hyphenate_character(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/hyphenate-limit-chars)
+ */
+pub (value: CSSStyleDeclaration) hyphenate_limit_chars(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/hyphens)
+ */
+pub (value: CSSStyleDeclaration) hyphens(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/image-orientation)
+ */
+pub (value: CSSStyleDeclaration) image_orientation(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/image-rendering)
+ */
+pub (value: CSSStyleDeclaration) image_rendering(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inline-size)
+ */
+pub (value: CSSStyleDeclaration) inline_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inset)
+ */
+pub (value: CSSStyleDeclaration) inset(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inset-block)
+ */
+pub (value: CSSStyleDeclaration) inset_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inset-block-end)
+ */
+pub (value: CSSStyleDeclaration) inset_block_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inset-block-start)
+ */
+pub (value: CSSStyleDeclaration) inset_block_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inset-inline)
+ */
+pub (value: CSSStyleDeclaration) inset_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inset-inline-end)
+ */
+pub (value: CSSStyleDeclaration) inset_inline_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/inset-inline-start)
+ */
+pub (value: CSSStyleDeclaration) inset_inline_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/isolation)
+ */
+pub (value: CSSStyleDeclaration) isolation(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/justify-content)
+ */
+pub (value: CSSStyleDeclaration) justify_content(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/justify-items)
+ */
+pub (value: CSSStyleDeclaration) justify_items(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/justify-self)
+ */
+pub (value: CSSStyleDeclaration) justify_self(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/left)
+ */
+pub (value: CSSStyleDeclaration) left(): std.js.String.JsString.
+
+/**
+ * The read-only property returns an integer that represents the number of style declarations in this CSS declaration block.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/length)
+ */
+pub (value: CSSStyleDeclaration) length(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/letter-spacing)
+ */
+pub (value: CSSStyleDeclaration) letter_spacing(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/lighting-color)
+ */
+pub (value: CSSStyleDeclaration) lighting_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/line-break)
+ */
+pub (value: CSSStyleDeclaration) line_break(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/line-height)
+ */
+pub (value: CSSStyleDeclaration) line_height(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/list-style)
+ */
+pub (value: CSSStyleDeclaration) list_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/list-style-image)
+ */
+pub (value: CSSStyleDeclaration) list_style_image(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/list-style-position)
+ */
+pub (value: CSSStyleDeclaration) list_style_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/list-style-type)
+ */
+pub (value: CSSStyleDeclaration) list_style_type(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin)
+ */
+pub (value: CSSStyleDeclaration) margin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-block)
+ */
+pub (value: CSSStyleDeclaration) margin_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-block-end)
+ */
+pub (value: CSSStyleDeclaration) margin_block_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-block-start)
+ */
+pub (value: CSSStyleDeclaration) margin_block_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-bottom)
+ */
+pub (value: CSSStyleDeclaration) margin_bottom(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-inline)
+ */
+pub (value: CSSStyleDeclaration) margin_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-inline-end)
+ */
+pub (value: CSSStyleDeclaration) margin_inline_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-inline-start)
+ */
+pub (value: CSSStyleDeclaration) margin_inline_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-left)
+ */
+pub (value: CSSStyleDeclaration) margin_left(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-right)
+ */
+pub (value: CSSStyleDeclaration) margin_right(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/margin-top)
+ */
+pub (value: CSSStyleDeclaration) margin_top(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/marker)
+ */
+pub (value: CSSStyleDeclaration) marker(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/marker-end)
+ */
+pub (value: CSSStyleDeclaration) marker_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/marker-mid)
+ */
+pub (value: CSSStyleDeclaration) marker_mid(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/marker-start)
+ */
+pub (value: CSSStyleDeclaration) marker_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask)
+ */
+pub (value: CSSStyleDeclaration) mask(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-clip)
+ */
+pub (value: CSSStyleDeclaration) mask_clip(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-composite)
+ */
+pub (value: CSSStyleDeclaration) mask_composite(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-image)
+ */
+pub (value: CSSStyleDeclaration) mask_image(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-mode)
+ */
+pub (value: CSSStyleDeclaration) mask_mode(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-origin)
+ */
+pub (value: CSSStyleDeclaration) mask_origin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-position)
+ */
+pub (value: CSSStyleDeclaration) mask_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-repeat)
+ */
+pub (value: CSSStyleDeclaration) mask_repeat(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-size)
+ */
+pub (value: CSSStyleDeclaration) mask_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-type)
+ */
+pub (value: CSSStyleDeclaration) mask_type(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/math-depth)
+ */
+pub (value: CSSStyleDeclaration) math_depth(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/math-style)
+ */
+pub (value: CSSStyleDeclaration) math_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/max-block-size)
+ */
+pub (value: CSSStyleDeclaration) max_block_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/max-height)
+ */
+pub (value: CSSStyleDeclaration) max_height(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/max-inline-size)
+ */
+pub (value: CSSStyleDeclaration) max_inline_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/max-width)
+ */
+pub (value: CSSStyleDeclaration) max_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/min-block-size)
+ */
+pub (value: CSSStyleDeclaration) min_block_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/min-height)
+ */
+pub (value: CSSStyleDeclaration) min_height(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/min-inline-size)
+ */
+pub (value: CSSStyleDeclaration) min_inline_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/min-width)
+ */
+pub (value: CSSStyleDeclaration) min_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mix-blend-mode)
+ */
+pub (value: CSSStyleDeclaration) mix_blend_mode(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/object-fit)
+ */
+pub (value: CSSStyleDeclaration) object_fit(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/object-position)
+ */
+pub (value: CSSStyleDeclaration) object_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/offset)
+ */
+pub (value: CSSStyleDeclaration) offset(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/offset-anchor)
+ */
+pub (value: CSSStyleDeclaration) offset_anchor(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/offset-distance)
+ */
+pub (value: CSSStyleDeclaration) offset_distance(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/offset-path)
+ */
+pub (value: CSSStyleDeclaration) offset_path(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/offset-position)
+ */
+pub (value: CSSStyleDeclaration) offset_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/offset-rotate)
+ */
+pub (value: CSSStyleDeclaration) offset_rotate(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/opacity)
+ */
+pub (value: CSSStyleDeclaration) opacity(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/order)
+ */
+pub (value: CSSStyleDeclaration) order(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/orphans)
+ */
+pub (value: CSSStyleDeclaration) orphans(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/outline)
+ */
+pub (value: CSSStyleDeclaration) outline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/outline-color)
+ */
+pub (value: CSSStyleDeclaration) outline_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/outline-offset)
+ */
+pub (value: CSSStyleDeclaration) outline_offset(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/outline-style)
+ */
+pub (value: CSSStyleDeclaration) outline_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/outline-width)
+ */
+pub (value: CSSStyleDeclaration) outline_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow)
+ */
+pub (value: CSSStyleDeclaration) overflow(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-anchor)
+ */
+pub (value: CSSStyleDeclaration) overflow_anchor(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-block)
+ */
+pub (value: CSSStyleDeclaration) overflow_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-clip-margin)
+ */
+pub (value: CSSStyleDeclaration) overflow_clip_margin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-inline)
+ */
+pub (value: CSSStyleDeclaration) overflow_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-wrap)
+ */
+pub (value: CSSStyleDeclaration) overflow_wrap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-x)
+ */
+pub (value: CSSStyleDeclaration) overflow_x(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-y)
+ */
+pub (value: CSSStyleDeclaration) overflow_y(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior)
+ */
+pub (value: CSSStyleDeclaration) overscroll_behavior(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-block)
+ */
+pub (value: CSSStyleDeclaration) overscroll_behavior_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-inline)
+ */
+pub (value: CSSStyleDeclaration) overscroll_behavior_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-x)
+ */
+pub (value: CSSStyleDeclaration) overscroll_behavior_x(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-y)
+ */
+pub (value: CSSStyleDeclaration) overscroll_behavior_y(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding)
+ */
+pub (value: CSSStyleDeclaration) padding(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-block)
+ */
+pub (value: CSSStyleDeclaration) padding_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-block-end)
+ */
+pub (value: CSSStyleDeclaration) padding_block_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-block-start)
+ */
+pub (value: CSSStyleDeclaration) padding_block_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-bottom)
+ */
+pub (value: CSSStyleDeclaration) padding_bottom(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-inline)
+ */
+pub (value: CSSStyleDeclaration) padding_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-inline-end)
+ */
+pub (value: CSSStyleDeclaration) padding_inline_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-inline-start)
+ */
+pub (value: CSSStyleDeclaration) padding_inline_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-left)
+ */
+pub (value: CSSStyleDeclaration) padding_left(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-right)
+ */
+pub (value: CSSStyleDeclaration) padding_right(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/padding-top)
+ */
+pub (value: CSSStyleDeclaration) padding_top(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/page)
+ */
+pub (value: CSSStyleDeclaration) page(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/page-break-after)
+ */
+pub (value: CSSStyleDeclaration) page_break_after(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/page-break-before)
+ */
+pub (value: CSSStyleDeclaration) page_break_before(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/page-break-inside)
+ */
+pub (value: CSSStyleDeclaration) page_break_inside(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/paint-order)
+ */
+pub (value: CSSStyleDeclaration) paint_order(): std.js.String.JsString.
+
+/**
+ * The **CSSStyleDeclaration.parentRule** read-only property returns a CSSRule that is the parent of this style block, e.g., a CSSStyleRule representing the style for a CSS selector.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/parentRule)
+ */
+pub (value: CSSStyleDeclaration) parent_rule(): Option[CSSRule].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/perspective)
+ */
+pub (value: CSSStyleDeclaration) perspective(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/perspective-origin)
+ */
+pub (value: CSSStyleDeclaration) perspective_origin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/place-content)
+ */
+pub (value: CSSStyleDeclaration) place_content(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/place-items)
+ */
+pub (value: CSSStyleDeclaration) place_items(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/place-self)
+ */
+pub (value: CSSStyleDeclaration) place_self(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/pointer-events)
+ */
+pub (value: CSSStyleDeclaration) pointer_events(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/position)
+ */
+pub (value: CSSStyleDeclaration) position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/print-color-adjust)
+ */
+pub (value: CSSStyleDeclaration) print_color_adjust(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/quotes)
+ */
+pub (value: CSSStyleDeclaration) quotes(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/r)
+ */
+pub (value: CSSStyleDeclaration) r(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/resize)
+ */
+pub (value: CSSStyleDeclaration) resize(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/right)
+ */
+pub (value: CSSStyleDeclaration) right(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/rotate)
+ */
+pub (value: CSSStyleDeclaration) rotate(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/row-gap)
+ */
+pub (value: CSSStyleDeclaration) row_gap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/ruby-align)
+ */
+pub (value: CSSStyleDeclaration) ruby_align(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/ruby-position)
+ */
+pub (value: CSSStyleDeclaration) ruby_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/rx)
+ */
+pub (value: CSSStyleDeclaration) rx(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/ry)
+ */
+pub (value: CSSStyleDeclaration) ry(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scale)
+ */
+pub (value: CSSStyleDeclaration) scale(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-behavior)
+ */
+pub (value: CSSStyleDeclaration) scroll_behavior(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-block)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-block-end)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_block_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-block-start)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_block_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-bottom)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_bottom(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-inline)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-inline-end)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_inline_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-inline-start)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_inline_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-left)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_left(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-right)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_right(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-margin-top)
+ */
+pub (value: CSSStyleDeclaration) scroll_margin_top(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-block)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_block(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-block-end)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_block_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-block-start)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_block_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-bottom)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_bottom(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-inline)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_inline(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-inline-end)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_inline_end(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-inline-start)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_inline_start(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-left)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_left(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-right)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_right(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-padding-top)
+ */
+pub (value: CSSStyleDeclaration) scroll_padding_top(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-snap-align)
+ */
+pub (value: CSSStyleDeclaration) scroll_snap_align(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-snap-stop)
+ */
+pub (value: CSSStyleDeclaration) scroll_snap_stop(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scroll-snap-type)
+ */
+pub (value: CSSStyleDeclaration) scroll_snap_type(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scrollbar-color)
+ */
+pub (value: CSSStyleDeclaration) scrollbar_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scrollbar-gutter)
+ */
+pub (value: CSSStyleDeclaration) scrollbar_gutter(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/scrollbar-width)
+ */
+pub (value: CSSStyleDeclaration) scrollbar_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/shape-image-threshold)
+ */
+pub (value: CSSStyleDeclaration) shape_image_threshold(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/shape-margin)
+ */
+pub (value: CSSStyleDeclaration) shape_margin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/shape-outside)
+ */
+pub (value: CSSStyleDeclaration) shape_outside(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/shape-rendering)
+ */
+pub (value: CSSStyleDeclaration) shape_rendering(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stop-color)
+ */
+pub (value: CSSStyleDeclaration) stop_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stop-opacity)
+ */
+pub (value: CSSStyleDeclaration) stop_opacity(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke)
+ */
+pub (value: CSSStyleDeclaration) stroke(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke-dasharray)
+ */
+pub (value: CSSStyleDeclaration) stroke_dasharray(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke-dashoffset)
+ */
+pub (value: CSSStyleDeclaration) stroke_dashoffset(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke-linecap)
+ */
+pub (value: CSSStyleDeclaration) stroke_linecap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke-linejoin)
+ */
+pub (value: CSSStyleDeclaration) stroke_linejoin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke-miterlimit)
+ */
+pub (value: CSSStyleDeclaration) stroke_miterlimit(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke-opacity)
+ */
+pub (value: CSSStyleDeclaration) stroke_opacity(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/stroke-width)
+ */
+pub (value: CSSStyleDeclaration) stroke_width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/tab-size)
+ */
+pub (value: CSSStyleDeclaration) tab_size(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/table-layout)
+ */
+pub (value: CSSStyleDeclaration) table_layout(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-align)
+ */
+pub (value: CSSStyleDeclaration) text_align(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-align-last)
+ */
+pub (value: CSSStyleDeclaration) text_align_last(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-anchor)
+ */
+pub (value: CSSStyleDeclaration) text_anchor(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-box)
+ */
+pub (value: CSSStyleDeclaration) text_box(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-box-edge)
+ */
+pub (value: CSSStyleDeclaration) text_box_edge(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-box-trim)
+ */
+pub (value: CSSStyleDeclaration) text_box_trim(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-combine-upright)
+ */
+pub (value: CSSStyleDeclaration) text_combine_upright(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-decoration)
+ */
+pub (value: CSSStyleDeclaration) text_decoration(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-decoration-color)
+ */
+pub (value: CSSStyleDeclaration) text_decoration_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-decoration-line)
+ */
+pub (value: CSSStyleDeclaration) text_decoration_line(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-decoration-skip-ink)
+ */
+pub (value: CSSStyleDeclaration) text_decoration_skip_ink(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-decoration-style)
+ */
+pub (value: CSSStyleDeclaration) text_decoration_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-decoration-thickness)
+ */
+pub (value: CSSStyleDeclaration) text_decoration_thickness(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-emphasis)
+ */
+pub (value: CSSStyleDeclaration) text_emphasis(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-emphasis-color)
+ */
+pub (value: CSSStyleDeclaration) text_emphasis_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-emphasis-position)
+ */
+pub (value: CSSStyleDeclaration) text_emphasis_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-emphasis-style)
+ */
+pub (value: CSSStyleDeclaration) text_emphasis_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-indent)
+ */
+pub (value: CSSStyleDeclaration) text_indent(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-orientation)
+ */
+pub (value: CSSStyleDeclaration) text_orientation(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-overflow)
+ */
+pub (value: CSSStyleDeclaration) text_overflow(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-rendering)
+ */
+pub (value: CSSStyleDeclaration) text_rendering(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-shadow)
+ */
+pub (value: CSSStyleDeclaration) text_shadow(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-transform)
+ */
+pub (value: CSSStyleDeclaration) text_transform(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-underline-offset)
+ */
+pub (value: CSSStyleDeclaration) text_underline_offset(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-underline-position)
+ */
+pub (value: CSSStyleDeclaration) text_underline_position(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-wrap)
+ */
+pub (value: CSSStyleDeclaration) text_wrap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-wrap-mode)
+ */
+pub (value: CSSStyleDeclaration) text_wrap_mode(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-wrap-style)
+ */
+pub (value: CSSStyleDeclaration) text_wrap_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/top)
+ */
+pub (value: CSSStyleDeclaration) top(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/touch-action)
+ */
+pub (value: CSSStyleDeclaration) touch_action(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transform)
+ */
+pub (value: CSSStyleDeclaration) transform(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transform-box)
+ */
+pub (value: CSSStyleDeclaration) transform_box(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transform-origin)
+ */
+pub (value: CSSStyleDeclaration) transform_origin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transform-style)
+ */
+pub (value: CSSStyleDeclaration) transform_style(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition)
+ */
+pub (value: CSSStyleDeclaration) transition(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-behavior)
+ */
+pub (value: CSSStyleDeclaration) transition_behavior(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-delay)
+ */
+pub (value: CSSStyleDeclaration) transition_delay(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-duration)
+ */
+pub (value: CSSStyleDeclaration) transition_duration(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-property)
+ */
+pub (value: CSSStyleDeclaration) transition_property(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-timing-function)
+ */
+pub (value: CSSStyleDeclaration) transition_timing_function(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/translate)
+ */
+pub (value: CSSStyleDeclaration) translate(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/unicode-bidi)
+ */
+pub (value: CSSStyleDeclaration) unicode_bidi(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/user-select)
+ */
+pub (value: CSSStyleDeclaration) user_select(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/vector-effect)
+ */
+pub (value: CSSStyleDeclaration) vector_effect(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/vertical-align)
+ */
+pub (value: CSSStyleDeclaration) vertical_align(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/view-transition-class)
+ */
+pub (value: CSSStyleDeclaration) view_transition_class(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/view-transition-name)
+ */
+pub (value: CSSStyleDeclaration) view_transition_name(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/visibility)
+ */
+pub (value: CSSStyleDeclaration) visibility(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `alignContent`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/align-content)
+ */
+pub (value: CSSStyleDeclaration) webkit_align_content(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `alignItems`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/align-items)
+ */
+pub (value: CSSStyleDeclaration) webkit_align_items(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `alignSelf`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/align-self)
+ */
+pub (value: CSSStyleDeclaration) webkit_align_self(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animation`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationDelay`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-delay)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_delay(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationDirection`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-direction)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_direction(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationDuration`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-duration)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_duration(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationFillMode`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-fill-mode)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_fill_mode(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationIterationCount`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-iteration-count)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_iteration_count(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationName`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-name)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_name(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationPlayState`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-play-state)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_play_state(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `animationTimingFunction`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/animation-timing-function)
+ */
+pub (value: CSSStyleDeclaration) webkit_animation_timing_function(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `appearance`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/appearance)
+ */
+pub (value: CSSStyleDeclaration) webkit_appearance(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `backfaceVisibility`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/backface-visibility)
+ */
+pub (value: CSSStyleDeclaration) webkit_backface_visibility(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `backgroundClip`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-clip)
+ */
+pub (value: CSSStyleDeclaration) webkit_background_clip(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `backgroundOrigin`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-origin)
+ */
+pub (value: CSSStyleDeclaration) webkit_background_origin(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `backgroundSize`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/background-size)
+ */
+pub (value: CSSStyleDeclaration) webkit_background_size(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `borderBottomLeftRadius`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom-left-radius)
+ */
+pub (value: CSSStyleDeclaration) webkit_border_bottom_left_radius(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `borderBottomRightRadius`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-bottom-right-radius)
+ */
+pub (value: CSSStyleDeclaration) webkit_border_bottom_right_radius(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `borderRadius`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-radius)
+ */
+pub (value: CSSStyleDeclaration) webkit_border_radius(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `borderTopLeftRadius`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top-left-radius)
+ */
+pub (value: CSSStyleDeclaration) webkit_border_top_left_radius(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `borderTopRightRadius`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/border-top-right-radius)
+ */
+pub (value: CSSStyleDeclaration) webkit_border_top_right_radius(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `boxAlign`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-align)
+ */
+pub (value: CSSStyleDeclaration) webkit_box_align(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `boxFlex`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-flex)
+ */
+pub (value: CSSStyleDeclaration) webkit_box_flex(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `boxOrdinalGroup`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-ordinal-group)
+ */
+pub (value: CSSStyleDeclaration) webkit_box_ordinal_group(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `boxOrient`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-orient)
+ */
+pub (value: CSSStyleDeclaration) webkit_box_orient(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `boxPack`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-pack)
+ */
+pub (value: CSSStyleDeclaration) webkit_box_pack(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `boxShadow`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-shadow)
+ */
+pub (value: CSSStyleDeclaration) webkit_box_shadow(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `boxSizing`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/box-sizing)
+ */
+pub (value: CSSStyleDeclaration) webkit_box_sizing(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `filter`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/filter)
+ */
+pub (value: CSSStyleDeclaration) webkit_filter(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `flex`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex)
+ */
+pub (value: CSSStyleDeclaration) webkit_flex(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `flexBasis`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-basis)
+ */
+pub (value: CSSStyleDeclaration) webkit_flex_basis(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `flexDirection`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-direction)
+ */
+pub (value: CSSStyleDeclaration) webkit_flex_direction(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `flexFlow`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-flow)
+ */
+pub (value: CSSStyleDeclaration) webkit_flex_flow(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `flexGrow`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-grow)
+ */
+pub (value: CSSStyleDeclaration) webkit_flex_grow(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `flexShrink`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-shrink)
+ */
+pub (value: CSSStyleDeclaration) webkit_flex_shrink(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `flexWrap`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/flex-wrap)
+ */
+pub (value: CSSStyleDeclaration) webkit_flex_wrap(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `justifyContent`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/justify-content)
+ */
+pub (value: CSSStyleDeclaration) webkit_justify_content(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/line-clamp)
+ */
+pub (value: CSSStyleDeclaration) webkit_line_clamp(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `mask`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskBorder`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-border)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_box_image(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskBorderOutset`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-border-outset)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_box_image_outset(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskBorderRepeat`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-border-repeat)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_box_image_repeat(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskBorderSlice`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-border-slice)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_box_image_slice(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskBorderSource`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-border-source)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_box_image_source(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskBorderWidth`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-border-width)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_box_image_width(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskClip`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-clip)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_clip(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskComposite`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-composite)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_composite(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskImage`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-image)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_image(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskOrigin`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-origin)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_origin(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskPosition`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-position)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_position(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskRepeat`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-repeat)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_repeat(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `maskSize`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/mask-size)
+ */
+pub (value: CSSStyleDeclaration) webkit_mask_size(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `order`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/order)
+ */
+pub (value: CSSStyleDeclaration) webkit_order(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `perspective`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/perspective)
+ */
+pub (value: CSSStyleDeclaration) webkit_perspective(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `perspectiveOrigin`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/perspective-origin)
+ */
+pub (value: CSSStyleDeclaration) webkit_perspective_origin(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/-webkit-text-fill-color)
+ */
+pub (value: CSSStyleDeclaration) webkit_text_fill_color(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `textSizeAdjust`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/text-size-adjust)
+ */
+pub (value: CSSStyleDeclaration) webkit_text_size_adjust(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/-webkit-text-stroke)
+ */
+pub (value: CSSStyleDeclaration) webkit_text_stroke(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/-webkit-text-stroke-color)
+ */
+pub (value: CSSStyleDeclaration) webkit_text_stroke_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/-webkit-text-stroke-width)
+ */
+pub (value: CSSStyleDeclaration) webkit_text_stroke_width(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transform`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transform)
+ */
+pub (value: CSSStyleDeclaration) webkit_transform(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transformOrigin`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transform-origin)
+ */
+pub (value: CSSStyleDeclaration) webkit_transform_origin(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transformStyle`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transform-style)
+ */
+pub (value: CSSStyleDeclaration) webkit_transform_style(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transition`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition)
+ */
+pub (value: CSSStyleDeclaration) webkit_transition(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transitionDelay`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-delay)
+ */
+pub (value: CSSStyleDeclaration) webkit_transition_delay(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transitionDuration`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-duration)
+ */
+pub (value: CSSStyleDeclaration) webkit_transition_duration(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transitionProperty`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-property)
+ */
+pub (value: CSSStyleDeclaration) webkit_transition_property(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `transitionTimingFunction`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/transition-timing-function)
+ */
+pub (value: CSSStyleDeclaration) webkit_transition_timing_function(): std.js.String.JsString.
+
+/**
+ * @deprecated This is a legacy alias of `userSelect`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/user-select)
+ */
+pub (value: CSSStyleDeclaration) webkit_user_select(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/white-space)
+ */
+pub (value: CSSStyleDeclaration) white_space(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/white-space-collapse)
+ */
+pub (value: CSSStyleDeclaration) white_space_collapse(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/widows)
+ */
+pub (value: CSSStyleDeclaration) widows(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/width)
+ */
+pub (value: CSSStyleDeclaration) width(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/will-change)
+ */
+pub (value: CSSStyleDeclaration) will_change(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/word-break)
+ */
+pub (value: CSSStyleDeclaration) word_break(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/word-spacing)
+ */
+pub (value: CSSStyleDeclaration) word_spacing(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/overflow-wrap)
+ */
+pub (value: CSSStyleDeclaration) word_wrap(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/writing-mode)
+ */
+pub (value: CSSStyleDeclaration) writing_mode(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/x)
+ */
+pub (value: CSSStyleDeclaration) x(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/y)
+ */
+pub (value: CSSStyleDeclaration) y(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/z-index)
+ */
+pub (value: CSSStyleDeclaration) z_index(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/CSS/zoom)
+ */
+pub (value: CSSStyleDeclaration) zoom(): std.js.String.JsString.
+
+/**
+ * The **CSSStyleDeclaration.getPropertyPriority()** method interface returns a string that provides all explicitly set priorities on the CSS property.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/getPropertyPriority)
+ */
+pub (value: CSSStyleDeclaration) get_property_priority(property: std.js.String.JsString): std.js.String.JsString.
+
+/**
+ * The **CSSStyleDeclaration.getPropertyValue()** method interface returns a string containing the value of a specified CSS property.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/getPropertyValue)
+ */
+pub (value: CSSStyleDeclaration) get_property_value(property: std.js.String.JsString): std.js.String.JsString.
+
+/**
+ * The `CSSStyleDeclaration.item()` method interface returns a CSS property name from a CSSStyleDeclaration by index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/item)
+ */
+pub (value: CSSStyleDeclaration) item(index: std.js.Number.JsNumber): std.js.String.JsString.
+
+/**
+ * The **`CSSStyleDeclaration.removeProperty()`** method interface removes a property from a CSS style declaration object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/removeProperty)
+ */
+pub (value: CSSStyleDeclaration) remove_property(property: std.js.String.JsString): std.js.String.JsString.
+
+/**
+ * The **`CSSStyleDeclaration.setProperty()`** method interface sets a new value for a property on a CSS style declaration object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleDeclaration/setProperty)
+ */
+pub (value: CSSStyleDeclaration) set_property(property: std.js.String.JsString, value: Option[std.js.String.JsString], priority: std.js.String.JsString): std.core.Unit.

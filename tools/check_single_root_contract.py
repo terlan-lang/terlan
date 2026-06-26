@@ -185,10 +185,11 @@ def check_workflows() -> list[ContractDiagnostic]:
 
     diagnostics: list[ContractDiagnostic] = []
     workflow_requirements = {
-        CI_WORKFLOW: ["run: make check", "run: make test"],
+        CI_WORKFLOW: ["run: make check", "run: make test", "run: make test-release"],
         RELEASE_WORKFLOW: [
             "run: make check",
             "run: make test",
+            "run: make test-release",
             "run: make release-artifact-linux",
         ],
     }

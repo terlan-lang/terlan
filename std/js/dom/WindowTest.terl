@@ -1,0 +1,226 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Window
+ */
+
+module std.js.Dom.WindowTest.
+
+import type std.js.Dom.Window.Window.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub client_information_typechecks(receiver: Window): Navigator ->
+    receiver.client_information().
+
+pub closed_typechecks(receiver: Window): std.core.Bool ->
+    receiver.closed().
+
+pub cookie_store_typechecks(receiver: Window): CookieStore ->
+    receiver.cookie_store().
+
+pub custom_elements_typechecks(receiver: Window): CustomElementRegistry ->
+    receiver.custom_elements().
+
+pub device_pixel_ratio_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.device_pixel_ratio().
+
+pub document_typechecks(receiver: Window): Document ->
+    receiver.document().
+
+pub event_typechecks(receiver: Window): Option[Event] ->
+    receiver.event().
+
+pub external_typechecks(receiver: Window): External ->
+    receiver.external().
+
+pub frame_element_typechecks(receiver: Window): Option[Element] ->
+    receiver.frame_element().
+
+pub frames_typechecks(receiver: Window): WindowProxy ->
+    receiver.frames().
+
+pub history_typechecks(receiver: Window): History ->
+    receiver.history().
+
+pub inner_height_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.inner_height().
+
+pub inner_width_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.inner_width().
+
+pub length_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.length().
+
+pub location_typechecks(receiver: Window): Location ->
+    receiver.location().
+
+pub locationbar_typechecks(receiver: Window): BarProp ->
+    receiver.locationbar().
+
+pub menubar_typechecks(receiver: Window): BarProp ->
+    receiver.menubar().
+
+pub name_typechecks(receiver: Window): std.js.String.JsString ->
+    receiver.name().
+
+pub navigator_typechecks(receiver: Window): Navigator ->
+    receiver.navigator().
+
+pub orientation_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.orientation().
+
+pub origin_agent_cluster_typechecks(receiver: Window): std.core.Bool ->
+    receiver.origin_agent_cluster().
+
+pub outer_height_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.outer_height().
+
+pub outer_width_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.outer_width().
+
+pub page_x_offset_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.page_x_offset().
+
+pub page_y_offset_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.page_y_offset().
+
+pub parent_typechecks(receiver: Window): WindowProxy ->
+    receiver.parent().
+
+pub personalbar_typechecks(receiver: Window): BarProp ->
+    receiver.personalbar().
+
+pub screen_typechecks(receiver: Window): Screen ->
+    receiver.screen().
+
+pub screen_left_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.screen_left().
+
+pub screen_top_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.screen_top().
+
+pub screen_x_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.screen_x().
+
+pub screen_y_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.screen_y().
+
+pub scroll_x_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.scroll_x().
+
+pub scroll_y_typechecks(receiver: Window): std.js.Number.JsNumber ->
+    receiver.scroll_y().
+
+pub scrollbars_typechecks(receiver: Window): BarProp ->
+    receiver.scrollbars().
+
+pub speech_synthesis_typechecks(receiver: Window): SpeechSynthesis ->
+    receiver.speech_synthesis().
+
+pub status_typechecks(receiver: Window): std.js.String.JsString ->
+    receiver.status().
+
+pub statusbar_typechecks(receiver: Window): BarProp ->
+    receiver.statusbar().
+
+pub toolbar_typechecks(receiver: Window): BarProp ->
+    receiver.toolbar().
+
+pub top_typechecks(receiver: Window): Option[WindowProxy] ->
+    receiver.top().
+
+pub visual_viewport_typechecks(receiver: Window): Option[VisualViewport] ->
+    receiver.visual_viewport().
+
+pub blur_typechecks(receiver: Window): std.core.Unit ->
+    receiver.blur().
+
+pub cancel_idle_callback_typechecks(receiver: Window, handle: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.cancel_idle_callback(handle).
+
+pub capture_events_typechecks(receiver: Window): std.core.Unit ->
+    receiver.capture_events().
+
+pub close_typechecks(receiver: Window): std.core.Unit ->
+    receiver.close().
+
+pub confirm_typechecks(receiver: Window, message: std.js.String.JsString): std.core.Bool ->
+    receiver.confirm(message).
+
+pub focus_typechecks(receiver: Window): std.core.Unit ->
+    receiver.focus().
+
+pub get_computed_style_typechecks(receiver: Window, elt: Element, pseudo_elt: Option[std.js.String.JsString]): CSSStyleDeclaration ->
+    receiver.get_computed_style(elt, pseudo_elt).
+
+pub get_selection_typechecks(receiver: Window): Option[Selection] ->
+    receiver.get_selection().
+
+pub match_media_typechecks(receiver: Window, query: std.js.String.JsString): MediaQueryList ->
+    receiver.match_media(query).
+
+pub move_by_typechecks(receiver: Window, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.move_by(x, y).
+
+pub move_to_typechecks(receiver: Window, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.move_to(x, y).
+
+pub open_typechecks(receiver: Window, url: URL | std.js.String.JsString, target_: std.js.String.JsString, features: std.js.String.JsString): Option[WindowProxy] ->
+    receiver.open(url, target_, features).
+
+pub print_typechecks(receiver: Window): std.core.Unit ->
+    receiver.print().
+
+pub prompt_typechecks(receiver: Window, message: std.js.String.JsString, value__default: std.js.String.JsString): Option[std.js.String.JsString] ->
+    receiver.prompt(message, value__default).
+
+pub release_events_typechecks(receiver: Window): std.core.Unit ->
+    receiver.release_events().
+
+pub request_idle_callback_typechecks(receiver: Window, callback: IdleRequestCallback, options: IdleRequestOptions): std.js.Number.JsNumber ->
+    receiver.request_idle_callback(callback, options).
+
+pub resize_by_typechecks(receiver: Window, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.resize_by(x, y).
+
+pub resize_to_typechecks(receiver: Window, width: std.js.Number.JsNumber, height: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.resize_to(width, height).
+
+pub scroll_typechecks(receiver: Window, options: ScrollToOptions): std.core.Unit ->
+    receiver.scroll(options).
+
+pub scroll_typechecks(receiver: Window, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.scroll(x, y).
+
+pub scroll_by_typechecks(receiver: Window, options: ScrollToOptions): std.core.Unit ->
+    receiver.scroll_by(options).
+
+pub scroll_by_typechecks(receiver: Window, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.scroll_by(x, y).
+
+pub scroll_to_typechecks(receiver: Window, options: ScrollToOptions): std.core.Unit ->
+    receiver.scroll_to(options).
+
+pub scroll_to_typechecks(receiver: Window, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.scroll_to(x, y).
+
+pub stop_typechecks(receiver: Window): std.core.Unit ->
+    receiver.stop().
+
+pub add_event_listener_typechecks(receiver: Window, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: Window, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

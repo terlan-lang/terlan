@@ -1,0 +1,8 @@
+module=std.js.Dom.PopStateEvent
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16032074780111768599
+interface_hash=6515762046753455385
+interface_doc_hash=6515762046753455385
+deps=0

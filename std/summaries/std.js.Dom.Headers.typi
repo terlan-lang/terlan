@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Headers
+ */
+
+module std.js.Dom.Headers.
+
+/**
+ * The **`Headers`** interface of the Fetch API allows you to perform various actions on HTTP request and response headers.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers)
+ */
+pub opaque type Headers.
+
+/**
+ * The **`append()`** method of the Headers interface appends a new value onto an existing header inside a `Headers` object, or adds the header if it does not already exist.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/append)
+ */
+pub (value: Headers) append(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`delete()`** method of the Headers interface deletes a header from the current `Headers` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/delete)
+ */
+pub (value: Headers) delete(name: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`get()`** method of the Headers interface returns a byte string of all the values of a header within a `Headers` object with a given name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get)
+ */
+pub (value: Headers) get(name: std.js.String.JsString): Option[std.js.String.JsString].
+
+/**
+ * The **`getSetCookie()`** method of the Headers interface returns an array containing the values of all Set-Cookie headers associated with a response.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getSetCookie)
+ */
+pub (value: Headers) get_set_cookie(): std.js.Array[std.js.String.JsString].
+
+/**
+ * The **`has()`** method of the Headers interface returns a boolean stating whether a `Headers` object contains a certain header.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/has)
+ */
+pub (value: Headers) has(name: std.js.String.JsString): std.core.Bool.
+
+/**
+ * The **`set()`** method of the Headers interface sets a new value for an existing header inside a `Headers` object, or adds the header if it does not already exist.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set)
+ */
+pub (value: Headers) set(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.

@@ -49,6 +49,7 @@ impl Parser {
                     span: alias_span,
                 }],
                 is_type: false,
+                is_selected: false,
                 source_path: Some(path),
                 span: Span::new(start, self.previous().end),
             }));
@@ -64,6 +65,7 @@ impl Parser {
         let mut path_segments = vec![(first_segment, first_segment_span)];
         let mut brace_import = false;
         while self.check(TokenKind::Dot) {
+            let dot = self.current().clone();
             if matches!(
                 self.tokens.get(self.pos + 1),
                 Some(token) if token.kind == TokenKind::LBrace
@@ -72,12 +74,15 @@ impl Parser {
                 brace_import = true;
                 break;
             }
-            if matches!(
-                self.tokens.get(self.pos + 1),
-                Some(token) if matches!(token.kind, TokenKind::Atom | TokenKind::Var)
-            ) {
+            let Some(next) = self.tokens.get(self.pos + 1) else {
+                break;
+            };
+            if dot.end != next.start {
+                break;
+            }
+            if is_dotted_module_path_segment_kind(&next.kind) {
                 self.bump();
-                let segment = self.expect_ident()?;
+                let segment = self.expect_import_path_segment()?;
                 let segment_span = self.previous().span();
                 path_segments.push((segment, segment_span));
                 continue;
@@ -87,7 +92,26 @@ impl Parser {
 
         let mut items = Vec::new();
         let module_name;
-        if brace_import && self.consume_if(TokenKind::LBrace) {
+        if self.check(TokenKind::Dot)
+            && matches!(
+                self.tokens.get(self.pos + 1),
+                Some(token) if token.kind == TokenKind::Star
+            )
+        {
+            self.bump();
+            let star = self.expect(TokenKind::Star)?.clone();
+            validate_module_path_segments(&path_segments)?;
+            module_name = path_segments
+                .iter()
+                .map(|(segment, _)| segment.as_str())
+                .collect::<Vec<_>>()
+                .join(".");
+            items.push(ImportItem {
+                name: "*".to_string(),
+                as_alias: None,
+                span: star.span(),
+            });
+        } else if brace_import && self.consume_if(TokenKind::LBrace) {
             validate_module_path_segments(&path_segments)?;
             module_name = path_segments
                 .iter()
@@ -101,8 +125,23 @@ impl Parser {
                 });
             } else {
                 loop {
-                    let name = self.expect_ident()?;
-                    let as_alias = if self.consume_keyword("as") {
+                    let (name, item_span) = if self.check(TokenKind::Star) {
+                        let star = self.expect(TokenKind::Star)?.clone();
+                        if !items.is_empty() {
+                            return Err(ParseError {
+                                message: "wildcard import must be the only selected import symbol"
+                                    .to_string(),
+                                span: star.span(),
+                            });
+                        }
+                        ("*".to_string(), star.span())
+                    } else {
+                        let name = self.expect_ident()?;
+                        (name, Span::new(self.previous().start, self.previous().end))
+                    };
+                    let as_alias = if name == "*" {
+                        None
+                    } else if self.consume_keyword("as") {
                         let alias = self.expect_ident()?;
                         validate_import_alias_class(&name, &alias, self.previous().span())?;
                         Some(alias)
@@ -112,9 +151,16 @@ impl Parser {
                     items.push(ImportItem {
                         name,
                         as_alias,
-                        span: Span::new(self.previous().start, self.previous().end),
+                        span: item_span,
                     });
                     if self.consume_if(TokenKind::Comma) {
+                        if items.iter().any(|item| item.name == "*") {
+                            return Err(ParseError {
+                                message: "wildcard import must be the only selected import symbol"
+                                    .to_string(),
+                                span: self.current().span(),
+                            });
+                        }
                         continue;
                     }
                     self.expect(TokenKind::RBrace)?;
@@ -152,12 +198,14 @@ impl Parser {
             });
         }
 
+        let is_selected = brace_import || items.iter().any(|item| item.name == "*");
         self.expect(TokenKind::Dot)?;
         Ok(Decl::Import(ImportDecl {
             kind: ImportKind::Module,
             module_name,
             items,
             is_type,
+            is_selected,
             source_path: None,
             span: Span::new(start, self.previous().end),
         }))
@@ -180,8 +228,8 @@ impl Parser {
             if dot.end != next.start {
                 break;
             }
-            match next.kind {
-                TokenKind::Atom | TokenKind::Var => {
+            match &next.kind {
+                kind if is_dotted_module_path_segment_kind(kind) => {
                     self.bump();
                     segments.push(self.expect_module_path_segment()?);
                 }
@@ -218,12 +266,13 @@ impl Parser {
     ///
     /// Inputs: the parser cursor must point at a dotted module path segment.
     /// Outputs: the segment text or a syntax diagnostic.
-    /// Transformation: consumes lower-case package segments or upper-case
-    /// public module namespace segments.
+    /// Transformation: consumes lower-case package segments, upper-case public
+    /// module namespace segments, or the reserved `template` segment admitted
+    /// in qualified paths such as `std.template.Template`.
     pub(super) fn expect_module_path_segment(&mut self) -> ParseResult<String> {
         let token = self.current().clone();
-        match token.kind {
-            TokenKind::Atom | TokenKind::Var => {
+        match &token.kind {
+            kind if is_dotted_module_path_segment_kind(kind) => {
                 self.bump();
                 Ok(token.text)
             }
@@ -233,6 +282,39 @@ impl Parser {
             }),
         }
     }
+
+    /// Parses a module import path segment.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned after a dot in an import path.
+    ///
+    /// Outputs:
+    /// - Segment text for ordinary identifier segments or the reserved
+    ///   `template` package segment.
+    ///
+    /// Transformation:
+    /// - Mirrors module-path segment rules for import path scanning while
+    ///   keeping item names and expression identifiers governed by their
+    ///   existing parsers.
+    fn expect_import_path_segment(&mut self) -> ParseResult<String> {
+        self.expect_module_path_segment()
+    }
+}
+
+/// Returns whether a token can appear after `.` in a module path.
+///
+/// Inputs:
+/// - `kind`: token kind at a dotted path segment.
+///
+/// Outputs:
+/// - `true` for ordinary lower/upper identifier segments and the reserved
+///   `template` segment used by the standard-library package path.
+///
+/// Transformation:
+/// - Keeps reserved-word package support scoped to module/import paths instead
+///   of weakening expression or binding grammar positions.
+fn is_dotted_module_path_segment_kind(kind: &TokenKind) -> bool {
+    matches!(kind, TokenKind::Atom | TokenKind::Var | TokenKind::Template)
 }
 
 /// Validates a module path captured by broader import parsing.

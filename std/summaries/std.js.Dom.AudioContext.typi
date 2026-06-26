@@ -1,0 +1,90 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface AudioContext
+ */
+
+module std.js.Dom.AudioContext.
+
+/**
+ * The `AudioContext` interface represents an audio-processing graph built from audio modules linked together, each represented by an AudioNode.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext)
+ */
+pub opaque type AudioContext.
+
+/**
+ * The **`baseLatency`** read-only property of the seconds of processing latency incurred by the `AudioContext` passing an audio buffer from the AudioDestinationNode — i.e., the end of the audio graph — into the host system's audio subsystem ready for playing.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/baseLatency)
+ */
+pub (value: AudioContext) base_latency(): std.js.Number.JsNumber.
+
+/**
+ * The **`outputLatency`** read-only property of the AudioContext Interface provides an estimation of the output latency of the current audio context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/outputLatency)
+ */
+pub (value: AudioContext) output_latency(): std.js.Number.JsNumber.
+
+/**
+ * The `close()` method of the AudioContext Interface closes the audio context, releasing any system audio resources that it uses.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/close)
+ */
+pub (value: AudioContext) close(): std.js.Promise[std.core.Unit].
+
+/**
+ * The `createMediaElementSource()` method of the AudioContext Interface is used to create a new MediaElementAudioSourceNode object, given an existing HTML audio or video element, the audio from which can then be played and manipulated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/createMediaElementSource)
+ */
+pub (value: AudioContext) create_media_element_source(media_element: HTMLMediaElement): MediaElementAudioSourceNode.
+
+/**
+ * The `createMediaStreamDestination()` method of the AudioContext Interface is used to create a new MediaStreamAudioDestinationNode object associated with a WebRTC MediaStream representing an audio stream, which may be stored in a local file or sent to another computer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/createMediaStreamDestination)
+ */
+pub (value: AudioContext) create_media_stream_destination(): MediaStreamAudioDestinationNode.
+
+/**
+ * The `createMediaStreamSource()` method of the AudioContext Interface is used to create a new MediaStreamAudioSourceNode object, given a media stream (say, from a MediaDevices.getUserMedia instance), the audio from which can then be played and manipulated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/createMediaStreamSource)
+ */
+pub (value: AudioContext) create_media_stream_source(media_stream: MediaStream): MediaStreamAudioSourceNode.
+
+/**
+ * The **`getOutputTimestamp()`** method of the containing two audio timestamp values relating to the current audio context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/getOutputTimestamp)
+ */
+pub (value: AudioContext) get_output_timestamp(): AudioTimestamp.
+
+/**
+ * The **`resume()`** method of the AudioContext interface resumes the progression of time in an audio context that has previously been suspended.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/resume)
+ */
+pub (value: AudioContext) resume(): std.js.Promise[std.core.Unit].
+
+/**
+ * The `suspend()` method of the AudioContext Interface suspends the progression of time in the audio context, temporarily halting audio hardware access and reducing CPU/battery usage in the process — this is useful if you want an application to power down the audio hardware when it will not be using an audio context for a while.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioContext/suspend)
+ */
+pub (value: AudioContext) suspend(): std.js.Promise[std.core.Unit].
+
+pub (value: AudioContext) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: AudioContext) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

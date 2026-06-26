@@ -1,0 +1,80 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface PaymentRequest
+ */
+
+module std.js.Dom.PaymentRequest.
+
+/**
+ * The Payment Request API's **`PaymentRequest`** interface is the primary access point into the API, and lets web content and apps accept payments from the end user on behalf of the operator of the site or the publisher of the app.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest)
+ */
+pub opaque type PaymentRequest.
+
+/**
+ * The **`id`** read-only attribute of the When constructing an instance of the PaymentRequest, you are able to supply an custom id.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/id)
+ */
+pub (value: PaymentRequest) id(): std.js.String.JsString.
+
+/**
+ * The **`shippingAddress`** read-only property of the PaymentRequest interface returns the shipping address provided by the user.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/shippingAddress)
+ */
+pub (value: PaymentRequest) shipping_address(): Option[PaymentAddress].
+
+/**
+ * The **`shippingOption`** read-only attribute of the PaymentRequest interface returns either the id of a selected shipping option, null (if no shipping option was set to be selected) or a shipping option selected by the user.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/shippingOption)
+ */
+pub (value: PaymentRequest) shipping_option(): Option[std.js.String.JsString].
+
+/**
+ * The **`shippingType`** read-only property of the `'delivery'`, `'pickup'`, or `null` if one was not provided by the constructor.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/shippingType)
+ */
+pub (value: PaymentRequest) shipping_type(): Option[PaymentShippingType].
+
+/**
+ * The `PaymentRequest.abort()` method of the PaymentRequest interface causes the user agent to end the payment request and to remove any user interface that might be shown.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/abort)
+ */
+pub (value: PaymentRequest) abort(): std.js.Promise[std.core.Unit].
+
+/**
+ * The PaymentRequest method **`canMakePayment()`** determines whether or not the request is configured in a way that is compatible with at least one payment method supported by the user agent.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/canMakePayment)
+ */
+pub (value: PaymentRequest) can_make_payment(): std.js.Promise[std.core.Bool].
+
+/**
+ * The **PaymentRequest** interface's **`show()`** method instructs the user agent to begin the process of showing and handling the user interface for the payment request to the user.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/show)
+ */
+pub (value: PaymentRequest) show(details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate]): std.js.Promise[PaymentResponse].
+
+pub (value: PaymentRequest) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: PaymentRequest) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

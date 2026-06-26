@@ -3,8 +3,8 @@
  *
  * This fixture is a language and std-contract probe, not an Erlang runtime
  * fixture. It validates that algorithm-oriented code can be written against
- * `std.native.collections.Vector` while native execution remains gated behind
- * the Rust/native target capability.
+ * `std.native.collections.Vector` while BEAM execution routes through the
+ * mandatory native collection bridge.
  */
 
 module native.VectorSelectionSort.

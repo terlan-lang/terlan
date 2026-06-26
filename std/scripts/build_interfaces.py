@@ -7,6 +7,7 @@ import argparse
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 
@@ -19,6 +20,58 @@ RELEASE_SUMMARY_SUFFIXES = (
     ".safe_native.json",
     ".safe_native.rs",
 )
+
+
+def compiler_command() -> list[str]:
+    """Return the compiler command used for std summary emission.
+
+    Inputs:
+    - Optional `TERLC` environment variable.
+    - Repository-local `target/debug/terlc` binary.
+
+    Outputs:
+    - Command vector that accepts `emit ...` arguments.
+
+    Transformation:
+    - Prefers an explicit compiler path from the environment and otherwise
+      reuses the workspace debug binary built once by `ensure_compiler`.
+    """
+
+    configured = os.environ.get("TERLC")
+    if configured:
+        return [configured]
+    return [str(ROOT / "target" / "debug" / "terlc")]
+
+
+def ensure_compiler() -> str | None:
+    """Ensure the std summary compiler binary is available.
+
+    Inputs:
+    - Repository-local Cargo workspace.
+    - Optional `TERLC` environment override.
+
+    Outputs:
+    - `None` when a compiler command is ready.
+    - Combined stdout/stderr text when building the compiler fails.
+
+    Transformation:
+    - Avoids running `cargo run` once per std source by compiling `terlc` once
+      before the per-file emission loop.
+    """
+
+    if os.environ.get("TERLC"):
+        return None
+    result = subprocess.run(
+        ["cargo", "build", "-q", "-p", "terlan_cli"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        return (result.stdout + result.stderr).rstrip()
+    return None
 
 
 def run_emit(source: Path, out_dir: Path) -> str | None:
@@ -39,11 +92,7 @@ def run_emit(source: Path, out_dir: Path) -> str | None:
 
     result = subprocess.run(
         [
-            "cargo",
-            "run",
-            "-p",
-            "terlan_cli",
-            "--",
+            *compiler_command(),
             "emit",
             str(source.relative_to(ROOT)),
             "--out-dir",
@@ -130,6 +179,12 @@ def parse_args() -> argparse.Namespace:
         default=OUT_DIR,
         help="directory where generated summary artifacts are written",
     )
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=max(1, min(8, os.cpu_count() or 1)),
+        help="maximum parallel compiler emit jobs per dependency pass",
+    )
     return parser.parse_args()
 
 
@@ -144,17 +199,98 @@ def is_std_release_source(path: Path) -> bool:
     - `False` when the file is a test, summary, or disabled scratch source.
 
     Transformation:
-    - Classifies by repository-relative path segments and the `_test.terl`
-      suffix without reading source contents.
+    - Classifies by repository-relative path segments and the canonical
+      `Test.terl` suffix without reading source contents.
     """
 
     relative_parts = path.relative_to(STD_DIR).parts
     return (
         path.is_file()
-        and not path.name.endswith("_test.terl")
+        and not is_test_source_name(path.name)
         and "summaries" not in relative_parts
         and "disabled" not in relative_parts
+        and not is_generated_js_binding_source(path)
     )
+
+
+def is_test_source_name(name: str) -> bool:
+    """Return whether a filename is a Terlan test source.
+
+    Inputs:
+    - `name`: filesystem basename for a candidate source file.
+
+    Output:
+    - `True` when the file uses the canonical `*Test.terl` source suffix.
+
+    Transformation:
+    - Encodes the release-wide test-file naming contract in one predicate.
+    """
+
+    return name.endswith("Test.terl")
+
+
+def is_generated_js_binding_source(path: Path) -> bool:
+    """Return whether a source file is owned by the JS binding generator.
+
+    Inputs:
+    - `path`: candidate std source file.
+
+    Outputs:
+    - `True` for generated TypeScript-backed `std.js` binding sources.
+    - `False` for hand-authored std sources.
+
+    Transformation:
+    - Reads only the leading provenance header and recognizes generated
+      TypeScript standard-library bindings by their generator profile.
+    """
+
+    try:
+        relative_parts = path.relative_to(STD_DIR).parts
+    except ValueError:
+        return False
+    if len(relative_parts) < 2 or relative_parts[0] != "js":
+        return False
+    try:
+        header = "\n".join(path.read_text(encoding="utf-8").splitlines()[:12])
+    except OSError:
+        return False
+    return "@generated true" in header and "@generator-profile typescript-standard-js-dom" in header
+
+
+def emit_pass(sources: list[Path], out_dir: Path, jobs: int) -> tuple[int, list[tuple[Path, str]]]:
+    """Run one parallel std summary emission pass.
+
+    Inputs:
+    - `sources`: source files still waiting for successful summary emission.
+    - `out_dir`: summary output directory.
+    - `jobs`: maximum number of concurrent compiler processes.
+
+    Outputs:
+    - Count of successful source emissions.
+    - Source/error pairs for files that failed in this pass.
+
+    Transformation:
+    - Executes independent `terlc emit` jobs concurrently. Dependency-order
+      failures are returned to the caller so the existing retry loop can run a
+      later pass after more summaries have been materialized.
+    """
+
+    emitted_count = 0
+    next_pending: list[tuple[Path, str]] = []
+    with ThreadPoolExecutor(max_workers=max(1, jobs)) as executor:
+        futures = {
+            executor.submit(run_emit, source, out_dir): source
+            for source in sources
+        }
+        for future in as_completed(futures):
+            source = futures[future]
+            output = future.result()
+            if output:
+                next_pending.append((source, output))
+            else:
+                emitted_count += 1
+    next_pending.sort(key=lambda item: item[0])
+    return emitted_count, next_pending
 
 
 def main() -> int:
@@ -182,6 +318,11 @@ def main() -> int:
         return 1
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    compiler_failure = ensure_compiler()
+    if compiler_failure is not None:
+        print("[build-stdlib-interfaces] failed to build terlc:", file=sys.stderr)
+        print(compiler_failure, file=sys.stderr)
+        return 1
 
     sources = [
         path
@@ -195,15 +336,7 @@ def main() -> int:
 
     pending = sorted(sources)
     while pending:
-        next_pending: list[tuple[Path, str]] = []
-        emitted_count = 0
-
-        for source in pending:
-            output = run_emit(source, out_dir)
-            if output:
-                next_pending.append((source, output))
-            else:
-                emitted_count += 1
+        emitted_count, next_pending = emit_pass(pending, out_dir, args.jobs)
 
         if not next_pending:
             break

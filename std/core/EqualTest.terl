@@ -1,0 +1,50 @@
+module std.core.EqualTest.
+
+import std.core.Ordering.{Eq, Gt, Lt}.
+
+@test
+pub equal_accepts_matching_bool_values(): Bool ->
+    std.test.Test.assert(std.core.Bool.equal(true, true)).
+
+@test
+pub equal_rejects_different_bool_values(): Bool ->
+    std.test.Test.assert_equal(false, std.core.Bool.equal(true, false)).
+
+@test
+pub equal_accepts_matching_int_values(): Bool ->
+    std.test.Test.assert(std.core.Int.equal(42, 42)).
+
+@test
+pub equal_rejects_different_int_values(): Bool ->
+    std.test.Test.assert_equal(false, std.core.Int.equal(42, 7)).
+
+@test
+pub equal_accepts_matching_float_values(): Bool ->
+    std.test.Test.assert(std.core.Float.equal(1.5, 1.5)).
+
+@test
+pub equal_rejects_different_float_values(): Bool ->
+    std.test.Test.assert_equal(false, std.core.Float.equal(1.5, 2.5)).
+
+@test
+pub equal_accepts_matching_string_values(): Bool ->
+    std.test.Test.assert("same".equal("same")).
+
+@test
+pub equal_rejects_different_string_values(): Bool ->
+    std.test.Test.assert_equal(false, "same".equal("other")).
+
+@test
+pub equal_accepts_unit_values(): Bool ->
+    std.test.Test.assert(std.core.Unit.equal(Unit, Unit)).
+
+@test
+pub equal_accepts_matching_comparison_values(): Bool ->
+    std.test.Test.assert_equal(Eq, std.core.Ordering.compare(Eq, Eq)).
+
+@test
+pub equal_rejects_different_comparison_values(): Bool ->
+    std.test.Test.assert_equal(
+        Gt,
+        std.core.Ordering.compare(Eq, Lt)
+    ).

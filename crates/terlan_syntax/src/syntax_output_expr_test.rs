@@ -340,6 +340,52 @@ mod tests {
         assert_eq!(final_value.children[2].text.as_deref(), Some("z"));
     }
 
+    /// Verifies indexed assignment after a `let` binding is parsed as body
+    /// expression syntax, not as another binding pattern.
+    ///
+    /// Inputs:
+    /// - A module with `let values = source; values[1] = 2; values`.
+    ///
+    /// Output:
+    /// - Test passes when the let body is a sequence whose first expression is
+    ///   `IndexAssign`.
+    ///
+    /// Transformation:
+    /// - Exercises the `let` binding lookahead so bare-name indexed assignment
+    ///   is classified as expression syntax after the first semicolon.
+    #[test]
+    fn syntax_output_parses_index_assignment_after_let_binding() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module let_index_assignment.
+
+            update(source: List[Int]): List[Int] ->
+                let values = source; values[1] = 2; values.
+            "#,
+        )
+        .expect("syntax output let index assignment");
+
+        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload
+        else {
+            panic!("expected function declaration");
+        };
+        let body = &clauses[0].body;
+        assert_eq!(body.kind, SyntaxExprKind::Let);
+        assert_eq!(body.patterns.len(), 1);
+        assert_eq!(body.patterns[0].text.as_deref(), Some("values"));
+        assert_eq!(body.children.len(), 2);
+        let sequence = &body.children[1];
+        assert_eq!(sequence.kind, SyntaxExprKind::Sequence);
+        assert_eq!(sequence.children.len(), 2);
+        assert_eq!(sequence.children[0].kind, SyntaxExprKind::IndexAssign);
+        assert_eq!(
+            sequence.children[0].children[0].text.as_deref(),
+            Some("values")
+        );
+        assert_eq!(sequence.children[1].kind, SyntaxExprKind::Var);
+        assert_eq!(sequence.children[1].text.as_deref(), Some("values"));
+    }
+
     #[test]
     fn syntax_output_preserves_unary_expression_precedence_tree() {
         let output = parse_module_as_syntax_output(
@@ -415,6 +461,44 @@ mod tests {
         assert_eq!(body.children[0].kind, SyntaxExprKind::Atom);
         assert_eq!(body.children[0].text.as_deref(), Some("format"));
         assert_eq!(body.children.len(), 3);
+    }
+
+    /// Verifies syntax output preserves named call-site argument metadata.
+    ///
+    /// Inputs:
+    /// - A module containing a call with positional arguments followed by a
+    ///   named argument.
+    ///
+    /// Output:
+    /// - Test passes when call arity, children, and parallel argument names are
+    ///   emitted for downstream semantic resolution.
+    ///
+    /// Transformation:
+    /// - Parses source through `parse_module_as_syntax_output` and validates
+    ///   that the formal output records names without wrapping argument
+    ///   expressions in parser-only nodes.
+    #[test]
+    fn syntax_output_includes_named_call_argument_metadata() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module named_call_args.
+
+            demo(): Dynamic ->
+                create_user(1, "Alice", active = True).
+            "#,
+        )
+        .expect("syntax output named call arguments");
+
+        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload
+        else {
+            panic!("expected function declaration");
+        };
+
+        let body = &clauses[0].body;
+        assert_eq!(body.kind, SyntaxExprKind::Call);
+        assert_eq!(body.arity, 3);
+        assert_eq!(body.children.len(), 4);
+        assert_eq!(body.arg_names, vec![None, None, Some("active".to_string())]);
     }
 
     /// Verifies function-value invocation uses expression-call syntax output.
@@ -527,6 +611,46 @@ mod tests {
         assert_eq!(body.children[1].text.as_deref(), Some("\"short\""));
     }
 
+    /// Verifies syntax output preserves explicit type args on dotted calls.
+    ///
+    /// Inputs:
+    /// - A module containing `Vector.new[String]()` in function body position.
+    ///
+    /// Output:
+    /// - Test passes when syntax output records a remote call with one
+    ///   `String` type argument.
+    ///
+    /// Transformation:
+    /// - Parses source through `parse_module_as_syntax_output` and validates
+    ///   that generic call metadata is preserved structurally for later
+    ///   semantic/typecheck phases.
+    #[test]
+    fn syntax_output_includes_dotted_call_type_args() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module generic_dotted_call.
+
+            demo(): Dynamic ->
+                Vector.new[String]().
+            "#,
+        )
+        .expect("syntax output generic dotted call");
+
+        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload
+        else {
+            panic!("expected function declaration");
+        };
+
+        let body = &clauses[0].body;
+        assert_eq!(body.kind, SyntaxExprKind::Call);
+        assert_eq!(body.remote.as_deref(), Some("Vector"));
+        assert_eq!(body.children.len(), 1);
+        assert_eq!(body.children[0].kind, SyntaxExprKind::Atom);
+        assert_eq!(body.children[0].text.as_deref(), Some("new"));
+        assert_eq!(body.type_args.len(), 1);
+        assert_eq!(body.type_args[0].text, "String");
+    }
+
     #[test]
     fn syntax_output_includes_macro_expr_trees() {
         let output = parse_module_as_syntax_output(
@@ -584,6 +708,86 @@ mod tests {
         assert_eq!(body.kind, SyntaxExprKind::RawMacro);
         assert_eq!(body.text.as_deref(), Some("sql"));
         assert_eq!(body.raw.as_deref(), Some("select * from users"));
+        assert!(body.type_args.is_empty());
+        assert!(body.children.is_empty());
+    }
+
+    #[test]
+    fn syntax_output_includes_typed_sql_raw_macro_expr_trees() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module typed_sql_raw_macro_expr_tree.
+
+            query(): Dynamic ->
+                sql[UserRow] {select * from users}.
+            "#,
+        )
+        .expect("syntax output typed sql raw macro expr");
+
+        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload
+        else {
+            panic!("expected function declaration");
+        };
+
+        let body = &clauses[0].body;
+        assert_eq!(body.kind, SyntaxExprKind::RawMacro);
+        assert_eq!(body.text.as_deref(), Some("sql"));
+        assert_eq!(body.raw.as_deref(), Some("select * from users"));
+        assert_eq!(body.type_args.len(), 1);
+        assert_eq!(body.type_args[0].text, "UserRow");
+        assert!(body.children.is_empty());
+    }
+
+    #[test]
+    fn syntax_output_includes_typed_sql_interpolation_children() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module typed_sql_interpolation_tree.
+
+            query(user: User): Dynamic ->
+                sql[UserRow] {select * from users where id = ${user.id}}.
+            "#,
+        )
+        .expect("syntax output typed sql interpolation expr");
+
+        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload
+        else {
+            panic!("expected function declaration");
+        };
+
+        let body = &clauses[0].body;
+        assert_eq!(body.kind, SyntaxExprKind::RawMacro);
+        assert_eq!(body.children.len(), 1);
+        assert_eq!(body.children[0].kind, SyntaxExprKind::FieldAccess);
+        assert_eq!(body.children[0].text.as_deref(), Some("id"));
+    }
+
+    #[test]
+    fn syntax_output_ignores_typed_sql_comment_interpolation_text() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module typed_sql_comment_interpolation_tree.
+
+            query(user: User): Dynamic ->
+                sql[UserRow] {
+                    /* ${ignored} */
+                    select * from users where id = ${user.id}
+                    /* ${also_ignored} */
+                }.
+            "#,
+        )
+        .expect("syntax output typed sql comment interpolation expr");
+
+        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload
+        else {
+            panic!("expected function declaration");
+        };
+
+        let body = &clauses[0].body;
+        assert_eq!(body.kind, SyntaxExprKind::RawMacro);
+        assert_eq!(body.children.len(), 1);
+        assert_eq!(body.children[0].kind, SyntaxExprKind::FieldAccess);
+        assert_eq!(body.children[0].text.as_deref(), Some("id"));
     }
 
     #[test]
@@ -735,38 +939,36 @@ mod tests {
         );
     }
 
-    /// Verifies binary segment syntax is preserved at the syntax-output
+    /// Verifies Erlang binary segment syntax is rejected before syntax-output
     /// boundary.
     ///
     /// Inputs:
-    /// - A module containing a binary expression with size and segment type
+    /// - A module containing an Erlang binary expression with size and segment
     ///   modifiers.
     ///
     /// Output:
-    /// - Test passes when syntax output records the body as a binary expression
-    ///   and preserves the complete source token text.
+    /// - Test passes when syntax-output construction rejects the source.
     ///
     /// Transformation:
-    /// - Parses source through `parse_module_as_syntax_output` and inspects the
-    ///   binary expression payload without interpreting segment semantics.
+    /// - Keeps backend Erlang binary syntax from entering canonical Terlan
+    ///   syntax output.
 
-    /// Verifies binary segment syntax is preserved at the syntax-output
+    /// Verifies Erlang binary segment syntax is rejected before syntax-output
     /// boundary.
     ///
     /// Inputs:
-    /// - A module containing a binary expression with size and segment type
+    /// - A module containing an Erlang binary expression with size and segment
     ///   modifiers.
     ///
     /// Output:
-    /// - Test passes when syntax output records the body as a binary expression
-    ///   and preserves the complete source token text.
+    /// - Test passes when syntax-output construction rejects the source.
     ///
     /// Transformation:
-    /// - Parses source through `parse_module_as_syntax_output` and inspects the
-    ///   binary expression payload without interpreting segment semantics.
+    /// - Keeps backend Erlang binary syntax from entering canonical Terlan
+    ///   syntax output.
     #[test]
-    fn syntax_output_preserves_binary_segment_text() {
-        let output = parse_module_as_syntax_output(
+    fn syntax_output_rejects_erlang_binary_segment_text() {
+        let error = parse_module_as_syntax_output(
             r#"
             module binary_segment_text.
 
@@ -774,19 +976,12 @@ mod tests {
                 <<value:8/integer-unsigned-big>>.
             "#,
         )
-        .expect("syntax output binary segment text");
+        .expect_err("Erlang binary segment syntax should be rejected");
 
-        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload
-        else {
-            panic!("expected function declaration");
+        let crate::ebnf::EbnfCompileError::Parse(message, _) = error else {
+            panic!("expected parse error");
         };
-
-        let body = &clauses[0].body;
-        assert_eq!(body.kind, SyntaxExprKind::Binary);
-        assert_eq!(
-            body.text.as_deref(),
-            Some("<<value:8/integer-unsigned-big>>")
-        );
+        assert!(message.contains("Erlang binary literal syntax"));
     }
 
     #[test]
@@ -863,7 +1058,7 @@ mod tests {
             choose(flag: Bool): Int ->
                 if {
                     flag -> 1;
-                    true -> 0
+                    _ -> 0
                 }.
             "#,
         )
@@ -882,6 +1077,9 @@ mod tests {
         assert_eq!(condition.text.as_deref(), Some("flag"));
         assert_eq!(body.clauses[0].body.kind, SyntaxExprKind::Int);
         assert_eq!(body.clauses[0].body.text.as_deref(), Some("1"));
+        let fallback = body.clauses[1].guard.as_ref().expect("fallback condition");
+        assert_eq!(fallback.kind, SyntaxExprKind::Var);
+        assert_eq!(fallback.text.as_deref(), Some("true"));
     }
 
     #[test]
@@ -1004,7 +1202,7 @@ mod tests {
             module sequence_primary_trees.
 
             binary(): Binary ->
-                <<"hello">>.
+                "hello".
 
             fixed(): FixedArray[3, Int] ->
                 #[1, 2, 3].
@@ -1030,7 +1228,7 @@ mod tests {
         };
         let binary = &binary_clauses[0].body;
         assert_eq!(binary.kind, SyntaxExprKind::Binary);
-        assert_eq!(binary.text.as_deref(), Some("<<\"hello\">>"));
+        assert_eq!(binary.text.as_deref(), Some("\"hello\""));
 
         let SyntaxDeclarationPayload::Function {
             clauses: fixed_clauses,

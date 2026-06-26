@@ -1,0 +1,145 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DOMMatrixReadOnly
+ */
+
+module std.js.Dom.DOMMatrixReadOnlyTest.
+
+import type std.js.Dom.DOMMatrixReadOnly.DOMMatrixReadOnly.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub a_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.a().
+
+pub b_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.b().
+
+pub c_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.c().
+
+pub d_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.d().
+
+pub e_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.e().
+
+pub f_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.f().
+
+pub is2_d_typechecks(receiver: DOMMatrixReadOnly): std.core.Bool ->
+    receiver.is2_d().
+
+pub is_identity_typechecks(receiver: DOMMatrixReadOnly): std.core.Bool ->
+    receiver.is_identity().
+
+pub m11_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m11().
+
+pub m12_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m12().
+
+pub m13_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m13().
+
+pub m14_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m14().
+
+pub m21_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m21().
+
+pub m22_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m22().
+
+pub m23_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m23().
+
+pub m24_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m24().
+
+pub m31_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m31().
+
+pub m32_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m32().
+
+pub m33_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m33().
+
+pub m34_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m34().
+
+pub m41_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m41().
+
+pub m42_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m42().
+
+pub m43_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m43().
+
+pub m44_typechecks(receiver: DOMMatrixReadOnly): std.js.Number.JsNumber ->
+    receiver.m44().
+
+pub flip_x_typechecks(receiver: DOMMatrixReadOnly): DOMMatrix ->
+    receiver.flip_x().
+
+pub flip_y_typechecks(receiver: DOMMatrixReadOnly): DOMMatrix ->
+    receiver.flip_y().
+
+pub inverse_typechecks(receiver: DOMMatrixReadOnly): DOMMatrix ->
+    receiver.inverse().
+
+pub multiply_typechecks(receiver: DOMMatrixReadOnly, other: DOMMatrixInit): DOMMatrix ->
+    receiver.multiply(other).
+
+pub rotate_typechecks(receiver: DOMMatrixReadOnly, rot_x: std.js.Number.JsNumber, rot_y: std.js.Number.JsNumber, rot_z: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.rotate(rot_x, rot_y, rot_z).
+
+pub rotate_axis_angle_typechecks(receiver: DOMMatrixReadOnly, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber, angle: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.rotate_axis_angle(x, y, z, angle).
+
+pub rotate_from_vector_typechecks(receiver: DOMMatrixReadOnly, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.rotate_from_vector(x, y).
+
+pub scale_typechecks(receiver: DOMMatrixReadOnly, scale_x: std.js.Number.JsNumber, scale_y: std.js.Number.JsNumber, scale_z: std.js.Number.JsNumber, origin_x: std.js.Number.JsNumber, origin_y: std.js.Number.JsNumber, origin_z: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.scale(scale_x, scale_y, scale_z, origin_x, origin_y, origin_z).
+
+pub scale3d_typechecks(receiver: DOMMatrixReadOnly, scale: std.js.Number.JsNumber, origin_x: std.js.Number.JsNumber, origin_y: std.js.Number.JsNumber, origin_z: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.scale3d(scale, origin_x, origin_y, origin_z).
+
+pub scale_non_uniform_typechecks(receiver: DOMMatrixReadOnly, scale_x: std.js.Number.JsNumber, scale_y: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.scale_non_uniform(scale_x, scale_y).
+
+pub skew_x_typechecks(receiver: DOMMatrixReadOnly, sx: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.skew_x(sx).
+
+pub skew_y_typechecks(receiver: DOMMatrixReadOnly, sy: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.skew_y(sy).
+
+pub to_float32_array_typechecks(receiver: DOMMatrixReadOnly): Float32Array[ArrayBuffer] ->
+    receiver.to_float32_array().
+
+pub to_float64_array_typechecks(receiver: DOMMatrixReadOnly): Float64Array[ArrayBuffer] ->
+    receiver.to_float64_array().
+
+pub transform_point_typechecks(receiver: DOMMatrixReadOnly, point: DOMPointInit): DOMPoint ->
+    receiver.transform_point(point).
+
+pub translate_typechecks(receiver: DOMMatrixReadOnly, tx: std.js.Number.JsNumber, ty: std.js.Number.JsNumber, tz: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.translate(tx, ty, tz).
+
+pub to_string_typechecks(receiver: DOMMatrixReadOnly): std.js.String.JsString ->
+    receiver.to_string().

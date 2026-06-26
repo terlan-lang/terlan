@@ -15,6 +15,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub(super) struct SyntaxConstructorTarget {
     pub(super) function: String,
+    pub(super) param_names: Vec<String>,
     pub(super) fixed_arity: usize,
     pub(super) min_arity: usize,
     pub(super) defaults: Vec<Option<SyntaxExprOutput>>,
@@ -36,6 +37,7 @@ pub(super) struct SyntaxConstructorTarget {
 pub(super) struct SyntaxRemoteConstructorTarget {
     pub(super) module: String,
     pub(super) function: String,
+    pub(super) return_type: String,
     pub(super) fixed_arity: usize,
     pub(super) varargs: bool,
 }
@@ -119,6 +121,7 @@ pub(super) fn syntax_remote_constructor_target_from_signature(
     SyntaxRemoteConstructorTarget {
         module: module_name.to_string(),
         function: constructor_function_name(name, fixed_arity, signature.varargs),
+        return_type: signature.return_type.clone(),
         fixed_arity,
         varargs: signature.varargs,
     }
@@ -200,8 +203,10 @@ fn syntax_alias_expr_leaf(kind: SyntaxExprKind, text: String) -> SyntaxExprOutpu
         text: Some(text),
         span: Default::default(),
         raw: None,
+        type_args: Vec::new(),
         operator: None,
         remote: None,
+        arg_names: Vec::new(),
         children: Vec::new(),
         patterns: Vec::new(),
         fields: Vec::new(),
@@ -230,8 +235,10 @@ fn syntax_alias_expr_tuple(children: Vec<SyntaxExprOutput>) -> SyntaxExprOutput 
         text: None,
         span: Default::default(),
         raw: None,
+        type_args: Vec::new(),
         operator: None,
         remote: None,
+        arg_names: Vec::new(),
         children,
         patterns: Vec::new(),
         fields: Vec::new(),
@@ -265,7 +272,7 @@ pub(super) fn lower_syntax_constructor_decl(
     clauses
         .iter()
         .map(|clause| {
-            let env = lower_syntax_constructor_clause_env(&clause.params, ctx);
+            let env = lower_syntax_constructor_clause_env(name, &clause.params, ctx);
             let fixed_arity = clause
                 .params
                 .iter()
@@ -331,6 +338,7 @@ pub(super) fn lower_syntax_constructor_decl(
 pub(super) fn lower_syntax_explicit_constructor_call(
     target: &SyntaxConstructorTarget,
     args: &[SyntaxExprOutput],
+    arg_names: &[Option<String>],
     ctx: &SyntaxLowerCtx,
     env: &SyntaxLowerEnv,
 ) -> Option<ErlExpr> {
@@ -348,14 +356,7 @@ pub(super) fn lower_syntax_explicit_constructor_call(
         ));
         lowered
     } else {
-        let mut lowered = args
-            .iter()
-            .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
-            .collect::<Option<Vec<_>>>()?;
-        for default in target.defaults.iter().skip(args.len()).flatten() {
-            lowered.push(lower_syntax_expr_with_env(default, ctx, env)?);
-        }
-        lowered
+        lower_syntax_defaulted_constructor_args(args, arg_names, target, ctx, env)?
     };
 
     Some(ErlExpr::Call {
@@ -363,6 +364,38 @@ pub(super) fn lower_syntax_explicit_constructor_call(
         function: target.function.clone(),
         args: lowered_args,
     })
+}
+
+/// Lowers local constructor arguments with named/defaulted parameter support.
+///
+/// Inputs:
+/// - `args`: source-visible constructor arguments in written order.
+/// - `arg_names`: optional source names parallel to `args`.
+/// - `target`: selected local constructor target.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang arguments in full constructor declaration order.
+///
+/// Transformation:
+/// - Places positional and named arguments into fixed constructor slots and
+///   fills omitted defaulted slots from declaration default expressions.
+fn lower_syntax_defaulted_constructor_args(
+    args: &[SyntaxExprOutput],
+    arg_names: &[Option<String>],
+    target: &SyntaxConstructorTarget,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<Vec<ErlExpr>> {
+    lower_syntax_defaulted_call_args(
+        args,
+        arg_names,
+        &target.param_names,
+        target.fixed_arity,
+        &target.defaults,
+        ctx,
+        env,
+    )
 }
 
 /// Lowers an imported or remote constructor call.
@@ -385,6 +418,36 @@ pub(super) fn lower_syntax_remote_constructor_call(
     ctx: &SyntaxLowerCtx,
     env: &SyntaxLowerEnv,
 ) -> Option<ErlExpr> {
+    if is_std_collections_list_constructor(target) {
+        return Some(ErlExpr::List(
+            args.iter()
+                .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                .collect::<Option<Vec<_>>>()?,
+        ));
+    }
+    if is_std_native_collections_vector_constructor(target) {
+        return Some(ErlExpr::Call {
+            module: Some("std_native_collections_vector_safe_native".to_string()),
+            function: "from_list".to_string(),
+            args: vec![ErlExpr::List(
+                args.iter()
+                    .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                    .collect::<Option<Vec<_>>>()?,
+            )],
+        });
+    }
+    if is_std_core_object_constructor(target) {
+        return Some(ErlExpr::Call {
+            module: Some("maps".to_string()),
+            function: "from_list".to_string(),
+            args: vec![ErlExpr::List(
+                args.iter()
+                    .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                    .collect::<Option<Vec<_>>>()?,
+            )],
+        });
+    }
+
     let lowered_args = if target.varargs {
         let mut lowered = args
             .iter()
@@ -411,12 +474,75 @@ pub(super) fn lower_syntax_remote_constructor_call(
     })
 }
 
+/// Returns whether a remote constructor is the release std `List(...)` shorthand.
+///
+/// Inputs:
+/// - `target`: imported constructor target selected for a source call.
+///
+/// Output:
+/// - `true` for the portable `std.collections.List` varargs constructor.
+/// - `false` for all other imported constructors.
+///
+/// Transformation:
+/// - Identifies the one std constructor whose public source body is a pure
+///   varargs identity so BEAM lowering can inline the native list
+///   representation instead of calling an unshipped helper module.
+fn is_std_collections_list_constructor(target: &SyntaxRemoteConstructorTarget) -> bool {
+    target.module == "std.collections.List"
+        && target.function == constructor_function_name("List", 0, true)
+        && receiver_type_head(&target.return_type) == "List"
+        && target.fixed_arity == 0
+        && target.varargs
+}
+
+/// Returns whether a remote constructor is the native `Vector(...)` shorthand.
+///
+/// Inputs:
+/// - `target`: imported constructor target selected for a source call.
+///
+/// Output:
+/// - `true` for the `std.native.collections.Vector` varargs constructor.
+/// - `false` for all other imported constructors.
+///
+/// Transformation:
+/// - Identifies the native collection constructor that must cross the
+///   SafeNative boundary instead of lowering to a BEAM collection helper.
+fn is_std_native_collections_vector_constructor(target: &SyntaxRemoteConstructorTarget) -> bool {
+    target.module == "std.native.collections.Vector"
+        && target.function == constructor_function_name("Vector", 0, true)
+        && receiver_type_head(&target.return_type) == "Vector"
+        && target.fixed_arity == 0
+        && target.varargs
+}
+
+/// Returns whether a remote constructor is the core `Object(...)` shorthand.
+///
+/// Inputs:
+/// - `target`: imported constructor target selected for a source call.
+///
+/// Output:
+/// - `true` for the `std.core.Object` string-keyed varargs constructor.
+/// - `false` for all other imported constructors.
+///
+/// Transformation:
+/// - Identifies the map-backed object constructor so BEAM lowering can inline
+///   the native map representation instead of depending on an emitted wrapper
+///   module for a source-level alias.
+fn is_std_core_object_constructor(target: &SyntaxRemoteConstructorTarget) -> bool {
+    target.module == "std.core.Object"
+        && target.function == constructor_function_name("Object", 0, true)
+        && receiver_type_head(&target.return_type) == "Object"
+        && target.fixed_arity == 0
+        && target.varargs
+}
+
 /// Lowers an alias constructor call or singleton alias value.
 ///
 /// Inputs:
 /// - `target`: alias constructor metadata selected from a single-shape type
 ///   alias.
 /// - `args`: source-visible constructor arguments.
+/// - `arg_names`: optional source argument names parallel to `args`.
 /// - `ctx`, `env`: active syntax lowering context and lexical environment.
 ///
 /// Output:
@@ -424,22 +550,69 @@ pub(super) fn lower_syntax_remote_constructor_call(
 /// - `None` when the alias template cannot lower.
 ///
 /// Transformation:
-/// - Binds source constructor arguments by alias field name, then recursively
-///   lowers the stored alias body template into runtime atoms, tuples, lists,
-///   cons cells, variables, or substituted argument expressions.
+/// - Reorders named source arguments into alias field order, binds them by
+///   alias field name, then recursively lowers the stored alias body template
+///   into runtime atoms, tuples, lists, cons cells, variables, or substituted
+///   argument expressions.
 pub(super) fn lower_syntax_alias_constructor_expr(
     target: &SyntaxAliasConstructorTarget,
     args: &[SyntaxExprOutput],
+    arg_names: &[Option<String>],
     ctx: &SyntaxLowerCtx,
     env: &SyntaxLowerEnv,
 ) -> Option<ErlExpr> {
+    let ordered_args = ordered_alias_constructor_args(target, args, arg_names)?;
     let bindings = target
         .params
         .iter()
         .cloned()
-        .zip(args.iter())
+        .zip(ordered_args)
         .collect::<BTreeMap<_, _>>();
     syntax_expr_to_alias_constructor_expr(&target.body, &bindings, ctx, env)
+}
+
+/// Reorders alias constructor arguments into alias field order.
+///
+/// Inputs:
+/// - `target`: alias constructor metadata containing source field names.
+/// - `args`: constructor argument expressions in source order.
+/// - `arg_names`: optional source names parallel to `args`.
+///
+/// Output:
+/// - Borrowed argument expressions in alias parameter order.
+/// - `None` when named metadata cannot be matched defensively.
+///
+/// Transformation:
+/// - Keeps positional arguments in written slots and places named arguments at
+///   their alias field indexes. Typechecking validates call names before
+///   lowering, so unmatched names indicate stale or inconsistent metadata.
+fn ordered_alias_constructor_args<'a>(
+    target: &SyntaxAliasConstructorTarget,
+    args: &'a [SyntaxExprOutput],
+    arg_names: &[Option<String>],
+) -> Option<Vec<&'a SyntaxExprOutput>> {
+    if !arg_names.iter().any(Option::is_some) {
+        return Some(args.iter().collect());
+    }
+
+    let mut ordered = vec![None; args.len()];
+    for (index, arg) in args.iter().enumerate() {
+        match arg_names.get(index).and_then(Option::as_ref) {
+            Some(name) => {
+                let param_index = target.params.iter().position(|param| param == name)?;
+                if param_index < ordered.len() {
+                    ordered[param_index] = Some(arg);
+                }
+            }
+            None => {
+                if index < ordered.len() {
+                    ordered[index] = Some(arg);
+                }
+            }
+        }
+    }
+
+    ordered.into_iter().collect()
 }
 
 /// Converts an alias constructor template node into an Erlang expression.

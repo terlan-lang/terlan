@@ -1,4 +1,5 @@
 pub mod ebnf;
+mod ebnf_lexer;
 pub mod formatter;
 pub mod lexer;
 pub mod native;

@@ -1,0 +1,8 @@
+module=std.js.Dom.SVGLinearGradientElement
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=17952138570668598657
+interface_hash=14000222363679787235
+interface_doc_hash=14000222363679787235
+deps=0

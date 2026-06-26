@@ -1,0 +1,187 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Navigator
+ */
+
+module std.js.Dom.Navigator.
+
+/**
+ * The **`Navigator`** interface represents the state and the identity of the user agent.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator)
+ */
+pub opaque type Navigator.
+
+/**
+ * The **`clipboard`** read-only property of the Navigator interface returns a Clipboard object used to read and write the clipboard's contents.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/clipboard)
+ */
+pub (value: Navigator) clipboard(): Clipboard ->
+    native.
+
+/**
+ * The **`credentials`** read-only property of the Navigator interface returns the CredentialsContainer object associated with the current document, which exposes methods to request credentials.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/credentials)
+ */
+pub (value: Navigator) credentials(): CredentialsContainer ->
+    native.
+
+pub (value: Navigator) do_not_track(): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`Navigator.geolocation`** read-only property returns a device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/geolocation)
+ */
+pub (value: Navigator) geolocation(): Geolocation ->
+    native.
+
+/**
+ * The **`login`** read-only property of the Navigator interface provides access to the browser's NavigatorLogin object, which a federated identity provider (IdP) can use to set its login status when a user signs into or out of the IdP.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/login)
+ */
+pub (value: Navigator) login(): NavigatorLogin ->
+    native.
+
+/**
+ * The **`maxTouchPoints`** read-only property of the contact points that are supported by the current device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/maxTouchPoints)
+ */
+pub (value: Navigator) max_touch_points(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`mediaCapabilities`** read-only property of the Navigator interface references a MediaCapabilities object that can expose information about the decoding and encoding capabilities for a given media format and output capabilities.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/mediaCapabilities)
+ */
+pub (value: Navigator) media_capabilities(): MediaCapabilities ->
+    native.
+
+/**
+ * The **`mediaDevices`** read-only property of the Navigator interface returns a MediaDevices object, which provides access to connected media input devices like cameras and microphones, as well as screen sharing.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/mediaDevices)
+ */
+pub (value: Navigator) media_devices(): MediaDevices ->
+    native.
+
+/**
+ * The **`mediaSession`** read-only property of the Navigator interface returns a MediaSession object that can be used to share with the browser metadata and other information about the current playback state of media being handled by a document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/mediaSession)
+ */
+pub (value: Navigator) media_session(): MediaSession ->
+    native.
+
+/**
+ * The **`permissions`** read-only property of the Navigator interface returns a status of APIs covered by the Permissions API.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/permissions)
+ */
+pub (value: Navigator) permissions(): Permissions ->
+    native.
+
+/**
+ * The **`serviceWorker`** read-only property of the Navigator interface returns the ServiceWorkerContainer object for the associated document, which provides access to registration, removal, upgrade, and communication with the ServiceWorker.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/serviceWorker)
+ */
+pub (value: Navigator) service_worker(): ServiceWorkerContainer ->
+    native.
+
+/**
+ * The read-only **`userActivation`** property of the Navigator interface returns a UserActivation object which contains information about the current window's user activation state.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/userActivation)
+ */
+pub (value: Navigator) user_activation(): UserActivation ->
+    native.
+
+/**
+ * The **`wakeLock`** read-only property of the Navigator interface returns a WakeLock interface that allows a document to acquire a screen wake lock.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/wakeLock)
+ */
+pub (value: Navigator) wake_lock(): WakeLock ->
+    native.
+
+/**
+ * The **`canShare()`** method of the Navigator interface returns `true` if the equivalent call to navigator.share() would succeed.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/canShare)
+ */
+pub (value: Navigator) can_share(data: ShareData): std.core.Bool ->
+    native.
+
+/**
+ * The **`Navigator.getGamepads()`** method returns an array of Elements in the array may be `null` if a gamepad disconnects during a session, so that the remaining gamepads retain the same index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/getGamepads)
+ */
+pub (value: Navigator) get_gamepads(): std.js.Array[Option[Gamepad]] ->
+    native.
+
+/**
+ * The **`requestMIDIAccess()`** method of the Navigator interface returns a Promise representing a request for access to MIDI devices on a user's system.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/requestMIDIAccess)
+ */
+pub (value: Navigator) request_midi_access(options: MIDIOptions): std.js.Promise[MIDIAccess] ->
+    native.
+
+/**
+ * The **`requestMediaKeySystemAccess()`** method of the Navigator interface returns a Promise which delivers a MediaKeySystemAccess object that can be used to access a particular media key system, which can in turn be used to create keys for decrypting a media stream.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/requestMediaKeySystemAccess)
+ */
+pub (value: Navigator) request_media_key_system_access(key_system: std.js.String.JsString, supported_configurations: std.js.Array[MediaKeySystemConfiguration]): std.js.Promise[MediaKeySystemAccess] ->
+    native.
+
+/**
+ * The **`navigator.sendBeacon()`** method Asynchronous sends an HTTP POST request containing a small amount of data to a web server.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/sendBeacon)
+ */
+pub (value: Navigator) send_beacon(url: URL | std.js.String.JsString, data: Option[BodyInit]): std.core.Bool ->
+    native.
+
+/**
+ * The **`share()`** method of the Navigator interface invokes the native sharing mechanism of the device to share data such as text, URLs, or files.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/share)
+ */
+pub (value: Navigator) share(data: ShareData): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`vibrate()`** method of the Navigator interface pulses the vibration hardware on the device, if such hardware exists.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/vibrate)
+ */
+pub (value: Navigator) vibrate(pattern: VibratePattern): std.core.Bool ->
+    native.

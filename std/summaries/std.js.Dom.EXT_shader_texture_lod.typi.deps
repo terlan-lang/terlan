@@ -1,0 +1,8 @@
+module=std.js.Dom.EXT_shader_texture_lod
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=6584243759914792544
+interface_hash=986087355761371589
+interface_doc_hash=986087355761371589
+deps=0

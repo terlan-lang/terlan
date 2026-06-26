@@ -1,0 +1,8 @@
+module=std.js.ArrayBuffer
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=8033426637343382530
+interface_hash=8586465031723546367
+interface_doc_hash=8586465031723546367
+deps=0

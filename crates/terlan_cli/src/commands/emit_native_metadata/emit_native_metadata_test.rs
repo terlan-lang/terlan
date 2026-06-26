@@ -58,8 +58,8 @@ fn run_emits_compiler_native_std_json_artifacts() {
     let erl_loader =
         fs::read_to_string(&erl_loader_path).expect("read generated safe native erl loader");
     assert!(erl_loader.contains("safe_native.not_loaded"));
-    assert!(erl_loader
-        .contains("{safe_native_reply, RequestId, {error, safe_native_not_loaded_error()}, 0}"));
+    assert!(erl_loader.contains("safe_native_not_loaded_error() ->"));
+    assert!(erl_loader.contains("{safe_native_reply, RequestId, {error, Error}, 0}"));
     assert!(out_dir
         .join("std_data_json_safe_native.safe_native.rs")
         .exists());

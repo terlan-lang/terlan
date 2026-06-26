@@ -16,6 +16,7 @@ use super::test_support::*;
 ///   relies on `@compiler.intrinsic` declarations for compiler-provided
 ///   collection method implementations.
 #[test]
+#[ignore = "release-scale std collection sweep; run through make stdlib-release-contracts-check"]
 fn syntax_output_accepts_release_core_collection_contracts() {
     let contracts = [
         include_str!("../../../std/collections/map.terl"),
@@ -81,6 +82,82 @@ pub complete(): Task[Int] ->\n\
     assert!(
         diagnostics.is_empty(),
         "unexpected release Task diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies HTTP responses accept typed template fragments through summaries.
+///
+/// Inputs:
+/// - A small source module importing `std.http.Response` and
+///   `std.template.Template`.
+///
+/// Output:
+/// - Test passes when `Response.html(page())` selects the `Template.Html`
+///   overload from checked-in std summaries.
+///
+/// Transformation:
+/// - Loads release std summaries from the response source anchor, resolves the
+///   imported overload set, and typechecks template-fragment response creation
+///   without backend emission.
+#[test]
+fn syntax_output_accepts_response_html_template_fragment_usage() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "\
+module response_template_usage.\n\
+\n\
+import std.http.Response.\n\
+import std.template.Template.\n\
+import type std.http.Response.Response.\n\
+\n\
+pub page(): Template.Html ->\n\
+    Template.trusted(\"<main>Hello</main>\").\n\
+\n\
+pub home(): Response ->\n\
+    Response.html(page()).\n\
+",
+        "std/http/response.terl",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected Response.html Template.Html diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies TLS helper calls preserve imported union alias return types.
+///
+/// Inputs:
+/// - A source module importing `std.http.Tls.auto`.
+/// - A function returning imported `std.http.Tls.Config` from that helper.
+///
+/// Output:
+/// - Test passes when typechecking accepts the helper call without reporting a
+///   mismatch between `Config.mode` and the `Mode` union's atom aliases.
+///
+/// Transformation:
+/// - Loads checked-in std summaries from the TLS source anchor and exercises
+///   imported function return-type comparison through expanded alias records.
+#[test]
+fn syntax_output_accepts_tls_helper_config_return_usage() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "\
+module tls_helper_usage.\n\
+\n\
+import std.http.Tls.{auto}.\n\
+import type std.collections.List.\n\
+import type std.http.Tls.Config.\n\
+\n\
+pub config(domains: List[String]): Config ->\n\
+    auto(domains, \"admin@example.com\").\n\
+",
+        "std/http/tls.terl",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected TLS helper diagnostics: {:?}",
         diagnostics
     );
 }

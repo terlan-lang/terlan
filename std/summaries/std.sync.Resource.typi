@@ -1,0 +1,133 @@
+//! Portable synchronization resource contract.
+//!
+//! `std.sync.Resource` defines typed model-change shapes shared by future
+//! Postgres streams, actor-backed templates, and cloud runtime channels. It
+//! does not define transport or delivery guarantees.
+
+module std.sync.Resource.
+
+/// Change represents one typed model-change event.
+///
+/// Input: type parameter `T`.
+/// Output: a tuple-backed event containing the kind and changed value.
+/// Transformation: couples the change classification with a typechecked payload
+/// while leaving runtime delivery and replay outside this module.
+
+pub type Change[T] =
+    {Atom["change"], kind : ChangeKind, value : T}.
+
+/// ChangeKind represents the portable model-change category carrier.
+///
+/// Input: no type parameter.
+/// Output: language-neutral atom value.
+/// Transformation: keeps sync event classification target-neutral while the
+/// named singleton aliases document and constrain the standard change kinds.
+
+pub type ChangeKind =
+    Atom.
+
+/// Deleted represents a deleted model value.
+///
+/// Input: no runtime input.
+/// Output: singleton change-kind value.
+/// Transformation: aliases a language-neutral atom so source code does not
+/// depend on backend atom syntax.
+
+pub type Deleted =
+    Atom["deleted"].
+
+/// Inserted represents an inserted model value.
+///
+/// Input: no runtime input.
+/// Output: singleton change-kind value.
+/// Transformation: aliases a language-neutral atom so source code does not
+/// depend on backend atom syntax.
+
+pub type Inserted =
+    Atom["inserted"].
+
+/// Resource represents a typed source of synchronized values.
+///
+/// Input: type parameter `T`.
+/// Output: an opaque sync resource handle.
+/// Transformation: hides target-owned stream, subscription, process, or socket
+/// state behind a portable source-level handle.
+
+pub opaque type Resource[T].
+
+/// Updated represents an updated model value.
+///
+/// Input: no runtime input.
+/// Output: singleton change-kind value.
+/// Transformation: aliases a language-neutral atom so source code does not
+/// depend on backend atom syntax.
+
+pub type Updated =
+    Atom["updated"].
+
+/// Builds a deleted change event.
+///
+/// Input: one deleted value or deletion tombstone.
+/// Output: `Change[T]` tagged as `Deleted`.
+/// Transformation: wraps the value in the portable change tuple shape.
+
+pub deleted(value: T): Change[T].
+
+/// Builds an inserted change event.
+///
+/// Input: one changed value.
+/// Output: `Change[T]` tagged as `Inserted`.
+/// Transformation: wraps the value in the portable change tuple shape.
+
+pub inserted(value: T): Change[T].
+
+/// Returns whether the event is a deletion.
+///
+/// Input: one `Change[T]`.
+/// Output: `true` when the event kind is `Deleted`.
+/// Transformation: compares the event kind against the portable singleton.
+
+pub is_deleted(change: Change[T]): Bool.
+
+/// Returns whether the event is an insertion.
+///
+/// Input: one `Change[T]`.
+/// Output: `true` when the event kind is `Inserted`.
+/// Transformation: compares the event kind against the portable singleton.
+
+pub is_inserted(change: Change[T]): Bool.
+
+/// Returns whether the event is an update.
+///
+/// Input: one `Change[T]`.
+/// Output: `true` when the event kind is `Updated`.
+/// Transformation: compares the event kind against the portable singleton.
+
+pub is_updated(change: Change[T]): Bool.
+
+/// Returns the change kind.
+///
+/// Input: one `Change[T]`.
+/// Output: the event's `ChangeKind`.
+/// Transformation: pattern matches the portable change tuple and returns the
+/// classification field.
+
+pub kind(change: Change[T]): ChangeKind.
+
+/// Builds an updated change event.
+///
+/// Input: one changed value.
+/// Output: `Change[T]` tagged as `Updated`.
+/// Transformation: wraps the value in the portable change tuple shape.
+
+pub updated(value: T): Change[T].
+
+/// Returns the changed value.
+///
+/// Input: one `Change[T]`.
+/// Output: the event payload.
+/// Transformation: pattern matches the portable change tuple and returns the
+/// typed value field.
+
+pub value(change: Change[T]): T.
+

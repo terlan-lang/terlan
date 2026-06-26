@@ -1,0 +1,83 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGAnimationElement
+ */
+
+module std.js.Dom.SVGAnimationElement.
+
+/**
+ * The **`SVGAnimationElement`** interface is the base interface for all of the animation element interfaces: SVGAnimateElement, SVGSetElement, SVGAnimateColorElement, SVGAnimateMotionElement and SVGAnimateTransformElement.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement)
+ */
+pub opaque type SVGAnimationElement.
+
+/**
+ * The **`targetElement`** read-only property of the SVGAnimationElement interface refers to the element which is being animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/targetElement)
+ */
+pub (value: SVGAnimationElement) target_element(): Option[SVGElement].
+
+/**
+ * The SVGAnimationElement method `beginElement()` creates a begin instance time for the current time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/beginElement)
+ */
+pub (value: SVGAnimationElement) begin_element(): std.core.Unit.
+
+/**
+ * The SVGAnimationElement method `beginElementAt()` creates a begin instance time for the current time plus the specified offset.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/beginElementAt)
+ */
+pub (value: SVGAnimationElement) begin_element_at(offset: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The SVGAnimationElement method `endElement()` creates an end instance time for the current time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/endElement)
+ */
+pub (value: SVGAnimationElement) end_element(): std.core.Unit.
+
+/**
+ * The SVGAnimationElement method `endElementAt()` creates an end instance time for the current time plus the specified offset.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/endElementAt)
+ */
+pub (value: SVGAnimationElement) end_element_at(offset: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The SVGAnimationElement method `getCurrentTime()` returns a float representing the current time in seconds relative to time zero for the given time container.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/getCurrentTime)
+ */
+pub (value: SVGAnimationElement) get_current_time(): std.js.Number.JsNumber.
+
+/**
+ * The SVGAnimationElement method `getSimpleDuration()` returns a float representing the number of seconds for the simple duration for this animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/getSimpleDuration)
+ */
+pub (value: SVGAnimationElement) get_simple_duration(): std.js.Number.JsNumber.
+
+/**
+ * The SVGAnimationElement method `getStartTime()` returns a float representing the start time, in seconds, for this animation element's current interval, if it exists, regardless of whether the interval has begun yet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/getStartTime)
+ */
+pub (value: SVGAnimationElement) get_start_time(): std.js.Number.JsNumber.
+
+pub (value: SVGAnimationElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: SVGAnimationElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

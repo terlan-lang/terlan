@@ -1,0 +1,112 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLVideoElement
+ */
+
+module std.js.Dom.HTMLVideoElement.
+
+/**
+ * Implemented by the video element, the **`HTMLVideoElement`** interface provides special properties and methods for manipulating video objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement)
+ */
+pub opaque type HTMLVideoElement.
+
+/**
+ * The HTMLVideoElement **`disablePictureInPicture`** property reflects the HTML attribute indicating whether the picture-in-picture feature is disabled for the current element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/disablePictureInPicture)
+ */
+pub (value: HTMLVideoElement) disable_picture_in_picture(): std.core.Bool ->
+    native.
+
+/**
+ * The **`height`** property of the HTMLVideoElement interface returns an integer that reflects the `height` attribute of the video element, specifying the displayed height of the resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/height)
+ */
+pub (value: HTMLVideoElement) height(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: HTMLVideoElement) plays_inline(): std.core.Bool ->
+    native.
+
+/**
+ * The **`poster`** property of the HTMLVideoElement interface is a string that reflects the URL for an image to be shown while no video data is available.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/poster)
+ */
+pub (value: HTMLVideoElement) poster(): std.js.String.JsString ->
+    native.
+
+/**
+ * The HTMLVideoElement interface's read-only **`videoHeight`** property indicates the intrinsic height of the video, expressed in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/videoHeight)
+ */
+pub (value: HTMLVideoElement) video_height(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The HTMLVideoElement interface's read-only **`videoWidth`** property indicates the intrinsic width of the video, expressed in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/videoWidth)
+ */
+pub (value: HTMLVideoElement) video_width(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`width`** property of the HTMLVideoElement interface returns an integer that reflects the `width` attribute of the video element, specifying the displayed width of the resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/width)
+ */
+pub (value: HTMLVideoElement) width(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`cancelVideoFrameCallback()`** method of the HTMLVideoElement interface cancels a previously-registered video frame callback.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/cancelVideoFrameCallback)
+ */
+pub (value: HTMLVideoElement) cancel_video_frame_callback(handle: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+/**
+ * The **HTMLVideoElement** method **`getVideoPlaybackQuality()`** creates and returns a frames have been lost.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/getVideoPlaybackQuality)
+ */
+pub (value: HTMLVideoElement) get_video_playback_quality(): VideoPlaybackQuality ->
+    native.
+
+/**
+ * The **HTMLVideoElement** method **`requestPictureInPicture()`** issues an asynchronous request to display the video in picture-in-picture mode.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/requestPictureInPicture)
+ */
+pub (value: HTMLVideoElement) request_picture_in_picture(): std.js.Promise[PictureInPictureWindow] ->
+    native.
+
+/**
+ * The **`requestVideoFrameCallback()`** method of the HTMLVideoElement interface registers a callback function that runs when a new video frame is sent to the compositor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback)
+ */
+pub (value: HTMLVideoElement) request_video_frame_callback(callback: VideoFrameRequestCallback): std.js.Number.JsNumber ->
+    native.
+
+pub (value: HTMLVideoElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLVideoElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

@@ -1,0 +1,8 @@
+module=std.js.Dom.TouchEvent
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=12703687102809949382
+interface_hash=8944823765589206497
+interface_doc_hash=8944823765589206497
+deps=0

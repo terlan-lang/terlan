@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_core_lean
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 export=id/1
 function=id/1 public=true params=X:Int:core=Int return=Int return_core=Int
 function_clause=id/1#0 patterns=Var:text=X:arity=0 core_patterns=Var(X) pattern_proof=lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(X)) guard=none body=Var:core=Var(X):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(X)):proof=lean-covered:text=X:arity=0

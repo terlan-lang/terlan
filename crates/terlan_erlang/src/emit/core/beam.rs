@@ -15,7 +15,52 @@
 
 use super::super::beam_process;
 use super::super::erl::ErlExpr;
+use super::super::util::map_struct_name;
 use super::{erl_result_ok, exact_array_args};
+
+/// Builds a standard `Result.Err(Error)` expression from an existing reason variable.
+///
+/// Inputs:
+/// - `code`: stable error code atom text.
+/// - `prefix`: human-readable message prefix.
+/// - `reason_expr`: Erlang expression or variable containing backend reason
+///   details.
+///
+/// Output:
+/// - Erlang source text for `{error, #error{...}}`.
+///
+/// Transformation:
+/// - Converts target-specific reasons into the shared `std.core.Error.Error`
+///   record while preserving the backend reason in the message field.
+fn beam_error_result(code: &str, prefix: &str, reason_expr: &str) -> String {
+    format!(
+        "{{error, #{record}{{code = {code}, message = unicode:characters_to_binary(io_lib:format(\"{prefix}: ~p\", [{reason_expr}]))}}}}",
+        record = map_struct_name("Error"),
+        code = code,
+        prefix = prefix,
+        reason_expr = reason_expr
+    )
+}
+
+/// Builds a standard `Result.Err(Error)` expression with a literal message.
+///
+/// Inputs:
+/// - `code`: stable error code atom text.
+/// - `message`: human-readable binary message text.
+///
+/// Output:
+/// - Erlang source text for `{error, #error{...}}`.
+///
+/// Transformation:
+/// - Emits a stable base error without depending on a target exception reason.
+fn beam_error_literal(code: &str, message: &str) -> String {
+    format!(
+        "{{error, #{record}{{code = {code}, message = <<\"{message}\">>}}}}",
+        record = map_struct_name("Error"),
+        code = code,
+        message = message
+    )
+}
 
 /// Lowers `beam.agent.start` to a backend-owned BEAM process loop.
 ///
@@ -296,6 +341,288 @@ pub(super) fn lower_beam_native_bridge_dispose(args: Vec<ErlExpr>) -> Option<Erl
 pub(super) fn lower_beam_native_bridge_stop(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     let [bridge] = exact_array_args(args)?;
     Some(beam_process::send_and_return_process(&bridge, "stop"))
+}
+
+/// Lowers `beam.bytes.from_list` to an Erlang binary conversion.
+///
+/// Inputs:
+/// - `args`: one list of integer byte values.
+///
+/// Output:
+/// - Erlang binary built from the byte list.
+///
+/// Transformation:
+/// - Uses `erlang:list_to_binary/1` as the BEAM-owned representation for
+///   `std.beam.Bytes` so binary protocol tests do not construct raw target
+///   syntax in Terlan source.
+pub(super) fn lower_beam_bytes_from_list(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [values] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "erlang:list_to_binary({})",
+        values.render()
+    )))
+}
+
+/// Lowers `beam.bytes.to_list` to an Erlang byte-list conversion.
+///
+/// Inputs:
+/// - `args`: one BEAM binary value.
+///
+/// Output:
+/// - List of integer byte values.
+///
+/// Transformation:
+/// - Uses `erlang:binary_to_list/1` to expose bytes through the typed Terlan
+///   list contract.
+pub(super) fn lower_beam_bytes_to_list(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [bytes] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "erlang:binary_to_list({})",
+        bytes.render()
+    )))
+}
+
+/// Lowers `beam.bytes.length` to BEAM byte size.
+///
+/// Inputs:
+/// - `args`: one BEAM binary value.
+///
+/// Output:
+/// - Integer byte length.
+///
+/// Transformation:
+/// - Uses `erlang:byte_size/1`, preserving byte-count semantics for protocol
+///   frames instead of text grapheme length.
+pub(super) fn lower_beam_bytes_length(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [bytes] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "erlang:byte_size({})",
+        bytes.render()
+    )))
+}
+
+/// Lowers `beam.bytes.concat` to BEAM binary concatenation.
+///
+/// Inputs:
+/// - `args`: left and right BEAM binary values.
+///
+/// Output:
+/// - Concatenated binary.
+///
+/// Transformation:
+/// - Emits one binary construction expression so protocol frame composition
+///   remains target-owned and allocation behavior is explicit.
+pub(super) fn lower_beam_bytes_concat(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [left, right] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "<<({})/binary, ({})/binary>>",
+        left.render(),
+        right.render()
+    )))
+}
+
+/// Lowers `beam.timeout.milliseconds` to a BEAM receive timeout value.
+///
+/// Inputs:
+/// - `args`: one integer millisecond value.
+///
+/// Output:
+/// - Integer timeout expression.
+///
+/// Transformation:
+/// - Preserves the integer expression because BEAM APIs use millisecond
+///   integers directly for socket and receive timeouts.
+pub(super) fn lower_beam_timeout_milliseconds(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [milliseconds] = exact_array_args(args)?;
+    Some(milliseconds)
+}
+
+/// Lowers `beam.timeout.forever` to the BEAM infinity timeout atom.
+///
+/// Inputs:
+/// - `args`: no arguments.
+///
+/// Output:
+/// - Erlang `infinity`.
+///
+/// Transformation:
+/// - Keeps the target's unbounded timeout sentinel behind the typed Terlan
+///   `Timeout` constructor.
+pub(super) fn lower_beam_timeout_forever(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [] = exact_array_args(args)?;
+    Some(ErlExpr::Raw("infinity".to_string()))
+}
+
+/// Lowers `beam.tcp.connect` to `gen_tcp:connect/4`.
+///
+/// Inputs:
+/// - `args`: host binary, port integer, and BEAM timeout expression.
+///
+/// Output:
+/// - `Result[TcpSocket, Error]`.
+///
+/// Transformation:
+/// - Opens a passive binary TCP socket through OTP and maps backend failures
+///   into the standard `Error` record shape.
+pub(super) fn lower_beam_tcp_connect(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [host, port, timeout] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "case gen_tcp:connect(erlang:binary_to_list({}), {}, [binary, {{packet, 0}}, {{active, false}}], {}) of\n    {{ok, Socket}} -> {{ok, Socket}};\n    {{error, Reason}} -> {}\nend",
+        host.render(),
+        port.render(),
+        timeout.render(),
+        beam_error_result("tcp_connect_failed", "tcp connect failed", "Reason")
+    )))
+}
+
+/// Lowers `beam.tcp.send` to `gen_tcp:send/2`.
+///
+/// Inputs:
+/// - `args`: TCP socket handle and binary payload.
+///
+/// Output:
+/// - `Result[Unit, Error]`.
+///
+/// Transformation:
+/// - Sends the binary frame and normalizes BEAM send errors into the standard
+///   `Error` record shape.
+pub(super) fn lower_beam_tcp_send(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [socket, bytes] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "case gen_tcp:send({}, {}) of\n    ok -> {{ok, unit}};\n    {{error, Reason}} -> {}\nend",
+        socket.render(),
+        bytes.render(),
+        beam_error_result("tcp_send_failed", "tcp send failed", "Reason")
+    )))
+}
+
+/// Lowers `beam.tcp.receive` to `gen_tcp:recv/3`.
+///
+/// Inputs:
+/// - `args`: TCP socket handle, maximum byte count, and timeout expression.
+///
+/// Output:
+/// - `Result[Bytes, Error]`.
+///
+/// Transformation:
+/// - Receives a passive socket frame and preserves the returned binary as the
+///   `Bytes` value expected by Terlan protocol tests.
+pub(super) fn lower_beam_tcp_receive(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [socket, max_bytes, timeout] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "case gen_tcp:recv({}, {}, {}) of\n    {{ok, Bytes}} -> {{ok, Bytes}};\n    {{error, Reason}} -> {}\nend",
+        socket.render(),
+        max_bytes.render(),
+        timeout.render(),
+        beam_error_result("tcp_receive_failed", "tcp receive failed", "Reason")
+    )))
+}
+
+/// Lowers `beam.tcp.close` to `gen_tcp:close/1`.
+///
+/// Inputs:
+/// - `args`: one TCP socket handle.
+///
+/// Output:
+/// - Terlan `Unit`.
+///
+/// Transformation:
+/// - Closes the target-owned socket and normalizes the public return to Unit.
+pub(super) fn lower_beam_tcp_close(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [socket] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "begin gen_tcp:close({}), unit end",
+        socket.render()
+    )))
+}
+
+/// Lowers `beam.port.open` to `erlang:open_port/2`.
+///
+/// Inputs:
+/// - `args`: one `std.beam.Port.Command` record expression.
+///
+/// Output:
+/// - `Result[Port, Error]`.
+///
+/// Transformation:
+/// - Reads the ordinary Terlan command record, starts a binary stdio port, and
+///   maps startup exceptions into the standard `Error` record shape.
+pub(super) fn lower_beam_port_open(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [command] = exact_array_args(args)?;
+    let command_record = map_struct_name("Command");
+    let env_record = map_struct_name("EnvVar");
+    Some(ErlExpr::Raw(format!(
+        "case {} of\n    #{}{{executable = Executable, arguments = Arguments, environment = Environment}} ->\n        try\n            Port = erlang:open_port({{spawn_executable, erlang:binary_to_list(Executable)}}, [binary, exit_status, use_stdio, stderr_to_stdout, stream, {{args, [erlang:binary_to_list(Arg) || Arg <- Arguments]}}, {{env, [{{erlang:binary_to_list(Key), erlang:binary_to_list(Value)}} || #{}{{key = Key, value = Value}} <- Environment]}}]),\n            {{ok, Port}}\n        catch\n            _Class:Reason -> {}\n        end;\n    _ -> {}\nend",
+        command.render(),
+        command_record,
+        env_record,
+        beam_error_result("port_open_failed", "port open failed", "Reason"),
+        beam_error_literal("invalid_command", "invalid command")
+    )))
+}
+
+/// Lowers `beam.port.write` to a BEAM port command.
+///
+/// Inputs:
+/// - `args`: port handle and binary payload.
+///
+/// Output:
+/// - `Result[Unit, Error]`.
+///
+/// Transformation:
+/// - Sends a command frame to the port owner protocol and maps invalid port
+///   failures into the standard `Error` record shape.
+pub(super) fn lower_beam_port_write(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [port, bytes] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "try\n    {} ! {{self(), {{command, {}}}}},\n    {{ok, unit}}\ncatch\n    _Class:Reason -> {}\nend",
+        port.render(),
+        bytes.render(),
+        beam_error_result("port_write_failed", "port write failed", "Reason")
+    )))
+}
+
+/// Lowers `beam.port.read` to a BEAM receive over port messages.
+///
+/// Inputs:
+/// - `args`: port handle, maximum byte count, and timeout expression.
+///
+/// Output:
+/// - `Result[Bytes, Error]`.
+///
+/// Transformation:
+/// - Waits for data or exit-status messages from the port and returns at most
+///   the requested number of bytes.
+pub(super) fn lower_beam_port_read(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [port, max_bytes, timeout] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "receive\n    {{{}, {{data, Data}}}} -> {{ok, binary:part(Data, 0, erlang:min(erlang:byte_size(Data), {}))}};\n    {{{}, {{exit_status, Status}}}} -> {}\nafter {} -> {}\nend",
+        port.render(),
+        max_bytes.render(),
+        port.render(),
+        beam_error_result("port_exited", "port exited", "Status"),
+        timeout.render(),
+        beam_error_literal("timeout", "port read timed out")
+    )))
+}
+
+/// Lowers `beam.port.close` to `erlang:port_close/1`.
+///
+/// Inputs:
+/// - `args`: one BEAM port handle.
+///
+/// Output:
+/// - Terlan `Unit`.
+///
+/// Transformation:
+/// - Closes the target-owned external process handle and normalizes the public
+///   return to Unit.
+pub(super) fn lower_beam_port_close(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [port] = exact_array_args(args)?;
+    Some(ErlExpr::Raw(format!(
+        "begin catch erlang:port_close({}), unit end",
+        port.render()
+    )))
 }
 
 /// Lowers `beam.supervisor.child_spec` to a backend-private child spec tuple.

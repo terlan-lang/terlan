@@ -26,10 +26,7 @@ fn maps_committed_fixture_to_dom_modules() {
     assert_eq!(mapping.modules[0].module_path, "std.js.Dom.Document");
     assert_eq!(mapping.modules[0].type_name, "Document");
     assert_eq!(mapping.modules[0].source_path, "std/js/dom/document.terl");
-    assert_eq!(
-        mapping.modules[0].test_path,
-        "std/js/dom/document_test.terl"
-    );
+    assert_eq!(mapping.modules[0].test_path, "std/js/dom/DocumentTest.terl");
     assert_eq!(mapping.modules[1].module_path, "std.js.Dom.HTMLElement");
     assert_eq!(
         mapping.modules[1].source_path,
@@ -37,7 +34,7 @@ fn maps_committed_fixture_to_dom_modules() {
     );
     assert_eq!(
         mapping.modules[1].test_path,
-        "std/js/dom/html_element_test.terl"
+        "std/js/dom/HTMLElementTest.terl"
     );
 }
 

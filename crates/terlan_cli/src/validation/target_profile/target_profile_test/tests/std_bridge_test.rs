@@ -104,22 +104,22 @@ Task.spawn(() -> 1).\n",
     );
 }
 
-/// Verifies Rust-backed portable std modules are rejected on unsupported
-/// backend profiles before backend emission.
+/// Verifies Rust-backed portable std modules are rejected unless the command
+/// owns SafeNative packaging for the selected backend.
 ///
 /// Inputs:
 /// - A source module that imports `std.data.Json` and calls `Json.parse`.
 ///
 /// Output:
-/// - Test passes when Erlang target-profile validation reports a stable
-///   unsupported Rust-backed std module diagnostic.
+/// - Test passes when default Erlang validation rejects JSON and the explicit
+///   SafeNative-enabled Erlang option admits it.
 ///
 /// Transformation:
 /// - Resolves the portable JSON std contract from checked-in summaries,
 ///   lowers the module to CoreIR, and validates that executable JSON use is
-///   blocked until the selected target owns the Rust/SafeNative bridge.
+///   blocked until the selected command owns the Rust/SafeNative bridge.
 #[test]
-fn rejects_rust_backed_json_std_module_for_erlang_profile() {
+fn gates_rust_backed_json_std_module_for_erlang_profile() {
     let module = lower(
         "\
 module profile_json_operation.\n\
@@ -144,6 +144,24 @@ Json.parse(text).\n",
                     .contains("rust-backed std module std.data.Json")
         }),
         "expected Rust-backed JSON target-profile diagnostic, got {violations:?}"
+    );
+
+    let allowed = target_profile_checks_with_options(
+        &module,
+        TargetProfile::Erlang,
+        TargetProfileCheckOptions {
+            allow_asset_imports: false,
+            allow_rust_backed_std_modules: true,
+        },
+    );
+    assert!(
+        !allowed.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation
+                    .message
+                    .contains("rust-backed std module std.data.Json")
+        }),
+        "SafeNative-enabled Erlang validation should accept JSON, got {allowed:?}"
     );
 }
 
@@ -756,22 +774,21 @@ Uri.parse(text).\n",
     );
 }
 
-/// Verifies Rust-backed HTTP std modules are target-gated on Erlang until the
-/// HTTP runtime bridge can execute them.
+/// Verifies Rust-backed HTTP std modules are accepted by web-capable profiles.
 ///
 /// Inputs:
 /// - A source module that imports `std.http.Request` and `std.http.Response`.
 ///
 /// Output:
-/// - Test passes when Erlang target-profile validation reports stable
-///   unsupported Rust-backed std module diagnostics for both imports.
+/// - Test passes when Erlang and JavaScript web packaging profiles accept the
+///   HTTP std modules without target-profile diagnostics.
 ///
 /// Transformation:
 /// - Resolves the HTTP std contracts from checked-in summaries, lowers the
-///   module to CoreIR, and validates that handler APIs do not silently pass
-///   into a backend profile that cannot execute them yet.
+///   module to CoreIR, and validates that the Rust/Tokio-owned HTTP server
+///   surface is available to the 0.0.5 web package path.
 #[test]
-fn rejects_rust_backed_http_std_modules_for_erlang_profile() {
+fn accepts_rust_backed_http_std_modules_for_web_profiles() {
     let module = lower(
         "\
 module profile_http_operation.\n\
@@ -786,6 +803,59 @@ Response.text(\"ok\").\n",
         "src/profile_http_operation.terl",
     );
 
+    for profile in [
+        TargetProfile::Erlang,
+        TargetProfile::JsShared,
+        TargetProfile::JsBrowser,
+        TargetProfile::JsWorker,
+    ] {
+        let violations = target_profile_checks(&module, profile);
+        assert!(
+            !violations.iter().any(|violation| {
+                violation
+                    .message
+                    .contains("rust-backed std module std.http.Request")
+                    || violation
+                        .message
+                        .contains("rust-backed std module std.http.Response")
+            }),
+            "{profile:?} should accept HTTP std modules, got {violations:?}"
+        );
+    }
+}
+
+/// Verifies Postgres std imports are target-gated until the worker adapter can
+/// execute them.
+///
+/// Inputs:
+/// - A source module that imports `std.db.Postgres` and calls its public
+///   connection function.
+///
+/// Output:
+/// - Test passes when Erlang target-profile validation reports a stable
+///   unsupported Rust-backed std module diagnostic for the import.
+///
+/// Transformation:
+/// - Resolves the Postgres std contract from checked-in summaries, lowers the
+///   module to CoreIR, and validates that database APIs do not silently pass
+///   into a backend profile before the supervised worker bridge exists.
+#[test]
+fn rejects_postgres_std_module_for_erlang_profile_until_adapter_exists() {
+    let module = lower(
+        "\
+module profile_postgres_operation.\n\
+\n\
+import std.db.Postgres.\n\
+import type std.db.Postgres.Config.\n\
+import type std.db.Postgres.Pool.\n\
+import type std.core.Error.Error.\n\
+import type std.core.Result.Result.\n\
+\n\
+pub connect(config: Config): Result[Pool, Error] ->\n\
+Postgres.connect(config).\n",
+        "src/profile_postgres_operation.terl",
+    );
+
     let violations = target_profile_checks(&module, TargetProfile::Erlang);
     let messages = violations
         .iter()
@@ -794,11 +864,7 @@ Response.text(\"ok\").\n",
         .join("\n");
 
     assert!(
-        messages.contains("rust-backed std module std.http.Request"),
-        "expected Request target-profile diagnostic, got {violations:?}"
-    );
-    assert!(
-        messages.contains("rust-backed std module std.http.Response"),
-        "expected Response target-profile diagnostic, got {violations:?}"
+        messages.contains("rust-backed std module std.db.Postgres"),
+        "expected Postgres target-profile diagnostic, got {violations:?}"
     );
 }

@@ -2,220 +2,26 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-/// Parsed Terlan project manifest.
-///
-/// Inputs:
-/// - Produced from `terlan.toml`.
-///
-/// Output:
-/// - Build-owned project metadata used by future project-directory builds.
-///
-/// Transformation:
-/// - Stores the package identity, declared source roots, and requested artifact
-///   kind after project package validation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ProjectManifest {
-    pub(crate) package: ProjectPackage,
-    pub(crate) source_roots: Vec<String>,
-    pub(crate) artifact: ProjectArtifactKind,
-    pub(crate) web_assets: Option<ProjectWebAssets>,
-    pub(crate) dependencies: Vec<ProjectDependency>,
-    pub(crate) erlang_package_adapter: Option<ProjectErlangPackageAdapter>,
-}
+mod config;
+mod model;
+mod strings;
+mod validation;
 
-/// Parsed package metadata from `[package]`.
-///
-/// Inputs:
-/// - Produced from the manifest `[package]` table.
-///
-/// Output:
-/// - Stable package identity for project build diagnostics and future artifact
-///   metadata.
-///
-/// Transformation:
-/// - Keeps only fields admitted into the A0.42.1 project package boundary.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ProjectPackage {
-    pub(crate) name: String,
-    pub(crate) version: String,
-    pub(crate) namespace: Option<String>,
-}
-
-/// Parsed executable artifact kind from `[build]`.
-///
-/// Inputs:
-/// - Produced from the manifest `[build] artifact` value or its default.
-///
-/// Output:
-/// - Stable artifact kind for target packaging decisions.
-///
-/// Transformation:
-/// - Narrows manifest text to the package artifact modes admitted by the
-///   current 0.0.1 package contract.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProjectArtifactKind {
-    BeamThin,
-    Library,
-}
-
-impl ProjectArtifactKind {
-    /// Returns the manifest spelling for the artifact kind.
-    ///
-    /// Inputs:
-    /// - `self`: parsed artifact kind.
-    ///
-    /// Output:
-    /// - Static manifest spelling.
-    ///
-    /// Transformation:
-    /// - Converts the enum to the package-contract string used in diagnostics
-    ///   and build metadata.
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            ProjectArtifactKind::BeamThin => "beam-thin",
-            ProjectArtifactKind::Library => "library",
-        }
-    }
-}
-
-/// Parsed Terlan-owned web asset configuration from `[web.assets]`.
-///
-/// Inputs:
-/// - Produced from user-authored `terlan.toml`.
-///
-/// Output:
-/// - Stable web asset configuration for browser packaging.
-///
-/// Transformation:
-/// - Keeps the user-facing asset shape independent from Rsbuild/Rspack config
-///   while preserving enough metadata for later packaging translation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ProjectWebAssets {
-    pub(crate) directory: String,
-    pub(crate) public_path: Option<String>,
-    pub(crate) inline_limit: Option<u64>,
-}
-
-/// Parsed Erlang target packaging adapter reservation.
-///
-/// Inputs:
-/// - Produced from `[target.erlang.package] adapter`.
-///
-/// Output:
-/// - Stable adapter marker for downstream Erlang packaging metadata.
-///
-/// Transformation:
-/// - Narrows manifest text to the adapter metadata admitted by A0.42.6 without
-///   generating Rebar3 files or requiring Rebar3 during normal builds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProjectErlangPackageAdapter {
-    Rebar3Compatible,
-}
-
-impl ProjectErlangPackageAdapter {
-    /// Returns the manifest spelling for the Erlang package adapter.
-    ///
-    /// Inputs:
-    /// - `self`: parsed Erlang package adapter.
-    ///
-    /// Output:
-    /// - Static manifest spelling.
-    ///
-    /// Transformation:
-    /// - Converts the enum to the package metadata string used by build
-    ///   artifacts and diagnostics.
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            ProjectErlangPackageAdapter::Rebar3Compatible => "rebar3-compatible",
-        }
-    }
-}
-
-/// Parsed project dependency metadata.
-///
-/// Inputs:
-/// - Produced from `[dependencies]` or `[target.<name>.dependencies]` manifest
-///   entries.
-///
-/// Output:
-/// - Typed dependency metadata for future dependency-closure and target-adapter
-///   validation.
-///
-/// Transformation:
-/// - Keeps the manifest alias, dependency scope, and source kind without
-///   fetching, resolving, linking, or packaging the dependency.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ProjectDependency {
-    pub(crate) alias: String,
-    pub(crate) scope: ProjectDependencyScope,
-    pub(crate) source: ProjectDependencySource,
-}
-
-/// Scope where a project dependency applies.
-///
-/// Inputs:
-/// - Produced from the manifest dependency section name.
-///
-/// Output:
-/// - Portable/local dependency scope or target-specific dependency scope.
-///
-/// Transformation:
-/// - Separates local Terlan package dependencies from target ecosystem
-///   dependency metadata.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProjectDependencyScope {
-    Local,
-    Target(ProjectTarget),
-}
-
-/// Target namespace for target-scoped dependency metadata.
-///
-/// Inputs:
-/// - Produced from `[target.<name>.dependencies]` section names.
-///
-/// Output:
-/// - Known target namespace.
-///
-/// Transformation:
-/// - Narrows manifest target names to package metadata scopes currently
-///   recognized by the compiler roadmap.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProjectTarget {
-    Erlang,
-    Js,
-    Rust,
-}
-
-/// Parsed dependency source kind.
-///
-/// Inputs:
-/// - Produced from one inline dependency table.
-///
-/// Output:
-/// - Source-specific dependency metadata.
-///
-/// Transformation:
-/// - Preserves `path`, `hex`, `npm`, and `cargo` dependency source kinds
-///   without performing dependency resolution.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ProjectDependencySource {
-    Path {
-        path: String,
-    },
-    Hex {
-        package: String,
-        version: String,
-    },
-    Npm {
-        package: String,
-        version: String,
-    },
-    Cargo {
-        package: String,
-        version: String,
-        features: Vec<String>,
-    },
-}
+use config::{
+    parse_bool, parse_non_negative_u64, parse_server_tls_mode, parse_server_tls_provider,
+    ProjectServerTlsBuilder, ProjectWebAssetsBuilder,
+};
+pub(crate) use model::{
+    ProjectArtifactKind, ProjectDependency, ProjectDependencyScope, ProjectDependencySource,
+    ProjectErlangPackageAdapter, ProjectManifest, ProjectNativeRust, ProjectPackage,
+    ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider, ProjectTarget,
+    ProjectWasiProfile, ProjectWasiTarget, ProjectWasmProfile, ProjectWasmTarget, ProjectWebAssets,
+};
+use strings::{parse_string, parse_string_array, split_array_items};
+use validation::{
+    validate_dependency_alias, validate_package_name, validate_package_namespace,
+    validate_package_version,
+};
 
 /// Parsed dependency inline-table field value.
 ///
@@ -277,6 +83,10 @@ pub(crate) fn read_project_manifest(path: &Path) -> Result<ProjectManifest, Stri
 ///   - optional `[web.assets] directory = "assets"`
 ///   - optional `[web.assets] public_path = "/assets"`
 ///   - optional `[web.assets] inline_limit = 8192`
+///   - optional `[web.assets] rsbuild_config = "rsbuild.config.mjs"`
+///   - optional `[server.tls] mode = "auto" | "manual" | "internal"`
+///   - optional `[server.tls]` mode-specific certificate, ACME, and internal
+///     development CA metadata
 ///   - `[dependencies] name = { path = "../name" }`
 ///   - `[target.erlang.dependencies] cowboy = { hex = "cowboy", version = "2.12.0" }`
 ///   - `[target.js.dependencies] zod = { npm = "zod", version = "3.25.0" }`
@@ -292,7 +102,25 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
     let mut package_namespace = None;
     let mut source_roots = None;
     let mut artifact = None;
+    let mut wasm_target_seen = false;
+    let mut wasm_profile: Option<ProjectWasmProfile> = None;
+    let mut wasm_exports: Option<Vec<String>> = None;
+    let mut wasm_bridge: Option<String> = None;
+    let mut wasm_capabilities: Option<Vec<String>> = None;
+    let mut wasm_world: Option<String> = None;
+    let mut wasm_validation_engine: Option<String> = None;
+    let mut wasi_target_seen = false;
+    let mut wasi_profile: Option<ProjectWasiProfile> = None;
+    let mut wasi_world: Option<String> = None;
+    let mut wasi_capabilities: Option<Vec<String>> = None;
+    let mut wasi_validation_engine: Option<String> = None;
     let mut web_assets = ProjectWebAssetsBuilder::default();
+    let mut server_tls = ProjectServerTlsBuilder::default();
+    let mut native_rust_crate = None;
+    let mut native_rust_path = None;
+    let mut native_rust_helper = None;
+    let mut native_rust_helper_env = None;
+    let mut native_rust_features = None;
     let mut dependencies = Vec::new();
     let mut erlang_package_adapter = None;
 
@@ -305,6 +133,11 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
 
         if line.starts_with('[') {
             section = parse_section(line, path, line_no)?;
+            match section {
+                ManifestSection::TargetWasm => wasm_target_seen = true,
+                ManifestSection::TargetWasi => wasi_target_seen = true,
+                _ => {}
+            }
             continue;
         }
 
@@ -362,9 +195,82 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
                 "inline_limit" => {
                     web_assets.inline_limit = Some(parse_non_negative_u64(value, path, line_no)?);
                 }
+                "rsbuild_config" => {
+                    web_assets.rsbuild_config = Some(parse_string(value, path, line_no)?);
+                }
                 _ => {
                     return Err(format!(
                         "{}:{}: unsupported [web.assets] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ManifestSection::ServerTls => match key {
+                "mode" => {
+                    server_tls.mode = Some(parse_server_tls_mode(value, path, line_no)?);
+                }
+                "domains" => {
+                    server_tls.domains = Some(parse_string_array(value, path, line_no)?);
+                }
+                "email" => {
+                    server_tls.email = Some(parse_string(value, path, line_no)?);
+                }
+                "primary_provider" => {
+                    server_tls.primary_provider =
+                        Some(parse_server_tls_provider(value, path, line_no)?);
+                }
+                "fallback_provider" => {
+                    server_tls.fallback_provider =
+                        Some(parse_server_tls_provider(value, path, line_no)?);
+                }
+                "cert" => {
+                    server_tls.cert = Some(parse_string(value, path, line_no)?);
+                }
+                "key" => {
+                    server_tls.key = Some(parse_string(value, path, line_no)?);
+                }
+                "passphrase_env" => {
+                    server_tls.passphrase_env = Some(parse_string(value, path, line_no)?);
+                }
+                "ca" => {
+                    server_tls.ca = Some(parse_string(value, path, line_no)?);
+                }
+                "server_name" => {
+                    server_tls.server_name = Some(parse_string(value, path, line_no)?);
+                }
+                "trust_local" => {
+                    server_tls.trust_local = Some(parse_bool(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [server.tls] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ManifestSection::NativeRust => match key {
+                "crate" => {
+                    native_rust_crate = Some(parse_string(value, path, line_no)?);
+                }
+                "path" => {
+                    native_rust_path = Some(parse_string(value, path, line_no)?);
+                }
+                "helper" => {
+                    native_rust_helper = Some(parse_string(value, path, line_no)?);
+                }
+                "helper_env" => {
+                    native_rust_helper_env = Some(parse_string(value, path, line_no)?);
+                }
+                "features" => {
+                    native_rust_features = Some(parse_string_array(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [native.rust] key `{}`",
                         path.display(),
                         line_no,
                         key
@@ -403,6 +309,68 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
                 _ => {
                     return Err(format!(
                         "{}:{}: unsupported [target.erlang.package] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ManifestSection::TargetWasm => match key {
+                "profile" => {
+                    wasm_profile = Some(parse_wasm_profile(value, path, line_no)?);
+                }
+                "exports" => {
+                    wasm_exports = Some(parse_string_array(value, path, line_no)?);
+                }
+                "bridge" => {
+                    wasm_bridge = Some(parse_string(value, path, line_no)?);
+                }
+                "capabilities" => {
+                    wasm_capabilities = Some(parse_string_array(value, path, line_no)?);
+                }
+                "world" => {
+                    wasm_world = Some(parse_string(value, path, line_no)?);
+                }
+                "validation_engine" => {
+                    wasm_validation_engine = Some(parse_string(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [target.wasm] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ManifestSection::TargetWasi => match key {
+                "profile" => {
+                    wasi_profile = Some(parse_wasi_profile(value, path, line_no)?);
+                }
+                "world" => {
+                    wasi_world = Some(parse_string(value, path, line_no)?);
+                }
+                "capabilities" => {
+                    wasi_capabilities = Some(parse_string_array(value, path, line_no)?);
+                }
+                "validation_engine" => {
+                    wasi_validation_engine = Some(parse_string(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [target.wasi] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ManifestSection::IntegrationFlow => match key {
+                "traits" | "host" | "port" | "compose_service" | "migrations" | "wait_secs"
+                | "http_checks" | "websocket_checks" => {}
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [integration.*] key `{}`",
                         path.display(),
                         line_no,
                         key
@@ -451,7 +419,36 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         ));
     }
     let artifact = artifact.unwrap_or(ProjectArtifactKind::BeamThin);
+    let wasm_target = finish_wasm_target(
+        path,
+        artifact,
+        wasm_target_seen,
+        wasm_profile,
+        wasm_exports,
+        wasm_bridge,
+        wasm_capabilities,
+        wasm_world,
+        wasm_validation_engine,
+    )?;
+    let wasi_target = finish_wasi_target(
+        path,
+        artifact,
+        wasi_target_seen,
+        wasi_profile,
+        wasi_world,
+        wasi_capabilities,
+        wasi_validation_engine,
+    )?;
     let web_assets = web_assets.finish(path)?;
+    let server_tls = server_tls.finish(path)?;
+    let native_rust = finish_native_rust(
+        path,
+        native_rust_crate,
+        native_rust_path,
+        native_rust_helper,
+        native_rust_helper_env,
+        native_rust_features,
+    )?;
 
     Ok(ProjectManifest {
         package: ProjectPackage {
@@ -461,77 +458,14 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         },
         source_roots,
         artifact,
+        wasm_target,
+        wasi_target,
         web_assets,
+        server_tls,
+        native_rust,
         dependencies,
         erlang_package_adapter,
     })
-}
-
-/// Incremental parser state for optional `[web.assets]`.
-///
-/// Inputs:
-/// - Filled while scanning manifest key/value assignments.
-///
-/// Output:
-/// - Optional `ProjectWebAssets` after validation.
-///
-/// Transformation:
-/// - Distinguishes an absent section from a present but incomplete section so
-///   users get a precise diagnostic when they start configuring web assets.
-#[derive(Debug, Default)]
-struct ProjectWebAssetsBuilder {
-    directory: Option<String>,
-    public_path: Option<String>,
-    inline_limit: Option<u64>,
-}
-
-impl ProjectWebAssetsBuilder {
-    /// Finalizes parsed web asset configuration.
-    ///
-    /// Inputs:
-    /// - `self`: accumulated optional section values.
-    /// - `path`: manifest path used in diagnostics.
-    ///
-    /// Output:
-    /// - `Ok(None)` when `[web.assets]` was absent.
-    /// - `Ok(Some(ProjectWebAssets))` when the section is complete.
-    /// - `Err(String)` when the section is incomplete or invalid.
-    ///
-    /// Transformation:
-    /// - Requires `directory` when any web asset key is present and rejects
-    ///   empty path-like values before browser packaging consumes them.
-    fn finish(self, path: &Path) -> Result<Option<ProjectWebAssets>, String> {
-        let has_any_key =
-            self.directory.is_some() || self.public_path.is_some() || self.inline_limit.is_some();
-        if !has_any_key {
-            return Ok(None);
-        }
-        let directory = self.directory.ok_or_else(|| {
-            format!(
-                "{}: project manifest [web.assets] requires directory",
-                path.display()
-            )
-        })?;
-        if directory.trim().is_empty() {
-            return Err(format!(
-                "{}: project manifest [web.assets] directory cannot be empty",
-                path.display()
-            ));
-        }
-        if let Some(public_path) = self.public_path.as_deref() {
-            if public_path.trim().is_empty() {
-                return Err(format!(
-                    "{}: project manifest [web.assets] public_path cannot be empty",
-                    path.display()
-                ));
-            }
-        }
-        Ok(Some(ProjectWebAssets {
-            directory,
-            public_path: self.public_path,
-            inline_limit: self.inline_limit,
-        }))
-    }
 }
 
 /// Supported top-level manifest sections.
@@ -550,9 +484,14 @@ enum ManifestSection {
     Package,
     Build,
     WebAssets,
+    ServerTls,
+    NativeRust,
     Dependencies,
     TargetDependencies(ProjectTarget),
     TargetErlangPackage,
+    TargetWasm,
+    TargetWasi,
+    IntegrationFlow,
 }
 
 /// Removes unquoted line comments from one manifest line.
@@ -596,8 +535,8 @@ fn strip_comment(line: &str) -> &str {
 ///
 /// Transformation:
 /// - Accepts exact `[package]`, `[build]`, `[dependencies]`,
-///   `[target.<name>.dependencies]`, and `[target.erlang.package]` section
-///   headers.
+///   `[web.assets]`, `[server.tls]`, `[target.<name>.dependencies]`, and
+///   `[target.erlang.package]` section headers.
 fn parse_section(line: &str, path: &Path, line_no: usize) -> Result<ManifestSection, String> {
     let section = line
         .strip_prefix('[')
@@ -613,10 +552,24 @@ fn parse_section(line: &str, path: &Path, line_no: usize) -> Result<ManifestSect
         "package" => Ok(ManifestSection::Package),
         "build" => Ok(ManifestSection::Build),
         "web.assets" => Ok(ManifestSection::WebAssets),
+        "server.tls" => Ok(ManifestSection::ServerTls),
+        "native.rust" => Ok(ManifestSection::NativeRust),
         "dependencies" => Ok(ManifestSection::Dependencies),
         "target.erlang.package" => Ok(ManifestSection::TargetErlangPackage),
+        "target.wasm" => Ok(ManifestSection::TargetWasm),
+        "target.wasi" => Ok(ManifestSection::TargetWasi),
         other => {
-            if let Some(target) = parse_target_dependency_section(other) {
+            if other.starts_with("integration.") && other["integration.".len()..].trim().is_empty()
+            {
+                Err(format!(
+                    "{}:{}: unsupported project manifest section `{}`",
+                    path.display(),
+                    line_no,
+                    other
+                ))
+            } else if other.starts_with("integration.") {
+                Ok(ManifestSection::IntegrationFlow)
+            } else if let Some(target) = parse_target_dependency_section(other) {
                 Ok(ManifestSection::TargetDependencies(target))
             } else {
                 Err(format!(
@@ -628,6 +581,92 @@ fn parse_section(line: &str, path: &Path, line_no: usize) -> Result<ManifestSect
             }
         }
     }
+}
+
+/// Finalizes optional Rust native helper metadata.
+///
+/// Inputs:
+/// - Optional fields collected while parsing `[native.rust]`.
+///
+/// Output:
+/// - `Ok(None)` when no native Rust section was present.
+/// - `Ok(Some(ProjectNativeRust))` when every required field is present.
+/// - `Err(String)` when the section is partial or contains empty fields.
+///
+/// Transformation:
+/// - Turns free-form manifest fields into the stable helper-discovery contract
+///   serialized by package build metadata.
+fn finish_native_rust(
+    path: &Path,
+    crate_name: Option<String>,
+    native_path: Option<String>,
+    helper: Option<String>,
+    helper_env: Option<String>,
+    features: Option<Vec<String>>,
+) -> Result<Option<ProjectNativeRust>, String> {
+    if crate_name.is_none()
+        && native_path.is_none()
+        && helper.is_none()
+        && helper_env.is_none()
+        && features.is_none()
+    {
+        return Ok(None);
+    }
+
+    let crate_name = required_native_rust_field(path, "crate", crate_name)?;
+    let native_path = required_native_rust_field(path, "path", native_path)?;
+    let helper = required_native_rust_field(path, "helper", helper)?;
+    let helper_env = required_native_rust_field(path, "helper_env", helper_env)?;
+    let features = features.unwrap_or_default();
+    if features.iter().any(|feature| feature.trim().is_empty()) {
+        return Err(format!(
+            "{}: [native.rust] features cannot contain empty entries",
+            path.display()
+        ));
+    }
+
+    Ok(Some(ProjectNativeRust {
+        crate_name,
+        path: native_path,
+        helper,
+        helper_env,
+        features,
+    }))
+}
+
+/// Validates one required `[native.rust]` field.
+///
+/// Inputs:
+/// - `path`: manifest path for diagnostics.
+/// - `field`: required field name.
+/// - `value`: parsed optional field value.
+///
+/// Output:
+/// - Non-empty field value or a stable diagnostic.
+///
+/// Transformation:
+/// - Rejects missing and empty strings before package metadata can advertise an
+///   unusable native helper contract.
+fn required_native_rust_field(
+    path: &Path,
+    field: &str,
+    value: Option<String>,
+) -> Result<String, String> {
+    let value = value.ok_or_else(|| {
+        format!(
+            "{}: [native.rust] requires `{}` when the section is present",
+            path.display(),
+            field
+        )
+    })?;
+    if value.trim().is_empty() {
+        return Err(format!(
+            "{}: [native.rust] `{}` cannot be empty",
+            path.display(),
+            field
+        ));
+    }
+    Ok(value)
 }
 
 /// Parses an Erlang package adapter reservation.
@@ -658,6 +697,293 @@ fn parse_erlang_package_adapter(
             other
         )),
     }
+}
+
+/// Finalizes optional `[target.wasm]` metadata.
+///
+/// Inputs:
+/// - Fields collected while parsing a Wasm target section.
+///
+/// Output:
+/// - `Ok(None)` when no Wasm target section is present and the artifact is not
+///   Wasm.
+/// - `Ok(Some(ProjectWasmTarget))` when the reserved Wasm target metadata is
+///   complete.
+/// - `Err(String)` when artifact/profile metadata is missing or inconsistent.
+///
+/// Transformation:
+/// - Validates the manifest reservation without enabling Wasm byte emission.
+#[allow(clippy::too_many_arguments)]
+fn finish_wasm_target(
+    path: &Path,
+    artifact: ProjectArtifactKind,
+    seen: bool,
+    profile: Option<ProjectWasmProfile>,
+    exports: Option<Vec<String>>,
+    bridge: Option<String>,
+    capabilities: Option<Vec<String>>,
+    world: Option<String>,
+    validation_engine: Option<String>,
+) -> Result<Option<ProjectWasmTarget>, String> {
+    if !seen {
+        if is_wasm_artifact(artifact) {
+            return Err(format!(
+                "{}: project manifest [build] artifact `{}` requires [target.wasm]",
+                path.display(),
+                artifact.as_str()
+            ));
+        }
+        return Ok(None);
+    }
+    if !is_wasm_artifact(artifact) {
+        return Err(format!(
+            "{}: project manifest [target.wasm] requires [build] artifact wasm-core, wasm-browser, or wasm-component",
+            path.display()
+        ));
+    }
+
+    let profile = profile.ok_or_else(|| {
+        format!(
+            "{}: project manifest [target.wasm] requires profile",
+            path.display()
+        )
+    })?;
+    validate_wasm_artifact_profile(path, artifact, profile)?;
+    let exports = validate_manifest_string_list(path, "[target.wasm] exports", exports)?;
+    let capabilities =
+        validate_manifest_string_list(path, "[target.wasm] capabilities", capabilities)?;
+    let bridge = validate_optional_manifest_string(path, "[target.wasm] bridge", bridge)?;
+    let world = validate_optional_manifest_string(path, "[target.wasm] world", world)?;
+    let validation_engine = validate_optional_manifest_string(
+        path,
+        "[target.wasm] validation_engine",
+        validation_engine,
+    )?;
+
+    Ok(Some(ProjectWasmTarget {
+        profile,
+        exports,
+        bridge,
+        capabilities,
+        world,
+        validation_engine,
+    }))
+}
+
+/// Finalizes optional `[target.wasi]` metadata.
+///
+/// Inputs:
+/// - Fields collected while parsing a WASI target section.
+///
+/// Output:
+/// - `Ok(None)` when no WASI target section is present and the artifact is not
+///   WASI.
+/// - `Ok(Some(ProjectWasiTarget))` when the reserved WASI target metadata is
+///   complete.
+/// - `Err(String)` when artifact/profile metadata is missing or inconsistent.
+///
+/// Transformation:
+/// - Validates the manifest reservation without enabling WASI component
+///   emission.
+fn finish_wasi_target(
+    path: &Path,
+    artifact: ProjectArtifactKind,
+    seen: bool,
+    profile: Option<ProjectWasiProfile>,
+    world: Option<String>,
+    capabilities: Option<Vec<String>>,
+    validation_engine: Option<String>,
+) -> Result<Option<ProjectWasiTarget>, String> {
+    if !seen {
+        if is_wasi_artifact(artifact) {
+            return Err(format!(
+                "{}: project manifest [build] artifact `{}` requires [target.wasi]",
+                path.display(),
+                artifact.as_str()
+            ));
+        }
+        return Ok(None);
+    }
+    if !is_wasi_artifact(artifact) {
+        return Err(format!(
+            "{}: project manifest [target.wasi] requires [build] artifact wasi-cli, wasi-http, or wasi-worker",
+            path.display()
+        ));
+    }
+
+    let profile = profile.ok_or_else(|| {
+        format!(
+            "{}: project manifest [target.wasi] requires profile",
+            path.display()
+        )
+    })?;
+    validate_wasi_artifact_profile(path, artifact, profile)?;
+    let world = validate_optional_manifest_string(path, "[target.wasi] world", world)?;
+    let capabilities =
+        validate_manifest_string_list(path, "[target.wasi] capabilities", capabilities)?;
+    let validation_engine = validate_optional_manifest_string(
+        path,
+        "[target.wasi] validation_engine",
+        validation_engine,
+    )?;
+
+    Ok(Some(ProjectWasiTarget {
+        profile,
+        world,
+        capabilities,
+        validation_engine,
+    }))
+}
+
+/// Parses a reserved Wasm target profile.
+fn parse_wasm_profile(
+    value: &str,
+    path: &Path,
+    line_no: usize,
+) -> Result<ProjectWasmProfile, String> {
+    let parsed = parse_string(value, path, line_no)?;
+    match parsed.as_str() {
+        "core" => Ok(ProjectWasmProfile::Core),
+        "browser" => Ok(ProjectWasmProfile::Browser),
+        "component" => Ok(ProjectWasmProfile::Component),
+        other => Err(format!(
+            "{}:{}: unsupported [target.wasm] profile `{}`; supported profiles: core, browser, component",
+            path.display(),
+            line_no,
+            other
+        )),
+    }
+}
+
+/// Parses a reserved WASI target profile.
+fn parse_wasi_profile(
+    value: &str,
+    path: &Path,
+    line_no: usize,
+) -> Result<ProjectWasiProfile, String> {
+    let parsed = parse_string(value, path, line_no)?;
+    match parsed.as_str() {
+        "cli" => Ok(ProjectWasiProfile::Cli),
+        "http" => Ok(ProjectWasiProfile::Http),
+        "worker" => Ok(ProjectWasiProfile::Worker),
+        other => Err(format!(
+            "{}:{}: unsupported [target.wasi] profile `{}`; supported profiles: cli, http, worker",
+            path.display(),
+            line_no,
+            other
+        )),
+    }
+}
+
+/// Returns whether the artifact belongs to the reserved Wasm family.
+fn is_wasm_artifact(artifact: ProjectArtifactKind) -> bool {
+    matches!(
+        artifact,
+        ProjectArtifactKind::WasmCore
+            | ProjectArtifactKind::WasmBrowser
+            | ProjectArtifactKind::WasmComponent
+    )
+}
+
+/// Returns whether the artifact belongs to the reserved WASI family.
+fn is_wasi_artifact(artifact: ProjectArtifactKind) -> bool {
+    matches!(
+        artifact,
+        ProjectArtifactKind::WasiCli
+            | ProjectArtifactKind::WasiHttp
+            | ProjectArtifactKind::WasiWorker
+    )
+}
+
+/// Validates that a reserved Wasm artifact matches its target profile.
+fn validate_wasm_artifact_profile(
+    path: &Path,
+    artifact: ProjectArtifactKind,
+    profile: ProjectWasmProfile,
+) -> Result<(), String> {
+    let matches = matches!(
+        (artifact, profile),
+        (ProjectArtifactKind::WasmCore, ProjectWasmProfile::Core)
+            | (
+                ProjectArtifactKind::WasmBrowser,
+                ProjectWasmProfile::Browser
+            )
+            | (
+                ProjectArtifactKind::WasmComponent,
+                ProjectWasmProfile::Component
+            )
+    );
+    if matches {
+        Ok(())
+    } else {
+        Err(format!(
+            "{}: project manifest [build] artifact `{}` does not match [target.wasm] profile `{}`",
+            path.display(),
+            artifact.as_str(),
+            profile.as_str()
+        ))
+    }
+}
+
+/// Validates that a reserved WASI artifact matches its target profile.
+fn validate_wasi_artifact_profile(
+    path: &Path,
+    artifact: ProjectArtifactKind,
+    profile: ProjectWasiProfile,
+) -> Result<(), String> {
+    let matches = matches!(
+        (artifact, profile),
+        (ProjectArtifactKind::WasiCli, ProjectWasiProfile::Cli)
+            | (ProjectArtifactKind::WasiHttp, ProjectWasiProfile::Http)
+            | (ProjectArtifactKind::WasiWorker, ProjectWasiProfile::Worker)
+    );
+    if matches {
+        Ok(())
+    } else {
+        Err(format!(
+            "{}: project manifest [build] artifact `{}` does not match [target.wasi] profile `{}`",
+            path.display(),
+            artifact.as_str(),
+            profile.as_str()
+        ))
+    }
+}
+
+/// Validates an optional manifest string field.
+fn validate_optional_manifest_string(
+    path: &Path,
+    field: &str,
+    value: Option<String>,
+) -> Result<Option<String>, String> {
+    if let Some(value) = value {
+        if value.trim().is_empty() {
+            return Err(format!(
+                "{}: project manifest {} cannot be empty",
+                path.display(),
+                field
+            ));
+        }
+        Ok(Some(value))
+    } else {
+        Ok(None)
+    }
+}
+
+/// Validates an optional manifest string-list field.
+fn validate_manifest_string_list(
+    path: &Path,
+    field: &str,
+    values: Option<Vec<String>>,
+) -> Result<Vec<String>, String> {
+    let values = values.unwrap_or_default();
+    if values.iter().any(|value| value.trim().is_empty()) {
+        return Err(format!(
+            "{}: project manifest {} cannot contain empty entries",
+            path.display(),
+            field
+        ));
+    }
+    Ok(values)
 }
 
 /// Parses a supported target dependency section.
@@ -737,43 +1063,19 @@ fn parse_artifact_kind(
     match parsed.as_str() {
         "beam-thin" => Ok(ProjectArtifactKind::BeamThin),
         "library" => Ok(ProjectArtifactKind::Library),
+        "wasm-core" => Ok(ProjectArtifactKind::WasmCore),
+        "wasm-browser" => Ok(ProjectArtifactKind::WasmBrowser),
+        "wasm-component" => Ok(ProjectArtifactKind::WasmComponent),
+        "wasi-cli" => Ok(ProjectArtifactKind::WasiCli),
+        "wasi-http" => Ok(ProjectArtifactKind::WasiHttp),
+        "wasi-worker" => Ok(ProjectArtifactKind::WasiWorker),
         other => Err(format!(
-            "{}:{}: unsupported [build] artifact `{}`; supported artifacts: beam-thin, library",
+            "{}:{}: unsupported [build] artifact `{}`; supported artifacts: beam-thin, library, wasm-core, wasm-browser, wasm-component, wasi-cli, wasi-http, wasi-worker",
             path.display(),
             line_no,
             other
         )),
     }
-}
-
-/// Parses a non-negative unsigned integer manifest value.
-///
-/// Inputs:
-/// - `value`: trimmed manifest value text.
-/// - `path`: manifest path used in diagnostics.
-/// - `line_no`: 1-based line number used in diagnostics.
-///
-/// Output:
-/// - Parsed `u64` value.
-///
-/// Transformation:
-/// - Accepts plain ASCII decimal digits only so user-authored TOML config stays
-///   predictable and does not inherit target-tool numeric syntax variants.
-fn parse_non_negative_u64(value: &str, path: &Path, line_no: usize) -> Result<u64, String> {
-    if value.is_empty() || !value.chars().all(|ch| ch.is_ascii_digit()) {
-        return Err(format!(
-            "{}:{}: project manifest value must be a non-negative integer",
-            path.display(),
-            line_no
-        ));
-    }
-    value.parse::<u64>().map_err(|err| {
-        format!(
-            "{}:{}: project manifest integer value is out of range: {err}",
-            path.display(),
-            line_no
-        )
-    })
 }
 
 /// Parses one project dependency manifest entry.
@@ -1143,391 +1445,6 @@ fn parse_inline_value(
     } else {
         parse_string(value, path, line_no).map(ManifestInlineValue::String)
     }
-}
-
-/// Validates a dependency alias key.
-///
-/// Inputs:
-/// - `alias`: dependency alias from the manifest key.
-/// - `path`: manifest path used in diagnostics.
-/// - `line_no`: 1-based line number used in diagnostics.
-///
-/// Output:
-/// - `Ok(())` when the alias is accepted.
-/// - `Err(String)` when the alias cannot be used as stable dependency
-///   metadata.
-///
-/// Transformation:
-/// - Uses the same package-root spelling subset as package names so dependency
-///   aliases remain stable across target adapters.
-fn validate_dependency_alias(alias: &str, path: &Path, line_no: usize) -> Result<(), String> {
-    let mut chars = alias.chars();
-    let Some(first) = chars.next() else {
-        return Err(format!(
-            "{}:{}: project dependency alias cannot be empty",
-            path.display(),
-            line_no
-        ));
-    };
-    if !first.is_ascii_lowercase() {
-        return Err(format!(
-            "{}:{}: project dependency alias must start with a lowercase ASCII letter",
-            path.display(),
-            line_no
-        ));
-    }
-    if chars.any(|ch| !(ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_' || ch == '-')) {
-        return Err(format!(
-            "{}:{}: project dependency alias may contain only lowercase ASCII letters, digits, `_`, or `-`",
-            path.display(),
-            line_no
-        ));
-    }
-    Ok(())
-}
-
-/// Validates the package name accepted by the project manifest.
-///
-/// Inputs:
-/// - `name`: parsed package name.
-/// - `path`: manifest path used in diagnostics.
-///
-/// Output:
-/// - `Ok(())` when the name is accepted.
-/// - `Err(String)` when the name cannot be used as a package root.
-///
-/// Transformation:
-/// - Enforces the package-root naming subset used by module layout validation:
-///   lower-case ASCII start, followed by lower-case ASCII letters, digits,
-///   `_`, or `-`.
-fn validate_package_name(name: &str, path: &Path) -> Result<(), String> {
-    let mut chars = name.chars();
-    let Some(first) = chars.next() else {
-        return Err(format!(
-            "{}: project manifest [package] name cannot be empty",
-            path.display()
-        ));
-    };
-    if !first.is_ascii_lowercase() {
-        return Err(format!(
-            "{}: project manifest [package] name must start with a lowercase ASCII letter",
-            path.display()
-        ));
-    }
-    if chars.any(|ch| !(ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_' || ch == '-')) {
-        return Err(format!(
-            "{}: project manifest [package] name may contain only lowercase ASCII letters, digits, `_`, or `-`",
-            path.display()
-        ));
-    }
-    Ok(())
-}
-
-/// Validates an optional package namespace.
-///
-/// Inputs:
-/// - `namespace`: parsed `[package] namespace` value.
-/// - `path`: manifest path used in diagnostics.
-///
-/// Output:
-/// - `Ok(())` when the namespace is a dot-separated lowercase module prefix.
-/// - `Err(String)` when the namespace cannot be mapped onto source layout.
-///
-/// Transformation:
-/// - Keeps first-party package namespace grants explicit without weakening
-///   package names. Every namespace segment must be a source-path-compatible
-///   lower-case module segment.
-fn validate_package_namespace(namespace: &str, path: &Path) -> Result<(), String> {
-    if namespace.trim().is_empty() {
-        return Err(format!(
-            "{}: project manifest [package] namespace cannot be empty",
-            path.display()
-        ));
-    }
-    for segment in namespace.split('.') {
-        validate_package_namespace_segment(segment, namespace, path)?;
-    }
-    Ok(())
-}
-
-/// Validates one package namespace segment.
-///
-/// Inputs:
-/// - `segment`: one dot-separated namespace segment.
-/// - `namespace`: full namespace used in diagnostics.
-/// - `path`: manifest path used in diagnostics.
-///
-/// Output:
-/// - `Ok(())` when the segment is accepted.
-/// - `Err(String)` when the segment is empty or contains unsupported
-///   characters.
-///
-/// Transformation:
-/// - Applies the same lowercase source-path character policy as package roots,
-///   but disallows `-` because namespace segments are Terlan module segments.
-fn validate_package_namespace_segment(
-    segment: &str,
-    namespace: &str,
-    path: &Path,
-) -> Result<(), String> {
-    let mut chars = segment.chars();
-    let Some(first) = chars.next() else {
-        return Err(format!(
-            "{}: project manifest [package] namespace `{}` contains an empty segment",
-            path.display(),
-            namespace
-        ));
-    };
-    if !first.is_ascii_lowercase() {
-        return Err(format!(
-            "{}: project manifest [package] namespace `{}` segments must start with a lowercase ASCII letter",
-            path.display(),
-            namespace
-        ));
-    }
-    if chars.any(|ch| !(ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_')) {
-        return Err(format!(
-            "{}: project manifest [package] namespace `{}` segments may contain only lowercase ASCII letters, digits, or `_`",
-            path.display(),
-            namespace
-        ));
-    }
-    Ok(())
-}
-
-/// Validates the package version accepted by the project manifest.
-///
-/// Inputs:
-/// - `version`: parsed package version.
-/// - `path`: manifest path used in diagnostics.
-///
-/// Output:
-/// - `Ok(())` when the version is accepted.
-/// - `Err(String)` when the version cannot identify a package build.
-///
-/// Transformation:
-/// - Enforces a small SemVer-like numeric core (`major.minor.patch`) and allows
-///   optional pre-release/build suffix characters without interpreting them.
-fn validate_package_version(version: &str, path: &Path) -> Result<(), String> {
-    let core = version
-        .split(['-', '+'])
-        .next()
-        .expect("split always returns at least one item");
-    let parts = core.split('.').collect::<Vec<_>>();
-    if parts.len() != 3 || parts.iter().any(|part| part.is_empty()) {
-        return Err(format!(
-            "{}: project manifest [package] version must use major.minor.patch form",
-            path.display()
-        ));
-    }
-    if !parts
-        .iter()
-        .all(|part| part.chars().all(|ch| ch.is_ascii_digit()))
-    {
-        return Err(format!(
-            "{}: project manifest [package] version numeric core must contain only digits",
-            path.display()
-        ));
-    }
-    if version
-        .chars()
-        .any(|ch| !(ch.is_ascii_alphanumeric() || ch == '.' || ch == '-' || ch == '+' || ch == '_'))
-    {
-        return Err(format!(
-            "{}: project manifest [package] version contains unsupported characters",
-            path.display()
-        ));
-    }
-    Ok(())
-}
-
-/// Parses a double-quoted manifest string.
-///
-/// Inputs:
-/// - `value`: trimmed value text.
-/// - `path`: manifest path used in diagnostics.
-/// - `line_no`: 1-based line number used in diagnostics.
-///
-/// Output:
-/// - Unescaped string value.
-///
-/// Transformation:
-/// - Accepts a small escape subset needed by package names and source roots:
-///   `\"`, `\\`, `\n`, `\r`, and `\t`.
-fn parse_string(value: &str, path: &Path, line_no: usize) -> Result<String, String> {
-    let inner = value
-        .strip_prefix('"')
-        .and_then(|text| text.strip_suffix('"'))
-        .ok_or_else(|| {
-            format!(
-                "{}:{}: project manifest value must be a double-quoted string",
-                path.display(),
-                line_no
-            )
-        })?;
-    unescape_string(inner, path, line_no)
-}
-
-/// Parses an array of double-quoted manifest strings.
-///
-/// Inputs:
-/// - `value`: trimmed value text.
-/// - `path`: manifest path used in diagnostics.
-/// - `line_no`: 1-based line number used in diagnostics.
-///
-/// Output:
-/// - Ordered string entries.
-///
-/// Transformation:
-/// - Parses the reviewed one-line `[ "a", "b" ]` subset and rejects empty
-///   arrays so source-root discovery remains explicit.
-fn parse_string_array(value: &str, path: &Path, line_no: usize) -> Result<Vec<String>, String> {
-    let inner = value
-        .strip_prefix('[')
-        .and_then(|text| text.strip_suffix(']'))
-        .ok_or_else(|| {
-            format!(
-                "{}:{}: project manifest value must be an array of strings",
-                path.display(),
-                line_no
-            )
-        })?;
-    let mut entries = Vec::new();
-    for item in split_array_items(inner, path, line_no)? {
-        entries.push(parse_string(item.trim(), path, line_no)?);
-    }
-    if entries.is_empty() {
-        return Err(format!(
-            "{}:{}: project manifest string array cannot be empty",
-            path.display(),
-            line_no
-        ));
-    }
-    Ok(entries)
-}
-
-/// Splits a manifest array body into item slices.
-///
-/// Inputs:
-/// - `inner`: text inside `[` and `]`.
-/// - `path`: manifest path used in diagnostics.
-/// - `line_no`: 1-based line number used in diagnostics.
-///
-/// Output:
-/// - Slices for each array entry.
-///
-/// Transformation:
-/// - Splits on commas outside strings and nested array brackets, then rejects
-///   trailing empty entries.
-fn split_array_items<'a>(
-    inner: &'a str,
-    path: &Path,
-    line_no: usize,
-) -> Result<Vec<&'a str>, String> {
-    let mut items = Vec::new();
-    let mut start = 0;
-    let mut in_string = false;
-    let mut escaped = false;
-    let mut bracket_depth = 0usize;
-    for (index, ch) in inner.char_indices() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match ch {
-            '\\' if in_string => escaped = true,
-            '"' => in_string = !in_string,
-            '[' if !in_string => bracket_depth += 1,
-            ']' if !in_string => {
-                bracket_depth = bracket_depth.checked_sub(1).ok_or_else(|| {
-                    format!(
-                        "{}:{}: project manifest string array has an unmatched closing bracket",
-                        path.display(),
-                        line_no
-                    )
-                })?;
-            }
-            ',' if !in_string && bracket_depth == 0 => {
-                let item = inner[start..index].trim();
-                if item.is_empty() {
-                    return Err(format!(
-                        "{}:{}: project manifest string array contains an empty item",
-                        path.display(),
-                        line_no
-                    ));
-                }
-                items.push(item);
-                start = index + 1;
-            }
-            _ => {}
-        }
-    }
-    if in_string {
-        return Err(format!(
-            "{}:{}: project manifest string array has an unterminated string",
-            path.display(),
-            line_no
-        ));
-    }
-    if bracket_depth != 0 {
-        return Err(format!(
-            "{}:{}: project manifest string array has an unclosed nested array",
-            path.display(),
-            line_no
-        ));
-    }
-    let tail = inner[start..].trim();
-    if !tail.is_empty() {
-        items.push(tail);
-    }
-    Ok(items)
-}
-
-/// Unescapes supported manifest string escapes.
-///
-/// Inputs:
-/// - `inner`: text inside double quotes.
-/// - `path`: manifest path used in diagnostics.
-/// - `line_no`: 1-based line number used in diagnostics.
-///
-/// Output:
-/// - Unescaped string.
-///
-/// Transformation:
-/// - Converts the reviewed escape subset and rejects unknown or dangling
-///   escapes so manifest text cannot be misread.
-fn unescape_string(inner: &str, path: &Path, line_no: usize) -> Result<String, String> {
-    let mut out = String::new();
-    let mut chars = inner.chars();
-    while let Some(ch) = chars.next() {
-        if ch != '\\' {
-            out.push(ch);
-            continue;
-        }
-        let escaped = chars.next().ok_or_else(|| {
-            format!(
-                "{}:{}: project manifest string has a dangling escape",
-                path.display(),
-                line_no
-            )
-        })?;
-        match escaped {
-            '"' => out.push('"'),
-            '\\' => out.push('\\'),
-            'n' => out.push('\n'),
-            'r' => out.push('\r'),
-            't' => out.push('\t'),
-            other => {
-                return Err(format!(
-                    "{}:{}: unsupported project manifest string escape `\\{}`",
-                    path.display(),
-                    line_no,
-                    other
-                ));
-            }
-        }
-    }
-    Ok(out)
 }
 
 #[cfg(test)]

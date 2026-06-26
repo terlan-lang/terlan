@@ -1,0 +1,232 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Element
+ */
+
+module std.js.Dom.ElementTest.
+
+import type std.js.Dom.Element.Element.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub attributes_typechecks(receiver: Element): NamedNodeMap ->
+    receiver.attributes().
+
+pub class_list_typechecks(receiver: Element): DOMTokenList ->
+    receiver.class_list().
+
+pub class_name_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.class_name().
+
+pub client_height_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.client_height().
+
+pub client_left_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.client_left().
+
+pub client_top_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.client_top().
+
+pub client_width_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.client_width().
+
+pub current_css_zoom_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.current_css_zoom().
+
+pub id_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.id().
+
+pub inner_html_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.inner_html().
+
+pub local_name_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.local_name().
+
+pub namespace_uri_typechecks(receiver: Element): Option[std.js.String.JsString] ->
+    receiver.namespace_uri().
+
+pub outer_html_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.outer_html().
+
+pub owner_document_typechecks(receiver: Element): Document ->
+    receiver.owner_document().
+
+pub part_typechecks(receiver: Element): DOMTokenList ->
+    receiver.part().
+
+pub prefix_typechecks(receiver: Element): Option[std.js.String.JsString] ->
+    receiver.prefix().
+
+pub scroll_height_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.scroll_height().
+
+pub scroll_left_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.scroll_left().
+
+pub scroll_top_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.scroll_top().
+
+pub scroll_width_typechecks(receiver: Element): std.js.Number.JsNumber ->
+    receiver.scroll_width().
+
+pub shadow_root_typechecks(receiver: Element): Option[ShadowRoot] ->
+    receiver.shadow_root().
+
+pub slot_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.slot().
+
+pub tag_name_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.tag_name().
+
+pub attach_shadow_typechecks(receiver: Element, init: ShadowRootInit): ShadowRoot ->
+    receiver.attach_shadow(init).
+
+pub check_visibility_typechecks(receiver: Element, options: CheckVisibilityOptions): std.core.Bool ->
+    receiver.check_visibility(options).
+
+pub closest_typechecks(receiver: Element, selectors: std.js.String.JsString): Option[E] ->
+    receiver.closest(selectors).
+
+pub computed_style_map_typechecks(receiver: Element): StylePropertyMapReadOnly ->
+    receiver.computed_style_map().
+
+pub get_attribute_typechecks(receiver: Element, qualified_name: std.js.String.JsString): Option[std.js.String.JsString] ->
+    receiver.get_attribute(qualified_name).
+
+pub get_attribute_ns_typechecks(receiver: Element, namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): Option[std.js.String.JsString] ->
+    receiver.get_attribute_ns(namespace, local_name).
+
+pub get_attribute_names_typechecks(receiver: Element): std.js.Array[std.js.String.JsString] ->
+    receiver.get_attribute_names().
+
+pub get_attribute_node_typechecks(receiver: Element, qualified_name: std.js.String.JsString): Option[Attr] ->
+    receiver.get_attribute_node(qualified_name).
+
+pub get_attribute_node_ns_typechecks(receiver: Element, namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): Option[Attr] ->
+    receiver.get_attribute_node_ns(namespace, local_name).
+
+pub get_bounding_client_rect_typechecks(receiver: Element): DOMRect ->
+    receiver.get_bounding_client_rect().
+
+pub get_client_rects_typechecks(receiver: Element): DOMRectList ->
+    receiver.get_client_rects().
+
+pub get_elements_by_class_name_typechecks(receiver: Element, class_names: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    receiver.get_elements_by_class_name(class_names).
+
+pub get_elements_by_tag_name_typechecks(receiver: Element, qualified_name: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    receiver.get_elements_by_tag_name(qualified_name).
+
+pub get_elements_by_tag_name_ns_typechecks(receiver: Element, namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    receiver.get_elements_by_tag_name_ns(namespace, local_name).
+
+pub get_html_typechecks(receiver: Element, options: GetHTMLOptions): std.js.String.JsString ->
+    receiver.get_html(options).
+
+pub has_attribute_typechecks(receiver: Element, qualified_name: std.js.String.JsString): std.core.Bool ->
+    receiver.has_attribute(qualified_name).
+
+pub has_attribute_ns_typechecks(receiver: Element, namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Bool ->
+    receiver.has_attribute_ns(namespace, local_name).
+
+pub has_attributes_typechecks(receiver: Element): std.core.Bool ->
+    receiver.has_attributes().
+
+pub has_pointer_capture_typechecks(receiver: Element, pointer_id: std.js.Number.JsNumber): std.core.Bool ->
+    receiver.has_pointer_capture(pointer_id).
+
+pub insert_adjacent_element_typechecks(receiver: Element, where_: InsertPosition, element: Element): Option[Element] ->
+    receiver.insert_adjacent_element(where_, element).
+
+pub insert_adjacent_html_typechecks(receiver: Element, position: InsertPosition, string: std.js.String.JsString): std.core.Unit ->
+    receiver.insert_adjacent_html(position, string).
+
+pub insert_adjacent_text_typechecks(receiver: Element, where_: InsertPosition, data: std.js.String.JsString): std.core.Unit ->
+    receiver.insert_adjacent_text(where_, data).
+
+pub matches_typechecks(receiver: Element, selectors: std.js.String.JsString): std.core.Bool ->
+    receiver.matches(selectors).
+
+pub release_pointer_capture_typechecks(receiver: Element, pointer_id: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.release_pointer_capture(pointer_id).
+
+pub remove_attribute_typechecks(receiver: Element, qualified_name: std.js.String.JsString): std.core.Unit ->
+    receiver.remove_attribute(qualified_name).
+
+pub remove_attribute_ns_typechecks(receiver: Element, namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Unit ->
+    receiver.remove_attribute_ns(namespace, local_name).
+
+pub remove_attribute_node_typechecks(receiver: Element, attr: Attr): Attr ->
+    receiver.remove_attribute_node(attr).
+
+pub request_fullscreen_typechecks(receiver: Element, options: FullscreenOptions): std.js.Promise[std.core.Unit] ->
+    receiver.request_fullscreen(options).
+
+pub request_pointer_lock_typechecks(receiver: Element, options: PointerLockOptions): std.js.Promise[std.core.Unit] ->
+    receiver.request_pointer_lock(options).
+
+pub scroll_typechecks(receiver: Element, options: ScrollToOptions): std.core.Unit ->
+    receiver.scroll(options).
+
+pub scroll_typechecks(receiver: Element, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.scroll(x, y).
+
+pub scroll_by_typechecks(receiver: Element, options: ScrollToOptions): std.core.Unit ->
+    receiver.scroll_by(options).
+
+pub scroll_by_typechecks(receiver: Element, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.scroll_by(x, y).
+
+pub scroll_into_view_typechecks(receiver: Element, arg: ScrollIntoViewOptions | std.core.Bool): std.core.Unit ->
+    receiver.scroll_into_view(arg).
+
+pub scroll_to_typechecks(receiver: Element, options: ScrollToOptions): std.core.Unit ->
+    receiver.scroll_to(options).
+
+pub scroll_to_typechecks(receiver: Element, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.scroll_to(x, y).
+
+pub set_attribute_typechecks(receiver: Element, qualified_name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit ->
+    receiver.set_attribute(qualified_name, value).
+
+pub set_attribute_ns_typechecks(receiver: Element, namespace: Option[std.js.String.JsString], qualified_name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit ->
+    receiver.set_attribute_ns(namespace, qualified_name, value).
+
+pub set_attribute_node_typechecks(receiver: Element, attr: Attr): Option[Attr] ->
+    receiver.set_attribute_node(attr).
+
+pub set_attribute_node_ns_typechecks(receiver: Element, attr: Attr): Option[Attr] ->
+    receiver.set_attribute_node_ns(attr).
+
+pub set_html_unsafe_typechecks(receiver: Element, html_: std.js.String.JsString): std.core.Unit ->
+    receiver.set_html_unsafe(html_).
+
+pub set_pointer_capture_typechecks(receiver: Element, pointer_id: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.set_pointer_capture(pointer_id).
+
+pub toggle_attribute_typechecks(receiver: Element, qualified_name: std.js.String.JsString, force: std.core.Bool): std.core.Bool ->
+    receiver.toggle_attribute(qualified_name, force).
+
+pub webkit_matches_selector_typechecks(receiver: Element, selectors: std.js.String.JsString): std.core.Bool ->
+    receiver.webkit_matches_selector(selectors).
+
+pub text_content_typechecks(receiver: Element): std.js.String.JsString ->
+    receiver.text_content().
+
+pub add_event_listener_typechecks(receiver: Element, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: Element, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

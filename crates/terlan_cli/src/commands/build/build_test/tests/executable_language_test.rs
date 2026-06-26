@@ -83,19 +83,19 @@ fn build_command_compiles_project_explicit_constructor_entrypoint() {
         "\
 module app.Main.\n\
 \n\
-pub type Done = Unit.\n\
-type Hidden = Unit.\n\
+pub type Done = Int.\n\
+type Hidden = Int.\n\
 \n\
 pub constructor Done {\n\
-(): Done -> Unit\n\
+(value: Int): Done -> value\n\
 }.\n\
 \n\
 constructor Hidden {\n\
-(): Hidden -> Unit\n\
+(value: Int): Hidden -> value\n\
 }.\n\
 \n\
 pub main(): Unit ->\n\
-let visible = Done(); hidden = Hidden(); std.io.Console.println(\"constructors ok\").\n",
+let visible = Done(1); hidden = Hidden(2); std.io.Console.println(\"constructors ok\").\n",
     )
     .expect("failed to write explicit constructor module");
 
@@ -118,12 +118,12 @@ let visible = Done(); hidden = Hidden(); std.io.Console.println(\"constructors o
     let erl_text =
         fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read generated app_main.erl");
     assert!(
-        erl_text.contains("typer_ctor_done_0/0"),
+        erl_text.contains("typer_ctor_done_1/1"),
         "public constructor helper should be exported and callable:\n{}",
         erl_text
     );
     assert!(
-        erl_text.contains("typer_ctor_hidden_0() ->"),
+        erl_text.contains("typer_ctor_hidden_1(Value) ->"),
         "private constructor helper should still lower for local use:\n{}",
         erl_text
     );
@@ -188,7 +188,7 @@ name: String\n\
 }.\n\
 \n\
 pub constructor User {\n\
-(name: String): User -> #User{ name = name }\n\
+(name: String): User -> User(name = name)\n\
 }.\n\
 \n\
 pub (user: User) display_name(): String ->\n\
@@ -283,7 +283,7 @@ name: String\n\
 }.\n\
 \n\
 pub constructor User {\n\
-(name: String): User -> #User{ name = name }\n\
+(name: String): User -> User(name = name)\n\
 }.\n\
 \n\
 pub (user: User) to_string(): String ->\n\
@@ -387,7 +387,7 @@ name(value: ExternalUser): String ->\n\
 }.\n\
 \n\
 pub main(): Unit ->\n\
-println(Named.name(#ExternalUser{name = \"Ada\"})).\n",
+println(Named.name(ExternalUser(name = \"Ada\"))).\n",
     )
     .expect("failed to write explicit trait impl dispatch module");
 
@@ -484,7 +484,7 @@ name: String\n\
 }.\n\
 \n\
 pub constructor ExternalUser {\n\
-(name: String): ExternalUser -> #ExternalUser{name = name}\n\
+(name: String): ExternalUser -> ExternalUser(name = name)\n\
 }.\n\
 \n\
 pub impl Named[ExternalUser] for ExternalUser {\n\
@@ -747,6 +747,96 @@ println(Int.to_string(run_callback(41, increment))).\n",
     assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "42\n");
 }
 
+/// Verifies imported module-member functions can be passed as values.
+///
+/// Inputs:
+/// - A manifest-backed project with `app.Users.index/1`.
+/// - A caller importing `app.Users` and passing `Users.index` to a
+///   higher-order local function.
+///
+/// Output:
+/// - Test passes when the emitted Erlang captures the imported function as
+///   `fun app_users:index/1` and the launcher prints the callback result.
+///
+/// Transformation:
+/// - Builds through parse, import-interface loading, typecheck, syntax
+///   lowering, `erlc`, and launcher execution to prove uppercase module-member
+///   access can resolve as a typed function value without adding route-specific
+///   syntax.
+#[test]
+fn build_command_compiles_imported_module_member_function_value() {
+    let dir = make_temp_dir("directory_project_imported_module_member_function_value");
+    let project_dir = dir.join("project");
+    let app_dir = project_dir.join("src/app");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+    fs::write(
+        project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+    )
+    .expect("failed to write project manifest fixture");
+    fs::write(
+        app_dir.join("Users.terl"),
+        "\
+module app.Users.\n\
+\n\
+pub index(value: Int): Int ->\n\
+value + 1.\n",
+    )
+    .expect("failed to write provider module");
+    fs::write(
+        app_dir.join("Main.terl"),
+        "\
+module app.Main.\n\
+\n\
+import app.Users.\n\
+import std.io.Console.{println}.\n\
+import std.core.Int.\n\
+\n\
+pub run_callback(value: Int, f: (Int) -> Int): Int ->\n\
+f.(value).\n\
+\n\
+pub main(): Unit ->\n\
+println(Int.to_string(run_callback(41, Users.index))).\n",
+    )
+    .expect("failed to write caller module");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            project_dir.display().to_string(),
+            "--target".to_string(),
+            "erlang".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let erl_source =
+        fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+    assert!(
+        erl_source.contains("fun app_users:index/1"),
+        "imported module-member function value should lower as remote fun:\n{}",
+        erl_source
+    );
+    let executable_path = out_dir.join("bin/app");
+    let launcher_output = Command::new(&executable_path)
+        .output()
+        .expect("run imported module-member function-value launcher");
+    assert!(
+        launcher_output.status.success(),
+        "launcher failed: stdout={} stderr={}",
+        String::from_utf8_lossy(&launcher_output.stdout),
+        String::from_utf8_lossy(&launcher_output.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "42\n");
+}
+
 /// Verifies manifest builds lower receiver-method pipe syntax.
 ///
 /// Inputs:
@@ -784,7 +874,7 @@ name: String\n\
 }.\n\
 \n\
 pub constructor User {\n\
-(name: String): User -> #User{ name = name }\n\
+(name: String): User -> User(name = name)\n\
 }.\n\
 \n\
 pub (user: User) display_name(): String ->\n\
@@ -873,7 +963,7 @@ value: String\n\
 }.\n\
 \n\
 pub constructor Cell {\n\
-(value: String): Cell -> #Cell{ value = value }\n\
+(value: String): Cell -> Cell(value = value)\n\
 }.\n\
 \n\
 pub (mut cell: Cell) replace(value: String): Unit ->\n\
@@ -974,7 +1064,7 @@ value: Int\n\
 }.\n\
 \n\
 pub constructor IndexedBox {\n\
-(value: Int): IndexedBox -> #IndexedBox{ value = value }\n\
+(value: Int): IndexedBox -> IndexedBox(value = value)\n\
 }.\n\
 \n\
 pub impl IndexGet[IndexedBox, Int, Int] for IndexedBox {\n\
@@ -1077,7 +1167,7 @@ value: Int\n\
 }.\n\
 \n\
 pub constructor IndexedBox {\n\
-(value: Int): IndexedBox -> #IndexedBox{ value = value }\n\
+(value: Int): IndexedBox -> IndexedBox(value = value)\n\
 }.\n\
 \n\
 pub (mut box: IndexedBox) set_at(index: Int, value: Int): Unit ->\n\

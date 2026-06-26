@@ -1,0 +1,144 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGElementTagNameMap
+ */
+
+module std.js.Dom.SVGElementTagNameMap.
+
+pub opaque type SVGElementTagNameMap.
+
+pub (value: SVGElementTagNameMap) a(): SVGAElement.
+
+pub (value: SVGElementTagNameMap) animate(): SVGAnimateElement.
+
+pub (value: SVGElementTagNameMap) animate_motion(): SVGAnimateMotionElement.
+
+pub (value: SVGElementTagNameMap) animate_transform(): SVGAnimateTransformElement.
+
+pub (value: SVGElementTagNameMap) circle(): SVGCircleElement.
+
+pub (value: SVGElementTagNameMap) clip_path(): SVGClipPathElement.
+
+pub (value: SVGElementTagNameMap) defs(): SVGDefsElement.
+
+pub (value: SVGElementTagNameMap) desc(): SVGDescElement.
+
+pub (value: SVGElementTagNameMap) ellipse(): SVGEllipseElement.
+
+pub (value: SVGElementTagNameMap) fe_blend(): SVGFEBlendElement.
+
+pub (value: SVGElementTagNameMap) fe_color_matrix(): SVGFEColorMatrixElement.
+
+pub (value: SVGElementTagNameMap) fe_component_transfer(): SVGFEComponentTransferElement.
+
+pub (value: SVGElementTagNameMap) fe_composite(): SVGFECompositeElement.
+
+pub (value: SVGElementTagNameMap) fe_convolve_matrix(): SVGFEConvolveMatrixElement.
+
+pub (value: SVGElementTagNameMap) fe_diffuse_lighting(): SVGFEDiffuseLightingElement.
+
+pub (value: SVGElementTagNameMap) fe_displacement_map(): SVGFEDisplacementMapElement.
+
+pub (value: SVGElementTagNameMap) fe_distant_light(): SVGFEDistantLightElement.
+
+pub (value: SVGElementTagNameMap) fe_drop_shadow(): SVGFEDropShadowElement.
+
+pub (value: SVGElementTagNameMap) fe_flood(): SVGFEFloodElement.
+
+pub (value: SVGElementTagNameMap) fe_func_a(): SVGFEFuncAElement.
+
+pub (value: SVGElementTagNameMap) fe_func_b(): SVGFEFuncBElement.
+
+pub (value: SVGElementTagNameMap) fe_func_g(): SVGFEFuncGElement.
+
+pub (value: SVGElementTagNameMap) fe_func_r(): SVGFEFuncRElement.
+
+pub (value: SVGElementTagNameMap) fe_gaussian_blur(): SVGFEGaussianBlurElement.
+
+pub (value: SVGElementTagNameMap) fe_image(): SVGFEImageElement.
+
+pub (value: SVGElementTagNameMap) fe_merge(): SVGFEMergeElement.
+
+pub (value: SVGElementTagNameMap) fe_merge_node(): SVGFEMergeNodeElement.
+
+pub (value: SVGElementTagNameMap) fe_morphology(): SVGFEMorphologyElement.
+
+pub (value: SVGElementTagNameMap) fe_offset(): SVGFEOffsetElement.
+
+pub (value: SVGElementTagNameMap) fe_point_light(): SVGFEPointLightElement.
+
+pub (value: SVGElementTagNameMap) fe_specular_lighting(): SVGFESpecularLightingElement.
+
+pub (value: SVGElementTagNameMap) fe_spot_light(): SVGFESpotLightElement.
+
+pub (value: SVGElementTagNameMap) fe_tile(): SVGFETileElement.
+
+pub (value: SVGElementTagNameMap) fe_turbulence(): SVGFETurbulenceElement.
+
+pub (value: SVGElementTagNameMap) filter(): SVGFilterElement.
+
+pub (value: SVGElementTagNameMap) foreign_object(): SVGForeignObjectElement.
+
+pub (value: SVGElementTagNameMap) g(): SVGGElement.
+
+pub (value: SVGElementTagNameMap) image(): SVGImageElement.
+
+pub (value: SVGElementTagNameMap) line(): SVGLineElement.
+
+pub (value: SVGElementTagNameMap) linear_gradient(): SVGLinearGradientElement.
+
+pub (value: SVGElementTagNameMap) marker(): SVGMarkerElement.
+
+pub (value: SVGElementTagNameMap) mask(): SVGMaskElement.
+
+pub (value: SVGElementTagNameMap) metadata(): SVGMetadataElement.
+
+pub (value: SVGElementTagNameMap) mpath(): SVGMPathElement.
+
+pub (value: SVGElementTagNameMap) path(): SVGPathElement.
+
+pub (value: SVGElementTagNameMap) pattern(): SVGPatternElement.
+
+pub (value: SVGElementTagNameMap) polygon(): SVGPolygonElement.
+
+pub (value: SVGElementTagNameMap) polyline(): SVGPolylineElement.
+
+pub (value: SVGElementTagNameMap) radial_gradient(): SVGRadialGradientElement.
+
+pub (value: SVGElementTagNameMap) rect(): SVGRectElement.
+
+pub (value: SVGElementTagNameMap) script(): SVGScriptElement.
+
+pub (value: SVGElementTagNameMap) set(): SVGSetElement.
+
+pub (value: SVGElementTagNameMap) stop(): SVGStopElement.
+
+pub (value: SVGElementTagNameMap) style(): SVGStyleElement.
+
+pub (value: SVGElementTagNameMap) svg(): SVGSVGElement.
+
+pub (value: SVGElementTagNameMap) switch(): SVGSwitchElement.
+
+pub (value: SVGElementTagNameMap) symbol(): SVGSymbolElement.
+
+pub (value: SVGElementTagNameMap) text(): SVGTextElement.
+
+pub (value: SVGElementTagNameMap) text_path(): SVGTextPathElement.
+
+pub (value: SVGElementTagNameMap) title(): SVGTitleElement.
+
+pub (value: SVGElementTagNameMap) tspan(): SVGTSpanElement.
+
+pub (value: SVGElementTagNameMap) use(): SVGUseElement.
+
+pub (value: SVGElementTagNameMap) view(): SVGViewElement.

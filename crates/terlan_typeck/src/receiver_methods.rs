@@ -28,6 +28,8 @@ use super::{
 pub(super) struct ReceiverMethodDispatchSignature {
     pub(super) receiver_type: Type,
     pub(super) scheme: FunctionScheme,
+    pub(super) param_names: Vec<String>,
+    pub(super) param_defaults: Vec<Option<String>>,
     pub(super) receiver_mutable: bool,
 }
 
@@ -97,7 +99,7 @@ pub(super) fn collect_syntax_receiver_method_signatures(
         );
     }
 
-    extend_receiver_method_signatures_with_local_struct_derives(module, &mut methods);
+    extend_receiver_method_signatures_with_local_struct_includes(module, &mut methods);
     methods
 }
 
@@ -105,7 +107,7 @@ pub(super) fn collect_syntax_receiver_method_signatures(
 ///
 /// Inputs:
 /// - `module`: syntax-output module containing receiver methods and struct
-///   derivation clauses.
+///   inclusion clauses.
 /// - `resolved`: resolved module context with imported type/interface metadata.
 /// - `alias_names`, `imported_type_names`, `imported_type_aliases`, and
 ///   `local_aliases`: visible type-resolution context.
@@ -113,12 +115,12 @@ pub(super) fn collect_syntax_receiver_method_signatures(
 /// Output:
 /// - Receiver-method dispatch table including local receiver methods, local
 ///   inherited receiver methods, and imported parent receiver methods inherited
-///   through `struct Child derives ImportedParent`.
+///   through `struct Child includes ImportedParent`.
 ///
 /// Transformation:
 /// - Starts with the local dispatch collector, then reads provider interfaces
 ///   for explicitly marked receiver methods whose receiver type is an imported
-///   derived parent. Inherited imported candidates are rewritten to the local
+///   included parent. Inherited imported candidates are rewritten to the local
 ///   child receiver type.
 pub(super) fn collect_syntax_receiver_method_dispatch_signatures_with_imports(
     module: &SyntaxModuleOutput,
@@ -136,7 +138,7 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures_with_imports(
         local_aliases,
     );
     extend_receiver_method_dispatch_with_imported_receiver_methods(resolved, &mut methods);
-    extend_receiver_method_dispatch_with_imported_struct_derives(module, resolved, &mut methods);
+    extend_receiver_method_dispatch_with_imported_struct_includes(module, resolved, &mut methods);
     methods
 }
 
@@ -186,8 +188,21 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
                                     scheme: FunctionScheme {
                                         params,
                                         ret: scheme.ret,
+                                        generic_params: scheme.generic_params,
                                         bounds: scheme.bounds,
                                     },
+                                    param_names: signature
+                                        .params
+                                        .iter()
+                                        .skip(1)
+                                        .map(|param| param.name.clone())
+                                        .collect(),
+                                    param_defaults: signature
+                                        .params
+                                        .iter()
+                                        .skip(1)
+                                        .map(|param| param.default_text.clone())
+                                        .collect(),
                                     receiver_mutable: signature.receiver_mutable,
                                 },
                             ))
@@ -209,7 +224,7 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
     }
 }
 
-/// Adds inherited local receiver-method signatures for derived structs.
+/// Adds inherited local receiver-method signatures for including structs.
 ///
 /// Inputs:
 /// - `module`: syntax-output module containing struct and receiver-method
@@ -221,17 +236,17 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
 /// - None; `methods` is updated in place.
 ///
 /// Transformation:
-/// - For each local `struct Child derives Parent`, copies parent receiver
+/// - For each local `struct Child includes Parent`, copies parent receiver
 ///   method signatures to the child receiver type unless the child already has
 ///   an explicit method with the same name. This affects type-level
 ///   conformance validation only; method bodies remain represented by the
 ///   original parent receiver declaration.
-fn extend_receiver_method_signatures_with_local_struct_derives(
+fn extend_receiver_method_signatures_with_local_struct_includes(
     module: &SyntaxModuleOutput,
     methods: &mut HashMap<(String, String), ReceiverMethodSignature>,
 ) {
-    let derive_edges = collect_local_syntax_struct_derive_edges(module);
-    let inherited = derive_edges
+    let include_edges = collect_local_syntax_struct_include_edges(module);
+    let inherited = include_edges
         .iter()
         .flat_map(|(child, parent)| {
             methods
@@ -309,11 +324,11 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures(
             .push(signature);
     }
 
-    extend_receiver_method_dispatch_with_local_struct_derives(module, &mut methods);
+    extend_receiver_method_dispatch_with_local_struct_includes(module, &mut methods);
     methods
 }
 
-/// Adds imported parent receiver methods for local derived structs.
+/// Adds imported parent receiver methods for local including structs.
 ///
 /// Inputs:
 /// - `module`: syntax-output module containing struct derivation clauses.
@@ -324,12 +339,12 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures(
 /// - None; `methods` is updated in place.
 ///
 /// Transformation:
-/// - For each `struct Child derives Parent` where `Parent` is imported, scans
+/// - For each `struct Child includes Parent` where `Parent` is imported, scans
 ///   the provider interface for public receiver methods whose first parameter
 ///   is the provider's parent type. Each match is rewritten as a dispatch
 ///   candidate for `Child` with the receiver argument removed from the callable
 ///   scheme, matching local receiver-method dispatch.
-fn extend_receiver_method_dispatch_with_imported_struct_derives(
+fn extend_receiver_method_dispatch_with_imported_struct_includes(
     module: &SyntaxModuleOutput,
     resolved: &ResolvedModule,
     methods: &mut HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
@@ -338,11 +353,11 @@ fn extend_receiver_method_dispatch_with_imported_struct_derives(
         .declarations
         .iter()
         .filter_map(|declaration| match &declaration.payload {
-            SyntaxDeclarationPayload::Struct { name, derives, .. } => Some((name, derives)),
+            SyntaxDeclarationPayload::Struct { name, includes, .. } => Some((name, includes)),
             _ => None,
         })
-        .flat_map(|(child, derives)| {
-            derives.iter().filter_map(move |parent| {
+        .flat_map(|(child, includes)| {
+            includes.iter().filter_map(move |parent| {
                 let imported = resolved.imported_types.get(parent)?;
                 let interface = resolved.interface_map.get(&imported.source_module)?;
                 Some((child.clone(), imported.source_name.clone(), interface))
@@ -378,8 +393,21 @@ fn extend_receiver_method_dispatch_with_imported_struct_derives(
                             scheme: FunctionScheme {
                                 params,
                                 ret: scheme.ret,
+                                generic_params: scheme.generic_params,
                                 bounds: scheme.bounds,
                             },
+                            param_names: signature
+                                .params
+                                .iter()
+                                .skip(1)
+                                .map(|param| param.name.clone())
+                                .collect(),
+                            param_defaults: signature
+                                .params
+                                .iter()
+                                .skip(1)
+                                .map(|param| param.default_text.clone())
+                                .collect(),
                             receiver_mutable: signature.receiver_mutable,
                         },
                     ))
@@ -399,10 +427,10 @@ fn extend_receiver_method_dispatch_with_imported_struct_derives(
     }
 }
 
-/// Adds inherited local receiver-method dispatch signatures for derived structs.
+/// Adds inherited local receiver-method dispatch signatures for including structs.
 ///
 /// Inputs:
-/// - `module`: syntax-output module containing struct derivation edges.
+/// - `module`: syntax-output module containing struct inclusion edges.
 /// - `methods`: dispatch table keyed by method name and non-receiver arity.
 ///
 /// Output:
@@ -410,14 +438,14 @@ fn extend_receiver_method_dispatch_with_imported_struct_derives(
 ///
 /// Transformation:
 /// - Copies dispatch candidates whose receiver type is a local parent struct to
-///   each derived child struct. Explicit child receiver methods win over
+///   each including child struct. Explicit child receiver methods win over
 ///   inherited candidates for the same method/arity/receiver type.
-fn extend_receiver_method_dispatch_with_local_struct_derives(
+fn extend_receiver_method_dispatch_with_local_struct_includes(
     module: &SyntaxModuleOutput,
     methods: &mut HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) {
-    let derive_edges = collect_local_syntax_struct_derive_edges(module);
-    let inherited = derive_edges
+    let include_edges = collect_local_syntax_struct_include_edges(module);
+    let inherited = include_edges
         .iter()
         .flat_map(|(child, parent)| {
             methods.iter().flat_map(move |(key, candidates)| {
@@ -451,30 +479,30 @@ fn extend_receiver_method_dispatch_with_local_struct_derives(
     }
 }
 
-/// Returns local child-parent struct derive edges.
+/// Returns local child-parent struct include edges.
 ///
 /// Inputs:
 /// - `module`: syntax-output module containing struct declarations.
 ///
 /// Output:
-/// - Ordered `(child, parent)` pairs for derives whose parent is also a local
+/// - Ordered `(child, parent)` pairs for includes whose parent is also a local
 ///   struct.
 ///
 /// Transformation:
-/// - Filters `derives` clauses to local struct parents so receiver-method
+/// - Filters `includes` clauses to local struct parents so receiver-method
 ///   inheritance does not guess at imported receiver-method metadata.
-fn collect_local_syntax_struct_derive_edges(module: &SyntaxModuleOutput) -> Vec<(String, String)> {
+fn collect_local_syntax_struct_include_edges(module: &SyntaxModuleOutput) -> Vec<(String, String)> {
     let local_structs = collect_local_syntax_struct_fields(module);
     module
         .declarations
         .iter()
         .filter_map(|declaration| match &declaration.payload {
-            SyntaxDeclarationPayload::Struct { name, derives, .. } => Some((name, derives)),
+            SyntaxDeclarationPayload::Struct { name, includes, .. } => Some((name, includes)),
             _ => None,
         })
-        .flat_map(|(child, derives)| {
+        .flat_map(|(child, includes)| {
             let local_structs = &local_structs;
-            derives
+            includes
                 .iter()
                 .filter(move |parent| local_structs.contains_key(*parent))
                 .map(move |parent| (child.clone(), parent.clone()))
@@ -552,6 +580,14 @@ fn receiver_method_dispatch_signature(
     );
     let receiver_type = qualify_type_names(&receiver_type, imported_type_names);
 
+    let param_names = params
+        .iter()
+        .map(|param| param.name.clone())
+        .collect::<Vec<_>>();
+    let param_defaults = params
+        .iter()
+        .map(|param| param.default_text.clone())
+        .collect::<Vec<_>>();
     let params = params
         .iter()
         .map(|param| {
@@ -607,8 +643,11 @@ fn receiver_method_dispatch_signature(
         scheme: FunctionScheme {
             params,
             ret,
+            generic_params: Vec::new(),
             bounds,
         },
+        param_names,
+        param_defaults,
         receiver_mutable: receiver.is_mutable,
     })
 }

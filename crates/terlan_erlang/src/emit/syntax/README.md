@@ -7,6 +7,8 @@ It exists while CoreIR becomes executable enough to drive the backend directly.
 
 - Lower syntax-output declarations, calls, collections, constructors, imports,
   intrinsics, lets, patterns, sequences, and type values to Erlang.
+- Collect syntax bridge context and lookup metadata in dedicated context
+  modules so dispatch code is not mixed with module inventory construction.
 - Preserve existing build/test behavior during CoreIR migration.
 - Keep syntax bridge code separate from CoreIR emit helpers.
 - Provide stable behavior for source features already supported by 0.0.x
@@ -18,6 +20,8 @@ It exists while CoreIR becomes executable enough to drive the backend directly.
 - `lower_syntax_struct_headers_to_hrl`: struct header bridge lowering.
 - Submodules for calls, collections, construction, declarations, imports,
   intrinsics, patterns, receiver types, and sequences.
+- `context`: syntax lowering context data types and lookup methods.
+- `context_build`: module-level syntax output inventory collection.
 
 ## Core Model
 
@@ -59,6 +63,13 @@ Important invariants:
 
 `receiver_types`
 : Helper logic for receiver method lowering.
+
+`context`
+: Context and environment types shared by bridge lowering modules.
+
+`context_build`
+: Builder that converts module output, interface metadata, file imports,
+templates, and markdown imports into bridge lookup tables.
 
 ## Testing Notes
 

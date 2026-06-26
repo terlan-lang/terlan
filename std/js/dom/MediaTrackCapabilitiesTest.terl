@@ -1,0 +1,67 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MediaTrackCapabilities
+ */
+
+module std.js.Dom.MediaTrackCapabilitiesTest.
+
+import type std.js.Dom.MediaTrackCapabilities.MediaTrackCapabilities.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub aspect_ratio_typechecks(receiver: MediaTrackCapabilities): DoubleRange ->
+    receiver.aspect_ratio().
+
+pub auto_gain_control_typechecks(receiver: MediaTrackCapabilities): std.js.Array[std.core.Bool] ->
+    receiver.auto_gain_control().
+
+pub background_blur_typechecks(receiver: MediaTrackCapabilities): std.js.Array[std.core.Bool] ->
+    receiver.background_blur().
+
+pub channel_count_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+    receiver.channel_count().
+
+pub device_id_typechecks(receiver: MediaTrackCapabilities): std.js.String.JsString ->
+    receiver.device_id().
+
+pub display_surface_typechecks(receiver: MediaTrackCapabilities): std.js.String.JsString ->
+    receiver.display_surface().
+
+pub echo_cancellation_typechecks(receiver: MediaTrackCapabilities): std.js.Array[std.core.Bool] ->
+    receiver.echo_cancellation().
+
+pub facing_mode_typechecks(receiver: MediaTrackCapabilities): std.js.Array[std.js.String.JsString] ->
+    receiver.facing_mode().
+
+pub frame_rate_typechecks(receiver: MediaTrackCapabilities): DoubleRange ->
+    receiver.frame_rate().
+
+pub group_id_typechecks(receiver: MediaTrackCapabilities): std.js.String.JsString ->
+    receiver.group_id().
+
+pub height_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+    receiver.height().
+
+pub noise_suppression_typechecks(receiver: MediaTrackCapabilities): std.js.Array[std.core.Bool] ->
+    receiver.noise_suppression().
+
+pub sample_rate_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+    receiver.sample_rate().
+
+pub sample_size_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+    receiver.sample_size().
+
+pub width_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+    receiver.width().

@@ -1,0 +1,8 @@
+module=std.js.Dom.CSSStyleDeclaration
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=5523276537752479770
+interface_hash=17394983761838568449
+interface_doc_hash=17394983761838568449
+deps=0

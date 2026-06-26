@@ -30,6 +30,7 @@ pub(super) fn collect_syntax_function_signatures(
         match &declaration.payload {
             SyntaxDeclarationPayload::Function {
                 name,
+                generic_params,
                 params,
                 return_type,
                 generic_bounds,
@@ -41,6 +42,7 @@ pub(super) fn collect_syntax_function_signatures(
                         .map(|param| param.annotation.text.clone())
                         .collect::<Vec<_>>(),
                     &return_type.text,
+                    generic_params,
                     generic_bounds,
                     alias_names,
                     imported_type_names,
@@ -61,6 +63,7 @@ pub(super) fn collect_syntax_function_signatures(
                     let scheme = function_decl_to_scheme(
                         &arg_types,
                         &native_sig.return_type,
+                        &Vec::new(),
                         &Vec::new(),
                         alias_names,
                         imported_type_names,
@@ -84,6 +87,7 @@ pub(super) fn collect_syntax_function_signatures(
 /// Inputs:
 /// - `param_annotations`: source type annotations for callable parameters.
 /// - `return_annotation`: source return type annotation.
+/// - `generic_params`: declared callable generic parameter texts.
 /// - `generic_bounds`: source generic constraint strings.
 /// - `alias_names`, `imported_type_names`, `imported_type_aliases`, and
 ///   `local_aliases`: visible type context used for parsing, alias expansion,
@@ -100,6 +104,7 @@ pub(super) fn collect_syntax_function_signatures(
 pub(super) fn function_decl_to_scheme(
     param_annotations: &[String],
     return_annotation: &str,
+    generic_params: &[String],
     generic_bounds: &[String],
     alias_names: &HashSet<String>,
     imported_type_names: &HashMap<String, QualifiedTypeName>,
@@ -108,6 +113,10 @@ pub(super) fn function_decl_to_scheme(
 ) -> FunctionScheme {
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
+    for param in generic_params {
+        vars.insert(normalize_type_param_name(param), next_var);
+        next_var += 1;
+    }
 
     let params = param_annotations
         .iter()
@@ -156,6 +165,7 @@ pub(super) fn function_decl_to_scheme(
     FunctionScheme {
         params,
         ret,
+        generic_params: generic_params.to_vec(),
         bounds,
     }
 }
@@ -420,6 +430,7 @@ pub(super) fn collect_syntax_constructor_signatures(
         let mut schemes = Vec::new();
         for clause in clauses {
             let mut fixed_params = Vec::new();
+            let mut param_names = Vec::new();
             let mut vararg = None;
 
             for param in &clause.params {
@@ -435,6 +446,7 @@ pub(super) fn collect_syntax_constructor_signatures(
                 if param.is_varargs {
                     vararg = Some(parsed);
                 } else {
+                    param_names.push(param.name.clone());
                     fixed_params.push(parsed);
                 }
             }
@@ -451,6 +463,7 @@ pub(super) fn collect_syntax_constructor_signatures(
             let ret = qualify_type_names(&ret, imported_type_names);
 
             schemes.push(ConstructorScheme {
+                param_names,
                 fixed_params,
                 min_arity: clause
                     .params
@@ -533,6 +546,133 @@ pub(super) fn collect_syntax_struct_fields(
     out
 }
 
+/// Collects imported struct fields from resolved module interfaces.
+///
+/// Inputs:
+/// - `resolved`: resolved module metadata with imported type names and loaded
+///   provider interfaces.
+/// - `alias_names`: visible type names used while parsing field annotations.
+///
+/// Output:
+/// - Map from local imported type name to field-name/type mappings.
+///
+/// Transformation:
+/// - Converts public interface struct field signatures back into the
+///   typechecker field map so imported values support ordinary public field
+///   access without loading provider source files.
+pub(super) fn collect_imported_struct_fields(
+    resolved: &ResolvedModule,
+    alias_names: &HashSet<String>,
+) -> HashMap<String, HashMap<String, Type>> {
+    let mut out = HashMap::new();
+
+    for (local_name, imported) in &resolved.imported_types {
+        let Some(interface) = resolved.interface_map.get(&imported.source_module) else {
+            continue;
+        };
+        let Some(fields) = interface.struct_fields.get(&imported.source_name) else {
+            continue;
+        };
+
+        let mut vars = HashMap::new();
+        let mut next_var: TypeVarId = 0;
+        let field_types = fields
+            .iter()
+            .map(|field| {
+                let ty = parse_type_expr(&field.annotation, alias_names, &mut vars, &mut next_var)
+                    .unwrap_or(Type::Dynamic);
+                (field.name.clone(), ty)
+            })
+            .collect::<HashMap<_, _>>();
+
+        out.insert(local_name.clone(), field_types);
+    }
+
+    out
+}
+
+/// Collects struct field visibility declared by syntax output.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing top-level struct declarations.
+///
+/// Output:
+/// - Map from struct name to field-name visibility metadata.
+///
+/// Transformation:
+/// - Preserves only source visibility flags so expression checking can enforce
+///   private-field access rules without changing inferred field types.
+pub(super) fn collect_syntax_struct_field_visibility(
+    module: &SyntaxModuleOutput,
+) -> HashMap<String, HashMap<String, StructFieldVisibility>> {
+    let mut out = HashMap::new();
+
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::Struct { name, fields, .. } = &declaration.payload else {
+            continue;
+        };
+
+        let field_visibility = fields
+            .iter()
+            .map(|field| {
+                (
+                    field.name.clone(),
+                    StructFieldVisibility {
+                        is_private: field.is_private,
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        out.insert(name.clone(), field_visibility);
+    }
+
+    out
+}
+
+/// Collects imported struct field visibility from resolved interfaces.
+///
+/// Inputs:
+/// - `resolved`: resolved module metadata with imported type names and loaded
+///   provider interfaces.
+///
+/// Output:
+/// - Map from local imported type name to field-name visibility metadata.
+///
+/// Transformation:
+/// - Preserves provider field privacy in the consumer module so cross-module
+///   private access can be rejected during expression inference.
+pub(super) fn collect_imported_struct_field_visibility(
+    resolved: &ResolvedModule,
+) -> HashMap<String, HashMap<String, StructFieldVisibility>> {
+    let mut out = HashMap::new();
+
+    for (local_name, imported) in &resolved.imported_types {
+        let Some(interface) = resolved.interface_map.get(&imported.source_module) else {
+            continue;
+        };
+        let Some(fields) = interface.struct_fields.get(&imported.source_name) else {
+            continue;
+        };
+
+        let field_visibility = fields
+            .iter()
+            .map(|field| {
+                (
+                    field.name.clone(),
+                    StructFieldVisibility {
+                        is_private: field.is_private,
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        out.insert(local_name.clone(), field_visibility);
+    }
+
+    out
+}
+
 /// Collects local source type names declared by a module.
 ///
 /// Inputs:
@@ -566,8 +706,8 @@ pub(super) fn collect_syntax_type_names(module: &SyntaxModuleOutput) -> HashSet<
 /// - Map from template name to parsed property type scheme.
 ///
 /// Transformation:
-/// - Parses each template prop annotation into the typechecker model and drops
-///   non-type template metadata that expression checking does not need.
+/// - Parses each template prop annotation into the typechecker model while
+///   preserving declaration order for generated positional template calls.
 pub(super) fn collect_syntax_template_schemes(
     module: &SyntaxModuleOutput,
     alias_names: &HashSet<String>,
@@ -581,17 +721,33 @@ pub(super) fn collect_syntax_template_schemes(
 
         let mut vars = HashMap::new();
         let mut next_var: TypeVarId = 0;
+        let prop_order = props
+            .iter()
+            .map(|prop| prop.name.clone())
+            .collect::<Vec<_>>();
         let prop_types = props
             .iter()
             .map(|prop| {
                 let ty =
                     parse_type_expr(&prop.annotation.text, alias_names, &mut vars, &mut next_var)
                         .unwrap_or(Type::Dynamic);
-                (prop.name.clone(), ty)
+                (
+                    prop.name.clone(),
+                    TemplatePropScheme {
+                        ty,
+                        default: prop.default.clone(),
+                    },
+                )
             })
             .collect::<HashMap<_, _>>();
 
-        out.insert(name.clone(), TemplateScheme { props: prop_types });
+        out.insert(
+            name.clone(),
+            TemplateScheme {
+                prop_order,
+                props: prop_types,
+            },
+        );
     }
 
     out

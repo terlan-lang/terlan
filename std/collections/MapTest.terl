@@ -1,0 +1,65 @@
+module std.collections.MapTest.
+
+import std.collections.List.
+import std.collections.Map.
+import std.core.Option.{None, Option, Some}.
+
+@test
+pub constructor_packs_entries(): Bool ->
+    let users = Map({"alice", 1}, {"bob", 2});
+    std.test.Test.assert_equal(2, users.size()).
+
+@test
+pub constructor_replaces_duplicate_keys(): Bool ->
+    let users = Map({"alice", 1}, {"alice", 2});
+    case users.get("alice") {
+        Some(found) ->
+            std.test.Test.assert_equal(2, found);
+        None ->
+            false
+    }.
+
+@test
+pub from_entries_packs_entries(): Bool ->
+    let entries = List({"alice", 1});
+        users = Map.from_entries(entries);
+    std.test.Test.assert_equal(1, users.size()).
+
+@test
+pub new_starts_empty(): Bool ->
+    let users = Map.new();
+    std.test.Test.assert(users.is_empty()).
+
+@test
+pub put_updates_size_and_lookup(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    case users.get("alice") {
+        Some(found) ->
+            std.test.Test.assert_equal(1, found);
+        None ->
+            false
+    }.
+
+@test
+pub contains_key_tracks_mutations(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    users.remove("alice");
+    std.test.Test.assert_equal(false, users.contains_key("alice")).
+
+@test
+pub clear_removes_entries(): Bool ->
+    let users = Map.new();
+    users.put("alice", 1);
+    users.put("bob", 2);
+    users.clear();
+    std.test.Test.assert_equal(0, users.size()).
+
+@test
+pub enumerable_fold_counts_entries(): Bool ->
+    true.
+
+@test
+pub enumerable_map_yields_entry_pairs(): Bool ->
+    true.

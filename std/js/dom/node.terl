@@ -1,0 +1,255 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Node
+ */
+
+module std.js.Dom.Node.
+
+/**
+ * The DOM **`Node`** interface is an abstract base class upon which many other DOM API objects are based, thus letting those object types to be used similarly and often interchangeably.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node)
+ */
+pub opaque type Node.
+
+/**
+ * The read-only **`baseURI`** property of the Node interface returns the absolute base URL of the document containing the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/baseURI)
+ */
+pub (value: Node) base_uri(): std.js.String.JsString ->
+    native.
+
+/**
+ * The read-only **`childNodes`** property of the Node interface returns a live the first child node is assigned index `0`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes)
+ */
+pub (value: Node) child_nodes(): NodeListOf[ChildNode] ->
+    native.
+
+/**
+ * The read-only **`firstChild`** property of the Node interface returns the node's first child in the tree, or `null` if the node has no children.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/firstChild)
+ */
+pub (value: Node) first_child(): Option[ChildNode] ->
+    native.
+
+/**
+ * The read-only **`isConnected`** property of the Node interface returns a boolean indicating whether the node is connected (directly or indirectly) to a Document object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isConnected)
+ */
+pub (value: Node) is_connected(): std.core.Bool ->
+    native.
+
+/**
+ * The read-only **`lastChild`** property of the Node interface returns the last child of the node, or `null` if there are no child nodes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lastChild)
+ */
+pub (value: Node) last_child(): Option[ChildNode] ->
+    native.
+
+/**
+ * The read-only **`nextSibling`** property of the Node interface returns the node immediately following the specified one in their parent's Node.childNodes, or returns `null` if the specified node is the last child in the parent element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nextSibling)
+ */
+pub (value: Node) next_sibling(): Option[ChildNode] ->
+    native.
+
+/**
+ * The read-only **`nodeName`** property of Node returns the name of the current node as a string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeName)
+ */
+pub (value: Node) node_name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The read-only **`nodeType`** property of a Node interface is an integer that identifies what the node is.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeType)
+ */
+pub (value: Node) node_type(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`nodeValue`** property of the Node interface returns or sets the value of the current node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeValue)
+ */
+pub (value: Node) node_value(): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * The read-only **`ownerDocument`** property of the Node interface returns the top-level document object of the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/ownerDocument)
+ */
+pub (value: Node) owner_document(): Option[Document] ->
+    native.
+
+/**
+ * The read-only **`parentElement`** property of Node interface returns the DOM node's parent Element, or `null` if the node either has no parent, or its parent isn't a DOM Element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement)
+ */
+pub (value: Node) parent_element(): Option[HTMLElement] ->
+    native.
+
+/**
+ * The read-only **`parentNode`** property of the Node interface returns the parent of the specified node in the DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentNode)
+ */
+pub (value: Node) parent_node(): Option[ParentNode] ->
+    native.
+
+/**
+ * The read-only **`previousSibling`** property of the Node interface returns the node immediately preceding the specified one in its parent's or `null` if the specified node is the first in that list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/previousSibling)
+ */
+pub (value: Node) previous_sibling(): Option[ChildNode] ->
+    native.
+
+/**
+ * The **`textContent`** property of the Node interface represents the text content of the node and its descendants.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/textContent)
+ */
+pub (value: Node) text_content(): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`appendChild()`** method of the Node interface adds a node to the end of the list of children of a specified parent node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/appendChild)
+ */
+pub (value: Node) append_child(node: T): T ->
+    native.
+
+/**
+ * The **`cloneNode()`** method of the Node interface returns a duplicate of the node on which this method was called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/cloneNode)
+ */
+pub (value: Node) clone_node(subtree: std.core.Bool): Node ->
+    native.
+
+/**
+ * The **`compareDocumentPosition()`** method of the Node interface reports the position of its argument node relative to the node on which it is called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/compareDocumentPosition)
+ */
+pub (value: Node) compare_document_position(other: Node): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`contains()`** method of the Node interface returns a boolean value indicating whether a node is a descendant of a given node, that is the node itself, one of its direct children (Node.childNodes), one of the children's direct children, and so on.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/contains)
+ */
+pub (value: Node) contains(other: Option[Node]): std.core.Bool ->
+    native.
+
+/**
+ * The **`getRootNode()`** method of the Node interface returns the context object's root, which optionally includes the shadow root if it is available.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/getRootNode)
+ */
+pub (value: Node) get_root_node(options: GetRootNodeOptions): Node ->
+    native.
+
+/**
+ * The **`hasChildNodes()`** method of the Node interface returns a boolean value indicating whether the given Node has child nodes or not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/hasChildNodes)
+ */
+pub (value: Node) has_child_nodes(): std.core.Bool ->
+    native.
+
+/**
+ * The **`insertBefore()`** method of the Node interface inserts a node before a _reference node_ as a child of a specified _parent node_.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/insertBefore)
+ */
+pub (value: Node) insert_before(node: T, child: Option[Node]): T ->
+    native.
+
+/**
+ * The **`isDefaultNamespace()`** method of the Node interface accepts a namespace URI as an argument.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isDefaultNamespace)
+ */
+pub (value: Node) is_default_namespace(namespace: Option[std.js.String.JsString]): std.core.Bool ->
+    native.
+
+/**
+ * The **`isEqualNode()`** method of the Node interface tests whether two nodes are equal.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isEqualNode)
+ */
+pub (value: Node) is_equal_node(other_node: Option[Node]): std.core.Bool ->
+    native.
+
+/**
+ * The **`isSameNode()`** method of the Node interface is a legacy alias the for the `===` strict equality operator.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isSameNode)
+ */
+pub (value: Node) is_same_node(other_node: Option[Node]): std.core.Bool ->
+    native.
+
+/**
+ * The **`lookupNamespaceURI()`** method of the Node interface takes a prefix as parameter and returns the namespace URI associated with it on the given node if found (and `null` if not).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lookupNamespaceURI)
+ */
+pub (value: Node) lookup_namespace_uri(prefix: Option[std.js.String.JsString]): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`lookupPrefix()`** method of the Node interface returns a string containing the prefix for a given namespace URI, if present, and `null` if not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lookupPrefix)
+ */
+pub (value: Node) lookup_prefix(namespace: Option[std.js.String.JsString]): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`normalize()`** method of the Node interface puts the specified node and all of its sub-tree into a _normalized_ form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/normalize)
+ */
+pub (value: Node) normalize(): std.core.Unit ->
+    native.
+
+/**
+ * The **`removeChild()`** method of the Node interface removes a child node from the DOM and returns the removed node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/removeChild)
+ */
+pub (value: Node) remove_child(child: T): T ->
+    native.
+
+/**
+ * The **`replaceChild()`** method of the Node interface replaces a child node within the given (parent) node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/replaceChild)
+ */
+pub (value: Node) replace_child(node: Node, child: T): T ->
+    native.

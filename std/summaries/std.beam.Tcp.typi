@@ -1,0 +1,52 @@
+//! BEAM TCP socket contract.
+//!
+//! `std.beam.Tcp` exposes the minimum active socket surface needed by
+//! BEAM-targeted integration tests and protocol adapters. It is not a portable
+//! networking API.
+
+module std.beam.Tcp.
+
+/// TcpSocket represents a connected TCP socket owned by the BEAM runtime.
+///
+/// Input: no runtime input.
+/// Output: an opaque target-owned socket handle.
+/// Transformation: keeps Erlang socket identity and lifecycle out of portable
+/// Terlan values while allowing typed send/receive operations.
+
+pub opaque type TcpSocket.
+
+/// Closes a connected socket.
+///
+/// Input: a mutable socket receiver.
+/// Output: `Unit`.
+/// Transformation: asks the BEAM runtime to close and release the socket handle.
+
+pub (mut socket: TcpSocket) close(): Unit.
+
+/// Connects to a TCP endpoint.
+///
+/// Input: host name or address, port number, and timeout.
+/// Output: `Ok(TcpSocket)` on connection, otherwise `Err(Error)`.
+/// Transformation: delegates DNS, socket creation, and connection failure
+/// normalization to the BEAM runtime.
+
+pub connect(host: String, port: Int, timeout: Timeout): Result[TcpSocket, Error].
+
+/// Receives bytes from a connected socket.
+///
+/// Input: a socket receiver, maximum byte count, and timeout.
+/// Output: `Ok(Bytes)` when bytes are read, otherwise `Err(Error)`.
+/// Transformation: delegates receive buffering and timeout behavior to the BEAM
+/// runtime while keeping the protocol frame typed as `Bytes`.
+
+pub (socket: TcpSocket) receive(max_bytes: Int, timeout: Timeout): Result[Bytes, Error].
+
+/// Sends bytes on a connected socket.
+///
+/// Input: a socket receiver and a byte buffer.
+/// Output: `Ok(Unit)` on successful write, otherwise `Err(Error)`.
+/// Transformation: asks the BEAM runtime to send the binary frame and report
+/// target socket failures through the standard error channel.
+
+pub (socket: TcpSocket) send(bytes: Bytes): Result[Unit, Error].
+

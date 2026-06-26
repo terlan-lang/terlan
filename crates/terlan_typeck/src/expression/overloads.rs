@@ -24,17 +24,60 @@ pub(crate) fn infer_function_scheme_overload(
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Type, String> {
+    infer_function_scheme_overload_with_explicit_type_args(
+        schemes,
+        function_name,
+        arg_types,
+        &[],
+        ctx,
+        subst,
+    )
+}
+
+/// Infers a call against local function candidates with explicit type args.
+///
+/// Inputs:
+/// - `schemes`: same-name same-arity callable candidates.
+/// - `function_name`: source name used in diagnostics and trait-bound checks.
+/// - `arg_types`: already inferred value argument types.
+/// - `type_args`: explicit call-site type arguments.
+/// - `ctx` and `subst`: active inference context and substitution state.
+///
+/// Output:
+/// - `Ok(Type)` when exactly one candidate accepts the value and type args.
+/// - `Err(message)` when no candidate or multiple candidates match.
+///
+/// Transformation:
+/// - Evaluates each candidate with cloned substitutions, first binding
+///   explicit type arguments and then value arguments, committing only the
+///   selected candidate's substitutions.
+pub(crate) fn infer_function_scheme_overload_with_explicit_type_args(
+    schemes: &[FunctionScheme],
+    function_name: &str,
+    arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<Type, String> {
     if schemes.len() == 1 {
-        return infer_function_with_bounds(&schemes[0], Some(function_name), arg_types, ctx, subst);
+        return infer_function_with_explicit_type_args(
+            &schemes[0],
+            Some(function_name),
+            arg_types,
+            type_args,
+            ctx,
+            subst,
+        );
     }
 
     let mut matches = Vec::new();
     for scheme in schemes {
         let mut trial_subst = subst.clone();
-        if let Ok(ty) = infer_function_with_bounds(
+        if let Ok(ty) = infer_function_with_explicit_type_args(
             scheme,
             Some(function_name),
             arg_types,
+            type_args,
             ctx,
             &mut trial_subst,
         ) {
@@ -137,6 +180,45 @@ pub(super) fn infer_interface_function_overload(
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Option<Type>, String> {
+    infer_interface_function_overload_with_explicit_type_args(
+        interface,
+        function_name,
+        display_name,
+        arg_types,
+        &[],
+        ctx,
+        subst,
+    )
+}
+
+/// Infers a call against public interface overloads with explicit type args.
+///
+/// Inputs:
+/// - `interface`: imported module interface that owns the candidate signatures.
+/// - `function_name`: function name inside the imported interface.
+/// - `display_name`: diagnostic name used at the call site.
+/// - `arg_types`: inferred value argument types.
+/// - `type_args`: explicit call-site type arguments.
+/// - `ctx` and `subst`: active inference context and substitution state.
+///
+/// Output:
+/// - `Ok(Some(Type))` when exactly one overload accepts the call.
+/// - `Ok(None)` when the interface has no candidate for the name and arity.
+/// - `Err(message)` for parse, type-argument, argument, or ambiguity failures.
+///
+/// Transformation:
+/// - Reads the interface overload table, parses each candidate into a function
+///   scheme, applies explicit type-argument binding, and commits only the
+///   unique selected substitution set.
+pub(super) fn infer_interface_function_overload_with_explicit_type_args(
+    interface: &ModuleInterface,
+    function_name: &str,
+    display_name: &str,
+    arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<Option<Type>, String> {
     let key = (function_name.to_string(), arg_types.len());
     let candidates = interface
         .function_overloads
@@ -163,8 +245,15 @@ pub(super) fn infer_interface_function_overload(
                 arg_types.len()
             ));
         };
-        return infer_function_with_bounds(&scheme, Some(display_name), arg_types, ctx, subst)
-            .map(Some);
+        return infer_function_with_explicit_type_args(
+            &scheme,
+            Some(display_name),
+            arg_types,
+            type_args,
+            ctx,
+            subst,
+        )
+        .map(Some);
     }
 
     let mut matches = Vec::new();
@@ -175,10 +264,11 @@ pub(super) fn infer_interface_function_overload(
             continue;
         };
         let mut trial_subst = subst.clone();
-        if let Ok(ty) = infer_function_with_bounds(
+        if let Ok(ty) = infer_function_with_explicit_type_args(
             &scheme,
             Some(display_name),
             arg_types,
+            type_args,
             ctx,
             &mut trial_subst,
         ) {

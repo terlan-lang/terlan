@@ -29,7 +29,7 @@ and read as a stdlib reference.
 - `render`: Markdown and HTML documentation rendering from formal syntax
   output.
 - `validation`: source discovery, doc link/fence validation, missing-doc
-  validation, and Terlan doctest compilation.
+  validation, Terlan doctest compilation, and REPL example validation helpers.
 
 Public methods or values exposed to callers include `run`, `run_doctest`, and
 `parse_doc_args`.
@@ -105,6 +105,8 @@ or render pass and owns no persistent process state.
   doctest snippets through formal phases before CoreIR-gated backend emission.
   It also owns REPL prompt example extraction and validation for the newer
   doc-check path.
+- `validation/repl_examples.rs`: owns `@example` prompt extraction and
+  validation through the non-interactive REPL evaluator.
 
 ## Edge Cases
 

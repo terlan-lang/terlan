@@ -1,0 +1,8 @@
+module=std.js.ConcatArray
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=6958403474716264381
+interface_hash=10078726480502962674
+interface_doc_hash=10078726480502962674
+deps=0

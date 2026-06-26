@@ -1,0 +1,8 @@
+module=std.js.Dom.AudioScheduledSourceNodeEventMap
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16100632414960440539
+interface_hash=16925043700916872674
+interface_doc_hash=16925043700916872674
+deps=0

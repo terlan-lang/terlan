@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGGraphicsElement
+ */
+
+module std.js.Dom.SVGGraphicsElement.
+
+/**
+ * The **`SVGGraphicsElement`** interface represents SVG elements whose primary purpose is to directly render graphics into a group.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement)
+ */
+pub opaque type SVGGraphicsElement.
+
+/**
+ * The **`transform`** read-only property of the SVGGraphicsElement interface reflects the computed value of the transform property and its corresponding transform attribute of the given element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/transform)
+ */
+pub (value: SVGGraphicsElement) transform(): SVGAnimatedTransformList.
+
+/**
+ * The **`SVGGraphicsElement.getBBox()`** method allows us to determine the coordinates of the smallest rectangle in which the object fits.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getBBox)
+ */
+pub (value: SVGGraphicsElement) get_b_box(options: SVGBoundingBoxOptions): DOMRect.
+
+/**
+ * The `getCTM()` method of the SVGGraphicsElement interface represents the matrix that transforms the current element's coordinate system to its SVG viewport's coordinate system.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getCTM)
+ */
+pub (value: SVGGraphicsElement) get_ctm(): Option[DOMMatrix].
+
+/**
+ * The `getScreenCTM()` method of the SVGGraphicsElement interface represents the matrix that transforms the current element's coordinate system to the coordinate system of the SVG viewport for the SVG document fragment.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getScreenCTM)
+ */
+pub (value: SVGGraphicsElement) get_screen_ctm(): Option[DOMMatrix].
+
+pub (value: SVGGraphicsElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: SVGGraphicsElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

@@ -1,11 +1,28 @@
 {
-  "source_module": "std.encoding.Base64",
-  "module": "std_encoding_base64_safe_native",
-  "scheduler": "normal",
-  "native_policy": "safe_native_optional",
   "functions": [
-    { "name": "encode", "arity": 1, "operation": "std.encoding.base64.encode" },
-    { "name": "decode", "arity": 1, "operation": "std.encoding.base64.decode" },
-    { "name": "encode_url", "arity": 1, "operation": "std.encoding.base64.encode_url" },
-    { "name": "decode_url", "arity": 1, "operation": "std.encoding.base64.decode_url" }]
+    {
+      "arity": 1,
+      "name": "encode",
+      "operation": "std.encoding.base64.encode"
+    },
+    {
+      "arity": 1,
+      "name": "decode",
+      "operation": "std.encoding.base64.decode"
+    },
+    {
+      "arity": 1,
+      "name": "encode_url",
+      "operation": "std.encoding.base64.encode_url"
+    },
+    {
+      "arity": 1,
+      "name": "decode_url",
+      "operation": "std.encoding.base64.decode_url"
+    }
+  ],
+  "module": "std_encoding_base64_safe_native",
+  "native_policy": "safe_native_optional",
+  "scheduler": "normal",
+  "source_module": "std.encoding.Base64"
 }

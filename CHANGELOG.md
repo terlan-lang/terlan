@@ -4,6 +4,31 @@ All notable release-facing changes to Terlan are tracked here.
 
 ## Unreleased
 
+## 0.0.5
+
+- Add static-site project scaffolding and `terlc static` commands for emitting,
+  checking, and serving static pages from Terlan source, templates, Markdown,
+  and imported assets.
+- Add typed template validation for HTML, Markdown, JSON, YAML, TOML, and text
+  artifact templates, including escaped interpolation and component prop checks.
+- Add HTTP runtime hardening around Hyper-based serving, route matching, live
+  reload, structured handler logs, dev error pages, cookies, and response
+  metadata.
+- Add TLS configuration support for manual certificates, local internal TLS,
+  and ACME planning with Let's Encrypt defaults and ZeroSSL fallback metadata.
+- Add `std.db.Postgres`, typed SQL form validation, Postgres SafeNative runtime
+  coverage, Docker-backed live Postgres checks, and `terlc db` migration
+  commands.
+- Expand generated `std.js` coverage from TypeScript standard library inputs,
+  including broader ES and DOM binding surfaces with committed summaries.
+- Add editor packages for VS Code, Neovim, Emacs, IntelliJ, shared Terlan file
+  icons, and the Terlan language server smoke path.
+- Add `std.sync.Resource`, `std.log`, `std.template`, `std.http.Router`,
+  `std.http.Tls`, and `std.core.Object` release surfaces.
+- Harden user-facing release validation for generated std summaries,
+  SafeNative artifacts, static and web profiles, SQL/runtime boundaries,
+  editor packaging, LSP behavior, and public command coverage.
+
 ## 0.0.4
 
 - Add the experimental JavaScript build target for library-style ES module

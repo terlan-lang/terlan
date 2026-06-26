@@ -1,0 +1,8 @@
+module=std.js.ReadonlyArray
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=1043644113548252830
+interface_hash=13788964153666617078
+interface_doc_hash=13788964153666617078
+deps=0

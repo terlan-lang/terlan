@@ -1,0 +1,26 @@
+module std.core.ObjectTest.
+
+import std.core.Object.
+import std.core.Option.{Option, Some}.
+
+@test
+pub constructor_uses_map_backing(): Bool ->
+    let payload = Object({"status", "ok"}, {"mode", "test"});
+    std.test.Test.assert_equal(2, payload.size()).
+
+@test
+pub get_reads_string_keyed_member(): Bool ->
+    let payload = Object({"status", "ok"});
+    std.test.Test.assert_equal(Some("ok"), payload.get("status")).
+
+@test
+pub put_updates_string_keyed_member(): Bool ->
+    let payload = Object.new();
+    payload.put("status", "ok");
+    std.test.Test.assert_equal(Some("ok"), payload.get("status")).
+
+@test
+pub clear_removes_members(): Bool ->
+    let payload = Object({"status", "ok"});
+    payload.clear();
+    std.test.Test.assert(payload.is_empty()).

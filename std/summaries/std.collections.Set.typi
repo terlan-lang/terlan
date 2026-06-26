@@ -41,6 +41,16 @@ pub (mut set: Set[T]) clear(): Unit.
 
 pub (set: Set[T]) contains(value: T): Bool.
 
+/// Creates a set from list values.
+///
+/// Input: one `List[T]`.
+/// Output: a `Set[T]` containing each distinct list value.
+/// Transformation: lowers through the compiler-owned `core.set.from_list`
+/// intrinsic. Backends choose the efficient set representation and duplicate
+/// handling behind the portable `Set[T]` contract.
+
+pub from_list[T](values: List[T]): Set[T].
+
 /// Returns whether a set contains no values.
 ///
 /// Input: one `Set[T]`.
@@ -67,7 +77,7 @@ pub (set: Set[T]) iterator(): Iterator[T].
 /// Transformation: lowers through the compiler-owned `core.set.new`
 /// intrinsic, using the selected backend's canonical empty-set value.
 
-pub new(): Set[T].
+pub new[T](): Set[T].
 
 /// Removes a value from a set.
 ///
@@ -86,4 +96,17 @@ pub (mut set: Set[T]) remove(value: T): Unit.
 /// intrinsic and observes the receiver without changing its contents.
 
 pub (set: Set[T]) size(): Int.
+
+/// Constructs a set from positional values.
+///
+/// Input: zero or more values of the same element type `T`.
+/// Output: a `Set[T]` containing each distinct supplied value.
+/// Transformation: uses constructor varargs to pack positional values into a
+/// portable list and delegates to `from_list` so backend-specific set
+/// representation stays behind the intrinsic boundary.
+
+pub constructor Set[T] {
+    (...items: T): Set[T] ->
+        from_list(items)
+}.
 

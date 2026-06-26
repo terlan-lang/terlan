@@ -1,0 +1,157 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLButtonElement
+ */
+
+module std.js.Dom.HTMLButtonElement.
+
+/**
+ * The **`HTMLButtonElement`** interface provides properties and methods (beyond the regular HTMLElement interface it also has available to it by inheritance) for manipulating button elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement)
+ */
+pub opaque type HTMLButtonElement.
+
+/**
+ * The **`HTMLButtonElement.disabled`** property indicates whether the control is disabled, meaning that it does not accept any clicks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/disabled)
+ */
+pub (value: HTMLButtonElement) disabled(): std.core.Bool ->
+    native.
+
+/**
+ * The **`form`** read-only property of the HTMLButtonElement interface returns an HTMLFormElement object that owns this button, or `null` if this button is not owned by any form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/form)
+ */
+pub (value: HTMLButtonElement) form(): Option[HTMLFormElement] ->
+    native.
+
+/**
+ * The **`formAction`** property of the HTMLButtonElement interface is the URL of the program that is executed on the server when the form that owns this control is submitted.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formAction)
+ */
+pub (value: HTMLButtonElement) form_action(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`formEnctype`** property of the HTMLButtonElement interface is the MIME_type of the content sent to the server when the form is submitted.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formEnctype)
+ */
+pub (value: HTMLButtonElement) form_enctype(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`formMethod`** property of the HTMLButtonElement interface is the HTTP method used to submit the form if the button element is the control that submits the form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formMethod)
+ */
+pub (value: HTMLButtonElement) form_method(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`formNoValidate`** property of the HTMLButtonElement interface is a boolean value indicating if the form will bypass constraint validation when submitted via the button.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formNoValidate)
+ */
+pub (value: HTMLButtonElement) form_no_validate(): std.core.Bool ->
+    native.
+
+/**
+ * The **`formTarget`** property of the HTMLButtonElement interface is the tab, window, or iframe where the response of the submitted form is to be displayed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formTarget)
+ */
+pub (value: HTMLButtonElement) form_target(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLButtonElement.labels`** read-only property returns a A NodeList containing the `<label>` elements associated with the `<button>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/labels)
+ */
+pub (value: HTMLButtonElement) labels(): NodeListOf[HTMLLabelElement] ->
+    native.
+
+/**
+ * The **`name`** property of the HTMLButtonElement interface indicates the name of the button element or the empty string if the element has no name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/name)
+ */
+pub (value: HTMLButtonElement) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`validationMessage`** read-only property of the HTMLButtonElement interface returns a string representing a localized message that describes the validation constraints that the button control does not satisfy (if any).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/validationMessage)
+ */
+pub (value: HTMLButtonElement) validation_message(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`validity`** read-only property of the HTMLButtonElement interface returns a ValidityState object that represents the validity states this element is in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/validity)
+ */
+pub (value: HTMLButtonElement) validity(): ValidityState ->
+    native.
+
+/**
+ * The **`value`** property of the HTMLButtonElement interface represents the value of the button element as a string, or the empty string if no value is set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/value)
+ */
+pub (value: HTMLButtonElement) value(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`willValidate`** read-only property of the HTMLButtonElement interface indicates whether the button element is a candidate for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/willValidate)
+ */
+pub (value: HTMLButtonElement) will_validate(): std.core.Bool ->
+    native.
+
+/**
+ * The **`checkValidity()`** method of the HTMLButtonElement interface returns a boolean value which indicates if the element meets any constraint validation rules applied to it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/checkValidity)
+ */
+pub (value: HTMLButtonElement) check_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`reportValidity()`** method of the HTMLButtonElement interface performs the same validity checking steps as the HTMLButtonElement.checkValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/reportValidity)
+ */
+pub (value: HTMLButtonElement) report_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`setCustomValidity()`** method of the HTMLButtonElement interface sets the custom validity message for the button element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/setCustomValidity)
+ */
+pub (value: HTMLButtonElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit ->
+    native.
+
+pub (value: HTMLButtonElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLButtonElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

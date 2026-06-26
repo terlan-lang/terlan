@@ -1,0 +1,60 @@
+/**
+ * Core addition trait.
+ *
+ * `std.core.Add` defines the type-directed contract behind source `+` for
+ * values whose addition or concatenation is safe and predictable.
+ */
+
+module std.core.Add.
+
+/**
+ * Describes values that can be combined with `+`.
+ *
+ * Input: a left value of type `Left` and right value of type `Right`.
+ * Output: a result value of type `Result`.
+ * Transformation: combines two values without mutating either input. Primitive
+ * implementations map to target-native numeric addition or string
+ * concatenation.
+ */
+pub trait Add[Left, Right, Result] {
+    add(left: Left, right: Right): Result.
+}.
+
+/**
+ * Implements numeric addition for `Int`.
+ *
+ * Input: two `Int` values.
+ * Output: their integer sum.
+ * Transformation: delegates to Terlan source `+` for primitive integer
+ * arithmetic.
+ */
+pub impl Add[Int, Int, Int] for Int {
+    add(left: Int, right: Int): Int ->
+        left + right.
+}.
+
+/**
+ * Implements numeric addition for `Float`.
+ *
+ * Input: two `Float` values.
+ * Output: their floating-point sum.
+ * Transformation: delegates to Terlan source `+` for primitive floating-point
+ * arithmetic.
+ */
+pub impl Add[Float, Float, Float] for Float {
+    add(left: Float, right: Float): Float ->
+        left + right.
+}.
+
+/**
+ * Implements concatenation for `String`.
+ *
+ * Input: two `String` values.
+ * Output: their concatenated text.
+ * Transformation: delegates to the target-neutral `String.append` receiver
+ * method.
+ */
+pub impl Add[String, String, String] for String {
+    add(left: String, right: String): String ->
+        left.append(right).
+}.

@@ -1,0 +1,81 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ReadonlyArray
+ */
+
+module std.js.ReadonlyArray.
+
+pub opaque type ReadonlyArray[T].
+
+/**
+ * Gets the length of the array. This is a number one higher than the highest element defined in an array.
+ */
+pub (value: ReadonlyArray[T]) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * Returns a string representation of an array.
+ */
+pub (value: ReadonlyArray[T]) to_string(): std.js.String.JsString ->
+    native.
+
+/**
+ * Returns a string representation of an array. The elements are converted to string using their toLocaleString methods.
+ */
+pub (value: ReadonlyArray[T]) to_locale_string(): std.js.String.JsString ->
+    native.
+
+/**
+ * Combines two or more arrays.
+ * @param items Additional items to add to the end of array1.
+ */
+pub (value: ReadonlyArray[T]) concat(): std.js.Array[T] ->
+    native.
+
+/**
+ * Combines two or more arrays.
+ * @param items Additional items to add to the end of array1.
+ */
+pub (value: ReadonlyArray[T]) concat(): std.js.Array[T] ->
+    native.
+
+/**
+ * Adds all the elements of an array separated by the specified separator string.
+ * @param separator A string used to separate one element of an array from the next in the resulting String. If omitted, the array elements are separated with a comma.
+ */
+pub (value: ReadonlyArray[T]) join(separator: std.js.String.JsString): std.js.String.JsString ->
+    native.
+
+/**
+ * Returns a section of an array.
+ * @param start The beginning of the specified portion of the array.
+ * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
+ */
+pub (value: ReadonlyArray[T]) slice(start: std.js.Number.JsNumber, end: std.js.Number.JsNumber): std.js.Array[T] ->
+    native.
+
+/**
+ * Returns the index of the first occurrence of a value in an array.
+ * @param searchElement The value to locate in the array.
+ * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the search starts at index 0.
+ */
+pub (value: ReadonlyArray[T]) index_of(search_element: T, from_index: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * Returns the index of the last occurrence of a specified value in an array.
+ * @param searchElement The value to locate in the array.
+ * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the search starts at the last index in the array.
+ */
+pub (value: ReadonlyArray[T]) last_index_of(search_element: T, from_index: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.

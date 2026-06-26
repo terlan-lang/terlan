@@ -2,6 +2,112 @@ use super::*;
 
 use crate::validation::target_profile::TargetProfile;
 
+/// Verifies formal interface loading ignores local generated std inventories.
+///
+/// Inputs:
+/// - Temporary project root containing a forged `std/summaries/std.core.Bool`
+///   summary with the wrong type surface.
+///
+/// Output:
+/// - Test passes when `load_external_interfaces` resolves the embedded release
+///   `std.core.Bool` contract instead of the generated-inventory fixture.
+///
+/// Transformation:
+/// - Builds a throwaway project layout, asks the formal compiler path to load
+///   external interfaces for one source file, and confirms std contracts come
+///   from compiler-embedded summaries unless explicitly supplied through a
+///   cache directory.
+#[test]
+fn formal_interface_loading_does_not_scan_generated_std_inventory() {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system clock before unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "terlan_formal_no_std_scan_{}_{}",
+        std::process::id(),
+        nanos
+    ));
+    let source_dir = root.join("src/app");
+    let summaries = root.join("std/summaries");
+    std::fs::create_dir_all(&source_dir).expect("create source fixture");
+    std::fs::create_dir_all(&summaries).expect("create summaries fixture");
+    let source_path = source_dir.join("Main.terl");
+    std::fs::write(&source_path, "module app.Main.\n").expect("write source fixture");
+    std::fs::write(
+        summaries.join("std.core.Bool.typi"),
+        "\
+module std.core.Bool.\n\
+pub type Imposter = Atom[\"imposter\"].\n",
+    )
+    .expect("write forged std summary fixture");
+
+    let interfaces = load_external_interfaces(
+        source_path
+            .to_str()
+            .expect("temporary source path should be utf-8"),
+        None,
+    );
+    let _ = std::fs::remove_dir_all(&root);
+
+    let bool_interface = interfaces
+        .get("std.core.Bool")
+        .expect("embedded Bool interface");
+    assert!(bool_interface
+        .functions
+        .contains_key(&("compare".into(), 2)));
+    assert!(!bool_interface.public_types.contains("Imposter"));
+}
+
+/// Verifies source discovery does not cross nested project boundaries.
+///
+/// Inputs:
+/// - A parent scratch directory with one normal `.terl` source.
+/// - A nested child directory containing its own `terlan.toml` and source root.
+///
+/// Output:
+/// - Test passes when discovery returns only the parent-owned source file.
+///
+/// Transformation:
+/// - Builds a throwaway nested project layout and asks the formal source
+///   discovery helper to scan the parent directory, proving nested manifests
+///   act as project boundaries instead of contributing source paths to the
+///   parent module layout.
+#[test]
+fn terlan_source_discovery_skips_nested_project_roots() {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system clock before unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "terlan_formal_nested_project_scan_{}_{}",
+        std::process::id(),
+        nanos
+    ));
+    let parent_source_dir = root.join("app");
+    let nested_source_dir = root.join("test/src/test");
+    std::fs::create_dir_all(&parent_source_dir).expect("create parent source dir");
+    std::fs::create_dir_all(&nested_source_dir).expect("create nested source dir");
+    let parent_source = parent_source_dir.join("Main.terl");
+    let nested_source = nested_source_dir.join("Main.terl");
+    std::fs::write(&parent_source, "module app.Main.\n").expect("write parent source fixture");
+    std::fs::write(
+        root.join("test/terlan.toml"),
+        "[package]\nname = \"test\"\n",
+    )
+    .expect("write nested manifest fixture");
+    std::fs::write(&nested_source, "module test.Main.\n").expect("write nested source fixture");
+
+    let files = terlan_sources_in_dir(&root).expect("scan parent source root");
+    let _ = std::fs::remove_dir_all(&root);
+
+    assert_eq!(files, vec![parent_source]);
+    assert!(
+        !files.contains(&nested_source),
+        "nested project source must not leak into parent directory builds"
+    );
+}
+
 #[test]
 fn compile_syntax_module_with_erlang_profile_accepts_float() {
     let source = "\
@@ -243,15 +349,62 @@ fn embedded_std_interfaces_include_data_json_contract() {
     assert!(!is_null.receiver_mutable);
 }
 
+/// Verifies embedded std summaries include the Postgres capability contract.
+///
+/// Inputs:
+/// - Compiler-embedded std interface summaries.
+///
+/// Output:
+/// - Test passes when `std.db.Postgres` is loaded from the embedded summary
+///   list with its first public pool/query/row contract.
+///
+/// Transformation:
+/// - Exercises normal embedded summary parsing so imports can resolve the
+///   Postgres source API before target profiles decide whether a backend can
+///   execute the database capability.
+#[test]
+fn embedded_std_interfaces_include_db_postgres_contract() {
+    let mut interfaces = HashMap::new();
+
+    load_embedded_std_interfaces(&mut interfaces);
+
+    let postgres = interfaces
+        .get("std.db.Postgres")
+        .expect("embedded Postgres interface");
+    assert!(postgres.opaque_types.contains("Pool"));
+    assert!(postgres.opaque_types.contains("Connection"));
+    assert!(postgres.opaque_types.contains("Row"));
+    assert!(postgres.public_types.contains("Config"));
+    assert!(postgres.functions.contains_key(&("connect".to_string(), 1)));
+    assert!(postgres.functions.contains_key(&("query".to_string(), 3)));
+    assert!(postgres
+        .functions
+        .contains_key(&("query_one".to_string(), 3)));
+    assert!(postgres.functions.contains_key(&("execute".to_string(), 3)));
+    assert!(postgres
+        .functions
+        .contains_key(&("transaction".to_string(), 2)));
+
+    let string = postgres
+        .functions
+        .get(&("string".to_string(), 2))
+        .expect("Postgres.Row.string receiver method");
+    assert!(string.receiver_method);
+    assert!(!string.receiver_mutable);
+    assert!(postgres.functions.contains_key(&("int".to_string(), 2)));
+    assert!(postgres.functions.contains_key(&("bool".to_string(), 2)));
+    assert!(postgres.functions.contains_key(&("json".to_string(), 2)));
+}
+
 /// Verifies embedded std summaries include Rust-backed web/data utilities.
 ///
 /// Inputs:
 /// - Compiler-embedded std interface summaries.
 ///
 /// Output:
-/// - Test passes when `std.encoding.Base64`, `std.io.Path`, and
-///   `std.net.Uri` are loaded from the embedded summary list with their
-///   public contract surfaces.
+/// - Test passes when `std.encoding.Base64`, `std.io.Path`, `std.net.Uri`,
+///   and HTTP utility modules are loaded from the embedded summary list with
+///   their public contract surfaces.
 ///
 /// Transformation:
 /// - Exercises normal embedded summary parsing so project imports can
@@ -293,6 +446,64 @@ fn embedded_std_interfaces_include_web_data_utility_contracts() {
         .get(&("host".to_string(), 1))
         .expect("Uri.host receiver method");
     assert!(host.receiver_method);
+
+    let request = interfaces
+        .get("std.http.Request")
+        .expect("embedded Request interface");
+    assert!(request.opaque_types.contains("Request"));
+    assert!(request.functions.contains_key(&("method".to_string(), 1)));
+    assert!(request.functions.contains_key(&("path".to_string(), 1)));
+    assert!(request.functions.contains_key(&("param".to_string(), 2)));
+    assert!(request.functions.contains_key(&("query".to_string(), 2)));
+    assert!(request.functions.contains_key(&("cookie".to_string(), 2)));
+    assert!(request.functions.contains_key(&("cookies".to_string(), 1)));
+    assert!(request
+        .functions
+        .contains_key(&("body_text".to_string(), 1)));
+
+    let response = interfaces
+        .get("std.http.Response")
+        .expect("embedded Response interface");
+    assert!(response.opaque_types.contains("Response"));
+    assert!(response.functions.contains_key(&("text".to_string(), 2)));
+    assert!(response.functions.contains_key(&("html".to_string(), 2)));
+    assert!(response
+        .functions
+        .contains_key(&("redirect".to_string(), 2)));
+    assert!(response
+        .functions
+        .contains_key(&("set_cookie_header".to_string(), 2)));
+
+    let cookies = interfaces
+        .get("std.http.Cookies")
+        .expect("embedded Cookies interface");
+    assert!(cookies.opaque_types.contains("Jar"));
+    assert!(cookies.public_types.contains("Options"));
+    assert!(cookies.public_types.contains("SameSite"));
+    assert!(cookies.functions.contains_key(&("get".to_string(), 2)));
+    assert!(cookies.functions.contains_key(&("set".to_string(), 6)));
+    assert!(cookies.functions.contains_key(&("delete".to_string(), 3)));
+
+    let router = interfaces
+        .get("std.http.Router")
+        .expect("embedded Router interface");
+    assert!(router.opaque_types.contains("Router"));
+    assert!(router.public_types.contains("Handler"));
+    assert!(router.functions.contains_key(&("new".to_string(), 0)));
+    assert!(router.functions.contains_key(&("get".to_string(), 3)));
+    assert!(router.functions.contains_key(&("post".to_string(), 3)));
+    assert!(router.functions.contains_key(&("put".to_string(), 3)));
+    assert!(router.functions.contains_key(&("patch".to_string(), 3)));
+    assert!(router.functions.contains_key(&("delete".to_string(), 3)));
+    assert!(router.functions.contains_key(&("head".to_string(), 3)));
+    assert!(router.functions.contains_key(&("fallback".to_string(), 2)));
+
+    let tls = interfaces
+        .get("std.http.Tls")
+        .expect("embedded Tls interface");
+    assert!(tls.public_types.contains("Config"));
+    assert!(tls.public_types.contains("Mode"));
+    assert!(tls.public_types.contains("Provider"));
 }
 
 /// Verifies embedded std summaries include the JavaScript std seed contracts.
@@ -348,6 +559,19 @@ fn embedded_std_interfaces_include_js_std_contracts() {
         .expect("Promise.to_task receiver method");
     assert!(to_task.receiver_method);
 
+    let number = interfaces
+        .get("std.js.Number")
+        .expect("embedded JS Number interface");
+    assert!(number.opaque_types.contains("JsNumber"));
+    assert!(number
+        .functions
+        .contains_key(&("from_float".to_string(), 1)));
+    let to_float = number
+        .functions
+        .get(&("to_float".to_string(), 1))
+        .expect("Number.to_float receiver method");
+    assert!(to_float.receiver_method);
+
     let document = interfaces
         .get("std.js.Dom.Document")
         .expect("embedded generated DOM Document interface");
@@ -360,7 +584,7 @@ fn embedded_std_interfaces_include_js_std_contracts() {
     assert!(html_element.opaque_types.contains("HTMLElement"));
     assert!(html_element
         .functions
-        .contains_key(&("text_content".to_string(), 1)));
+        .contains_key(&("inner_text".to_string(), 1)));
 }
 
 /// Verifies generated JS std summaries resolve during normal JS compilation.

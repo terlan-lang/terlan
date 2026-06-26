@@ -1,8 +1,16 @@
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
-use terlan_syntax::{span::Span, SyntaxDeclarationPayload, SyntaxModuleOutput};
+use terlan_syntax::{
+    parse_module_as_syntax_output, span::Span, SyntaxDeclarationPayload, SyntaxModuleOutput,
+};
 use terlan_typeck::{type_check_syntax_module_output, DiagSeverity, Diagnostic};
+
+mod slots;
+use slots::{
+    template_slot_location_suffix, template_slot_renderability_error, template_slot_uses,
+    TemplateSlotContext, TemplateSlotUse,
+};
 
 /// Runs syntax-output typechecking plus static template contract checks.
 ///
@@ -29,6 +37,10 @@ pub(crate) fn type_check_syntax_module_output_with_templates(
     ));
     diagnostics
 }
+
+#[cfg(test)]
+#[path = "template_contract_test.rs"]
+mod template_contract_test;
 
 /// Checks template declarations in one syntax-output module.
 ///
@@ -70,7 +82,7 @@ fn check_template_declarations_syntax_output(
 /// - Created from `SyntaxDeclarationPayload::Template`.
 ///
 /// Output:
-/// - Template name, source path, props, and diagnostic span.
+/// - Template name, source path, header metadata, props, and diagnostic span.
 ///
 /// Transformation:
 /// - Keeps only fields required by template contract checks.
@@ -79,6 +91,7 @@ struct TemplateCheckDecl {
     name: String,
     source_path: String,
     resolved_path: String,
+    metadata: terlan_html::TemplateMetadata,
     props: Vec<TemplateCheckProp>,
     span: Span,
 }
@@ -128,6 +141,7 @@ fn check_template_declarations_from_parts(
             name: input.name,
             source_path: input.source_path,
             resolved_path: input.resolved_path.display().to_string(),
+            metadata: input.metadata,
             props: input
                 .props
                 .into_iter()
@@ -225,8 +239,241 @@ fn check_template_slots(
     struct_fields: &HashMap<String, HashMap<String, String>>,
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
-    let mut prop_names = BTreeSet::new();
     let mut prop_types = HashMap::new();
+    diagnostics.extend(validate_template_prop_signatures(template));
+
+    for prop in &template.props {
+        prop_types.insert(prop.name.clone(), prop.annotation.clone());
+    }
+    let prop_names = prop_types.keys().cloned().collect::<BTreeSet<_>>();
+
+    for slot_use in template_slot_uses(&parsed.nodes) {
+        let slot = slot_use.slot;
+        if slot.path.is_empty() {
+            diagnostics.extend(check_template_expression_slot(
+                template,
+                &slot_use,
+                &prop_types,
+                struct_fields,
+            ));
+            continue;
+        }
+        let Some(root) = slot.path.first() else {
+            continue;
+        };
+        if root == crate::commands::static_site::TEMPLATE_CHILDREN_SLOT {
+            if slot.path.len() != 1 {
+                diagnostics.push(Diagnostic {
+                    span: template.span,
+                    message: format!(
+                        "template `{}` uses invalid children slot `{}`{}",
+                        template.name,
+                        slot.path.join("."),
+                        template_slot_location_suffix(slot)
+                    ),
+                    severity: DiagSeverity::Error,
+                });
+            }
+            continue;
+        }
+        if !prop_names.contains(root) {
+            diagnostics.push(Diagnostic {
+                span: template.span,
+                message: format!(
+                    "template `{}` uses undeclared slot `{}`{}",
+                    template.name,
+                    slot.path.join("."),
+                    template_slot_location_suffix(slot)
+                ),
+                severity: DiagSeverity::Error,
+            });
+            continue;
+        }
+        diagnostics.extend(check_template_slot_field_path(
+            template,
+            slot,
+            &prop_types,
+            struct_fields,
+        ));
+        if let Some(actual_type) = template_slot_type_text(slot, &prop_types, struct_fields) {
+            if let Some(message) =
+                template_slot_renderability_error(&slot_use, &actual_type, &template.name)
+            {
+                diagnostics.push(Diagnostic {
+                    span: template.span,
+                    message,
+                    severity: DiagSeverity::Error,
+                });
+            }
+        }
+    }
+
+    diagnostics
+}
+
+/// Checks a non-path template expression slot for renderability.
+///
+/// Inputs:
+/// - `template`: template declaration used for props and diagnostics.
+/// - `slot_use`: interpolation expression and its text/attribute context.
+/// - `prop_types`: declared template prop types.
+/// - `struct_fields`: known struct field shapes available to the synthetic
+///   expression module.
+///
+/// Output:
+/// - Diagnostics when the expression cannot parse or cannot typecheck as any
+///   renderable target type for its context.
+///
+/// Transformation:
+/// - Builds small syntax-output modules around the interpolation expression and
+///   asks the formal typechecker whether the expression can satisfy one of the
+///   context-allowed scalar return types.
+fn check_template_expression_slot(
+    template: &TemplateCheckDecl,
+    slot_use: &TemplateSlotUse<'_>,
+    prop_types: &HashMap<String, String>,
+    struct_fields: &HashMap<String, HashMap<String, String>>,
+) -> Vec<Diagnostic> {
+    let expected_types = match slot_use.context {
+        TemplateSlotContext::Text => ["String", "Int", "Float", "Bool"].as_slice(),
+        TemplateSlotContext::Attribute => ["String", "Int", "Float", "Bool"].as_slice(),
+    };
+
+    if expected_types.iter().any(|expected_type| {
+        template_expression_typechecks_as(
+            &slot_use.slot.expression,
+            expected_type,
+            prop_types,
+            struct_fields,
+        )
+    }) {
+        return Vec::new();
+    }
+
+    vec![Diagnostic {
+        span: template.span,
+        message: format!(
+            "template `{}` slot expression `{}` is not renderable in {} context{}",
+            template.name,
+            slot_use.slot.expression,
+            template_slot_context_name(slot_use.context),
+            template_slot_location_suffix(slot_use.slot)
+        ),
+        severity: DiagSeverity::Error,
+    }]
+}
+
+/// Returns whether an interpolation expression typechecks as one expected type.
+///
+/// Inputs:
+/// - `expression`: raw interpolation expression without `${...}` delimiters.
+/// - `expected_type`: return type to check against.
+/// - `prop_types`: template props exposed as function parameters.
+/// - `struct_fields`: known structs emitted into the synthetic module.
+///
+/// Output:
+/// - `true` when the parser, resolver, and typechecker accept the expression
+///   as the requested type.
+///
+/// Transformation:
+/// - Generates a minimal module containing prop parameters and struct shapes,
+///   then validates the expression as a function body through the formal
+///   compiler path.
+fn template_expression_typechecks_as(
+    expression: &str,
+    expected_type: &str,
+    prop_types: &HashMap<String, String>,
+    struct_fields: &HashMap<String, HashMap<String, String>>,
+) -> bool {
+    let source =
+        template_expression_check_module(expression, expected_type, prop_types, struct_fields);
+    let Ok(module) = parse_module_as_syntax_output(&source) else {
+        return false;
+    };
+    let resolved = terlan_hir::resolve_syntax_module_output(&module).module;
+    type_check_syntax_module_output(&module, &resolved).is_empty()
+}
+
+/// Builds the synthetic module used for expression-island typechecking.
+///
+/// Inputs:
+/// - `expression`: template interpolation expression.
+/// - `expected_type`: declared return type for the generated function.
+/// - `prop_types`: template props to expose as function parameters.
+/// - `struct_fields`: simple struct field metadata for local field access.
+///
+/// Output:
+/// - Terlan source text for a temporary module.
+///
+/// Transformation:
+/// - Emits deterministic struct declarations, a single function whose
+///   parameters mirror template props, and the expression as its body.
+fn template_expression_check_module(
+    expression: &str,
+    expected_type: &str,
+    prop_types: &HashMap<String, String>,
+    struct_fields: &HashMap<String, HashMap<String, String>>,
+) -> String {
+    let mut source = String::from("module template_slot_expr_check.\n\n");
+    let mut structs = struct_fields.iter().collect::<Vec<_>>();
+    structs.sort_by_key(|(name, _)| name.as_str());
+    for (name, fields) in structs {
+        source.push_str(&format!("struct {name} {{\n"));
+        let mut sorted_fields = fields.iter().collect::<Vec<_>>();
+        sorted_fields.sort_by_key(|(field, _)| field.as_str());
+        for (field, annotation) in sorted_fields {
+            source.push_str(&format!("    {field}: {annotation},\n"));
+        }
+        source.push_str("}.\n\n");
+    }
+
+    let mut props = prop_types.iter().collect::<Vec<_>>();
+    props.sort_by_key(|(name, _)| name.as_str());
+    let params = props
+        .into_iter()
+        .map(|(name, annotation)| format!("{name}: {annotation}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    source.push_str(&format!(
+        "pub render({params}): {expected_type} ->\n    {expression}.\n"
+    ));
+    source
+}
+
+/// Returns a human-readable template slot context name.
+///
+/// Inputs:
+/// - `context`: text/body or attribute context.
+///
+/// Output:
+/// - Stable diagnostic label for the context.
+///
+/// Transformation:
+/// - Converts the enum to a short lowercase diagnostic token.
+fn template_slot_context_name(context: TemplateSlotContext) -> &'static str {
+    match context {
+        TemplateSlotContext::Text => "text",
+        TemplateSlotContext::Attribute => "attribute",
+    }
+}
+
+/// Validates the source-level template prop signature.
+///
+/// Inputs:
+/// - `template`: normalized template declaration with prop names and spans.
+///
+/// Output:
+/// - Diagnostics for reserved or duplicate prop names.
+///
+/// Transformation:
+/// - Scans prop names only; type compatibility and slot-path validation remain
+///   in the template-node checks that need parsed template structure.
+fn validate_template_prop_signatures(template: &TemplateCheckDecl) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    let mut prop_names = BTreeSet::new();
+
+    diagnostics.extend(validate_template_metadata_signatures(template));
+
     for prop in &template.props {
         if prop.name == crate::commands::static_site::TEMPLATE_CHILDREN_SLOT {
             diagnostics.push(Diagnostic {
@@ -249,47 +496,101 @@ fn check_template_slots(
                 severity: DiagSeverity::Error,
             });
         }
-        prop_types.insert(prop.name.clone(), prop.annotation.clone());
     }
 
-    for slot in template_slots(&parsed.nodes) {
-        let Some(root) = slot.path.first() else {
-            continue;
-        };
-        if root == crate::commands::static_site::TEMPLATE_CHILDREN_SLOT {
-            if slot.path.len() != 1 {
-                diagnostics.push(Diagnostic {
-                    span: template.span,
-                    message: format!(
-                        "template `{}` uses invalid children slot `{}`",
-                        template.name,
-                        slot.path.join(".")
-                    ),
-                    severity: DiagSeverity::Error,
-                });
-            }
-            continue;
-        }
-        if !prop_names.contains(root) {
+    diagnostics
+}
+
+/// Revalidates annotation-backed template signature metadata.
+///
+/// Inputs:
+/// - `template`: normalized template declaration with parsed header metadata.
+///
+/// Output:
+/// - Diagnostics for metadata drift from the source declaration.
+///
+/// Transformation:
+/// - Reuses the normalized template-contract prop shape so downstream template
+///   validation remains correct even when future entry points bypass artifact
+///   collection's early mismatch rejection.
+fn validate_template_metadata_signatures(template: &TemplateCheckDecl) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    if let Some(metadata_name) = &template.metadata.name {
+        if metadata_name != &template.name {
             diagnostics.push(Diagnostic {
                 span: template.span,
                 message: format!(
-                    "template `{}` uses undeclared slot `{}`",
-                    template.name,
-                    slot.path.join(".")
+                    "template `{}` metadata declares name `{}`",
+                    template.name, metadata_name
                 ),
                 severity: DiagSeverity::Error,
             });
-            continue;
         }
-        diagnostics.extend(check_template_slot_field_path(
-            template,
-            slot,
-            &prop_types,
-            struct_fields,
-        ));
     }
 
+    if template.metadata.params_declared {
+        diagnostics.extend(validate_template_metadata_params(template));
+    }
+
+    diagnostics
+}
+
+/// Revalidates annotation-backed template params.
+///
+/// Inputs:
+/// - `template`: normalized template declaration with props and metadata.
+///
+/// Output:
+/// - Diagnostics for arity, order, name, and type mismatches.
+///
+/// Transformation:
+/// - Compares the source declaration and `@template.params` in the validator's
+///   local shape so future template-function generation can trust both.
+fn validate_template_metadata_params(template: &TemplateCheckDecl) -> Vec<Diagnostic> {
+    if template.metadata.params.len() != template.props.len() {
+        return vec![Diagnostic {
+            span: template.span,
+            message: format!(
+                "template `{}` metadata declares {} params, but source declaration has {} props",
+                template.name,
+                template.metadata.params.len(),
+                template.props.len()
+            ),
+            severity: DiagSeverity::Error,
+        }];
+    }
+
+    let mut diagnostics = Vec::new();
+    for (index, (prop, param)) in template
+        .props
+        .iter()
+        .zip(template.metadata.params.iter())
+        .enumerate()
+    {
+        if prop.name != param.name {
+            diagnostics.push(Diagnostic {
+                span: template.span,
+                message: format!(
+                    "template `{}` metadata param {} is `{}`, but source declaration prop is `{}`",
+                    template.name,
+                    index + 1,
+                    param.name,
+                    prop.name
+                ),
+                severity: DiagSeverity::Error,
+            });
+        }
+        if prop.annotation != param.type_text {
+            diagnostics.push(Diagnostic {
+                span: template.span,
+                message: format!(
+                    "template `{}` metadata param `{}` has type `{}`, but source declaration has `{}`",
+                    template.name, param.name, param.type_text, prop.annotation
+                ),
+                severity: DiagSeverity::Error,
+            });
+        }
+    }
     diagnostics
 }
 
@@ -480,6 +781,30 @@ fn check_template_component_element(
                 }
             }
             Some(terlan_html::HtmlAttrValue::Slot(slot)) => {
+                if slot.path.is_empty() {
+                    if !template_expression_typechecks_as(
+                        &slot.expression,
+                        expected_type,
+                        prop_types,
+                        struct_fields,
+                    ) {
+                        diagnostics.push(Diagnostic {
+                            span: template.span,
+                            message: format!(
+                                "template `{}` component `<{}>` prop `{}` expects `{}`, but expression `{}` does not typecheck as `{}`{}",
+                                template.name,
+                                element.name,
+                                attr.name,
+                                expected_type,
+                                slot.expression,
+                                expected_type,
+                                template_slot_location_suffix(slot)
+                            ),
+                            severity: DiagSeverity::Error,
+                        });
+                    }
+                    continue;
+                }
                 let Some(actual_type) = template_slot_type_text(slot, prop_types, struct_fields)
                 else {
                     continue;
@@ -552,11 +877,12 @@ fn check_template_slot_field_path(
             diagnostics.push(Diagnostic {
                 span: template.span,
                 message: format!(
-                    "template `{}` uses invalid field path `{}`: struct `{}` has no field `{}`",
+                    "template `{}` uses invalid field path `{}`: struct `{}` has no field `{}`{}",
                     template.name,
                     slot.path.join("."),
                     type_name,
-                    field
+                    field,
+                    template_slot_location_suffix(slot)
                 ),
                 severity: DiagSeverity::Error,
             });
@@ -588,7 +914,7 @@ fn template_slot_type_text(
 ) -> Option<String> {
     let root = slot.path.first()?;
     if root == crate::commands::static_site::TEMPLATE_CHILDREN_SLOT {
-        return Some("Html[Never]".to_string());
+        return Some("Template.Html".to_string());
     }
     let mut current_type = prop_types.get(root)?.clone();
     for field in slot.path.iter().skip(1) {
@@ -650,56 +976,5 @@ fn simple_template_type_name(type_text: &str) -> Option<&str> {
         Some(type_text)
     } else {
         None
-    }
-}
-
-/// Collects every slot reference in parsed template nodes.
-///
-/// Inputs:
-/// - `nodes`: parsed template nodes.
-///
-/// Output:
-/// - Borrowed slot references found in nodes and attributes.
-///
-/// Transformation:
-/// - Recursively walks node trees and gathers text slots plus attribute slots.
-fn template_slots(nodes: &[terlan_html::HtmlNode]) -> Vec<&terlan_html::HtmlSlot> {
-    let mut slots = Vec::new();
-    for node in nodes {
-        collect_template_slots(node, &mut slots);
-    }
-    slots
-}
-
-/// Recursively appends slot references from one parsed template node.
-///
-/// Inputs:
-/// - `node`: parsed template node to inspect.
-/// - `slots`: output buffer for borrowed slot references.
-///
-/// Output:
-/// - No return value.
-///
-/// Transformation:
-/// - Adds direct slots, attribute slots, and slots nested in child elements.
-fn collect_template_slots<'a>(
-    node: &'a terlan_html::HtmlNode,
-    slots: &mut Vec<&'a terlan_html::HtmlSlot>,
-) {
-    match node {
-        terlan_html::HtmlNode::Slot(slot) => slots.push(slot),
-        terlan_html::HtmlNode::Element(element) => {
-            for attr in &element.attrs {
-                if let Some(terlan_html::HtmlAttrValue::Slot(slot)) = &attr.value {
-                    slots.push(slot);
-                }
-            }
-            for child in &element.children {
-                collect_template_slots(child, slots);
-            }
-        }
-        terlan_html::HtmlNode::Text(_)
-        | terlan_html::HtmlNode::Comment(_)
-        | terlan_html::HtmlNode::Doctype(_) => {}
     }
 }

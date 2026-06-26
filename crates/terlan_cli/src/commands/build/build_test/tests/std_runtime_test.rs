@@ -385,7 +385,7 @@ seed: Int\n\
 }.\n\
 \n\
 pub constructor CounterServer {\n\
-(seed: Int): CounterServer -> #CounterServer{ seed = seed }\n\
+(seed: Int): CounterServer -> CounterServer(seed = seed)\n\
 }.\n\
 \n\
 pub (server: CounterServer) init(): Result[Int, Error] ->\n\

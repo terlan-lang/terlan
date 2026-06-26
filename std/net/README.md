@@ -51,6 +51,7 @@ Important invariants:
 
 ## Testing Notes
 
-- Positive tests should live beside the module as `std/net/uri_test.terl`.
+- Positive tests should live beside the module as `*Test.terl` sources when
+  the API becomes release-tested.
 - Add negative tests for malformed URI input when typed errors are finalized.
 - HTTP server manifest tests should cover route/URI interactions separately.

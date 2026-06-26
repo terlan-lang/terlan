@@ -1,0 +1,8 @@
+module=std.js.Dom.AudioBufferSourceNode
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=145284799536938021
+interface_hash=13778089541905911645
+interface_doc_hash=13778089541905911645
+deps=0

@@ -1,0 +1,45 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ClipboardItem
+ */
+
+module std.js.Dom.ClipboardItem.
+
+/**
+ * The **`ClipboardItem`** interface of the Clipboard API represents a single item format, used when reading or writing clipboard data using Clipboard.read() and Clipboard.write() respectively.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem)
+ */
+pub opaque type ClipboardItem.
+
+/**
+ * The read-only **`presentationStyle`** property of the ClipboardItem interface returns a string indicating how an item should be presented.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/presentationStyle)
+ */
+pub (value: ClipboardItem) presentation_style(): PresentationStyle.
+
+/**
+ * The read-only **`types`** property of the ClipboardItem interface returns an Array of MIME type available within the ClipboardItem.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/types)
+ */
+pub (value: ClipboardItem) types(): std.js.Array[std.js.String.JsString].
+
+/**
+ * The **`getType()`** method of the ClipboardItem interface returns a Promise that resolves with a Blob of the requested MIME type or an error if the MIME type is not found.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/getType)
+ */
+pub (value: ClipboardItem) get_type(type_: std.js.String.JsString): std.js.Promise[Blob].

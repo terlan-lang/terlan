@@ -91,6 +91,43 @@ mod tests {
         assert_eq!(decoded, output);
     }
 
+    /// Verifies function parameter defaults are preserved in syntax output.
+    ///
+    /// Inputs:
+    /// - A module with a function whose trailing parameter has an integer
+    ///   default.
+    ///
+    /// Output:
+    /// - Syntax output marks the parameter as defaulted and carries the lowered
+    ///   default expression plus source-like default text.
+    ///
+    /// Transformation:
+    /// - Projects parser-level default-parameter metadata into the formal
+    ///   syntax-output contract for later typechecking and call lowering.
+    #[test]
+    fn syntax_output_preserves_function_parameter_defaults() {
+        let output = parse_module_as_syntax_output(
+            r#"
+            module function_defaults.
+
+            pub add(X: Int, Step: Int = 1): Int -> X + Step.
+            "#,
+        )
+        .expect("syntax output");
+
+        let SyntaxDeclarationPayload::Function { params, .. } = &output.declarations[0].payload
+        else {
+            panic!("expected function payload");
+        };
+        assert_eq!(params.len(), 2);
+        assert!(!params[0].has_default);
+        assert!(params[1].has_default);
+        let default = params[1].default.as_ref().expect("function param default");
+        assert_eq!(default.kind, SyntaxExprKind::Int);
+        assert_eq!(default.text.as_deref(), Some("1"));
+        assert_eq!(params[1].default_text.as_deref(), Some("1"));
+    }
+
     /// Verifies declaration annotations are preserved in syntax output.
     ///
     /// Inputs:
@@ -1175,7 +1212,7 @@ mod tests {
             method.name == "iterator"
                 && method.params.len() == 1
                 && method.params[0].annotation.text == "C"
-                && method.return_type.text == "Iterator[T]"
+                && method.return_type.text == "std.collections.Iterator.Iterator[T]"
         }));
     }
 
@@ -1312,10 +1349,11 @@ mod tests {
             r#"
             module rich.
 
-            pub struct User derives Person {
+            pub struct User includes Person {
                 /// Stable internal ID.
                 id: Int,
-                name: Text = :guest
+                name: Text = :guest,
+                #email: String
             }.
 
             pub constructor Queue[T] {
@@ -1328,7 +1366,7 @@ mod tests {
             }.
 
             template Page from "./page.terl.html" {
-                title: Text
+                title: Text = "Untitled"
             }.
             "#,
         )
@@ -1338,25 +1376,29 @@ mod tests {
             SyntaxDeclarationPayload::Struct {
                 name,
                 is_public,
-                derives,
+                includes,
                 implements,
                 fields,
             } => {
                 assert_eq!(name, "User");
                 assert!(*is_public);
-                assert_eq!(derives, &vec!["Person".to_string()]);
+                assert_eq!(includes, &vec!["Person".to_string()]);
                 assert!(implements.is_empty());
-                assert_eq!(fields.len(), 2);
+                assert_eq!(fields.len(), 3);
                 assert_eq!(fields[0].name, "id");
                 assert_eq!(fields[0].annotation.text, "Int");
                 assert_eq!(fields[0].docs, vec!["Stable internal ID."]);
                 assert!(!fields[0].has_default);
+                assert!(!fields[0].is_private);
                 assert_eq!(fields[1].name, "name");
                 assert_eq!(fields[1].annotation.text, "Text");
                 assert!(fields[1].has_default);
                 let default = fields[1].default.as_ref().expect("field default");
                 assert_eq!(default.kind, SyntaxExprKind::Atom);
                 assert_eq!(default.text.as_deref(), Some("guest"));
+                assert_eq!(fields[2].name, "email");
+                assert_eq!(fields[2].annotation.text, "String");
+                assert!(fields[2].is_private);
             }
             other => panic!("unexpected struct payload: {other:?}"),
         }
@@ -1418,6 +1460,8 @@ mod tests {
                 assert_eq!(props.len(), 1);
                 assert_eq!(props[0].name, "title");
                 assert_eq!(props[0].annotation.text, "Text");
+                assert!(props[0].has_default);
+                assert_eq!(props[0].default_text.as_deref(), Some("\"Untitled\""));
             }
             other => panic!("unexpected template payload: {other:?}"),
         }

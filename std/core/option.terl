@@ -1,7 +1,7 @@
 /**
- *Core optional value type.
+ * Core optional value type.
  *
- *`std.core.Option` represents either no value or one present value.
+ * `std.core.Option` represents either no value or one present value.
  */
 
 module std.core.Option.
@@ -9,86 +9,86 @@ module std.core.Option.
 import std.core.Ordering.{Eq, Gt, Lt}.
 
 /**
- *None represents a missing optional value.
+ * None represents a missing optional value.
  *
- *`None` is a typed alias for the language-neutral atom primitive
- *`Atom["none"]`.
+ * `None` is a typed alias for the language-neutral atom primitive
+ * `Atom["none"]`.
  *
- *```terlan
- *module none_type_example.
+ * ```terlan
+ * module none_type_example.
  *
- *pub type None =
+ * pub type None =
  *    Atom["none"].
  *
- *pub missing(): None ->
+ * pub missing(): None ->
  *    None.
- *```
+ * ```
  */
 pub type None =
     Atom["none"].
 
 /**
- *Some represents a present optional value.
+ * Some represents a present optional value.
  *
- *`Some[T]` is a typed alias for the tuple `{Atom["some"], value}`.
+ * `Some[T]` is a typed alias for the tuple `{Atom["some"], value}`.
  *
- *```terlan
- *module some_type_example.
+ * ```terlan
+ * module some_type_example.
  *
- *pub type Some[T] =
+ * pub type Some[T] =
  *    {Atom["some"], value: T}.
  *
- *pub present(value: Int): Some[Int] ->
+ * pub present(value: Int): Some[Int] ->
  *    Some(value).
- *```
+ * ```
  */
 pub type Some[T] =
     {Atom["some"], value: T}.
 
 /**
- *Option represents an optional value.
+ * Option represents an optional value.
  *
- *Use `None` when no value is available and `Some(value)` when a value is
- *present.
+ * Use `None` when no value is available and `Some(value)` when a value is
+ * present.
  *
- *```terlan
- *module option_example.
+ * ```terlan
+ * module option_example.
  *
- *pub type None =
+ * pub type None =
  *    Atom["none"].
  *
- *pub type Some[T] =
+ * pub type Some[T] =
  *    {Atom["some"], value: T}.
  *
- *pub type Option[T] =
+ * pub type Option[T] =
  *      None
  *    | Some[T].
  *
- *pub missing(): Option[Int] ->
+ * pub missing(): Option[Int] ->
  *    None.
  *
- *pub present(x: Int): Option[Int] ->
+ * pub present(x: Int): Option[Int] ->
  *    Some(x).
- *```
+ * ```
  */
 pub type Option[T] =
       None
     | Some[T].
 
 /**
- *Returns whether an optional value is present.
+ * Returns whether an optional value is present.
  *
- *Input: one `Option[A]` value.
- *Output: `true` for `Some(value)` and `false` for `None`.
- *Transformation: inspects the option shape without changing the contained
- *value.
+ * Input: one `Option[A]` value.
+ * Output: `true` for `Some(value)` and `false` for `None`.
+ * Transformation: inspects the option shape without changing the contained
+ * value.
  *
- *```terlan
- *module option_is_some_example.
+ * ```terlan
+ * module option_is_some_example.
  *
- *pub demo(value: Option[Int]): Bool ->
+ * pub demo(value: Option[Int]): Bool ->
  *    std.core.Option.is_some(value).
- *```
+ * ```
  */
 pub is_some(value: Option[A]): Bool ->
     case value {
@@ -100,19 +100,19 @@ pub is_some(value: Option[A]): Bool ->
     }.
 
 /**
- *Returns whether an optional value is missing.
+ * Returns whether an optional value is missing.
  *
- *Input: one `Option[A]` value.
- *Output: `true` for `None` and `false` for `Some(value)`.
- *Transformation: inspects the option shape without changing the contained
- *value.
+ * Input: one `Option[A]` value.
+ * Output: `true` for `None` and `false` for `Some(value)`.
+ * Transformation: inspects the option shape without changing the contained
+ * value.
  *
- *```terlan
- *module option_is_none_example.
+ * ```terlan
+ * module option_is_none_example.
  *
- *pub demo(value: Option[Int]): Bool ->
+ * pub demo(value: Option[Int]): Bool ->
  *    std.core.Option.is_none(value).
- *```
+ * ```
  */
 pub is_none(value: Option[A]): Bool ->
     case value {
@@ -124,22 +124,22 @@ pub is_none(value: Option[A]): Bool ->
     }.
 
 /**
- *Maps a present value and leaves `None` unchanged.
+ * Maps a present value and leaves `None` unchanged.
  *
- *```terlan
- *module option_map_example.
+ * ```terlan
+ * module option_map_example.
  *
- *pub type None =
+ * pub type None =
  *    Atom["none"].
  *
- *pub type Some[T] =
+ * pub type Some[T] =
  *    {Atom["some"], value: T}.
  *
- *pub type Option[T] =
+ * pub type Option[T] =
  *      None
  *    | Some[T].
  *
- *pub map(value: Option[A], f: (A) -> B): Option[B] ->
+ * pub map(value: Option[A], f: (A) -> B): Option[B] ->
  *    case value {
  *        None ->
  *            None;
@@ -148,9 +148,9 @@ pub is_none(value: Option[A]): Bool ->
  *            Some(f(x))
  *    }.
  *
- *pub demo(value: Option[Int], f: (Int) -> Int): Option[Int] ->
+ * pub demo(value: Option[Int], f: (Int) -> Int): Option[Int] ->
  *    map(value, f).
- *```
+ * ```
  */
 pub map(value: Option[A], f: (A) -> B): Option[B] ->
     case value {
@@ -162,24 +162,24 @@ pub map(value: Option[A], f: (A) -> B): Option[B] ->
     }.
 
 /**
- *Chains a present value into another optional computation.
+ * Chains a present value into another optional computation.
  *
- *`and_then` returns `None` when the input is missing. When the input is
- *present, it calls the supplied function and returns that function's
- *optional result directly.
+ * `and_then` returns `None` when the input is missing. When the input is
+ * present, it calls the supplied function and returns that function's
+ * optional result directly.
  *
- *```terlan
- *module option_and_then_example.
+ * ```terlan
+ * module option_and_then_example.
  *
- *pub type None = Atom["none"].
+ * pub type None = Atom["none"].
  *
- *pub type Some[T] = {Atom["some"], value: T}.
+ * pub type Some[T] = {Atom["some"], value: T}.
  *
- *pub type Option[T] =
+ * pub type Option[T] =
  *      None
  *    | Some[T].
  *
- *pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B] ->
+ * pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B] ->
  *    case value {
  *        None ->
  *            None;
@@ -188,9 +188,9 @@ pub map(value: Option[A], f: (A) -> B): Option[B] ->
  *            f(x)
  *    }.
  *
- *pub demo(value: Option[Int], f: (Int) -> Option[Int]): Option[Int] ->
+ * pub demo(value: Option[Int], f: (Int) -> Option[Int]): Option[Int] ->
  *    and_then(value, f).
- *```
+ * ```
  */
 pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B] ->
     case value {
@@ -202,25 +202,25 @@ pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B] ->
     }.
 
 /**
- *Compares two optional values using `None < Some(_)`.
+ * Compares two optional values using `None < Some(_)`.
  *
- *Input: two `Option[A]` values and a comparator for present `A` values.
- *Output: `Lt` when `left` is ordered before `right`, `Eq` when they are
- *equal, and `Gt` when `left` is ordered after `right`.
- *Transformation: orders missing values before present values and delegates
- *present-value comparison to `value_compare`.
+ * Input: two `Option[A]` values and a comparator for present `A` values.
+ * Output: `Lt` when `left` is ordered before `right`, `Eq` when they are
+ * equal, and `Gt` when `left` is ordered after `right`.
+ * Transformation: orders missing values before present values and delegates
+ * present-value comparison to `value_compare`.
  *
- *```terlan
- *module option_compare_example.
+ * ```terlan
+ * module option_compare_example.
  *
- *import type std.core.Ordering.Comparison.
+ * import type std.core.Ordering.Comparison.
  *
- *pub compare_int(left: Int, right: Int): Comparison ->
+ * pub compare_int(left: Int, right: Int): Comparison ->
  *    std.core.Int.compare(left, right).
  *
- *pub demo(): Comparison ->
+ * pub demo(): Comparison ->
  *    std.core.Option.compare(None, Some(1), compare_int).
- *```
+ * ```
  */
 pub compare(
     left: Option[A],
@@ -248,22 +248,22 @@ pub compare(
     }.
 
 /**
- *Extracts a present value or returns the provided default.
+ * Extracts a present value or returns the provided default.
  *
- *```terlan
- *module option_with_default_example.
+ * ```terlan
+ * module option_with_default_example.
  *
- *pub type None =
+ * pub type None =
  *    Atom["none"].
  *
- *pub type Some[T] =
+ * pub type Some[T] =
  *    {Atom["some"], value: T}.
  *
- *pub type Option[T] =
+ * pub type Option[T] =
  *      None
  *    | Some[T].
  *
- *pub with_default(value: Option[A], default: A): A ->
+ * pub with_default(value: Option[A], default: A): A ->
  *    case value {
  *        None ->
  *            default;
@@ -272,9 +272,9 @@ pub compare(
  *            x
  *    }.
  *
- *pub demo(value: Option[Int]): Int ->
+ * pub demo(value: Option[Int]): Int ->
  *    with_default(value, 0).
- *```
+ * ```
  */
 pub with_default(value: Option[A], default: A): A ->
     case value {

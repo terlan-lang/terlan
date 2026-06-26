@@ -1,0 +1,8 @@
+module=std.js.FunctionConstructor
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=5199082085748072384
+interface_hash=4362282744808059534
+interface_doc_hash=4362282744808059534
+deps=0

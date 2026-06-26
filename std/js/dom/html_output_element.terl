@@ -1,0 +1,133 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLOutputElement
+ */
+
+module std.js.Dom.HTMLOutputElement.
+
+/**
+ * The **`HTMLOutputElement`** interface provides properties and methods (beyond those inherited from HTMLElement) for manipulating the layout and presentation of output elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement)
+ */
+pub opaque type HTMLOutputElement.
+
+/**
+ * The **`defaultValue`** property of the HTMLOutputElement interface represents the default text content of this output element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/defaultValue)
+ */
+pub (value: HTMLOutputElement) default_value(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`form`** read-only property of the HTMLOutputElement interface returns an HTMLFormElement object that owns this output, or `null` if this output is not owned by any form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/form)
+ */
+pub (value: HTMLOutputElement) form(): Option[HTMLFormElement] ->
+    native.
+
+/**
+ * The **`htmlFor`** property of the HTMLOutputElement interface is a string containing a space-separated list of other elements' `id`s, indicating that those elements contributed input values to (or otherwise affected) the calculation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/htmlFor)
+ */
+pub (value: HTMLOutputElement) html_for(): DOMTokenList ->
+    native.
+
+/**
+ * The **`HTMLOutputElement.labels`** read-only property returns a A NodeList containing the `<label>` elements associated with the `<output>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/labels)
+ */
+pub (value: HTMLOutputElement) labels(): NodeListOf[HTMLLabelElement] ->
+    native.
+
+/**
+ * The **`name`** property of the HTMLOutputElement interface indicates the name of the output element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/name)
+ */
+pub (value: HTMLOutputElement) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`type`** read-only property of the HTMLOutputElement interface returns the string `'output'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/type)
+ */
+pub (value: HTMLOutputElement) type_(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`validationMessage`** read-only property of the HTMLOutputElement interface returns a string representing a localized message that describes the validation constraints that the output control does not satisfy (if any).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/validationMessage)
+ */
+pub (value: HTMLOutputElement) validation_message(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`validity`** read-only property of the HTMLOutputElement interface returns a ValidityState object that represents the validity states this element is in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/validity)
+ */
+pub (value: HTMLOutputElement) validity(): ValidityState ->
+    native.
+
+/**
+ * The **`value`** property of the HTMLOutputElement interface represents the value of the output element as a string, or the empty string if no value is set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/value)
+ */
+pub (value: HTMLOutputElement) value(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`willValidate`** read-only property of the HTMLOutputElement interface returns `false`, because output elements are not candidates for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/willValidate)
+ */
+pub (value: HTMLOutputElement) will_validate(): std.core.Bool ->
+    native.
+
+/**
+ * The **`checkValidity()`** method of the HTMLOutputElement interface checks if the element is valid, but always returns true because output elements are never candidates for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/checkValidity)
+ */
+pub (value: HTMLOutputElement) check_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`reportValidity()`** method of the HTMLOutputElement interface performs the same validity checking steps as the HTMLOutputElement.checkValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/reportValidity)
+ */
+pub (value: HTMLOutputElement) report_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`setCustomValidity()`** method of the HTMLOutputElement interface sets the custom validity message for the output element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/setCustomValidity)
+ */
+pub (value: HTMLOutputElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit ->
+    native.
+
+pub (value: HTMLOutputElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLOutputElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

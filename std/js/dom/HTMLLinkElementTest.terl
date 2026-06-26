@@ -1,0 +1,82 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLLinkElement
+ */
+
+module std.js.Dom.HTMLLinkElementTest.
+
+import type std.js.Dom.HTMLLinkElement.HTMLLinkElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub as__typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.as_().
+
+pub blocking_typechecks(receiver: HTMLLinkElement): DOMTokenList ->
+    receiver.blocking().
+
+pub charset_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.charset().
+
+pub cross_origin_typechecks(receiver: HTMLLinkElement): Option[std.js.String.JsString] ->
+    receiver.cross_origin().
+
+pub disabled_typechecks(receiver: HTMLLinkElement): std.core.Bool ->
+    receiver.disabled().
+
+pub href_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.href().
+
+pub hreflang_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.hreflang().
+
+pub image_sizes_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.image_sizes().
+
+pub image_srcset_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.image_srcset().
+
+pub integrity_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.integrity().
+
+pub media_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.media().
+
+pub referrer_policy_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.referrer_policy().
+
+pub rel_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.rel().
+
+pub rel_list_typechecks(receiver: HTMLLinkElement): DOMTokenList ->
+    receiver.rel_list().
+
+pub rev_typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.rev().
+
+pub sizes_typechecks(receiver: HTMLLinkElement): DOMTokenList ->
+    receiver.sizes().
+
+pub target__typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.target_().
+
+pub type__typechecks(receiver: HTMLLinkElement): std.js.String.JsString ->
+    receiver.type_().
+
+pub add_event_listener_typechecks(receiver: HTMLLinkElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: HTMLLinkElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

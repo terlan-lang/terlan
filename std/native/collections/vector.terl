@@ -23,6 +23,20 @@ import std.core.Unit.{Unit}.
 pub opaque type Vector[T].
 
 /**
+ * Constructs a native vector from positional values.
+ *
+ * Input: zero or more values of the same element type `T`.
+ * Output: a `Vector[T]` containing the supplied values in source order.
+ * Transformation: packs constructor varargs into a portable list-shaped
+ * argument and delegates to `from_list` so target-native allocation remains
+ * behind the vector bridge.
+ */
+pub constructor Vector[T] {
+    (...items: T): Vector[T] ->
+        from_list(items)
+}.
+
+/**
  * Creates an empty native vector.
  *
  * Input: no value input.
@@ -55,6 +69,18 @@ pub from_list[T](values: List[T]): Vector[T] ->
  */
 @compiler.native {std.native.collections.vector.length}
 pub (vector: Vector[T]) length(): Int ->
+    0.
+
+/**
+ * Returns the number of values in a vector.
+ *
+ * Input: one `Vector[T]`.
+ * Output: the current vector length.
+ * Transformation: aliases the native vector length operation with the shorter
+ * receiver name used by algorithm-oriented code.
+ */
+@compiler.native {std.native.collections.vector.length}
+pub (vector: Vector[T]) len(): Int ->
     0.
 
 /**
@@ -125,5 +151,5 @@ pub (vector: Vector[T]) to_list(): List[T] ->
  */
 pub impl IndexGet[Vector[T], Int, T] for Vector[T] {
     get_at(vector: Vector[T], index: Int): T ->
-        Vector.get_at(vector, index).
+        vector.get_at(index).
 }.

@@ -9,7 +9,8 @@ use terlan_syntax::{
     SyntaxTraitMethodOutput, SyntaxTypeOutput,
 };
 
-use crate::commands::json::json_string;
+use serde_json::{json, Value};
+use terlan_html::escape_html_text;
 
 /// Renders syntax-output module documentation as Markdown.
 ///
@@ -258,14 +259,16 @@ pub(crate) fn render_syntax_module_docs_json(module: &SyntaxModuleOutput) -> Str
         .declarations
         .iter()
         .filter_map(render_syntax_declaration_doc_json)
-        .collect::<Vec<_>>()
-        .join(",");
-    format!(
-        "{{\"schema\":\"terlan-doc-module-v1\",\"module\":{},\"docs\":{},\"declarations\":[{}]}}\n",
-        json_string(&module.module_name),
-        render_json_string_array(&module.docs),
-        declarations,
-    )
+        .collect::<Vec<_>>();
+    let model = json!({
+        "schema": "terlan-doc-module-v1",
+        "module": module.module_name,
+        "docs": module.docs,
+        "declarations": declarations,
+    });
+    let mut rendered = serde_json::to_string(&model).expect("module docs JSON should serialize");
+    rendered.push('\n');
+    rendered
 }
 
 /// Renders one declaration into the JSON documentation model.
@@ -280,7 +283,7 @@ pub(crate) fn render_syntax_module_docs_json(module: &SyntaxModuleOutput) -> Str
 /// Transformation:
 /// - Classifies declaration kind, source-visible name, visibility, signature,
 ///   and attached docs into stable JSON fields.
-fn render_syntax_declaration_doc_json(declaration: &SyntaxDeclarationOutput) -> Option<String> {
+fn render_syntax_declaration_doc_json(declaration: &SyntaxDeclarationOutput) -> Option<Value> {
     let (kind, name, is_public, signature) = match &declaration.payload {
         SyntaxDeclarationPayload::Type {
             name,
@@ -381,14 +384,13 @@ fn render_syntax_declaration_doc_json(declaration: &SyntaxDeclarationOutput) -> 
         | SyntaxDeclarationPayload::Raw { .. } => return None,
     };
 
-    Some(format!(
-        "{{\"kind\":{},\"name\":{},\"public\":{},\"signature\":{},\"docs\":{}}}",
-        json_string(kind),
-        json_string(name),
-        is_public,
-        json_string(&signature),
-        render_json_string_array(&declaration.docs),
-    ))
+    Some(json!({
+        "kind": kind,
+        "name": name,
+        "public": is_public,
+        "signature": signature,
+        "docs": declaration.docs,
+    }))
 }
 
 /// Renders a type declaration signature for documentation JSON.
@@ -621,27 +623,6 @@ fn render_trait_impl_signature(
         if is_public { "pub " } else { "" },
         trait_ref.text,
         for_type.text
-    )
-}
-
-/// Renders a JSON string array.
-///
-/// Inputs:
-/// - `values`: ordered string values.
-///
-/// Output:
-/// - JSON array text.
-///
-/// Transformation:
-/// - Escapes each value with the shared CLI JSON string helper.
-fn render_json_string_array(values: &[String]) -> String {
-    format!(
-        "[{}]",
-        values
-            .iter()
-            .map(|value| json_string(value))
-            .collect::<Vec<_>>()
-            .join(",")
     )
 }
 
@@ -1051,18 +1032,10 @@ fn render_syntax_param_signature(param: &SyntaxParamOutput) -> String {
 /// - HTML-safe text.
 ///
 /// Transformation:
-/// - Escapes ampersands and angle brackets.
+/// - Delegates text escaping to `terlan_html` so generated documentation HTML
+///   shares the compiler HTML escaping boundary.
 fn sanitize_html_text(input: &str) -> String {
-    let mut out = String::new();
-    for ch in input.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            _ => out.push(ch),
-        }
-    }
-    out
+    escape_html_text(input)
 }
 
 #[cfg(test)]

@@ -1,0 +1,8 @@
+module=std.js.Dom.CanvasShadowStyles
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=14576711605426912830
+interface_hash=6755289238697924754
+interface_doc_hash=6755289238697924754
+deps=0

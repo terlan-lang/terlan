@@ -1,0 +1,60 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MutationObserverInit
+ */
+
+module std.js.Dom.MutationObserverInit.
+
+pub opaque type MutationObserverInit.
+
+/**
+ * Set to a list of attribute local names (without namespace) if not all attribute mutations need to be observed and attributes is true or omitted.
+ */
+pub (value: MutationObserverInit) attribute_filter(): std.js.Array[std.js.String.JsString] ->
+    native.
+
+/**
+ * Set to true if attributes is true or omitted and target's attribute value before the mutation needs to be recorded.
+ */
+pub (value: MutationObserverInit) attribute_old_value(): std.core.Bool ->
+    native.
+
+/**
+ * Set to true if mutations to target's attributes are to be observed. Can be omitted if attributeOldValue or attributeFilter is specified.
+ */
+pub (value: MutationObserverInit) attributes(): std.core.Bool ->
+    native.
+
+/**
+ * Set to true if mutations to target's data are to be observed. Can be omitted if characterDataOldValue is specified.
+ */
+pub (value: MutationObserverInit) character_data(): std.core.Bool ->
+    native.
+
+/**
+ * Set to true if characterData is set to true or omitted and target's data before the mutation needs to be recorded.
+ */
+pub (value: MutationObserverInit) character_data_old_value(): std.core.Bool ->
+    native.
+
+/**
+ * Set to true if mutations to target's children are to be observed.
+ */
+pub (value: MutationObserverInit) child_list(): std.core.Bool ->
+    native.
+
+/**
+ * Set to true if mutations to not just target, but also target's descendants are to be observed.
+ */
+pub (value: MutationObserverInit) subtree(): std.core.Bool ->
+    native.

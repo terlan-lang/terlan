@@ -1,0 +1,38 @@
+{
+  "iconDefinitions": {
+    "_terlan_file": {
+      "iconPath": "./terlan-file.svg"
+    },
+    "_terlan_template_html_file": {
+      "iconPath": "./terlan-template-html-file.svg"
+    },
+    "_terlan_test_file": {
+      "iconPath": "./terlan-test-file.svg"
+    }
+  },
+  "fileNames": {
+    "*Test.terl": "_terlan_test_file"
+  },
+  "languageIds": {
+    "terlan": "_terlan_file",
+    "terlan-test": "_terlan_test_file",
+    "terlan-interface": "_terlan_file",
+    "terlan-template-html": "_terlan_template_html_file",
+    "terlan-template-markdown": "_terlan_file",
+    "terlan-template-json": "_terlan_file",
+    "terlan-template-toml": "_terlan_file",
+    "terlan-template-yaml": "_terlan_file",
+    "terlan-template-text": "_terlan_file"
+  },
+  "fileExtensions": {
+    "terl": "_terlan_file",
+    "terli": "_terlan_file",
+    "terl.html": "_terlan_template_html_file",
+    "terl.md": "_terlan_file",
+    "terl.json": "_terlan_file",
+    "terl.toml": "_terlan_file",
+    "terl.yaml": "_terlan_file",
+    "terl.yml": "_terlan_file",
+    "terl.txt": "_terlan_file"
+  }
+}

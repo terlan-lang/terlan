@@ -1,0 +1,79 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface StyleSheet
+ */
+
+module std.js.Dom.StyleSheet.
+
+/**
+ * An object implementing the `StyleSheet` interface represents a single style sheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet)
+ */
+pub opaque type StyleSheet.
+
+/**
+ * The **`disabled`** property of the applying to the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/disabled)
+ */
+pub (value: StyleSheet) disabled(): std.core.Bool ->
+    native.
+
+/**
+ * The **`href`** property of the StyleSheet interface returns the location of the style sheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/href)
+ */
+pub (value: StyleSheet) href(): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`media`** property of the StyleSheet interface specifies the intended destination media for style information.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/media)
+ */
+pub (value: StyleSheet) media(): MediaList ->
+    native.
+
+/**
+ * The **`ownerNode`** property of the with the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/ownerNode)
+ */
+pub (value: StyleSheet) owner_node(): Option[Element | ProcessingInstruction] ->
+    native.
+
+/**
+ * The **`parentStyleSheet`** property of the the given style sheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/parentStyleSheet)
+ */
+pub (value: StyleSheet) parent_style_sheet(): Option[CSSStyleSheet] ->
+    native.
+
+/**
+ * The **`title`** property of the StyleSheet interface returns the advisory title of the current style sheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/title)
+ */
+pub (value: StyleSheet) title(): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`type`** property of the StyleSheet interface specifies the style sheet language for the given style sheet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/type)
+ */
+pub (value: StyleSheet) type_(): std.js.String.JsString ->
+    native.

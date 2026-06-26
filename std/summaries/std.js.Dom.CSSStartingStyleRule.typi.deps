@@ -1,0 +1,8 @@
+module=std.js.Dom.CSSStartingStyleRule
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=18305000178611614121
+interface_hash=7849213652965826094
+interface_doc_hash=7849213652965826094
+deps=0

@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DateConstructor
+ */
+
+module std.js.DateConstructor.
+
+pub opaque type DateConstructor.
+
+pub (value: DateConstructor) prototype(): Date ->
+    native.
+
+/**
+ * Parses a string containing a date, and returns the number of milliseconds between that date and midnight, January 1, 1970.
+ * @param s A date string
+ */
+pub (value: DateConstructor) parse(s: std.js.String.JsString): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * Returns the number of milliseconds between midnight, January 1, 1970 Universal Coordinated Time (UTC) (or GMT) and the specified date.
+ * @param year The full year designation is required for cross-century date accuracy. If year is between 0 and 99 is used, then year is assumed to be 1900 + year.
+ * @param monthIndex The month as a number between 0 and 11 (January to December).
+ * @param date The date as a number between 1 and 31.
+ * @param hours Must be supplied if minutes is supplied. A number from 0 to 23 (midnight to 11pm) that specifies the hour.
+ * @param minutes Must be supplied if seconds is supplied. A number from 0 to 59 that specifies the minutes.
+ * @param seconds Must be supplied if milliseconds is supplied. A number from 0 to 59 that specifies the seconds.
+ * @param ms A number from 0 to 999 that specifies the milliseconds.
+ */
+pub (value: DateConstructor) utc(year: std.js.Number.JsNumber, month_index: std.js.Number.JsNumber, date: std.js.Number.JsNumber, hours: std.js.Number.JsNumber, minutes: std.js.Number.JsNumber, seconds: std.js.Number.JsNumber, ms: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * Returns the number of milliseconds elapsed since midnight, January 1, 1970 Universal Coordinated Time (UTC).
+ */
+pub (value: DateConstructor) now(): std.js.Number.JsNumber ->
+    native.

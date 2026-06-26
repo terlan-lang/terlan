@@ -5,6 +5,21 @@ use terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output, SyntaxSourceKind,
 };
 
+/// Renders a lowered binary operator for emit tests.
+///
+/// Inputs:
+/// - `operator`: source operator text.
+///
+/// Output:
+/// - Erlang render spelling.
+///
+/// Transformation:
+/// - Lowers the token through production operator mapping and calls the Erlang
+///   operator renderer.
+fn lower_syntax_binary_op_render(operator: &str) -> &'static str {
+    super::lower_syntax_binary_op(Some(operator)).render()
+}
+
 #[test]
 fn formal_syntax_output_direct_emit_lowers_alias_constructor_subset() {
     let module = parse_module_as_syntax_output(
@@ -187,12 +202,12 @@ User(id, name) with Admin { id = id, name = name }.
 
 #[test]
 fn formal_syntax_output_direct_emit_maps_binary_ops_without_ast_enum() {
-    assert_eq!(super::lower_syntax_binary_op_render("+"), "+");
-    assert_eq!(super::lower_syntax_binary_op_render("=="), "=:=");
-    assert_eq!(super::lower_syntax_binary_op_render("=:="), "=:=");
-    assert_eq!(super::lower_syntax_binary_op_render("<="), "=<");
-    assert_eq!(super::lower_syntax_binary_op_render("div"), "div");
-    assert_eq!(super::lower_syntax_binary_op_render("!"), "!");
+    assert_eq!(lower_syntax_binary_op_render("+"), "+");
+    assert_eq!(lower_syntax_binary_op_render("=="), "=:=");
+    assert_eq!(lower_syntax_binary_op_render("=:="), "=:=");
+    assert_eq!(lower_syntax_binary_op_render("<="), "=<");
+    assert_eq!(lower_syntax_binary_op_render("div"), "div");
+    assert_eq!(lower_syntax_binary_op_render("!"), "!");
 }
 
 #[test]

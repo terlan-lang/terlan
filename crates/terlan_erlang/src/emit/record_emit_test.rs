@@ -8,8 +8,13 @@ fn formal_syntax_output_direct_emit_lowers_record_constructs() {
         r#"
 module syntax_output_record_construct_emit.
 
+pub struct User {
+id: Int,
+name: Text
+}.
+
 pub make(id: Int, name: Text): Dynamic ->
-#User{id = id, name = name}.
+User(id = id, name = name).
 "#,
     )
     .expect("parse syntax output record construct fixture");
@@ -44,7 +49,7 @@ status: Dynamic = :active
 }.
 
 pub make(id: Int, name: Text): User ->
-#User{id = id, name = name}.
+User(id = id, name = name).
 "#,
     )
     .expect("parse syntax output struct fixture");
@@ -185,7 +190,7 @@ module syntax_output_struct_header_emit.
 /// A user account.
 pub struct User {
 id: Int,
-name: Text = <<"guest">>
+name: Text = "guest"
 }.
 "#,
     )
@@ -194,5 +199,5 @@ name: Text = <<"guest">>
     let output = super::lower_syntax_struct_headers_to_hrl(&module)
         .expect("struct headers should lower directly from syntax output");
 
-    assert!(output.contains("-record(user, {id, name = <<\"guest\">>})."));
+    assert!(output.contains("-record(user, {id, name = \"guest\"})."));
 }

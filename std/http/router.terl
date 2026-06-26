@@ -1,0 +1,212 @@
+/**
+ * Portable HTTP router contract.
+ *
+ * `std.http.Router` defines the source-level route builder used by Terlan web
+ * applications. The compiler and local server own route-manifest generation,
+ * validation, precedence, and runtime dispatch; source code sees a typed
+ * builder whose handlers accept `Request` and return `Response`.
+ */
+
+module std.http.Router.
+
+import type std.http.Request.
+import type std.http.Response.
+import type std.http.Error.HttpError.
+
+/**
+ * Router represents an HTTP route table.
+ *
+ * Input: no type parameter.
+ * Output: an opaque route builder value.
+ * Transformation: hides generated route-manifest storage while preserving a
+ * stable source-visible builder type.
+ */
+pub opaque type Router.
+
+/**
+ * Handler represents one HTTP route handler.
+ *
+ * Input: one `Request`.
+ * Output: one `Response`.
+ * Transformation: gives route declarations a single reusable function type so
+ * the compiler can validate handler arity and return type.
+ */
+pub type Handler =
+    (Request) -> Response.
+
+/**
+ * Middleware represents one router middleware callback.
+ *
+ * Input: one `Request`.
+ * Output: one `Response`.
+ * Transformation: gives middleware registration a typed callback shape while
+ * the compiler/runtime route manifest owns ordering and dispatch semantics.
+ */
+pub type Middleware =
+    (Request) -> Response.
+
+/**
+ * ErrorHandler represents one router-level error handler.
+ *
+ * Input: one `HttpError`.
+ * Output: one `Response`.
+ * Transformation: gives development and production error rendering a typed
+ * callback shape without exposing backend panic, bridge, or server internals.
+ */
+pub type ErrorHandler =
+    (HttpError) -> Response.
+
+/**
+ * GroupBuilder configures a nested router scope.
+ *
+ * Input: one scoped `Router`.
+ * Output: the configured scoped `Router`.
+ * Transformation: represents route-group composition as an ordinary typed
+ * function value instead of special route-block syntax.
+ */
+pub type GroupBuilder =
+    (Router) -> Router.
+
+/**
+ * Creates an empty router.
+ *
+ * Input: no value input.
+ * Output: an empty `Router`.
+ * Transformation: reserves a compiler-owned route builder value that later
+ * lowering can convert into the generated web route manifest.
+ */
+@compiler.intrinsic
+pub new(): Router ->
+    native.
+
+/**
+ * Adds a `GET` route.
+ *
+ * Input: one `Router`, one route pattern, and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records a route-builder step for compiler manifest
+ * generation while preserving source-level chaining.
+ */
+@compiler.intrinsic
+pub (router: Router) get(pattern: String, handler: Handler): Router ->
+    router.
+
+/**
+ * Adds a `POST` route.
+ *
+ * Input: one `Router`, one route pattern, and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records a route-builder step for compiler manifest
+ * generation while preserving source-level chaining.
+ */
+@compiler.intrinsic
+pub (router: Router) post(pattern: String, handler: Handler): Router ->
+    router.
+
+/**
+ * Adds a `PUT` route.
+ *
+ * Input: one `Router`, one route pattern, and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records a route-builder step for compiler manifest
+ * generation while preserving source-level chaining.
+ */
+@compiler.intrinsic
+pub (router: Router) put(pattern: String, handler: Handler): Router ->
+    router.
+
+/**
+ * Adds a `PATCH` route.
+ *
+ * Input: one `Router`, one route pattern, and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records a route-builder step for compiler manifest
+ * generation while preserving source-level chaining.
+ */
+@compiler.intrinsic
+pub (router: Router) patch(pattern: String, handler: Handler): Router ->
+    router.
+
+/**
+ * Adds a `DELETE` route.
+ *
+ * Input: one `Router`, one route pattern, and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records a route-builder step for compiler manifest
+ * generation while preserving source-level chaining.
+ */
+@compiler.intrinsic
+pub (router: Router) delete(pattern: String, handler: Handler): Router ->
+    router.
+
+/**
+ * Adds a `HEAD` route.
+ *
+ * Input: one `Router`, one route pattern, and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records a route-builder step for compiler manifest
+ * generation while preserving source-level chaining.
+ */
+@compiler.intrinsic
+pub (router: Router) head(pattern: String, handler: Handler): Router ->
+    router.
+
+/**
+ * Adds an `OPTIONS` route.
+ *
+ * Input: one `Router`, one route pattern, and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records a route-builder step for compiler manifest
+ * generation while preserving source-level chaining.
+ */
+@compiler.intrinsic
+pub (router: Router) options(pattern: String, handler: Handler): Router ->
+    router.
+
+/**
+ * Adds middleware to a router scope.
+ *
+ * Input: one `Router` and one middleware callback.
+ * Output: the updated `Router`.
+ * Transformation: records a middleware builder step for future route-manifest
+ * generation while preserving source-level chaining today.
+ */
+@compiler.intrinsic
+pub (router: Router) use(middleware: Middleware): Router ->
+    router.
+
+/**
+ * Adds a fallback route.
+ *
+ * Input: one `Router` and one handler.
+ * Output: the updated `Router`.
+ * Transformation: records the catch-all handler used when no method-specific
+ * route matches the request.
+ */
+@compiler.intrinsic
+pub (router: Router) fallback(handler: Handler): Router ->
+    router.
+
+/**
+ * Adds a router-level error handler.
+ *
+ * Input: one `Router` and one error handler.
+ * Output: the updated `Router`.
+ * Transformation: records the error callback used when handler execution or
+ * bridge conversion fails and the server needs a source-visible response.
+ */
+@compiler.intrinsic
+pub (router: Router) error(handler: ErrorHandler): Router ->
+    router.
+
+/**
+ * Adds a nested route group.
+ *
+ * Input: one `Router`, one path prefix, and one group builder function.
+ * Output: the updated `Router`.
+ * Transformation: records a scoped route-builder step so compiler manifest
+ * generation can prefix nested routes without adding route-specific grammar.
+ */
+@compiler.intrinsic
+pub (router: Router) group(prefix: String, configure: GroupBuilder): Router ->
+    router.

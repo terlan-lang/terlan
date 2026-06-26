@@ -120,8 +120,10 @@ impl ModuleInterface {
                 out.push_str(&format!("pub struct {} {{\n", ty));
                 for (index, field) in fields.iter().enumerate() {
                     let suffix = if index + 1 == fields.len() { "" } else { "," };
+                    let privacy = if field.is_private { "#" } else { "" };
                     out.push_str(&format!(
-                        "    {}: {}{}\n",
+                        "    {}{}: {}{}\n",
+                        privacy,
                         field.name,
                         normalize_type_text(&field.annotation),
                         suffix
@@ -179,11 +181,13 @@ impl ModuleInterface {
                     .map(render_param_signature)
                     .collect::<Vec<_>>();
                 out.push_str(&format!(
-                    "pub ({}{}: {}) {}({}): {}.\n\n",
+                    "pub ({}{}: {}) {}{}{}({}): {}.\n\n",
                     receiver_mut,
                     receiver.name,
                     normalize_type_text(&receiver.annotation),
                     function.name,
+                    render_type_params(Some(&function.generic_params)),
+                    render_generic_bounds(&function.generic_bounds),
                     params.join(", "),
                     normalize_type_text(&function.return_type)
                 ));
@@ -195,8 +199,10 @@ impl ModuleInterface {
                 .map(render_param_signature)
                 .collect::<Vec<_>>();
             out.push_str(&format!(
-                "pub {}({}): {}.\n\n",
+                "pub {}{}{}({}): {}.\n\n",
                 function.name,
+                render_type_params(Some(&function.generic_params)),
+                render_generic_bounds(&function.generic_bounds),
                 params.join(", "),
                 normalize_type_text(&function.return_type)
             ));
@@ -232,10 +238,12 @@ impl ModuleInterface {
                     .iter()
                     .map(render_param_signature)
                     .collect::<Vec<_>>();
-                out.push_str(&format!("    {}", method_name));
-                if !method.generic_bounds.is_empty() {
-                    out.push_str(&format!("<{}>", method.generic_bounds.join(", ")));
-                }
+                out.push_str(&format!(
+                    "    {}{}{}",
+                    method_name,
+                    render_type_params(Some(&method.generic_params)),
+                    render_generic_bounds(&method.generic_bounds)
+                ));
                 out.push_str(&format!(
                     "({}): {}",
                     params.join(", "),
@@ -288,7 +296,11 @@ impl ModuleInterface {
                 if include_docs {
                     push_doc_lines(&mut out, "/", &constructor.docs);
                 }
-                out.push_str(&format!("pub constructor {} {{\n", constructor.name));
+                out.push_str(&format!(
+                    "pub constructor {}{} {{\n",
+                    constructor.name,
+                    render_type_params(Some(&constructor.type_params))
+                ));
             }
 
             let mut params = constructor
@@ -344,19 +356,25 @@ impl ModuleInterface {
 ///
 /// Output:
 /// - A source-like parameter fragment such as `value: Int` or
-///   `mut collection: C`.
+///   `mut collection: C`. Defaulted params render as `name: Type = value`.
 ///
 /// Transformation:
 /// - Normalizes the type text and preserves `mut` so generated `.typi`
-///   summaries do not erase trait or function parameter mutability.
+///   summaries do not erase trait/function parameter mutability or default
+///   parameter metadata.
 fn render_param_signature(param: &ParamSignature) -> String {
     let mut_prefix = if param.is_mutable { "mut " } else { "" };
-    format!(
+    let mut rendered = format!(
         "{}{}: {}",
         mut_prefix,
         param.name,
         normalize_type_text(&param.annotation)
-    )
+    );
+    if let Some(default_text) = &param.default_text {
+        rendered.push_str(" = ");
+        rendered.push_str(&normalize_expr_text(default_text));
+    }
+    rendered
 }
 
 /// Renders generic type parameters for interface declarations.
@@ -374,6 +392,25 @@ fn render_type_params(params: Option<&Vec<String>>) -> String {
     match params {
         Some(params) if !params.is_empty() => format!("[{}]", params.join(", ")),
         _ => String::new(),
+    }
+}
+
+/// Renders callable generic bounds for interface declarations.
+///
+/// Inputs:
+/// - `bounds`: preserved callable constraint texts.
+///
+/// Output:
+/// - Empty text for no bounds, otherwise `<...>` with comma-separated bounds.
+///
+/// Transformation:
+/// - Keeps generated interface summaries source-like so function and method
+///   constraints round-trip through the parser.
+fn render_generic_bounds(bounds: &[String]) -> String {
+    if bounds.is_empty() {
+        String::new()
+    } else {
+        format!("<{}>", bounds.join(", "))
     }
 }
 

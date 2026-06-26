@@ -1,0 +1,44 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface File
+ */
+
+module std.js.Dom.File.
+
+/**
+ * The **`File`** interface provides information about files and allows JavaScript in a web page to access their content.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/File)
+ */
+pub opaque type File.
+
+/**
+ * The **`lastModified`** read-only property of the File interface provides the last modified date of the file as the number of milliseconds since the Unix epoch (January 1, 1970 at midnight).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/lastModified)
+ */
+pub (value: File) last_modified(): std.js.Number.JsNumber.
+
+/**
+ * The **`name`** read-only property of the File interface returns the name of the file represented by a File object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/name)
+ */
+pub (value: File) name(): std.js.String.JsString.
+
+/**
+ * The **`webkitRelativePath`** read-only property of the File interface contains a string which specifies the file's path relative to the directory selected by the user in an input element with its `webkitdirectory` attribute set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/webkitRelativePath)
+ */
+pub (value: File) webkit_relative_path(): std.js.String.JsString.

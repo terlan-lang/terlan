@@ -112,6 +112,93 @@ mod tests {
         );
     }
 
+    /// Verifies the reserved `template` keyword can appear as a package path
+    /// segment in qualified module names.
+    ///
+    /// Inputs:
+    /// - A module declaration under `std.template`.
+    /// - A direct item import through `std.template.Template`.
+    /// - A braced import from the full `std.template.Template` module.
+    /// - A following template declaration whose keyword must not be consumed as
+    ///   part of the import path.
+    ///
+    /// Output:
+    /// - Test passes when both paths are preserved as module names.
+    ///
+    /// Transformation:
+    /// - Exercises the module-path parser without changing expression or
+    ///   binding grammar, where `template` remains reserved.
+    #[test]
+    fn module_paths_accept_template_package_segment() {
+        let module = parse_module(
+            r#"
+            module std.template.Template.
+
+            import std.template.Template.
+            import std.template.Template.{trusted}.
+
+            template Layout from "./layout.terl.html" {
+              body: Template.Html
+            }.
+
+            pub opaque type Html.
+            "#,
+        )
+        .expect("parse std template module path");
+
+        assert_eq!(module.name, "std.template.Template");
+        let Decl::Import(import) = &module.declarations[0] else {
+            panic!("expected import");
+        };
+        assert_eq!(import.module_name, "std.template");
+        assert_eq!(import.items[0].name, "Template");
+        let Decl::Import(braced_import) = &module.declarations[1] else {
+            panic!("expected braced import");
+        };
+        assert_eq!(braced_import.module_name, "std.template.Template");
+        assert_eq!(braced_import.items[0].name, "trusted");
+        assert!(matches!(module.declarations[2], Decl::Template(_)));
+    }
+
+    /// Verifies wildcard module imports parse as selected import declarations.
+    ///
+    /// Inputs:
+    /// - Canonical braced wildcard import syntax.
+    /// - Compatibility path-style wildcard import syntax.
+    ///
+    /// Output:
+    /// - Test passes when both imports preserve `*` as the selected import item.
+    ///
+    /// Transformation:
+    /// - Exercises wildcard import parsing without expanding symbols; semantic
+    ///   expansion belongs to HIR/typecheck once provider interfaces are loaded.
+    #[test]
+    fn parses_wildcard_imports() {
+        let module = parse_module(
+            r#"
+            module app.Wildcard.
+
+            import test.Other.{*}.
+            import test.Legacy.*.
+
+            pub main(): Int -> 1.
+            "#,
+        )
+        .expect("parse wildcard imports");
+
+        let Decl::Import(braced_import) = &module.declarations[0] else {
+            panic!("expected braced wildcard import");
+        };
+        assert_eq!(braced_import.module_name, "test.Other");
+        assert_eq!(braced_import.items[0].name, "*");
+
+        let Decl::Import(path_import) = &module.declarations[1] else {
+            panic!("expected path wildcard import");
+        };
+        assert_eq!(path_import.module_name, "test.Legacy");
+        assert_eq!(path_import.items[0].name, "*");
+    }
+
     /// Verifies annotation schema declarations parse as structured parse tree.
     ///
     /// Inputs:
@@ -989,7 +1076,7 @@ module bounds_demo.
 pub debug[A](X: A, Y: A)[Eq[A], Show[A]]: Text ->
     case Eq.equal(X, Y) {
         true -> Show.render(X);
-        false -> <<"neq">>
+        false -> "neq"
     }.
 "#;
 
@@ -1004,6 +1091,67 @@ pub debug[A](X: A, Y: A)[Eq[A], Show[A]]: Text ->
             function.generic_bounds,
             vec!["Eq[A]".to_string(), "Show[A]".to_string()]
         );
+    }
+
+    /// Verifies function-like declarations accept trailing default parameters.
+    ///
+    /// Inputs:
+    /// - A function and receiver method with trailing default values.
+    ///
+    /// Output:
+    /// - Parsed callable declarations preserving the default expressions.
+    ///
+    /// Transformation:
+    /// - Exercises the 0.0.5 callable default-parameter syntax without
+    ///   requiring call-site omission semantics yet.
+    #[test]
+    fn parses_function_and_method_default_parameters() {
+        let source = r#"
+module defaults_demo.
+
+pub add(X: Int, Step: Int = 1): Int ->
+    X + Step.
+
+pub (value: Int) clamp(Min: Int = 0, Max: Int = 10): Int ->
+    value.
+"#;
+
+        let module = parse_module(source).expect("parse callable defaults");
+        let Decl::Function(function) = &module.declarations[0] else {
+            panic!("expected function declaration");
+        };
+        assert!(function.params[1].default.is_some());
+
+        let Decl::Method(method) = &module.declarations[1] else {
+            panic!("expected method declaration");
+        };
+        assert!(method.params[0].default.is_some());
+        assert!(method.params[1].default.is_some());
+    }
+
+    /// Verifies required callable parameters may not follow defaults.
+    ///
+    /// Inputs:
+    /// - A function whose second parameter has a default and third parameter
+    ///   does not.
+    ///
+    /// Output:
+    /// - Parse error anchored by the shared trailing-default rule.
+    ///
+    /// Transformation:
+    /// - Locks down deterministic callable arity before omitted-argument
+    ///   call-site semantics are implemented.
+    #[test]
+    fn rejects_required_parameter_after_function_default_parameter() {
+        let source = r#"
+module defaults_bad.
+
+pub add(X: Int = 1, Step: Int): Int ->
+    X + Step.
+"#;
+
+        let err = parse_module(source).expect_err("required param after default");
+        assert_eq!(err.message, "default parameters must be trailing");
     }
 
     /// Verifies canonical constraint lists on non-function callable forms.
@@ -1376,6 +1524,41 @@ pub struct User {
         }
     }
 
+    /// Verifies `#field` syntax in struct declarations.
+    ///
+    /// Inputs:
+    /// - A public struct with one public field and one private field.
+    ///
+    /// Output:
+    /// - Test passes when the parser stores the clean field name and privacy
+    ///   flag separately.
+    ///
+    /// Transformation:
+    /// - Parses source-level private field spelling into canonical field
+    ///   metadata for later typechecking and interface emission.
+    #[test]
+    fn parses_private_struct_field_declarations() {
+        let source = r#"
+module users.
+
+pub struct User {
+    id: Int,
+    #email: String
+}.
+"#;
+
+        let module = parse_module(source).expect("parse private struct fields");
+        match &module.declarations[0] {
+            Decl::Struct(struct_decl) => {
+                assert_eq!(struct_decl.fields[0].name, "id");
+                assert!(!struct_decl.fields[0].is_private);
+                assert_eq!(struct_decl.fields[1].name, "email");
+                assert!(struct_decl.fields[1].is_private);
+            }
+            _ => panic!("expected struct declaration"),
+        }
+    }
+
     #[test]
     fn parses_public_macro_declaration() {
         let source = r#"
@@ -1482,6 +1665,42 @@ pub struct User {
     }
 
     #[test]
+    fn parses_struct_includes_clause() {
+        let source = r#"
+module users.
+
+pub struct User includes Person, Audited {
+    id: Int
+}.
+"#;
+
+        let module = parse_module(source).expect("parse struct includes");
+        match &module.declarations[0] {
+            Decl::Struct(struct_decl) => {
+                assert_eq!(
+                    struct_decl.includes,
+                    vec!["Person".to_string(), "Audited".to_string()]
+                );
+            }
+            _ => panic!("expected struct declaration"),
+        }
+    }
+
+    #[test]
+    fn rejects_legacy_struct_derives_clause() {
+        let source = r#"
+module users.
+
+pub struct User derives Person {
+    id: Int
+}.
+"#;
+
+        let err = parse_module(source).expect_err("reject legacy derives clause");
+        assert_eq!(err.message, "expected LBrace");
+    }
+
+    #[test]
     fn parses_trait_as_trait_decl() {
         let source = r#"
 module traits.
@@ -1530,7 +1749,7 @@ module bounds_demo.
 pub debug<A: Eq + Show>(X: A, Y: A): Text ->
     case Eq.equal(X, Y) {
         true -> Show.render(X);
-        false -> <<"neq">>
+        false -> "neq"
     }.
 "#;
 
@@ -1564,419 +1783,5 @@ pub trait Logger[A] {
         assert_eq!(method.name, "debug");
         assert_eq!(method.params.len(), 1);
         assert_eq!(method.params[0].annotation.text, "A");
-    }
-
-    #[test]
-    fn interface_parser_accepts_macros_and_types() {
-        let source = r#"
-module iface.
-pub macro expand(X: Expr, Y: Expr): Expr.
-pub type Flag = Bool.
-"#;
-        let tokens = crate::lexer::lex(source).unwrap();
-        for token in tokens {
-            println!("{:?} {:?} {:?}", token.kind, token.text, token.span());
-        }
-
-        let module = parse_interface_module(source).expect("parse interface");
-        assert_eq!(module.declarations.len(), 2);
-        assert!(matches!(&module.declarations[0], Decl::Function(_)));
-        assert!(matches!(&module.declarations[1], Decl::Type(_)));
-    }
-
-    /// Verifies interface files can summarize explicit trait conformance
-    /// declarations.
-    ///
-    /// Inputs:
-    /// - A `.terli`-style module containing a trait declaration and
-    ///   `pub impl TraitRef for Type` signature block.
-    ///
-    /// Output:
-    /// - Structured trait and trait implementation declarations.
-    ///
-    /// Transformation:
-    /// - Exercises the interface declaration router after `pub` and proves
-    ///   conformance summaries preserve signatures without requiring method
-    ///   bodies.
-
-    /// Verifies interface files can summarize explicit trait conformance
-    /// declarations.
-    ///
-    /// Inputs:
-    /// - A `.terli`-style module containing a trait declaration and
-    ///   `pub impl TraitRef for Type` signature block.
-    ///
-    /// Output:
-    /// - Structured trait and trait implementation declarations.
-    ///
-    /// Transformation:
-    /// - Exercises the interface declaration router after `pub` and proves
-    ///   conformance summaries preserve signatures without requiring method
-    ///   bodies.
-    #[test]
-    fn interface_parser_preserves_pub_impl_declarations() {
-        let source = r#"
-module trait_iface.
-
-pub trait Show[A] {
-    show(Value: A): Text.
-}.
-
-pub impl Show[Int] for Int {
-    show(Value: Int): Text.
-}.
-"#;
-
-        let module = parse_interface_module(source).expect("parse interface impl");
-        assert_eq!(module.declarations.len(), 2);
-        assert!(matches!(&module.declarations[0], Decl::Trait(_)));
-        let Decl::TraitImpl(impl_decl) = &module.declarations[1] else {
-            panic!("expected trait impl declaration");
-        };
-        assert_eq!(impl_decl.trait_ref.text, "Show[Int]");
-        assert_eq!(impl_decl.for_type.text, "Int");
-        assert_eq!(impl_decl.methods.len(), 1);
-        assert!(impl_decl.methods[0].clauses.is_empty());
-    }
-
-    /// Verifies interface files may summarize public type headers.
-    ///
-    /// Inputs:
-    /// - A `.terli`-style module containing `pub type ExternalUser.`.
-    ///
-    /// Output:
-    /// - Parsed type declaration with no variants.
-    ///
-    /// Transformation:
-    /// - Exercises interface-only type parsing so generated `.typi` files can
-    ///   preserve nominal public types without requiring source-form bodies.
-
-    /// Verifies interface files may summarize public type headers.
-    ///
-    /// Inputs:
-    /// - A `.terli`-style module containing `pub type ExternalUser.`.
-    ///
-    /// Output:
-    /// - Parsed type declaration with no variants.
-    ///
-    /// Transformation:
-    /// - Exercises interface-only type parsing so generated `.typi` files can
-    ///   preserve nominal public types without requiring source-form bodies.
-    #[test]
-    fn interface_parser_accepts_bodyless_public_type_headers() {
-        let source = r#"
-module provider_iface.
-
-pub type ExternalUser.
-"#;
-
-        let module = parse_interface_module(source).expect("parse bodyless interface type");
-        assert_eq!(module.declarations.len(), 1);
-        let Decl::Type(type_decl) = &module.declarations[0] else {
-            panic!("expected type declaration");
-        };
-        assert_eq!(type_decl.name, "ExternalUser");
-        assert!(type_decl.variants.is_empty());
-        assert!(type_decl.is_public);
-    }
-
-    #[test]
-    fn parses_dotted_imports_and_qualified_remote_calls() {
-        let source = r#"
-module algebra_demo.
-
-import std.Algebra.{Semigroup, Monoid, Sum}.
-import std.Collections.List.
-
-pub total(Xs: List[Int]): Int ->
-    Sum.value(std.Algebra.combine_all(List.map(Xs, (X) -> Sum(X)))).
-"#;
-
-        let module = parse_module(source).expect("parse");
-        assert_eq!(module.declarations.len(), 3);
-        match &module.declarations[0] {
-            Decl::Import(import) => {
-                assert_eq!(import.module_name, "std.Algebra");
-                assert_eq!(import.items.len(), 3);
-            }
-            _ => panic!("expected import"),
-        }
-        match &module.declarations[1] {
-            Decl::Import(import) => {
-                assert_eq!(import.module_name, "std.Collections");
-                assert_eq!(import.items[0].name, "List");
-            }
-            _ => panic!("expected import"),
-        }
-    }
-
-    #[test]
-    fn parses_file_imports() {
-        let source = r#"
-module templates_demo.
-
-import file "./templates/user_card.terl.html" as UserCard.
-"#;
-
-        let module = parse_module(source).expect("parse");
-        assert_eq!(module.declarations.len(), 1);
-        match &module.declarations[0] {
-            Decl::Import(import) => {
-                assert_eq!(import.kind, crate::parse_tree::ImportKind::File);
-                assert_eq!(
-                    import.source_path.as_deref(),
-                    Some("./templates/user_card.terl.html")
-                );
-                assert_eq!(import.items.len(), 1);
-                assert_eq!(import.items[0].name, "UserCard");
-            }
-            _ => panic!("expected file import"),
-        }
-    }
-
-    #[test]
-    fn parses_css_imports() {
-        let source = r#"
-module styles_demo.
-
-import css "./styles/page.css" as PageCss.
-"#;
-
-        let module = parse_module(source).expect("parse");
-        assert_eq!(module.declarations.len(), 1);
-        match &module.declarations[0] {
-            Decl::Import(import) => {
-                assert_eq!(import.kind, crate::parse_tree::ImportKind::Css);
-                assert_eq!(import.source_path.as_deref(), Some("./styles/page.css"));
-                assert_eq!(import.items.len(), 1);
-                assert_eq!(import.items[0].name, "PageCss");
-            }
-            _ => panic!("expected css import"),
-        }
-    }
-
-    #[test]
-    fn parses_markdown_imports() {
-        let source = r#"
-module posts_demo.
-
-import markdown "./posts/hello.md" as HelloPost.
-"#;
-
-        let module = parse_module(source).expect("parse");
-        assert_eq!(module.declarations.len(), 1);
-        match &module.declarations[0] {
-            Decl::Import(import) => {
-                assert_eq!(import.kind, crate::parse_tree::ImportKind::Markdown);
-                assert_eq!(import.source_path.as_deref(), Some("./posts/hello.md"));
-                assert_eq!(import.items.len(), 1);
-                assert_eq!(import.items[0].name, "HelloPost");
-            }
-            _ => panic!("expected markdown import"),
-        }
-    }
-
-    #[test]
-    fn parses_static_route_declarations_as_raw_declarations() {
-        let source = r#"
-module site.
-
-static route "/" ->
-    home().
-"#;
-
-        let module = parse_module(source).expect("parse static route declaration");
-        assert_eq!(module.declarations.len(), 1);
-        match &module.declarations[0] {
-            Decl::Raw(raw) => {
-                assert_eq!(raw.kind, "static");
-                assert!(raw.text.contains("route"));
-                assert!(raw.text.contains("/"));
-                assert!(raw.text.contains("home"));
-            }
-            _ => panic!("expected raw static route declaration"),
-        }
-    }
-
-    #[test]
-    fn parses_template_declarations() {
-        let source = r#"
-module template_demo.
-
-template Page from "./templates/page.terl.html" {
-    title: Text,
-    user: User
-}.
-"#;
-
-        let module = parse_module(source).expect("parse");
-        assert_eq!(module.declarations.len(), 1);
-        match &module.declarations[0] {
-            Decl::Template(template) => {
-                assert_eq!(template.name, "Page");
-                assert_eq!(template.source_path, "./templates/page.terl.html");
-                assert_eq!(template.props.len(), 2);
-                assert_eq!(template.props[0].name, "title");
-                assert_eq!(template.props[0].annotation.text, "Text");
-                assert_eq!(template.props[1].name, "user");
-                assert_eq!(template.props[1].annotation.text, "User");
-            }
-            _ => panic!("expected template declaration"),
-        }
-    }
-
-    #[test]
-    fn parses_qualified_type_names_in_function_signatures() {
-        let source = r#"
-module opaque_demo.
-
-pub make(Value: Int): users_opaque_interface.UserId ->
-    users_opaque_interface.user_id(Value).
-
-pub declared(Value: users_opaque_interface.UserId): users_opaque_interface.UserId ->
-    Value.
-"#;
-
-        let module = parse_module(source).expect("parse qualified type names");
-        assert_eq!(module.declarations.len(), 2);
-        match &module.declarations[0] {
-            Decl::Function(function) => {
-                assert_eq!(function.return_type.text, "users_opaque_interface.UserId");
-            }
-            _ => panic!("expected function"),
-        }
-        match &module.declarations[1] {
-            Decl::Function(function) => {
-                assert_eq!(
-                    function.params[0].annotation.text,
-                    "users_opaque_interface.UserId"
-                );
-                assert_eq!(function.return_type.text, "users_opaque_interface.UserId");
-                assert_eq!(function.clauses.len(), 1);
-            }
-            _ => panic!("expected function signature"),
-        }
-    }
-
-    #[test]
-    fn parses_hkt_type_params_and_variance_surface_syntax() {
-        let source = r#"
-module hkt_demo.
-
-pub type Kleisli[F[_], -A, B] =
-    kleisli(run: (A) -> F[B]).
-
-pub example(K: Kleisli[Result[_, db_error], Text, Int]): Kleisli[DbResult, Text, Int] ->
-    K.
-"#;
-
-        let module = parse_module(source).expect("parse hkt module");
-        match &module.declarations[0] {
-            Decl::Type(type_decl) => {
-                assert_eq!(type_decl.params.len(), 3);
-                assert!(type_decl.params[0].contains("F"));
-                assert!(type_decl.params[0].contains("_"));
-                assert!(type_decl.params[1].contains("-"));
-            }
-            _ => panic!("expected type declaration"),
-        }
-    }
-
-    #[test]
-    fn parses_terli_style_interface_with_pub_signatures() {
-        let source = r#"
-module cache_contract.
-
-pub type Cache = Int.
-
-pub get(Cache: Cache, Key: Binary): Result[Binary, not_found].
-pub put(Cache: Cache, Key: Binary, Value: Binary): ok.
-"#;
-
-        let module = parse_interface_module(source).expect("parse interface");
-        assert_eq!(module.declarations.len(), 3);
-        assert!(matches!(
-            &module.declarations[0],
-            Decl::Struct(_) | Decl::Type(_)
-        ));
-        assert!(matches!(&module.declarations[1], Decl::Function(_)));
-        assert!(matches!(&module.declarations[2], Decl::Function(_)));
-
-        if let Decl::Type(cache_type) = &module.declarations[0] {
-            assert!(cache_type.is_public);
-            assert_eq!(cache_type.name, "Cache");
-        } else {
-            panic!("expected type declaration");
-        }
-    }
-
-    /// Verifies release core collection contracts stay parseable.
-    ///
-    /// Inputs:
-    /// - Release source modules for `std.collections.Map`, `std.collections.List`, and
-    ///   `std.collections.Set`.
-    ///
-    /// Output:
-    /// - Test passes when all three release modules parse as normal source
-    ///   modules and keep their canonical module names.
-    ///
-    /// Transformation:
-    /// - Parses release contracts with compiler intrinsic annotations and
-    ///   placeholder bodies without typechecking or backend emission, proving
-    ///   the P0.3 release source shape remains grammar-stable.
-    #[test]
-    fn parses_release_core_collection_contracts() {
-        let contracts = [
-            (
-                "std.collections.Map",
-                include_str!("../../../std/collections/map.terl"),
-            ),
-            (
-                "std.collections.List",
-                include_str!("../../../std/collections/list.terl"),
-            ),
-            (
-                "std.collections.Set",
-                include_str!("../../../std/collections/set.terl"),
-            ),
-        ];
-
-        for (expected_module, source) in contracts {
-            let module = parse_module(source).expect("parse release collection contract");
-            assert_eq!(module.name, expected_module);
-        }
-    }
-
-    /// Verifies release iterator/iterable modules stay parseable.
-    ///
-    /// Inputs:
-    /// - Release source modules for `std.collections.Iterator` and
-    ///   `std.collections.Iterable`.
-    ///
-    /// Output:
-    /// - Test passes when both modules parse in source mode and keep their
-    ///   canonical module names.
-    ///
-    /// Transformation:
-    /// - Parses release traversal modules without typechecking or backend
-    ///   emission, proving P0.4b exposes traversal contracts while allowing
-    ///   source-implemented helpers such as `Iterator.each`.
-    #[test]
-    fn parses_release_traversal_contracts() {
-        let contracts = [
-            (
-                "std.collections.Iterator",
-                include_str!("../../../std/collections/iterator.terl"),
-            ),
-            (
-                "std.collections.Iterable",
-                include_str!("../../../std/collections/iterable.terl"),
-            ),
-        ];
-
-        for (expected_module, source) in contracts {
-            let module = parse_module(source).expect("parse release collection trait module");
-            assert_eq!(module.name, expected_module);
-        }
     }
 }

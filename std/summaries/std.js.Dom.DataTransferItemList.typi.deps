@@ -1,0 +1,8 @@
+module=std.js.Dom.DataTransferItemList
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=3178776635229868439
+interface_hash=5357149717705830120
+interface_doc_hash=5357149717705830120
+deps=0

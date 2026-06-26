@@ -1,0 +1,8 @@
+module=std.js.Float32ArrayConstructor
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=14254828112902681984
+interface_hash=1340642133591018487
+interface_doc_hash=1340642133591018487
+deps=0

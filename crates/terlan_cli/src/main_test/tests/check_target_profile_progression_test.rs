@@ -1458,14 +1458,14 @@ module a0_19_erlang_accepts_index_access.\n\npub first(values: Dynamic): Dynamic
 ///   algorithm probe.
 ///
 /// Output:
-/// - Failed check command exit code under the Erlang profile.
+/// - Successful check command exit code under the Erlang profile.
 ///
 /// Transformation:
 /// - Runs the public check command with the Erlang profile and verifies native
-///   std modules remain target-gated until a native backend profile owns their
-///   execution contract.
+///   vector modules are admitted through the mandatory BEAM/native collection
+///   bridge contract.
 #[test]
-fn run_check_single_file_rejects_native_vector_selection_sort_for_erlang_profile() {
+fn run_check_single_file_accepts_native_vector_selection_sort_for_erlang_profile() {
     let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/fixtures/native/vector_selection_sort.terl");
     let exit = commands::check::run(
@@ -1479,7 +1479,7 @@ fn run_check_single_file_rejects_native_vector_selection_sort_for_erlang_profile
         },
     );
 
-    assert_ne!(exit, ExitCode::SUCCESS);
+    assert_eq!(exit, ExitCode::SUCCESS);
 }
 
 /// Verifies the `check` command accepts qualified and scoped calls under
@@ -1502,7 +1502,7 @@ fn run_check_single_file_accepts_qualified_calls_for_a0_20_erlang_target_profile
     let path = fixture(
             &dir,
             "\
-module a0_20_erlang_accepts_qualified_calls.\n\npub qualified(): Dynamic ->\n    std.core.Math.add(1, 2).\n\npub scoped(): Dynamic ->\n    User.default().\n",
+module a0_20_erlang_accepts_qualified_calls.\n\npub value(): Int ->\n    1.\n\npub qualified(): Dynamic ->\n    a0_20_erlang_accepts_qualified_calls.value().\n",
         );
 
     let exit = commands::check::run(
@@ -1540,7 +1540,7 @@ fn run_check_single_file_keeps_qualified_calls_out_of_a0_19_erlang_target_profil
     let path = fixture(
             &dir,
             "\
-module a0_19_erlang_rejects_qualified_calls.\n\npub qualified(): Dynamic ->\n    std.core.Math.add(1, 2).\n\npub scoped(): Dynamic ->\n    User.default().\n",
+module a0_19_erlang_rejects_qualified_calls.\n\npub value(): Int ->\n    1.\n\npub qualified(): Dynamic ->\n    a0_19_erlang_rejects_qualified_calls.value().\n",
         );
 
     let exit = commands::check::run(

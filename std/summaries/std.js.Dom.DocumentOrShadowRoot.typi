@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DocumentOrShadowRoot
+ */
+
+module std.js.Dom.DocumentOrShadowRoot.
+
+pub opaque type DocumentOrShadowRoot.
+
+/**
+ * Returns the deepest element in the document through which or to which key events are being routed. This is, roughly speaking, the focused element in the document.
+ *
+ * For the purposes of this API, when a child browsing context is focused, its container is focused in the parent browsing context. For example, if the user moves the focus to a text control in an iframe, the iframe is the element returned by the activeElement API in the iframe's node document.
+ *
+ * Similarly, when the focused element is in a different node tree than documentOrShadowRoot, the element returned will be the host that's located in the same node tree as documentOrShadowRoot if documentOrShadowRoot is a shadow-including inclusive ancestor of the focused element, and null if not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/activeElement)
+ */
+pub (value: DocumentOrShadowRoot) active_element(): Option[Element].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/adoptedStyleSheets)
+ */
+pub (value: DocumentOrShadowRoot) adopted_style_sheets(): std.js.Array[CSSStyleSheet].
+
+/**
+ * Returns document's fullscreen element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreenElement)
+ */
+pub (value: DocumentOrShadowRoot) fullscreen_element(): Option[Element].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pictureInPictureElement)
+ */
+pub (value: DocumentOrShadowRoot) picture_in_picture_element(): Option[Element].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pointerLockElement)
+ */
+pub (value: DocumentOrShadowRoot) pointer_lock_element(): Option[Element].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/styleSheets)
+ */
+pub (value: DocumentOrShadowRoot) style_sheets(): StyleSheetList.
+
+pub (value: DocumentOrShadowRoot) element_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): Option[Element].
+
+pub (value: DocumentOrShadowRoot) elements_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.js.Array[Element].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getAnimations)
+ */
+pub (value: DocumentOrShadowRoot) get_animations(): std.js.Array[Animation].

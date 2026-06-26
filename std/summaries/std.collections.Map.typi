@@ -32,6 +32,16 @@ pub (mut map: Map[K, V]) clear(): Unit.
 
 pub (map: Map[K, V]) contains_key(key: K): Bool.
 
+/// Creates a map from explicit key-value entry tuples.
+///
+/// Input: one `List[{K, V}]`.
+/// Output: a `Map[K, V]` containing the supplied entries.
+/// Transformation: lowers through the compiler-owned `core.map.from_entries`
+/// intrinsic. Backends choose the efficient map representation and duplicate
+/// key handling behind the portable `Map[K, V]` contract.
+
+pub from_entries[K, V](entries: List[{K, V}]): Map[K, V].
+
 /// Looks up a value by key.
 ///
 /// Input: one `Map[K, V]` receiver and one key of type `K`.
@@ -67,7 +77,7 @@ pub (map: Map[K, V]) iterator(): Iterator[{K, V}].
 /// Transformation: lowers through the compiler-owned `core.map.new`
 /// intrinsic, using the selected backend's canonical empty-map value.
 
-pub new(): Map[K, V].
+pub new[K, V](): Map[K, V].
 
 /// Inserts or replaces a key-value entry.
 ///
@@ -96,4 +106,18 @@ pub (mut map: Map[K, V]) remove(key: K): Unit.
 /// intrinsic and observes the receiver without changing its contents.
 
 pub (map: Map[K, V]) size(): Int.
+
+/// Constructs a map from explicit key-value entry tuples.
+///
+/// Input: zero or more `{K, V}` entries.
+/// Output: a `Map[K, V]` containing the supplied entries.
+/// Transformation: uses constructor varargs to pack positional entries into a
+/// portable list and delegates to `from_entries` so backend-specific map
+/// representation stays behind the intrinsic boundary. Later duplicate keys
+/// replace earlier keys according to the backend map contract.
+
+pub constructor Map[K, V] {
+    (...entries: {K, V}): Map[K, V] ->
+        from_entries(entries)
+}.
 

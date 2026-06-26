@@ -1,0 +1,67 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface TouchInit
+ */
+
+module std.js.Dom.TouchInitTest.
+
+import type std.js.Dom.TouchInit.TouchInit.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub altitude_angle_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.altitude_angle().
+
+pub azimuth_angle_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.azimuth_angle().
+
+pub client_x_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.client_x().
+
+pub client_y_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.client_y().
+
+pub force_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.force().
+
+pub identifier_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.identifier().
+
+pub page_x_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.page_x().
+
+pub page_y_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.page_y().
+
+pub radius_x_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.radius_x().
+
+pub radius_y_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.radius_y().
+
+pub rotation_angle_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.rotation_angle().
+
+pub screen_x_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.screen_x().
+
+pub screen_y_typechecks(receiver: TouchInit): std.js.Number.JsNumber ->
+    receiver.screen_y().
+
+pub target__typechecks(receiver: TouchInit): EventTarget ->
+    receiver.target_().
+
+pub touch_type_typechecks(receiver: TouchInit): TouchType ->
+    receiver.touch_type().

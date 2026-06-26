@@ -16,6 +16,7 @@ on process entry, global argument parsing, and command routing.
 
 - `artifacts`: shared dependency manifest, fingerprint, and import-loading helpers.
 - `build`: executes `terlc build`.
+- `run`: executes `terlc run` by building a package and running its launcher.
 - `syntax_contract`: executes `terlc syntax-contract`.
 - `check`: executes `terlc check`.
 - `fmt`: executes `terlc fmt`.
@@ -27,7 +28,8 @@ on process entry, global argument parsing, and command routing.
 - `interface`: executes `terlc interface`.
 - `json`: shared JSON rendering helpers for command modules.
 - `repl`: executes `terlc repl`.
-- `static_site`: executes `terlc emit-static` and `terlc serve-static`.
+- `static_site`: executes `terlc static` and delegates to internal static
+  emit/serve runners.
 - `doc`: executes `terlc doc` and `terlc doctest`.
 - `emit`: executes `terlc emit`.
 

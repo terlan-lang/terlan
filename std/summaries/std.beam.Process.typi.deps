@@ -1,7 +1,7 @@
 module=std.beam.Process
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 source_hash=14896398662894863343
 interface_hash=17002384485208268670
 interface_doc_hash=10971435989324406138

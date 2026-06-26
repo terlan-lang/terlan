@@ -1,0 +1,61 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IDBObjectStore
+ */
+
+module std.js.Dom.IDBObjectStoreTest.
+
+import type std.js.Dom.IDBObjectStore.IDBObjectStore.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub auto_increment_typechecks(receiver: IDBObjectStore): std.core.Bool ->
+    receiver.auto_increment().
+
+pub index_names_typechecks(receiver: IDBObjectStore): DOMStringList ->
+    receiver.index_names().
+
+pub key_path_typechecks(receiver: IDBObjectStore): Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString] ->
+    receiver.key_path().
+
+pub name_typechecks(receiver: IDBObjectStore): std.js.String.JsString ->
+    receiver.name().
+
+pub transaction_typechecks(receiver: IDBObjectStore): IDBTransaction ->
+    receiver.transaction().
+
+pub count_typechecks(receiver: IDBObjectStore, query: IDBKeyRange | IDBValidKey): IDBRequest[std.js.Number.JsNumber] ->
+    receiver.count(query).
+
+pub create_index_typechecks(receiver: IDBObjectStore, name: std.js.String.JsString, key_path: std.js.Array[std.js.String.JsString] | std.js.String.JsString, options: IDBIndexParameters): IDBIndex ->
+    receiver.create_index(name, key_path, options).
+
+pub delete_index_typechecks(receiver: IDBObjectStore, name: std.js.String.JsString): std.core.Unit ->
+    receiver.delete_index(name).
+
+pub get_all_keys_typechecks(receiver: IDBObjectStore, query: Option[IDBKeyRange | IDBValidKey], count: std.js.Number.JsNumber): IDBRequest[std.js.Array[IDBValidKey]] ->
+    receiver.get_all_keys(query, count).
+
+pub get_key_typechecks(receiver: IDBObjectStore, query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
+    receiver.get_key(query).
+
+pub index_typechecks(receiver: IDBObjectStore, name: std.js.String.JsString): IDBIndex ->
+    receiver.index(name).
+
+pub open_cursor_typechecks(receiver: IDBObjectStore, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+    receiver.open_cursor(query, direction).
+
+pub open_key_cursor_typechecks(receiver: IDBObjectStore, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+    receiver.open_key_cursor(query, direction).

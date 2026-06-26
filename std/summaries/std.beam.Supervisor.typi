@@ -31,7 +31,7 @@ pub opaque type Supervisor.
 /// Transformation: asks the BEAM runtime adapter to describe how the value
 /// should enter supervision without exposing backend tuple formats.
 
-pub child_spec(value: P): ChildSpec[P].
+pub child_spec[P](value: P): ChildSpec[P].
 
 /// Starts a child under a supervisor.
 ///
@@ -40,7 +40,7 @@ pub child_spec(value: P): ChildSpec[P].
 /// Transformation: delegates startup to the target supervisor and normalizes
 /// startup failure into the standard typed error channel.
 
-pub (supervisor: Supervisor) start(spec: ChildSpec[P]): Result[P, Error].
+pub (supervisor: Supervisor) start[P](spec: ChildSpec[P]): Result[P, Error].
 
 /// Stops a supervised child.
 ///
@@ -49,7 +49,7 @@ pub (supervisor: Supervisor) start(spec: ChildSpec[P]): Result[P, Error].
 /// Transformation: asks the target supervisor to stop the child while hiding
 /// BEAM shutdown and unlink details from Terlan source.
 
-pub (mut supervisor: Supervisor) stop(value: P): Unit.
+pub (mut supervisor: Supervisor) stop[P](value: P): Unit.
 
 /// Supervised defines how a runtime value enters and leaves supervision.
 ///

@@ -6,8 +6,22 @@
 //! decoded runtime terms into `SafeNativeValue`.
 
 use crate::handle::SafeNativeHandle;
-use crate::resource::{ResourceError, ResourceStore, ResourceValue};
-use crate::{base64, http, json, path, uri};
+use crate::resource::{ResourceStore, ResourceValue};
+use crate::{base64, http, json, path, postgres, uri, vector};
+
+mod args;
+mod arity;
+
+use args::{
+    cookie_options_from_args, dispatch_base64_error, dispatch_http_error, dispatch_json_error,
+    dispatch_path_error, dispatch_postgres_error, dispatch_resource_error, dispatch_uri_error,
+    dispatch_vector_error, expect_bool, expect_bridge_bool, expect_bridge_handle,
+    expect_bridge_int, expect_bridge_list, expect_bridge_text, expect_float,
+    expect_http_cookie_jar, expect_http_request, expect_int, expect_json, expect_json_list,
+    expect_path, expect_postgres_config, expect_postgres_pool, expect_postgres_row, expect_text,
+    expect_uri, type_error, unknown_operation,
+};
+pub use arity::operation_arity;
 
 /// Neutral value shape accepted and returned by SafeNative adapter dispatch.
 #[derive(Clone, Debug, PartialEq)]
@@ -28,10 +42,24 @@ pub enum SafeNativeValue {
     HttpRequest(http::Request),
     /// Opaque `std.http.Response.Response`.
     HttpResponse(http::Response),
+    /// Opaque `std.http.Cookies.Jar`.
+    HttpCookieJar(http::CookieJar),
     /// Opaque `std.io.Path.Path`.
     Path(path::Path),
     /// Opaque `std.net.Uri.Uri`.
     Uri(uri::Uri),
+    /// Opaque `std.db.Postgres.Config`.
+    PostgresConfig(postgres::Config),
+    /// Opaque `std.db.Postgres.Pool`.
+    PostgresPool(postgres::Pool),
+    /// Opaque `std.db.Postgres.Row`.
+    PostgresRow(postgres::Row),
+    /// `List[std.data.Json.Json]` used for Postgres parameter values.
+    JsonList(Vec<json::Json>),
+    /// `List[std.db.Postgres.Row]` returned by Postgres query operations.
+    PostgresRows(Vec<postgres::Row>),
+    /// `Option[std.db.Postgres.Row]` returned by single-row Postgres queries.
+    OptionalPostgresRow(Option<postgres::Row>),
     /// `Option[String]` for string component accessors.
     OptionalText(Option<String>),
     /// `Option[Path]` for path component accessors.
@@ -53,10 +81,14 @@ pub enum SafeNativeBridgeValue {
     Bool(bool),
     /// Opaque resource handle for JSON, path, URI, or later native resources.
     Handle(SafeNativeHandle),
+    /// Structured Postgres connection configuration for `connect`.
+    PostgresConfig(postgres::Config),
     /// `Option[String]` for string component accessors.
     OptionalText(Option<String>),
     /// `Option[Handle]` for optional opaque resources such as path parents.
     OptionalHandle(Option<SafeNativeHandle>),
+    /// Terlan list carrying bridge-facing values.
+    List(Vec<SafeNativeBridgeValue>),
 }
 
 /// Stable dispatcher error returned before crossing a runtime boundary.
@@ -247,15 +279,125 @@ pub fn dispatch(
                 .map(SafeNativeValue::Json)
                 .map_err(dispatch_http_error)
         }
+        "std.http.request.body_text" => {
+            let request = expect_http_request(operation, args, 0)?;
+            Ok(SafeNativeValue::Text(http::body_text(request)))
+        }
+        "std.http.request.method" => {
+            let request = expect_http_request(operation, args, 0)?;
+            Ok(SafeNativeValue::Text(http::method(request)))
+        }
+        "std.http.request.path" => {
+            let request = expect_http_request(operation, args, 0)?;
+            Ok(SafeNativeValue::Text(http::path(request)))
+        }
+        "std.http.request.param" => {
+            let request = expect_http_request(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            Ok(SafeNativeValue::OptionalText(http::param(request, name)))
+        }
+        "std.http.request.query" => {
+            let request = expect_http_request(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            Ok(SafeNativeValue::OptionalText(http::query(request, name)))
+        }
+        "std.http.request.query_string" => {
+            let request = expect_http_request(operation, args, 0)?;
+            Ok(SafeNativeValue::Text(http::query_string(request)))
+        }
+        "std.http.request.header" => {
+            let request = expect_http_request(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            Ok(SafeNativeValue::OptionalText(http::request_header(
+                request, name,
+            )))
+        }
+        "std.http.request.cookie" => {
+            let request = expect_http_request(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            Ok(SafeNativeValue::OptionalText(http::cookie(request, name)))
+        }
+        "std.http.request.cookies" => {
+            let request = expect_http_request(operation, args, 0)?;
+            Ok(SafeNativeValue::HttpCookieJar(http::cookies(request)))
+        }
+        "std.http.cookies.get" => {
+            let jar = expect_http_cookie_jar(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            Ok(SafeNativeValue::OptionalText(jar.get(name)))
+        }
+        "std.http.cookies.set" | "std.http.cookies.delete" => Err(DispatchError::new(
+            "dispatch.mutable_receiver_requires_resource_bridge",
+            format!(
+                "operation `{operation}` mutates a cookie jar and must use resource-backed bridge dispatch"
+            ),
+            0,
+        )),
+        "std.http.cookies.set_header" => {
+            let name = expect_text(operation, args, 0)?;
+            let value = expect_text(operation, args, 1)?;
+            let path = expect_text(operation, args, 2)?;
+            let http_only = expect_bool(operation, args, 3)?;
+            let secure = expect_bool(operation, args, 4)?;
+            http::set_header(name, value, path, http_only, secure)
+                .map(SafeNativeValue::Text)
+                .map_err(dispatch_http_error)
+        }
+        "std.http.cookies.set_header_with_options" => {
+            let name = expect_text(operation, args, 0)?;
+            let value = expect_text(operation, args, 1)?;
+            let options = cookie_options_from_args(operation, args)?;
+            http::set_header_with_options(name, value, &options)
+                .map(SafeNativeValue::Text)
+                .map_err(dispatch_http_error)
+        }
+        "std.http.cookies.delete_header" => {
+            let name = expect_text(operation, args, 0)?;
+            let path = expect_text(operation, args, 1)?;
+            http::delete_header(name, path)
+                .map(SafeNativeValue::Text)
+                .map_err(dispatch_http_error)
+        }
         "std.http.response.json" => {
             let value = expect_json(operation, args, 0)?;
-            Ok(SafeNativeValue::HttpResponse(http::json(value)))
+            let status = expect_int(operation, args, 1)?;
+            Ok(SafeNativeValue::HttpResponse(http::json(value, status)))
+        }
+        "std.http.response.json_text" => {
+            let value = expect_text(operation, args, 0)?;
+            let status = expect_int(operation, args, 1)?;
+            Ok(SafeNativeValue::HttpResponse(http::json_text(value, status)))
         }
         "std.http.response.text" => {
             let value = expect_text(operation, args, 0)?;
-            Ok(SafeNativeValue::HttpResponse(http::text(value)))
+            let status = expect_int(operation, args, 1)?;
+            Ok(SafeNativeValue::HttpResponse(http::text(value, status)))
         }
-        "std.http.response.status" | "std.http.response.header" => Err(DispatchError::new(
+        "std.http.response.html" => {
+            let value = expect_text(operation, args, 0)?;
+            let status = expect_int(operation, args, 1)?;
+            Ok(SafeNativeValue::HttpResponse(http::html(value, status)))
+        }
+        "std.http.response.file" => {
+            let path = expect_text(operation, args, 0)?;
+            let status = expect_int(operation, args, 1)?;
+            let content_type = expect_text(operation, args, 2)?;
+            Ok(SafeNativeValue::HttpResponse(http::file(
+                path,
+                status,
+                content_type,
+            )))
+        }
+        "std.http.response.redirect" => {
+            let location = expect_text(operation, args, 0)?;
+            let status = expect_int(operation, args, 1)?;
+            Ok(SafeNativeValue::HttpResponse(http::redirect(
+                location, status,
+            )))
+        }
+        "std.http.response.status"
+        | "std.http.response.header"
+        | "std.http.response.set_cookie_header" => Err(DispatchError::new(
             "dispatch.mutable_receiver_requires_direct_lowering",
             format!(
                 "operation `{operation}` mutates a receiver and must use direct native lowering"
@@ -345,6 +487,72 @@ pub fn dispatch(
             let value = expect_uri(operation, args, 0)?;
             Ok(SafeNativeValue::OptionalText(uri::fragment(value)))
         }
+        "std.db.postgres.connect" => {
+            let config = expect_postgres_config(operation, args, 0)?;
+            postgres::connect(config)
+                .map(SafeNativeValue::PostgresPool)
+                .map_err(dispatch_postgres_error)
+        }
+        "std.db.postgres.query" => {
+            let pool = expect_postgres_pool(operation, args, 0)?;
+            let sql = expect_text(operation, args, 1)?;
+            let params = expect_json_list(operation, args, 2)?;
+            postgres::query(pool, sql, params)
+                .map(SafeNativeValue::PostgresRows)
+                .map_err(dispatch_postgres_error)
+        }
+        "std.db.postgres.query_one" => {
+            let pool = expect_postgres_pool(operation, args, 0)?;
+            let sql = expect_text(operation, args, 1)?;
+            let params = expect_json_list(operation, args, 2)?;
+            postgres::query_one(pool, sql, params)
+                .map(SafeNativeValue::OptionalPostgresRow)
+                .map_err(dispatch_postgres_error)
+        }
+        "std.db.postgres.execute" => {
+            let pool = expect_postgres_pool(operation, args, 0)?;
+            let sql = expect_text(operation, args, 1)?;
+            let params = expect_json_list(operation, args, 2)?;
+            postgres::execute(pool, sql, params)
+                .map(SafeNativeValue::Int)
+                .map_err(dispatch_postgres_error)
+        }
+        "std.db.postgres.transaction" => {
+            let _pool = expect_postgres_pool(operation, args, 0)?;
+            Err(DispatchError::new(
+                "dispatch.callback_requires_runtime_bridge",
+                "Postgres transaction callbacks require runtime bridge lowering.",
+                0,
+            ))
+        }
+        "std.db.postgres.string" => {
+            let row = expect_postgres_row(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            postgres::string(row, name)
+                .map(SafeNativeValue::Text)
+                .map_err(dispatch_postgres_error)
+        }
+        "std.db.postgres.int" => {
+            let row = expect_postgres_row(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            postgres::int(row, name)
+                .map(SafeNativeValue::Int)
+                .map_err(dispatch_postgres_error)
+        }
+        "std.db.postgres.bool" => {
+            let row = expect_postgres_row(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            postgres::r#bool(row, name)
+                .map(SafeNativeValue::Bool)
+                .map_err(dispatch_postgres_error)
+        }
+        "std.db.postgres.json" => {
+            let row = expect_postgres_row(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            postgres::json(row, name)
+                .map(SafeNativeValue::Json)
+                .map_err(dispatch_postgres_error)
+        }
         _ => Err(unknown_operation(operation)),
     }
 }
@@ -372,65 +580,192 @@ pub fn dispatch_with_resources(
     args: &[SafeNativeBridgeValue],
 ) -> Result<SafeNativeBridgeValue, DispatchError> {
     validate_bridge_arity(operation, args)?;
+    if operation == "std.http.cookies.set" {
+        return dispatch_cookie_set_with_resources(store, operation, args);
+    }
+    if operation == "std.http.cookies.delete" {
+        return dispatch_cookie_delete_with_resources(store, operation, args);
+    }
+    if operation.starts_with("std.native.collections.vector.") {
+        return dispatch_native_vector_with_resources(store, operation, args);
+    }
     let decoded = decode_bridge_args(store, operation, args)?;
     let result = dispatch(operation, &decoded)?;
     encode_bridge_result(store, result)
 }
 
-/// Returns the expected arity for a supported operation.
+/// Dispatches a native vector operation through resource ownership.
 ///
 /// Inputs:
-/// - `operation`: compiler-native operation id.
+/// - `store`: resource registry owning vector handles.
+/// - `operation`: compiler-native vector operation id.
+/// - `args`: bridge-facing vector arguments.
 ///
 /// Output:
-/// - Expected runtime argument count, or `None` for an unknown operation.
+/// - Bridge value result for the vector operation.
+/// - `DispatchError` for bad arity, bad handle, bad argument, or vector
+///   bounds failures.
 ///
 /// Transformation:
-/// - Maps operation ids to the same backend arities recorded in
-///   `std/RUST_BACKED_MANIFEST.tsv`.
-pub fn operation_arity(operation: &str) -> Option<usize> {
+/// - Allocates, reads, or mutates Rust-owned vector resources while preserving
+///   stable opaque handles for BEAM-side code.
+fn dispatch_native_vector_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[SafeNativeBridgeValue],
+) -> Result<SafeNativeBridgeValue, DispatchError> {
     match operation {
-        "std.data.json.get"
-        | "std.data.json.at"
-        | "std.data.json.array_push"
-        | "std.http.response.status"
-        | "std.io.path.join" => Some(2),
-        "std.data.json.object_put" | "std.http.response.header" => Some(3),
-        "std.data.json.null" | "std.data.json.array" | "std.data.json.object" => Some(0),
-        "std.data.json.parse"
-        | "std.data.json.bool"
-        | "std.data.json.int"
-        | "std.data.json.float"
-        | "std.data.json.string"
-        | "std.data.json.stringify"
-        | "std.data.json.length"
-        | "std.data.json.as_string"
-        | "std.data.json.as_int"
-        | "std.data.json.as_float"
-        | "std.data.json.as_bool"
-        | "std.data.json.is_null"
-        | "std.http.request.body_json"
-        | "std.http.response.json"
-        | "std.http.response.text"
-        | "std.encoding.base64.encode"
-        | "std.encoding.base64.decode"
-        | "std.encoding.base64.encode_url"
-        | "std.encoding.base64.decode_url"
-        | "std.io.path.from_string"
-        | "std.io.path.to_string"
-        | "std.io.path.file_name"
-        | "std.io.path.extension"
-        | "std.io.path.parent"
-        | "std.io.path.is_absolute"
-        | "std.net.uri.parse"
-        | "std.net.uri.to_string"
-        | "std.net.uri.scheme"
-        | "std.net.uri.host"
-        | "std.net.uri.path"
-        | "std.net.uri.query"
-        | "std.net.uri.fragment" => Some(1),
-        _ => None,
+        "std.native.collections.vector.new" => store
+            .insert(ResourceValue::NativeVector(vector::new()))
+            .map(SafeNativeBridgeValue::Handle)
+            .map_err(dispatch_resource_error),
+        "std.native.collections.vector.from_list" => {
+            let values = expect_bridge_list(operation, args, 0)?;
+            store
+                .insert(ResourceValue::NativeVector(vector::from_list(
+                    values.to_vec(),
+                )))
+                .map(SafeNativeBridgeValue::Handle)
+                .map_err(dispatch_resource_error)
+        }
+        "std.native.collections.vector.length" => {
+            let handle = expect_bridge_handle(operation, args, 0)?;
+            vector::length(
+                store
+                    .native_vector(handle)
+                    .map_err(dispatch_resource_error)?,
+            )
+            .map(SafeNativeBridgeValue::Int)
+            .map_err(dispatch_vector_error)
+        }
+        "std.native.collections.vector.get_at" => {
+            let handle = expect_bridge_handle(operation, args, 0)?;
+            let index = expect_bridge_int(operation, args, 1)?;
+            vector::get_at(
+                store
+                    .native_vector(handle)
+                    .map_err(dispatch_resource_error)?,
+                index,
+            )
+            .map_err(dispatch_vector_error)
+        }
+        "std.native.collections.vector.set_at" => {
+            let handle = expect_bridge_handle(operation, args, 0)?;
+            let index = expect_bridge_int(operation, args, 1)?;
+            let value = args
+                .get(2)
+                .cloned()
+                .ok_or_else(|| type_error(operation, 2, "value"))?;
+            vector::set_at(
+                store
+                    .native_vector_mut(handle)
+                    .map_err(dispatch_resource_error)?,
+                index,
+                value,
+            )
+            .map_err(dispatch_vector_error)?;
+            Ok(SafeNativeBridgeValue::Handle(handle))
+        }
+        "std.native.collections.vector.swap" => {
+            let handle = expect_bridge_handle(operation, args, 0)?;
+            let left = expect_bridge_int(operation, args, 1)?;
+            let right = expect_bridge_int(operation, args, 2)?;
+            vector::swap(
+                store
+                    .native_vector_mut(handle)
+                    .map_err(dispatch_resource_error)?,
+                left,
+                right,
+            )
+            .map_err(dispatch_vector_error)?;
+            Ok(SafeNativeBridgeValue::Handle(handle))
+        }
+        "std.native.collections.vector.push" => {
+            let handle = expect_bridge_handle(operation, args, 0)?;
+            let value = args
+                .get(1)
+                .cloned()
+                .ok_or_else(|| type_error(operation, 1, "value"))?;
+            vector::push(
+                store
+                    .native_vector_mut(handle)
+                    .map_err(dispatch_resource_error)?,
+                value,
+            );
+            Ok(SafeNativeBridgeValue::Handle(handle))
+        }
+        "std.native.collections.vector.to_list" => {
+            let handle = expect_bridge_handle(operation, args, 0)?;
+            store
+                .native_vector(handle)
+                .map(|vector| SafeNativeBridgeValue::List(vector::to_list(vector)))
+                .map_err(dispatch_resource_error)
+        }
+        _ => Err(unknown_operation(operation)),
     }
+}
+
+/// Mutates a cookie jar resource through `std.http.cookies.set`.
+///
+/// Inputs:
+/// - `store`: resource registry owning the cookie jar.
+/// - `operation`: compiler-native operation id used in diagnostics.
+/// - `args`: bridge arguments containing jar handle and cookie values.
+///
+/// Output:
+/// - `Unit` when the cookie mutation is recorded.
+/// - `DispatchError` for bad handle, argument, or cookie validation failures.
+///
+/// Transformation:
+/// - Borrows the jar mutably from the resource store and appends one
+///   `Set-Cookie` mutation without cloning the jar.
+fn dispatch_cookie_set_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[SafeNativeBridgeValue],
+) -> Result<SafeNativeBridgeValue, DispatchError> {
+    let handle = expect_bridge_handle(operation, args, 0)?;
+    let name = expect_bridge_text(operation, args, 1)?;
+    let value = expect_bridge_text(operation, args, 2)?;
+    let path = expect_bridge_text(operation, args, 3)?;
+    let http_only = expect_bridge_bool(operation, args, 4)?;
+    let secure = expect_bridge_bool(operation, args, 5)?;
+    store
+        .http_cookie_jar_mut(handle)
+        .map_err(dispatch_resource_error)?
+        .set(name, value, path, http_only, secure)
+        .map_err(dispatch_http_error)?;
+    Ok(SafeNativeBridgeValue::Unit)
+}
+
+/// Mutates a cookie jar resource through `std.http.cookies.delete`.
+///
+/// Inputs:
+/// - `store`: resource registry owning the cookie jar.
+/// - `operation`: compiler-native operation id used in diagnostics.
+/// - `args`: bridge arguments containing jar handle, cookie name, and path.
+///
+/// Output:
+/// - `Unit` when the deletion mutation is recorded.
+/// - `DispatchError` for bad handle, argument, or cookie validation failures.
+///
+/// Transformation:
+/// - Borrows the jar mutably from the resource store and appends one expiring
+///   `Set-Cookie` mutation without cloning the jar.
+fn dispatch_cookie_delete_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[SafeNativeBridgeValue],
+) -> Result<SafeNativeBridgeValue, DispatchError> {
+    let handle = expect_bridge_handle(operation, args, 0)?;
+    let name = expect_bridge_text(operation, args, 1)?;
+    let path = expect_bridge_text(operation, args, 2)?;
+    store
+        .http_cookie_jar_mut(handle)
+        .map_err(dispatch_resource_error)?
+        .delete(name, path)
+        .map_err(dispatch_http_error)?;
+    Ok(SafeNativeBridgeValue::Unit)
 }
 
 /// Validates argument count for one operation.
@@ -542,6 +877,9 @@ fn decode_bridge_arg(
         SafeNativeBridgeValue::Int(value) => Ok(SafeNativeValue::Int(*value)),
         SafeNativeBridgeValue::Float(value) => Ok(SafeNativeValue::Float(*value)),
         SafeNativeBridgeValue::Bool(value) => Ok(SafeNativeValue::Bool(*value)),
+        SafeNativeBridgeValue::PostgresConfig(value) => {
+            Ok(SafeNativeValue::PostgresConfig(value.clone()))
+        }
         SafeNativeBridgeValue::Handle(handle) if operation == "std.http.response.json" => store
             .json(*handle)
             .cloned()
@@ -557,6 +895,13 @@ fn decode_bridge_arg(
                 .http_request(*handle)
                 .cloned()
                 .map(SafeNativeValue::HttpRequest)
+                .map_err(dispatch_resource_error)
+        }
+        SafeNativeBridgeValue::Handle(handle) if operation.starts_with("std.http.cookies.") => {
+            store
+                .http_cookie_jar(*handle)
+                .cloned()
+                .map(SafeNativeValue::HttpCookieJar)
                 .map_err(dispatch_resource_error)
         }
         SafeNativeBridgeValue::Handle(handle) if operation.starts_with("std.http.response.") => {
@@ -576,10 +921,53 @@ fn decode_bridge_arg(
             .cloned()
             .map(SafeNativeValue::Uri)
             .map_err(dispatch_resource_error),
+        SafeNativeBridgeValue::Handle(handle)
+            if matches!(
+                operation,
+                "std.db.postgres.query"
+                    | "std.db.postgres.query_one"
+                    | "std.db.postgres.execute"
+                    | "std.db.postgres.transaction"
+            ) && index == 0 =>
+        {
+            store
+                .postgres_pool(*handle)
+                .cloned()
+                .map(SafeNativeValue::PostgresPool)
+                .map_err(dispatch_resource_error)
+        }
+        SafeNativeBridgeValue::Handle(handle)
+            if matches!(
+                operation,
+                "std.db.postgres.string"
+                    | "std.db.postgres.int"
+                    | "std.db.postgres.bool"
+                    | "std.db.postgres.json"
+            ) && index == 0 =>
+        {
+            store
+                .postgres_row(*handle)
+                .cloned()
+                .map(SafeNativeValue::PostgresRow)
+                .map_err(dispatch_resource_error)
+        }
         SafeNativeBridgeValue::Handle(_) => Err(type_error(operation, index, "non-handle value")),
         SafeNativeBridgeValue::OptionalText(_) | SafeNativeBridgeValue::OptionalHandle(_) => {
             Err(type_error(operation, index, "non-optional argument"))
         }
+        SafeNativeBridgeValue::List(values) => Ok(SafeNativeValue::JsonList(
+            values
+                .iter()
+                .enumerate()
+                .map(|(list_index, value)| match value {
+                    SafeNativeBridgeValue::Handle(handle) => store
+                        .json(*handle)
+                        .cloned()
+                        .map_err(dispatch_resource_error),
+                    _ => Err(type_error(operation, list_index, "Json handle")),
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
     }
 }
 
@@ -618,6 +1006,10 @@ fn encode_bridge_result(
             .insert(ResourceValue::HttpResponse(value))
             .map(SafeNativeBridgeValue::Handle)
             .map_err(dispatch_resource_error),
+        SafeNativeValue::HttpCookieJar(value) => store
+            .insert(ResourceValue::HttpCookieJar(value))
+            .map(SafeNativeBridgeValue::Handle)
+            .map_err(dispatch_resource_error),
         SafeNativeValue::Path(value) => store
             .insert(ResourceValue::Path(value))
             .map(SafeNativeBridgeValue::Handle)
@@ -626,6 +1018,36 @@ fn encode_bridge_result(
             .insert(ResourceValue::Uri(value))
             .map(SafeNativeBridgeValue::Handle)
             .map_err(dispatch_resource_error),
+        SafeNativeValue::PostgresPool(value) => store
+            .insert(ResourceValue::PostgresPool(value))
+            .map(SafeNativeBridgeValue::Handle)
+            .map_err(dispatch_resource_error),
+        SafeNativeValue::PostgresRow(value) => store
+            .insert(ResourceValue::PostgresRow(value))
+            .map(SafeNativeBridgeValue::Handle)
+            .map_err(dispatch_resource_error),
+        SafeNativeValue::PostgresRows(values) => values
+            .into_iter()
+            .map(|row| {
+                store
+                    .insert(ResourceValue::PostgresRow(row))
+                    .map(SafeNativeBridgeValue::Handle)
+                    .map_err(dispatch_resource_error)
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map(SafeNativeBridgeValue::List),
+        SafeNativeValue::OptionalPostgresRow(value) => value
+            .map(|row| store.insert(ResourceValue::PostgresRow(row)))
+            .transpose()
+            .map(SafeNativeBridgeValue::OptionalHandle)
+            .map_err(dispatch_resource_error),
+        SafeNativeValue::PostgresConfig(_) | SafeNativeValue::JsonList(_) => {
+            Err(DispatchError::new(
+                "dispatch.postgres_requires_runtime_bridge",
+                "Postgres input-only values cannot be returned across the runtime bridge.",
+                0,
+            ))
+        }
         SafeNativeValue::OptionalText(value) => Ok(SafeNativeBridgeValue::OptionalText(value)),
         SafeNativeValue::OptionalPath(value) => value
             .map(|path| store.insert(ResourceValue::Path(path)))
@@ -633,321 +1055,6 @@ fn encode_bridge_result(
             .map(SafeNativeBridgeValue::OptionalHandle)
             .map_err(dispatch_resource_error),
     }
-}
-
-/// Reads a text argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected text argument index.
-///
-/// Output:
-/// - Borrowed string slice when the value is `Text`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_text<'a>(
-    operation: &str,
-    args: &'a [SafeNativeValue],
-    index: usize,
-) -> Result<&'a str, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::Text(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "String")),
-    }
-}
-
-/// Reads a boolean argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected boolean argument index.
-///
-/// Output:
-/// - Boolean value when the neutral value is `Bool`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_bool(
-    operation: &str,
-    args: &[SafeNativeValue],
-    index: usize,
-) -> Result<bool, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::Bool(value)) => Ok(*value),
-        _ => Err(type_error(operation, index, "Bool")),
-    }
-}
-
-/// Reads an integer argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected integer argument index.
-///
-/// Output:
-/// - Integer value when the neutral value is `Int`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_int(
-    operation: &str,
-    args: &[SafeNativeValue],
-    index: usize,
-) -> Result<i64, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::Int(value)) => Ok(*value),
-        _ => Err(type_error(operation, index, "Int")),
-    }
-}
-
-/// Reads a floating-point argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected floating-point argument index.
-///
-/// Output:
-/// - Floating-point value when the neutral value is `Float`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_float(
-    operation: &str,
-    args: &[SafeNativeValue],
-    index: usize,
-) -> Result<f64, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::Float(value)) => Ok(*value),
-        _ => Err(type_error(operation, index, "Float")),
-    }
-}
-
-/// Reads a JSON argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected JSON argument index.
-///
-/// Output:
-/// - Borrowed JSON wrapper when the value is `Json`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_json<'a>(
-    operation: &str,
-    args: &'a [SafeNativeValue],
-    index: usize,
-) -> Result<&'a json::Json, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::Json(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "Json")),
-    }
-}
-
-/// Reads an HTTP request argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected HTTP request argument index.
-///
-/// Output:
-/// - Borrowed HTTP request wrapper when the value is `HttpRequest`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_http_request<'a>(
-    operation: &str,
-    args: &'a [SafeNativeValue],
-    index: usize,
-) -> Result<&'a http::Request, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::HttpRequest(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "HttpRequest")),
-    }
-}
-
-/// Reads a path argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected path argument index.
-///
-/// Output:
-/// - Borrowed path wrapper when the value is `Path`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_path<'a>(
-    operation: &str,
-    args: &'a [SafeNativeValue],
-    index: usize,
-) -> Result<&'a path::Path, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::Path(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "Path")),
-    }
-}
-
-/// Reads a URI argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected URI argument index.
-///
-/// Output:
-/// - Borrowed URI wrapper when the value is `Uri`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-fn expect_uri<'a>(
-    operation: &str,
-    args: &'a [SafeNativeValue],
-    index: usize,
-) -> Result<&'a uri::Uri, DispatchError> {
-    match args.get(index) {
-        Some(SafeNativeValue::Uri(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "Uri")),
-    }
-}
-
-/// Builds an unknown-operation dispatch error.
-///
-/// Inputs:
-/// - `operation`: unsupported compiler-native operation id.
-///
-/// Output:
-/// - `DispatchError` with stable code `dispatch.unknown_operation`.
-///
-/// Transformation:
-/// - Converts a missing dispatch branch into a stable boundary error.
-fn unknown_operation(operation: &str) -> DispatchError {
-    DispatchError::new(
-        "dispatch.unknown_operation",
-        format!("No SafeNative adapter is registered for `{operation}`."),
-        0,
-    )
-}
-
-/// Builds a type-mismatch dispatch error.
-///
-/// Inputs:
-/// - `operation`: compiler-native operation id.
-/// - `index`: mismatched argument index.
-/// - `expected`: expected Terlan-facing value kind.
-///
-/// Output:
-/// - `DispatchError` with stable code `dispatch.type`.
-///
-/// Transformation:
-/// - Converts a runtime argument shape mismatch into one diagnostic form.
-fn type_error(operation: &str, index: usize, expected: &str) -> DispatchError {
-    DispatchError::new(
-        "dispatch.type",
-        format!("Operation `{operation}` argument {index} must be `{expected}`."),
-        0,
-    )
-}
-
-/// Converts a JSON adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: JSON adapter error.
-///
-/// Output:
-/// - Dispatch error preserving JSON code, message, and offset.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields.
-fn dispatch_json_error(error: json::JsonError) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), error.offset())
-}
-
-/// Converts an HTTP adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: HTTP adapter error.
-///
-/// Output:
-/// - Dispatch error preserving HTTP code and message.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields
-///   relevant to the generic SafeNative dispatch layer.
-fn dispatch_http_error(error: http::HttpError) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), 0)
-}
-
-/// Converts a Base64 adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: Base64 adapter error.
-///
-/// Output:
-/// - Dispatch error preserving Base64 code, message, and offset.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields.
-fn dispatch_base64_error(error: base64::Base64Error) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), error.offset())
-}
-
-/// Converts a path adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: path adapter error.
-///
-/// Output:
-/// - Dispatch error preserving path code, message, and offset.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields.
-fn dispatch_path_error(error: path::PathError) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), error.offset())
-}
-
-/// Converts a URI adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: URI adapter error.
-///
-/// Output:
-/// - Dispatch error preserving URI code, message, and offset.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields.
-fn dispatch_uri_error(error: uri::UriError) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), error.offset())
-}
-
-/// Converts a resource-store error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: resource-store error.
-///
-/// Output:
-/// - Dispatch error preserving resource code and message.
-///
-/// Transformation:
-/// - Erases the resource-specific error type while preserving stable fields.
-fn dispatch_resource_error(error: ResourceError) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), 0)
 }
 
 #[cfg(test)]

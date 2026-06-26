@@ -112,6 +112,161 @@ pub show(user: User): String ->\n\
     );
 }
 
+#[test]
+fn syntax_output_accepts_local_receiver_named_call_arguments() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_named_args_ok.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(prefix: String, suffix: String): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user.label(suffix = \"!\", prefix = \"User\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies omitted receiver-method arguments can use declaration defaults.
+///
+/// Inputs:
+/// - A receiver method whose final non-receiver parameter has a default.
+/// - A call that supplies only the required positional argument.
+///
+/// Output:
+/// - Test passes when typechecking accepts the shorter call.
+///
+/// Transformation:
+/// - Routes the call through receiver-method dispatch and lets the checker
+///   complete the omitted parameter from the method signature metadata.
+#[test]
+fn syntax_output_accepts_omitted_receiver_method_default_argument() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_default_arg_ok.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(prefix: String, suffix: String = \"!\"): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user.label(\"User\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies named receiver-method calls still require non-default parameters.
+///
+/// Inputs:
+/// - A receiver method with one required parameter and one defaulted parameter.
+/// - A named call that supplies only the defaulted parameter.
+///
+/// Output:
+/// - Test passes when typechecking reports the missing required parameter.
+///
+/// Transformation:
+/// - Computes supplied receiver-method slots from named arguments and rejects
+///   required slots that do not have a declaration default.
+#[test]
+fn syntax_output_rejects_omitted_required_receiver_method_argument() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_default_arg_missing_required.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(prefix: String, suffix: String = \"!\"): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user.label(suffix = \"?\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diag| diag
+            .message
+            .contains("missing required argument `prefix` for call to `label`")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+#[test]
+fn syntax_output_rejects_unknown_local_receiver_named_call_argument() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_named_args_unknown.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(prefix: String): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user.label(text = \"User\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diag| diag
+            .message
+            .contains("unknown named argument `text` for call to `label`")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+#[test]
+fn syntax_output_rejects_local_receiver_named_call_argument_supplied_positionally() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_named_args_positional_duplicate.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(prefix: String, suffix: String): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user.label(\"User\", prefix = \"Admin\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diag| diag
+            .message
+            .contains("argument `prefix` for call to `label` is already supplied positionally")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 /// Verifies pipe-forward prefers receiver-method resolution.
 ///
 /// Inputs:
@@ -150,6 +305,43 @@ pub show(user: User): String ->\n\
     );
 }
 
+/// Verifies receiver-method pipes accept omitted default arguments.
+///
+/// Inputs:
+/// - A receiver method with a defaulted final non-receiver parameter.
+/// - A pipe call that supplies only the required non-receiver parameter.
+///
+/// Output:
+/// - Test passes when pipe inference resolves the receiver method and fills the
+///   omitted default parameter for typechecking.
+///
+/// Transformation:
+/// - Uses default-aware receiver candidate lookup for the right side of `|>`.
+#[test]
+fn syntax_output_typechecks_pipe_into_receiver_method_with_default_argument() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_pipe_default_ok.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n\
+\n\
+pub (user: User) label(prefix: String, suffix: String = \"!\"): String ->\n\
+    user.name.\n\
+\n\
+pub show(user: User): String ->\n\
+    user |> label(\"User\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 #[test]
 fn syntax_output_typechecks_inherited_receiver_method_call() {
     let diagnostics = check_syntax_output(
@@ -163,7 +355,7 @@ pub struct Error {\n\
 pub (error: Error) message_text(): String ->\n\
     error.message.\n\
 \n\
-pub struct FileError derives Error {\n\
+pub struct FileError includes Error {\n\
     path: String\n\
 }.\n\
 \n\
@@ -187,7 +379,7 @@ module imported_derived_receiver_method_ok.\n\
 \n\
 import std.core.{Error}.\n\
 \n\
-pub struct FileError derives Error {\n\
+pub struct FileError includes Error {\n\
     path: String\n\
 }.\n\
 \n\
@@ -227,7 +419,7 @@ pub (error: Error) message_text(): String.\n\
 ///
 /// Transformation:
 /// - Exercises generated-summary receiver metadata for JS-style wrappers
-///   without requiring a local `derives` edge or hand-written adapter method.
+///   without requiring a local `includes` edge or hand-written adapter method.
 #[test]
 fn syntax_output_typechecks_imported_mutable_receiver_method_call_and_pipe() {
     let diagnostics = check_syntax_output_with_interface(
@@ -272,7 +464,7 @@ pub struct Error {\n\
 pub (error: Error) message_text(): String ->\n\
     error.message.\n\
 \n\
-pub struct FileError derives Error {\n\
+pub struct FileError includes Error {\n\
     path: String\n\
 }.\n\
 \n\
@@ -446,6 +638,43 @@ pub update(map: Map): Map ->\n\
     );
 }
 
+/// Verifies mutable receiver pipes accept omitted default arguments.
+///
+/// Inputs:
+/// - A mutable receiver method with a defaulted final parameter.
+/// - A pipe call that omits that parameter.
+///
+/// Output:
+/// - Test passes when the mutable pipe still continues as the receiver type.
+///
+/// Transformation:
+/// - Runs receiver-method pipe inference with completed defaulted argument
+///   types before applying mutable receiver continuation semantics.
+#[test]
+fn syntax_output_mutable_receiver_pipe_accepts_default_argument() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_pipe_mutable_default.\n\
+\n\
+pub struct Map {\n\
+    size: Int\n\
+}.\n\
+\n\
+pub (mut map: Map) put(key: String, value: String = \"default\"): Unit ->\n\
+    map.\n\
+\n\
+pub update(map: Map): Map ->\n\
+    map |> put(\"a\").\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 #[test]
 fn syntax_output_rejects_result_producing_mutable_receiver_methods() {
     let diagnostics = check_syntax_output(
@@ -585,6 +814,41 @@ pub add_int(): Bool ->\n\
     values.contains(1).\n\
 ",
         "std/collections/set.terl",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+}
+
+/// Verifies imported generic map factory results dispatch receiver methods.
+///
+/// Inputs:
+/// - A source module importing `std.collections.List` and `std.collections.Map`.
+/// - A list of tuple entries passed through `Map.from_entries`, followed by a
+///   `size()` receiver-method call.
+///
+/// Output:
+/// - Test passes when formal syntax-output typechecking accepts the map
+///   receiver call.
+///
+/// Transformation:
+/// - Exercises receiver-method dispatch after a prior generic constructor call
+///   has populated the substitution table, proving imported receiver
+///   candidates freshen their receiver type together with method parameters.
+#[test]
+fn syntax_output_accepts_std_map_from_entries_receiver_methods() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "\
+module collection_simple.MapTest.\n\
+\n\
+import std.collections.List.\n\
+import std.collections.Map.\n\
+\n\
+pub map_size(): Int ->\n\
+    let entries = List({\"alice\", 1});\n\
+        users = Map.from_entries(entries);\n\
+    users.size().\n\
+",
+        "std/collections/map.terl",
     );
 
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);

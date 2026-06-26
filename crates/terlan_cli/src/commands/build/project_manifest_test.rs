@@ -1,3 +1,4 @@
+use super::model::{ProjectServerTls, ProjectServerTlsProvider};
 use super::*;
 use std::path::PathBuf;
 
@@ -82,9 +83,106 @@ fn project_manifest_parses_library_artifact_kind() {
 }
 
 #[test]
+fn project_manifest_wasm_parses_core_target_metadata() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"wasm-core\"\n\n[target.wasm]\nprofile = \"core\"\nexports = [\"main.Math.add\"]\nvalidation_engine = \"wasmtime\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse wasm core target metadata");
+
+    assert_eq!(parsed.artifact, ProjectArtifactKind::WasmCore);
+    assert_eq!(
+        parsed.wasm_target,
+        Some(ProjectWasmTarget {
+            profile: ProjectWasmProfile::Core,
+            exports: vec!["main.Math.add".to_string()],
+            bridge: None,
+            capabilities: Vec::new(),
+            world: None,
+            validation_engine: Some("wasmtime".to_string()),
+        })
+    );
+    assert_eq!(parsed.wasi_target, None);
+}
+
+#[test]
+fn project_manifest_wasm_parses_browser_target_metadata() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"wasm-browser\"\n\n[target.wasm]\nprofile = \"browser\"\nexports = [\"app.TodoList\", \"app.TodoStore\"]\nbridge = \"generated-js\"\ncapabilities = [\"browser.console\", \"browser.scope\", \"browser.fetch\"]\nvalidation_engine = \"browser-playwright\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse wasm browser target metadata");
+
+    assert_eq!(parsed.artifact, ProjectArtifactKind::WasmBrowser);
+    assert_eq!(
+        parsed.wasm_target,
+        Some(ProjectWasmTarget {
+            profile: ProjectWasmProfile::Browser,
+            exports: vec!["app.TodoList".to_string(), "app.TodoStore".to_string()],
+            bridge: Some("generated-js".to_string()),
+            capabilities: vec![
+                "browser.console".to_string(),
+                "browser.scope".to_string(),
+                "browser.fetch".to_string(),
+            ],
+            world: None,
+            validation_engine: Some("browser-playwright".to_string()),
+        })
+    );
+}
+
+#[test]
+fn project_manifest_wasm_parses_wasi_cli_target_metadata() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"wasi-cli\"\n\n[target.wasi]\nprofile = \"cli\"\nworld = \"wasi:cli/command\"\ncapabilities = [\"stdio\", \"args\", \"env\", \"filesystem.read\"]\nvalidation_engine = \"wasmtime\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse wasi cli target metadata");
+
+    assert_eq!(parsed.artifact, ProjectArtifactKind::WasiCli);
+    assert_eq!(
+        parsed.wasi_target,
+        Some(ProjectWasiTarget {
+            profile: ProjectWasiProfile::Cli,
+            world: Some("wasi:cli/command".to_string()),
+            capabilities: vec![
+                "stdio".to_string(),
+                "args".to_string(),
+                "env".to_string(),
+                "filesystem.read".to_string(),
+            ],
+            validation_engine: Some("wasmtime".to_string()),
+        })
+    );
+    assert_eq!(parsed.wasm_target, None);
+}
+
+#[test]
+fn project_manifest_wasm_rejects_artifact_without_target_section() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"wasm-core\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject wasm artifact without target section");
+
+    assert!(err.contains("[build] artifact `wasm-core` requires [target.wasm]"));
+}
+
+#[test]
+fn project_manifest_wasm_rejects_mismatched_wasi_profile() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"wasi-http\"\n\n[target.wasi]\nprofile = \"cli\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject mismatched wasi target profile");
+
+    assert!(err.contains("[build] artifact `wasi-http` does not match [target.wasi] profile `cli`"));
+}
+
+#[test]
 fn project_manifest_parses_web_assets_config() {
     let parsed = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[web.assets]\ndirectory = \"assets\"\npublic_path = \"/assets\"\ninline_limit = 8192\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[web.assets]\ndirectory = \"assets\"\npublic_path = \"/assets\"\ninline_limit = 8192\nrsbuild_config = \"rsbuild.config.mjs\"\n",
         &manifest_path(),
     )
     .expect("manifest should parse web asset config");
@@ -95,8 +193,186 @@ fn project_manifest_parses_web_assets_config() {
             directory: "assets".to_string(),
             public_path: Some("/assets".to_string()),
             inline_limit: Some(8192),
+            rsbuild_config: Some("rsbuild.config.mjs".to_string()),
         })
     );
+}
+
+#[test]
+fn project_manifest_accepts_integration_flow_config() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[integration.default]\ntraits = [\"compose-db\", \"web-build\", \"web-server\", \"http-checks\", \"websocket-checks\"]\nhttp_checks = [\"GET:/health:200:ok\"]\nwebsocket_checks = [\"PAIR:/ws?player=Ada:lobby_waiting:/ws?player=Grace:match_found:match_found\"]\n",
+        &manifest_path(),
+    )
+    .expect("manifest should accept integration flow config");
+
+    assert_eq!(parsed.package.name, "demo");
+}
+
+#[test]
+fn project_manifest_parses_server_tls_manual_config() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"manual\"\ncert = \"cert.pem\"\nkey = \"key.pem\"\npassphrase_env = \"TERLAN_TLS_PASSPHRASE\"\nca = \"ca.pem\"\nserver_name = \"localhost\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse server tls manual config");
+
+    assert_eq!(
+        parsed.server_tls,
+        Some(ProjectServerTls {
+            mode: ProjectServerTlsMode::Manual,
+            domains: Vec::new(),
+            email: None,
+            primary_provider: None,
+            fallback_provider: None,
+            cert: Some("cert.pem".to_string()),
+            key: Some("key.pem".to_string()),
+            passphrase_env: Some("TERLAN_TLS_PASSPHRASE".to_string()),
+            ca: Some("ca.pem".to_string()),
+            server_name: Some("localhost".to_string()),
+            trust_local: None,
+        })
+    );
+}
+
+#[test]
+fn project_manifest_accepts_absent_server_tls_config() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse without server tls config");
+
+    assert_eq!(parsed.server_tls, None);
+}
+
+#[test]
+fn project_manifest_rejects_server_tls_without_mode() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\ncert = \"cert.pem\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject server tls without mode");
+
+    assert!(err.contains("[server.tls] requires mode"));
+}
+
+#[test]
+fn project_manifest_parses_server_tls_auto_config() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"auto\"\ndomains = [\"example.com\"]\nemail = \"admin@example.com\"\nprimary_provider = \"letsencrypt\"\nfallback_provider = \"zerossl\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse server tls auto config");
+
+    assert_eq!(
+        parsed.server_tls,
+        Some(ProjectServerTls {
+            mode: ProjectServerTlsMode::Auto,
+            domains: vec!["example.com".to_string()],
+            email: Some("admin@example.com".to_string()),
+            primary_provider: Some(ProjectServerTlsProvider::LetsEncrypt),
+            fallback_provider: Some(ProjectServerTlsProvider::ZeroSsl),
+            cert: None,
+            key: None,
+            passphrase_env: None,
+            ca: None,
+            server_name: None,
+            trust_local: None,
+        })
+    );
+}
+
+#[test]
+fn project_manifest_rejects_server_tls_auto_without_domains() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"auto\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject automatic TLS without domains");
+
+    assert!(err.contains("mode auto requires domains"));
+}
+
+/// Verifies automatic TLS rejects fields owned by manual/internal modes.
+///
+/// Inputs:
+/// - Project manifest with `mode = "auto"` plus a local CA field.
+///
+/// Output:
+/// - Test passes when parser rejects the mixed-mode TLS configuration.
+///
+/// Transformation:
+/// - Locks ACME mode as provider/domain metadata only, so future rustls/ACME
+///   serving does not inherit contradictory certificate-source config.
+#[test]
+fn project_manifest_rejects_server_tls_auto_manual_or_internal_fields() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"auto\"\ndomains = [\"example.com\"]\nca = \"ca.pem\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject automatic TLS with manual/internal fields");
+
+    assert!(err.contains("mode auto cannot set manual or internal TLS fields"));
+}
+
+#[test]
+fn project_manifest_rejects_server_tls_manual_without_key() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"manual\"\ncert = \"cert.pem\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject incomplete manual server tls config");
+
+    assert!(err.contains("mode manual requires cert and key"));
+}
+
+#[test]
+fn project_manifest_parses_server_tls_internal_config() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"internal\"\nserver_name = \"localhost\"\ntrust_local = true\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse server tls internal config");
+
+    assert_eq!(
+        parsed.server_tls,
+        Some(ProjectServerTls {
+            mode: ProjectServerTlsMode::Internal,
+            domains: Vec::new(),
+            email: None,
+            primary_provider: None,
+            fallback_provider: None,
+            cert: None,
+            key: None,
+            passphrase_env: None,
+            ca: None,
+            server_name: Some("localhost".to_string()),
+            trust_local: Some(true),
+        })
+    );
+}
+
+#[test]
+fn project_manifest_rejects_server_tls_internal_with_public_fields() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"internal\"\ndomains = [\"example.com\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject internal TLS with public fields");
+
+    assert!(err.contains("mode internal cannot set public or manual TLS fields"));
+}
+
+#[test]
+fn project_manifest_rejects_server_tls_manual_acme_provider() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server.tls]\nmode = \"manual\"\ncert = \"cert.pem\"\nkey = \"key.pem\"\nprimary_provider = \"letsencrypt\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject manual tls ACME provider");
+
+    assert!(err.contains("mode manual cannot set ACME providers"));
 }
 
 #[test]
@@ -284,6 +560,37 @@ fn project_manifest_parses_erlang_package_adapter_metadata() {
         parsed.erlang_package_adapter,
         Some(ProjectErlangPackageAdapter::Rebar3Compatible)
     );
+}
+
+#[test]
+fn project_manifest_parses_native_rust_helper_metadata() {
+    let parsed = parse_project_manifest(
+            "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\n\n[native.rust]\ncrate = \"terlan_polars_native\"\npath = \"native\"\nhelper = \"terlan-polars-safe-native\"\nhelper_env = \"TERLAN_SAFE_NATIVE_PATH\"\nfeatures = [\"real-polars\"]\n",
+            &manifest_path(),
+        )
+        .expect("manifest should parse native Rust helper metadata");
+
+    assert_eq!(
+        parsed.native_rust,
+        Some(ProjectNativeRust {
+            crate_name: "terlan_polars_native".to_string(),
+            path: "native".to_string(),
+            helper: "terlan-polars-safe-native".to_string(),
+            helper_env: "TERLAN_SAFE_NATIVE_PATH".to_string(),
+            features: vec!["real-polars".to_string()],
+        })
+    );
+}
+
+#[test]
+fn project_manifest_rejects_partial_native_rust_helper_metadata() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\n\n[native.rust]\ncrate = \"terlan_polars_native\"\npath = \"native\"\nhelper = \"terlan-polars-safe-native\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject partial native Rust helper metadata");
+
+    assert!(err.contains("[native.rust] requires `helper_env`"));
 }
 
 #[test]

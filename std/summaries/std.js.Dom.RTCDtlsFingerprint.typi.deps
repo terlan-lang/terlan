@@ -1,0 +1,8 @@
+module=std.js.Dom.RTCDtlsFingerprint
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=12481050653167500226
+interface_hash=6326605484359862946
+interface_doc_hash=6326605484359862946
+deps=0

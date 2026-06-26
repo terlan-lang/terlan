@@ -3,6 +3,7 @@ use super::*;
 use terlan_hir::{
     load_interfaces_from_file_set, parse_interface_file,
     resolve_syntax_module_output_with_interfaces, syntax_module_output_to_interface,
+    FunctionSignature, ParamSignature,
 };
 use terlan_syntax::{parse_interface_module_as_syntax_output, parse_module_as_syntax_output};
 
@@ -68,7 +69,7 @@ import option.{None, Some}.\n\
 import type ordering.Comparison.\n\
 pub compare_int(left: Int, right: Int): Comparison -> :lt.\n\
 pub demo(): Bool ->\n\
-    std.test.Test.assert_equal(:lt, option.compare(None, Some(1), compare_int)).\n\
+    option.compare(None, Some(1), compare_int) == :lt.\n\
 ",
     )
     .unwrap_or_else(|err| panic!("failed to parse consumer fixture: {:?}", err));
@@ -79,6 +80,198 @@ pub demo(): Bool ->\n\
     assert!(
         diagnostics.is_empty(),
         "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported HKT-generic functions preserve explicit type arguments.
+///
+/// Inputs:
+/// - Provider interface exposing `identity[F[_], A]`.
+/// - Consumer module with a local `Option[T]` alias calling
+///   `hkt_provider.identity[Option, Int](value)`.
+///
+/// Output:
+/// - Test passes when the imported function accepts the explicit constructor
+///   and element type arguments at the module boundary.
+///
+/// Transformation:
+/// - Builds provider interfaces through HIR, resolves a consumer against them,
+///   and checks that imported function typechecking seeds callable generic
+///   parameters before parsing `F[A]`.
+#[test]
+fn syntax_output_imported_hkt_generic_function_uses_explicit_type_args() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module hkt_provider.\n\
+\n\
+pub identity[F[_], A](value: F[A]): F[A].\n\
+",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse hkt provider fixture: {:?}", err));
+
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let provider_interface = interfaces
+        .get(&provider.module_name)
+        .expect("provider interface");
+    let identity_signature = provider_interface
+        .functions
+        .get(&("identity".to_string(), 1))
+        .expect("identity signature");
+    assert_eq!(identity_signature.generic_params, vec!["F[_]", "A"]);
+
+    let consumer = parse_module_as_syntax_output(
+        "\
+module hkt_consumer.\n\
+\n\
+import hkt_provider.{identity}.\n\
+\n\
+pub type None = Atom[\"none\"].\n\
+pub type Some[T] = {Atom[\"some\"], value: T}.\n\
+pub type Option[T] = None | Some[T].\n\
+\n\
+pub demo(value: Option[Int]): Option[Int] ->\n\
+    identity[Option, Int](value).\n\
+",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse hkt consumer fixture: {:?}", err));
+
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported HKT function variance accepts matching constructors.
+///
+/// Inputs:
+/// - Provider interface exposing `keep[F[+_], A]`.
+/// - Consumer module supplying a covariant local `Box[+T]` constructor.
+///
+/// Output:
+/// - Test passes when the imported call accepts `Box` as the explicit HKT
+///   constructor argument.
+///
+/// Transformation:
+/// - Confirms callable generic parameter metadata survives HIR/interface
+///   rendering and is available during imported function call checking.
+#[test]
+fn syntax_output_imported_hkt_generic_function_accepts_covariant_type_arg() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module hkt_variance_provider.\n\
+\n\
+pub keep[F[+_], A](value: F[A]): F[A].\n\
+",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse hkt provider fixture: {:?}", err));
+
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let provider_interface = interfaces
+        .get(&provider.module_name)
+        .expect("provider interface");
+    let keep_signature = provider_interface
+        .functions
+        .get(&("keep".to_string(), 1))
+        .expect("keep signature");
+    assert_eq!(keep_signature.generic_params, vec!["F[+_]", "A"]);
+
+    let consumer = parse_module_as_syntax_output(
+        "\
+module hkt_variance_consumer_ok.\n\
+\n\
+import hkt_variance_provider.{keep}.\n\
+\n\
+pub opaque type Box[+T] = {value: T}.\n\
+\n\
+pub demo(value: Box[Int]): Box[Int] ->\n\
+    keep[Box, Int](value).\n\
+",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse hkt consumer fixture: {:?}", err));
+
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported HKT function variance rejects mismatched constructors.
+///
+/// Inputs:
+/// - Provider interface exposing `keep[F[+_], A]`.
+/// - Consumer module supplying invariant local `Cell[T]`.
+///
+/// Output:
+/// - Test passes when the imported call reports the explicit type-argument
+///   variance mismatch.
+///
+/// Transformation:
+/// - Locks HKT variance enforcement across module boundaries instead of only
+///   local function calls.
+#[test]
+fn syntax_output_imported_hkt_generic_function_rejects_invariant_type_arg() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module hkt_variance_provider_bad.\n\
+\n\
+pub keep[F[+_], A](value: F[A]): F[A].\n\
+",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse hkt provider fixture: {:?}", err));
+
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let provider_interface = interfaces
+        .get(&provider.module_name)
+        .expect("provider interface");
+    let keep_signature = provider_interface
+        .functions
+        .get(&("keep".to_string(), 1))
+        .expect("keep signature");
+    assert_eq!(keep_signature.generic_params, vec!["F[+_]", "A"]);
+
+    let consumer = parse_module_as_syntax_output(
+        "\
+module hkt_variance_consumer_bad.\n\
+\n\
+import hkt_variance_provider_bad.{keep}.\n\
+\n\
+pub opaque type Cell[T] = {value: T}.\n\
+\n\
+pub demo(value: Cell[Int]): Cell[Int] ->\n\
+    keep[Cell, Int](value).\n\
+",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse hkt consumer fixture: {:?}", err));
+
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+
+    assert!(
+        diagnostics.iter().any(|diag| diag
+            .message
+            .contains("explicit type argument `Cell` for `F[+_]` requires slot 1 to be covariant")),
+        "diagnostics: {:?}",
         diagnostics
     );
 }
@@ -101,7 +294,7 @@ pub demo(): Bool ->\n\
 fn syntax_output_std_option_compare_summary_preserves_comparison_return_type() {
     let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
-        .join("std/core/option_test.terl");
+        .join("std/core/OptionTest.terl");
     let option_summary_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .join("std/summaries/std.core.Option.typi");
@@ -166,6 +359,7 @@ fn syntax_output_std_option_compare_summary_preserves_comparison_return_type() {
     let empty_constructors = HashMap::new();
     let empty_templates = HashMap::new();
     let empty_struct_fields = HashMap::new();
+    let empty_struct_field_visibility = HashMap::new();
     let empty_receiver_methods = HashMap::new();
     let empty_trait_method_calls = HashMap::new();
     let empty_trait_bound_impls = HashMap::new();
@@ -186,12 +380,14 @@ fn syntax_output_std_option_compare_summary_preserves_comparison_return_type() {
         templates: &empty_templates,
         aliases: &global_aliases,
         struct_fields: &empty_struct_fields,
+        struct_field_visibility: &empty_struct_field_visibility,
         receiver_methods: &empty_receiver_methods,
         trait_method_calls: &empty_trait_method_calls,
         trait_bound_impl_type_args: &empty_trait_bound_impls,
         trait_signatures: &empty_trait_signatures,
         alias_names: &empty_alias_names,
         current_bounds: &[],
+        current_constructor_target: None,
         trait_lookup_cache: &trial_trait_cache,
     };
     let trial_result = infer_function_with_bounds(
@@ -343,6 +539,115 @@ pub demo(): Unit ->\n\
         diagnostics
             .iter()
             .any(|diag| diag.message.contains("expected Binary found 1")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies wildcard imports expose public provider functions as local calls.
+///
+/// Inputs:
+/// - A provider interface with one public module-level function.
+/// - A consumer using `import math.Tools.{*}.` and calling the function by
+///   local name.
+///
+/// Output:
+/// - Test passes when the local call typechecks through the provider
+///   interface.
+///
+/// Transformation:
+/// - Expands the wildcard into selected function imports during import-map
+///   construction and reuses normal imported-function inference.
+#[test]
+fn syntax_output_wildcard_function_imports_typecheck_local_calls() {
+    let interface_source = "\
+module math.Tools.\n\
+pub inc(value: Int): Int.\n\
+";
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module wildcard_function_consumer.\n\
+import math.Tools.{*}.\n\
+pub demo(): Int ->\n\
+    inc(1).\n\
+",
+        interface_source,
+    );
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected wildcard function import diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies selected imported function defaults participate in typechecking.
+///
+/// Inputs:
+/// - A provider interface declaring a function with two trailing defaults.
+/// - A consumer importing that function and omitting the middle defaulted
+///   parameter while supplying the final parameter by name.
+///
+/// Output:
+/// - Test passes when the selected import typechecks as a full-arity call
+///   after defaulted parameter completion.
+///
+/// Transformation:
+/// - Resolves the selected import through the provider interface, validates
+///   named arguments against provider parameter names, and completes omitted
+///   defaulted slots before ordinary overload inference.
+#[test]
+fn syntax_output_selected_function_imports_accept_omitted_defaults() {
+    let interface_source = "\
+module text_tools.\n\
+pub decorate(first: String, middle: String = \".\", last: String = \"!\"): String.\n\
+";
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module text_tools_consumer.\n\
+import text_tools.{decorate}.\n\
+pub demo(): String ->\n\
+    decorate(first = \"A\", last = \"?\").\n\
+",
+        interface_source,
+    );
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies selected imported defaults do not hide missing required params.
+///
+/// Inputs:
+/// - A provider interface declaring one required parameter and one default.
+/// - A consumer call that supplies only the defaulted parameter by name.
+///
+/// Output:
+/// - Test passes when typechecking reports the missing required argument.
+///
+/// Transformation:
+/// - Computes supplied provider parameter slots and rejects required slots that
+///   do not have defaults in the imported interface signature.
+#[test]
+fn syntax_output_selected_function_imports_reject_omitted_required_argument() {
+    let interface_source = "\
+module text_tools.\n\
+pub decorate(first: String, suffix: String = \"!\"): String.\n\
+";
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module text_tools_consumer.\n\
+import text_tools.{decorate}.\n\
+pub demo(): String ->\n\
+    decorate(suffix = \"?\").\n\
+",
+        interface_source,
+    );
+    assert!(
+        diagnostics.iter().any(|diag| diag
+            .message
+            .contains("missing required argument `first` for call to `decorate`")),
         "diagnostics: {:?}",
         diagnostics
     );
@@ -862,6 +1167,39 @@ pub type None = Atom[\"none\"].\n\
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
 }
 
+/// Verifies imported std aliases expand provider-local singleton aliases.
+///
+/// Inputs:
+/// - A consumer module using `std.core.Bool.from_string`, whose summary returns
+///   `Option[Bool]`.
+/// - The real checked-in std summaries discovered from a std source path.
+///
+/// Output:
+/// - Empty diagnostics.
+///
+/// Transformation:
+/// - Resolves `Option[T] = None | Some[T]` through the provider module's alias
+///   scope so `None` binds to `std.core.Option.None` even when another loaded
+///   std module also exports a type named `None`.
+#[test]
+fn syntax_output_std_option_alias_expands_provider_local_none_alias() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "\
+module std_option_alias_scope.\n\
+import std.core.Bool.\n\
+import std.core.Option.\n\
+pub parsed(): Bool ->\n\
+    Option.with_default(Bool.from_string(\"true\"), false).\n\
+",
+        "std/core/BoolTest.terl",
+    );
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 #[test]
 fn syntax_output_imported_literal_alias_constructor_calls_are_rejected_on_formal_path() {
     let diagnostics = check_syntax_output_with_interface(
@@ -1049,7 +1387,7 @@ pub unwrap(input: Success[Int]): Int ->\n\
 }
 
 #[test]
-fn expands_syntax_derives_copies_imported_parent_struct_fields() {
+fn expands_syntax_includes_copies_imported_parent_struct_fields() {
     let provider = parse_module_as_syntax_output(
         "\
 module std.core.\n\
@@ -1075,14 +1413,14 @@ module std.io.File.\n\
 \n\
 import std.core.{Error}.\n\
 \n\
-pub struct FileError derives Error {\n\
+pub struct FileError includes Error {\n\
     path: String\n\
 }.\n",
     )
-    .expect("parse consumer derive source fixture");
+    .expect("parse consumer include source fixture");
     let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
 
-    let (expanded, diagnostics) = expand_syntax_derives(consumer, &resolved);
+    let (expanded, diagnostics) = expand_syntax_includes(consumer, &resolved);
 
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
     let file_error_fields = expanded
@@ -1167,7 +1505,7 @@ pub view(): Binary ->
     )
     .expect("parse syntax output import map fixture");
 
-    let maps = collect_syntax_import_maps(&module);
+    let maps = collect_syntax_import_maps(&module, &HashMap::new());
 
     assert_eq!(
         maps.module_aliases.get("format_alias").map(String::as_str),
@@ -1242,4 +1580,521 @@ pub make(): Dynamic ->\n\
         "diagnostics: {:?}",
         diagnostics
     );
+}
+
+/// Verifies imported private struct fields cannot be read outside the provider.
+///
+/// Inputs:
+/// - A provider interface declaring public struct `User` with private field
+///   `#email`.
+/// - A consumer importing `User` and attempting `user.#email`.
+///
+/// Output:
+/// - Test passes when typechecking rejects cross-module private field access.
+///
+/// Transformation:
+/// - Resolves the consumer against explicit interface metadata and checks that
+///   preserved struct field visibility is enforced during expression
+///   inference.
+#[test]
+fn syntax_output_rejects_imported_private_struct_field_access() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module provider.\n\
+\n\
+pub struct User {\n\
+    #email: String\n\
+}.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse provider interface fixture: {:?}", err));
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module private_import_boundary.\n\
+\n\
+import type provider.User.\n\
+\n\
+pub email(user: User): String ->\n\
+    user.#email.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("private field email on imported struct provider.User cannot be accessed outside defining module")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported private struct fields cannot be updated outside provider.
+///
+/// Inputs:
+/// - A provider interface declaring public struct `User` with private field
+///   `#email`.
+/// - A consumer importing `User` and attempting `user#User { #email = ... }`.
+///
+/// Output:
+/// - Test passes when typechecking rejects cross-module private field update.
+///
+/// Transformation:
+/// - Checks record-update visibility against imported interface metadata.
+#[test]
+fn syntax_output_rejects_imported_private_struct_field_update() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module provider.\n\
+\n\
+pub struct User {\n\
+    #email: String\n\
+}.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse provider interface fixture: {:?}", err));
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module private_import_update_boundary.\n\
+\n\
+import type provider.User.\n\
+\n\
+pub update(user: User): User ->\n\
+    user#User { #email = \"next@example.com\" }.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("private field email on imported struct provider.User cannot be accessed outside defining module")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported private struct fields cannot be pattern matched.
+///
+/// Inputs:
+/// - A provider interface declaring public struct `User` with private field
+///   `#email`.
+/// - A consumer importing `User` and matching `User { #email = email }`.
+///
+/// Output:
+/// - Test passes when typechecking rejects cross-module private field pattern.
+///
+/// Transformation:
+/// - Checks record-pattern visibility against imported interface metadata.
+#[test]
+fn syntax_output_rejects_imported_private_struct_field_pattern() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module provider.\n\
+\n\
+pub struct User {\n\
+    #email: String\n\
+}.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse provider interface fixture: {:?}", err));
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module private_import_pattern_boundary.\n\
+\n\
+import type provider.User.\n\
+\n\
+pub read(user: User): String ->\n\
+    case user {\n\
+      User { #email = email } -> email\n\
+    }.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("private field email on imported struct provider.User cannot be accessed outside defining module")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported public struct fields remain readable.
+///
+/// Inputs:
+/// - A provider interface declaring public struct `User` with public field
+///   `name`.
+/// - A consumer importing `User` and reading `user.name`.
+///
+/// Output:
+/// - Test passes when imported public field lookup typechecks without
+///   diagnostics.
+///
+/// Transformation:
+/// - Confirms imported struct field metadata is merged into expression
+///   inference while preserving privacy checks for private fields.
+#[test]
+fn syntax_output_accepts_imported_public_struct_field_access() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module provider.\n\
+\n\
+pub struct User {\n\
+    name: String\n\
+}.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse provider interface fixture: {:?}", err));
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module public_import_boundary.\n\
+\n\
+import type provider.User.\n\
+\n\
+pub name(user: User): String ->\n\
+    user.name.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies missing imported module members produce member diagnostics.
+///
+/// Inputs:
+/// - A provider interface for `provider.Users` with one public function.
+/// - A consumer importing `provider.Users` and passing `Users.missing` as a
+///   function value.
+///
+/// Output:
+/// - Test passes when typechecking reports that the imported module has no
+///   exported `missing` function.
+///
+/// Transformation:
+/// - Resolves the consumer against the provider interface and exercises the
+///   module-member function value path before ordinary struct field access can
+///   produce a misleading fallback diagnostic.
+#[test]
+fn syntax_output_rejects_missing_imported_module_member_function_value() {
+    let provider = parse_interface_module_as_syntax_output(
+        "\
+module provider.Users.\n\
+\n\
+pub index(value: Int): Int ->\n\
+    value.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse provider interface fixture: {:?}", err));
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module consumer.\n\
+\n\
+import provider.Users.\n\
+\n\
+pub run(f: (Int) -> Int): Int ->\n\
+    f.(1).\n\
+\n\
+pub value(): Int ->\n\
+    run(Users.missing).\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("module `provider.Users` has no exported function `missing`")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Builds a minimal imported module interface with public function signatures.
+///
+/// Inputs:
+/// - `module`: fully qualified provider module name.
+/// - `functions`: function names, parameter names/types, and return types.
+///
+/// Output:
+/// - `ModuleInterface` suitable for import-resolution/typecheck unit tests.
+///
+/// Transformation:
+/// - Populates both compatibility function lookup and overload lookup so tests
+///   exercise the same interface shape produced by generated summaries.
+fn public_function_interface(
+    module: &str,
+    functions: &[(&str, Vec<(&str, &str)>, &str)],
+) -> ModuleInterface {
+    let mut interface = ModuleInterface {
+        module: module.to_string(),
+        docs: Vec::new(),
+        public_types: HashSet::new(),
+        private_types: HashSet::new(),
+        opaque_types: HashSet::new(),
+        type_params: HashMap::new(),
+        type_bodies: HashMap::new(),
+        struct_fields: HashMap::new(),
+        type_docs: HashMap::new(),
+        traits: HashMap::new(),
+        trait_conformances: Vec::new(),
+        constructors: HashMap::new(),
+        functions: HashMap::new(),
+        function_overloads: HashMap::new(),
+    };
+
+    for (name, params, return_type) in functions {
+        let signature = FunctionSignature {
+            name: (*name).to_string(),
+            generic_params: Vec::new(),
+            params: params
+                .iter()
+                .map(|(param_name, annotation)| ParamSignature {
+                    name: (*param_name).to_string(),
+                    annotation: (*annotation).to_string(),
+                    is_mutable: false,
+                    default_text: None,
+                })
+                .collect::<Vec<_>>(),
+            return_type: (*return_type).to_string(),
+            generic_bounds: Vec::new(),
+            receiver_method: false,
+            receiver_mutable: false,
+            public: true,
+            docs: Vec::new(),
+        };
+        let key = ((*name).to_string(), signature.params.len());
+        interface.functions.insert(key.clone(), signature.clone());
+        interface
+            .function_overloads
+            .entry(key)
+            .or_default()
+            .push(signature);
+    }
+
+    interface
+}
+
+/// Verifies ambiguous imported module-member function values resolve by call context.
+///
+/// Inputs:
+/// - A provider interface for `provider.Users` with two public `index`
+///   overloads.
+/// - A consumer importing `provider.Users` and passing `Users.index` as a
+///   function value.
+///
+/// Output:
+/// - Test passes when typechecking uses `run`'s expected `(Int) -> Int`
+///   parameter type to select the unary overload.
+///
+/// Transformation:
+/// - Exercises the 0.0.5 contextual rule: module-member function values may be
+///   overloaded when the surrounding call supplies an expected function type.
+#[test]
+fn syntax_output_resolves_ambiguous_imported_module_member_function_value_from_call_context() {
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "provider.Users".to_string(),
+        public_function_interface(
+            "provider.Users",
+            &[
+                ("index", vec![("value", "Int")], "Int"),
+                ("index", vec![("value", "Int"), ("step", "Int")], "Int"),
+            ],
+        ),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module consumer.\n\
+\n\
+import provider.Users.\n\
+\n\
+pub run(f: (Int) -> Int): Int ->\n\
+    f.(1).\n\
+\n\
+pub value(): Int ->\n\
+    run(Users.index).\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+}
+
+/// Verifies ambiguous imported module-member function values resolve by return type.
+///
+/// Inputs:
+/// - A provider interface for `provider.Users` with two public `index`
+///   overloads.
+/// - A consumer returning `Users.index` from a function with a function type
+///   alias return.
+///
+/// Output:
+/// - Test passes when typechecking uses the declared return type to select the
+///   unary overload.
+///
+/// Transformation:
+/// - Exercises the return-position contextual rule for module-member function
+///   values without requiring a wrapper lambda.
+#[test]
+fn syntax_output_resolves_ambiguous_imported_module_member_function_value_from_return_context() {
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "provider.Users".to_string(),
+        public_function_interface(
+            "provider.Users",
+            &[
+                ("index", vec![("value", "Int")], "Int"),
+                ("index", vec![("value", "Int"), ("step", "Int")], "Int"),
+            ],
+        ),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module consumer.\n\
+\n\
+import provider.Users.\n\
+\n\
+pub type Indexer = (Int) -> Int.\n\
+\n\
+pub value(): Indexer ->\n\
+    Users.index.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+}
+
+/// Verifies ambiguous imported module-member function values still need context.
+///
+/// Inputs:
+/// - A provider interface for `provider.Users` with two public `index`
+///   overloads.
+/// - A consumer returning `Users.index` from a function whose return type does
+///   not provide a function shape.
+///
+/// Output:
+/// - Test passes when typechecking reports ambiguity because no function-valued
+///   expected type is available.
+///
+/// Transformation:
+/// - Protects ordinary field-access inference from guessing an overload when
+///   the surrounding context is not a concrete function type.
+#[test]
+fn syntax_output_rejects_ambiguous_imported_module_member_function_value_without_function_context()
+{
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "provider.Users".to_string(),
+        public_function_interface(
+            "provider.Users",
+            &[
+                ("index", vec![("value", "Int")], "Int"),
+                ("index", vec![("value", "Int"), ("step", "Int")], "Int"),
+            ],
+        ),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module consumer.\n\
+\n\
+import provider.Users.\n\
+\n\
+pub value(): Dynamic ->\n\
+    Users.index.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("module-member function value `Users.index` is ambiguous")),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies struct field context resolves imported module-member function values.
+///
+/// Inputs:
+/// - A provider interface for `provider.Users` with overloaded public
+///   `index` functions.
+/// - A consumer config struct whose `list` field expects `(Int) -> Int`.
+///
+/// Output:
+/// - Test passes when `#Actions { list = Users.index }` selects the unary
+///   overload from the field's declared function type.
+///
+/// Transformation:
+/// - Exercises the route/resource configuration shape required by 0.0.5
+///   without adding framework-specific syntax.
+#[test]
+fn syntax_output_resolves_imported_module_member_function_value_from_struct_field_context() {
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "provider.Users".to_string(),
+        public_function_interface(
+            "provider.Users",
+            &[
+                ("index", vec![("value", "Int")], "Int"),
+                ("index", vec![("value", "Int"), ("step", "Int")], "Int"),
+            ],
+        ),
+    );
+    let module = parse_module_as_syntax_output(
+        "\
+module consumer.\n\
+\n\
+import provider.Users.\n\
+\n\
+pub type Indexer = (Int) -> Int.\n\
+\n\
+pub struct Actions {\n\
+  list: Indexer\n\
+}.\n\
+\n\
+pub actions(): Actions ->\n\
+    #Actions { list = Users.index }.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+
+    assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
 }

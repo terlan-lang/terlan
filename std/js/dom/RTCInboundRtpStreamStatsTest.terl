@@ -1,0 +1,178 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCInboundRtpStreamStats
+ */
+
+module std.js.Dom.RTCInboundRtpStreamStatsTest.
+
+import type std.js.Dom.RTCInboundRtpStreamStats.RTCInboundRtpStreamStats.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub audio_level_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.audio_level().
+
+pub bytes_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.bytes_received().
+
+pub concealed_samples_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.concealed_samples().
+
+pub concealment_events_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.concealment_events().
+
+pub decoder_implementation_typechecks(receiver: RTCInboundRtpStreamStats): std.js.String.JsString ->
+    receiver.decoder_implementation().
+
+pub estimated_playout_timestamp_typechecks(receiver: RTCInboundRtpStreamStats): DOMHighResTimeStamp ->
+    receiver.estimated_playout_timestamp().
+
+pub fec_bytes_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.fec_bytes_received().
+
+pub fec_packets_discarded_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.fec_packets_discarded().
+
+pub fec_packets_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.fec_packets_received().
+
+pub fec_ssrc_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.fec_ssrc().
+
+pub fir_count_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.fir_count().
+
+pub frame_height_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frame_height().
+
+pub frame_width_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frame_width().
+
+pub frames_assembled_from_multiple_packets_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_assembled_from_multiple_packets().
+
+pub frames_decoded_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_decoded().
+
+pub frames_dropped_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_dropped().
+
+pub frames_per_second_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_per_second().
+
+pub frames_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_received().
+
+pub frames_rendered_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_rendered().
+
+pub freeze_count_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.freeze_count().
+
+pub header_bytes_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.header_bytes_received().
+
+pub inserted_samples_for_deceleration_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.inserted_samples_for_deceleration().
+
+pub jitter_buffer_delay_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.jitter_buffer_delay().
+
+pub jitter_buffer_emitted_count_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.jitter_buffer_emitted_count().
+
+pub jitter_buffer_minimum_delay_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.jitter_buffer_minimum_delay().
+
+pub jitter_buffer_target_delay_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.jitter_buffer_target_delay().
+
+pub key_frames_decoded_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.key_frames_decoded().
+
+pub last_packet_received_timestamp_typechecks(receiver: RTCInboundRtpStreamStats): DOMHighResTimeStamp ->
+    receiver.last_packet_received_timestamp().
+
+pub mid_typechecks(receiver: RTCInboundRtpStreamStats): std.js.String.JsString ->
+    receiver.mid().
+
+pub nack_count_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.nack_count().
+
+pub packets_discarded_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.packets_discarded().
+
+pub pause_count_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.pause_count().
+
+pub playout_id_typechecks(receiver: RTCInboundRtpStreamStats): std.js.String.JsString ->
+    receiver.playout_id().
+
+pub pli_count_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.pli_count().
+
+pub qp_sum_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.qp_sum().
+
+pub remote_id_typechecks(receiver: RTCInboundRtpStreamStats): std.js.String.JsString ->
+    receiver.remote_id().
+
+pub removed_samples_for_acceleration_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.removed_samples_for_acceleration().
+
+pub retransmitted_bytes_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.retransmitted_bytes_received().
+
+pub retransmitted_packets_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.retransmitted_packets_received().
+
+pub rtx_ssrc_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.rtx_ssrc().
+
+pub silent_concealed_samples_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.silent_concealed_samples().
+
+pub total_assembly_time_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_assembly_time().
+
+pub total_audio_energy_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_audio_energy().
+
+pub total_decode_time_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_decode_time().
+
+pub total_freezes_duration_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_freezes_duration().
+
+pub total_inter_frame_delay_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_inter_frame_delay().
+
+pub total_pauses_duration_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_pauses_duration().
+
+pub total_processing_delay_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_processing_delay().
+
+pub total_samples_duration_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_samples_duration().
+
+pub total_samples_received_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_samples_received().
+
+pub total_squared_inter_frame_delay_typechecks(receiver: RTCInboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_squared_inter_frame_delay().
+
+pub track_identifier_typechecks(receiver: RTCInboundRtpStreamStats): std.js.String.JsString ->
+    receiver.track_identifier().

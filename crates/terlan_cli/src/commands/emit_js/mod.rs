@@ -5,6 +5,8 @@ mod cast_semantics;
 mod core_lowering;
 mod declarations;
 mod direct_ast;
+mod direct_helpers;
+mod direct_reachability;
 mod oxc_backend;
 mod std_core_string_intrinsics;
 pub(crate) mod target_contract;
@@ -156,6 +158,14 @@ pub(crate) fn parse_emit_js_args(args: &[String]) -> Result<EmitJsArgs, String> 
 #[cfg(test)]
 #[path = "cast_emit_test.rs"]
 mod cast_emit_test;
+
+#[cfg(test)]
+#[path = "core_lowering_test.rs"]
+mod core_lowering_test;
+
+#[cfg(test)]
+#[path = "direct_ast_test.rs"]
+mod direct_ast_test;
 
 #[cfg(test)]
 #[path = "emit_js_test.rs"]

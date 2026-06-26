@@ -1,0 +1,8 @@
+module=std.js.Dom.HTMLInputElement
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=14461731657092528306
+interface_hash=8872961158128241251
+interface_doc_hash=8872961158128241251
+deps=0

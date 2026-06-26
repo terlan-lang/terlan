@@ -1,0 +1,32 @@
+module std.sync.ResourceTest.
+
+import std.sync.Resource.
+import type std.sync.Resource.{Change, ChangeKind, Resource}.
+
+pub accepts_resource(value: Resource[Int]): Resource[Int] ->
+    value.
+
+pub accepts_change_kind(value: ChangeKind): ChangeKind ->
+    value.
+
+pub accepts_change(value: Change[Int]): Change[Int] ->
+    value.
+
+pub builds_inserted_change(): Change[Int] ->
+    Resource.inserted(1).
+
+pub builds_updated_change(): Change[Int] ->
+    Resource.updated(1).
+
+pub builds_deleted_change(): Change[Int] ->
+    Resource.deleted(1).
+
+pub reads_change_kind(value: Change[Int]): ChangeKind ->
+    Resource.kind(value).
+
+pub reads_change_value(value: Change[Int]): Int ->
+    Resource.value(value).
+
+@test
+pub resource_surface_is_declared(): Bool ->
+    true.

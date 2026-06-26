@@ -41,6 +41,38 @@ Important invariants:
 - Traits and receiver methods must remain coherent across imports and local
   declarations.
 
+Type-system layout:
+
+- `type_system`: owns alias expansion, subtyping, unification, substitution,
+  and high-level type relation helpers.
+- `type_system::parser`: parses source/interface type-expression text,
+  constructor atom literals, map/tuple type fields, and generic type variables.
+- `type_system::builtins`: owns the small implicit builtin/prelude surface and
+  literal widening helpers.
+- `type_system::interface`: parses imported interface signatures and schemes.
+- `type_system::text`: owns depth-aware string splitting utilities for type
+  expressions.
+
+Expression layout:
+
+- `expression`: owns root expression dispatch, diagnostic span encoding, trait
+  lookup caching, generic-bound checks, and shared expression helpers.
+- `expression::calls`: owns function, method, constructor, macro, template,
+  imported, and pipe-forward call inference.
+- `expression::casts`: owns explicit `as` conversion checks and
+  conversion-trait visibility.
+- `expression::construction`: owns record, field, template, and constructor
+  construction inference.
+- `expression::control_flow`: owns case, if, try, let, lambda, and
+  comprehension inference.
+- `expression::indexing`: owns index get/set trait contract inference.
+- `expression::operators`: owns unary, binary, boolean, comparison,
+  arithmetic, and pipe operator classification.
+- `expression::sql`: owns SQL raw-form row validation and wrapper result
+  inference.
+- `expression::values`: owns variable lookup, singleton aliases, implicit
+  values, and function-value lookup.
+
 ## Integration Points
 
 - `terlan_syntax`: supplies source syntax output.

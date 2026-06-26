@@ -1,0 +1,286 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WebGL2RenderingContextBase
+ */
+
+module std.js.Dom.WebGL2RenderingContextBaseTest.
+
+import type std.js.Dom.WebGL2RenderingContextBase.WebGL2RenderingContextBase.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub begin_query_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, query: WebGLQuery): std.core.Unit ->
+    receiver.begin_query(target_, query).
+
+pub begin_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase, primitive_mode: GLenum): std.core.Unit ->
+    receiver.begin_transform_feedback(primitive_mode).
+
+pub bind_buffer_base_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, index: GLuint, buffer: Option[WebGLBuffer]): std.core.Unit ->
+    receiver.bind_buffer_base(target_, index, buffer).
+
+pub bind_buffer_range_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, index: GLuint, buffer: Option[WebGLBuffer], offset: GLintptr, size: GLsizeiptr): std.core.Unit ->
+    receiver.bind_buffer_range(target_, index, buffer, offset, size).
+
+pub bind_sampler_typechecks(receiver: WebGL2RenderingContextBase, unit: GLuint, sampler: Option[WebGLSampler]): std.core.Unit ->
+    receiver.bind_sampler(unit, sampler).
+
+pub bind_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, tf: Option[WebGLTransformFeedback]): std.core.Unit ->
+    receiver.bind_transform_feedback(target_, tf).
+
+pub bind_vertex_array_typechecks(receiver: WebGL2RenderingContextBase, array: Option[WebGLVertexArrayObject]): std.core.Unit ->
+    receiver.bind_vertex_array(array).
+
+pub blit_framebuffer_typechecks(receiver: WebGL2RenderingContextBase, src_x0: GLint, src_y0: GLint, src_x1: GLint, src_y1: GLint, dst_x0: GLint, dst_y0: GLint, dst_x1: GLint, dst_y1: GLint, mask: GLbitfield, filter: GLenum): std.core.Unit ->
+    receiver.blit_framebuffer(src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter).
+
+pub clear_bufferfi_typechecks(receiver: WebGL2RenderingContextBase, buffer: GLenum, drawbuffer: GLint, depth: GLfloat, stencil: GLint): std.core.Unit ->
+    receiver.clear_bufferfi(buffer, drawbuffer, depth, stencil).
+
+pub clear_bufferfv_typechecks(receiver: WebGL2RenderingContextBase, buffer: GLenum, drawbuffer: GLint, values: Float32List, src_offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.clear_bufferfv(buffer, drawbuffer, values, src_offset).
+
+pub clear_bufferiv_typechecks(receiver: WebGL2RenderingContextBase, buffer: GLenum, drawbuffer: GLint, values: Int32List, src_offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.clear_bufferiv(buffer, drawbuffer, values, src_offset).
+
+pub clear_bufferuiv_typechecks(receiver: WebGL2RenderingContextBase, buffer: GLenum, drawbuffer: GLint, values: Uint32List, src_offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.clear_bufferuiv(buffer, drawbuffer, values, src_offset).
+
+pub client_wait_sync_typechecks(receiver: WebGL2RenderingContextBase, sync: WebGLSync, flags: GLbitfield, timeout: GLuint64): GLenum ->
+    receiver.client_wait_sync(sync, flags, timeout).
+
+pub compressed_tex_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, internalformat: GLenum, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, image_size: GLsizei, offset: GLintptr): std.core.Unit ->
+    receiver.compressed_tex_image3_d(target_, level, internalformat, width, height, depth, border, image_size, offset).
+
+pub compressed_tex_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, internalformat: GLenum, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, src_data: ArrayBufferView[ArrayBufferLike], src_offset: std.js.Number.JsNumber, src_length_override: GLuint): std.core.Unit ->
+    receiver.compressed_tex_image3_d(target_, level, internalformat, width, height, depth, border, src_data, src_offset, src_length_override).
+
+pub compressed_tex_sub_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, image_size: GLsizei, offset: GLintptr): std.core.Unit ->
+    receiver.compressed_tex_sub_image3_d(target_, level, xoffset, yoffset, zoffset, width, height, depth, format, image_size, offset).
+
+pub compressed_tex_sub_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, src_data: ArrayBufferView[ArrayBufferLike], src_offset: std.js.Number.JsNumber, src_length_override: GLuint): std.core.Unit ->
+    receiver.compressed_tex_sub_image3_d(target_, level, xoffset, yoffset, zoffset, width, height, depth, format, src_data, src_offset, src_length_override).
+
+pub copy_buffer_sub_data_typechecks(receiver: WebGL2RenderingContextBase, read_target: GLenum, write_target: GLenum, read_offset: GLintptr, write_offset: GLintptr, size: GLsizeiptr): std.core.Unit ->
+    receiver.copy_buffer_sub_data(read_target, write_target, read_offset, write_offset, size).
+
+pub copy_tex_sub_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei): std.core.Unit ->
+    receiver.copy_tex_sub_image3_d(target_, level, xoffset, yoffset, zoffset, x, y, width, height).
+
+pub create_query_typechecks(receiver: WebGL2RenderingContextBase): WebGLQuery ->
+    receiver.create_query().
+
+pub create_sampler_typechecks(receiver: WebGL2RenderingContextBase): WebGLSampler ->
+    receiver.create_sampler().
+
+pub create_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase): WebGLTransformFeedback ->
+    receiver.create_transform_feedback().
+
+pub create_vertex_array_typechecks(receiver: WebGL2RenderingContextBase): WebGLVertexArrayObject ->
+    receiver.create_vertex_array().
+
+pub delete_query_typechecks(receiver: WebGL2RenderingContextBase, query: Option[WebGLQuery]): std.core.Unit ->
+    receiver.delete_query(query).
+
+pub delete_sampler_typechecks(receiver: WebGL2RenderingContextBase, sampler: Option[WebGLSampler]): std.core.Unit ->
+    receiver.delete_sampler(sampler).
+
+pub delete_sync_typechecks(receiver: WebGL2RenderingContextBase, sync: Option[WebGLSync]): std.core.Unit ->
+    receiver.delete_sync(sync).
+
+pub delete_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase, tf: Option[WebGLTransformFeedback]): std.core.Unit ->
+    receiver.delete_transform_feedback(tf).
+
+pub delete_vertex_array_typechecks(receiver: WebGL2RenderingContextBase, vertex_array: Option[WebGLVertexArrayObject]): std.core.Unit ->
+    receiver.delete_vertex_array(vertex_array).
+
+pub draw_arrays_instanced_typechecks(receiver: WebGL2RenderingContextBase, mode: GLenum, first: GLint, count: GLsizei, instance_count: GLsizei): std.core.Unit ->
+    receiver.draw_arrays_instanced(mode, first, count, instance_count).
+
+pub draw_buffers_typechecks(receiver: WebGL2RenderingContextBase, buffers: std.js.Array[GLenum]): std.core.Unit ->
+    receiver.draw_buffers(buffers).
+
+pub draw_elements_instanced_typechecks(receiver: WebGL2RenderingContextBase, mode: GLenum, count: GLsizei, type_: GLenum, offset: GLintptr, instance_count: GLsizei): std.core.Unit ->
+    receiver.draw_elements_instanced(mode, count, type_, offset, instance_count).
+
+pub draw_range_elements_typechecks(receiver: WebGL2RenderingContextBase, mode: GLenum, start: GLuint, end: GLuint, count: GLsizei, type_: GLenum, offset: GLintptr): std.core.Unit ->
+    receiver.draw_range_elements(mode, start, end, count, type_, offset).
+
+pub end_query_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum): std.core.Unit ->
+    receiver.end_query(target_).
+
+pub end_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase): std.core.Unit ->
+    receiver.end_transform_feedback().
+
+pub fence_sync_typechecks(receiver: WebGL2RenderingContextBase, condition: GLenum, flags: GLbitfield): Option[WebGLSync] ->
+    receiver.fence_sync(condition, flags).
+
+pub framebuffer_texture_layer_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, attachment: GLenum, texture: Option[WebGLTexture], level: GLint, layer: GLint): std.core.Unit ->
+    receiver.framebuffer_texture_layer(target_, attachment, texture, level, layer).
+
+pub get_active_uniform_block_name_typechecks(receiver: WebGL2RenderingContextBase, program: WebGLProgram, uniform_block_index: GLuint): Option[std.js.String.JsString] ->
+    receiver.get_active_uniform_block_name(program, uniform_block_index).
+
+pub get_buffer_sub_data_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, src_byte_offset: GLintptr, dst_buffer: ArrayBufferView[ArrayBufferLike], dst_offset: std.js.Number.JsNumber, length: GLuint): std.core.Unit ->
+    receiver.get_buffer_sub_data(target_, src_byte_offset, dst_buffer, dst_offset, length).
+
+pub get_frag_data_location_typechecks(receiver: WebGL2RenderingContextBase, program: WebGLProgram, name: std.js.String.JsString): GLint ->
+    receiver.get_frag_data_location(program, name).
+
+pub get_query_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, pname: GLenum): Option[WebGLQuery] ->
+    receiver.get_query(target_, pname).
+
+pub get_transform_feedback_varying_typechecks(receiver: WebGL2RenderingContextBase, program: WebGLProgram, index: GLuint): Option[WebGLActiveInfo] ->
+    receiver.get_transform_feedback_varying(program, index).
+
+pub get_uniform_block_index_typechecks(receiver: WebGL2RenderingContextBase, program: WebGLProgram, uniform_block_name: std.js.String.JsString): GLuint ->
+    receiver.get_uniform_block_index(program, uniform_block_name).
+
+pub get_uniform_indices_typechecks(receiver: WebGL2RenderingContextBase, program: WebGLProgram, uniform_names: std.js.Array[std.js.String.JsString]): Option[std.js.Array[GLuint]] ->
+    receiver.get_uniform_indices(program, uniform_names).
+
+pub invalidate_framebuffer_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, attachments: std.js.Array[GLenum]): std.core.Unit ->
+    receiver.invalidate_framebuffer(target_, attachments).
+
+pub invalidate_sub_framebuffer_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, attachments: std.js.Array[GLenum], x: GLint, y: GLint, width: GLsizei, height: GLsizei): std.core.Unit ->
+    receiver.invalidate_sub_framebuffer(target_, attachments, x, y, width, height).
+
+pub is_query_typechecks(receiver: WebGL2RenderingContextBase, query: Option[WebGLQuery]): GLboolean ->
+    receiver.is_query(query).
+
+pub is_sampler_typechecks(receiver: WebGL2RenderingContextBase, sampler: Option[WebGLSampler]): GLboolean ->
+    receiver.is_sampler(sampler).
+
+pub is_sync_typechecks(receiver: WebGL2RenderingContextBase, sync: Option[WebGLSync]): GLboolean ->
+    receiver.is_sync(sync).
+
+pub is_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase, tf: Option[WebGLTransformFeedback]): GLboolean ->
+    receiver.is_transform_feedback(tf).
+
+pub is_vertex_array_typechecks(receiver: WebGL2RenderingContextBase, vertex_array: Option[WebGLVertexArrayObject]): GLboolean ->
+    receiver.is_vertex_array(vertex_array).
+
+pub pause_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase): std.core.Unit ->
+    receiver.pause_transform_feedback().
+
+pub read_buffer_typechecks(receiver: WebGL2RenderingContextBase, src: GLenum): std.core.Unit ->
+    receiver.read_buffer(src).
+
+pub renderbuffer_storage_multisample_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, samples: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei): std.core.Unit ->
+    receiver.renderbuffer_storage_multisample(target_, samples, internalformat, width, height).
+
+pub resume_transform_feedback_typechecks(receiver: WebGL2RenderingContextBase): std.core.Unit ->
+    receiver.resume_transform_feedback().
+
+pub sampler_parameterf_typechecks(receiver: WebGL2RenderingContextBase, sampler: WebGLSampler, pname: GLenum, param: GLfloat): std.core.Unit ->
+    receiver.sampler_parameterf(sampler, pname, param).
+
+pub sampler_parameteri_typechecks(receiver: WebGL2RenderingContextBase, sampler: WebGLSampler, pname: GLenum, param: GLint): std.core.Unit ->
+    receiver.sampler_parameteri(sampler, pname, param).
+
+pub tex_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, format: GLenum, type_: GLenum, pbo_offset: GLintptr): std.core.Unit ->
+    receiver.tex_image3_d(target_, level, internalformat, width, height, depth, border, format, type_, pbo_offset).
+
+pub tex_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, format: GLenum, type_: GLenum, source: TexImageSource): std.core.Unit ->
+    receiver.tex_image3_d(target_, level, internalformat, width, height, depth, border, format, type_, source).
+
+pub tex_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, format: GLenum, type_: GLenum, src_data: Option[ArrayBufferView[ArrayBufferLike]]): std.core.Unit ->
+    receiver.tex_image3_d(target_, level, internalformat, width, height, depth, border, format, type_, src_data).
+
+pub tex_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, format: GLenum, type_: GLenum, src_data: ArrayBufferView[ArrayBufferLike], src_offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.tex_image3_d(target_, level, internalformat, width, height, depth, border, format, type_, src_data, src_offset).
+
+pub tex_storage2_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei): std.core.Unit ->
+    receiver.tex_storage2_d(target_, levels, internalformat, width, height).
+
+pub tex_storage3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei, depth: GLsizei): std.core.Unit ->
+    receiver.tex_storage3_d(target_, levels, internalformat, width, height, depth).
+
+pub tex_sub_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type_: GLenum, pbo_offset: GLintptr): std.core.Unit ->
+    receiver.tex_sub_image3_d(target_, level, xoffset, yoffset, zoffset, width, height, depth, format, type_, pbo_offset).
+
+pub tex_sub_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type_: GLenum, source: TexImageSource): std.core.Unit ->
+    receiver.tex_sub_image3_d(target_, level, xoffset, yoffset, zoffset, width, height, depth, format, type_, source).
+
+pub tex_sub_image3_d_typechecks(receiver: WebGL2RenderingContextBase, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type_: GLenum, src_data: Option[ArrayBufferView[ArrayBufferLike]], src_offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.tex_sub_image3_d(target_, level, xoffset, yoffset, zoffset, width, height, depth, format, type_, src_data, src_offset).
+
+pub transform_feedback_varyings_typechecks(receiver: WebGL2RenderingContextBase, program: WebGLProgram, varyings: std.js.Array[std.js.String.JsString], buffer_mode: GLenum): std.core.Unit ->
+    receiver.transform_feedback_varyings(program, varyings, buffer_mode).
+
+pub uniform1ui_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], v0: GLuint): std.core.Unit ->
+    receiver.uniform1ui(location, v0).
+
+pub uniform1uiv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], data: Uint32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform1uiv(location, data, src_offset, src_length).
+
+pub uniform2ui_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], v0: GLuint, v1: GLuint): std.core.Unit ->
+    receiver.uniform2ui(location, v0, v1).
+
+pub uniform2uiv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], data: Uint32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform2uiv(location, data, src_offset, src_length).
+
+pub uniform3ui_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], v0: GLuint, v1: GLuint, v2: GLuint): std.core.Unit ->
+    receiver.uniform3ui(location, v0, v1, v2).
+
+pub uniform3uiv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], data: Uint32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform3uiv(location, data, src_offset, src_length).
+
+pub uniform4ui_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint): std.core.Unit ->
+    receiver.uniform4ui(location, v0, v1, v2, v3).
+
+pub uniform4uiv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], data: Uint32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform4uiv(location, data, src_offset, src_length).
+
+pub uniform_block_binding_typechecks(receiver: WebGL2RenderingContextBase, program: WebGLProgram, uniform_block_index: GLuint, uniform_block_binding: GLuint): std.core.Unit ->
+    receiver.uniform_block_binding(program, uniform_block_index, uniform_block_binding).
+
+pub uniform_matrix2x3fv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], transpose: GLboolean, data: Float32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform_matrix2x3fv(location, transpose, data, src_offset, src_length).
+
+pub uniform_matrix2x4fv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], transpose: GLboolean, data: Float32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform_matrix2x4fv(location, transpose, data, src_offset, src_length).
+
+pub uniform_matrix3x2fv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], transpose: GLboolean, data: Float32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform_matrix3x2fv(location, transpose, data, src_offset, src_length).
+
+pub uniform_matrix3x4fv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], transpose: GLboolean, data: Float32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform_matrix3x4fv(location, transpose, data, src_offset, src_length).
+
+pub uniform_matrix4x2fv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], transpose: GLboolean, data: Float32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform_matrix4x2fv(location, transpose, data, src_offset, src_length).
+
+pub uniform_matrix4x3fv_typechecks(receiver: WebGL2RenderingContextBase, location: Option[WebGLUniformLocation], transpose: GLboolean, data: Float32List, src_offset: std.js.Number.JsNumber, src_length: GLuint): std.core.Unit ->
+    receiver.uniform_matrix4x3fv(location, transpose, data, src_offset, src_length).
+
+pub vertex_attrib_divisor_typechecks(receiver: WebGL2RenderingContextBase, index: GLuint, divisor: GLuint): std.core.Unit ->
+    receiver.vertex_attrib_divisor(index, divisor).
+
+pub vertex_attrib_i4i_typechecks(receiver: WebGL2RenderingContextBase, index: GLuint, x: GLint, y: GLint, z: GLint, w: GLint): std.core.Unit ->
+    receiver.vertex_attrib_i4i(index, x, y, z, w).
+
+pub vertex_attrib_i4iv_typechecks(receiver: WebGL2RenderingContextBase, index: GLuint, values: Int32List): std.core.Unit ->
+    receiver.vertex_attrib_i4iv(index, values).
+
+pub vertex_attrib_i4ui_typechecks(receiver: WebGL2RenderingContextBase, index: GLuint, x: GLuint, y: GLuint, z: GLuint, w: GLuint): std.core.Unit ->
+    receiver.vertex_attrib_i4ui(index, x, y, z, w).
+
+pub vertex_attrib_i4uiv_typechecks(receiver: WebGL2RenderingContextBase, index: GLuint, values: Uint32List): std.core.Unit ->
+    receiver.vertex_attrib_i4uiv(index, values).
+
+pub vertex_attrib_i_pointer_typechecks(receiver: WebGL2RenderingContextBase, index: GLuint, size: GLint, type_: GLenum, stride: GLsizei, offset: GLintptr): std.core.Unit ->
+    receiver.vertex_attrib_i_pointer(index, size, type_, stride, offset).
+
+pub wait_sync_typechecks(receiver: WebGL2RenderingContextBase, sync: WebGLSync, flags: GLbitfield, timeout: GLint64): std.core.Unit ->
+    receiver.wait_sync(sync, flags, timeout).

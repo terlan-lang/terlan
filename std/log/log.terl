@@ -1,0 +1,60 @@
+/**
+ * Portable application logging helpers.
+ *
+ * `std.log` gives Terlan source a backend-neutral logging surface. The first
+ * implementation writes through `std.io.Console.println`; later server and
+ * cloud runtimes can route the same calls into structured request-aware logs
+ * without changing handler source.
+ */
+
+module std.log.
+
+import std.core.Unit.{Unit}.
+
+/**
+ * Writes a debug-level log message.
+ *
+ * Input: one UTF-8 message.
+ * Output: `Unit`.
+ * Transformation: delegates to the portable console capability while keeping
+ * the source dependency on the logging API rather than on a backend framework.
+ */
+@compiler.intrinsic
+pub debug(message: String): Unit ->
+    Unit.
+
+/**
+ * Writes an info-level log message.
+ *
+ * Input: one UTF-8 message.
+ * Output: `Unit`.
+ * Transformation: delegates to the portable console capability while keeping
+ * the source dependency on the logging API rather than on a backend framework.
+ */
+@compiler.intrinsic
+pub info(message: String): Unit ->
+    Unit.
+
+/**
+ * Writes a warning-level log message.
+ *
+ * Input: one UTF-8 message.
+ * Output: `Unit`.
+ * Transformation: delegates to the portable console capability while keeping
+ * the source dependency on the logging API rather than on a backend framework.
+ */
+@compiler.intrinsic
+pub warn(message: String): Unit ->
+    Unit.
+
+/**
+ * Writes an error-level log message.
+ *
+ * Input: one UTF-8 message.
+ * Output: `Unit`.
+ * Transformation: delegates to the portable console capability while keeping
+ * the source dependency on the logging API rather than on a backend framework.
+ */
+@compiler.intrinsic
+pub error(message: String): Unit ->
+    Unit.

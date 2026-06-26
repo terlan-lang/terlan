@@ -1,0 +1,8 @@
+module=std.js.Dom.SVGPolylineElement
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=4354680889133378877
+interface_hash=17812637827576150827
+interface_doc_hash=17812637827576150827
+deps=0

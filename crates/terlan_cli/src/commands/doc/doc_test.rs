@@ -197,7 +197,7 @@ pub add(x: Int): Int ->
     assert_eq!(exit, ExitCode::SUCCESS);
     let module_html =
         fs::read_to_string(out_dir.join("std.core.DocExample.html")).expect("read module html");
-    assert!(module_html.contains("std.core.DocExample documentation"));
+    assert!(module_html.contains("std.core.DocExample&#32;documentation"));
     assert!(module_html.contains("Functions"));
     let index_html = fs::read_to_string(out_dir.join("index.html")).expect("read index html");
     assert!(index_html.contains("Terlan documentation"));

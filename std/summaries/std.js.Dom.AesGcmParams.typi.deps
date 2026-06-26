@@ -1,0 +1,8 @@
+module=std.js.Dom.AesGcmParams
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=2502087929412083556
+interface_hash=399838783265128333
+interface_doc_hash=399838783265128333
+deps=0

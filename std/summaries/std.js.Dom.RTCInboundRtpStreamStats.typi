@@ -1,0 +1,122 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCInboundRtpStreamStats
+ */
+
+module std.js.Dom.RTCInboundRtpStreamStats.
+
+pub opaque type RTCInboundRtpStreamStats.
+
+pub (value: RTCInboundRtpStreamStats) audio_level(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) bytes_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) concealed_samples(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) concealment_events(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) decoder_implementation(): std.js.String.JsString.
+
+pub (value: RTCInboundRtpStreamStats) estimated_playout_timestamp(): DOMHighResTimeStamp.
+
+pub (value: RTCInboundRtpStreamStats) fec_bytes_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) fec_packets_discarded(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) fec_packets_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) fec_ssrc(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) fir_count(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frame_height(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frame_width(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frames_assembled_from_multiple_packets(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frames_decoded(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frames_dropped(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frames_per_second(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frames_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) frames_rendered(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) freeze_count(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) header_bytes_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) inserted_samples_for_deceleration(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_delay(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_emitted_count(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_minimum_delay(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_target_delay(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) key_frames_decoded(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) last_packet_received_timestamp(): DOMHighResTimeStamp.
+
+pub (value: RTCInboundRtpStreamStats) mid(): std.js.String.JsString.
+
+pub (value: RTCInboundRtpStreamStats) nack_count(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) packets_discarded(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) pause_count(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) playout_id(): std.js.String.JsString.
+
+pub (value: RTCInboundRtpStreamStats) pli_count(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) qp_sum(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) remote_id(): std.js.String.JsString.
+
+pub (value: RTCInboundRtpStreamStats) removed_samples_for_acceleration(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) retransmitted_bytes_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) retransmitted_packets_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) rtx_ssrc(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) silent_concealed_samples(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_assembly_time(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_audio_energy(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_decode_time(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_freezes_duration(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_inter_frame_delay(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_pauses_duration(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_processing_delay(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_samples_duration(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_samples_received(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) total_squared_inter_frame_delay(): std.js.Number.JsNumber.
+
+pub (value: RTCInboundRtpStreamStats) track_identifier(): std.js.String.JsString.

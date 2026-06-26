@@ -1,0 +1,71 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CSSKeyframesRule
+ */
+
+module std.js.Dom.CSSKeyframesRule.
+
+/**
+ * The **`CSSKeyframesRule`** interface describes an object representing a complete set of keyframes for a CSS animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule)
+ */
+pub opaque type CSSKeyframesRule.
+
+/**
+ * The read-only **`cssRules`** property of the CSSKeyframeRule interface returns a CSSRuleList containing the rules in the keyframes at-rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/cssRules)
+ */
+pub (value: CSSKeyframesRule) css_rules(): CSSRuleList ->
+    native.
+
+/**
+ * The read-only **`length`** property of the CSSKeyframeRule interface returns the number of CSSKeyframeRule objects in its list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/length)
+ */
+pub (value: CSSKeyframesRule) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`name`** property of the CSSKeyframeRule interface gets and sets the name of the animation as used by the animation-name property.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/name)
+ */
+pub (value: CSSKeyframesRule) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`appendRule()`** method of the CSSKeyframeRule interface appends a CSSKeyFrameRule to the end of the rules.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/appendRule)
+ */
+pub (value: CSSKeyframesRule) append_rule(rule: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`deleteRule()`** method of the CSSKeyframeRule interface deletes the CSSKeyFrameRule that matches the specified keyframe selector.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/deleteRule)
+ */
+pub (value: CSSKeyframesRule) delete_rule(select: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`findRule()`** method of the CSSKeyframeRule interface finds the CSSKeyFrameRule that matches the specified keyframe selector.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/findRule)
+ */
+pub (value: CSSKeyframesRule) find_rule(select: std.js.String.JsString): Option[CSSKeyframeRule] ->
+    native.

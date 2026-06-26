@@ -1,21 +1,33 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::process::ExitCode;
 
-use serde::Serialize;
-use terlan_erlang::try_emit_core_module_to_erlang_with_syntax_bridge;
 use terlan_syntax::{
-    SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxModuleOutput, SyntaxTypeOutput,
+    SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxExprKind, SyntaxModuleOutput,
+    SyntaxTypeOutput,
 };
 
-use crate::commands::artifacts::{
-    collect_syntax_file_import_bytes, collect_syntax_markdown_inputs,
-    collect_syntax_template_inputs,
-};
+use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions};
 use crate::{CliCommand, CliState};
+
+mod beam_runner;
+mod command_runner;
+mod manifest;
+mod release_support;
+mod style;
+
+use beam_runner::{
+    emit_and_compile_eunit_wrapper, emit_compiled_module_to_workspace, run_discovered_erlang_tests,
+    run_eunit_wrapper, TempBeamWorkspace,
+};
+use manifest::{
+    literal_bool_report, print_literal_bool_report, print_validation_pass_report,
+    validation_pass_report, write_test_manifest, write_test_result_manifest,
+};
+use release_support::emit_and_compile_release_support_modules;
+use style::TestOutputStyle;
 
 /// Supported backend runner for `terlc test`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,15 +41,9 @@ enum TestTarget {
 struct TestArgs {
     path: String,
     target: TestTarget,
+    test_name: Option<String>,
     emit_test_manifest: Option<PathBuf>,
     emit_test_result_manifest: Option<PathBuf>,
-}
-
-/// Embedded source for one release support module used by `terlc test`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ReleaseSupportModule {
-    path: &'static str,
-    source: &'static str,
 }
 
 /// Validated test function metadata.
@@ -46,171 +52,27 @@ struct DiscoveredTest {
     name: String,
     span_start: usize,
     span_end: usize,
+    literal_bool_result: Option<bool>,
 }
 
-/// Serializable source-level test manifest.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct TestManifest {
-    source_path: String,
-    module_name: String,
-    target: String,
-    target_profile: String,
-    tests: Vec<TestManifestEntry>,
-}
-
-/// Serializable metadata for one discovered test.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct TestManifestEntry {
-    name: String,
-    span_start: usize,
-    span_end: usize,
-}
-
-/// Serializable test execution result manifest.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct TestResultManifest {
-    source_path: String,
-    module_name: String,
-    target: String,
-    target_profile: String,
-    passed: usize,
-    failed: usize,
-    tests: Vec<TestResultManifestEntry>,
-}
-
-/// Serializable execution result for one discovered test.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct TestResultManifestEntry {
-    name: String,
-    status: String,
-    message: Option<String>,
-    span_start: usize,
-    span_end: usize,
-}
-
-/// In-memory execution report for a test run.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct TestRunReport {
-    passed: usize,
-    failed: usize,
-    results: Vec<TestRunResult>,
-}
-
-/// In-memory execution result for one test.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct TestRunResult {
-    name: String,
-    status: TestRunStatus,
-    message: Option<String>,
-    span_start: usize,
-    span_end: usize,
-}
-
-/// Stable status labels for test result artifacts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TestRunStatus {
-    Passed,
-    Failed,
-}
-
-impl TestRunStatus {
-    /// Returns the manifest label for this status.
-    ///
-    /// Inputs:
-    /// - `self`: status value to serialize.
-    ///
-    /// Output:
-    /// - Stable lowercase status label.
-    ///
-    /// Transformation:
-    /// - Maps enum variants to the public result-manifest vocabulary.
-    fn as_str(self) -> &'static str {
-        match self {
-            TestRunStatus::Passed => "passed",
-            TestRunStatus::Failed => "failed",
-        }
-    }
-}
-
-impl TestRunReport {
-    /// Returns whether all tests passed.
-    ///
-    /// Inputs:
-    /// - `self`: completed execution report.
-    ///
-    /// Output:
-    /// - `true` when no test failed.
-    ///
-    /// Transformation:
-    /// - Checks the aggregate failed count without inspecting stdout.
-    fn is_success(&self) -> bool {
-        self.failed == 0
-    }
-}
-
-/// Temporary BEAM workspace owner.
-struct TempBeamWorkspace {
-    path: PathBuf,
-}
-
-impl TempBeamWorkspace {
-    /// Creates a temporary workspace for emitted Erlang and BEAM artifacts.
-    ///
-    /// Inputs:
-    /// - `module_name`: Terlan module name used only for a readable path stem.
-    ///
-    /// Output:
-    /// - `Ok(TempBeamWorkspace)` when the directory exists.
-    /// - `Err(message)` when the directory cannot be created.
-    ///
-    /// Transformation:
-    /// - Builds a unique path under the host temp directory using process id
-    ///   and current nanoseconds, then creates it.
-    fn create(module_name: &str) -> Result<Self, String> {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|err| format!("cannot create test workspace timestamp: {err}"))?
-            .as_nanos();
-        let stem = crate::support::erlang_output_stem(module_name);
-        let path = std::env::temp_dir().join(format!(
-            "terlan_test_{stem}_{}_{}",
-            std::process::id(),
-            nanos
-        ));
-        fs::create_dir_all(&path)
-            .map_err(|err| format!("cannot create test workspace {}: {err}", path.display()))?;
-        Ok(Self { path })
-    }
-
-    /// Returns the temporary workspace path.
-    ///
-    /// Inputs:
-    /// - `self`: live workspace owner.
-    ///
-    /// Output:
-    /// - Borrowed path to the workspace directory.
-    ///
-    /// Transformation:
-    /// - Exposes the path without transferring cleanup ownership.
-    fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-impl Drop for TempBeamWorkspace {
-    /// Removes the temporary workspace when the owner goes out of scope.
-    ///
-    /// Inputs:
-    /// - `self`: workspace owner being dropped.
-    ///
-    /// Output:
-    /// - No reported output; cleanup failures are ignored.
-    ///
-    /// Transformation:
-    /// - Attempts recursive removal of the temporary directory.
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
+/// Project context discovered for an editor-launched test file.
+///
+/// Inputs:
+/// - Produced from a test source path below a directory containing
+///   `terlan.toml`.
+///
+/// Output:
+/// - Resolved cache directory, source roots, and manifest source files.
+///
+/// Transformation:
+/// - Keeps enough project metadata for `terlc test <file>` to behave like a
+///   package-local test run instead of compiling the active test file in
+///   isolation.
+#[derive(Debug, Clone)]
+struct TestProjectContext {
+    cache_dir: PathBuf,
+    source_roots: Vec<PathBuf>,
+    source_files: Vec<PathBuf>,
 }
 
 /// Executes the `test` CLI command.
@@ -255,8 +117,9 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 ///
 /// Output:
 /// - `Ok(TestArgs)` for zero or one source path, optional
-///   `--target erlang|js`, optional `--emit-test-manifest <path>`, and optional
-///   `--emit-test-result-manifest <path>`.
+///   `--target erlang|js`, optional `--name <test>`, optional
+///   `--emit-test-manifest <path>`, and optional `--emit-test-result-manifest
+///   <path>`.
 /// - `Err(message)` for malformed flags, unsupported targets, or wrong arity.
 ///
 /// Transformation:
@@ -265,6 +128,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
     let mut path = None;
     let mut target = TestTarget::Erlang;
+    let mut test_name = None;
     let mut emit_test_manifest = None;
     let mut emit_test_result_manifest = None;
     let mut i = 0;
@@ -279,6 +143,15 @@ fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
                     "js" => TestTarget::Js,
                     other => return Err(format!("unsupported test target: {other}")),
                 };
+                i += 2;
+            }
+            "--name" => {
+                let Some(value) = args.get(i + 1) else {
+                    return Err("--name requires a test function name".to_string());
+                };
+                if test_name.replace(value.clone()).is_some() {
+                    return Err("duplicate --name".to_string());
+                }
                 i += 2;
             }
             "--emit-test-manifest" => {
@@ -317,6 +190,7 @@ fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
     Ok(TestArgs {
         path: path.unwrap_or_else(|| "tests".to_string()),
         target,
+        test_name,
         emit_test_manifest,
         emit_test_result_manifest,
     })
@@ -350,9 +224,18 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
         return run_erlang_test_directory(args, state);
     }
     if !is_test_source_path(path) {
-        eprintln!("terlc test requires a *_test.terl source file for 0.0.1: {path}");
+        eprintln!("terlc test requires a *Test.terl source file: {path}");
         return ExitCode::from(1);
     }
+
+    let (project_context, state) =
+        match prepare_test_project_context(path, state, TargetProfile::Erlang) {
+            Ok(result) => result,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        };
 
     let source = match crate::support::read_file(path) {
         Ok(source) => source,
@@ -369,9 +252,7 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
             state.cache_dir.as_deref(),
             state.native_policy,
             TargetProfile::Erlang,
-            TargetProfileCheckOptions {
-                allow_asset_imports: true,
-            },
+            test_target_profile_options(&state, true),
         ) {
             Ok(compiled) => compiled,
             Err(exit_code) => return exit_code,
@@ -383,6 +264,13 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
             for message in messages {
                 eprintln!("{message}");
             }
+            return ExitCode::from(1);
+        }
+    };
+    let tests = match select_tests(tests, args.test_name.as_deref(), path) {
+        Ok(tests) => tests,
+        Err(message) => {
+            eprintln!("{message}");
             return ExitCode::from(1);
         }
     };
@@ -403,6 +291,29 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
         eprintln!("no @test declarations found in {path}");
         return ExitCode::from(1);
     }
+    if !tests_require_release_support(&tests) {
+        let report = literal_bool_report(&tests);
+        if let Some(result_manifest_path) = args.emit_test_result_manifest.as_deref() {
+            if let Err(message) = write_test_result_manifest(
+                result_manifest_path,
+                path,
+                &compiled.syntax_output.module_name,
+                "erlang",
+                state.target_profile.as_str(),
+                &report,
+            ) {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        }
+        let output_style = TestOutputStyle::from_diagnostic_format(state.diagnostic_format);
+        print_literal_bool_report(&report, output_style);
+        return if report.is_success() {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::from(1)
+        };
+    }
 
     let workspace = match TempBeamWorkspace::create(&compiled.syntax_output.module_name) {
         Ok(workspace) => workspace,
@@ -413,31 +324,54 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
     };
 
     if let Err(message) =
-        emit_and_compile_erlang_module(path, &source, workspace.path(), &state, &tests)
+        emit_compiled_module_to_workspace(path, workspace.path(), &compiled, &tests)
     {
         eprintln!("{message}");
         return ExitCode::from(1);
     }
-    if let Err(message) = emit_and_compile_release_support_modules(
-        workspace.path(),
-        &state,
-        &compiled.syntax_output.module_name,
-    ) {
-        eprintln!("{message}");
-        return ExitCode::from(1);
-    }
-
     let module_atom = crate::support::erlang_output_stem(&compiled.syntax_output.module_name);
-    let eunit_module_atom =
+    let requires_release_support = tests_require_release_support(&tests);
+    let eunit_module_atom = if requires_release_support {
+        if let Err(message) = emit_and_compile_release_support_modules(
+            workspace.path(),
+            &state,
+            &compiled.syntax_output.module_name,
+            &compiled.core.imports,
+            &source,
+        ) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+        if let Some(context) = project_context.as_ref() {
+            if let Err(message) = emit_project_test_support_modules(
+                workspace.path(),
+                &state,
+                &compiled.syntax_output.module_name,
+                &compiled
+                    .core
+                    .imports
+                    .iter()
+                    .map(|import| import.module.clone())
+                    .collect(),
+                context,
+            ) {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        }
         match emit_and_compile_eunit_wrapper(workspace.path(), &module_atom, &tests) {
             Ok(module_atom) => module_atom,
             Err(message) => {
                 eprintln!("{message}");
                 return ExitCode::from(1);
             }
-        };
+        }
+    } else {
+        String::new()
+    };
 
-    let report = run_discovered_erlang_tests(workspace.path(), &module_atom, &tests);
+    let output_style = TestOutputStyle::from_diagnostic_format(state.diagnostic_format);
+    let report = run_discovered_erlang_tests(workspace.path(), &module_atom, &tests, output_style);
     if let Some(result_manifest_path) = args.emit_test_result_manifest.as_deref() {
         if let Err(message) = write_test_result_manifest(
             result_manifest_path,
@@ -454,9 +388,11 @@ fn run_erlang_tests(args: &TestArgs, state: CliState) -> ExitCode {
     if !report.is_success() {
         return ExitCode::from(1);
     }
-    if let Err(message) = run_eunit_wrapper(workspace.path(), &eunit_module_atom) {
-        eprintln!("{message}");
-        return ExitCode::from(1);
+    if requires_release_support {
+        if let Err(message) = run_eunit_wrapper(workspace.path(), &eunit_module_atom) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
     }
     ExitCode::SUCCESS
 }
@@ -493,9 +429,17 @@ fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
         return run_js_test_directory(args, state, profile);
     }
     if !is_test_source_path(path) {
-        eprintln!("terlc test requires a *_test.terl source file for 0.0.4 JS validation: {path}");
+        eprintln!("terlc test requires a *Test.terl source file for JS validation: {path}");
         return ExitCode::from(1);
     }
+
+    let (_, state) = match prepare_test_project_context(path, state, profile) {
+        Ok(result) => result,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
 
     let source = match crate::support::read_file(path) {
         Ok(source) => source,
@@ -512,9 +456,7 @@ fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
             state.cache_dir.as_deref(),
             state.native_policy,
             profile,
-            TargetProfileCheckOptions {
-                allow_asset_imports: true,
-            },
+            test_target_profile_options(&state, true),
         ) {
             Ok(compiled) => compiled,
             Err(exit_code) => return exit_code,
@@ -526,6 +468,13 @@ fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
             for message in messages {
                 eprintln!("{message}");
             }
+            return ExitCode::from(1);
+        }
+    };
+    let tests = match select_tests(tests, args.test_name.as_deref(), path) {
+        Ok(tests) => tests,
+        Err(message) => {
+            eprintln!("{message}");
             return ExitCode::from(1);
         }
     };
@@ -561,7 +510,8 @@ fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
             return ExitCode::from(1);
         }
     }
-    print_validation_pass_report(&report);
+    let output_style = TestOutputStyle::from_diagnostic_format(state.diagnostic_format);
+    print_validation_pass_report(&report, output_style);
     ExitCode::SUCCESS
 }
 
@@ -604,12 +554,12 @@ fn effective_js_test_profile(profile: TargetProfile) -> Result<TargetProfile, St
 ///   flags are used with a directory, or any test file fails.
 ///
 /// Transformation:
-/// - Recursively discovers `*_test.terl` files in deterministic order, then
+/// - Recursively discovers `*Test.terl` files in deterministic order, then
 ///   delegates each file to the JS validation runner and aggregates status
 ///   without inventing a directory-level manifest format.
 fn run_js_test_directory(args: &TestArgs, state: CliState, profile: TargetProfile) -> ExitCode {
     if args.emit_test_manifest.is_some() || args.emit_test_result_manifest.is_some() {
-        eprintln!("test manifest output is only supported for a single *_test.terl file");
+        eprintln!("test manifest output is only supported for a single *Test.terl file");
         return ExitCode::from(1);
     }
 
@@ -620,7 +570,7 @@ fn run_js_test_directory(args: &TestArgs, state: CliState, profile: TargetProfil
     }
     files.sort();
     if files.is_empty() {
-        eprintln!("no *_test.terl files found in {}", args.path);
+        eprintln!("no *Test.terl files found in {}", args.path);
         return ExitCode::from(1);
     }
 
@@ -629,6 +579,7 @@ fn run_js_test_directory(args: &TestArgs, state: CliState, profile: TargetProfil
         let file_args = TestArgs {
             path: file.to_string_lossy().into_owned(),
             target: args.target,
+            test_name: args.test_name.clone(),
             emit_test_manifest: None,
             emit_test_result_manifest: None,
         };
@@ -646,52 +597,230 @@ fn run_js_test_directory(args: &TestArgs, state: CliState, profile: TargetProfil
     }
 }
 
-/// Builds a validation-only pass report for JS tests.
+/// Prepares manifest source roots for one test file.
 ///
 /// Inputs:
-/// - `tests`: discovered test metadata already accepted by test discovery.
+/// - `path`: active test file passed to `terlc test`.
+/// - `state`: command state before project-specific cache selection.
+/// - `profile`: profile used to validate project source roots.
 ///
 /// Output:
-/// - A `TestRunReport` with every test marked passed.
+/// - Optional project context and state with an effective cache directory.
+/// - Error text when a discovered project manifest or source root is invalid.
 ///
 /// Transformation:
-/// - Converts source-level test metadata into result entries with a stable
-///   message that distinguishes compile/discovery validation from runtime
-///   JavaScript execution.
-fn validation_pass_report(tests: &[DiscoveredTest]) -> TestRunReport {
-    TestRunReport {
-        passed: tests.len(),
-        failed: 0,
-        results: tests
-            .iter()
-            .map(|test| TestRunResult {
-                name: test.name.clone(),
-                status: TestRunStatus::Passed,
-                message: Some("validated without runtime execution".to_string()),
-                span_start: test.span_start,
-                span_end: test.span_end,
-            })
-            .collect(),
+/// - Walks upward from the test file to find `terlan.toml`; when found, reads
+///   `[build] source_roots`, validates those roots through the normal check
+///   pipeline, and uses the same cache for subsequent test compilation.
+fn prepare_test_project_context(
+    path: &str,
+    state: CliState,
+    profile: TargetProfile,
+) -> Result<(Option<TestProjectContext>, CliState), String> {
+    let Some(mut context) =
+        discover_test_project_context(Path::new(path), state.cache_dir.as_ref())?
+    else {
+        return Ok((None, state));
+    };
+
+    let mut project_state = state.clone();
+    project_state.target_profile = profile;
+    project_state.cache_dir = Some(context.cache_dir.clone());
+
+    for root in &context.source_roots {
+        let status = crate::commands::check::run_check_dir(
+            &root.to_string_lossy(),
+            project_state.clone(),
+            None,
+        );
+        if status != ExitCode::SUCCESS {
+            return Err(format!(
+                "project source root `{}` failed while preparing tests",
+                root.display()
+            ));
+        }
     }
+
+    context.source_files.sort();
+    Ok((Some(context), project_state))
 }
 
-/// Prints a validation-only test report.
+/// Discovers the nearest Terlan project containing a test file.
 ///
 /// Inputs:
-/// - `report`: validation-only result report for one JS test module.
+/// - `test_path`: source path passed to `terlc test`.
+/// - `explicit_cache_dir`: optional global cache directory.
 ///
 /// Output:
-/// - Human-readable test status lines written to stdout.
+/// - Project context when an ancestor `terlan.toml` exists.
+/// - `None` for standalone test files.
 ///
 /// Transformation:
-/// - Renders the same compact shape as the Erlang runner while adding
-///   `(validated)` to make the non-runtime status explicit.
-fn print_validation_pass_report(report: &TestRunReport) {
-    println!("running {} tests", report.results.len());
-    for result in &report.results {
-        println!("test {} ... ok (validated)", result.name);
+/// - Canonicalizes the test path, searches ancestors for the project manifest,
+///   resolves manifest source roots against the project root, and recursively
+///   collects implementation source files from those roots.
+fn discover_test_project_context(
+    test_path: &Path,
+    explicit_cache_dir: Option<&PathBuf>,
+) -> Result<Option<TestProjectContext>, String> {
+    let canonical_test = match fs::canonicalize(test_path) {
+        Ok(path) => path,
+        Err(_) => return Ok(None),
+    };
+    let mut current = canonical_test.parent();
+    let mut project_root = None;
+    while let Some(dir) = current {
+        if dir.join("terlan.toml").is_file() {
+            project_root = Some(dir.to_path_buf());
+            break;
+        }
+        current = dir.parent();
     }
-    println!("test result: ok. {} passed; 0 failed", report.passed);
+    let Some(root) = project_root else {
+        return Ok(None);
+    };
+
+    let manifest_path = root.join("terlan.toml");
+    let manifest = crate::commands::build::project_manifest::read_project_manifest(&manifest_path)
+        .map_err(|err| format!("failed to read test project manifest: {err}"))?;
+    let cache_dir = explicit_cache_dir
+        .cloned()
+        .unwrap_or_else(|| root.join(".terlan"));
+    let mut source_roots = Vec::new();
+    let mut source_files = Vec::new();
+
+    for source_root in &manifest.source_roots {
+        let root_path = root.join(source_root);
+        if !root_path.is_dir() {
+            return Err(format!(
+                "test project source root `{}` does not exist or is not a directory",
+                source_root
+            ));
+        }
+        let mut files = crate::formal_pipeline::terlan_sources_in_dir(&root_path)?;
+        source_files.append(&mut files);
+        source_roots.push(root_path);
+    }
+
+    Ok(Some(TestProjectContext {
+        cache_dir,
+        source_roots,
+        source_files,
+    }))
+}
+
+/// Emits manifest source modules into a BEAM test workspace.
+///
+/// Inputs:
+/// - `workspace`: temporary BEAM workspace for the active test run.
+/// - `state`: project-prepared test state with interface cache populated.
+/// - `primary_module_name`: module under test, skipped to avoid duplicate emit.
+/// - `required_modules`: direct imports from the active test module.
+/// - `context`: manifest source files discovered for the project.
+///
+/// Output:
+/// - `Ok(())` when all project support modules compile into the workspace.
+/// - Error text when any project source fails compilation or emission.
+///
+/// Transformation:
+/// - Walks only the package-local import closure needed by the active test,
+///   compiles each implementation module with the same formal pipeline used for
+///   the test, then emits them beside the generated test module so runtime
+///   remote calls from editor-launched tests can resolve on BEAM.
+fn emit_project_test_support_modules(
+    workspace: &Path,
+    state: &CliState,
+    primary_module_name: &str,
+    required_modules: &BTreeSet<String>,
+    context: &TestProjectContext,
+) -> Result<(), String> {
+    let mut module_paths = BTreeMap::new();
+    for file in &context.source_files {
+        if let Some(module_name) = project_source_module_name(context, file) {
+            module_paths.insert(module_name, file.clone());
+        }
+    }
+
+    let mut pending = required_modules.clone();
+    let mut emitted = BTreeSet::new();
+
+    loop {
+        let Some(module_name) = pending
+            .iter()
+            .find(|module_name| !emitted.contains(*module_name))
+            .cloned()
+        else {
+            break;
+        };
+        emitted.insert(module_name.clone());
+        if module_name == primary_module_name {
+            continue;
+        }
+
+        let Some(file) = module_paths.get(&module_name).cloned() else {
+            continue;
+        };
+        let path = file.to_string_lossy();
+        let source = crate::support::read_file(&path)?;
+        let compiled =
+            crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
+                &path,
+                &source,
+                state.diagnostic_format,
+                state.cache_dir.as_deref(),
+                state.native_policy,
+                TargetProfile::Erlang,
+                test_target_profile_options(state, true),
+            )
+            .map_err(|exit_code| {
+                format!(
+                    "project support module {} failed with exit code {exit_code:?}",
+                    file.display()
+                )
+            })?;
+
+        for import in &compiled.core.imports {
+            if module_paths.contains_key(&import.module) && !emitted.contains(&import.module) {
+                pending.insert(import.module.clone());
+            }
+        }
+
+        emit_compiled_module_to_workspace(&path, workspace, &compiled, &[])?;
+    }
+    Ok(())
+}
+
+/// Derives a Terlan module name from a project source path.
+///
+/// Inputs:
+/// - `context`: discovered project source roots.
+/// - `file`: one `.terl` file below one of those roots.
+///
+/// Output:
+/// - Fully qualified module name implied by the generated-profile source tree,
+///   or `None` when the path is outside every source root or is not UTF-8.
+///
+/// Transformation:
+/// - Mirrors the check command's module-layout contract closely enough for test
+///   dependency discovery without reparsing every source file up front.
+fn project_source_module_name(context: &TestProjectContext, file: &Path) -> Option<String> {
+    for root in &context.source_roots {
+        let Ok(relative) = file.strip_prefix(root) else {
+            continue;
+        };
+        let mut segments = Vec::new();
+        for component in relative.components() {
+            let text = component.as_os_str().to_str()?;
+            segments.push(text.to_string());
+        }
+        let Some(last) = segments.last_mut() else {
+            return None;
+        };
+        let stem = last.strip_suffix(".terl")?;
+        *last = stem.to_string();
+        return Some(segments.join("."));
+    }
+    None
 }
 
 /// Executes all test modules below one directory through the Erlang runner.
@@ -706,12 +835,12 @@ fn print_validation_pass_report(report: &TestRunReport) {
 ///   flags are used with a directory, or any test file fails.
 ///
 /// Transformation:
-/// - Recursively discovers `*_test.terl` files in deterministic order, then
+/// - Recursively discovers `*Test.terl` files in deterministic order, then
 ///   delegates each file to the existing single-file runner and aggregates the
 ///   command exit status without inventing a directory-level manifest format.
 fn run_erlang_test_directory(args: &TestArgs, state: CliState) -> ExitCode {
     if args.emit_test_manifest.is_some() || args.emit_test_result_manifest.is_some() {
-        eprintln!("test manifest output is only supported for a single *_test.terl file");
+        eprintln!("test manifest output is only supported for a single *Test.terl file");
         return ExitCode::from(1);
     }
 
@@ -722,7 +851,7 @@ fn run_erlang_test_directory(args: &TestArgs, state: CliState) -> ExitCode {
     }
     files.sort();
     if files.is_empty() {
-        eprintln!("no *_test.terl files found in {}", args.path);
+        eprintln!("no *Test.terl files found in {}", args.path);
         return ExitCode::from(1);
     }
 
@@ -731,6 +860,7 @@ fn run_erlang_test_directory(args: &TestArgs, state: CliState) -> ExitCode {
         let file_args = TestArgs {
             path: file.to_string_lossy().into_owned(),
             target: args.target,
+            test_name: args.test_name.clone(),
             emit_test_manifest: None,
             emit_test_result_manifest: None,
         };
@@ -758,7 +888,7 @@ fn run_erlang_test_directory(args: &TestArgs, state: CliState) -> ExitCode {
 ///
 /// Transformation:
 /// - Recursively walks the directory tree and records only files accepted by
-///   the `*_test.terl` source layout predicate.
+///   the `*Test.terl` source layout predicate.
 fn collect_test_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
     for entry in fs::read_dir(dir)
         .map_err(|err| format!("failed to read test directory {}: {err}", dir.display()))?
@@ -782,149 +912,28 @@ fn collect_test_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String
     Ok(())
 }
 
-/// Writes a source-level test manifest.
-///
-/// Inputs:
-/// - `manifest_path`: filesystem path for the JSON manifest.
-/// - `source_path`: user-provided source file path.
-/// - `module_name`: parsed Terlan module name.
-/// - `target`: selected test runner target.
-/// - `target_profile`: selected compiler target profile.
-/// - `tests`: discovered source-level tests with spans.
-///
-/// Output:
-/// - `Ok(())` when deterministic JSON is written.
-/// - `Err(message)` when serialization, parent-directory creation, or file
-///   writing fails.
-///
-/// Transformation:
-/// - Converts discovered test metadata into a stable JSON artifact for release
-///   gates and downstream runner integrations.
-fn write_test_manifest(
-    manifest_path: &Path,
-    source_path: &str,
-    module_name: &str,
-    target: &str,
-    target_profile: &str,
-    tests: &[DiscoveredTest],
-) -> Result<(), String> {
-    if let Some(parent) = manifest_path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-    {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "failed to create test manifest directory {}: {err}",
-                parent.display()
-            )
-        })?;
-    }
-    let manifest = TestManifest {
-        source_path: source_path.to_string(),
-        module_name: module_name.to_string(),
-        target: target.to_string(),
-        target_profile: target_profile.to_string(),
-        tests: tests
-            .iter()
-            .map(|test| TestManifestEntry {
-                name: test.name.clone(),
-                span_start: test.span_start,
-                span_end: test.span_end,
-            })
-            .collect(),
-    };
-    let json = serde_json::to_string_pretty(&manifest)
-        .map_err(|err| format!("failed to serialize test manifest: {err}"))?;
-    fs::write(manifest_path, format!("{json}\n")).map_err(|err| {
-        format!(
-            "failed to write test manifest {}: {err}",
-            manifest_path.display()
-        )
-    })
-}
-
-/// Writes a source-level test execution result manifest.
-///
-/// Inputs:
-/// - `manifest_path`: filesystem path for the JSON manifest.
-/// - `source_path`: user-provided source file path.
-/// - `module_name`: parsed Terlan module name.
-/// - `target`: selected test runner target.
-/// - `target_profile`: selected compiler target profile.
-/// - `report`: direct BEAM execution report.
-///
-/// Output:
-/// - `Ok(())` when deterministic JSON is written.
-/// - `Err(message)` when serialization, parent-directory creation, or file
-///   writing fails.
-///
-/// Transformation:
-/// - Converts runtime pass/fail data into a stable JSON artifact for release
-///   tooling and runner integrations.
-fn write_test_result_manifest(
-    manifest_path: &Path,
-    source_path: &str,
-    module_name: &str,
-    target: &str,
-    target_profile: &str,
-    report: &TestRunReport,
-) -> Result<(), String> {
-    if let Some(parent) = manifest_path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-    {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "failed to create test result manifest directory {}: {err}",
-                parent.display()
-            )
-        })?;
-    }
-    let manifest = TestResultManifest {
-        source_path: source_path.to_string(),
-        module_name: module_name.to_string(),
-        target: target.to_string(),
-        target_profile: target_profile.to_string(),
-        passed: report.passed,
-        failed: report.failed,
-        tests: report
-            .results
-            .iter()
-            .map(|result| TestResultManifestEntry {
-                name: result.name.clone(),
-                status: result.status.as_str().to_string(),
-                message: result.message.clone(),
-                span_start: result.span_start,
-                span_end: result.span_end,
-            })
-            .collect(),
-    };
-    let json = serde_json::to_string_pretty(&manifest)
-        .map_err(|err| format!("failed to serialize test result manifest: {err}"))?;
-    fs::write(manifest_path, format!("{json}\n")).map_err(|err| {
-        format!(
-            "failed to write test result manifest {}: {err}",
-            manifest_path.display()
-        )
-    })
-}
-
 /// Returns whether a source path is accepted by the 0.0.1 test-file layout.
 ///
 /// Inputs:
 /// - `path`: user-provided source path passed to `terlc test`.
 ///
 /// Output:
-/// - `true` when the file name ends in `_test.terl`.
+/// - `true` when the file stem ends in `Test` and the extension is `.terl`.
 ///
 /// Transformation:
-/// - Reads only the final path component and compares its suffix, preserving
-///   the documented 0.0.1 rule that tests live in separate `*_test.terl` files.
+/// - Reads only the final path component and compares the canonical Terlan
+///   test-module suffix without accepting the old underscore convention.
 fn is_test_source_path(path: &str) -> bool {
     Path::new(path)
         .file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.ends_with("_test.terl"))
+        .is_some_and(|name| {
+            Path::new(name)
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .is_some_and(|stem| stem.ends_with("Test"))
+                && name.ends_with(".terl")
+        })
 }
 
 /// Discovers valid `@test` function declarations.
@@ -953,6 +962,7 @@ fn discover_tests(module: &SyntaxModuleOutput) -> Result<Vec<DiscoveredTest>, Ve
                 name,
                 params,
                 return_type,
+                clauses,
                 ..
             } => {
                 if !params.is_empty() {
@@ -969,6 +979,7 @@ fn discover_tests(module: &SyntaxModuleOutput) -> Result<Vec<DiscoveredTest>, Ve
                         name: name.clone(),
                         span_start: declaration.span.start,
                         span_end: declaration.span.end,
+                        literal_bool_result: literal_bool_test_result(clauses),
                     });
                 }
             }
@@ -980,6 +991,86 @@ fn discover_tests(module: &SyntaxModuleOutput) -> Result<Vec<DiscoveredTest>, Ve
         Ok(tests)
     } else {
         Err(errors)
+    }
+}
+
+/// Selects all discovered tests or one named test.
+///
+/// Inputs:
+/// - `tests`: discovered and validated source-level test functions.
+/// - `test_name`: optional exact function-name selector from `terlc test
+///   --name`.
+/// - `path`: source path used only for diagnostics.
+///
+/// Output:
+/// - `Ok(Vec<DiscoveredTest>)` containing all tests or the exact selected test.
+/// - `Err(message)` when a selector is present but no matching test exists.
+///
+/// Transformation:
+/// - Applies exact function-name filtering after test discovery so compiler
+///   diagnostics still validate every `@test` declaration in the file.
+fn select_tests(
+    tests: Vec<DiscoveredTest>,
+    test_name: Option<&str>,
+    path: &str,
+) -> Result<Vec<DiscoveredTest>, String> {
+    let Some(test_name) = test_name else {
+        return Ok(tests);
+    };
+    let selected = tests
+        .into_iter()
+        .filter(|test| test.name == test_name)
+        .collect::<Vec<_>>();
+    if selected.is_empty() {
+        Err(format!(
+            "no @test declaration named `{test_name}` found in {path}"
+        ))
+    } else {
+        Ok(selected)
+    }
+}
+
+/// Returns whether tests need compiled std release support modules.
+///
+/// Inputs:
+/// - `tests`: discovered test metadata after syntax validation.
+///
+/// Output:
+/// - `true` when at least one test body is not a literal boolean.
+///
+/// Transformation:
+/// - Treats literal-bool surface tests as self-contained and all other tests as
+///   runtime tests that may call support modules.
+fn tests_require_release_support(tests: &[DiscoveredTest]) -> bool {
+    tests.iter().any(|test| test.literal_bool_result.is_none())
+}
+
+/// Extracts a literal boolean test result when the function body is trivial.
+///
+/// Inputs:
+/// - `clauses`: syntax-output clauses for one zero-argument `@test` function.
+///
+/// Output:
+/// - `Some(true)` or `Some(false)` for a single unguarded literal boolean body.
+/// - `None` for any non-trivial test body.
+///
+/// Transformation:
+/// - Recognizes the syntax-output atom form used for source booleans without
+///   inspecting source text.
+fn literal_bool_test_result(clauses: &[terlan_syntax::SyntaxFunctionClauseOutput]) -> Option<bool> {
+    let [clause] = clauses else {
+        return None;
+    };
+    if clause.has_guard || clause.guard.is_some() || !clause.patterns.is_empty() {
+        return None;
+    }
+    if !matches!(clause.body.kind, SyntaxExprKind::Atom | SyntaxExprKind::Var) {
+        return None;
+    }
+    match clause.body.text.as_deref() {
+        Some("true") | Some("True") => Some(true),
+        Some("false") | Some("False") => Some(false),
+        _ => None,
     }
 }
 
@@ -1020,569 +1111,26 @@ fn is_supported_test_return_type(return_type: &SyntaxTypeOutput) -> bool {
     )
 }
 
-/// Emits and compiles the primary test module.
+/// Builds target-profile options for test compilation paths.
 ///
 /// Inputs:
-/// - `path`: source path used for compiler diagnostics and dependency roots.
-/// - `source`: source text for the module.
-/// - `workspace`: temporary directory for emitted and compiled artifacts.
-/// - `state`: borrowed global CLI state used by formal compilation.
-/// - `tests`: discovered test functions that should be exported only in the
-///   temporary test artifact.
+/// - `state`: CLI state carrying native policy.
+/// - `allow_asset_imports`: whether the test path owns asset import resolution.
 ///
 /// Output:
-/// - `Ok(())` when `.erl` and `.beam` artifacts are ready.
-/// - `Err(message)` when compilation, emission, write, or `erlc` fails.
+/// - Target-profile validation options for primary and support test modules.
 ///
 /// Transformation:
-/// - Recompiles the module through the formal pipeline, emits Erlang into the
-///   workspace with test-only exports, and invokes `erlc`.
-fn emit_and_compile_erlang_module(
-    path: &str,
-    source: &str,
-    workspace: &Path,
+/// - Keeps test validation aligned with package build: SafeNative-backed std
+///   APIs are admitted only when native policy is not pure.
+fn test_target_profile_options(
     state: &CliState,
-    tests: &[DiscoveredTest],
-) -> Result<(), String> {
-    let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
-        path,
-        source,
-        state.diagnostic_format,
-        state.cache_dir.as_deref(),
-        state.native_policy,
-        TargetProfile::Erlang,
-    )
-    .map_err(|exit_code| format!("formal pipeline failed with exit code {exit_code:?}"))?;
-    emit_compiled_module_to_workspace(path, workspace, &compiled, tests)
-}
-
-/// Emits and compiles release support modules for runtime tests.
-///
-/// Inputs:
-/// - `workspace`: temporary directory for emitted and compiled artifacts.
-/// - `state`: borrowed global CLI state used by formal compilation.
-/// - `primary_module_name`: module under test, used to avoid recompiling it as
-///   support.
-///
-/// Output:
-/// - `Ok(())` when all selected support `.beam` files are available.
-/// - `Err(message)` when a support source is missing or compilation fails.
-///
-/// Transformation:
-/// - Compiles the minimal 0.0.1 release support module list through the formal
-///   pipeline, emits Erlang, and invokes `erlc`.
-fn emit_and_compile_release_support_modules(
-    workspace: &Path,
-    state: &CliState,
-    primary_module_name: &str,
-) -> Result<(), String> {
-    for module in release_support_modules() {
-        let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
-            module.path,
-            module.source,
-            state.diagnostic_format,
-            state.cache_dir.as_deref(),
-            state.native_policy,
-            TargetProfile::Erlang,
-        )
-        .map_err(|exit_code| {
-            format!(
-                "release support module {} failed with exit code {exit_code:?}",
-                module.path
-            )
-        })?;
-        if compiled.syntax_output.module_name == primary_module_name {
-            continue;
-        }
-        emit_compiled_module_to_workspace(module.path, workspace, &compiled, &[])?;
+    allow_asset_imports: bool,
+) -> TargetProfileCheckOptions {
+    TargetProfileCheckOptions {
+        allow_asset_imports,
+        allow_rust_backed_std_modules: state.native_policy != NativePolicy::Pure,
     }
-    Ok(())
-}
-
-/// Returns the embedded release support module list for `terlc test`.
-///
-/// Inputs:
-/// - No runtime input.
-///
-/// Output:
-/// - Static source path/text pairs compiled into the BEAM test workspace.
-///
-/// Transformation:
-/// - Centralizes the current release-matrix support set so future additions are
-///   explicit and reviewable, while keeping installed `terlc test` independent
-///   of the caller's current working directory.
-fn release_support_modules() -> &'static [ReleaseSupportModule] {
-    &[
-        ReleaseSupportModule {
-            path: "std/test/test.terl",
-            source: include_str!("../../../../../std/test/test.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/atom.terl",
-            source: include_str!("../../../../../std/core/atom.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/bool.terl",
-            source: include_str!("../../../../../std/core/bool.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/unit.terl",
-            source: include_str!("../../../../../std/core/unit.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/ordering.terl",
-            source: include_str!("../../../../../std/core/ordering.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/int.terl",
-            source: include_str!("../../../../../std/core/int.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/float.terl",
-            source: include_str!("../../../../../std/core/float.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/option.terl",
-            source: include_str!("../../../../../std/core/option.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/result.terl",
-            source: include_str!("../../../../../std/core/result.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/error.terl",
-            source: include_str!("../../../../../std/core/error.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/equal.terl",
-            source: include_str!("../../../../../std/core/equal.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/http/error.terl",
-            source: include_str!("../../../../../std/http/error.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/core/string.terl",
-            source: include_str!("../../../../../std/core/string.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/io/console.terl",
-            source: include_str!("../../../../../std/io/console.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/io/file.terl",
-            source: include_str!("../../../../../std/io/file.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/collections/iterator.terl",
-            source: include_str!("../../../../../std/collections/iterator.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/collections/index.terl",
-            source: include_str!("../../../../../std/collections/index.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/collections/list.terl",
-            source: include_str!("../../../../../std/collections/list.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/collections/map.terl",
-            source: include_str!("../../../../../std/collections/map.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/collections/set.terl",
-            source: include_str!("../../../../../std/collections/set.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/collections/iterable.terl",
-            source: include_str!("../../../../../std/collections/iterable.terl"),
-        },
-        ReleaseSupportModule {
-            path: "std/collections/enumerable.terl",
-            source: include_str!("../../../../../std/collections/enumerable.terl"),
-        },
-    ]
-}
-
-/// Emits a compiled module into the temporary workspace and compiles it.
-///
-/// Inputs:
-/// - `path`: source path used to resolve imports.
-/// - `workspace`: output directory for `.erl` and `.beam` files.
-/// - `compiled`: formal compiler artifacts for the module.
-/// - `test_exports`: test-only functions to export in the temporary artifact.
-///
-/// Output:
-/// - `Ok(())` when Erlang source is written and `erlc` succeeds.
-/// - `Err(message)` for dependency collection, emission, write, or compile
-///   failures.
-///
-/// Transformation:
-/// - Converts CoreIR plus syntax bridge data into Erlang source, writes
-///   it to the workspace with optional test-only exports, then runs
-///   `erlc -o <workspace>`.
-fn emit_compiled_module_to_workspace(
-    path: &str,
-    workspace: &Path,
-    compiled: &crate::formal_pipeline::CheckedSyntaxModuleArtifacts,
-    test_exports: &[DiscoveredTest],
-) -> Result<(), String> {
-    let file_imports = collect_syntax_file_import_bytes(&compiled.syntax_output, Path::new(path))?;
-    let templates = collect_syntax_template_inputs(&compiled.syntax_output, Path::new(path))?;
-    let markdown_imports =
-        collect_syntax_markdown_inputs(&compiled.syntax_output, Path::new(path))?;
-    let code = try_emit_core_module_to_erlang_with_syntax_bridge(
-        &compiled.core,
-        &compiled.syntax_output,
-        &compiled
-            .interfaces
-            .iter()
-            .map(|(name, interface)| (name.clone(), interface.clone()))
-            .collect::<BTreeMap<_, _>>(),
-        &file_imports,
-        &templates,
-        &markdown_imports,
-    )?;
-    let code = add_test_exports_to_erlang_source(code, test_exports);
-    let output_stem = crate::support::erlang_output_stem(&compiled.syntax_output.module_name);
-    let erl_path = workspace.join(format!("{output_stem}.erl"));
-    fs::write(&erl_path, code)
-        .map_err(|err| format!("failed to write {}: {err}", erl_path.display()))?;
-    compile_erlang_source(workspace, &erl_path)
-}
-
-/// Adds test-only exports to generated Erlang source.
-///
-/// Inputs:
-/// - `code`: generated Erlang module source.
-/// - `tests`: discovered source-level tests to export in the temporary test
-///   artifact.
-///
-/// Output:
-/// - Erlang source with an extra `-export([...]).` attribute when tests are
-///   present.
-///
-/// Transformation:
-/// - Inserts one deterministic export attribute after the first line of the
-///   module source. This is used only by `terlc test` temporary artifacts so
-///   private Terlan tests can execute without widening production emits.
-fn add_test_exports_to_erlang_source(code: String, tests: &[DiscoveredTest]) -> String {
-    if tests.is_empty() {
-        return code;
-    }
-    let exports = tests
-        .iter()
-        .map(|test| format!("{}/0", quote_erlang_atom(&test.name)))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let export_attr = format!("-export([{}]).\n", exports);
-    if let Some(insert_at) = code.find('\n') {
-        let mut with_exports = String::with_capacity(code.len() + export_attr.len());
-        with_exports.push_str(&code[..=insert_at]);
-        with_exports.push_str(&export_attr);
-        with_exports.push_str(&code[insert_at + 1..]);
-        with_exports
-    } else {
-        format!("{code}\n{export_attr}")
-    }
-}
-
-/// Compiles one Erlang source file into BEAM bytecode.
-///
-/// Inputs:
-/// - `workspace`: target directory for compiled `.beam` output.
-/// - `erl_path`: path to the generated Erlang source file.
-///
-/// Output:
-/// - `Ok(())` when `erlc` exits successfully.
-/// - `Err(message)` when spawning or compilation fails.
-///
-/// Transformation:
-/// - Executes `erlc -o <workspace> <erl_path>` with crash-dump suppression and
-///   formats stderr/stdout into command diagnostics on failure.
-fn compile_erlang_source(workspace: &Path, erl_path: &Path) -> Result<(), String> {
-    let erl_crash_dump = workspace.join("erl_crash.dump");
-    let mut command = Command::new("erlc");
-    command.arg("-o").arg(workspace).arg(erl_path);
-    let output = run_command_with_no_erl_crash_dump(&mut command, "erlc", Some(&erl_crash_dump))?;
-    if output.status.success() {
-        return Ok(());
-    }
-    Err(format!(
-        "erlc failed for {}\n{}{}",
-        erl_path.display(),
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    ))
-}
-
-/// Emits and compiles a backend-owned EUnit wrapper module.
-///
-/// Inputs:
-/// - `workspace`: temporary directory for generated Erlang artifacts.
-/// - `module_atom`: compiled Erlang module containing exported Terlan tests.
-/// - `tests`: discovered source-level tests to expose as EUnit functions.
-///
-/// Output:
-/// - `Ok(wrapper_module_atom)` when the wrapper source and `.beam` are ready.
-/// - `Err(message)` when writing or compiling the wrapper fails.
-///
-/// Transformation:
-/// - Generates an Erlang module with one `<test>_test/0` function per Terlan
-///   test. Each function delegates to the emitted Terlan module and maps
-///   `true` to `ok`, `false` to an EUnit failure, and other values to an
-///   unexpected-result failure.
-fn emit_and_compile_eunit_wrapper(
-    workspace: &Path,
-    module_atom: &str,
-    tests: &[DiscoveredTest],
-) -> Result<String, String> {
-    let wrapper_module_atom = format!("{module_atom}_eunit_tests");
-    let source = render_eunit_wrapper_source(&wrapper_module_atom, module_atom, tests);
-    let erl_path = workspace.join(format!("{wrapper_module_atom}.erl"));
-    fs::write(&erl_path, source)
-        .map_err(|err| format!("failed to write {}: {err}", erl_path.display()))?;
-    compile_erlang_source(workspace, &erl_path)?;
-    Ok(wrapper_module_atom)
-}
-
-/// Renders the backend-owned EUnit wrapper source.
-///
-/// Inputs:
-/// - `wrapper_module_atom`: Erlang module atom for the generated wrapper.
-/// - `target_module_atom`: Erlang module atom for the emitted Terlan module.
-/// - `tests`: discovered source-level tests to expose as EUnit functions.
-///
-/// Output:
-/// - Complete Erlang source for the wrapper module.
-///
-/// Transformation:
-/// - Builds deterministic Erlang text without changing Terlan source syntax or
-///   standard-library APIs.
-fn render_eunit_wrapper_source(
-    wrapper_module_atom: &str,
-    target_module_atom: &str,
-    tests: &[DiscoveredTest],
-) -> String {
-    let exports = tests
-        .iter()
-        .map(|test| format!("{}/0", quote_erlang_atom(&format!("{}_test", test.name))))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let mut source = format!(
-        "-module({}).\n-export([{}]).\n\n",
-        quote_erlang_atom(wrapper_module_atom),
-        exports
-    );
-    for test in tests {
-        let wrapper_function = quote_erlang_atom(&format!("{}_test", test.name));
-        source.push_str(&format!(
-            "{}() ->\n    case {}:{}() of\n        true -> ok;\n        false -> erlang:error(assertion_returned_false);\n        Other -> erlang:error({{unexpected_test_result, Other}})\n    end.\n\n",
-            wrapper_function,
-            quote_erlang_atom(target_module_atom),
-            quote_erlang_atom(&test.name)
-        ));
-    }
-    source
-}
-
-/// Runs the generated EUnit wrapper without changing normal test output.
-///
-/// Inputs:
-/// - `workspace`: BEAM code path containing the wrapper module.
-/// - `wrapper_module_atom`: Erlang module atom for the generated wrapper.
-///
-/// Output:
-/// - `Ok(())` when EUnit reports `ok`.
-/// - `Err(message)` when EUnit reports failure or the Erlang runtime cannot be
-///   spawned.
-///
-/// Transformation:
-/// - Invokes `eunit:test/2` with `no_tty`, captures output, and converts the
-///   EUnit result into a Terlan CLI backend-validation diagnostic.
-fn run_eunit_wrapper(workspace: &Path, wrapper_module_atom: &str) -> Result<(), String> {
-    let eval = format!(
-        "Result = eunit:test({}, [no_tty]), case Result of ok -> halt(0); Other -> io:format(\"eunit wrapper result: ~p~n\", [Other]), halt(1) end.",
-        quote_erlang_atom(wrapper_module_atom)
-    );
-    let erl_crash_dump = workspace.join("erl_crash.dump");
-    let mut command = Command::new("erl");
-    command
-        .arg("-noshell")
-        .arg("-pa")
-        .arg(workspace)
-        .arg("-eval")
-        .arg(eval);
-    let output = run_command_with_no_erl_crash_dump(&mut command, "erl", Some(&erl_crash_dump))?;
-    if output.status.success() {
-        return Ok(());
-    }
-    Err(format!(
-        "EUnit wrapper validation failed for {}\n{}{}",
-        wrapper_module_atom,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    ))
-}
-
-/// Executes all discovered tests against the compiled BEAM module.
-///
-/// Inputs:
-/// - `workspace`: directory containing compiled `.beam` artifacts.
-/// - `module_atom`: Erlang module atom to invoke.
-/// - `tests`: discovered source-level test functions.
-///
-/// Output:
-/// - Structured execution report with pass/fail counts and per-test results.
-///
-/// Transformation:
-/// - Calls each exported zero-argument test function via `erl -noshell`,
-///   renders a compact status report, and aggregates pass/fail counts.
-fn run_discovered_erlang_tests(
-    workspace: &Path,
-    module_atom: &str,
-    tests: &[DiscoveredTest],
-) -> TestRunReport {
-    println!("running {} tests", tests.len());
-    let mut passed = 0usize;
-    let mut failed = 0usize;
-    let mut results = Vec::new();
-    for test in tests {
-        match run_single_erlang_test(workspace, module_atom, &test.name) {
-            Ok(()) => {
-                passed += 1;
-                println!("test {} ... ok", test.name);
-                results.push(TestRunResult {
-                    name: test.name.clone(),
-                    status: TestRunStatus::Passed,
-                    message: None,
-                    span_start: test.span_start,
-                    span_end: test.span_end,
-                });
-            }
-            Err(message) => {
-                failed += 1;
-                println!("test {} ... FAILED", test.name);
-                println!("  {message}");
-                results.push(TestRunResult {
-                    name: test.name.clone(),
-                    status: TestRunStatus::Failed,
-                    message: Some(message),
-                    span_start: test.span_start,
-                    span_end: test.span_end,
-                });
-            }
-        }
-    }
-
-    if failed == 0 {
-        println!("test result: ok. {passed} passed; 0 failed");
-    } else {
-        println!("test result: FAILED. {passed} passed; {failed} failed");
-    }
-    TestRunReport {
-        passed,
-        failed,
-        results,
-    }
-}
-
-/// Executes one exported BEAM test function.
-///
-/// Inputs:
-/// - `workspace`: BEAM code path.
-/// - `module_atom`: Erlang module atom to call.
-/// - `function_atom`: Erlang function atom to call with arity 0.
-///
-/// Output:
-/// - `Ok(())` when the function returns `true`.
-/// - `Err(message)` when the function returns `false`, returns another value,
-///   crashes, or the Erlang runtime cannot be spawned.
-///
-/// Transformation:
-/// - Builds an Erlang `-eval` expression that maps `true` to exit code 0 and
-///   all other outcomes to non-zero exit codes with diagnostic text.
-fn run_single_erlang_test(
-    workspace: &Path,
-    module_atom: &str,
-    function_atom: &str,
-) -> Result<(), String> {
-    let eval = format!(
-        "Result = {}:{}(), case Result of true -> halt(0); false -> io:format(\"assertion returned false~n\", []), halt(1); Other -> io:format(\"unexpected test result: ~p~n\", [Other]), halt(2) end.",
-        quote_erlang_atom(module_atom),
-        quote_erlang_atom(function_atom)
-    );
-    let erl_crash_dump = workspace.join("erl_crash.dump");
-    let mut command = Command::new("erl");
-    command
-        .arg("-noshell")
-        .arg("-pa")
-        .arg(workspace)
-        .arg("-eval")
-        .arg(eval);
-    let output = run_command_with_no_erl_crash_dump(&mut command, "erl", Some(&erl_crash_dump))?;
-    if output.status.success() {
-        return Ok(());
-    }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let message = format!("{}{}", stdout.trim_end(), stderr.trim_end());
-    if message.is_empty() {
-        Err(format!("erl exited with status {}", output.status))
-    } else {
-        Err(message)
-    }
-}
-
-/// Runs a process while preventing local `erl_crash.dump` files in the workspace.
-///
-/// Inputs:
-/// - `command`: process builder to execute.
-/// - `label`: human-readable tool name used in spawn failures.
-/// - `erl_crash_dump`: optional path assigned to `ERL_CRASH_DUMP`.
-///
-/// Output:
-/// - `Ok(Output)` when the process starts and exits.
-/// - `Err(message)` when the process cannot be spawned.
-///
-/// Transformation:
-/// - Adds the Erlang crash-dump environment override and delegates to
-///   `Command::output`.
-fn run_command_with_no_erl_crash_dump(
-    command: &mut Command,
-    label: &str,
-    erl_crash_dump: Option<&Path>,
-) -> Result<Output, String> {
-    if let Some(path) = erl_crash_dump {
-        command.env("ERL_CRASH_DUMP", path);
-    }
-    command
-        .output()
-        .map_err(|err| format!("failed to run {label}: {err}"))
-}
-
-/// Quotes text as an Erlang atom literal.
-///
-/// Inputs:
-/// - `atom`: untrusted atom text.
-///
-/// Output:
-/// - Single-quoted Erlang atom literal.
-///
-/// Transformation:
-/// - Escapes backslashes and single quotes so generated `erl -eval` code
-///   remains syntactically valid.
-fn quote_erlang_atom(atom: &str) -> String {
-    let mut quoted = String::from("'");
-    for ch in atom.chars() {
-        match ch {
-            '\\' => quoted.push_str("\\\\"),
-            '\'' => quoted.push_str("\\'"),
-            _ => quoted.push(ch),
-        }
-    }
-    quoted.push('\'');
-    quoted
 }
 
 #[cfg(test)]

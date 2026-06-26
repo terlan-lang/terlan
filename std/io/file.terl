@@ -1,9 +1,9 @@
 /**
- *Portable filesystem access.
+ * Portable filesystem access.
  *
- *`std.io.File` exposes target-neutral file operations. Backends own the
- *runtime calls needed to implement these operations and must map backend
- *errors into the neutral `FileError` values defined here.
+ * `std.io.File` exposes target-neutral file operations. Backends own the
+ * runtime calls needed to implement these operations and must map backend
+ * errors into the neutral `FileError` values defined here.
  */
 
 module std.io.File.
@@ -14,27 +14,27 @@ import type std.core.Result.
 import std.core.Unit.{Unit}.
 
 /**
- *The file path did not resolve to an existing file.
+ * The file path did not resolve to an existing file.
  */
 pub type NotFound = Atom["not_found"].
 
 /**
- *The selected target denied access to the file.
+ * The selected target denied access to the file.
  */
 pub type PermissionDenied = Atom["permission_denied"].
 
 /**
- *The supplied path cannot be represented by the selected target.
+ * The supplied path cannot be represented by the selected target.
  */
 pub type InvalidPath = Atom["invalid_path"].
 
 /**
- *The selected target reported an unclassified filesystem failure.
+ * The selected target reported an unclassified filesystem failure.
  */
 pub type Unknown = Atom["unknown"].
 
 /**
- *Portable file error codes returned by `std.io.File`.
+ * Portable file error codes returned by `std.io.File`.
  */
 pub type FileErrorCode =
       NotFound
@@ -43,124 +43,124 @@ pub type FileErrorCode =
     | Unknown.
 
 /**
- *Portable file error returned by `std.io.File`.
+ * Portable file error returned by `std.io.File`.
  *
- *Input: inherits the neutral `code` and `message` fields from
- *`std.core.Error.Error` and adds the target-interpreted path.
- *Output: a typed error value that can be used anywhere `Error`-derived values
- *are accepted.
- *Transformation: keeps backend filesystem reasons behind a portable struct
- *instead of exposing backend-specific error atoms directly.
+ * Input: includes the neutral `code` and `message` fields from
+ * `std.core.Error.Error` and adds the target-interpreted path.
+ * Output: a typed error value that can be used anywhere `Error`-including values
+ * are accepted.
+ * Transformation: keeps backend filesystem reasons behind a portable struct
+ * instead of exposing backend-specific error atoms directly.
  */
-pub struct FileError derives Error {
+pub struct FileError includes Error {
     path: String
 }.
 
 /**
- *Builds a portable file error.
+ * Builds a portable file error.
  *
- *Input: a symbolic file error code, human-readable message, and source path.
- *Output: `FileError`.
- *Transformation: stores the portable code and message inherited from
- *`std.core.Error.Error` plus file-specific path context.
+ * Input: a symbolic file error code, human-readable message, and source path.
+ * Output: `FileError`.
+ * Transformation: stores the portable code and message included from
+ * `std.core.Error.Error` plus file-specific path context.
  */
 pub new(code: Atom, message: String, path: String): FileError ->
-    #FileError{
+    FileError(
         code = code,
         message = message,
         path = path
-    }.
+    ).
 
 /**
- *Returns the portable file error code.
+ * Returns the portable file error code.
  *
- *Input: one `FileError`.
- *Output: `Atom` identifying the portable file failure category.
- *Transformation: reads the inherited `code` field without exposing backend
- *filesystem reason values.
+ * Input: one `FileError`.
+ * Output: `Atom` identifying the portable file failure category.
+ * Transformation: reads the included `code` field without exposing backend
+ * filesystem reason values.
  */
 pub code(error: FileError): Atom ->
     error.code.
 
 /**
- *Returns the portable file error message.
+ * Returns the portable file error message.
  *
- *Input: one `FileError`.
- *Output: human-readable UTF-8 message.
- *Transformation: reads the inherited `message` field.
+ * Input: one `FileError`.
+ * Output: human-readable UTF-8 message.
+ * Transformation: reads the included `message` field.
  */
 pub message(error: FileError): String ->
     error.message.
 
 /**
- *Returns the path associated with a file error.
+ * Returns the path associated with a file error.
  *
- *Input: one `FileError`.
- *Output: the UTF-8 path supplied to the file operation.
- *Transformation: reads the file-specific `path` field.
+ * Input: one `FileError`.
+ * Output: the UTF-8 path supplied to the file operation.
+ * Transformation: reads the file-specific `path` field.
  */
 pub path(error: FileError): String ->
     error.path.
 
 /**
- *Returns whether a file exists at `path`.
+ * Returns whether a file exists at `path`.
  *
- *Input: one UTF-8 path string interpreted by the selected target runtime.
- *Output: `true` when a regular file exists, otherwise `false`.
- *Transformation: lowers through the compiler-owned `runtime.file.exists`
- *capability and keeps backend path checks behind the portable API.
+ * Input: one UTF-8 path string interpreted by the selected target runtime.
+ * Output: `true` when a regular file exists, otherwise `false`.
+ * Transformation: lowers through the compiler-owned `runtime.file.exists`
+ * capability and keeps backend path checks behind the portable API.
  */
 @compiler.intrinsic
 pub exists(path: String): Bool ->
     false.
 
 /**
- *Reads a UTF-8 text file.
+ * Reads a UTF-8 text file.
  *
- *Input: one UTF-8 path string interpreted by the selected target runtime.
- *Output: `Result[String, FileError]`.
- *Transformation: lowers through the compiler-owned `runtime.file.read_text`
- *capability. Backend file errors are normalized into `FileError` values, and
- *successful file bytes are decoded as UTF-8 text for Terlan `String`.
+ * Input: one UTF-8 path string interpreted by the selected target runtime.
+ * Output: `Result[String, FileError]`.
+ * Transformation: lowers through the compiler-owned `runtime.file.read_text`
+ * capability. Backend file errors are normalized into `FileError` values, and
+ * successful file bytes are decoded as UTF-8 text for Terlan `String`.
  */
 @compiler.intrinsic
 pub read_text(path: String): Result[String, FileError] ->
     Err(new(Unknown, "unknown file error", path)).
 
 /**
- *Writes a UTF-8 text file.
+ * Writes a UTF-8 text file.
  *
- *Input: a UTF-8 path string and UTF-8 text content.
- *Output: `Result[Unit, FileError]`.
- *Transformation: lowers through the compiler-owned `runtime.file.write_text`
- *capability. Backend file errors are normalized into `FileError` values, and a
- *successful write returns `Unit`.
+ * Input: a UTF-8 path string and UTF-8 text content.
+ * Output: `Result[Unit, FileError]`.
+ * Transformation: lowers through the compiler-owned `runtime.file.write_text`
+ * capability. Backend file errors are normalized into `FileError` values, and a
+ * successful write returns `Unit`.
  */
 @compiler.intrinsic
 pub write_text(path: String, content: String): Result[Unit, FileError] ->
     Err(new(Unknown, "unknown file error", path)).
 
 /**
- *Appends UTF-8 text to a file.
+ * Appends UTF-8 text to a file.
  *
- *Input: a UTF-8 path string and UTF-8 text content.
- *Output: `Result[Unit, FileError]`.
- *Transformation: lowers through the compiler-owned `runtime.file.append_text`
- *capability. Backend file errors are normalized into `FileError` values, and a
- *successful append returns `Unit`.
+ * Input: a UTF-8 path string and UTF-8 text content.
+ * Output: `Result[Unit, FileError]`.
+ * Transformation: lowers through the compiler-owned `runtime.file.append_text`
+ * capability. Backend file errors are normalized into `FileError` values, and a
+ * successful append returns `Unit`.
  */
 @compiler.intrinsic
 pub append_text(path: String, content: String): Result[Unit, FileError] ->
     Err(new(Unknown, "unknown file error", path)).
 
 /**
- *Deletes a file.
+ * Deletes a file.
  *
- *Input: one UTF-8 path string interpreted by the selected target runtime.
- *Output: `Result[Unit, FileError]`.
- *Transformation: lowers through the compiler-owned `runtime.file.delete`
- *capability. Backend file errors are normalized into `FileError` values, and a
- *successful delete returns `Unit`.
+ * Input: one UTF-8 path string interpreted by the selected target runtime.
+ * Output: `Result[Unit, FileError]`.
+ * Transformation: lowers through the compiler-owned `runtime.file.delete`
+ * capability. Backend file errors are normalized into `FileError` values, and a
+ * successful delete returns `Unit`.
  */
 @compiler.intrinsic
 pub delete(path: String): Result[Unit, FileError] ->

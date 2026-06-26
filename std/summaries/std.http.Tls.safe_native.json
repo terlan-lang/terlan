@@ -1,0 +1,23 @@
+{
+  "functions": [
+    {
+      "arity": 2,
+      "name": "auto",
+      "operation": "std.http.tls.auto"
+    },
+    {
+      "arity": 2,
+      "name": "manual",
+      "operation": "std.http.tls.manual"
+    },
+    {
+      "arity": 1,
+      "name": "internal",
+      "operation": "std.http.tls.internal"
+    }
+  ],
+  "module": "std_http_tls_safe_native",
+  "native_policy": "safe_native_optional",
+  "scheduler": "normal",
+  "source_module": "std.http.Tls"
+}

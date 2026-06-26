@@ -1,0 +1,88 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DOMTokenList
+ */
+
+module std.js.Dom.DOMTokenList.
+
+/**
+ * The **`DOMTokenList`** interface represents a set of space-separated tokens.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList)
+ */
+pub opaque type DOMTokenList.
+
+/**
+ * The read-only **`length`** property of the DOMTokenList interface is an `integer` representing the number of objects stored in the object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/length)
+ */
+pub (value: DOMTokenList) length(): std.js.Number.JsNumber.
+
+/**
+ * The **`value`** property of the DOMTokenList interface is a stringifier that returns the value of the list serialized as a string, or clears and sets the list to the given value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/value)
+ */
+pub (value: DOMTokenList) value(): std.js.String.JsString.
+
+pub (value: DOMTokenList) to_string(): std.js.String.JsString.
+
+/**
+ * The **`add()`** method of the DOMTokenList interface adds the given tokens to the list, omitting any that are already present.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/add)
+ */
+pub (value: DOMTokenList) add(): std.core.Unit.
+
+/**
+ * The **`contains()`** method of the DOMTokenList interface returns a boolean value — `true` if the underlying list contains the given token, otherwise `false`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/contains)
+ */
+pub (value: DOMTokenList) contains(token: std.js.String.JsString): std.core.Bool.
+
+/**
+ * The **`item()`** method of the DOMTokenList interface returns an item in the list, determined by its position in the list, its index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/item)
+ */
+pub (value: DOMTokenList) item(index: std.js.Number.JsNumber): Option[std.js.String.JsString].
+
+/**
+ * The **`remove()`** method of the DOMTokenList interface removes the specified _tokens_ from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/remove)
+ */
+pub (value: DOMTokenList) remove(): std.core.Unit.
+
+/**
+ * The **`replace()`** method of the DOMTokenList interface replaces an existing token with a new token.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/replace)
+ */
+pub (value: DOMTokenList) replace(token: std.js.String.JsString, new_token: std.js.String.JsString): std.core.Bool.
+
+/**
+ * The **`supports()`** method of the DOMTokenList interface returns `true` if a given `token` is in the associated attribute's supported tokens.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/supports)
+ */
+pub (value: DOMTokenList) supports(token: std.js.String.JsString): std.core.Bool.
+
+/**
+ * The **`toggle()`** method of the DOMTokenList interface removes an existing token from the list and returns `false`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/toggle)
+ */
+pub (value: DOMTokenList) toggle(token: std.js.String.JsString, force: std.core.Bool): std.core.Bool.

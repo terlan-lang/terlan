@@ -13,7 +13,8 @@ use terlan_syntax::{
     SyntaxDeclarationOutput, SyntaxModuleOutput,
 };
 
-use crate::commands::json::json_string;
+use serde_json::{json, Map, Value};
+
 use crate::validation::native_policy::NativePolicy;
 use crate::{CliCommand, CliState, DiagnosticFormat};
 
@@ -77,7 +78,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             let mut declarations = baseline_declarations.clone();
             let mut value_bindings = Vec::new();
             let mut eval_counter = 0usize;
-            emit_repl_event(state.diagnostic_format, "ready", None, "REPL ready");
+            emit_repl_event(state.diagnostic_format, "ready", &[], "REPL ready");
 
             let stdin = std::io::stdin();
             let mut stdout = std::io::stdout();
@@ -129,7 +130,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                         emit_repl_event(
                             state.diagnostic_format,
                             "ready",
-                            Some("\"status\":\"ready_to_exit\""),
+                            &[repl_json_field("status", "ready_to_exit")],
                             "REPL exiting",
                         );
                         return ExitCode::SUCCESS;
@@ -139,9 +140,16 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                             emit_repl_event(
                                 state.diagnostic_format,
                                 "status",
-                                Some(
-                                    "\"message\":\"REPL supports expression evaluation and session declarations.\",\"commands\":[\":help\",\":quit\",\":reset\",\":load\"]"
-                                ),
+                                &[
+                                    repl_json_field(
+                                        "message",
+                                        "REPL supports expression evaluation and session declarations.",
+                                    ),
+                                    repl_json_field(
+                                        "commands",
+                                        json!([":help", ":quit", ":reset", ":load"]),
+                                    ),
+                                ],
                                 "help",
                             );
                         } else {
@@ -162,7 +170,10 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                                 emit_repl_event(
                                     state.diagnostic_format,
                                     "error",
-                                    Some("\"message\":\":load requires a path: :load <file.terl|project-dir>\""),
+                                    &[repl_json_field(
+                                        "message",
+                                        ":load requires a path: :load <file.terl|project-dir>",
+                                    )],
                                     ":load requires a path: :load <file.terl|project-dir>",
                                 );
                                 continue;
@@ -184,10 +195,10 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                         emit_repl_event(
                             state.diagnostic_format,
                             "error",
-                            Some(&format!(
-                                "\"message\":{}",
-                                json_string(&format!("unknown REPL command: {command}")),
-                            )),
+                            &[repl_json_field(
+                                "message",
+                                format!("unknown REPL command: {command}"),
+                            )],
                             &format!("unknown REPL command: {command}"),
                         );
                     }
@@ -196,10 +207,12 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                             if let Some(binding) = parse_repl_value_binding(expression_source) {
                                 eval_counter += 1;
                                 let run_name = format!("repl_eval_{}", eval_counter);
+                                let mut validation_bindings = value_bindings.clone();
+                                validation_bindings.push(binding.clone());
                                 match run_repl_expression(
-                                    binding.value.as_str(),
+                                    "Unit",
                                     &declarations,
-                                    &value_bindings,
+                                    &validation_bindings,
                                     &module_name,
                                     &run_name,
                                     &temp_dir,
@@ -214,7 +227,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                                     Err(message) => emit_repl_event(
                                         state.diagnostic_format,
                                         "error",
-                                        Some(&format!("\"message\":{}", json_string(&message))),
+                                        &[repl_json_field("message", message.as_str())],
                                         &message,
                                     ),
                                 }
@@ -242,7 +255,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                                         Err(message) => emit_repl_event(
                                             state.diagnostic_format,
                                             "error",
-                                            Some(&format!("\"message\":{}", json_string(&message))),
+                                            &[repl_json_field("message", message.as_str())],
                                             &message,
                                         ),
                                     }
@@ -274,7 +287,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                         None => emit_repl_event(
                             state.diagnostic_format,
                             "error",
-                            Some("\"message\":\"REPL entries must end with '.'\""),
+                            &[repl_json_field("message", "REPL entries must end with '.'")],
                             "REPL entries must end with '.'",
                         ),
                     },
@@ -340,17 +353,17 @@ fn repl_expression_source(entry: &str) -> Option<&str> {
 /// One persistent value binding entered in the REPL.
 ///
 /// Inputs:
-/// - Constructed from `let name = expr.` REPL entries.
+/// - Constructed from `let pattern = expr.` REPL entries.
 ///
 /// Output:
-/// - Binding name and source expression used to rebuild later REPL entries.
+/// - Binding pattern and source expression used to rebuild later REPL entries.
 ///
 /// Transformation:
 /// - Keeps user-entered source available so each later expression can go
 ///   through the normal parser, typechecker, and CoreIR lowering path.
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ReplValueBinding {
-    name: String,
+    pattern: String,
     value: String,
 }
 
@@ -364,17 +377,18 @@ struct ReplValueBinding {
 /// - `None` for ordinary Terlan expressions/declarations.
 ///
 /// Transformation:
-/// - Recognizes a single simple binding without treating full source `let`
+/// - Recognizes a single pattern binding without treating full source `let`
 ///   expressions as declarations. The right-hand expression is validated later
-///   through the formal compiler path before the binding is persisted.
+///   through the formal compiler path together with the pattern before the
+///   binding is persisted.
 fn parse_repl_value_binding(entry: &str) -> Option<ReplValueBinding> {
     let rest = entry.trim().strip_prefix("let ")?;
     if rest.contains(';') {
         return None;
     }
-    let (name, value) = rest.split_once('=')?;
-    let name = name.trim();
-    if !is_repl_binding_name(name) {
+    let (pattern, value) = rest.split_once('=')?;
+    let pattern = pattern.trim();
+    if pattern.is_empty() {
         return None;
     }
     let value = value.trim();
@@ -382,26 +396,9 @@ fn parse_repl_value_binding(entry: &str) -> Option<ReplValueBinding> {
         return None;
     }
     Some(ReplValueBinding {
-        name: name.to_string(),
+        pattern: pattern.to_string(),
         value: value.to_string(),
     })
-}
-
-/// Checks whether a REPL value-binding name is a valid simple binding.
-///
-/// Inputs:
-/// - `name`: candidate binding name.
-///
-/// Output:
-/// - `true` when the name is a lower-case Terlan value binding.
-///
-/// Transformation:
-/// - Applies the lightweight lexical rule needed before the formal parser
-///   validates the generated let expression.
-fn is_repl_binding_name(name: &str) -> bool {
-    let mut chars = name.chars();
-    matches!(chars.next(), Some(ch) if ch.is_ascii_lowercase())
-        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
 /// Parses a REPL declaration entry and emits diagnostics or success output.
@@ -588,11 +585,10 @@ fn load_repl_seed_declarations(
             emit_repl_event(
                 diagnostic_format,
                 "error",
-                Some(&format!(
-                    "\"message\":{},\"path\":{}",
-                    json_string(&message),
-                    json_string(path),
-                )),
+                &[
+                    repl_json_field("message", message.as_str()),
+                    repl_json_field("path", path),
+                ],
                 &message,
             );
             return Err(ExitCode::from(1));
@@ -749,10 +745,12 @@ pub(crate) fn evaluate_repl_prompt_inputs(
             if let Some(binding) = parse_repl_value_binding(expression_source) {
                 eval_counter += 1;
                 let run_name = format!("repl_doc_eval_{}", eval_counter);
+                let mut validation_bindings = value_bindings.clone();
+                validation_bindings.push(binding.clone());
                 run_repl_expression_with_output(
-                    binding.value.as_str(),
+                    "Unit",
                     &declarations,
-                    &value_bindings,
+                    &validation_bindings,
                     &module_name,
                     &run_name,
                     &temp_dir,
@@ -872,10 +870,10 @@ fn run_repl_expression(
         DiagnosticFormat::Json => emit_repl_event(
             DiagnosticFormat::Json,
             "stdout",
-            Some(&format!(
-                "\"stream\":\"stdout\",\"value\":{}",
-                json_string(value)
-            )),
+            &[
+                repl_json_field("stream", "stdout"),
+                repl_json_field("value", value),
+            ],
             value,
         ),
     };
@@ -972,7 +970,7 @@ fn repl_compile_error_message(
     for diagnostics in [
         compile.parse_diagnostics.as_slice(),
         compile.macro_expansion_diagnostics.as_slice(),
-        compile.derive_expansion_diagnostics.as_slice(),
+        compile.include_expansion_diagnostics.as_slice(),
         compile.resolve_diagnostics.as_slice(),
         compile.typecheck_diagnostics.as_slice(),
         compile.core_diagnostics.as_slice(),
@@ -1008,7 +1006,7 @@ fn repl_expression_with_bindings(expression: &str, value_bindings: &[ReplValueBi
 
     let bindings = value_bindings
         .iter()
-        .map(|binding| format!("{} = {}", binding.name, binding.value))
+        .map(|binding| format!("{} = ({})", binding.pattern, binding.value))
         .collect::<Vec<_>>()
         .join("; ");
     format!("let {bindings}; {expression}")
@@ -1030,7 +1028,7 @@ fn repl_expression_with_bindings(expression: &str, value_bindings: &[ReplValueBi
 fn emit_repl_event(
     diagnostic_format: DiagnosticFormat,
     kind: &str,
-    fields: Option<&str>,
+    fields: &[ReplJsonField],
     text: &str,
 ) {
     match diagnostic_format {
@@ -1047,36 +1045,65 @@ fn emit_repl_event(
     }
 }
 
+/// Stores one optional JSON property for a structured REPL event.
+///
+/// Inputs:
+/// - `name`: stable event-field name.
+/// - `value`: JSON value to attach to the event.
+///
+/// Output:
+/// - Field record consumed by `render_repl_json_event`.
+///
+/// Transformation:
+/// - Keeps event field names and values paired so call sites do not assemble
+///   JSON object fragments by hand.
+#[derive(Clone, Debug)]
+struct ReplJsonField {
+    name: &'static str,
+    value: Value,
+}
+
+/// Creates one structured REPL JSON field.
+///
+/// Inputs:
+/// - `name`: stable field name for the REPL event schema.
+/// - `value`: value convertible into `serde_json::Value`.
+///
+/// Output:
+/// - A `ReplJsonField` containing the property name and serialized value.
+///
+/// Transformation:
+/// - Converts Rust strings, arrays, and scalar values into serde JSON values
+///   before rendering the event object.
+fn repl_json_field(name: &'static str, value: impl Into<Value>) -> ReplJsonField {
+    ReplJsonField {
+        name,
+        value: value.into(),
+    }
+}
+
 /// Renders one structured REPL event as a JSON object.
 ///
 /// Inputs:
 /// - `kind`: stable REPL event kind.
-/// - `fields`: optional pre-rendered JSON object fields without surrounding
-///   braces.
+/// - `fields`: optional structured JSON fields to include in the event.
 /// - `text`: human-readable event text.
 ///
 /// Output:
 /// - A single-line JSON object with schema, kind, optional fields, and text.
 ///
 /// Transformation:
-/// - Places optional fields between `kind` and `text` while preserving valid
-///   comma separation for empty and non-empty field payloads.
-fn render_repl_json_event(kind: &str, fields: Option<&str>, text: &str) -> String {
-    let payload = fields.filter(|value| !value.is_empty()).unwrap_or("");
-    if payload.is_empty() {
-        format!(
-            "{{\"schema\":\"terlan-repl-event-v1\",\"kind\":\"{}\",\"text\":{}}}",
-            kind,
-            json_string(text),
-        )
-    } else {
-        format!(
-            "{{\"schema\":\"terlan-repl-event-v1\",\"kind\":\"{}\",{},\"text\":{}}}",
-            kind,
-            payload,
-            json_string(text),
-        )
+/// - Builds the event through `serde_json` so escaping, array serialization,
+///   and object formatting are delegated to the JSON library.
+fn render_repl_json_event(kind: &str, fields: &[ReplJsonField], text: &str) -> String {
+    let mut event = Map::new();
+    event.insert("schema".to_string(), json!("terlan-repl-event-v1"));
+    event.insert("kind".to_string(), json!(kind));
+    for field in fields {
+        event.insert(field.name.to_string(), field.value.clone());
     }
+    event.insert("text".to_string(), json!(text));
+    serde_json::to_string(&Value::Object(event)).expect("serialize REPL JSON event")
 }
 
 /// Emits a successful REPL expression result.
@@ -1095,14 +1122,14 @@ fn emit_repl_result(diagnostic_format: DiagnosticFormat, value: &str) {
         emit_repl_event(
             diagnostic_format,
             "result",
-            Some("\"value\":\"Unit\""),
+            &[repl_json_field("value", "Unit")],
             "Unit",
         );
     } else {
         emit_repl_event(
             diagnostic_format,
             "result",
-            Some(&format!("\"value\":{}", json_string(value))),
+            &[repl_json_field("value", value)],
             value,
         );
     }

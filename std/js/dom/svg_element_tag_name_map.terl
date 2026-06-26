@@ -1,0 +1,207 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGElementTagNameMap
+ */
+
+module std.js.Dom.SVGElementTagNameMap.
+
+pub opaque type SVGElementTagNameMap.
+
+pub (value: SVGElementTagNameMap) a(): SVGAElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) animate(): SVGAnimateElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) animate_motion(): SVGAnimateMotionElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) animate_transform(): SVGAnimateTransformElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) circle(): SVGCircleElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) clip_path(): SVGClipPathElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) defs(): SVGDefsElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) desc(): SVGDescElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) ellipse(): SVGEllipseElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_blend(): SVGFEBlendElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_color_matrix(): SVGFEColorMatrixElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_component_transfer(): SVGFEComponentTransferElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_composite(): SVGFECompositeElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_convolve_matrix(): SVGFEConvolveMatrixElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_diffuse_lighting(): SVGFEDiffuseLightingElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_displacement_map(): SVGFEDisplacementMapElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_distant_light(): SVGFEDistantLightElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_drop_shadow(): SVGFEDropShadowElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_flood(): SVGFEFloodElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_func_a(): SVGFEFuncAElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_func_b(): SVGFEFuncBElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_func_g(): SVGFEFuncGElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_func_r(): SVGFEFuncRElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_gaussian_blur(): SVGFEGaussianBlurElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_image(): SVGFEImageElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_merge(): SVGFEMergeElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_merge_node(): SVGFEMergeNodeElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_morphology(): SVGFEMorphologyElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_offset(): SVGFEOffsetElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_point_light(): SVGFEPointLightElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_specular_lighting(): SVGFESpecularLightingElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_spot_light(): SVGFESpotLightElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_tile(): SVGFETileElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) fe_turbulence(): SVGFETurbulenceElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) filter(): SVGFilterElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) foreign_object(): SVGForeignObjectElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) g(): SVGGElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) image(): SVGImageElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) line(): SVGLineElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) linear_gradient(): SVGLinearGradientElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) marker(): SVGMarkerElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) mask(): SVGMaskElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) metadata(): SVGMetadataElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) mpath(): SVGMPathElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) path(): SVGPathElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) pattern(): SVGPatternElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) polygon(): SVGPolygonElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) polyline(): SVGPolylineElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) radial_gradient(): SVGRadialGradientElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) rect(): SVGRectElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) script(): SVGScriptElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) set(): SVGSetElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) stop(): SVGStopElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) style(): SVGStyleElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) svg(): SVGSVGElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) switch(): SVGSwitchElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) symbol(): SVGSymbolElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) text(): SVGTextElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) text_path(): SVGTextPathElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) title(): SVGTitleElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) tspan(): SVGTSpanElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) use(): SVGUseElement ->
+    native.
+
+pub (value: SVGElementTagNameMap) view(): SVGViewElement ->
+    native.

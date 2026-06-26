@@ -1,0 +1,80 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Cache
+ */
+
+module std.js.Dom.Cache.
+
+/**
+ * The **`Cache`** interface provides a persistent storage mechanism for Request / Response object pairs that are cached in long lived memory.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache)
+ */
+pub opaque type Cache.
+
+/**
+ * The **`add()`** method of the Cache interface takes a URL, retrieves it, and adds the resulting response object to the given cache.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/add)
+ */
+pub (value: Cache) add(request: RequestInfo | URL): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`addAll()`** method of the Cache interface takes an array of URLs, retrieves them, and adds the resulting response objects to the given cache.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/addAll)
+ */
+pub (value: Cache) add_all(requests: std.js.Array[RequestInfo]): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`delete()`** method of the Cache interface finds the Cache entry whose key is the request, and if found, deletes the Cache entry and returns a Promise that resolves to `true`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/delete)
+ */
+pub (value: Cache) delete(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[std.core.Bool] ->
+    native.
+
+/**
+ * The **`keys()`** method of the Cache interface returns a representing the keys of the Cache.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/keys)
+ */
+pub (value: Cache) keys(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[std.js.Array[Request]] ->
+    native.
+
+/**
+ * The **`match()`** method of the Cache interface returns a Promise that resolves to the Response associated with the first matching request in the Cache object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/match)
+ */
+pub (value: Cache) match(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[Option[Response]] ->
+    native.
+
+/**
+ * The **`matchAll()`** method of the Cache interface returns a Promise that resolves to an array of all matching responses in the Cache object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/matchAll)
+ */
+pub (value: Cache) match_all(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[std.js.Array[Response]] ->
+    native.
+
+/**
+ * The **`put()`** method of the Often, you will just want to Window/fetch one or more requests, then add the result straight to your cache.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/put)
+ */
+pub (value: Cache) put(request: RequestInfo | URL, response: Response): std.js.Promise[std.core.Unit] ->
+    native.

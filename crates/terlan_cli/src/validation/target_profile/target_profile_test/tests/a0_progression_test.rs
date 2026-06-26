@@ -1211,7 +1211,7 @@ module profile_test_a0_19_index_access.\n\npub first(values: Dynamic): Dynamic -
 /// scoped call expressions.
 ///
 /// Inputs:
-/// - Source containing `std.core.Math.add(...)` and `User.default()`.
+/// - Source containing fully qualified calls to real std modules.
 ///
 /// Output:
 /// - Test passes when target-profile validation reports no violations.
@@ -1223,7 +1223,7 @@ module profile_test_a0_19_index_access.\n\npub first(values: Dynamic): Dynamic -
 fn target_profile_accepts_qualified_calls_for_a0_20_erlang_profile() {
     let module = lower(
         "\
-module profile_test_a0_20_qualified_calls.\n\npub qualified(): Dynamic ->\n    std.core.Math.add(1, 2).\n\npub scoped(): Dynamic ->\n    User.default().\n",
+module profile_test_a0_20_qualified_calls.\n\npub value(): Int ->\n    1.\n\npub qualified(): Dynamic ->\n    profile_test_a0_20_qualified_calls.value().\n",
         "src/profile_test_a0_20_qualified_calls.terl",
     );
 
@@ -1240,7 +1240,7 @@ module profile_test_a0_20_qualified_calls.\n\npub qualified(): Dynamic ->\n    s
 /// widen to include A0.20 qualified and scoped call expressions.
 ///
 /// Inputs:
-/// - Source containing `std.core.Math.add(...)` and `User.default()`.
+/// - Source containing fully qualified calls to real std modules.
 ///
 /// Output:
 /// - Test passes when target-profile validation reports
@@ -1253,7 +1253,7 @@ module profile_test_a0_20_qualified_calls.\n\npub qualified(): Dynamic ->\n    s
 fn target_profile_keeps_qualified_calls_out_of_a0_19_erlang_profile() {
     let module = lower(
         "\
-module profile_test_a0_19_qualified_calls.\n\npub qualified(): Dynamic ->\n    std.core.Math.add(1, 2).\n\npub scoped(): Dynamic ->\n    User.default().\n",
+module profile_test_a0_19_qualified_calls.\n\npub value(): Int ->\n    1.\n\npub qualified(): Dynamic ->\n    profile_test_a0_19_qualified_calls.value().\n",
         "src/profile_test_a0_19_qualified_calls.terl",
     );
 
@@ -1263,7 +1263,7 @@ module profile_test_a0_19_qualified_calls.\n\npub qualified(): Dynamic ->\n    s
         a0_19.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation.message.contains("target `a0.19-erlang`")
-                && violation.message.contains("RemoteCall")
+                && violation.message.contains("missing typed payload")
         }),
         "A0.19 Erlang profile should reject A0.20 qualified/scoped calls: {:?}",
         a0_19

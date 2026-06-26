@@ -7,6 +7,7 @@ normal compilation depend on an external proof runner.
 ## Responsibilities
 
 - Build proof evidence from checked CoreIR modules.
+- Count CoreIR module metadata and proof-readiness buckets.
 - Keep module-level proof facts separate from lowering logic.
 - Preserve stable data shapes for future Lean or Aeneas integration.
 - Avoid backend-specific assumptions in proof metadata.
@@ -14,6 +15,7 @@ normal compilation depend on an external proof runner.
 ## Public Surface
 
 - `evidence`: proof evidence records.
+- `metadata`: CoreIR module metadata and proof-readiness counters.
 - `module_facts`: module-level facts derived from checked CoreIR.
 
 ## Core Model
@@ -50,6 +52,9 @@ Important invariants:
 
 `evidence`
 : Evidence values derived from CoreIR and typechecking.
+
+`metadata`
+: Module metadata counters and readiness derivation used by CoreIR summaries.
 
 `module_facts`
 : Per-module facts used by proof and conformance checks.

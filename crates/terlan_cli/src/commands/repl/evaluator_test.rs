@@ -114,6 +114,49 @@ fn evaluator_supports_is_type_for_implicit_type_value() {
     assert_eq!(value.render(), "true");
 }
 
+/// Verifies anonymous functions evaluate to opaque REPL function values.
+///
+/// Inputs:
+/// - Source module returning one lambda expression.
+///
+/// Output:
+/// - Test assertion for the REPL-facing rendered function value.
+///
+/// Transformation:
+/// - Compiles the lambda through CoreIR and evaluates it as a captured closure
+///   without invoking a target runtime.
+#[test]
+fn evaluator_renders_lambda_as_function_value() {
+    let core = compile_core("module repl_test.\n\npub run(): Dynamic ->\n    (x) -> x + x.\n");
+
+    let value = evaluate_repl_function(&core, "run").expect("evaluate");
+
+    assert_eq!(value.render(), "<function>");
+    assert_eq!(type_of_value(&value), "Function");
+}
+
+/// Verifies function-value invocation applies captured lambda values.
+///
+/// Inputs:
+/// - Source module invoking an inline lambda through `f.(10)`-style function
+///   value syntax.
+///
+/// Output:
+/// - Test assertion for the evaluated function-call result.
+///
+/// Transformation:
+/// - Exercises CoreIR `Lam` and `FunctionCall` together so the REPL can
+///   evaluate first-class functions without BEAM execution.
+#[test]
+fn evaluator_applies_lambda_function_value_call() {
+    let core =
+        compile_core("module repl_test.\n\npub run(): Dynamic ->\n    ((x) -> x + x).(10).\n");
+
+    let value = evaluate_repl_function(&core, "run").expect("evaluate");
+
+    assert_eq!(value, ReplValue::Int(20));
+}
+
 /// Compiles a test module into CoreIR for evaluator assertions.
 ///
 /// Inputs:

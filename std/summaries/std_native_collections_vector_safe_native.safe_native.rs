@@ -14,6 +14,7 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
     ("new", 0),
     ("from_list", 1),
     ("length", 1),
+    ("len", 1),
     ("get_at", 2),
     ("set_at", 3),
     ("swap", 3),
@@ -25,6 +26,7 @@ pub const OPERATIONS: &[(&str, &str, usize)] = &[
     ("new", "std.native.collections.vector.new", 0),
     ("from_list", "std.native.collections.vector.from_list", 1),
     ("length", "std.native.collections.vector.length", 1),
+    ("len", "std.native.collections.vector.length", 1),
     ("get_at", "std.native.collections.vector.get_at", 2),
     ("set_at", "std.native.collections.vector.set_at", 3),
     ("swap", "std.native.collections.vector.swap", 3),
@@ -159,6 +161,7 @@ fn worker_loop(rx: Receiver<SafeNativeCommand>, credit_window: usize) {
                     Ok(()) => match operation {
                         "std.native.collections.vector.new" => native_unimplemented_operation(operation),
                         "std.native.collections.vector.from_list" => native_unimplemented_operation(operation),
+                        "std.native.collections.vector.length" => native_unimplemented_operation(operation),
                         "std.native.collections.vector.length" => native_unimplemented_operation(operation),
                         "std.native.collections.vector.get_at" => native_unimplemented_operation(operation),
                         "std.native.collections.vector.set_at" => native_unimplemented_operation(operation),

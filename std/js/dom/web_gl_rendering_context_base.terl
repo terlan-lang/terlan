@@ -1,0 +1,696 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WebGLRenderingContextBase
+ */
+
+module std.js.Dom.WebGLRenderingContextBase.
+
+pub opaque type WebGLRenderingContextBase.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/canvas)
+ */
+pub (value: WebGLRenderingContextBase) canvas(): HTMLCanvasElement | OffscreenCanvas ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/drawingBufferColorSpace)
+ */
+pub (value: WebGLRenderingContextBase) drawing_buffer_color_space(): PredefinedColorSpace ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/drawingBufferHeight)
+ */
+pub (value: WebGLRenderingContextBase) drawing_buffer_height(): GLsizei ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/drawingBufferWidth)
+ */
+pub (value: WebGLRenderingContextBase) drawing_buffer_width(): GLsizei ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/unpackColorSpace)
+ */
+pub (value: WebGLRenderingContextBase) unpack_color_space(): PredefinedColorSpace ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/activeTexture)
+ */
+pub (value: WebGLRenderingContextBase) active_texture(texture: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/attachShader)
+ */
+pub (value: WebGLRenderingContextBase) attach_shader(program: WebGLProgram, shader: WebGLShader): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bindAttribLocation)
+ */
+pub (value: WebGLRenderingContextBase) bind_attrib_location(program: WebGLProgram, index: GLuint, name: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bindBuffer)
+ */
+pub (value: WebGLRenderingContextBase) bind_buffer(target_: GLenum, buffer: Option[WebGLBuffer]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bindFramebuffer)
+ */
+pub (value: WebGLRenderingContextBase) bind_framebuffer(target_: GLenum, framebuffer: Option[WebGLFramebuffer]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bindRenderbuffer)
+ */
+pub (value: WebGLRenderingContextBase) bind_renderbuffer(target_: GLenum, renderbuffer: Option[WebGLRenderbuffer]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bindTexture)
+ */
+pub (value: WebGLRenderingContextBase) bind_texture(target_: GLenum, texture: Option[WebGLTexture]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/blendColor)
+ */
+pub (value: WebGLRenderingContextBase) blend_color(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/blendEquation)
+ */
+pub (value: WebGLRenderingContextBase) blend_equation(mode: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/blendEquationSeparate)
+ */
+pub (value: WebGLRenderingContextBase) blend_equation_separate(mode_rgb: GLenum, mode_alpha: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/blendFunc)
+ */
+pub (value: WebGLRenderingContextBase) blend_func(sfactor: GLenum, dfactor: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/blendFuncSeparate)
+ */
+pub (value: WebGLRenderingContextBase) blend_func_separate(src_rgb: GLenum, dst_rgb: GLenum, src_alpha: GLenum, dst_alpha: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/checkFramebufferStatus)
+ */
+pub (value: WebGLRenderingContextBase) check_framebuffer_status(target_: GLenum): GLenum ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/clear)
+ */
+pub (value: WebGLRenderingContextBase) clear(mask: GLbitfield): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/clearColor)
+ */
+pub (value: WebGLRenderingContextBase) clear_color(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/clearDepth)
+ */
+pub (value: WebGLRenderingContextBase) clear_depth(depth: GLclampf): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/clearStencil)
+ */
+pub (value: WebGLRenderingContextBase) clear_stencil(s: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/colorMask)
+ */
+pub (value: WebGLRenderingContextBase) color_mask(red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/compileShader)
+ */
+pub (value: WebGLRenderingContextBase) compile_shader(shader: WebGLShader): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/copyTexImage2D)
+ */
+pub (value: WebGLRenderingContextBase) copy_tex_image2_d(target_: GLenum, level: GLint, internalformat: GLenum, x: GLint, y: GLint, width: GLsizei, height: GLsizei, border: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/copyTexSubImage2D)
+ */
+pub (value: WebGLRenderingContextBase) copy_tex_sub_image2_d(target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/createBuffer)
+ */
+pub (value: WebGLRenderingContextBase) create_buffer(): WebGLBuffer ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/createFramebuffer)
+ */
+pub (value: WebGLRenderingContextBase) create_framebuffer(): WebGLFramebuffer ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/createProgram)
+ */
+pub (value: WebGLRenderingContextBase) create_program(): WebGLProgram ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/createRenderbuffer)
+ */
+pub (value: WebGLRenderingContextBase) create_renderbuffer(): WebGLRenderbuffer ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/createShader)
+ */
+pub (value: WebGLRenderingContextBase) create_shader(type_: GLenum): Option[WebGLShader] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/createTexture)
+ */
+pub (value: WebGLRenderingContextBase) create_texture(): WebGLTexture ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/cullFace)
+ */
+pub (value: WebGLRenderingContextBase) cull_face(mode: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/deleteBuffer)
+ */
+pub (value: WebGLRenderingContextBase) delete_buffer(buffer: Option[WebGLBuffer]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/deleteFramebuffer)
+ */
+pub (value: WebGLRenderingContextBase) delete_framebuffer(framebuffer: Option[WebGLFramebuffer]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/deleteProgram)
+ */
+pub (value: WebGLRenderingContextBase) delete_program(program: Option[WebGLProgram]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/deleteRenderbuffer)
+ */
+pub (value: WebGLRenderingContextBase) delete_renderbuffer(renderbuffer: Option[WebGLRenderbuffer]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/deleteShader)
+ */
+pub (value: WebGLRenderingContextBase) delete_shader(shader: Option[WebGLShader]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/deleteTexture)
+ */
+pub (value: WebGLRenderingContextBase) delete_texture(texture: Option[WebGLTexture]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/depthFunc)
+ */
+pub (value: WebGLRenderingContextBase) depth_func(func: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/depthMask)
+ */
+pub (value: WebGLRenderingContextBase) depth_mask(flag: GLboolean): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/depthRange)
+ */
+pub (value: WebGLRenderingContextBase) depth_range(z_near: GLclampf, z_far: GLclampf): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/detachShader)
+ */
+pub (value: WebGLRenderingContextBase) detach_shader(program: WebGLProgram, shader: WebGLShader): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/disable)
+ */
+pub (value: WebGLRenderingContextBase) disable(cap: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/disableVertexAttribArray)
+ */
+pub (value: WebGLRenderingContextBase) disable_vertex_attrib_array(index: GLuint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/drawArrays)
+ */
+pub (value: WebGLRenderingContextBase) draw_arrays(mode: GLenum, first: GLint, count: GLsizei): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/drawElements)
+ */
+pub (value: WebGLRenderingContextBase) draw_elements(mode: GLenum, count: GLsizei, type_: GLenum, offset: GLintptr): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/enable)
+ */
+pub (value: WebGLRenderingContextBase) enable(cap: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/enableVertexAttribArray)
+ */
+pub (value: WebGLRenderingContextBase) enable_vertex_attrib_array(index: GLuint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/finish)
+ */
+pub (value: WebGLRenderingContextBase) finish(): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/flush)
+ */
+pub (value: WebGLRenderingContextBase) flush(): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/framebufferRenderbuffer)
+ */
+pub (value: WebGLRenderingContextBase) framebuffer_renderbuffer(target_: GLenum, attachment: GLenum, renderbuffertarget: GLenum, renderbuffer: Option[WebGLRenderbuffer]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/framebufferTexture2D)
+ */
+pub (value: WebGLRenderingContextBase) framebuffer_texture2_d(target_: GLenum, attachment: GLenum, textarget: GLenum, texture: Option[WebGLTexture], level: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/frontFace)
+ */
+pub (value: WebGLRenderingContextBase) front_face(mode: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/generateMipmap)
+ */
+pub (value: WebGLRenderingContextBase) generate_mipmap(target_: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getActiveAttrib)
+ */
+pub (value: WebGLRenderingContextBase) get_active_attrib(program: WebGLProgram, index: GLuint): Option[WebGLActiveInfo] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getActiveUniform)
+ */
+pub (value: WebGLRenderingContextBase) get_active_uniform(program: WebGLProgram, index: GLuint): Option[WebGLActiveInfo] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getAttachedShaders)
+ */
+pub (value: WebGLRenderingContextBase) get_attached_shaders(program: WebGLProgram): Option[std.js.Array[WebGLShader]] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getAttribLocation)
+ */
+pub (value: WebGLRenderingContextBase) get_attrib_location(program: WebGLProgram, name: std.js.String.JsString): GLint ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getContextAttributes)
+ */
+pub (value: WebGLRenderingContextBase) get_context_attributes(): Option[WebGLContextAttributes] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getError)
+ */
+pub (value: WebGLRenderingContextBase) get_error(): GLenum ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getProgramInfoLog)
+ */
+pub (value: WebGLRenderingContextBase) get_program_info_log(program: WebGLProgram): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getShaderInfoLog)
+ */
+pub (value: WebGLRenderingContextBase) get_shader_info_log(shader: WebGLShader): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getShaderPrecisionFormat)
+ */
+pub (value: WebGLRenderingContextBase) get_shader_precision_format(shadertype: GLenum, precisiontype: GLenum): Option[WebGLShaderPrecisionFormat] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getShaderSource)
+ */
+pub (value: WebGLRenderingContextBase) get_shader_source(shader: WebGLShader): Option[std.js.String.JsString] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getSupportedExtensions)
+ */
+pub (value: WebGLRenderingContextBase) get_supported_extensions(): Option[std.js.Array[std.js.String.JsString]] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getUniformLocation)
+ */
+pub (value: WebGLRenderingContextBase) get_uniform_location(program: WebGLProgram, name: std.js.String.JsString): Option[WebGLUniformLocation] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getVertexAttribOffset)
+ */
+pub (value: WebGLRenderingContextBase) get_vertex_attrib_offset(index: GLuint, pname: GLenum): GLintptr ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/hint)
+ */
+pub (value: WebGLRenderingContextBase) hint(target_: GLenum, mode: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isBuffer)
+ */
+pub (value: WebGLRenderingContextBase) is_buffer(buffer: Option[WebGLBuffer]): GLboolean ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isContextLost)
+ */
+pub (value: WebGLRenderingContextBase) is_context_lost(): std.core.Bool ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isEnabled)
+ */
+pub (value: WebGLRenderingContextBase) is_enabled(cap: GLenum): GLboolean ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isFramebuffer)
+ */
+pub (value: WebGLRenderingContextBase) is_framebuffer(framebuffer: Option[WebGLFramebuffer]): GLboolean ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isProgram)
+ */
+pub (value: WebGLRenderingContextBase) is_program(program: Option[WebGLProgram]): GLboolean ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isRenderbuffer)
+ */
+pub (value: WebGLRenderingContextBase) is_renderbuffer(renderbuffer: Option[WebGLRenderbuffer]): GLboolean ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isShader)
+ */
+pub (value: WebGLRenderingContextBase) is_shader(shader: Option[WebGLShader]): GLboolean ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/isTexture)
+ */
+pub (value: WebGLRenderingContextBase) is_texture(texture: Option[WebGLTexture]): GLboolean ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/lineWidth)
+ */
+pub (value: WebGLRenderingContextBase) line_width(width: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/linkProgram)
+ */
+pub (value: WebGLRenderingContextBase) link_program(program: WebGLProgram): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/pixelStorei)
+ */
+pub (value: WebGLRenderingContextBase) pixel_storei(pname: GLenum, param: GLboolean | GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/polygonOffset)
+ */
+pub (value: WebGLRenderingContextBase) polygon_offset(factor: GLfloat, units: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/renderbufferStorage)
+ */
+pub (value: WebGLRenderingContextBase) renderbuffer_storage(target_: GLenum, internalformat: GLenum, width: GLsizei, height: GLsizei): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/sampleCoverage)
+ */
+pub (value: WebGLRenderingContextBase) sample_coverage(value: GLclampf, invert: GLboolean): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/scissor)
+ */
+pub (value: WebGLRenderingContextBase) scissor(x: GLint, y: GLint, width: GLsizei, height: GLsizei): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/shaderSource)
+ */
+pub (value: WebGLRenderingContextBase) shader_source(shader: WebGLShader, source: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/stencilFunc)
+ */
+pub (value: WebGLRenderingContextBase) stencil_func(func: GLenum, ref: GLint, mask: GLuint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/stencilFuncSeparate)
+ */
+pub (value: WebGLRenderingContextBase) stencil_func_separate(face: GLenum, func: GLenum, ref: GLint, mask: GLuint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/stencilMask)
+ */
+pub (value: WebGLRenderingContextBase) stencil_mask(mask: GLuint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/stencilMaskSeparate)
+ */
+pub (value: WebGLRenderingContextBase) stencil_mask_separate(face: GLenum, mask: GLuint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/stencilOp)
+ */
+pub (value: WebGLRenderingContextBase) stencil_op(fail: GLenum, zfail: GLenum, zpass: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/stencilOpSeparate)
+ */
+pub (value: WebGLRenderingContextBase) stencil_op_separate(face: GLenum, fail: GLenum, zfail: GLenum, zpass: GLenum): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/texParameter)
+ */
+pub (value: WebGLRenderingContextBase) tex_parameterf(target_: GLenum, pname: GLenum, param: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/texParameter)
+ */
+pub (value: WebGLRenderingContextBase) tex_parameteri(target_: GLenum, pname: GLenum, param: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform1f(location: Option[WebGLUniformLocation], x: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform1i(location: Option[WebGLUniformLocation], x: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform2f(location: Option[WebGLUniformLocation], x: GLfloat, y: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform2i(location: Option[WebGLUniformLocation], x: GLint, y: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform3f(location: Option[WebGLUniformLocation], x: GLfloat, y: GLfloat, z: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform3i(location: Option[WebGLUniformLocation], x: GLint, y: GLint, z: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform4f(location: Option[WebGLUniformLocation], x: GLfloat, y: GLfloat, z: GLfloat, w: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (value: WebGLRenderingContextBase) uniform4i(location: Option[WebGLUniformLocation], x: GLint, y: GLint, z: GLint, w: GLint): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/useProgram)
+ */
+pub (value: WebGLRenderingContextBase) use_program(program: Option[WebGLProgram]): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/validateProgram)
+ */
+pub (value: WebGLRenderingContextBase) validate_program(program: WebGLProgram): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib1f(index: GLuint, x: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib1fv(index: GLuint, values: Float32List): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib2f(index: GLuint, x: GLfloat, y: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib2fv(index: GLuint, values: Float32List): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib3f(index: GLuint, x: GLfloat, y: GLfloat, z: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib3fv(index: GLuint, values: Float32List): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib4f(index: GLuint, x: GLfloat, y: GLfloat, z: GLfloat, w: GLfloat): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib4fv(index: GLuint, values: Float32List): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttribPointer)
+ */
+pub (value: WebGLRenderingContextBase) vertex_attrib_pointer(index: GLuint, size: GLint, type_: GLenum, normalized: GLboolean, stride: GLsizei, offset: GLintptr): std.core.Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/viewport)
+ */
+pub (value: WebGLRenderingContextBase) viewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei): std.core.Unit ->
+    native.

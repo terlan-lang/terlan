@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
+use super::wasm_model::{BuildWasiTargetMetadata, BuildWasmTargetMetadata};
 use super::{
     package_layout::source_package_module_prefix, project_manifest, BUILD_PACKAGE_METADATA_SCHEMA,
 };
@@ -72,6 +73,12 @@ pub(super) struct BuildPackageMetadata {
     pub(super) source_roots: Vec<String>,
     pub(super) dependencies: Vec<BuildPackageDependency>,
     pub(super) adapters: Vec<BuildPackageAdapter>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) wasm: Option<BuildWasmTargetMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) wasi: Option<BuildWasiTargetMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) native: Option<BuildPackageNative>,
 }
 
 /// Serializable package identity inside build metadata.
@@ -174,6 +181,70 @@ pub(super) struct BuildPackageAdapter {
     pub(super) adapter: String,
 }
 
+/// Serializable native runtime metadata inside build metadata.
+///
+/// Inputs:
+/// - Produced from manifest native adapter declarations.
+///
+/// Output:
+/// - Optional native-helper discovery metadata for package consumers.
+///
+/// Transformation:
+/// - Separates native runtime metadata from dependency and adapter metadata so
+///   package tools can find helper executables without inferring Cargo layout.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(super) struct BuildPackageNative {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) rust: Option<BuildPackageRustNative>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) rust_dependencies: Vec<BuildPackageRustNativeDependency>,
+}
+
+/// Serializable Rust native helper metadata.
+///
+/// Inputs:
+/// - Produced from `[native.rust]`.
+///
+/// Output:
+/// - Stable crate path, helper executable name, and environment variable name.
+///
+/// Transformation:
+/// - Copies parsed manifest fields into the package metadata schema without
+///   invoking Cargo or resolving host-specific binary paths.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(super) struct BuildPackageRustNative {
+    #[serde(rename = "crate")]
+    pub(super) crate_name: String,
+    pub(super) path: String,
+    pub(super) helper: String,
+    pub(super) helper_env: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) features: Vec<String>,
+    pub(super) package_dir: String,
+}
+
+/// Serializable Rust native helper metadata for a local dependency.
+///
+/// Inputs:
+/// - Produced from resolved local path dependency manifests that declare
+///   `[native.rust]`.
+///
+/// Output:
+/// - Stable dependency package identity plus helper metadata in the root
+///   package build artifact.
+///
+/// Transformation:
+/// - Carries enough package-directory context for `terlc run` to discover
+///   already-built helper executables without reparsing dependency manifests.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(super) struct BuildPackageRustNativeDependency {
+    pub(super) package: String,
+    pub(super) version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) namespace: Option<String>,
+    pub(super) rust: BuildPackageRustNative,
+}
+
 /// Resolved project package build roots.
 ///
 /// Inputs:
@@ -189,6 +260,7 @@ pub(super) struct BuildPackageAdapter {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct ProjectBuildRoots {
     pub(super) source_roots: Vec<ProjectSourceRoot>,
+    pub(super) native_rust_dependencies: Vec<ProjectNativeRustDependency>,
 }
 
 /// Resolved source root with package identity.
@@ -207,6 +279,25 @@ pub(super) struct ProjectBuildRoots {
 pub(super) struct ProjectSourceRoot {
     pub(super) path: PathBuf,
     pub(super) package_path: Vec<String>,
+}
+
+/// Resolved Rust native helper metadata for a local dependency package.
+///
+/// Inputs:
+/// - Produced during local dependency source-root resolution.
+///
+/// Output:
+/// - Dependency package identity and helper discovery metadata.
+///
+/// Transformation:
+/// - Stores canonical package-directory context alongside parsed native Rust
+///   metadata so package build metadata can be generated without another
+///   dependency traversal.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct ProjectNativeRustDependency {
+    pub(super) package: project_manifest::ProjectPackage,
+    pub(super) package_dir: PathBuf,
+    pub(super) native: project_manifest::ProjectNativeRust,
 }
 
 /// Serializable debug metadata for one compiled module.
@@ -300,7 +391,9 @@ pub(super) struct BuildEntrypoint {
 /// - Copies validated package fields and converts dependency enum variants to a
 ///   sorted, string-keyed metadata schema without resolving external packages.
 pub(super) fn build_package_metadata(
+    project_dir: &std::path::Path,
     manifest: &project_manifest::ProjectManifest,
+    native_rust_dependencies: &[ProjectNativeRustDependency],
 ) -> BuildPackageMetadata {
     let mut dependencies = manifest
         .dependencies
@@ -339,7 +432,62 @@ pub(super) fn build_package_metadata(
         source_roots: manifest.source_roots.clone(),
         dependencies,
         adapters: build_package_adapter_metadata(manifest),
+        wasm: build_wasm_target_metadata(manifest),
+        wasi: build_wasi_target_metadata(manifest),
+        native: build_package_native_metadata(project_dir, manifest, native_rust_dependencies),
     }
+}
+
+/// Builds deterministic Wasm target metadata.
+///
+/// Inputs:
+/// - Parsed project manifest.
+///
+/// Output:
+/// - Optional Wasm package metadata when `[target.wasm]` is present.
+///
+/// Transformation:
+/// - Copies reserved Wasm manifest fields into the package metadata schema
+///   without selecting an engine or emitting a module.
+fn build_wasm_target_metadata(
+    manifest: &project_manifest::ProjectManifest,
+) -> Option<BuildWasmTargetMetadata> {
+    manifest
+        .wasm_target
+        .as_ref()
+        .map(|target| BuildWasmTargetMetadata {
+            profile: target.profile.as_str().to_string(),
+            exports: target.exports.clone(),
+            bridge: target.bridge.clone(),
+            capabilities: target.capabilities.clone(),
+            world: target.world.clone(),
+            validation_engine: target.validation_engine.clone(),
+        })
+}
+
+/// Builds deterministic WASI target metadata.
+///
+/// Inputs:
+/// - Parsed project manifest.
+///
+/// Output:
+/// - Optional WASI package metadata when `[target.wasi]` is present.
+///
+/// Transformation:
+/// - Copies reserved WASI manifest fields into the package metadata schema
+///   without selecting an engine or emitting a component.
+fn build_wasi_target_metadata(
+    manifest: &project_manifest::ProjectManifest,
+) -> Option<BuildWasiTargetMetadata> {
+    manifest
+        .wasi_target
+        .as_ref()
+        .map(|target| BuildWasiTargetMetadata {
+            profile: target.profile.as_str().to_string(),
+            world: target.world.clone(),
+            capabilities: target.capabilities.clone(),
+            validation_engine: target.validation_engine.clone(),
+        })
 }
 
 /// Builds deterministic executable artifact metadata when the artifact is runnable.
@@ -368,7 +516,13 @@ fn build_package_executable_metadata(
                 arity: 0,
             },
         }),
-        project_manifest::ProjectArtifactKind::Library => None,
+        project_manifest::ProjectArtifactKind::Library
+        | project_manifest::ProjectArtifactKind::WasmCore
+        | project_manifest::ProjectArtifactKind::WasmBrowser
+        | project_manifest::ProjectArtifactKind::WasmComponent
+        | project_manifest::ProjectArtifactKind::WasiCli
+        | project_manifest::ProjectArtifactKind::WasiHttp
+        | project_manifest::ProjectArtifactKind::WasiWorker => None,
     }
 }
 
@@ -394,6 +548,82 @@ fn build_package_adapter_metadata(
         })
         .into_iter()
         .collect()
+}
+
+/// Builds deterministic native runtime metadata.
+///
+/// Inputs:
+/// - `manifest`: parsed root project manifest.
+///
+/// Output:
+/// - Optional native metadata when `[native.rust]` is declared.
+///
+/// Transformation:
+/// - Converts the parsed helper contract into the JSON schema consumed by
+///   package build and runtime tooling.
+fn build_package_native_metadata(
+    project_dir: &std::path::Path,
+    manifest: &project_manifest::ProjectManifest,
+    native_rust_dependencies: &[ProjectNativeRustDependency],
+) -> Option<BuildPackageNative> {
+    let rust = manifest
+        .native_rust
+        .as_ref()
+        .map(|native| build_package_rust_native(project_dir, native));
+    let mut rust_dependencies = native_rust_dependencies
+        .iter()
+        .map(|dependency| BuildPackageRustNativeDependency {
+            package: dependency.package.name.clone(),
+            version: dependency.package.version.clone(),
+            namespace: dependency.package.namespace.clone(),
+            rust: build_package_rust_native(&dependency.package_dir, &dependency.native),
+        })
+        .collect::<Vec<_>>();
+    rust_dependencies.sort_by(|left, right| {
+        (
+            left.package.as_str(),
+            left.version.as_str(),
+            left.namespace.as_deref().unwrap_or(""),
+            left.rust.helper_env.as_str(),
+        )
+            .cmp(&(
+                right.package.as_str(),
+                right.version.as_str(),
+                right.namespace.as_deref().unwrap_or(""),
+                right.rust.helper_env.as_str(),
+            ))
+    });
+
+    (rust.is_some() || !rust_dependencies.is_empty()).then_some(BuildPackageNative {
+        rust,
+        rust_dependencies,
+    })
+}
+
+/// Converts parsed Rust native metadata into package build metadata.
+///
+/// Inputs:
+/// - `package_dir`: canonical or user-selected package directory.
+/// - `native`: parsed `[native.rust]` manifest metadata.
+///
+/// Output:
+/// - Serializable helper metadata including package-directory context.
+///
+/// Transformation:
+/// - Copies native helper fields and records the package directory used as the
+///   base for helper executable discovery.
+fn build_package_rust_native(
+    package_dir: &std::path::Path,
+    native: &project_manifest::ProjectNativeRust,
+) -> BuildPackageRustNative {
+    BuildPackageRustNative {
+        crate_name: native.crate_name.clone(),
+        path: native.path.clone(),
+        helper: native.helper.clone(),
+        helper_env: native.helper_env.clone(),
+        features: native.features.clone(),
+        package_dir: package_dir.display().to_string(),
+    }
 }
 
 /// Builds one deterministic dependency metadata entry.

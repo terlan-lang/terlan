@@ -1,0 +1,8 @@
+module=std.js.Dom.AudioDecoderEventMap
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=17962160935112883237
+interface_hash=6561404129553166624
+interface_doc_hash=6561404129553166624
+deps=0

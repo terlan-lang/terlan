@@ -1,9 +1,9 @@
 module=std.beam.Task
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 source_hash=15103674925541277417
-interface_hash=16759335246597030805
+interface_hash=12999766991694869508
 interface_doc_hash=7559999817052195739
 deps=3
 std.core.Error=9899337511333859675

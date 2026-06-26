@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Terlan">
+  <defs>
+    <linearGradient id="terlan-extension-bg" x1="18" y1="12" x2="110" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1677ff"/>
+      <stop offset="0.48" stop-color="#075df2"/>
+      <stop offset="1" stop-color="#003bc7"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="12" width="96" height="104" rx="14" fill="url(#terlan-extension-bg)"/>
+  <g fill="#fff">
+    <path d="M34 32h68L92 48H24l10-16z"/>
+    <path d="M44 56h46L80 72H34l10-16z"/>
+    <path d="M44 80h34L68 96H34l10-16z"/>
+  </g>
+</svg>

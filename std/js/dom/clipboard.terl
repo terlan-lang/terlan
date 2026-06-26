@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Clipboard
+ */
+
+module std.js.Dom.Clipboard.
+
+/**
+ * The **`Clipboard`** interface of the Clipboard API provides read and write access to the contents of the system clipboard.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard)
+ */
+pub opaque type Clipboard.
+
+/**
+ * The **`read()`** method of the Clipboard interface requests a copy of the clipboard's contents, fulfilling the returned Promise with the data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/read)
+ */
+pub (value: Clipboard) read(): std.js.Promise[ClipboardItems] ->
+    native.
+
+/**
+ * The **`readText()`** method of the Clipboard interface returns a Promise which fulfills with a copy of the textual contents of the system clipboard.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/readText)
+ */
+pub (value: Clipboard) read_text(): std.js.Promise[std.js.String.JsString] ->
+    native.
+
+/**
+ * The **`write()`** method of the Clipboard interface writes arbitrary ClipboardItem data such as images and text to the clipboard, fulfilling the returned Promise on completion.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/write)
+ */
+pub (value: Clipboard) write(data: ClipboardItems): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`writeText()`** method of the Clipboard interface writes the specified text to the system clipboard, returning a Promise that is resolved once the system clipboard has been updated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/writeText)
+ */
+pub (value: Clipboard) write_text(data: std.js.String.JsString): std.js.Promise[std.core.Unit] ->
+    native.

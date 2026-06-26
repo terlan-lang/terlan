@@ -1,0 +1,298 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Document
+ */
+
+module std.js.Dom.DocumentTest.
+
+import type std.js.Dom.Document.Document.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub url_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.url().
+
+pub alink_color_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.alink_color().
+
+pub all_typechecks(receiver: Document): HTMLAllCollection ->
+    receiver.all().
+
+pub anchors_typechecks(receiver: Document): HTMLCollectionOf[HTMLAnchorElement] ->
+    receiver.anchors().
+
+pub applets_typechecks(receiver: Document): HTMLCollection ->
+    receiver.applets().
+
+pub bg_color_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.bg_color().
+
+pub body_typechecks(receiver: Document): HTMLElement ->
+    receiver.body().
+
+pub character_set_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.character_set().
+
+pub charset_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.charset().
+
+pub compat_mode_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.compat_mode().
+
+pub content_type_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.content_type().
+
+pub cookie_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.cookie().
+
+pub current_script_typechecks(receiver: Document): Option[HTMLOrSVGScriptElement] ->
+    receiver.current_script().
+
+pub design_mode_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.design_mode().
+
+pub dir_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.dir().
+
+pub doctype_typechecks(receiver: Document): Option[DocumentType] ->
+    receiver.doctype().
+
+pub document_element_typechecks(receiver: Document): HTMLElement ->
+    receiver.document_element().
+
+pub document_uri_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.document_uri().
+
+pub domain_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.domain().
+
+pub embeds_typechecks(receiver: Document): HTMLCollectionOf[HTMLEmbedElement] ->
+    receiver.embeds().
+
+pub fg_color_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.fg_color().
+
+pub forms_typechecks(receiver: Document): HTMLCollectionOf[HTMLFormElement] ->
+    receiver.forms().
+
+pub fragment_directive_typechecks(receiver: Document): FragmentDirective ->
+    receiver.fragment_directive().
+
+pub fullscreen_typechecks(receiver: Document): std.core.Bool ->
+    receiver.fullscreen().
+
+pub fullscreen_enabled_typechecks(receiver: Document): std.core.Bool ->
+    receiver.fullscreen_enabled().
+
+pub head_typechecks(receiver: Document): HTMLHeadElement ->
+    receiver.head().
+
+pub hidden_typechecks(receiver: Document): std.core.Bool ->
+    receiver.hidden().
+
+pub images_typechecks(receiver: Document): HTMLCollectionOf[HTMLImageElement] ->
+    receiver.images().
+
+pub implementation_typechecks(receiver: Document): DOMImplementation ->
+    receiver.implementation().
+
+pub input_encoding_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.input_encoding().
+
+pub last_modified_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.last_modified().
+
+pub link_color_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.link_color().
+
+pub links_typechecks(receiver: Document): HTMLCollectionOf[HTMLAnchorElement | HTMLAreaElement] ->
+    receiver.links().
+
+pub location_typechecks(receiver: Document): Location ->
+    receiver.location().
+
+pub picture_in_picture_enabled_typechecks(receiver: Document): std.core.Bool ->
+    receiver.picture_in_picture_enabled().
+
+pub plugins_typechecks(receiver: Document): HTMLCollectionOf[HTMLEmbedElement] ->
+    receiver.plugins().
+
+pub ready_state_typechecks(receiver: Document): DocumentReadyState ->
+    receiver.ready_state().
+
+pub referrer_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.referrer().
+
+pub root_element_typechecks(receiver: Document): Option[SVGSVGElement] ->
+    receiver.root_element().
+
+pub scripts_typechecks(receiver: Document): HTMLCollectionOf[HTMLScriptElement] ->
+    receiver.scripts().
+
+pub scrolling_element_typechecks(receiver: Document): Option[Element] ->
+    receiver.scrolling_element().
+
+pub timeline_typechecks(receiver: Document): DocumentTimeline ->
+    receiver.timeline().
+
+pub title_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.title().
+
+pub visibility_state_typechecks(receiver: Document): DocumentVisibilityState ->
+    receiver.visibility_state().
+
+pub vlink_color_typechecks(receiver: Document): std.js.String.JsString ->
+    receiver.vlink_color().
+
+pub adopt_node_typechecks(receiver: Document, node: T): T ->
+    receiver.adopt_node(node).
+
+pub capture_events_typechecks(receiver: Document): std.core.Unit ->
+    receiver.capture_events().
+
+pub caret_position_from_point_typechecks(receiver: Document, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, options: CaretPositionFromPointOptions): Option[CaretPosition] ->
+    receiver.caret_position_from_point(x, y, options).
+
+pub caret_range_from_point_typechecks(receiver: Document, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): Option[Range] ->
+    receiver.caret_range_from_point(x, y).
+
+pub clear_typechecks(receiver: Document): std.core.Unit ->
+    receiver.clear().
+
+pub close_typechecks(receiver: Document): std.core.Unit ->
+    receiver.close().
+
+pub create_attribute_typechecks(receiver: Document, local_name: std.js.String.JsString): Attr ->
+    receiver.create_attribute(local_name).
+
+pub create_attribute_ns_typechecks(receiver: Document, namespace: Option[std.js.String.JsString], qualified_name: std.js.String.JsString): Attr ->
+    receiver.create_attribute_ns(namespace, qualified_name).
+
+pub create_cdata_section_typechecks(receiver: Document, data: std.js.String.JsString): CDATASection ->
+    receiver.create_cdata_section(data).
+
+pub create_comment_typechecks(receiver: Document, data: std.js.String.JsString): Comment ->
+    receiver.create_comment(data).
+
+pub create_document_fragment_typechecks(receiver: Document): DocumentFragment ->
+    receiver.create_document_fragment().
+
+pub create_element_typechecks(receiver: Document, tag_name: std.js.String.JsString, options: ElementCreationOptions): HTMLElement ->
+    receiver.create_element(tag_name, options).
+
+pub create_element_ns_typechecks(receiver: Document, namespace_uri: Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: ElementCreationOptions): Element ->
+    receiver.create_element_ns(namespace_uri, qualified_name, options).
+
+pub create_element_ns_typechecks(receiver: Document, namespace: Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: ElementCreationOptions | std.js.String.JsString): Element ->
+    receiver.create_element_ns(namespace, qualified_name, options).
+
+pub create_event_typechecks(receiver: Document, event_interface: std.js.String.JsString): Event ->
+    receiver.create_event(event_interface).
+
+pub create_node_iterator_typechecks(receiver: Document, root: Node, what_to_show: std.js.Number.JsNumber, filter: Option[NodeFilter]): NodeIterator ->
+    receiver.create_node_iterator(root, what_to_show, filter).
+
+pub create_processing_instruction_typechecks(receiver: Document, target_: std.js.String.JsString, data: std.js.String.JsString): ProcessingInstruction ->
+    receiver.create_processing_instruction(target_, data).
+
+pub create_range_typechecks(receiver: Document): Range ->
+    receiver.create_range().
+
+pub create_text_node_typechecks(receiver: Document, data: std.js.String.JsString): Text ->
+    receiver.create_text_node(data).
+
+pub create_tree_walker_typechecks(receiver: Document, root: Node, what_to_show: std.js.Number.JsNumber, filter: Option[NodeFilter]): TreeWalker ->
+    receiver.create_tree_walker(root, what_to_show, filter).
+
+pub exec_command_typechecks(receiver: Document, command_id: std.js.String.JsString, show_ui: std.core.Bool, value: std.js.String.JsString): std.core.Bool ->
+    receiver.exec_command(command_id, show_ui, value).
+
+pub exit_fullscreen_typechecks(receiver: Document): std.js.Promise[std.core.Unit] ->
+    receiver.exit_fullscreen().
+
+pub exit_picture_in_picture_typechecks(receiver: Document): std.js.Promise[std.core.Unit] ->
+    receiver.exit_picture_in_picture().
+
+pub exit_pointer_lock_typechecks(receiver: Document): std.core.Unit ->
+    receiver.exit_pointer_lock().
+
+pub get_element_by_id_typechecks(receiver: Document, element_id: std.js.String.JsString): Option[HTMLElement] ->
+    receiver.get_element_by_id(element_id).
+
+pub get_elements_by_class_name_typechecks(receiver: Document, class_names: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    receiver.get_elements_by_class_name(class_names).
+
+pub get_elements_by_name_typechecks(receiver: Document, element_name: std.js.String.JsString): NodeListOf[HTMLElement] ->
+    receiver.get_elements_by_name(element_name).
+
+pub get_elements_by_tag_name_typechecks(receiver: Document, qualified_name: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    receiver.get_elements_by_tag_name(qualified_name).
+
+pub get_elements_by_tag_name_ns_typechecks(receiver: Document, namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): HTMLCollectionOf[Element] ->
+    receiver.get_elements_by_tag_name_ns(namespace, local_name).
+
+pub get_selection_typechecks(receiver: Document): Option[Selection] ->
+    receiver.get_selection().
+
+pub has_focus_typechecks(receiver: Document): std.core.Bool ->
+    receiver.has_focus().
+
+pub has_storage_access_typechecks(receiver: Document): std.js.Promise[std.core.Bool] ->
+    receiver.has_storage_access().
+
+pub import_node_typechecks(receiver: Document, node: T, options: ImportNodeOptions | std.core.Bool): T ->
+    receiver.import_node(node, options).
+
+pub open_typechecks(receiver: Document, unused1: std.js.String.JsString, unused2: std.js.String.JsString): Document ->
+    receiver.open(unused1, unused2).
+
+pub open_typechecks(receiver: Document, url: URL | std.js.String.JsString, name: std.js.String.JsString, features: std.js.String.JsString): Option[WindowProxy] ->
+    receiver.open(url, name, features).
+
+pub query_command_enabled_typechecks(receiver: Document, command_id: std.js.String.JsString): std.core.Bool ->
+    receiver.query_command_enabled(command_id).
+
+pub query_command_indeterm_typechecks(receiver: Document, command_id: std.js.String.JsString): std.core.Bool ->
+    receiver.query_command_indeterm(command_id).
+
+pub query_command_state_typechecks(receiver: Document, command_id: std.js.String.JsString): std.core.Bool ->
+    receiver.query_command_state(command_id).
+
+pub query_command_supported_typechecks(receiver: Document, command_id: std.js.String.JsString): std.core.Bool ->
+    receiver.query_command_supported(command_id).
+
+pub query_command_value_typechecks(receiver: Document, command_id: std.js.String.JsString): std.js.String.JsString ->
+    receiver.query_command_value(command_id).
+
+pub release_events_typechecks(receiver: Document): std.core.Unit ->
+    receiver.release_events().
+
+pub request_storage_access_typechecks(receiver: Document): std.js.Promise[std.core.Unit] ->
+    receiver.request_storage_access().
+
+pub start_view_transition_typechecks(receiver: Document, callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback): ViewTransition ->
+    receiver.start_view_transition(callback_options).
+
+pub write_typechecks(receiver: Document): std.core.Unit ->
+    receiver.write().
+
+pub writeln_typechecks(receiver: Document): std.core.Unit ->
+    receiver.writeln().
+
+pub add_event_listener_typechecks(receiver: Document, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: Document, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

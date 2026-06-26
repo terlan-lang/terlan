@@ -1,0 +1,82 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface XMLHttpRequest
+ */
+
+module std.js.Dom.XMLHttpRequestTest.
+
+import type std.js.Dom.XMLHttpRequest.XMLHttpRequest.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub ready_state_typechecks(receiver: XMLHttpRequest): std.js.Number.JsNumber ->
+    receiver.ready_state().
+
+pub response_text_typechecks(receiver: XMLHttpRequest): std.js.String.JsString ->
+    receiver.response_text().
+
+pub response_type_typechecks(receiver: XMLHttpRequest): XMLHttpRequestResponseType ->
+    receiver.response_type().
+
+pub response_url_typechecks(receiver: XMLHttpRequest): std.js.String.JsString ->
+    receiver.response_url().
+
+pub response_xml_typechecks(receiver: XMLHttpRequest): Option[Document] ->
+    receiver.response_xml().
+
+pub status_typechecks(receiver: XMLHttpRequest): std.js.Number.JsNumber ->
+    receiver.status().
+
+pub status_text_typechecks(receiver: XMLHttpRequest): std.js.String.JsString ->
+    receiver.status_text().
+
+pub timeout_typechecks(receiver: XMLHttpRequest): std.js.Number.JsNumber ->
+    receiver.timeout().
+
+pub upload_typechecks(receiver: XMLHttpRequest): XMLHttpRequestUpload ->
+    receiver.upload().
+
+pub with_credentials_typechecks(receiver: XMLHttpRequest): std.core.Bool ->
+    receiver.with_credentials().
+
+pub abort_typechecks(receiver: XMLHttpRequest): std.core.Unit ->
+    receiver.abort().
+
+pub get_all_response_headers_typechecks(receiver: XMLHttpRequest): std.js.String.JsString ->
+    receiver.get_all_response_headers().
+
+pub get_response_header_typechecks(receiver: XMLHttpRequest, name: std.js.String.JsString): Option[std.js.String.JsString] ->
+    receiver.get_response_header(name).
+
+pub open_typechecks(receiver: XMLHttpRequest, method: std.js.String.JsString, url: URL | std.js.String.JsString): std.core.Unit ->
+    receiver.open(method, url).
+
+pub open_typechecks(receiver: XMLHttpRequest, method: std.js.String.JsString, url: URL | std.js.String.JsString, async: std.core.Bool, username: Option[std.js.String.JsString], password: Option[std.js.String.JsString]): std.core.Unit ->
+    receiver.open(method, url, async, username, password).
+
+pub override_mime_type_typechecks(receiver: XMLHttpRequest, mime: std.js.String.JsString): std.core.Unit ->
+    receiver.override_mime_type(mime).
+
+pub send_typechecks(receiver: XMLHttpRequest, body: Option[Document | XMLHttpRequestBodyInit]): std.core.Unit ->
+    receiver.send(body).
+
+pub set_request_header_typechecks(receiver: XMLHttpRequest, name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit ->
+    receiver.set_request_header(name, value).
+
+pub add_event_listener_typechecks(receiver: XMLHttpRequest, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: XMLHttpRequest, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

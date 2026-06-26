@@ -1,0 +1,111 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGTransformList
+ */
+
+module std.js.Dom.SVGTransformList.
+
+/**
+ * The **`SVGTransformList`** interface defines a list of SVGTransform objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList)
+ */
+pub opaque type SVGTransformList.
+
+/**
+ * The **`length`** read-only property of the SVGTransformList interface represents the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/length)
+ */
+pub (value: SVGTransformList) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`numberOfItems`** read-only property of the SVGTransformList interface represents the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/numberOfItems)
+ */
+pub (value: SVGTransformList) number_of_items(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The `appendItem()` method of the SVGTransformList interface inserts a new item at the end of the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/appendItem)
+ */
+pub (value: SVGTransformList) append_item(new_item: SVGTransform): SVGTransform ->
+    native.
+
+/**
+ * The `clear()` method of the SVGTransformList interface clears all existing current items from the list, with the result being an empty list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/clear)
+ */
+pub (value: SVGTransformList) clear(): std.core.Unit ->
+    native.
+
+/**
+ * The `consolidate()` method of the SVGTransformList interface consolidates the list of separate SVGTransform objects by multiplying the equivalent transformation matrices together to result in a list consisting of a single `SVGTransform` object of type `SVG_TRANSFORM_MATRIX`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/consolidate)
+ */
+pub (value: SVGTransformList) consolidate(): Option[SVGTransform] ->
+    native.
+
+/**
+ * The `createSVGTransformFromMatrix()` method of the SVGTransformList interface creates an SVGTransform object which is initialized to a transform of type `SVG_TRANSFORM_MATRIX` and whose values are the given matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/createSVGTransformFromMatrix)
+ */
+pub (value: SVGTransformList) create_svg_transform_from_matrix(matrix: DOMMatrix2DInit): SVGTransform ->
+    native.
+
+/**
+ * The `getItem()` method of the SVGTransformList interface returns the specified item from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/getItem)
+ */
+pub (value: SVGTransformList) get_item(index: std.js.Number.JsNumber): SVGTransform ->
+    native.
+
+/**
+ * The `initialize()` method of the SVGTransformList interface clears all existing current items from the list and re-initializes the list to hold the single item specified by the parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/initialize)
+ */
+pub (value: SVGTransformList) initialize(new_item: SVGTransform): SVGTransform ->
+    native.
+
+/**
+ * The `insertItemBefore()` method of the SVGTransformList interface inserts a new item into the list at the specified position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/insertItemBefore)
+ */
+pub (value: SVGTransformList) insert_item_before(new_item: SVGTransform, index: std.js.Number.JsNumber): SVGTransform ->
+    native.
+
+/**
+ * The `removeItem()` method of the SVGTransformList interface removes an existing item from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/removeItem)
+ */
+pub (value: SVGTransformList) remove_item(index: std.js.Number.JsNumber): SVGTransform ->
+    native.
+
+/**
+ * The `replaceItem()` method of the SVGTransformList interface replaces an existing item in the list with a new item.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/replaceItem)
+ */
+pub (value: SVGTransformList) replace_item(new_item: SVGTransform, index: std.js.Number.JsNumber): SVGTransform ->
+    native.

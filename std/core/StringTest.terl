@@ -1,0 +1,176 @@
+module std.core.StringTest.
+
+import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import std.core.Option.{None, Some}.
+import type std.core.Ordering.Comparison.
+
+pub ordering_compare(left: String, right: String): Comparison ->
+    Ordering.compare(left, right).
+
+pub show_unit(value: Unit): String ->
+    std.core.Unit.to_string(value).
+
+@test
+pub equal_accepts_matching_values(): Bool ->
+    std.test.Test.assert("hello".equal("hello")).
+
+@test
+pub equal_rejects_different_values(): Bool ->
+    std.test.Test.assert_equal(false, "hello".equal("world")).
+
+@test
+pub compare_orders_earlier_text_first(): Bool ->
+    std.test.Test.assert_equal(Lt, "alpha".compare("beta")).
+
+@test
+pub compare_orders_later_text_after(): Bool ->
+    std.test.Test.assert_equal(Gt, "beta".compare("alpha")).
+
+@test
+pub compare_accepts_equal_text(): Bool ->
+    std.test.Test.assert_equal(Eq, "hello".compare("hello")).
+
+@test
+pub ordering_trait_orders_earlier_text_first(): Bool ->
+    std.test.Test.assert_equal(Lt, ordering_compare("alpha", "beta")).
+
+@test
+pub ordering_trait_orders_later_text_after(): Bool ->
+    std.test.Test.assert_equal(Gt, ordering_compare("beta", "alpha")).
+
+@test
+pub to_string_returns_input(): Bool ->
+    std.test.Test.assert_equal(
+        "hello",
+        "hello".to_string()
+    ).
+
+@test
+pub from_string_returns_input(): Bool ->
+    case "hello".from_string() {
+        Some(value) ->
+            std.test.Test.assert_equal("hello", value);
+        None ->
+            false
+    }.
+
+@test
+pub show_trait_renders_unit(): Bool ->
+    std.test.Test.assert_equal("unit", show_unit(Unit)).
+
+@test
+pub is_empty_accepts_empty_string(): Bool ->
+    std.test.Test.assert("".is_empty()).
+
+@test
+pub is_empty_rejects_non_empty_string(): Bool ->
+    std.test.Test.assert_equal(false, "hello".is_empty()).
+
+@test
+pub append_joins_two_strings(): Bool ->
+    std.test.Test.assert_equal(
+        "helloworld",
+        "hello".append("world")
+    ).
+
+@test
+pub concat_joins_string_list(): Bool ->
+    std.test.Test.assert_equal(
+        "helloworld",
+        std.core.String.concat(["hello", "world"])
+    ).
+
+@test
+pub contains_accepts_present_pattern(): Bool ->
+    std.test.Test.assert("hello".contains("ell")).
+
+@test
+pub contains_rejects_missing_pattern(): Bool ->
+    std.test.Test.assert_equal(false, "hello".contains("xyz")).
+
+@test
+pub starts_with_accepts_prefix(): Bool ->
+    std.test.Test.assert("hello".starts_with("he")).
+
+@test
+pub starts_with_rejects_non_prefix(): Bool ->
+    std.test.Test.assert_equal(false, "hello".starts_with("lo")).
+
+@test
+pub ends_with_accepts_suffix(): Bool ->
+    std.test.Test.assert("hello".ends_with("lo")).
+
+@test
+pub ends_with_accepts_empty_suffix(): Bool ->
+    std.test.Test.assert("hello".ends_with("")).
+
+@test
+pub ends_with_rejects_non_suffix(): Bool ->
+    std.test.Test.assert_equal(false, "hello".ends_with("he")).
+
+@test
+pub length_counts_text_units(): Bool ->
+    std.test.Test.assert_equal(5, "hello".length()).
+
+@test
+pub byte_size_counts_utf8_bytes(): Bool ->
+    std.test.Test.assert_equal(5, "hello".byte_size()).
+
+@test
+pub lowercase_converts_ascii_text(): Bool ->
+    std.test.Test.assert_equal("hello", "HELLO".lowercase()).
+
+@test
+pub uppercase_converts_ascii_text(): Bool ->
+    std.test.Test.assert_equal("HELLO", "hello".uppercase()).
+
+@test
+pub trim_removes_surrounding_whitespace(): Bool ->
+    std.test.Test.assert_equal("hello", " hello ".trim()).
+
+@test
+pub trim_start_removes_leading_whitespace(): Bool ->
+    std.test.Test.assert_equal("hello ", " hello ".trim_start()).
+
+@test
+pub trim_end_removes_trailing_whitespace(): Bool ->
+    std.test.Test.assert_equal(" hello", " hello ".trim_end()).
+
+@test
+pub replace_rewrites_all_matches(): Bool ->
+    std.test.Test.assert_equal(
+        "hexxo",
+        "hello".replace("l", "x")
+    ).
+
+@test
+pub replace_keeps_text_without_match(): Bool ->
+    std.test.Test.assert_equal(
+        "hello",
+        "hello".replace("z", "x")
+    ).
+
+@test
+pub split_returns_all_segments(): Bool ->
+    std.test.Test.assert_equal(
+        ["he", "", "o"],
+        "hello".split("l")
+    ).
+
+@test
+pub split_once_returns_first_split(): Bool ->
+    case "hello".split_once("l") {
+        Some(value) ->
+            std.test.Test.assert_equal({"he", "lo"}, value);
+        None ->
+            false
+    }.
+
+@test
+pub split_once_rejects_missing_separator(): Bool ->
+    case "hello".split_once("z") {
+        None ->
+            true;
+        Some(_value) ->
+            false
+    }.

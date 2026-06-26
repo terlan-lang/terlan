@@ -1,0 +1,97 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Selection
+ */
+
+module std.js.Dom.SelectionTest.
+
+import type std.js.Dom.Selection.Selection.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub anchor_node_typechecks(receiver: Selection): Option[Node] ->
+    receiver.anchor_node().
+
+pub anchor_offset_typechecks(receiver: Selection): std.js.Number.JsNumber ->
+    receiver.anchor_offset().
+
+pub direction_typechecks(receiver: Selection): std.js.String.JsString ->
+    receiver.direction().
+
+pub focus_node_typechecks(receiver: Selection): Option[Node] ->
+    receiver.focus_node().
+
+pub focus_offset_typechecks(receiver: Selection): std.js.Number.JsNumber ->
+    receiver.focus_offset().
+
+pub is_collapsed_typechecks(receiver: Selection): std.core.Bool ->
+    receiver.is_collapsed().
+
+pub range_count_typechecks(receiver: Selection): std.js.Number.JsNumber ->
+    receiver.range_count().
+
+pub type__typechecks(receiver: Selection): std.js.String.JsString ->
+    receiver.type_().
+
+pub add_range_typechecks(receiver: Selection, range: Range): std.core.Unit ->
+    receiver.add_range(range).
+
+pub collapse_typechecks(receiver: Selection, node: Option[Node], offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.collapse(node, offset).
+
+pub collapse_to_end_typechecks(receiver: Selection): std.core.Unit ->
+    receiver.collapse_to_end().
+
+pub collapse_to_start_typechecks(receiver: Selection): std.core.Unit ->
+    receiver.collapse_to_start().
+
+pub contains_node_typechecks(receiver: Selection, node: Node, allow_partial_containment: std.core.Bool): std.core.Bool ->
+    receiver.contains_node(node, allow_partial_containment).
+
+pub delete_from_document_typechecks(receiver: Selection): std.core.Unit ->
+    receiver.delete_from_document().
+
+pub empty_typechecks(receiver: Selection): std.core.Unit ->
+    receiver.empty().
+
+pub extend_typechecks(receiver: Selection, node: Node, offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.extend(node, offset).
+
+pub get_composed_ranges_typechecks(receiver: Selection, options: GetComposedRangesOptions): std.js.Array[StaticRange] ->
+    receiver.get_composed_ranges(options).
+
+pub get_range_at_typechecks(receiver: Selection, index: std.js.Number.JsNumber): Range ->
+    receiver.get_range_at(index).
+
+pub modify_typechecks(receiver: Selection, alter: std.js.String.JsString, direction: std.js.String.JsString, granularity: std.js.String.JsString): std.core.Unit ->
+    receiver.modify(alter, direction, granularity).
+
+pub remove_all_ranges_typechecks(receiver: Selection): std.core.Unit ->
+    receiver.remove_all_ranges().
+
+pub remove_range_typechecks(receiver: Selection, range: Range): std.core.Unit ->
+    receiver.remove_range(range).
+
+pub select_all_children_typechecks(receiver: Selection, node: Node): std.core.Unit ->
+    receiver.select_all_children(node).
+
+pub set_base_and_extent_typechecks(receiver: Selection, anchor_node: Node, anchor_offset: std.js.Number.JsNumber, focus_node: Node, focus_offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.set_base_and_extent(anchor_node, anchor_offset, focus_node, focus_offset).
+
+pub set_position_typechecks(receiver: Selection, node: Option[Node], offset: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.set_position(node, offset).
+
+pub to_string_typechecks(receiver: Selection): std.js.String.JsString ->
+    receiver.to_string().

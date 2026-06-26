@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IDBIndex
+ */
+
+module std.js.Dom.IDBIndexTest.
+
+import type std.js.Dom.IDBIndex.IDBIndex.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub key_path_typechecks(receiver: IDBIndex): std.js.Array[std.js.String.JsString] | std.js.String.JsString ->
+    receiver.key_path().
+
+pub multi_entry_typechecks(receiver: IDBIndex): std.core.Bool ->
+    receiver.multi_entry().
+
+pub name_typechecks(receiver: IDBIndex): std.js.String.JsString ->
+    receiver.name().
+
+pub object_store_typechecks(receiver: IDBIndex): IDBObjectStore ->
+    receiver.object_store().
+
+pub unique_typechecks(receiver: IDBIndex): std.core.Bool ->
+    receiver.unique().
+
+pub count_typechecks(receiver: IDBIndex, query: IDBKeyRange | IDBValidKey): IDBRequest[std.js.Number.JsNumber] ->
+    receiver.count(query).
+
+pub get_all_keys_typechecks(receiver: IDBIndex, query: Option[IDBKeyRange | IDBValidKey], count: std.js.Number.JsNumber): IDBRequest[std.js.Array[IDBValidKey]] ->
+    receiver.get_all_keys(query, count).
+
+pub get_key_typechecks(receiver: IDBIndex, query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
+    receiver.get_key(query).
+
+pub open_cursor_typechecks(receiver: IDBIndex, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+    receiver.open_cursor(query, direction).
+
+pub open_key_cursor_typechecks(receiver: IDBIndex, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+    receiver.open_key_cursor(query, direction).

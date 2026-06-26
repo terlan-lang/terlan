@@ -18,6 +18,9 @@ runtime helpers, and Erlang AST/render utilities.
 - `syntax`: syntax-output bridge lowering modules.
 - `core`: CoreIR-oriented Erlang lowering modules.
 - `erl`: Erlang backend structure and rendering helpers.
+- `erl::types`: Erlang type-expression render model.
+- `erl::operators`: Erlang operator render identities.
+- `util::type_specs`: Terlan type-text to Erlang spec lowering helpers.
 - `runtime`: runtime helper emission.
 
 ## Core Model
@@ -56,6 +59,12 @@ Important invariants:
 
 `ErlModule`
 : Backend representation of one Erlang module.
+
+`ErlType`
+: Backend representation of one Erlang type expression.
+
+`ErlBinaryOp` / `ErlUnaryOp`
+: Backend operator identities rendered to Erlang operator tokens.
 
 `lower_syntax_module_output`
 : Syntax-output bridge lowering entry point.

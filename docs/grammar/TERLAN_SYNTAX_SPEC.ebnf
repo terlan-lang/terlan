@@ -148,31 +148,33 @@ TypeDecl ::= [ "pub" ] "type" TypeName [ TypeParams ] [ ImplementsClause ] "=" T
 OpaqueTypeDecl ::= [ "pub" ] "opaque" "type" TypeName [ TypeParams ] [ ImplementsClause ] [ "=" TypeExpr ] .
 
 
-(* Struct derivation is compile-time expansion, not true inheritance.
-   Derivation copies fields from parent structs.
-   Derivation copies eligible receiver functions.
-   Derivation does not create subtyping, runtime parent objects, implicit coercions, virtual dispatch, or true inheritance.
+(* Struct inclusion is compile-time expansion, not class inheritance.
+   Inclusion copies fields from included parent structs.
+   Inclusion copies eligible receiver functions.
+   Inclusion does not create subtyping, runtime parent objects, implicit coercions, virtual dispatch, or true inheritance.
    Field conflicts are errors.
    Method conflicts are errors unless an override rule is later introduced.
-   Traits are not derived with `derives`; trait conformance is expressed with
+   Traits are not included with `includes`; trait conformance is expressed with
    `implements` or explicit `impl` declarations.
-   Standard-library domain error types derive from `std.core.Error`, so
-   `pub struct FileError derives Error { ... }.` is struct derivation, not a
-   trait derivation request.
+   Standard-library domain error types include `std.core.Error`, so
+   `pub struct FileError includes Error { ... }.` is struct inclusion, not a
+   trait conformance request.
 
    Struct visibility and construction authority are separate.
 
    `pub struct User { ... }` exports the type identity so other modules may
-   name `User` in signatures, fields, and type arguments. It does not export
-   raw struct literal construction.
+   name `User` in signatures, fields, and type arguments.
 
-   `User { ... }` is raw struct construction. It is allowed inside the module
-   that defines `User`, including inside constructor bodies, but it is rejected
-   from other modules unless a future explicit public-data rule is added.
+   If a struct has no explicit constructor declaration, the compiler provides a
+   default field-assignment constructor call:
 
-   `pub constructor User { ... }` exports approved constructor-call syntax such
-   as `User(id, name)`. Public constructors are therefore the public
-   construction API for validated, normalized, or capability-checked structs.
+     User(id = id, name = name)
+
+   If any explicit `constructor User { ... }` declaration exists, the implicit
+   default constructor is disabled for ordinary call sites. Public construction
+   then goes through the declared constructor shapes only. Inside a
+   `constructor User { ... }` body, `User(field = value)` remains available as
+   the internal struct initializer for that same target type.
 
    A non-public struct keeps both the type identity and raw construction
    module-private. A public constructor cannot make an otherwise private return
@@ -189,14 +191,14 @@ OpaqueTypeDecl ::= [ "pub" ] "opaque" "type" TypeName [ TypeParams ] [ Implement
         User { id = id, name = name }
     }.
 
-    pub struct Admin derives User {
+    pub struct Admin includes User {
       role: String
     }.
   `
 
 *)
-StructDecl ::= [ "pub" ] "struct" TypeName [ StructDerives ] [ ImplementsClause ] StructBody .
-StructDerives ::= "derives" TypeRef { "," TypeRef } .
+StructDecl ::= [ "pub" ] "struct" TypeName [ StructIncludes ] [ ImplementsClause ] StructBody .
+StructIncludes ::= "includes" TypeRef { "," TypeRef } .
 ImplementsClause ::= "implements" TraitRef { "," TraitRef } .
 
 ConstructorDecl ::= [ "pub" ] "constructor" TypeName [ TypeParams ] "{" ConstructorClause { ";" ConstructorClause } "}" .
@@ -249,6 +251,7 @@ MethodFunction
 
     import std.core.Option.{map, flat_map as bind, Maybe}.
     import std.core.Option.{Maybe}.
+    import std.core.Option.{*}.
     ```
 *)
 
@@ -259,11 +262,13 @@ ImportDecl ::= "import" ImportItem .
 ImportItem
   ::= ModuleItemImport
    | SelectiveImport
+   | WildcardImport
    | AssetImport
    .
 
 ModuleItemImport ::= [ "type" ] ModulePath "." ImportSym .
 SelectiveImport ::= [ "type" ] ModulePath ".{" ImportSym { "," ImportSym } "}" .
+WildcardImport ::= [ "type" ] ModulePath ".{" "*" "}" | [ "type" ] ModulePath "." "*" .
 
 ImportSym
   ::= LowerImportSym
@@ -401,13 +406,39 @@ HtmlBlockExpr ::= "html" RawBlock .
 *)
 
 TypeName ::= UpperIdent .
-TypeParams ::= "[" TypeVar { "," TypeVar } "]" .
+TypeParams ::= "[" TypeParam { "," TypeParam } "]" .
+TypeParam ::= [ Variance ] TypeVar [ HigherKindArity ] .
+Variance ::= "+" | "-" .
+HigherKindArity ::= "[" "_" { "," "_" } "]" .
+
+(* Higher-kinded type parameters are canonical syntax for advanced functional
+   abstractions over type constructors. `F[_]` declares a unary type
+   constructor parameter, while `M[_, _]` declares a binary type constructor
+   parameter. Variance markers are part of the source contract, but semantic
+   enforcement is staged behind kind checking and trait-resolution support.
+*)
 
 StructBody ::= "{" [ StructField { "," StructField } ] "}" .
-StructField ::= LowerIdent ":" TypeExpr [ "=" Expr ] .
+StructField ::= StructFieldName ":" TypeExpr [ "=" Expr ] .
+StructFieldName ::= LowerIdent | "#" LowerIdent .
 ConstructorClause ::= "(" [ ParamList ] ")" ":" TypeExpr "->" Expr .
 ParamList ::= Param { "," Param } .
-Param ::= [ "mut" ] LowerIdent ":" TypeExpr [ "=" Expr ] | "..." LowerIdent ":" TypeExpr .
+Param ::= FixedParam | VarargsParam .
+FixedParam ::= [ "mut" ] LowerIdent ":" TypeExpr [ "=" Expr ] .
+VarargsParam ::= "..." LowerIdent ":" TypeExpr .
+
+(* Varargs parameters bind all remaining positional values into one list value
+   inside the callable body.
+
+   Constructor varargs are canonical Terlan syntax and are used for ergonomic
+   constructor families such as `List("a", "b")` and `Vector("a", "b")`,
+   where the repeated argument type supplies the element type. The repeated
+   parameter must be last and cannot declare a default value.
+
+   Function and receiver-method varargs use the same source shape when enabled
+   by the implementation. Parser or semantic phases may reject unsupported
+   callable kinds until their lowering and typechecking rules are complete.
+*)
 TypedFunction ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
 ClauseFunction ::= LowerIdent [ TypeParams ] "(" [ PatternList ] ")" [ "when" Expr ] "->" Expr { ";" LowerIdent "(" [ PatternList ] ")" [ "when" Expr ] "->" Expr } .
 PatternList ::= Pattern { "," Pattern } .
@@ -421,8 +452,10 @@ TypeExpr ::= TypeUnion .
 TypeUnion ::= TypeArrow { "|" TypeArrow } .
 TypeArrow ::= TypePrimary | "(" [ TypeExprList ] ")" "->" TypeExpr .
 TypeExprList ::= TypeExpr { "," TypeExpr } .
-TypePrimary ::= AtomTypeLiteral | TypeRef [ TypeArgs ] | TypeTuple | TypeList | TypeMap | TypeLiteral | "(" TypeExpr ")" .
+TypePrimary ::= ExistentialType | AtomTypeLiteral | TypePlaceholder | TypeRef [ TypeArgs ] | TypeTuple | TypeList | TypeMap | TypeLiteral | "(" TypeExpr ")" .
+ExistentialType ::= "exists" TypeVar { "," TypeVar } "." TypeExpr .
 TypeArgs ::= "[" TypeExprList "]" .
+TypePlaceholder ::= "_" .
 
 TypeRef ::= [ ModulePath "." ] TypeName .
 TypeTuple ::= "{" [ TypeTupleElem { "," TypeTupleElem } ] "}" .
@@ -454,7 +487,7 @@ Expr ::= LetExpr | AssignExpr .
      let x = 1; y = 2; x + y.      // evaluates to x + y
 *)
 LetExpr ::= "let" LetBinding { ";" LetBinding } ";" Expr .
-LetBinding ::= Binding "=" Expr .
+LetBinding ::= Pattern "=" Expr .
 AssignExpr ::= IndexAssignExpr | PipeExpr .
 IndexAssignExpr ::= PostfixExpr "[" Expr "]" "=" Expr .
 
@@ -495,7 +528,7 @@ AddOp ::= "+" | "-" .
 MulOp ::= "*" | "/" | "div" | "rem" .
 CmpOp ::= "==" | "!=" | ">=" | ">" | "<=" | "<" .
 PostfixExpr ::= PrimaryExpr { PostfixSuffix } .
-PostfixSuffix ::= MethodCallSuffix | FieldSuffix | IndexSuffix | FunCallSuffix .
+PostfixSuffix ::= MethodCallSuffix | FieldSuffix | RecordAccessSuffix | RecordUpdateSuffix | IndexSuffix | FunCallSuffix .
 PrimaryExpr
   ::= AtomLiteralExpr
    | CallExpr
@@ -503,13 +536,11 @@ PrimaryExpr
    | Int
    | Float
    | StringLiteral
-   | Binary
    | TupleExpr
    | ListExpr
    | ConsListExpr
    | FixedArrayExpr
    | MapExpr
-   | RecordExpr
    | TemplateInstantiateExpr
    | MacroExpr
    | CaseExpr
@@ -539,21 +570,24 @@ MapField ::= MapExprKey ( "=>" | ":=" ) Expr .
 MapExprKey ::= Expr .
 TemplateInstantiateExpr ::= TemplateName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
 TemplateName ::= NameRef .
-(* RecordExpr is raw struct construction syntax.
+(* Struct field construction uses constructor-call syntax:
 
-   Parsing `TypeName { ... }` does not imply public construction rights.
-   Semantic validation must reject raw struct construction outside the defining
-   module unless a future explicit public-data form grants that capability.
+     TypeName(field = Expr, other = Expr)
+
+   `TypeName { ... }` is reserved for template-like forms and is not canonical
+   struct construction syntax.
 *)
-RecordExpr ::= TypeName "{" [ LowerIdent "=" Expr { "," LowerIdent "=" Expr } ] "}" .
+RecordFieldName ::= LowerIdent | "#" LowerIdent .
 ReferenceCallExpr ::= TraitTargetCallExpr | QualifiedCallExpr | ScopedCallExpr .
-TraitTargetCallExpr ::= TraitRef "." LowerIdent "(" [ ExprList ] ")" .
-QualifiedCallExpr ::= QualifiedValueRef "(" [ ExprList ] ")" .
-ScopedCallExpr ::= ScopedValueRef "(" [ ExprList ] ")" .
-MethodCallSuffix ::= "." LowerIdent "(" [ ExprList ] ")" .
-FieldSuffix ::= "." LowerIdent .
+TraitTargetCallExpr ::= TraitRef "." LowerIdent [ TypeArgs ] "(" [ CallArgList ] ")" .
+QualifiedCallExpr ::= QualifiedValueRef [ TypeArgs ] "(" [ CallArgList ] ")" .
+ScopedCallExpr ::= ScopedValueRef [ TypeArgs ] "(" [ CallArgList ] ")" .
+MethodCallSuffix ::= "." LowerIdent [ TypeArgs ] "(" [ CallArgList ] ")" .
+FieldSuffix ::= "." LowerIdent | "." "#" LowerIdent .
+RecordAccessSuffix ::= "#" TypeName "." RecordFieldName .
+RecordUpdateSuffix ::= "#" TypeName "{" [ RecordFieldName "=" Expr { "," RecordFieldName "=" Expr } ] "}" .
 IndexSuffix ::= "[" Expr "]" .
-FunCallSuffix ::= "." "(" [ ExprList ] ")" .
+FunCallSuffix ::= "." "(" [ CallArgList ] ")" .
 MacroExpr ::= "?" NameRef [ "(" [ Expr { "," Expr } ] ")" ] .
 
 Pattern ::= PrimaryPattern .
@@ -569,6 +603,7 @@ PrimaryPattern
    | TuplePattern
    | ListPattern
    | MapPattern
+   | RecordPattern
    | "(" Pattern ")"
    .
 TuplePattern ::= "{" [ Pattern { "," Pattern } ] "}" .
@@ -576,9 +611,8 @@ ConstructorPattern ::= ConstructorAtom [ "(" PatternList1 ")" ] .
 MapPattern ::= "#{" [ PatternMapField { "," PatternMapField } ] "}" .
 PatternMapField ::= MapPatternKey ( "=>" | ":=" ) Pattern .
 MapPatternKey ::= Expr .
-
-BinarySegment ::= Expr [ ":" Expr ] [ "/" BinarySegmentType { "-" BinarySegmentType } ] .
-BinarySegmentType ::= "integer" | "float" | "binary" | "bytes" | "bitstring" | "bits" | "utf8" | "utf16" | "utf32" | "signed" | "unsigned" | "big" | "little" | "native" .
+RecordPattern ::= TypeName "{" [ RecordPatternField { "," RecordPatternField } ] "}" .
+RecordPatternField ::= RecordFieldName "=" Pattern .
 
 RawBlock ::= BalancedRawBlock .
 BalancedRawBlock ::= "{" RawText "}" .
@@ -631,7 +665,7 @@ ReservedWord
    | "div"
    | "rem"
    | "with"
-   | "derives"
+   | "includes"
    | "true"
    | "false"
 
@@ -656,23 +690,43 @@ ConstructorAtom ::= UpperIdent .
 
 Binding ::= LowerIdent | "_" LowerIdent .
 ExprList ::= Expr { "," Expr } .
-CallExpr ::= NameRef "(" [ ExprList ] ")" .
+CallArgList ::= CallArg { "," CallArg } .
+CallArg ::= Expr | LowerIdent "=" Expr .
+CallExpr ::= NameRef [ TypeArgs ] "(" [ CallArgList ] ")" .
 
-(* A constructor chain expression may appear in a constructor body for a derived struct.
-   The left side must resolve to a constructor call for a direct parent in the derives clause.
-   The right side must be a record expression for the child struct.
+(* Upper-case `CallExpr` heads are constructor candidates. For ordinary named
+   constructors, semantic resolution checks that the name resolves to an
+   explicit constructor, compiler-provided default struct constructor, eligible
+   constructor-like alias, or compiler-known collection constructor family.
+
+   The compiler-provided default struct constructor is available only when the
+   struct has no explicit constructor declarations. Once explicit constructors
+   exist, `TypeName(field = value)` is available only inside that target's
+   constructor bodies as the internal initializer.
+
+   Collection constructor shorthand is canonical Terlan source:
+
+     List("a", "b")
+     Vector("a", "b")
+
+   The element type is inferred from the supplied values. Empty collection
+   constructors require an expected type or an explicit lower-level helper until
+   call-site type arguments are fully supported by the relevant compiler path.
+*)
+
+(* A constructor chain expression may appear in a constructor body for an including struct.
+   The left side must resolve to a constructor call for a direct parent in the includes clause.
+   The right side must be an internal struct initializer for the child struct.
    All required child-local fields must be initialized unless they have defaults.
    Constructor chaining does not create runtime inheritance or subtyping.
   `
     pub constructor Admin {
       (id: UserId, name: String, role: String): Admin ->
-        User(id, name) with Admin {
-          role = role
-        }
+        User(id, name) with Admin(role = role)
     }.
   `
 *)
-ConstructorChainExpr ::= CallExpr "with" RecordExpr .
+ConstructorChainExpr ::= CallExpr "with" CallExpr .
 Int ::= DecimalInt | BinaryInt | HexInt | OctalInt .
 DecimalInt ::= Digit { Digit } .
 BinaryInt ::= "0b" BinaryDigit { BinaryDigit } .
@@ -680,7 +734,6 @@ HexInt ::= "0x" HexDigit { HexDigit } .
 OctalInt ::= "0o" OctalDigit { OctalDigit } .
 Float ::= Digit { Digit } "." Digit { Digit } .
 StringLiteral ::= "\"" { StringChar } "\"" .
-Binary ::= "<<" [ BinarySegment { "," BinarySegment } ] ">>" .
 
 BinaryDigit ::= "0" | "1" .
 OctalDigit ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" .

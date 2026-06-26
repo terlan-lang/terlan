@@ -1,0 +1,337 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface GlobalEventHandlersEventMap
+ */
+
+module std.js.Dom.GlobalEventHandlersEventMapTest.
+
+import type std.js.Dom.GlobalEventHandlersEventMap.GlobalEventHandlersEventMap.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub abort_typechecks(receiver: GlobalEventHandlersEventMap): UIEvent ->
+    receiver.abort().
+
+pub animationcancel_typechecks(receiver: GlobalEventHandlersEventMap): AnimationEvent ->
+    receiver.animationcancel().
+
+pub animationend_typechecks(receiver: GlobalEventHandlersEventMap): AnimationEvent ->
+    receiver.animationend().
+
+pub animationiteration_typechecks(receiver: GlobalEventHandlersEventMap): AnimationEvent ->
+    receiver.animationiteration().
+
+pub animationstart_typechecks(receiver: GlobalEventHandlersEventMap): AnimationEvent ->
+    receiver.animationstart().
+
+pub auxclick_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.auxclick().
+
+pub beforeinput_typechecks(receiver: GlobalEventHandlersEventMap): InputEvent ->
+    receiver.beforeinput().
+
+pub beforematch_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.beforematch().
+
+pub beforetoggle_typechecks(receiver: GlobalEventHandlersEventMap): ToggleEvent ->
+    receiver.beforetoggle().
+
+pub blur_typechecks(receiver: GlobalEventHandlersEventMap): FocusEvent ->
+    receiver.blur().
+
+pub cancel_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.cancel().
+
+pub canplay_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.canplay().
+
+pub canplaythrough_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.canplaythrough().
+
+pub change_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.change().
+
+pub click_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.click().
+
+pub close_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.close().
+
+pub compositionend_typechecks(receiver: GlobalEventHandlersEventMap): CompositionEvent ->
+    receiver.compositionend().
+
+pub compositionstart_typechecks(receiver: GlobalEventHandlersEventMap): CompositionEvent ->
+    receiver.compositionstart().
+
+pub compositionupdate_typechecks(receiver: GlobalEventHandlersEventMap): CompositionEvent ->
+    receiver.compositionupdate().
+
+pub contextlost_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.contextlost().
+
+pub contextmenu_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.contextmenu().
+
+pub contextrestored_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.contextrestored().
+
+pub copy_typechecks(receiver: GlobalEventHandlersEventMap): ClipboardEvent ->
+    receiver.copy().
+
+pub cuechange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.cuechange().
+
+pub cut_typechecks(receiver: GlobalEventHandlersEventMap): ClipboardEvent ->
+    receiver.cut().
+
+pub dblclick_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.dblclick().
+
+pub drag_typechecks(receiver: GlobalEventHandlersEventMap): DragEvent ->
+    receiver.drag().
+
+pub dragend_typechecks(receiver: GlobalEventHandlersEventMap): DragEvent ->
+    receiver.dragend().
+
+pub dragenter_typechecks(receiver: GlobalEventHandlersEventMap): DragEvent ->
+    receiver.dragenter().
+
+pub dragleave_typechecks(receiver: GlobalEventHandlersEventMap): DragEvent ->
+    receiver.dragleave().
+
+pub dragover_typechecks(receiver: GlobalEventHandlersEventMap): DragEvent ->
+    receiver.dragover().
+
+pub dragstart_typechecks(receiver: GlobalEventHandlersEventMap): DragEvent ->
+    receiver.dragstart().
+
+pub drop_typechecks(receiver: GlobalEventHandlersEventMap): DragEvent ->
+    receiver.drop().
+
+pub durationchange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.durationchange().
+
+pub emptied_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.emptied().
+
+pub ended_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.ended().
+
+pub error_typechecks(receiver: GlobalEventHandlersEventMap): ErrorEvent ->
+    receiver.error().
+
+pub focus_typechecks(receiver: GlobalEventHandlersEventMap): FocusEvent ->
+    receiver.focus().
+
+pub focusin_typechecks(receiver: GlobalEventHandlersEventMap): FocusEvent ->
+    receiver.focusin().
+
+pub focusout_typechecks(receiver: GlobalEventHandlersEventMap): FocusEvent ->
+    receiver.focusout().
+
+pub formdata_typechecks(receiver: GlobalEventHandlersEventMap): FormDataEvent ->
+    receiver.formdata().
+
+pub gotpointercapture_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.gotpointercapture().
+
+pub input_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.input().
+
+pub invalid_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.invalid().
+
+pub keydown_typechecks(receiver: GlobalEventHandlersEventMap): KeyboardEvent ->
+    receiver.keydown().
+
+pub keypress_typechecks(receiver: GlobalEventHandlersEventMap): KeyboardEvent ->
+    receiver.keypress().
+
+pub keyup_typechecks(receiver: GlobalEventHandlersEventMap): KeyboardEvent ->
+    receiver.keyup().
+
+pub load_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.load().
+
+pub loadeddata_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.loadeddata().
+
+pub loadedmetadata_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.loadedmetadata().
+
+pub loadstart_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.loadstart().
+
+pub lostpointercapture_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.lostpointercapture().
+
+pub mousedown_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.mousedown().
+
+pub mouseenter_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.mouseenter().
+
+pub mouseleave_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.mouseleave().
+
+pub mousemove_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.mousemove().
+
+pub mouseout_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.mouseout().
+
+pub mouseover_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.mouseover().
+
+pub mouseup_typechecks(receiver: GlobalEventHandlersEventMap): MouseEvent ->
+    receiver.mouseup().
+
+pub paste_typechecks(receiver: GlobalEventHandlersEventMap): ClipboardEvent ->
+    receiver.paste().
+
+pub pause_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.pause().
+
+pub play_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.play().
+
+pub playing_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.playing().
+
+pub pointercancel_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointercancel().
+
+pub pointerdown_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointerdown().
+
+pub pointerenter_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointerenter().
+
+pub pointerleave_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointerleave().
+
+pub pointermove_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointermove().
+
+pub pointerout_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointerout().
+
+pub pointerover_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointerover().
+
+pub pointerrawupdate_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.pointerrawupdate().
+
+pub pointerup_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
+    receiver.pointerup().
+
+pub progress_typechecks(receiver: GlobalEventHandlersEventMap): ProgressEvent ->
+    receiver.progress().
+
+pub ratechange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.ratechange().
+
+pub reset_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.reset().
+
+pub resize_typechecks(receiver: GlobalEventHandlersEventMap): UIEvent ->
+    receiver.resize().
+
+pub scroll_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.scroll().
+
+pub scrollend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.scrollend().
+
+pub securitypolicyviolation_typechecks(receiver: GlobalEventHandlersEventMap): SecurityPolicyViolationEvent ->
+    receiver.securitypolicyviolation().
+
+pub seeked_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.seeked().
+
+pub seeking_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.seeking().
+
+pub select_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.select().
+
+pub selectionchange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.selectionchange().
+
+pub selectstart_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.selectstart().
+
+pub slotchange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.slotchange().
+
+pub stalled_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.stalled().
+
+pub submit_typechecks(receiver: GlobalEventHandlersEventMap): SubmitEvent ->
+    receiver.submit().
+
+pub suspend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.suspend().
+
+pub timeupdate_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.timeupdate().
+
+pub toggle_typechecks(receiver: GlobalEventHandlersEventMap): ToggleEvent ->
+    receiver.toggle().
+
+pub touchcancel_typechecks(receiver: GlobalEventHandlersEventMap): TouchEvent ->
+    receiver.touchcancel().
+
+pub touchend_typechecks(receiver: GlobalEventHandlersEventMap): TouchEvent ->
+    receiver.touchend().
+
+pub touchmove_typechecks(receiver: GlobalEventHandlersEventMap): TouchEvent ->
+    receiver.touchmove().
+
+pub touchstart_typechecks(receiver: GlobalEventHandlersEventMap): TouchEvent ->
+    receiver.touchstart().
+
+pub transitioncancel_typechecks(receiver: GlobalEventHandlersEventMap): TransitionEvent ->
+    receiver.transitioncancel().
+
+pub transitionend_typechecks(receiver: GlobalEventHandlersEventMap): TransitionEvent ->
+    receiver.transitionend().
+
+pub transitionrun_typechecks(receiver: GlobalEventHandlersEventMap): TransitionEvent ->
+    receiver.transitionrun().
+
+pub transitionstart_typechecks(receiver: GlobalEventHandlersEventMap): TransitionEvent ->
+    receiver.transitionstart().
+
+pub volumechange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.volumechange().
+
+pub waiting_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.waiting().
+
+pub webkitanimationend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.webkitanimationend().
+
+pub webkitanimationiteration_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.webkitanimationiteration().
+
+pub webkitanimationstart_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.webkitanimationstart().
+
+pub webkittransitionend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
+    receiver.webkittransitionend().
+
+pub wheel_typechecks(receiver: GlobalEventHandlersEventMap): WheelEvent ->
+    receiver.wheel().

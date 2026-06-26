@@ -1,0 +1,100 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface TreeWalker
+ */
+
+module std.js.Dom.TreeWalker.
+
+/**
+ * The **`TreeWalker`** object represents the nodes of a document subtree and a position within them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker)
+ */
+pub opaque type TreeWalker.
+
+/**
+ * The **`TreeWalker.currentNode`** property represents the A Node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/currentNode)
+ */
+pub (value: TreeWalker) current_node(): Node.
+
+/**
+ * The **`TreeWalker.filter`** read-only property returns the `NodeFilter` associated with the TreeWalker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/filter)
+ */
+pub (value: TreeWalker) filter(): Option[NodeFilter].
+
+/**
+ * The **`TreeWalker.root`** read-only property returns the root Node that the TreeWalker traverses.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/root)
+ */
+pub (value: TreeWalker) root(): Node.
+
+/**
+ * The **`TreeWalker.whatToShow`** read-only property returns a bitmask that indicates the types of nodes to show.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/whatToShow)
+ */
+pub (value: TreeWalker) what_to_show(): std.js.Number.JsNumber.
+
+/**
+ * The **`TreeWalker.firstChild()`** method moves the current the found child.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/firstChild)
+ */
+pub (value: TreeWalker) first_child(): Option[Node].
+
+/**
+ * The **`TreeWalker.lastChild()`** method moves the current the found child.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/lastChild)
+ */
+pub (value: TreeWalker) last_child(): Option[Node].
+
+/**
+ * The **`TreeWalker.nextNode()`** method moves the current the found node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/nextNode)
+ */
+pub (value: TreeWalker) next_node(): Option[Node].
+
+/**
+ * The **`TreeWalker.nextSibling()`** method moves the current is no such node, it returns `null` and the current node is not changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/nextSibling)
+ */
+pub (value: TreeWalker) next_sibling(): Option[Node].
+
+/**
+ * The **`TreeWalker.parentNode()`** method moves the current and returns the found node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/parentNode)
+ */
+pub (value: TreeWalker) parent_node(): Option[Node].
+
+/**
+ * The **`TreeWalker.previousNode()`** method moves the current returns the found node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/previousNode)
+ */
+pub (value: TreeWalker) previous_node(): Option[Node].
+
+/**
+ * The **`TreeWalker.previousSibling()`** method moves the current there is no such node, it returns `null` and the current node is not changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/previousSibling)
+ */
+pub (value: TreeWalker) previous_sibling(): Option[Node].

@@ -1,0 +1,45 @@
+//! Portable template fragment contract.
+//!
+//! `std.template.Template` defines the source-visible fragment types used by
+//! Terlan typed templates. The compiler owns parsing, escaping, validation, and
+//! generated render functions; this module gives source code stable names for
+//! trusted HTML fragments and explicit fragment composition.
+
+module std.template.Template.
+
+/// Html represents a trusted HTML fragment.
+///
+/// Input: no type parameter.
+/// Output: an opaque fragment value accepted by HTML template interpolation.
+/// Transformation: separates already-trusted HTML from ordinary `String`
+/// values, which must be escaped as text by the template compiler.
+
+pub opaque type Html.
+
+/// Creates an empty trusted HTML fragment.
+///
+/// Input: no value input.
+/// Output: an empty `Html` fragment.
+/// Transformation: gives generated templates and helper code a typed empty
+/// fragment without using an untyped empty string.
+
+pub empty(): Html.
+
+/// Joins trusted HTML fragments in source order.
+///
+/// Input: one list of trusted `Html` fragments.
+/// Output: one trusted `Html` fragment containing the fragments in list order.
+/// Transformation: composes already-trusted fragments without introducing
+/// template-specific loop syntax or accepting untrusted strings.
+
+pub join(fragments: List[Html]): Html.
+
+/// Creates a trusted HTML fragment from a string.
+///
+/// Input: one UTF-8 string that the caller has already audited or sanitized.
+/// Output: an `Html` fragment treated as trusted by template interpolation.
+/// Transformation: marks the string as trusted HTML without escaping it. This is
+/// an explicit escape hatch and should be rare in ordinary application code.
+
+pub trusted(value: String): Html.
+

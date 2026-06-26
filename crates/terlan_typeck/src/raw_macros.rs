@@ -57,6 +57,155 @@ pub fn expand_syntax_raw_macros(
     (module, diagnostics)
 }
 
+/// Builds the typechecker diagnostic for an unresolved raw macro expression.
+///
+/// Inputs:
+/// - `name`: source raw-macro name preserved by syntax output.
+///
+/// Output:
+/// - A stable diagnostic message for unresolved raw macro expansion.
+///
+/// Transformation:
+/// - Preserves the historical raw-macro diagnostic prefix while adding
+///   feature-specific guidance for compiler-known forms that are planned but
+///   not yet lowered.
+pub(crate) fn raw_macro_resolution_message(name: &str) -> String {
+    let base = format!(
+        "raw macro expression `{}` requires macro resolution before type checking",
+        name
+    );
+
+    if name == "sql" {
+        format!(
+            "{}; Postgres SQL form lowering is not implemented yet",
+            base
+        )
+    } else {
+        base
+    }
+}
+
+/// Builds the typechecker diagnostic for an unresolved raw macro expression node.
+///
+/// Inputs:
+/// - `expr`: syntax-output raw macro expression preserving the macro name and
+///   parsed child expressions.
+///
+/// Output:
+/// - A stable diagnostic message for unresolved raw macro expansion.
+///
+/// Transformation:
+/// - Delegates to the name-only raw-macro diagnostic, then adds compiler-known
+///   metadata for typed SQL forms so later parameter binding work has an
+///   observable contract before SQL lowering exists.
+pub(crate) fn raw_macro_resolution_message_for_expr(expr: &SyntaxExprOutput) -> String {
+    let name = expr.text.as_deref().unwrap_or("<unknown>");
+    let message = raw_macro_resolution_message(name);
+
+    if name == "sql" {
+        let (
+            binding_message,
+            row_type_message,
+            row_type_arity_message,
+            parameter_consistency_message,
+            cardinality_requirement_message,
+            wrapper_readiness_message,
+            wrapper_plan_message,
+            result_type_message,
+            cardinality,
+        ) = match crate::sql_forms::analyze_sql_form(expr) {
+            Ok(Some(analysis)) => (
+                format!(
+                    "parsed {} SQL parameter expression(s); bound {} SQL parameter placeholder(s)",
+                    expr.children.len(),
+                    analysis.binding.parameter_count
+                ),
+                format!("row type argument count: {}", analysis.row_type_arg_count),
+                analysis
+                    .row_type_arity_message()
+                    .unwrap_or_else(|| "row type argument requirement satisfied".to_string()),
+                analysis.parameter_count_consistency_message(expr.children.len()),
+                analysis
+                    .cardinality_requirement_message()
+                    .unwrap_or_else(|| "SQL cardinality requirement satisfied".to_string()),
+                analysis.wrapper_lowering_readiness_message(expr.children.len()),
+                sql_wrapper_plan_status_message(expr),
+                format!(
+                    "wrapper result type: {}",
+                    analysis
+                        .result_type
+                        .unwrap_or_else(|| "ambiguous".to_string())
+                ),
+                analysis.cardinality,
+            ),
+            Ok(None) => (
+                "SQL form analysis unavailable".to_string(),
+                "row type argument count: unknown".to_string(),
+                "row type argument requirement unknown".to_string(),
+                "SQL parameter count consistency unknown".to_string(),
+                "SQL cardinality requirement unknown".to_string(),
+                "SQL wrapper lowering readiness: unknown".to_string(),
+                "SQL wrapper plan: unknown".to_string(),
+                "wrapper result type: unknown".to_string(),
+                crate::sql_forms::SqlCardinality::Ambiguous,
+            ),
+            Err(error) => (
+                format!("SQL form analysis error: {}", error.message()),
+                "row type argument count: unknown".to_string(),
+                "row type argument requirement unknown".to_string(),
+                "SQL parameter count consistency unknown".to_string(),
+                "SQL cardinality requirement unknown".to_string(),
+                "SQL wrapper lowering readiness: unknown".to_string(),
+                "SQL wrapper plan: unknown".to_string(),
+                "wrapper result type: unknown".to_string(),
+                crate::sql_forms::SqlCardinality::Ambiguous,
+            ),
+        };
+        format!(
+            "{}; {}; {}; {}; {}; {}; {}; {}; {}; inferred SQL cardinality: {}",
+            message,
+            binding_message,
+            row_type_message,
+            row_type_arity_message,
+            parameter_consistency_message,
+            cardinality_requirement_message,
+            wrapper_readiness_message,
+            wrapper_plan_message,
+            result_type_message,
+            cardinality.as_diagnostic_label()
+        )
+    } else {
+        message
+    }
+}
+
+/// Builds a diagnostic fragment for SQL wrapper-plan readiness.
+///
+/// Inputs:
+/// - `expr`: syntax-output raw macro expression preserving SQL-form metadata.
+///
+/// Output:
+/// - Stable wrapper-plan diagnostic fragment.
+///
+/// Transformation:
+/// - Reuses the SQL wrapper-plan builder so the unresolved raw macro
+///   diagnostic reports the same payload that later backend wrapper emission
+///   will consume.
+fn sql_wrapper_plan_status_message(expr: &SyntaxExprOutput) -> String {
+    match crate::sql_forms::build_sql_wrapper_plan(expr, expr.children.len()) {
+        Ok(Some(plan)) => format!(
+            "SQL wrapper plan: ready row_type={}, params={}, projection_fields={}, bound_sql_bytes={}, result_type={}, cardinality={}",
+            plan.row_type,
+            plan.parameter_count,
+            plan.projection_fields.as_ref().map_or(0, Vec::len),
+            plan.bound_sql.len(),
+            plan.result_type,
+            plan.cardinality.as_diagnostic_label()
+        ),
+        Ok(None) => "SQL wrapper plan: unavailable".to_string(),
+        Err(error) => format!("SQL wrapper plan: {}", error.message()),
+    }
+}
 /// Collects raw-macro diagnostics for syntax-output modules before full
 /// resolution/typechecking.
 ///
@@ -191,14 +340,10 @@ fn collect_raw_macro_diagnostics_in_expr(
         expr_span
     };
 
-    if expr.kind == SyntaxExprKind::RawMacro {
-        let name = expr.text.as_deref().unwrap_or("<unknown>");
+    if expr.kind == SyntaxExprKind::RawMacro && raw_macro_requires_resolution_diagnostic(expr) {
         diagnostics.push(Diagnostic {
             span: fallback_span,
-            message: format!(
-                "raw macro expression `{}` requires macro resolution before type checking",
-                name
-            ),
+            message: raw_macro_resolution_message_for_expr(expr),
             severity: DiagSeverity::Error,
         });
     }
@@ -316,4 +461,29 @@ fn collect_raw_macro_diagnostics_in_expr(
             }
         }
     }
+}
+
+/// Returns whether a raw macro node should still be rejected before typecheck.
+///
+/// Inputs:
+/// - `expr`: syntax-output expression that may be a raw macro placeholder.
+///
+/// Output:
+/// - `true` for generic raw macros and SQL forms without a ready wrapper plan.
+/// - `false` for typed SQL forms that have enough metadata for CoreIR/backend
+///   wrapper lowering.
+///
+/// Transformation:
+/// - Uses the SQL wrapper-plan readiness gate as the handoff point between raw
+///   macro rejection and compiler-owned SQL lowering. This keeps untyped
+///   `sql{...}` blocked while letting ready `sql[Row] { ... }` proceed.
+pub(crate) fn raw_macro_requires_resolution_diagnostic(expr: &SyntaxExprOutput) -> bool {
+    if expr.text.as_deref() != Some("sql") {
+        return true;
+    }
+
+    !matches!(
+        crate::sql_forms::build_sql_wrapper_plan(expr, expr.children.len()),
+        Ok(Some(_))
+    )
 }

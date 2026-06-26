@@ -8,7 +8,8 @@ formal syntax-output parser and resolver have run.
 - Run regular syntax-output typechecking and append template-specific
   diagnostics.
 - Validate external template files referenced by `template` declarations.
-- Check declared props, reserved `children`, slot paths, and component tags.
+- Check declared prop signatures, reserved `children`, slot paths, and
+  component tags.
 - Keep template validation out of `main.rs` and command routing modules.
 
 ## Public Surface
@@ -24,6 +25,10 @@ inputs: declaration name, source path, resolved path, props, source span, and
 parsed `terlan_html` template. This module then checks those inputs against the
 declared props and struct field types available in the syntax output.
 
+Prop signature validation is isolated before node validation so duplicate props
+and reserved names are caught independently from template-file parsing and
+future generated render-function work.
+
 ## Integration Points
 
 - `main.rs`: invokes this validator during formal phase compilation.
@@ -35,5 +40,5 @@ declared props and struct field types available in the syntax output.
 ## Testing Notes
 
 Existing integration tests still exercise this module through `check`, `emit`,
-and static-site command flows. Add module-local tests when template contract
-rules grow beyond the current focused checks.
+and static-site command flows. Focused module-local tests cover rules that can
+be validated without full filesystem or command setup.

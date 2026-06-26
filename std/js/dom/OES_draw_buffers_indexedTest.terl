@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface OES_draw_buffers_indexed
+ */
+
+module std.js.Dom.OES_draw_buffers_indexedTest.
+
+import type std.js.Dom.OES_draw_buffers_indexed.OES_draw_buffers_indexed.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub blend_equation_separatei_oes_typechecks(receiver: OES_draw_buffers_indexed, buf: GLuint, mode_rgb: GLenum, mode_alpha: GLenum): std.core.Unit ->
+    receiver.blend_equation_separatei_oes(buf, mode_rgb, mode_alpha).
+
+pub blend_equationi_oes_typechecks(receiver: OES_draw_buffers_indexed, buf: GLuint, mode: GLenum): std.core.Unit ->
+    receiver.blend_equationi_oes(buf, mode).
+
+pub blend_func_separatei_oes_typechecks(receiver: OES_draw_buffers_indexed, buf: GLuint, src_rgb: GLenum, dst_rgb: GLenum, src_alpha: GLenum, dst_alpha: GLenum): std.core.Unit ->
+    receiver.blend_func_separatei_oes(buf, src_rgb, dst_rgb, src_alpha, dst_alpha).
+
+pub blend_funci_oes_typechecks(receiver: OES_draw_buffers_indexed, buf: GLuint, src: GLenum, dst: GLenum): std.core.Unit ->
+    receiver.blend_funci_oes(buf, src, dst).
+
+pub color_maski_oes_typechecks(receiver: OES_draw_buffers_indexed, buf: GLuint, r: GLboolean, g: GLboolean, b: GLboolean, a: GLboolean): std.core.Unit ->
+    receiver.color_maski_oes(buf, r, g, b, a).
+
+pub disablei_oes_typechecks(receiver: OES_draw_buffers_indexed, target_: GLenum, index: GLuint): std.core.Unit ->
+    receiver.disablei_oes(target_, index).
+
+pub enablei_oes_typechecks(receiver: OES_draw_buffers_indexed, target_: GLenum, index: GLuint): std.core.Unit ->
+    receiver.enablei_oes(target_, index).

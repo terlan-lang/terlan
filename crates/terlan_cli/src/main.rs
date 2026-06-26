@@ -97,6 +97,8 @@ enum DocFormat {
 struct CliState {
     no_emit: bool,
     incremental: bool,
+    timings: bool,
+    experimental: bool,
     out_dir: PathBuf,
     cache_dir: Option<PathBuf>,
     trace_invalidation: bool,
@@ -117,7 +119,7 @@ struct CliState {
 /// Transformation:
 /// - Preserves command-local options without interpreting them in the top-level
 ///   dispatcher.
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct CliCommand {
     verb: Option<String>,
     args: Vec<String>,
@@ -139,19 +141,34 @@ struct CliCommand {
 fn public_usage_lines() -> &'static [&'static str] {
     &[
         "terlc help [command]",
-        "terlc init [project-name] [--profile default|web]",
+        "terlc init [project-name] [--profile default|web|static]",
         "terlc check <file.terl|file.terli|dir>",
         "terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]",
+        "terlc run [project-dir] [--target erlang]",
+        "terlc clean [project-dir]",
         "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]",
-        "terlc test [file.terl|dir] [--target erlang|js]",
+        "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]",
+        "terlc static <emit|serve|check> <file.terl>",
+        "terlc test [file.terl|dir] [--target erlang|js] [--name <test_function>]",
         "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
+        "terlc db <init|new|validate|status|migrate|rebuild|reset>",
         "terlc repl [--help] [<file.terl|project-dir>]",
         "terlc fmt <file.terl>",
         "terlc version | terlc --version | terlc -V",
-        "Global options: --diagnostic-format text|json --color auto|always|never --target-profile erlang|js.shared|js.browser|js.worker",
+        "Global options: --diagnostic-format text|json --color auto|always|never --target-profile erlang|js.shared|js.browser|js.worker --timings",
     ]
 }
 
+/// Prints the public `terlc` command summary.
+///
+/// Inputs:
+/// - None; command list is owned by `public_usage_lines`.
+///
+/// Output:
+/// - Usage lines written to stdout.
+///
+/// Transformation:
+/// - Emits only public release commands and hides private compiler helpers.
 fn print_usage() {
     for line in public_usage_lines() {
         println!("{line}");
@@ -224,7 +241,11 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "init" => commands::init::run(cmd),
         "bind" => commands::bind::run(cmd),
         "build" => commands::build::run(cmd, state),
+        "run" => commands::run::run(cmd, state),
+        "clean" => commands::clean::run(cmd),
         "serve" => commands::serve::run(cmd, state),
+        "integration-test" => commands::integration_test::run(cmd, state),
+        "static" => commands::static_site::run(cmd, state),
         "check" => commands::check::run(cmd, state),
         "emit" => commands::emit::run(cmd, state),
         "emit-static" => commands::static_site::run_emit_static(cmd, state),
@@ -233,6 +254,8 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "test" => commands::test::run(cmd, state),
         "interface" => commands::interface::run(&cmd.args, &state),
         "doc" => commands::doc::run(cmd, state),
+        "deploy" => commands::deploy::run(cmd, state),
+        "db" => commands::db::run(cmd),
         "doctest" => commands::doc::run_doctest(cmd, state),
         "emit-native-metadata" => commands::emit_native_metadata::run(cmd, state),
         "repl" => commands::repl::run(cmd, state),
@@ -240,6 +263,9 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "hover" => commands::hover::run(cmd, state),
         "lsp" => commands::lsp::run(&cmd.args),
         "syntax-contract" => commands::syntax_contract::run(&cmd.args),
+        "__sql-runtime" => commands::sql_runtime::run(&cmd.args),
+        "__safe-native-runtime" => commands::safe_native_runtime::run(&cmd.args),
+        "__native-vector-runtime" => commands::native_vector_runtime::run(&cmd.args),
         "version" => run_version_command(&cmd),
         unknown => {
             eprintln!("unknown command: {}", unknown);
@@ -392,28 +418,47 @@ fn print_command_help(command: &str) -> ExitCode {
 fn print_command_usage(command: &str) -> bool {
     match command {
         "help" => println!("terlc help [command]"),
-        "init" => println!("terlc init [project-name] [--profile default|web]"),
+        "init" => println!("terlc init [project-name] [--profile default|web|static]"),
         "bind" => println!("terlc bind rust --crate <crate-name> --out <dir>"),
         "check" => println!("terlc check <file.terl|file.terli|dir> [--emit-phase-manifest <path>]"),
         "build" => println!("terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]"),
+        "run" => println!("terlc run [project-dir] [--target erlang]"),
+        "clean" => println!("terlc clean [project-dir]"),
         "serve" => println!(
             "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]"
         ),
+        "integration-test" => println!(
+            "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--compose-service <name>] [--skip-db] [--skip-build] [--migrations <dir>] [--wait-secs <seconds>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]"
+        ),
+        "static" => {
+            println!(
+                "terlc static emit <file.terl> [--out-dir <dir>] [--validate-output] [--base-path <path>] [--asset-include <pattern>] [--asset-exclude <pattern>]"
+            );
+            println!(
+                "terlc static serve <file.terl> [--out-dir <dir>] [--host <host>] [--port <port>] [--poll-ms <ms>] [--source-dir <dir>] [--validate-output] [--base-path <path>]"
+            );
+            println!(
+                "terlc static check <file.terl> [--out-dir <dir>] [--base-path <path>] [--asset-include <pattern>] [--asset-exclude <pattern>]"
+            );
+        }
         "emit" => println!("terlc emit <file.terl> [--out-dir <dir>] [--no-emit] [--incremental]"),
-        "emit-static" => println!(
-            "terlc emit-static <file.terl> [--out-dir <dir>] [--validate-output] [--asset-include <pattern>] [--asset-exclude <pattern>]"
-        ),
-        "serve-static" => println!(
-            "terlc serve-static <file.terl> [--out-dir <dir>] [--host <host>] [--port <port>] [--poll-ms <ms>] [--source-dir <dir>] [--validate-output]"
-        ),
         "emit-js" => println!("terlc emit-js <file.terl> [--out-dir <dir>] [--declarations]"),
         "test" => println!(
-            "terlc test [file.terl|dir] [--target erlang|js] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
+            "terlc test [file.terl|dir] [--target erlang|js] [--name <test_function>] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
         ),
         "interface" => println!("terlc interface <file.terli> [--out-dir <dir>]"),
         "doc" => println!(
             "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>] [--check] [--missing-docs]"
         ),
+        "db" => {
+            println!("terlc db init [migrations-dir]");
+            println!("terlc db new <name> [migrations-dir]");
+            println!("terlc db validate [migrations-dir]");
+            println!("terlc db status [--database-url URL] [migrations-dir]");
+            println!("terlc db migrate [--database-url URL] [migrations-dir]");
+            println!("terlc db rebuild --dev [--database-url URL] [migrations-dir]");
+            println!("terlc db reset --dev [--database-url URL] [migrations-dir]");
+        }
         "doctest" => println!("terlc doctest <file.terl>"),
         "emit-native-metadata" => {
             println!("terlc emit-native-metadata <file.terl> [--out-dir <dir>]")
@@ -455,14 +500,17 @@ fn command_has_usage(command: &str) -> bool {
             | "bind"
             | "check"
             | "build"
+            | "run"
+            | "clean"
             | "serve"
+            | "integration-test"
+            | "static"
             | "emit"
-            | "emit-static"
-            | "serve-static"
             | "emit-js"
             | "test"
             | "interface"
             | "doc"
+            | "db"
             | "doctest"
             | "emit-native-metadata"
             | "repl"
@@ -563,6 +611,8 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
     let mut state = CliState {
         no_emit: false,
         incremental: false,
+        timings: false,
+        experimental: false,
         out_dir: PathBuf::from("_build"),
         cache_dir: None,
         trace_invalidation: false,
@@ -582,6 +632,14 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
             }
             "--incremental" => {
                 state.incremental = true;
+                i += 1;
+            }
+            "--timings" => {
+                state.timings = true;
+                i += 1;
+            }
+            "--experimental" => {
+                state.experimental = true;
                 i += 1;
             }
             "--trace-invalidation" => {
@@ -817,3 +875,5 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
 
 #[cfg(test)]
 mod main_test;
+#[cfg(test)]
+mod support_test;

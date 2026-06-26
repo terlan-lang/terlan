@@ -1,0 +1,61 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGTextContentElement
+ */
+
+module std.js.Dom.SVGTextContentElementTest.
+
+import type std.js.Dom.SVGTextContentElement.SVGTextContentElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub length_adjust_typechecks(receiver: SVGTextContentElement): SVGAnimatedEnumeration ->
+    receiver.length_adjust().
+
+pub text_length_typechecks(receiver: SVGTextContentElement): SVGAnimatedLength ->
+    receiver.text_length().
+
+pub get_char_num_at_position_typechecks(receiver: SVGTextContentElement, point: DOMPointInit): std.js.Number.JsNumber ->
+    receiver.get_char_num_at_position(point).
+
+pub get_computed_text_length_typechecks(receiver: SVGTextContentElement): std.js.Number.JsNumber ->
+    receiver.get_computed_text_length().
+
+pub get_end_position_of_char_typechecks(receiver: SVGTextContentElement, charnum: std.js.Number.JsNumber): DOMPoint ->
+    receiver.get_end_position_of_char(charnum).
+
+pub get_extent_of_char_typechecks(receiver: SVGTextContentElement, charnum: std.js.Number.JsNumber): DOMRect ->
+    receiver.get_extent_of_char(charnum).
+
+pub get_number_of_chars_typechecks(receiver: SVGTextContentElement): std.js.Number.JsNumber ->
+    receiver.get_number_of_chars().
+
+pub get_rotation_of_char_typechecks(receiver: SVGTextContentElement, charnum: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.get_rotation_of_char(charnum).
+
+pub get_start_position_of_char_typechecks(receiver: SVGTextContentElement, charnum: std.js.Number.JsNumber): DOMPoint ->
+    receiver.get_start_position_of_char(charnum).
+
+pub get_sub_string_length_typechecks(receiver: SVGTextContentElement, charnum: std.js.Number.JsNumber, nchars: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    receiver.get_sub_string_length(charnum, nchars).
+
+pub select_sub_string_typechecks(receiver: SVGTextContentElement, charnum: std.js.Number.JsNumber, nchars: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.select_sub_string(charnum, nchars).
+
+pub add_event_listener_typechecks(receiver: SVGTextContentElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: SVGTextContentElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

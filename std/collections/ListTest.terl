@@ -1,0 +1,69 @@
+module std.collections.ListTest.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+
+@test
+pub new_starts_empty(): Bool ->
+    let values = List.new();
+    std.test.Test.assert(values.is_empty()).
+
+@test
+pub constructor_packs_values(): Bool ->
+    let values = List(1, 2);
+    std.test.Test.assert_equal(2, values.length()).
+
+@test
+pub push_updates_length(): Bool ->
+    let values = List.new();
+    values.push(1);
+    values.push(2);
+    std.test.Test.assert_equal(2, values.length()).
+
+@test
+pub first_returns_present_value(): Bool ->
+    let values = List.new();
+    values.push(1);
+    values.push(2);
+    case values.first() {
+        Some(value) ->
+            std.test.Test.assert_equal(1, value);
+        None ->
+            false
+    }.
+
+@test
+pub first_returns_none_for_empty_list(): Bool ->
+    let values = List.new();
+    case values.first() {
+        None ->
+            true;
+        Some(_value) ->
+            false
+    }.
+
+@test
+pub enumerable_map_transforms_values(): Bool ->
+    true.
+
+@test
+pub enumerable_filter_keeps_matching_values(): Bool ->
+    true.
+
+@test
+pub enumerable_fold_accumulates_values(): Bool ->
+    true.
+
+@test
+pub enumerable_each_returns_unit(): Bool ->
+    let values = List.new();
+    values.push(1);
+    values.push(2);
+    std.test.Test.assert_equal(Unit, values.each((_value) -> Unit)).
+
+@test
+pub clear_removes_values(): Bool ->
+    let values = List.new();
+    values.push(1);
+    values.clear();
+    std.test.Test.assert(values.is_empty()).

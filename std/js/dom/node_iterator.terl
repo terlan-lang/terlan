@@ -1,0 +1,88 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface NodeIterator
+ */
+
+module std.js.Dom.NodeIterator.
+
+/**
+ * The **`NodeIterator`** interface represents an iterator to traverse nodes of a DOM subtree in document order.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator)
+ */
+pub opaque type NodeIterator.
+
+/**
+ * The **`NodeIterator.filter`** read-only property returns a `NodeFilter` object, that is an object which implements an `acceptNode(node)` method, used to screen nodes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/filter)
+ */
+pub (value: NodeIterator) filter(): Option[NodeFilter] ->
+    native.
+
+/**
+ * The **`NodeIterator.pointerBeforeReferenceNode`** read-only property returns a boolean flag that indicates whether the `NodeFilter` is anchored before (if this value is `true`) or after (if this value is `false`) the anchor node indicated by the A boolean.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/pointerBeforeReferenceNode)
+ */
+pub (value: NodeIterator) pointer_before_reference_node(): std.core.Bool ->
+    native.
+
+/**
+ * The **`NodeIterator.referenceNode`** read-only property returns the iterator remains anchored to the reference node as specified by this property.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/referenceNode)
+ */
+pub (value: NodeIterator) reference_node(): Node ->
+    native.
+
+/**
+ * The **`NodeIterator.root`** read-only property represents the traverses.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/root)
+ */
+pub (value: NodeIterator) root(): Node ->
+    native.
+
+/**
+ * The **`NodeIterator.whatToShow`** read-only property represents an `unsigned integer` representing a bitmask signifying what types of nodes should be returned by the NodeIterator.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/whatToShow)
+ */
+pub (value: NodeIterator) what_to_show(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`NodeIterator.detach()`** method is a no-op, kept for backward compatibility only.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/detach)
+ */
+pub (value: NodeIterator) detach(): std.core.Unit ->
+    native.
+
+/**
+ * The **`NodeIterator.nextNode()`** method returns the next node in the set represented by the NodeIterator and advances the position of the iterator within the set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/nextNode)
+ */
+pub (value: NodeIterator) next_node(): Option[Node] ->
+    native.
+
+/**
+ * The **`NodeIterator.previousNode()`** method returns the previous node in the set represented by the NodeIterator and moves the position of the iterator backwards within the set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/previousNode)
+ */
+pub (value: NodeIterator) previous_node(): Option[Node] ->
+    native.

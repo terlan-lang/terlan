@@ -26,6 +26,7 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
                 })
                 .collect(),
             is_type: decl.is_type,
+            is_selected: decl.is_selected,
             source_path: decl.source_path.clone(),
         },
         Decl::Export(decl) => SyntaxDeclarationPayload::Export {
@@ -49,7 +50,7 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
         },
         Decl::Struct(decl) => SyntaxDeclarationPayload::Struct {
             name: decl.name.clone(),
-            derives: decl.derives.clone(),
+            includes: decl.includes.clone(),
             implements: decl.implements.iter().map(type_output).collect(),
             is_public: decl.is_public,
             fields: decl
@@ -58,6 +59,7 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
                 .map(|field| SyntaxStructFieldOutput {
                     name: field.name.clone(),
                     annotation: type_output(&field.annotation),
+                    is_private: field.is_private,
                     docs: field.docs.clone(),
                     has_default: field.default.is_some(),
                     default: field
@@ -76,6 +78,7 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
         },
         Decl::Function(decl) => SyntaxDeclarationPayload::Function {
             name: decl.name.clone(),
+            generic_params: decl.generic_params.clone(),
             params: decl.params.iter().map(param_output).collect(),
             return_type: type_output(&decl.return_type),
             is_public: decl.is_public,
@@ -86,6 +89,7 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
         Decl::Method(decl) => SyntaxDeclarationPayload::Method {
             receiver: param_output(&decl.receiver),
             name: decl.name.clone(),
+            generic_params: decl.generic_params.clone(),
             params: decl.params.iter().map(param_output).collect(),
             return_type: type_output(&decl.return_type),
             is_public: decl.is_public,
@@ -120,10 +124,19 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
             props: decl
                 .props
                 .iter()
-                .map(|prop| SyntaxTemplatePropOutput {
-                    name: prop.name.clone(),
-                    annotation: type_output(&prop.annotation),
-                    span: prop.span.into(),
+                .map(|prop| {
+                    let span = prop.span.into();
+                    SyntaxTemplatePropOutput {
+                        name: prop.name.clone(),
+                        annotation: type_output(&prop.annotation),
+                        has_default: prop.default.is_some(),
+                        default: prop
+                            .default
+                            .as_ref()
+                            .map(|expr| expr_output_with_span(expr, span)),
+                        default_text: prop.default.as_ref().map(expr_to_output_text),
+                        span,
+                    }
                 })
                 .collect(),
         },
@@ -189,20 +202,29 @@ fn type_output(ty: &TypeExpr) -> SyntaxTypeOutput {
 /// Converts a parsed function or method parameter into syntax-output form.
 ///
 /// Inputs:
-/// - `param`: parser parameter with name, annotation, mutability, and span.
+/// - `param`: parser parameter with name, annotation, mutability, optional
+///   default, and span.
 ///
 /// Output:
 /// - `SyntaxParamOutput` consumed by type checking and interface generation.
 ///
 /// Transformation:
 /// - Converts the annotation through `type_output` and preserves mutable
-///   receiver/argument metadata.
+///   receiver/argument metadata plus optional default syntax and source-like
+///   default text.
 fn param_output(param: &Param) -> SyntaxParamOutput {
+    let span = param.span.into();
     SyntaxParamOutput {
         name: param.name.clone(),
         annotation: type_output(&param.annotation),
         is_mutable: param.is_mutable,
-        span: param.span.into(),
+        has_default: param.default.is_some(),
+        default: param
+            .default
+            .as_ref()
+            .map(|expr| expr_output_with_span(expr, span)),
+        default_text: param.default.as_ref().map(expr_to_output_text),
+        span,
     }
 }
 
@@ -216,7 +238,8 @@ fn param_output(param: &Param) -> SyntaxParamOutput {
 ///
 /// Transformation:
 /// - Converts the annotation and lowers any default expression into syntax
-///   output using the parameter span as source context.
+///   output using the parameter span as source context, while preserving
+///   source-like default text for interface rendering.
 fn constructor_param_output(param: &ConstructorParam) -> SyntaxConstructorParamOutput {
     let span: EbnfSourceSpan = param.span.into();
     SyntaxConstructorParamOutput {
@@ -227,6 +250,7 @@ fn constructor_param_output(param: &ConstructorParam) -> SyntaxConstructorParamO
             .default
             .as_ref()
             .map(|expr| expr_output_with_span(expr, span)),
+        default_text: param.default.as_ref().map(expr_to_output_text),
         is_varargs: param.is_varargs,
         span: param.span.into(),
     }
@@ -296,6 +320,7 @@ fn trait_method_output(method: &TraitMethodDecl) -> SyntaxTraitMethodOutput {
     let span: EbnfSourceSpan = method.span.into();
     SyntaxTraitMethodOutput {
         name: method.name.clone(),
+        generic_params: method.generic_params.clone(),
         params: method.params.iter().map(param_output).collect(),
         return_type: type_output(&method.return_type),
         generic_bounds: method.generic_bounds.clone(),

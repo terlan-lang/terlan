@@ -64,6 +64,7 @@ pub struct ImportDecl {
     pub module_name: String,
     pub items: Vec<ImportItem>,
     pub is_type: bool,
+    pub is_selected: bool,
     pub source_path: Option<String>,
     pub span: Span,
 }
@@ -117,7 +118,7 @@ pub struct TypeDecl {
 #[derive(Debug, Clone)]
 pub struct StructDecl {
     pub name: String,
-    pub derives: Vec<String>,
+    pub includes: Vec<String>,
     pub implements: Vec<TypeExpr>,
     pub fields: Vec<StructFieldDecl>,
     pub is_public: bool,
@@ -131,6 +132,7 @@ pub struct StructFieldDecl {
     pub name: String,
     pub annotation: TypeExpr,
     pub default: Option<Expr>,
+    pub is_private: bool,
     pub docs: Vec<String>,
     pub span: Span,
 }
@@ -169,6 +171,7 @@ pub struct ConstructorParam {
 #[derive(Debug, Clone)]
 pub struct FunctionDecl {
     pub name: String,
+    pub generic_params: Vec<String>,
     pub params: Vec<Param>,
     pub return_type: TypeExpr,
     pub is_public: bool,
@@ -184,6 +187,7 @@ pub struct FunctionDecl {
 pub struct MethodDecl {
     pub receiver: Param,
     pub name: String,
+    pub generic_params: Vec<String>,
     pub params: Vec<Param>,
     pub return_type: TypeExpr,
     pub is_public: bool,
@@ -208,6 +212,7 @@ pub struct Param {
     pub name: String,
     pub annotation: TypeExpr,
     pub is_mutable: bool,
+    pub default: Option<Expr>,
     pub span: Span,
 }
 
@@ -273,6 +278,7 @@ pub struct AnnotationValueType {
 pub struct TemplatePropDecl {
     pub name: String,
     pub annotation: TypeExpr,
+    pub default: Option<Expr>,
     pub span: Span,
 }
 
@@ -339,7 +345,9 @@ pub enum Expr {
     },
     Call {
         callee: Box<Expr>,
+        type_args: Vec<TypeExpr>,
         args: Vec<Expr>,
+        arg_names: Vec<Option<String>>,
         remote: Option<String>,
         is_fun_value: bool,
     },
@@ -365,6 +373,8 @@ pub enum Expr {
     },
     RawMacro {
         name: String,
+        type_args: Vec<TypeExpr>,
+        interpolations: Vec<Expr>,
         raw: String,
     },
     HtmlBlock(HtmlBlockExpr),
@@ -415,7 +425,7 @@ pub enum Expr {
 /// One binding in a `let` expression.
 #[derive(Debug, Clone)]
 pub struct LetBinding {
-    pub name: String,
+    pub pattern: Pattern,
     pub value: Expr,
 }
 
@@ -572,6 +582,7 @@ pub struct TraitDecl {
 #[derive(Debug, Clone)]
 pub struct TraitMethodDecl {
     pub name: String,
+    pub generic_params: Vec<String>,
     pub params: Vec<Param>,
     pub return_type: TypeExpr,
     pub generic_bounds: Vec<String>,

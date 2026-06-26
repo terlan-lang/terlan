@@ -1,0 +1,72 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface AudioBuffer
+ */
+
+module std.js.Dom.AudioBuffer.
+
+/**
+ * The **`AudioBuffer`** interface represents a short audio asset residing in memory, created from an audio file using the BaseAudioContext/decodeAudioData method, or from raw data using BaseAudioContext/createBuffer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer)
+ */
+pub opaque type AudioBuffer.
+
+/**
+ * The **`duration`** property of the AudioBuffer interface returns a double representing the duration, in seconds, of the PCM data stored in the buffer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/duration)
+ */
+pub (value: AudioBuffer) duration(): std.js.Number.JsNumber.
+
+/**
+ * The **`length`** property of the AudioBuffer interface returns an integer representing the length, in sample-frames, of the PCM data stored in the buffer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/length)
+ */
+pub (value: AudioBuffer) length(): std.js.Number.JsNumber.
+
+/**
+ * The `numberOfChannels` property of the AudioBuffer interface returns an integer representing the number of discrete audio channels described by the PCM data stored in the buffer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/numberOfChannels)
+ */
+pub (value: AudioBuffer) number_of_channels(): std.js.Number.JsNumber.
+
+/**
+ * The **`sampleRate`** property of the AudioBuffer interface returns a float representing the sample rate, in samples per second, of the PCM data stored in the buffer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/sampleRate)
+ */
+pub (value: AudioBuffer) sample_rate(): std.js.Number.JsNumber.
+
+/**
+ * The **`copyFromChannel()`** method of the channel of the `AudioBuffer` to a specified ```js-nolint copyFromChannel(destination, channelNumber, startInChannel) ``` - `destination` - : A Float32Array to copy the channel's samples to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyFromChannel)
+ */
+pub (value: AudioBuffer) copy_from_channel(destination: Float32Array[ArrayBuffer], channel_number: std.js.Number.JsNumber, buffer_offset: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The `copyToChannel()` method of the AudioBuffer interface copies the samples to the specified channel of the `AudioBuffer`, from the source array.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyToChannel)
+ */
+pub (value: AudioBuffer) copy_to_channel(source: Float32Array[ArrayBuffer], channel_number: std.js.Number.JsNumber, buffer_offset: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`getChannelData()`** method of the AudioBuffer Interface returns a Float32Array containing the PCM data associated with the channel, defined by the channel parameter (with 0 representing the first channel).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/getChannelData)
+ */
+pub (value: AudioBuffer) get_channel_data(channel: std.js.Number.JsNumber): Float32Array[ArrayBuffer].

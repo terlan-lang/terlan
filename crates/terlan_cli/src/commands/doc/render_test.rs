@@ -143,10 +143,10 @@ pub (user: User) display_name(): String ->
     let html = render_syntax_module_docs_html(&module);
 
     assert!(html.contains("<h1>std.core.User</h1>"));
-    assert!(html.contains("User module docs."));
+    assert!(html.contains("User&#32;module&#32;docs."));
     assert!(html.contains("Structs"));
-    assert!(html.contains("Receiver Methods"));
-    assert!(html.contains("pub struct User"));
-    assert!(html.contains("pub (user: User) display_name(): String."));
+    assert!(html.contains("Receiver&#32;Methods"));
+    assert!(html.contains("pub&#32;struct&#32;User"));
+    assert!(html.contains("pub&#32;(user:&#32;User)&#32;display_name():&#32;String."));
     assert!(html.contains("user.display_name()."));
 }

@@ -8,6 +8,7 @@
 
 module std.http.Response.
 
+import std.http.Cookies.{delete_header, set_header, set_header_with_options}.
 import std.core.Unit.{Unit}.
 import type std.data.Json.
 
@@ -25,27 +26,96 @@ pub opaque type Response.
 /**
  * Creates a JSON response.
  *
- * Input: one `Json` value.
+ * Input: one `Json` value and an optional HTTP status code.
  * Output: a `Response` containing the serialized JSON body and the platform
  * default JSON content type.
  * Transformation: delegates response allocation and serialization to the
  * selected HTTP server capability without exposing backend response buffers.
  */
 @compiler.native {std.http.response.json}
-pub json(value: Json): Response ->
+pub json(value: Json, status: Int = 200): Response ->
+    native.
+
+/**
+ * Creates a JSON response from already serialized JSON text.
+ *
+ * Input: one UTF-8 JSON string and an optional HTTP status code.
+ * Output: a `Response` containing the supplied JSON body and the platform
+ * default JSON content type.
+ * Transformation: delegates response allocation to the selected HTTP server
+ * capability without allowing handler code to override server-owned
+ * `Content-Type` metadata through generic headers.
+ */
+@compiler.native {std.http.response.json_text}
+pub json_text(value: String, status: Int = 200): Response ->
     native.
 
 /**
  * Creates a text response.
  *
- * Input: one UTF-8 `String` value.
+ * Input: one UTF-8 `String` value and an optional HTTP status code.
  * Output: a `Response` containing the text body and the platform default text
  * content type.
  * Transformation: delegates response allocation to the selected HTTP server
  * capability without exposing backend response buffers.
  */
 @compiler.native {std.http.response.text}
-pub text(value: String): Response ->
+pub text(value: String, status: Int = 200): Response ->
+    native.
+
+/**
+ * Creates an HTML response.
+ *
+ * Input: one UTF-8 HTML string and an optional HTTP status code.
+ * Output: a `Response` containing the HTML body and the platform default HTML
+ * content type.
+ * Transformation: delegates response allocation to the selected HTTP server
+ * capability without exposing backend response buffers.
+ */
+@compiler.native {std.http.response.html}
+pub html(value: String, status: Int = 200): Response ->
+    native.
+
+/**
+ * Creates an HTML response from a trusted template fragment.
+ *
+ * Input: one compiler-validated `Template.Html` fragment and an optional HTTP
+ * status code.
+ * Output: a `Response` containing the rendered HTML body and the platform
+ * default HTML content type.
+ * Transformation: preserves the trusted-template type boundary at source level
+ * while delegating final response allocation to the selected HTTP server
+ * capability.
+ */
+@compiler.native {std.http.response.html}
+pub html(value: std.template.Template.Html, status: Int = 200): Response ->
+    native.
+
+/**
+ * Creates a file response.
+ *
+ * Input: one package-relative file path, an optional HTTP status code, and an
+ * optional content type override.
+ * Output: a `Response` that streams the selected file through the runtime HTTP
+ * server path.
+ * Transformation: delegates file response allocation to the selected HTTP
+ * server capability while the compiler may lower constant file responses into
+ * generated route manifests.
+ */
+@compiler.native {std.http.response.file}
+pub file(path: String, status: Int = 200, content_type: String = ""): Response ->
+    native.
+
+/**
+ * Creates a redirect response.
+ *
+ * Input: one redirect location string and an optional HTTP redirect status.
+ * Output: a `Response` with the supplied status and a `Location` header.
+ * Transformation: delegates redirect response allocation to the selected HTTP
+ * server capability without exposing backend response buffers.
+ */
+@compiler.native {std.http.response.redirect}
+pub redirect(location: String, status: Int = 302): Response ->
     native.
 
 /**
@@ -72,3 +142,118 @@ pub (mut response: Response) status(code: Int): Unit ->
 @compiler.native {std.http.response.header}
 pub (mut response: Response) header(name: String, value: String): Unit ->
     native.
+
+/**
+ * Returns a response after setting its status.
+ *
+ * Input: one mutable `Response` receiver and one HTTP status code.
+ * Output: the same `Response` value after status metadata has been updated.
+ * Transformation: uses the mutable receiver continuation rule so handlers can
+ * write expression-style response builders without losing the underlying
+ * target-owned mutation path.
+ */
+pub (mut response: Response) with_status(code: Int): Response ->
+    response |> status(code).
+
+/**
+ * Returns a response after setting one header.
+ *
+ * Input: one mutable `Response` receiver, one UTF-8 header name, and one UTF-8
+ * header value.
+ * Output: the same `Response` value after header metadata has been updated.
+ * Transformation: uses the mutable receiver continuation rule so handlers can
+ * chain header construction while the runtime still owns concrete response
+ * storage.
+ */
+pub (mut response: Response) with_header(name: String, value: String): Response ->
+    response |> header(name, value).
+
+/**
+ * Adds a `Set-Cookie` header value.
+ *
+ * Input: one mutable `Response` receiver and one complete `Set-Cookie` header
+ * value.
+ * Output: `Unit`.
+ * Transformation: appends a `Set-Cookie` header using the current
+ * source-level helper. Full typed construction and option validation belong to
+ * `std.http.Cookies`.
+ */
+@compiler.native {std.http.response.set_cookie_header}
+pub (mut response: Response) set_cookie_header(value: String): Unit ->
+    native.
+
+/**
+ * Adds a validated `Set-Cookie` header.
+ *
+ * Input: one mutable `Response` receiver, cookie name, cookie value, optional
+ * path, and practical boolean flags.
+ * Output: `Unit`.
+ * Transformation: builds the cookie header through `std.http.Cookies` and
+ * appends it to the response without requiring handler code to assemble raw
+ * `Set-Cookie` text.
+ */
+pub (mut response: Response) cookie(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): Unit ->
+    response |> set_cookie_header(set_header(name, value, path, http_only, secure)).
+
+/**
+ * Returns a response after adding a validated `Set-Cookie` header.
+ *
+ * Input: one mutable `Response` receiver, cookie name, cookie value, optional
+ * path, and practical boolean flags.
+ * Output: the same `Response` value after cookie metadata has been updated.
+ * Transformation: uses the mutable receiver continuation rule so handlers can
+ * write expression-style response builders without raw `Set-Cookie` headers.
+ */
+pub (mut response: Response) with_cookie(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): Response ->
+    response |> cookie(name, value, path, http_only, secure).
+
+/**
+ * Adds a validated `Set-Cookie` header with the full option surface.
+ *
+ * Input: one mutable `Response` receiver, cookie name, cookie value, path,
+ * optional domain text, `Max-Age` seconds plus an inclusion flag, optional
+ * expires text, practical boolean flags, and optional SameSite text.
+ * Output: `Unit`.
+ * Transformation: delegates option validation to `std.http.Cookies` and
+ * appends the serialized header to the response through the existing mutable
+ * response metadata path.
+ */
+pub (mut response: Response) cookie_with_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): Unit ->
+    response |> set_cookie_header(set_header_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site)).
+
+/**
+ * Returns a response after adding a validated `Set-Cookie` header with the
+ * full option surface.
+ *
+ * Input: one mutable `Response` receiver, cookie name, cookie value, path,
+ * optional domain text, `Max-Age` seconds plus an inclusion flag, optional
+ * expires text, practical boolean flags, and optional SameSite text.
+ * Output: the same `Response` value after cookie metadata has been updated.
+ * Transformation: keeps expression-style HTTP handlers on the typed cookie
+ * serialization path exposed by `std.http.Cookies`.
+ */
+pub (mut response: Response) with_cookie_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): Response ->
+    response |> cookie_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site).
+
+/**
+ * Adds a validated cookie deletion header.
+ *
+ * Input: one mutable `Response` receiver, cookie name, and optional path.
+ * Output: `Unit`.
+ * Transformation: builds the expiring cookie header through `std.http.Cookies`
+ * and appends it to the response through the existing mutable response
+ * metadata path.
+ */
+pub (mut response: Response) delete_cookie(name: String, path: String = "/"): Unit ->
+    response |> set_cookie_header(delete_header(name, path)).
+
+/**
+ * Returns a response after adding a validated cookie deletion header.
+ *
+ * Input: one mutable `Response` receiver, cookie name, and optional path.
+ * Output: the same `Response` value after cookie metadata has been updated.
+ * Transformation: keeps logout/session-clear handlers on the standard cookie
+ * deletion path instead of requiring raw expiring header text.
+ */
+pub (mut response: Response) with_deleted_cookie(name: String, path: String = "/"): Response ->
+    response |> delete_cookie(name, path).

@@ -1,0 +1,8 @@
+module=std.js.Dom.CanvasText
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=11128296506577593573
+interface_hash=9388421234608991077
+interface_doc_hash=9388421234608991077
+deps=0

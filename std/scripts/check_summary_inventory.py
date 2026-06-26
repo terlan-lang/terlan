@@ -100,10 +100,26 @@ def iter_std_sources() -> list[Path]:
         path
         for path in STD_DIR.rglob("*.terl")
         if path.is_file()
-        and not path.name.endswith("_test.terl")
+        and not is_test_source_name(path.name)
         and "summaries" not in path.relative_to(STD_DIR).parts
         and "disabled" not in path.relative_to(STD_DIR).parts
     )
+
+
+def is_test_source_name(name: str) -> bool:
+    """Return whether a filename is a Terlan test source.
+
+    Inputs:
+    - `name`: filesystem basename for a candidate source file.
+
+    Output:
+    - `True` when the file uses the canonical `*Test.terl` source suffix.
+
+    Transformation:
+    - Keeps std summary inventory aligned with `terlc test` source discovery.
+    """
+
+    return name.endswith("Test.terl")
 
 
 def read_module(path: Path) -> SourceModule | str:

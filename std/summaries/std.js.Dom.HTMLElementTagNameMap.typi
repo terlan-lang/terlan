@@ -1,0 +1,242 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLElementTagNameMap
+ */
+
+module std.js.Dom.HTMLElementTagNameMap.
+
+pub opaque type HTMLElementTagNameMap.
+
+pub (value: HTMLElementTagNameMap) a(): HTMLAnchorElement.
+
+pub (value: HTMLElementTagNameMap) abbr(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) address(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) area(): HTMLAreaElement.
+
+pub (value: HTMLElementTagNameMap) article(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) aside(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) audio(): HTMLAudioElement.
+
+pub (value: HTMLElementTagNameMap) b(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) base(): HTMLBaseElement.
+
+pub (value: HTMLElementTagNameMap) bdi(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) bdo(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) blockquote(): HTMLQuoteElement.
+
+pub (value: HTMLElementTagNameMap) body(): HTMLBodyElement.
+
+pub (value: HTMLElementTagNameMap) br(): HTMLBRElement.
+
+pub (value: HTMLElementTagNameMap) button(): HTMLButtonElement.
+
+pub (value: HTMLElementTagNameMap) canvas(): HTMLCanvasElement.
+
+pub (value: HTMLElementTagNameMap) caption(): HTMLTableCaptionElement.
+
+pub (value: HTMLElementTagNameMap) cite(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) code(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) col(): HTMLTableColElement.
+
+pub (value: HTMLElementTagNameMap) colgroup(): HTMLTableColElement.
+
+pub (value: HTMLElementTagNameMap) data(): HTMLDataElement.
+
+pub (value: HTMLElementTagNameMap) datalist(): HTMLDataListElement.
+
+pub (value: HTMLElementTagNameMap) dd(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) del(): HTMLModElement.
+
+pub (value: HTMLElementTagNameMap) details(): HTMLDetailsElement.
+
+pub (value: HTMLElementTagNameMap) dfn(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) dialog(): HTMLDialogElement.
+
+pub (value: HTMLElementTagNameMap) div_(): HTMLDivElement.
+
+pub (value: HTMLElementTagNameMap) dl(): HTMLDListElement.
+
+pub (value: HTMLElementTagNameMap) dt(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) em(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) embed(): HTMLEmbedElement.
+
+pub (value: HTMLElementTagNameMap) fieldset(): HTMLFieldSetElement.
+
+pub (value: HTMLElementTagNameMap) figcaption(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) figure(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) footer(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) form(): HTMLFormElement.
+
+pub (value: HTMLElementTagNameMap) h1(): HTMLHeadingElement.
+
+pub (value: HTMLElementTagNameMap) h2(): HTMLHeadingElement.
+
+pub (value: HTMLElementTagNameMap) h3(): HTMLHeadingElement.
+
+pub (value: HTMLElementTagNameMap) h4(): HTMLHeadingElement.
+
+pub (value: HTMLElementTagNameMap) h5(): HTMLHeadingElement.
+
+pub (value: HTMLElementTagNameMap) h6(): HTMLHeadingElement.
+
+pub (value: HTMLElementTagNameMap) head(): HTMLHeadElement.
+
+pub (value: HTMLElementTagNameMap) header(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) hgroup(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) hr(): HTMLHRElement.
+
+pub (value: HTMLElementTagNameMap) html_(): HTMLHtmlElement.
+
+pub (value: HTMLElementTagNameMap) i(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) iframe(): HTMLIFrameElement.
+
+pub (value: HTMLElementTagNameMap) img(): HTMLImageElement.
+
+pub (value: HTMLElementTagNameMap) input(): HTMLInputElement.
+
+pub (value: HTMLElementTagNameMap) ins(): HTMLModElement.
+
+pub (value: HTMLElementTagNameMap) kbd(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) label(): HTMLLabelElement.
+
+pub (value: HTMLElementTagNameMap) legend(): HTMLLegendElement.
+
+pub (value: HTMLElementTagNameMap) li(): HTMLLIElement.
+
+pub (value: HTMLElementTagNameMap) link(): HTMLLinkElement.
+
+pub (value: HTMLElementTagNameMap) main(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) map(): HTMLMapElement.
+
+pub (value: HTMLElementTagNameMap) mark(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) menu(): HTMLMenuElement.
+
+pub (value: HTMLElementTagNameMap) meta(): HTMLMetaElement.
+
+pub (value: HTMLElementTagNameMap) meter(): HTMLMeterElement.
+
+pub (value: HTMLElementTagNameMap) nav(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) noscript(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) object(): HTMLObjectElement.
+
+pub (value: HTMLElementTagNameMap) ol(): HTMLOListElement.
+
+pub (value: HTMLElementTagNameMap) optgroup(): HTMLOptGroupElement.
+
+pub (value: HTMLElementTagNameMap) option(): HTMLOptionElement.
+
+pub (value: HTMLElementTagNameMap) output(): HTMLOutputElement.
+
+pub (value: HTMLElementTagNameMap) p(): HTMLParagraphElement.
+
+pub (value: HTMLElementTagNameMap) picture(): HTMLPictureElement.
+
+pub (value: HTMLElementTagNameMap) pre(): HTMLPreElement.
+
+pub (value: HTMLElementTagNameMap) progress(): HTMLProgressElement.
+
+pub (value: HTMLElementTagNameMap) q(): HTMLQuoteElement.
+
+pub (value: HTMLElementTagNameMap) rp(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) rt(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) ruby(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) s(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) samp(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) script(): HTMLScriptElement.
+
+pub (value: HTMLElementTagNameMap) search(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) section(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) select(): HTMLSelectElement.
+
+pub (value: HTMLElementTagNameMap) slot(): HTMLSlotElement.
+
+pub (value: HTMLElementTagNameMap) small(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) source(): HTMLSourceElement.
+
+pub (value: HTMLElementTagNameMap) span(): HTMLSpanElement.
+
+pub (value: HTMLElementTagNameMap) strong(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) style(): HTMLStyleElement.
+
+pub (value: HTMLElementTagNameMap) sub(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) summary(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) sup(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) table(): HTMLTableElement.
+
+pub (value: HTMLElementTagNameMap) tbody(): HTMLTableSectionElement.
+
+pub (value: HTMLElementTagNameMap) td(): HTMLTableCellElement.
+
+pub (value: HTMLElementTagNameMap) template_(): HTMLTemplateElement.
+
+pub (value: HTMLElementTagNameMap) textarea(): HTMLTextAreaElement.
+
+pub (value: HTMLElementTagNameMap) tfoot(): HTMLTableSectionElement.
+
+pub (value: HTMLElementTagNameMap) th(): HTMLTableCellElement.
+
+pub (value: HTMLElementTagNameMap) thead(): HTMLTableSectionElement.
+
+pub (value: HTMLElementTagNameMap) time(): HTMLTimeElement.
+
+pub (value: HTMLElementTagNameMap) title(): HTMLTitleElement.
+
+pub (value: HTMLElementTagNameMap) tr(): HTMLTableRowElement.
+
+pub (value: HTMLElementTagNameMap) track(): HTMLTrackElement.
+
+pub (value: HTMLElementTagNameMap) u(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) ul(): HTMLUListElement.
+
+pub (value: HTMLElementTagNameMap) var(): HTMLElement.
+
+pub (value: HTMLElementTagNameMap) video(): HTMLVideoElement.
+
+pub (value: HTMLElementTagNameMap) wbr(): HTMLElement.

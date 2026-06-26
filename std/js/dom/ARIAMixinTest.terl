@@ -1,0 +1,178 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ARIAMixin
+ */
+
+module std.js.Dom.ARIAMixinTest.
+
+import type std.js.Dom.ARIAMixin.ARIAMixin.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub aria_active_descendant_element_typechecks(receiver: ARIAMixin): Option[Element] ->
+    receiver.aria_active_descendant_element().
+
+pub aria_atomic_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_atomic().
+
+pub aria_auto_complete_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_auto_complete().
+
+pub aria_braille_label_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_braille_label().
+
+pub aria_braille_role_description_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_braille_role_description().
+
+pub aria_busy_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_busy().
+
+pub aria_checked_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_checked().
+
+pub aria_col_count_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_col_count().
+
+pub aria_col_index_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_col_index().
+
+pub aria_col_index_text_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_col_index_text().
+
+pub aria_col_span_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_col_span().
+
+pub aria_controls_elements_typechecks(receiver: ARIAMixin): Option[std.js.Array[Element]] ->
+    receiver.aria_controls_elements().
+
+pub aria_current_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_current().
+
+pub aria_described_by_elements_typechecks(receiver: ARIAMixin): Option[std.js.Array[Element]] ->
+    receiver.aria_described_by_elements().
+
+pub aria_description_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_description().
+
+pub aria_details_elements_typechecks(receiver: ARIAMixin): Option[std.js.Array[Element]] ->
+    receiver.aria_details_elements().
+
+pub aria_disabled_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_disabled().
+
+pub aria_error_message_elements_typechecks(receiver: ARIAMixin): Option[std.js.Array[Element]] ->
+    receiver.aria_error_message_elements().
+
+pub aria_expanded_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_expanded().
+
+pub aria_flow_to_elements_typechecks(receiver: ARIAMixin): Option[std.js.Array[Element]] ->
+    receiver.aria_flow_to_elements().
+
+pub aria_has_popup_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_has_popup().
+
+pub aria_hidden_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_hidden().
+
+pub aria_invalid_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_invalid().
+
+pub aria_key_shortcuts_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_key_shortcuts().
+
+pub aria_label_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_label().
+
+pub aria_labelled_by_elements_typechecks(receiver: ARIAMixin): Option[std.js.Array[Element]] ->
+    receiver.aria_labelled_by_elements().
+
+pub aria_level_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_level().
+
+pub aria_live_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_live().
+
+pub aria_modal_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_modal().
+
+pub aria_multi_line_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_multi_line().
+
+pub aria_multi_selectable_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_multi_selectable().
+
+pub aria_orientation_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_orientation().
+
+pub aria_owns_elements_typechecks(receiver: ARIAMixin): Option[std.js.Array[Element]] ->
+    receiver.aria_owns_elements().
+
+pub aria_placeholder_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_placeholder().
+
+pub aria_pos_in_set_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_pos_in_set().
+
+pub aria_pressed_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_pressed().
+
+pub aria_read_only_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_read_only().
+
+pub aria_relevant_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_relevant().
+
+pub aria_required_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_required().
+
+pub aria_role_description_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_role_description().
+
+pub aria_row_count_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_row_count().
+
+pub aria_row_index_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_row_index().
+
+pub aria_row_index_text_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_row_index_text().
+
+pub aria_row_span_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_row_span().
+
+pub aria_selected_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_selected().
+
+pub aria_set_size_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_set_size().
+
+pub aria_sort_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_sort().
+
+pub aria_value_max_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_value_max().
+
+pub aria_value_min_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_value_min().
+
+pub aria_value_now_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_value_now().
+
+pub aria_value_text_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.aria_value_text().
+
+pub role_typechecks(receiver: ARIAMixin): Option[std.js.String.JsString] ->
+    receiver.role().

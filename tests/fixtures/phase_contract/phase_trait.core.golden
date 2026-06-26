@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_trait
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 export=is_same/2
 function=is_same/2 public=true params=Left:A:core=Named(A),Right:A:core=Named(A) return=Bool return_core=Bool
 function_clause=is_same/2#0 patterns=Var:text=Left:arity=0,Var:text=Right:arity=0 core_patterns=Var(Left),Var(Right) pattern_proof=lean-covered,lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(Left)),structural-core-pattern(freshness=runtime-bindings-required;target=Var(Right)) guard=none body=Call:core=RemoteCall(Eq:equal;Var(Left),Var(Right)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=RemoteCall(Eq:equal;Var(Left),Var(Right))):proof=proof-model-required:remote=Eq:arity=2:children=[Atom:core=Atom(equal):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Atom(equal)):proof=lean-covered:text=equal:arity=0;Var:core=Var(Left):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(Left)):proof=lean-covered:text=Left:arity=0;Var:core=Var(Right):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(Right)):proof=lean-covered:text=Right:arity=0]

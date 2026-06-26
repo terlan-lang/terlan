@@ -1,0 +1,91 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MIDIPort
+ */
+
+module std.js.Dom.MIDIPort.
+
+/**
+ * The **`MIDIPort`** interface of the Web MIDI API represents a MIDI input or output port.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort)
+ */
+pub opaque type MIDIPort.
+
+/**
+ * The **`connection`** read-only property of the MIDIPort interface returns the connection state of the port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/connection)
+ */
+pub (value: MIDIPort) connection(): MIDIPortConnectionState.
+
+/**
+ * The **`id`** read-only property of the MIDIPort interface returns the unique ID of the port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/id)
+ */
+pub (value: MIDIPort) id(): std.js.String.JsString.
+
+/**
+ * The **`manufacturer`** read-only property of the MIDIPort interface returns the manufacturer of the port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/manufacturer)
+ */
+pub (value: MIDIPort) manufacturer(): Option[std.js.String.JsString].
+
+/**
+ * The **`name`** read-only property of the MIDIPort interface returns the system name of the port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/name)
+ */
+pub (value: MIDIPort) name(): Option[std.js.String.JsString].
+
+/**
+ * The **`state`** read-only property of the MIDIPort interface returns the state of the port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/state)
+ */
+pub (value: MIDIPort) state(): MIDIPortDeviceState.
+
+/**
+ * The **`type`** read-only property of the MIDIPort interface returns the type of the port, indicating whether this is an input or output MIDI port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/type)
+ */
+pub (value: MIDIPort) type_(): MIDIPortType.
+
+/**
+ * The **`version`** read-only property of the MIDIPort interface returns the version of the port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/version)
+ */
+pub (value: MIDIPort) version(): Option[std.js.String.JsString].
+
+/**
+ * The **`close()`** method of the MIDIPort interface makes the access to the MIDI device connected to this `MIDIPort` unavailable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/close)
+ */
+pub (value: MIDIPort) close(): std.js.Promise[MIDIPort].
+
+/**
+ * The **`open()`** method of the MIDIPort interface makes the MIDI device connected to this `MIDIPort` explicitly available.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/open)
+ */
+pub (value: MIDIPort) open(): std.js.Promise[MIDIPort].
+
+pub (value: MIDIPort) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: MIDIPort) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

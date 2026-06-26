@@ -1,0 +1,259 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DOMMatrixReadOnly
+ */
+
+module std.js.Dom.DOMMatrixReadOnly.
+
+/**
+ * The **`DOMMatrixReadOnly`** interface represents a read-only 4×4 matrix, suitable for 2D and 3D operations.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly)
+ */
+pub opaque type DOMMatrixReadOnly.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) a(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) b(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) c(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) d(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) e(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) f(): std.js.Number.JsNumber.
+
+/**
+ * The readonly **`is2D`** property of the DOMMatrixReadOnly interface is a Boolean flag that is `true` when the matrix is 2D.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/is2D)
+ */
+pub (value: DOMMatrixReadOnly) is2_d(): std.core.Bool.
+
+/**
+ * The readonly **`isIdentity`** property of the DOMMatrixReadOnly interface is a Boolean whose value is `true` if the matrix is the identity matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/isIdentity)
+ */
+pub (value: DOMMatrixReadOnly) is_identity(): std.core.Bool.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m11(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m12(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m13(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m14(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m21(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m22(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m23(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m24(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m31(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m32(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m33(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m34(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m41(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m42(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m43(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
+ */
+pub (value: DOMMatrixReadOnly) m44(): std.js.Number.JsNumber.
+
+/**
+ * The **`flipX()`** method of the DOMMatrixReadOnly interface creates a new matrix being the result of the original matrix flipped about the x-axis.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/flipX)
+ */
+pub (value: DOMMatrixReadOnly) flip_x(): DOMMatrix.
+
+/**
+ * The **`flipY()`** method of the DOMMatrixReadOnly interface creates a new matrix being the result of the original matrix flipped about the y-axis.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/flipY)
+ */
+pub (value: DOMMatrixReadOnly) flip_y(): DOMMatrix.
+
+/**
+ * The **`inverse()`** method of the DOMMatrixReadOnly interface creates a new matrix which is the inverse of the original matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/inverse)
+ */
+pub (value: DOMMatrixReadOnly) inverse(): DOMMatrix.
+
+/**
+ * The **`multiply()`** method of the DOMMatrixReadOnly interface creates and returns a new matrix which is the dot product of the matrix and the `otherMatrix` parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/multiply)
+ */
+pub (value: DOMMatrixReadOnly) multiply(other: DOMMatrixInit): DOMMatrix.
+
+/**
+ * The `rotate()` method of the DOMMatrixReadOnly interface returns a new DOMMatrix created by rotating the source matrix around each of its axes by the specified number of degrees.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/rotate)
+ */
+pub (value: DOMMatrixReadOnly) rotate(rot_x: std.js.Number.JsNumber, rot_y: std.js.Number.JsNumber, rot_z: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * The `rotateAxisAngle()` method of the DOMMatrixReadOnly interface returns a new DOMMatrix created by rotating the source matrix by the given vector and angle.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/rotateAxisAngle)
+ */
+pub (value: DOMMatrixReadOnly) rotate_axis_angle(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber, angle: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * The `rotateFromVector()` method of the DOMMatrixReadOnly interface is returns a new DOMMatrix created by rotating the source matrix by the angle between the specified vector and `(1, 0)`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/rotateFromVector)
+ */
+pub (value: DOMMatrixReadOnly) rotate_from_vector(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * The **`scale()`** method of the original matrix with a scale transform applied.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/scale)
+ */
+pub (value: DOMMatrixReadOnly) scale(scale_x: std.js.Number.JsNumber, scale_y: std.js.Number.JsNumber, scale_z: std.js.Number.JsNumber, origin_x: std.js.Number.JsNumber, origin_y: std.js.Number.JsNumber, origin_z: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * The **`scale3d()`** method of the DOMMatrixReadOnly interface creates a new matrix which is the result of a 3D scale transform being applied to the matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/scale3d)
+ */
+pub (value: DOMMatrixReadOnly) scale3d(scale: std.js.Number.JsNumber, origin_x: std.js.Number.JsNumber, origin_y: std.js.Number.JsNumber, origin_z: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * @deprecated
+ */
+pub (value: DOMMatrixReadOnly) scale_non_uniform(scale_x: std.js.Number.JsNumber, scale_y: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * The `skewX()` method of the DOMMatrixReadOnly interface returns a new DOMMatrix created by applying the specified skew transformation to the source matrix along its x-axis.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/skewX)
+ */
+pub (value: DOMMatrixReadOnly) skew_x(sx: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * The `skewY()` method of the DOMMatrixReadOnly interface returns a new DOMMatrix created by applying the specified skew transformation to the source matrix along its y-axis.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/skewY)
+ */
+pub (value: DOMMatrixReadOnly) skew_y(sy: std.js.Number.JsNumber): DOMMatrix.
+
+/**
+ * The **`toFloat32Array()`** method of the DOMMatrixReadOnly interface returns a new Float32Array containing all 16 elements (`m11`, `m12`, `m13`, `m14`, `m21`, `m22`, `m23`, `m24`, `m31`, `m32`, `m33`, `m34`, `m41`, `m42`, `m43`, `m44`) which comprise the matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/toFloat32Array)
+ */
+pub (value: DOMMatrixReadOnly) to_float32_array(): Float32Array[ArrayBuffer].
+
+/**
+ * The **`toFloat64Array()`** method of the DOMMatrixReadOnly interface returns a new Float64Array containing all 16 elements (`m11`, `m12`, `m13`, `m14`, `m21`, `m22`, `m23`, `m24`, `m31`, `m32`, `m33`, `m34`, `m41`, `m42`, `m43`, `m44`) which comprise the matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/toFloat64Array)
+ */
+pub (value: DOMMatrixReadOnly) to_float64_array(): Float64Array[ArrayBuffer].
+
+/**
+ * The **`transformPoint`** method of the You can also create a new `DOMPoint` by applying a matrix to a point with the DOMPointReadOnly.matrixTransform() method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/transformPoint)
+ */
+pub (value: DOMMatrixReadOnly) transform_point(point: DOMPointInit): DOMPoint.
+
+/**
+ * The `translate()` method of the DOMMatrixReadOnly interface creates a new matrix being the result of the original matrix with a translation applied.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/translate)
+ */
+pub (value: DOMMatrixReadOnly) translate(tx: std.js.Number.JsNumber, ty: std.js.Number.JsNumber, tz: std.js.Number.JsNumber): DOMMatrix.
+
+pub (value: DOMMatrixReadOnly) to_string(): std.js.String.JsString.

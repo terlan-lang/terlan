@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MutationObserver
+ */
+
+module std.js.Dom.MutationObserver.
+
+/**
+ * The **`MutationObserver`** interface provides the ability to watch for changes being made to the DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver)
+ */
+pub opaque type MutationObserver.
+
+/**
+ * The MutationObserver method **`disconnect()`** tells the observer to stop watching for mutations.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/disconnect)
+ */
+pub (value: MutationObserver) disconnect(): std.core.Unit ->
+    native.
+
+/**
+ * The MutationObserver method **`observe()`** configures the `MutationObserver` callback to begin receiving notifications of changes to the DOM that match the given options.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/observe)
+ */
+pub (value: MutationObserver) observe(target_: Node, options: MutationObserverInit): std.core.Unit ->
+    native.
+
+/**
+ * The MutationObserver method **`takeRecords()`** returns a list of all matching DOM changes that have been detected but not yet processed by the observer's callback function, leaving the mutation queue empty.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/takeRecords)
+ */
+pub (value: MutationObserver) take_records(): std.js.Array[MutationRecord] ->
+    native.

@@ -57,6 +57,7 @@ pub(super) struct ResolvedTraitMethod {
 ///   format used for conformance checks.
 #[derive(Debug, Clone)]
 pub(super) struct TraitMethodSignature {
+    pub(super) generic_params: Vec<String>,
     pub(super) params: Vec<TraitMethodParamSignature>,
     pub(super) return_type: String,
     pub(super) generic_bounds: Vec<String>,
@@ -171,6 +172,7 @@ pub(super) fn collect_syntax_trait_signatures(
             method_signatures.insert(
                 method.name.clone(),
                 TraitMethodSignature {
+                    generic_params: method.generic_params.clone(),
                     params: method
                         .params
                         .iter()
@@ -230,6 +232,7 @@ fn collect_imported_trait_signatures(
             methods.insert(
                 method_name.clone(),
                 TraitMethodSignature {
+                    generic_params: method_signature.generic_params.clone(),
                     params: method_signature
                         .params
                         .iter()
@@ -700,7 +703,11 @@ fn collect_trait_method_candidates(
         let mut method_vars = HashMap::new();
         let mut next_method_var = 0usize;
         for name in &trait_signature.type_params {
-            method_vars.insert(name.clone(), next_method_var);
+            method_vars.insert(normalize_type_param_name(name), next_method_var);
+            next_method_var += 1;
+        }
+        for name in &method_sig.generic_params {
+            method_vars.insert(normalize_type_param_name(name), next_method_var);
             next_method_var += 1;
         }
 
@@ -737,7 +744,7 @@ fn collect_trait_method_candidates(
             .iter()
             .zip(impl_type_args.iter())
         {
-            if let Some(var_id) = method_vars.get(param_name) {
+            if let Some(var_id) = method_vars.get(&normalize_type_param_name(param_name)) {
                 substitution.insert(*var_id, param_type.clone());
             } else {
                 valid = false;
@@ -767,6 +774,7 @@ fn collect_trait_method_candidates(
                 .map(|param| substitute_type_vars(&param, &substitution))
                 .collect(),
             ret: substitute_type_vars(&parsed_return, &substitution),
+            generic_params: method_sig.generic_params.clone(),
             bounds: specialized_bounds,
         };
 

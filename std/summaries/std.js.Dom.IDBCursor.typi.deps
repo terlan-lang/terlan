@@ -1,0 +1,8 @@
+module=std.js.Dom.IDBCursor
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=11221236074891779708
+interface_hash=7427260032628167280
+interface_doc_hash=7427260032628167280
+deps=0

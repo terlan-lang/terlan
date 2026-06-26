@@ -1,0 +1,109 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLElementDeprecatedTagNameMap
+ */
+
+module std.js.Dom.HTMLElementDeprecatedTagNameMapTest.
+
+import type std.js.Dom.HTMLElementDeprecatedTagNameMap.HTMLElementDeprecatedTagNameMap.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub acronym_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.acronym().
+
+pub applet_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.applet().
+
+pub basefont_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.basefont().
+
+pub bgsound_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.bgsound().
+
+pub big_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.big().
+
+pub blink_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.blink().
+
+pub center_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.center().
+
+pub dir_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLDirectoryElement ->
+    receiver.dir().
+
+pub font_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLFontElement ->
+    receiver.font().
+
+pub frame_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLFrameElement ->
+    receiver.frame().
+
+pub frameset_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLFrameSetElement ->
+    receiver.frameset().
+
+pub isindex_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.isindex().
+
+pub keygen_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.keygen().
+
+pub listing_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLPreElement ->
+    receiver.listing().
+
+pub marquee_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLMarqueeElement ->
+    receiver.marquee().
+
+pub menuitem_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.menuitem().
+
+pub multicol_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.multicol().
+
+pub nextid_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.nextid().
+
+pub nobr_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.nobr().
+
+pub noembed_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.noembed().
+
+pub noframes_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.noframes().
+
+pub param_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLParamElement ->
+    receiver.param().
+
+pub plaintext_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.plaintext().
+
+pub rb_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.rb().
+
+pub rtc_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.rtc().
+
+pub spacer_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
+    receiver.spacer().
+
+pub strike_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.strike().
+
+pub tt_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
+    receiver.tt().
+
+pub xmp_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLPreElement ->
+    receiver.xmp().

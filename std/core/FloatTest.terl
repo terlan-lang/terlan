@@ -1,0 +1,95 @@
+module std.core.FloatTest.
+
+import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import std.core.Option.{None, Some}.
+import type std.core.Ordering.Comparison.
+
+pub ordering_compare(left: Float, right: Float): Comparison ->
+    Ordering.compare(left, right).
+
+@test
+pub equal_accepts_matching_floats(): Bool ->
+    std.test.Test.assert(std.core.Float.equal(1.5, 1.5)).
+
+@test
+pub equal_rejects_different_floats(): Bool ->
+    std.test.Test.assert_false(std.core.Float.equal(1.5, 2.5)).
+
+@test
+pub min_returns_smaller_float(): Bool ->
+    std.test.Test.assert_equal(1.5, std.core.Float.min(1.5, 2.25)).
+
+@test
+pub min_accepts_equal_floats(): Bool ->
+    std.test.Test.assert_equal(1.5, std.core.Float.min(1.5, 1.5)).
+
+@test
+pub max_returns_larger_float(): Bool ->
+    std.test.Test.assert_equal(2.25, std.core.Float.max(1.5, 2.25)).
+
+@test
+pub max_accepts_equal_floats(): Bool ->
+    std.test.Test.assert_equal(2.25, std.core.Float.max(2.25, 2.25)).
+
+@test
+pub abs_keeps_positive_float(): Bool ->
+    std.test.Test.assert_equal(2.25, std.core.Float.abs(2.25)).
+
+@test
+pub abs_flips_negative_float(): Bool ->
+    std.test.Test.assert_equal(2.25, std.core.Float.abs(-2.25)).
+
+@test
+pub compare_orders_smaller_float_first(): Bool ->
+    std.test.Test.assert_equal(Lt, std.core.Float.compare(1.5, 2.25)).
+
+@test
+pub compare_orders_larger_float_after(): Bool ->
+    std.test.Test.assert_equal(Gt, std.core.Float.compare(2.25, 1.5)).
+
+@test
+pub compare_accepts_equal_floats(): Bool ->
+    std.test.Test.assert_equal(Eq, std.core.Float.compare(-2.25, -2.25)).
+
+@test
+pub ordering_trait_orders_smaller_float_first(): Bool ->
+    std.test.Test.assert_equal(Lt, ordering_compare(1.5, 2.25)).
+
+@test
+pub ordering_trait_orders_larger_float_after(): Bool ->
+    std.test.Test.assert_equal(Gt, ordering_compare(2.25, 1.5)).
+
+@test
+pub to_string_renders_positive_float(): Bool ->
+    std.test.Test.assert_equal("1.5", std.core.Float.to_string(1.5)).
+
+@test
+pub to_string_renders_negative_float(): Bool ->
+    std.test.Test.assert_equal("-2.25", std.core.Float.to_string(-2.25)).
+
+@test
+pub from_string_parses_positive_float(): Bool ->
+    case std.core.Float.from_string("1.5") {
+        Some(value) ->
+            std.test.Test.assert_equal(1.5, value);
+        None ->
+            false
+    }.
+
+@test
+pub from_string_parses_negative_float(): Bool ->
+    case std.core.Float.from_string("-2.25") {
+        Some(value) ->
+            std.test.Test.assert_equal(-2.25, value);
+        None ->
+            false
+    }.
+
+@test
+pub from_string_rejects_unknown_text(): Bool ->
+    case std.core.Float.from_string("nope") {
+        None ->
+            true;
+        Some(_value) ->
+            false
+    }.

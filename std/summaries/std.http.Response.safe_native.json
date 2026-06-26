@@ -1,11 +1,53 @@
 {
-  "source_module": "std.http.Response",
-  "module": "std_http_response_safe_native",
-  "scheduler": "normal",
-  "native_policy": "safe_native_optional",
   "functions": [
-    { "name": "json", "arity": 1, "operation": "std.http.response.json" },
-    { "name": "text", "arity": 1, "operation": "std.http.response.text" },
-    { "name": "status", "arity": 2, "operation": "std.http.response.status" },
-    { "name": "header", "arity": 3, "operation": "std.http.response.header" }]
+    {
+      "arity": 2,
+      "name": "json",
+      "operation": "std.http.response.json"
+    },
+    {
+      "arity": 2,
+      "name": "json_text",
+      "operation": "std.http.response.json_text"
+    },
+    {
+      "arity": 2,
+      "name": "text",
+      "operation": "std.http.response.text"
+    },
+    {
+      "arity": 2,
+      "name": "html",
+      "operation": "std.http.response.html"
+    },
+    {
+      "arity": 3,
+      "name": "file",
+      "operation": "std.http.response.file"
+    },
+    {
+      "arity": 2,
+      "name": "redirect",
+      "operation": "std.http.response.redirect"
+    },
+    {
+      "arity": 2,
+      "name": "status",
+      "operation": "std.http.response.status"
+    },
+    {
+      "arity": 3,
+      "name": "header",
+      "operation": "std.http.response.header"
+    },
+    {
+      "arity": 2,
+      "name": "set_cookie_header",
+      "operation": "std.http.response.set_cookie_header"
+    }
+  ],
+  "module": "std_http_response_safe_native",
+  "native_policy": "safe_native_optional",
+  "scheduler": "normal",
+  "source_module": "std.http.Response"
 }

@@ -106,6 +106,124 @@ fn build_command_emits_erlang_source_and_beam_for_single_file() {
     );
 }
 
+/// Verifies single-file builds compile `std.http.Request.body_json`.
+///
+/// Inputs:
+/// - A standalone Terlan source file importing the standard HTTP request and
+///   error types.
+/// - An explicit Erlang build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when generated Erlang compiles and contains the direct OTP
+///   JSON decode path plus the standard `Error` record branch.
+///
+/// Transformation:
+/// - Runs the normal build command so interface loading, record declaration
+///   emission, syntax-output lowering, Erlang source emission, and `erlc`
+///   compilation all participate in the same regression.
+#[test]
+fn build_command_emits_http_request_body_json_direct_erlang_lowering() {
+    let dir = make_temp_dir("single_file_http_request_body_json");
+    let source_path = dir.join("http_request_body_json.terl");
+    let out_dir = dir.join("build");
+    fs::write(
+        &source_path,
+        "\
+module http_request_body_json.\n\
+\n\
+import type std.core.Error.Error.\n\
+import type std.http.Request.Request.\n\
+\n\
+pub read_json(request: Request): Dynamic ->\n\
+    request.body_json().\n",
+    )
+    .expect("failed to write HTTP request body_json source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_path.display().to_string(),
+            "--target".to_string(),
+            "erlang".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    assert!(out_dir.join("ebin/http_request_body_json.beam").exists());
+    let erl_text = fs::read_to_string(out_dir.join("src/http_request_body_json.erl"))
+        .expect("read generated HTTP request body_json Erlang source");
+    assert!(
+        erl_text.contains("-record(error, {code, message})."),
+        "body_json error branch should have the imported Error record available:\n{erl_text}"
+    );
+    assert!(
+        erl_text.contains("json:decode(maps:get(body, Request))"),
+        "body_json should lower to OTP json:decode/1:\n{erl_text}"
+    );
+    assert!(
+        erl_text.contains("#error{code = invalid_json, message = \"invalid JSON request body\"}"),
+        "body_json decoder failures should lower to std.core.Error:\n{erl_text}"
+    );
+}
+
+/// Verifies type-only Rust-backed imports do not require runtime support.
+///
+/// Inputs:
+/// - A standalone Terlan source file that references `std.data.Json.Json` only
+///   in function signatures through `import type`.
+/// - An explicit Erlang build target and isolated output directory.
+///
+/// Output:
+/// - Test passes when the module builds to Erlang/BEAM without a Rust-backed
+///   std-module target-profile error.
+///
+/// Transformation:
+/// - Runs the normal build path so source preflight, formal target-profile
+///   validation, CoreIR import classification, Erlang emission, and `erlc`
+///   compilation all confirm that type-only imports are non-executable
+///   contract dependencies.
+#[test]
+fn build_command_allows_type_only_rust_backed_std_import_for_erlang() {
+    let dir = make_temp_dir("single_file_type_only_json_import");
+    let source_path = dir.join("type_only_json_import.terl");
+    let out_dir = dir.join("build");
+    fs::write(
+        &source_path,
+        "\
+module type_only_json_import.\n\
+\n\
+import type std.data.Json.Json.\n\
+\n\
+pub keep(value: Json): Json ->\n\
+    value.\n",
+    )
+    .expect("failed to write type-only JSON import source fixture");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            source_path.display().to_string(),
+            "--target".to_string(),
+            "erlang".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    assert!(out_dir.join("ebin/type_only_json_import.beam").exists());
+}
+
 /// Verifies single-file JavaScript builds emit JS modules and a manifest.
 ///
 /// Inputs:
@@ -724,6 +842,13 @@ pub value(): Int ->
         serde_json::from_str(&manifest_text).expect("parse web manifest");
     assert_eq!(manifest["schema"], "terlan-web-build-v1");
     assert_eq!(manifest["target_profile"], "js.browser");
+    assert!(
+        manifest["build_id"]
+            .as_str()
+            .expect("build id")
+            .starts_with("web-"),
+        "{manifest_text}"
+    );
     assert_eq!(manifest["source_js_manifest"], "../js/manifest.json");
     assert_eq!(manifest["index"], "index.html");
     let assets = manifest["assets"].as_array().expect("assets");

@@ -132,6 +132,67 @@ add(1).
     assert!(!output.contains("value() ->\n    add(1)."));
 }
 
+/// Verifies selected imported default arguments lower as remote call args.
+///
+/// Inputs:
+/// - A provider module exporting a function with two defaulted parameters.
+/// - A consumer importing that function and omitting the middle default while
+///   supplying the final argument by name.
+///
+/// Output:
+/// - Test passes when emitted Erlang calls the provider module function with
+///   the omitted default inserted in provider declaration order.
+///
+/// Transformation:
+/// - Builds provider interface metadata, resolves the selected import, parses
+///   interface default expressions, and lowers the consumer call as a full
+///   remote Erlang call.
+#[test]
+fn formal_syntax_output_direct_emit_inserts_selected_imported_function_default_arguments() {
+    let provider = parse_module_as_syntax_output(
+        r#"
+module text_tools.
+
+pub decorate(first: String, middle: String = ".", last: String = "!"): String ->
+first.
+"#,
+    )
+    .expect("parse imported default function provider");
+    let mut interfaces = BTreeMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+
+    let consumer = parse_module_as_syntax_output(
+        r#"
+module text_user.
+
+import text_tools.{decorate}.
+
+pub value(): String ->
+decorate(first = "A", last = "?").
+"#,
+    )
+    .expect("parse imported default function consumer");
+
+    let output = super::lower_syntax_module_output(
+        &consumer,
+        &interfaces,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
+    .expect("selected imported function defaults should lower directly from syntax output")
+    .render();
+
+    assert!(
+        output.contains("value() ->\n    text_tools:decorate(\"A\", \".\", \"?\")."),
+        "output:\n{}",
+        output
+    );
+}
+
 #[test]
 fn formal_syntax_output_direct_emit_lowers_imported_alias_constructor_subset() {
     let provider = parse_module_as_syntax_output(

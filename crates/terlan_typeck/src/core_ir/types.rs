@@ -85,10 +85,12 @@ pub struct CoreMapTypeField {
 /// - Backend-neutral struct field payload.
 ///
 /// Transformation:
-/// - Records field identity and type without committing to backend layout.
+/// - Records field identity, type, and source visibility without committing to
+///   backend layout.
 pub struct CoreStructTypeField {
     pub name: String,
     pub ty: CoreType,
+    pub is_private: bool,
 }
 
 impl CoreStructTypeField {
@@ -98,13 +100,14 @@ impl CoreStructTypeField {
     /// - `self`: typed struct field payload.
     ///
     /// Output:
-    /// - Stable compact `name:type` text for CoreIR contracts.
+    /// - Stable compact `name:type` or `#name:type` text for CoreIR contracts.
     ///
     /// Transformation:
     /// - Serializes field identity and typed payload without backend-specific
     ///   struct layout assumptions.
     pub(crate) fn contract_text(&self) -> String {
-        format!("{}:{}", self.name, self.ty.contract_text())
+        let privacy = if self.is_private { "#" } else { "" };
+        format!("{}{}:{}", privacy, self.name, self.ty.contract_text())
     }
 }
 
@@ -120,7 +123,7 @@ impl CoreMapTypeField {
     /// Transformation:
     /// - Serializes the key/operator text plus typed value payload without
     ///   attempting to resolve map keys semantically.
-    pub(super) fn contract_text(&self) -> String {
+    pub(crate) fn contract_text(&self) -> String {
         format!(
             "{}{}{}",
             self.key,

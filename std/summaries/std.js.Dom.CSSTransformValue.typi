@@ -1,0 +1,44 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CSSTransformValue
+ */
+
+module std.js.Dom.CSSTransformValue.
+
+/**
+ * The **`CSSTransformValue`** interface of the CSS Typed Object Model API represents `transform-list` values as used by the CSS transform property.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue)
+ */
+pub opaque type CSSTransformValue.
+
+/**
+ * The read-only **`is2D`** property of the In the case of the `CSSTransformValue` this property returns true unless any of the individual functions return false for `Is2D`, in which case it returns false.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue/is2D)
+ */
+pub (value: CSSTransformValue) is2_d(): std.core.Bool.
+
+/**
+ * The read-only **`length`** property of the the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue/length)
+ */
+pub (value: CSSTransformValue) length(): std.js.Number.JsNumber.
+
+/**
+ * The **`toMatrix()`** method of the ```js-nolint toMatrix() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue/toMatrix)
+ */
+pub (value: CSSTransformValue) to_matrix(): DOMMatrix.

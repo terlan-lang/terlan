@@ -187,6 +187,78 @@ pub run(map: Map): Unit ->\n\
         .contains("MutableReceiverCall(Var(map).put;args=;effects=Effects(receiver_mutation))"));
 }
 
+/// Verifies ready SQL forms survive the formal lowering boundary as CoreIR.
+///
+/// Inputs:
+/// - A syntax-output module whose function body is a ready `sql[Row]` form
+///   with one interpolation and a simple row projection.
+///
+/// Output:
+/// - Test passes when CoreIR carries a `SqlQuery` payload with bound SQL,
+///   parameter count, cardinality, result type, and projection fields.
+///
+/// Transformation:
+/// - Parses and resolves the module, lowers it to CoreIR, and checks that the
+///   SQL wrapper plan is preserved as backend-neutral data instead of being
+///   dropped as an unsupported raw macro.
+#[test]
+fn syntax_output_lowering_to_core_records_sql_query_payload() {
+    let module = parse_module_as_syntax_output(
+        "\
+module core_sql_query.\n\
+\n\
+pub struct UserRow {\n\
+    id: Int\n\
+}.\n\
+\n\
+pub find_user(id: Int): Result[Option[UserRow], Error] ->\n\
+    sql[UserRow] {SELECT id FROM users WHERE id = ${id} LIMIT 1}.\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse SQL CoreIR fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output(&module).module;
+    let core = lower_syntax_module_output_to_core(&module, &resolved);
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "find_user")
+        .unwrap_or_else(|| panic!("missing find_user function in core: {:?}", core.functions));
+
+    let Some(CoreExpr::SqlQuery {
+        row_type,
+        bound_sql,
+        parameter_count,
+        cardinality,
+        result_type,
+        projection_fields,
+    }) = &function.clauses[0].body.core_expr
+    else {
+        panic!(
+            "expected SQL query core expr, found {:?}",
+            function.clauses[0].body.core_expr
+        );
+    };
+
+    assert_eq!(row_type, "UserRow");
+    assert_eq!(bound_sql, "SELECT id FROM users WHERE id = $1 LIMIT 1");
+    assert_eq!(*parameter_count, 1);
+    assert_eq!(cardinality, "optional_one");
+    assert_eq!(result_type, "Result[Option[UserRow], Error]");
+    assert_eq!(projection_fields, &vec!["id".to_string()]);
+    assert!(
+        function.clauses[0]
+            .body
+            .core_expr
+            .as_ref()
+            .unwrap()
+            .contract_text()
+            .contains("SqlQuery(row_type=UserRow;params=1;cardinality=optional_one;result=Result[Option[UserRow], Error];projection=id;sql=SELECT id FROM users WHERE id = $1 LIMIT 1)")
+    );
+    assert_eq!(
+        function.clauses[0].body.proof_coverage,
+        CoreProofCoverage::RuntimeBoundary
+    );
+}
+
 /// Verifies CoreIR proof-readiness precedence remains stable.
 ///
 /// Inputs:
@@ -1239,8 +1311,10 @@ fn syntax_output_lowering_to_core_records_constructor_call_candidate() {
         text: None,
         span: Default::default(),
         raw: None,
+        type_args: Vec::new(),
         operator: None,
         remote: None,
+        arg_names: Vec::new(),
         children: vec![
             SyntaxExprOutput {
                 kind: SyntaxExprKind::Var,
@@ -1248,8 +1322,10 @@ fn syntax_output_lowering_to_core_records_constructor_call_candidate() {
                 text: Some("Ok".to_string()),
                 span: Default::default(),
                 raw: None,
+                type_args: Vec::new(),
                 operator: None,
                 remote: None,
+                arg_names: Vec::new(),
                 children: Vec::new(),
                 patterns: Vec::new(),
                 fields: Vec::new(),
@@ -1264,8 +1340,10 @@ fn syntax_output_lowering_to_core_records_constructor_call_candidate() {
                 text: Some("1".to_string()),
                 span: Default::default(),
                 raw: None,
+                type_args: Vec::new(),
                 operator: None,
                 remote: None,
+                arg_names: Vec::new(),
                 children: Vec::new(),
                 patterns: Vec::new(),
                 fields: Vec::new(),

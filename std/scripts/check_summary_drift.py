@@ -160,6 +160,8 @@ def check_stale_committed(generated_dir: Path) -> list[DriftDiagnostic]:
     for committed in sorted(path for path in SUMMARIES.iterdir() if path.is_file() and is_summary_artifact(path)):
         if committed.name in PACKAGE_SUMMARIES:
             continue
+        if is_generated_js_binding_summary(committed):
+            continue
         if committed.name not in generated_names:
             diagnostics.append(
                 DriftDiagnostic(
@@ -168,6 +170,36 @@ def check_stale_committed(generated_dir: Path) -> list[DriftDiagnostic]:
                 )
             )
     return diagnostics
+
+
+def is_generated_js_binding_summary(path: Path) -> bool:
+    """Return whether a summary artifact is owned by the JS binding generator.
+
+    Inputs:
+    - `path`: committed summary or dependency artifact path.
+
+    Outputs:
+    - `True` when the artifact belongs to a generated TypeScript-backed
+      `std.js` binding.
+    - `False` when normal std summary drift should own the artifact.
+
+    Transformation:
+    - Recognizes generated `.typi` files by provenance header and `.typi.deps`
+      files by their generated `.typi` companion.
+    """
+
+    if not path.name.startswith("std.js."):
+        return False
+    summary = path
+    if path.name.endswith(".typi.deps"):
+        summary = path.with_name(path.name[:-5])
+    if not summary.name.endswith(".typi") or not summary.is_file():
+        return False
+    try:
+        header = "\n".join(summary.read_text(encoding="utf-8").splitlines()[:12])
+    except OSError:
+        return False
+    return "@generated true" in header and "@generator-profile typescript-standard-js-dom" in header
 
 
 def main() -> int:

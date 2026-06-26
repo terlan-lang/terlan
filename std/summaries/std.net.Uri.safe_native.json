@@ -1,14 +1,43 @@
 {
-  "source_module": "std.net.Uri",
-  "module": "std_net_uri_safe_native",
-  "scheduler": "normal",
-  "native_policy": "safe_native_optional",
   "functions": [
-    { "name": "parse", "arity": 1, "operation": "std.net.uri.parse" },
-    { "name": "to_string", "arity": 1, "operation": "std.net.uri.to_string" },
-    { "name": "scheme", "arity": 1, "operation": "std.net.uri.scheme" },
-    { "name": "host", "arity": 1, "operation": "std.net.uri.host" },
-    { "name": "path", "arity": 1, "operation": "std.net.uri.path" },
-    { "name": "query", "arity": 1, "operation": "std.net.uri.query" },
-    { "name": "fragment", "arity": 1, "operation": "std.net.uri.fragment" }]
+    {
+      "arity": 1,
+      "name": "parse",
+      "operation": "std.net.uri.parse"
+    },
+    {
+      "arity": 1,
+      "name": "to_string",
+      "operation": "std.net.uri.to_string"
+    },
+    {
+      "arity": 1,
+      "name": "scheme",
+      "operation": "std.net.uri.scheme"
+    },
+    {
+      "arity": 1,
+      "name": "host",
+      "operation": "std.net.uri.host"
+    },
+    {
+      "arity": 1,
+      "name": "path",
+      "operation": "std.net.uri.path"
+    },
+    {
+      "arity": 1,
+      "name": "query",
+      "operation": "std.net.uri.query"
+    },
+    {
+      "arity": 1,
+      "name": "fragment",
+      "operation": "std.net.uri.fragment"
+    }
+  ],
+  "module": "std_net_uri_safe_native",
+  "native_policy": "safe_native_optional",
+  "scheduler": "normal",
+  "source_module": "std.net.Uri"
 }

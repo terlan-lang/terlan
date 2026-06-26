@@ -255,6 +255,7 @@ pub(crate) fn core_expr_is_lean_modeled(expr: &CoreExpr) -> bool {
         | CoreExpr::RemoteFunRef { .. }
         | CoreExpr::MutableReceiverCall { .. }
         | CoreExpr::Intrinsic(_)
+        | CoreExpr::SqlQuery { .. }
         | CoreExpr::Try { .. } => false,
     }
 }

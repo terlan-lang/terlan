@@ -130,7 +130,7 @@ Key invariants:
 
 ## Edge Cases
 
-- Unterminated strings/binary literals and unrecognized characters emit lex errors.
+- Unterminated strings and unrecognized characters emit lex errors.
 - Parser enforces dotted names, declaration ordering rules, and interface/module grammar differences.
 - Doc comments are tokenized separately for module/item doc extraction and formatter round-trips.
 

@@ -1,0 +1,72 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLEmbedElement
+ */
+
+module std.js.Dom.HTMLEmbedElement.
+
+/**
+ * The **`HTMLEmbedElement`** interface provides special properties (beyond the regular HTMLElement interface it also has available to it by inheritance) for manipulating embed elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement)
+ */
+pub opaque type HTMLEmbedElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLEmbedElement) align(): std.js.String.JsString.
+
+/**
+ * The **`height`** property of the HTMLEmbedElement interface returns a string that reflects the `height` attribute of the embed element, indicating the displayed height of the resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/height)
+ */
+pub (value: HTMLEmbedElement) height(): std.js.String.JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLEmbedElement) name(): std.js.String.JsString.
+
+/**
+ * The **`src`** property of the HTMLEmbedElement interface returns a string that indicates the URL of the resource being embedded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/src)
+ */
+pub (value: HTMLEmbedElement) src(): std.js.String.JsString.
+
+/**
+ * The **`type`** property of the HTMLEmbedElement interface returns a string that reflects the `type` attribute of the embed element, indicating the MIME type of the resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/type)
+ */
+pub (value: HTMLEmbedElement) type_(): std.js.String.JsString.
+
+/**
+ * The **`width`** property of the HTMLEmbedElement interface returns a string that reflects the `width` attribute of the embed element, indicating the displayed width of the resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/width)
+ */
+pub (value: HTMLEmbedElement) width(): std.js.String.JsString.
+
+/**
+ * The **`getSVGDocument()`** method of the HTMLEmbedElement interface returns the Document object of the embedded SVG.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/getSVGDocument)
+ */
+pub (value: HTMLEmbedElement) get_svg_document(): Option[Document].
+
+pub (value: HTMLEmbedElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: HTMLEmbedElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

@@ -1,0 +1,39 @@
+{
+  "name": "Terlan HTML Template",
+  "scopeName": "text.html.terlan",
+  "patterns": [
+    {
+      "include": "#terlan-interpolation"
+    },
+    {
+      "include": "text.html.basic"
+    }
+  ],
+  "repository": {
+    "terlan-interpolation": {
+      "patterns": [
+        {
+          "name": "meta.interpolation.terlan-template-html",
+          "begin": "\\$\\{",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.begin.terlan"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.terlan"
+            }
+          },
+          "contentName": "source.terlan.embedded",
+          "patterns": [
+            {
+              "include": "source.terlan"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

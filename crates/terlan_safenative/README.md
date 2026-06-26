@@ -10,6 +10,7 @@ testable.
 - Implement pure SafeNative helper operations.
 - Model runtime resources, handles, credits, terms, and dispatch results.
 - Provide Rust-backed implementations for selected std operations.
+- Record worker metadata for supervised native adapters such as Postgres.
 - Keep safety-critical native logic separate from generated adapter stubs.
 
 ## Public Surface
@@ -17,6 +18,8 @@ testable.
 - Resource and handle helpers used by native operation dispatch.
 - JSON, URI, path, Base64, request, and HTTP helper modules.
 - Runtime and worker state-transition helpers.
+- Worker metadata contracts for adapter ownership, runtime selection, resource
+  policy, and operation ids.
 
 ## Core Model
 
@@ -35,6 +38,8 @@ Important invariants:
 - Unsafe Rust is forbidden.
 - Panics, unwraps, todos, and unimplemented branches are denied.
 - Long-lived native resources are explicit and handle-based.
+- Worker metadata must describe the bridge contract before live sockets or
+  backend-specific adapter code are connected.
 
 ## Integration Points
 
@@ -59,6 +64,9 @@ Important invariants:
 
 `Term`
 : Boundary value representation for native dispatch.
+
+`WorkerSpec`
+: Static metadata describing one supervised SafeNative worker adapter.
 
 ## Testing Notes
 

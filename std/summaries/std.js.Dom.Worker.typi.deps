@@ -1,0 +1,8 @@
+module=std.js.Dom.Worker
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=18015658004750342806
+interface_hash=4284596588321843613
+interface_doc_hash=4284596588321843613
+deps=0

@@ -1,0 +1,8 @@
+module=std.js.Dom.RsaPssParams
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=13969539668465009198
+interface_hash=271488330191498941
+interface_doc_hash=271488330191498941
+deps=0

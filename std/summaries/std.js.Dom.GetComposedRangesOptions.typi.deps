@@ -1,0 +1,8 @@
+module=std.js.Dom.GetComposedRangesOptions
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=9514296293856377104
+interface_hash=9387234552582263338
+interface_doc_hash=9387234552582263338
+deps=0

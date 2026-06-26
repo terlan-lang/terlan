@@ -1,0 +1,192 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface PerformanceTiming
+ */
+
+module std.js.Dom.PerformanceTiming.
+
+/**
+ * The **`PerformanceTiming`** interface is a legacy interface kept for backwards compatibility and contains properties that offer performance timing information for various events which occur during the loading and use of the current page.
+ * @deprecated This interface is deprecated in the Navigation Timing Level 2 specification. Please use the PerformanceNavigationTiming interface instead.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming)
+ */
+pub opaque type PerformanceTiming.
+
+/**
+ * The legacy **`PerformanceTiming.connectEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the connection is opened network.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/connectEnd)
+ */
+pub (value: PerformanceTiming) connect_end(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.connectStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the request to open a connection is sent to the network.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/connectStart)
+ */
+pub (value: PerformanceTiming) connect_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.domComplete`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the parser finished its work on the main document, that is when its Document.readyState changes to `'complete'` and the corresponding Document/readystatechange_event event is thrown.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domComplete)
+ */
+pub (value: PerformanceTiming) dom_complete(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.domContentLoadedEventEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, right after all the scripts that need to be executed as soon as possible, in order or not, has been executed.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domContentLoadedEventEnd)
+ */
+pub (value: PerformanceTiming) dom_content_loaded_event_end(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.domContentLoadedEventStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, right before the parser sent the executed right after parsing has been executed.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domContentLoadedEventStart)
+ */
+pub (value: PerformanceTiming) dom_content_loaded_event_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.domInteractive`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the parser finished its work on the main document, that is when its Document.readyState changes to `'interactive'` and the corresponding Document/readystatechange_event event is thrown.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domInteractive)
+ */
+pub (value: PerformanceTiming) dom_interactive(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.domLoading`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the parser started its work, that is when its corresponding Document/readystatechange_event event is thrown.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domLoading)
+ */
+pub (value: PerformanceTiming) dom_loading(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.domainLookupEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the domain lookup is finished.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domainLookupEnd)
+ */
+pub (value: PerformanceTiming) domain_lookup_end(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.domainLookupStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the domain lookup starts.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domainLookupStart)
+ */
+pub (value: PerformanceTiming) domain_lookup_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.fetchStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the browser is ready to fetch the document using an HTTP request.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/fetchStart)
+ */
+pub (value: PerformanceTiming) fetch_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.loadEventEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the Window/load_event event handler terminated, that is when the load event is completed.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/loadEventEnd)
+ */
+pub (value: PerformanceTiming) load_event_end(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.loadEventStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the Window/load_event event was sent for the current document.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/loadEventStart)
+ */
+pub (value: PerformanceTiming) load_event_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.navigationStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, right after the prompt for unload terminates on the previous document in the same browsing context.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/navigationStart)
+ */
+pub (value: PerformanceTiming) navigation_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.redirectEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the last HTTP redirect is completed, that is when the last byte of the HTTP response has been received.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/redirectEnd)
+ */
+pub (value: PerformanceTiming) redirect_end(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.redirectStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the first HTTP redirect starts.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/redirectStart)
+ */
+pub (value: PerformanceTiming) redirect_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.requestStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the browser sent the request to obtain the actual document, from the server or from a cache.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/requestStart)
+ */
+pub (value: PerformanceTiming) request_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.responseEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the browser received the last byte of the response, or when the connection is closed if this happened first, from the server from a cache or from a local resource.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/responseEnd)
+ */
+pub (value: PerformanceTiming) response_end(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.responseStart`** read-only property returns an `unsigned long long` representing the moment in time (in milliseconds since the UNIX epoch) when the browser received the first byte of the response from the server, cache, or local resource.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/responseStart)
+ */
+pub (value: PerformanceTiming) response_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.secureConnectionStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the secure connection handshake starts.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/secureConnectionStart)
+ */
+pub (value: PerformanceTiming) secure_connection_start(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.unloadEventEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the Window/unload_event event handler finishes.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/unloadEventEnd)
+ */
+pub (value: PerformanceTiming) unload_event_end(): std.js.Number.JsNumber.
+
+/**
+ * The legacy **`PerformanceTiming.unloadEventStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the Window/unload_event event has been thrown.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/unloadEventStart)
+ */
+pub (value: PerformanceTiming) unload_event_start(): std.js.Number.JsNumber.

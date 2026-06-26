@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Location
+ */
+
+module std.js.Dom.LocationTest.
+
+import type std.js.Dom.Location.Location.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub ancestor_origins_typechecks(receiver: Location): DOMStringList ->
+    receiver.ancestor_origins().
+
+pub hash_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.hash().
+
+pub host_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.host().
+
+pub hostname_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.hostname().
+
+pub href_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.href().
+
+pub to_string_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.to_string().
+
+pub origin_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.origin().
+
+pub pathname_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.pathname().
+
+pub port_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.port().
+
+pub protocol_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.protocol().
+
+pub search_typechecks(receiver: Location): std.js.String.JsString ->
+    receiver.search().
+
+pub assign_typechecks(receiver: Location, url: URL | std.js.String.JsString): std.core.Unit ->
+    receiver.assign(url).
+
+pub reload_typechecks(receiver: Location): std.core.Unit ->
+    receiver.reload().
+
+pub replace_typechecks(receiver: Location, url: URL | std.js.String.JsString): std.core.Unit ->
+    receiver.replace(url).

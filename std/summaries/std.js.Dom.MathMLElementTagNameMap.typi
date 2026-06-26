@@ -1,0 +1,78 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MathMLElementTagNameMap
+ */
+
+module std.js.Dom.MathMLElementTagNameMap.
+
+pub opaque type MathMLElementTagNameMap.
+
+pub (value: MathMLElementTagNameMap) annotation_(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) annotation_xml(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) maction(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) math(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) merror(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mfrac(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mi(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mmultiscripts(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mn(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mo(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mover(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mpadded(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mphantom(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mprescripts(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mroot(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mrow(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) ms(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mspace(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) msqrt(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mstyle(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) msub(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) msubsup(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) msup(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mtable(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mtd(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mtext(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) mtr(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) munder(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) munderover(): MathMLElement.
+
+pub (value: MathMLElementTagNameMap) semantics(): MathMLElement.

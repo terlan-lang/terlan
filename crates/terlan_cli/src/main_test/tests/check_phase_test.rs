@@ -146,30 +146,30 @@ fn run_check_dir_rejects_unsupported_raw_declaration_kind() {
     assert_eq!(exit, ExitCode::from(1));
 }
 
-/// Verifies derive expansion failures are reported in the phase manifest before
+/// Verifies include expansion failures are reported in the phase manifest before
 /// resolve, typecheck, or CoreIR phases run.
 ///
 /// Inputs:
-/// - A temporary single-file module whose struct derives an unknown trait.
+/// - A temporary single-file module whose struct includes an unknown trait.
 /// - A requested phase-manifest output path.
 ///
 /// Output:
 /// - Test success when check fails, parse/macro phases are `ok`,
-///   derive-expansion is `error`, and later phases are `skipped`.
+///   include-expansion is `error`, and later phases are `skipped`.
 ///
 /// Transformation:
 /// - Runs single-file check with phase-manifest emission and inspects the
 ///   manifest text for the expected phase statuses.
 #[test]
-fn run_check_single_file_reports_derive_expansion_phase_error() {
-    let dir = make_temp_dir("check_single_file_unknown_derive");
-    let source = dir.join("derive_fail.terl");
+fn run_check_single_file_reports_include_expansion_phase_error() {
+    let dir = make_temp_dir("check_single_file_unknown_include");
+    let source = dir.join("include_fail.terl");
     fs::write(
         &source,
-        "module derive_fail.\n\npub struct User derives MissingShow {\n    value: Int\n}.\n",
+        "module include_fail.\n\npub struct User includes MissingShow {\n    value: Int\n}.\n",
     )
-    .expect("write unknown derive source");
-    let manifest = dir.join("derive_fail.phase-manifest.json");
+    .expect("write unknown include source");
+    let manifest = dir.join("include_fail.phase-manifest.json");
 
     let cache = dir.join("cache");
     let exit = commands::check::run(
@@ -191,7 +191,7 @@ fn run_check_single_file_reports_derive_expansion_phase_error() {
     let manifest_text = fs::read_to_string(&manifest).expect("read phase manifest");
     assert!(manifest_text.contains(r#""name":"parse","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"macro_expansion","status":"ok""#));
-    assert!(manifest_text.contains(r#""name":"derive_expansion","status":"error""#));
+    assert!(manifest_text.contains(r#""name":"include_expansion","status":"error""#));
     assert!(manifest_text.contains(r#""name":"resolve","status":"skipped""#));
     assert!(manifest_text.contains(r#""name":"typecheck","status":"skipped""#));
     assert!(manifest_text.contains(r#""name":"core","status":"skipped""#));
@@ -238,7 +238,7 @@ fn run_check_single_file_success_emits_core_phase_ok() {
     let manifest_text = fs::read_to_string(&manifest).expect("read phase manifest");
     assert!(manifest_text.contains(r#""name":"parse","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"macro_expansion","status":"ok""#));
-    assert!(manifest_text.contains(r#""name":"derive_expansion","status":"ok""#));
+    assert!(manifest_text.contains(r#""name":"include_expansion","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"resolve","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"typecheck","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"core","status":"ok""#));

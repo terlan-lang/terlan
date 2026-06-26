@@ -6,65 +6,17 @@ use std::path::{Path, PathBuf};
 
 use terlan_hir::ModuleInterface;
 use terlan_syntax::{
-    span::Span, syntax_contract_identity_from_fingerprint, SyntaxContractIdentity,
-    SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput, SyntaxTemplatePropOutput,
+    syntax_contract_identity_from_fingerprint, SyntaxContractIdentity, SyntaxDeclarationPayload,
+    SyntaxImportKind, SyntaxModuleOutput,
 };
 
-/// Parsed template import ready for frontend/template packaging.
-///
-/// Inputs:
-/// - Syntax-output template import metadata plus resolved template file.
-///
-/// Output:
-/// - Template name, source/resolved paths, props, span, and parsed HTML
-///   template.
-///
-/// Transformation:
-/// - Moves template parsing and path resolution ahead of package generation so
-///   artifact writers can consume validated template inputs directly.
-#[derive(Debug, Clone)]
-pub(crate) struct SyntaxTemplateFrontendInput {
-    pub(crate) name: String,
-    pub(crate) source_path: String,
-    pub(crate) resolved_path: PathBuf,
-    pub(crate) props: Vec<SyntaxTemplatePropOutput>,
-    pub(crate) span: Span,
-    pub(crate) parsed: terlan_html::HtmlTemplate,
-}
+#[path = "artifacts/templates.rs"]
+mod templates;
 
-/// Template frontend input diagnostic.
-///
-/// Inputs:
-/// - Source span and validation message from template import collection.
-///
-/// Output:
-/// - Error value stored beside successfully parsed template inputs.
-///
-/// Transformation:
-/// - Keeps template import failures attached to source spans without stopping
-///   collection of independent template imports.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct SyntaxTemplateFrontendInputError {
-    pub(crate) span: Span,
-    pub(crate) message: String,
-}
-
-/// Collected template frontend inputs and diagnostics.
-///
-/// Inputs:
-/// - All template import declarations discovered in one module.
-///
-/// Output:
-/// - Successful parsed template inputs plus recoverable import diagnostics.
-///
-/// Transformation:
-/// - Aggregates template import collection so callers can decide whether to
-///   fail fast or continue gathering artifact diagnostics.
-#[derive(Debug, Clone)]
-pub(crate) struct SyntaxTemplateFrontendInputs {
-    pub(crate) inputs: Vec<SyntaxTemplateFrontendInput>,
-    pub(crate) errors: Vec<SyntaxTemplateFrontendInputError>,
-}
+pub(crate) use templates::{
+    collect_syntax_template_frontend_inputs, collect_syntax_template_inputs,
+    SyntaxTemplateFrontendInput,
+};
 
 /// Validated source asset import ready for command-owned packaging.
 ///
@@ -85,6 +37,26 @@ pub(crate) struct SyntaxAssetImportInput {
     pub(crate) source_path: String,
     pub(crate) resolved_path: PathBuf,
     pub(crate) bytes: Vec<u8>,
+}
+
+/// Parsed Markdown import ready for static rendering and route discovery.
+///
+/// Inputs:
+/// - Syntax-output Markdown import metadata plus the resolved file.
+///
+/// Output:
+/// - Import alias, source/resolved paths, parsed document, and page metadata.
+///
+/// Transformation:
+/// - Preserves source-level import metadata beside parsed Markdown so static
+///   profile route discovery can consume `@page` without reparsing imports.
+#[derive(Debug, Clone)]
+pub(crate) struct SyntaxMarkdownInput {
+    pub(crate) alias: String,
+    pub(crate) source_path: String,
+    pub(crate) resolved_path: PathBuf,
+    pub(crate) metadata: terlan_html::PageMetadata,
+    pub(crate) document: terlan_html::MarkdownDocument,
 }
 
 /// Deterministic dependency manifest for incremental builds.
@@ -452,10 +424,34 @@ pub(crate) fn collect_syntax_file_import_bytes(
 /// Transformation:
 /// - Resolves source-relative import paths, reads file/CSS/Markdown assets,
 ///   preserves import alias and kind metadata, validates CSS syntax, validates
-///   Markdown as UTF-8 parseable input, and returns raw bytes for packaging.
+///   Markdown as UTF-8 parseable input, validates artifact-template assets, and
+///   returns raw bytes for packaging.
 pub(crate) fn collect_syntax_asset_imports(
     module: &SyntaxModuleOutput,
     source_path: &Path,
+) -> Result<Vec<SyntaxAssetImportInput>, String> {
+    collect_syntax_asset_imports_matching(module, source_path, |_, _| true)
+}
+
+/// Loads asset imports declared by a syntax module when a filter accepts them.
+///
+/// Inputs:
+/// - `module`: formal syntax output containing import declarations.
+/// - `source_path`: source file path used as the relative import base.
+/// - `include`: predicate receiving import kind and resolved path.
+///
+/// Output:
+/// - Imported asset metadata and bytes for accepted imports, or a user-facing
+///   error string.
+///
+/// Transformation:
+/// - Resolves source-relative import paths, applies the caller filter, reads
+///   accepted file/CSS/Markdown assets, validates their target-specific shape,
+///   and returns raw bytes for packaging.
+pub(crate) fn collect_syntax_asset_imports_matching(
+    module: &SyntaxModuleOutput,
+    source_path: &Path,
+    include: impl Fn(SyntaxImportKind, &Path) -> bool,
 ) -> Result<Vec<SyntaxAssetImportInput>, String> {
     let base_dir = source_path.parent().unwrap_or_else(|| Path::new("."));
     let mut imports = Vec::new();
@@ -485,6 +481,9 @@ pub(crate) fn collect_syntax_asset_imports(
             .as_deref()
             .ok_or_else(|| format!("asset import `{}` is missing a source path", alias))?;
         let resolved_path = resolve_import_path(base_dir, source);
+        if !include(*import_kind, &resolved_path) {
+            continue;
+        }
         let bytes = fs::read(&resolved_path).map_err(|err| {
             format!(
                 "failed to read imported asset `{}` for `{}`: {}",
@@ -499,7 +498,10 @@ pub(crate) fn collect_syntax_asset_imports(
             SyntaxImportKind::Markdown => {
                 validate_imported_markdown(alias, &resolved_path, &bytes)?;
             }
-            SyntaxImportKind::File | SyntaxImportKind::Module => {}
+            SyntaxImportKind::File => {
+                validate_imported_artifact_template(alias, &resolved_path, &bytes)?;
+            }
+            SyntaxImportKind::Module => {}
         }
 
         imports.push(SyntaxAssetImportInput {
@@ -512,6 +514,56 @@ pub(crate) fn collect_syntax_asset_imports(
     }
 
     Ok(imports)
+}
+
+/// Validates one imported artifact-template asset when the suffix requires it.
+///
+/// Inputs:
+/// - `alias`: source import alias used in diagnostics.
+/// - `resolved_path`: filesystem path read for the import.
+/// - `bytes`: imported file bytes.
+///
+/// Output:
+/// - `Ok(())` when the path is not a Terlan artifact template, or when the
+///   template source is UTF-8 and structurally valid for its target suffix.
+///
+/// Transformation:
+/// - Detects `.terl.<target>` assets, decodes them as UTF-8, delegates target
+///   validation to `terlan_html`, and normalizes frontend diagnostics into
+///   command-ready error text.
+fn validate_imported_artifact_template(
+    alias: &str,
+    resolved_path: &Path,
+    bytes: &[u8],
+) -> Result<(), String> {
+    if !terlan_html::is_terlan_artifact_template_path(resolved_path) {
+        return Ok(());
+    }
+
+    let source = std::str::from_utf8(bytes).map_err(|err| {
+        format!(
+            "imported artifact template `{}` for `{}` must be valid UTF-8: {}",
+            resolved_path.display(),
+            alias,
+            err
+        )
+    })?;
+
+    terlan_html::validate_artifact_template_structure(source, resolved_path).map_err(
+        |diagnostics| {
+            diagnostics
+                .into_iter()
+                .map(|diagnostic| {
+                    let path = diagnostic
+                        .path
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| resolved_path.display().to_string());
+                    format!("{path}: {}", diagnostic.message)
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        },
+    )
 }
 
 /// Validates one imported CSS asset.
@@ -610,8 +662,33 @@ pub(crate) fn collect_syntax_markdown_inputs(
     module: &SyntaxModuleOutput,
     source_path: &Path,
 ) -> Result<BTreeMap<String, terlan_html::MarkdownDocument>, String> {
+    collect_syntax_markdown_frontend_inputs(module, source_path).map(|inputs| {
+        inputs
+            .into_iter()
+            .map(|input| (input.alias, input.document))
+            .collect()
+    })
+}
+
+/// Loads Markdown imports with source metadata preserved.
+///
+/// Inputs:
+/// - `module`: formal syntax output containing Markdown import declarations.
+/// - `source_path`: source file path used as the relative import base.
+///
+/// Output:
+/// - Parsed Markdown frontend inputs keyed by declaration order.
+///
+/// Transformation:
+/// - Resolves source-relative Markdown paths, enforces UTF-8, parses page
+///   metadata and Markdown body through `terlan_html`, and normalizes frontend
+///   diagnostics into command-ready error text.
+pub(crate) fn collect_syntax_markdown_frontend_inputs(
+    module: &SyntaxModuleOutput,
+    source_path: &Path,
+) -> Result<Vec<SyntaxMarkdownInput>, String> {
     let base_dir = source_path.parent().unwrap_or_else(|| Path::new("."));
-    let mut imports = BTreeMap::new();
+    let mut imports = Vec::new();
 
     for declaration in &module.declarations {
         let SyntaxDeclarationPayload::Import {
@@ -635,153 +712,103 @@ pub(crate) fn collect_syntax_markdown_inputs(
             .as_deref()
             .ok_or_else(|| format!("markdown import `{}` is missing a source path", alias))?;
         let resolved_path = resolve_import_path(base_dir, source);
-        let bytes = fs::read(&resolved_path).map_err(|err| {
-            format!(
-                "failed to read imported markdown file `{}` for `{}`: {}",
-                resolved_path.display(),
-                alias,
-                err
-            )
-        })?;
-        let source = std::str::from_utf8(&bytes).map_err(|err| {
-            format!(
-                "imported markdown file `{}` for `{}` must be valid UTF-8: {}",
-                resolved_path.display(),
-                alias,
-                err
-            )
-        })?;
-        let document =
-            terlan_html::parse_markdown(source, &resolved_path).map_err(|diagnostics| {
-                diagnostics
-                    .into_iter()
-                    .map(|diagnostic| {
-                        let path = diagnostic
-                            .path
-                            .map(|path| path.display().to_string())
-                            .unwrap_or_else(|| resolved_path.display().to_string());
-                        format!("{path}: {}", diagnostic.message)
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            })?;
-        imports.insert(alias.to_string(), document);
+        let parsed = load_syntax_markdown_input(alias, source, &resolved_path)?;
+        imports.push(parsed);
     }
 
     Ok(imports)
 }
 
-/// Loads and parses normalized external template frontend inputs.
+/// Loads one Markdown import as a frontend input.
 ///
 /// Inputs:
-/// - `module`: formal syntax output containing template declarations.
-/// - `source_path`: source file path used as the relative template base.
+/// - `alias`: import alias from source.
+/// - `source_path`: source path text from the import declaration.
+/// - `resolved_path`: filesystem path to read.
 ///
 /// Output:
-/// - Parsed template frontend inputs plus per-declaration errors.
+/// - Parsed Markdown frontend input or a user-facing error string.
 ///
 /// Transformation:
-/// - Resolves source-relative template paths, reads template source, parses it,
-///   and preserves declaration props and spans for later validation phases.
-pub(crate) fn collect_syntax_template_frontend_inputs(
-    module: &SyntaxModuleOutput,
-    source_path: &Path,
-) -> SyntaxTemplateFrontendInputs {
-    let base_dir = source_path.parent().unwrap_or_else(|| Path::new("."));
-    let mut inputs = Vec::new();
-    let mut errors = Vec::new();
+/// - Reads UTF-8 source once, extracts `@page` metadata, parses Markdown, and
+///   preserves all import identity needed by static-site route discovery.
+fn load_syntax_markdown_input(
+    alias: &str,
+    source_path: &str,
+    resolved_path: &Path,
+) -> Result<SyntaxMarkdownInput, String> {
+    let source = read_markdown_source(alias, resolved_path)?;
+    let metadata = terlan_html::extract_page_metadata(&source, resolved_path)
+        .map_err(|diagnostics| format_html_diagnostics(diagnostics, resolved_path))?;
+    let document = terlan_html::parse_markdown(&source, resolved_path)
+        .map_err(|diagnostics| format_html_diagnostics(diagnostics, resolved_path))?;
 
-    for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Template {
-            name,
-            source_path,
-            props,
-        } = &declaration.payload
-        else {
-            continue;
-        };
-
-        let resolved_path = resolve_import_path(base_dir, source_path);
-        let span = declaration.span.into();
-        let source = match fs::read_to_string(&resolved_path) {
-            Ok(source) => source,
-            Err(err) => {
-                errors.push(SyntaxTemplateFrontendInputError {
-                    span,
-                    message: format!(
-                        "failed to read template `{}` for `{}`: {}",
-                        resolved_path.display(),
-                        name,
-                        err
-                    ),
-                });
-                continue;
-            }
-        };
-        let parsed = match terlan_html::parse_template(&source, &resolved_path) {
-            Ok(parsed) => parsed,
-            Err(diagnostics) => {
-                for diagnostic in diagnostics {
-                    let path = diagnostic
-                        .path
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| resolved_path.display().to_string());
-                    errors.push(SyntaxTemplateFrontendInputError {
-                        span,
-                        message: format!(
-                            "failed to parse template `{}` from `{}`: {}",
-                            name, path, diagnostic.message
-                        ),
-                    });
-                }
-                continue;
-            }
-        };
-        inputs.push(SyntaxTemplateFrontendInput {
-            name: name.clone(),
-            source_path: source_path.clone(),
-            resolved_path,
-            props: props.clone(),
-            span,
-            parsed,
-        });
-    }
-
-    SyntaxTemplateFrontendInputs { inputs, errors }
+    Ok(SyntaxMarkdownInput {
+        alias: alias.to_string(),
+        source_path: source_path.to_string(),
+        resolved_path: resolved_path.to_path_buf(),
+        metadata,
+        document,
+    })
 }
 
-/// Loads and parses external template declarations from a syntax module.
+/// Reads one imported Markdown file as UTF-8 text.
 ///
 /// Inputs:
-/// - `module`: formal syntax output containing template declarations.
-/// - `source_path`: source file path used as the relative template base.
+/// - `alias`: import alias used in diagnostics.
+/// - `resolved_path`: filesystem path to read.
 ///
 /// Output:
-/// - Parsed HTML templates keyed by template name, or a user-facing error.
+/// - Markdown source text or a user-facing read/UTF-8 error.
 ///
 /// Transformation:
-/// - Uses the normalized template frontend collector and converts any
-///   frontend diagnostics into command-ready error text.
-pub(crate) fn collect_syntax_template_inputs(
-    module: &SyntaxModuleOutput,
-    source_path: &Path,
-) -> Result<BTreeMap<String, terlan_html::HtmlTemplate>, String> {
-    let collected = collect_syntax_template_frontend_inputs(module, source_path);
-    if !collected.errors.is_empty() {
-        return Err(collected
-            .errors
-            .into_iter()
-            .map(|error| error.message)
-            .collect::<Vec<_>>()
-            .join("\n"));
-    }
+/// - Reads raw bytes and converts them to an owned UTF-8 string.
+fn read_markdown_source(alias: &str, resolved_path: &Path) -> Result<String, String> {
+    let bytes = fs::read(resolved_path).map_err(|err| {
+        format!(
+            "failed to read imported markdown file `{}` for `{}`: {}",
+            resolved_path.display(),
+            alias,
+            err
+        )
+    })?;
+    let source = std::str::from_utf8(&bytes).map_err(|err| {
+        format!(
+            "imported markdown file `{}` for `{}` must be valid UTF-8: {}",
+            resolved_path.display(),
+            alias,
+            err
+        )
+    })?;
+    Ok(source.to_string())
+}
 
-    let mut templates = BTreeMap::new();
-    for input in collected.inputs {
-        templates.insert(input.name, input.parsed);
-    }
-
-    Ok(templates)
+/// Formats HTML frontend diagnostics for CLI output.
+///
+/// Inputs:
+/// - `diagnostics`: diagnostics from `terlan_html`.
+/// - `fallback_path`: path used when a diagnostic has no path.
+///
+/// Output:
+/// - Newline-joined command error text.
+///
+/// Transformation:
+/// - Converts structured diagnostics into the existing command error format.
+fn format_html_diagnostics(
+    diagnostics: Vec<terlan_html::HtmlDiagnostic>,
+    fallback_path: &Path,
+) -> String {
+    diagnostics
+        .into_iter()
+        .map(|diagnostic| {
+            let path = diagnostic
+                .path
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| fallback_path.display().to_string());
+            format!("{path}: {}", diagnostic.message)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// Resolves an import or template source path relative to a source directory.

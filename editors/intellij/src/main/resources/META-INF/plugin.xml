@@ -1,0 +1,31 @@
+<idea-plugin>
+  <id>org.terlan.intellij</id>
+  <name>Terlan</name>
+  <vendor email="maintainers@terlan.org" url="https://github.com/terlan-lang/terlan">Terlan</vendor>
+
+  <description>
+    IntelliJ-family editor integration for Terlan source, interface, and
+    template files. Language semantics are provided by terlc lsp --stdio.
+  </description>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!--
+      Inputs:
+      - Terlan source, interface, and template files opened in the IDE.
+
+      Outputs:
+      - File associations and icon metadata for IntelliJ-family IDEs.
+
+      Transformation:
+      - Keeps editor identity declarative while diagnostics and symbols remain
+        owned by terlc lsp --stdio.
+    -->
+    <fileType
+      name="Terlan"
+      language="Terlan"
+      extensions="terl;terli;terl.html;terl.md;terl.json;terl.toml;terl.yaml;terl.yml;terl.txt"
+      icon="/icons/terlan-file.svg" />
+  </extensions>
+</idea-plugin>

@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_tuple_literal
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 export=pair/0
 function=pair/0 public=true params= return={Int , Int } return_core=Tuple(Int,Int)
 function_clause=pair/0#0 patterns= core_patterns= pattern_proof= pattern_preservation= guard=none body=Tuple:core=Tuple(Int(1),Int(2)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Tuple(Int(1),Int(2))):proof=lean-covered:arity=2:children=[Int:core=Int(1):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Int(1)):proof=lean-covered:text=1:arity=0;Int:core=Int(2):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Int(2)):proof=lean-covered:text=2:arity=0]

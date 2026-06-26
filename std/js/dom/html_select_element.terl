@@ -1,0 +1,224 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLSelectElement
+ */
+
+module std.js.Dom.HTMLSelectElement.
+
+/**
+ * The **`HTMLSelectElement`** interface represents a select HTML Element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement)
+ */
+pub opaque type HTMLSelectElement.
+
+/**
+ * The **`autocomplete`** property of the HTMLSelectElement interface indicates whether the value of the control can be automatically completed by the browser.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/autocomplete)
+ */
+pub (value: HTMLSelectElement) autocomplete(): AutoFill ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.disabled`** property is a boolean value that reflects the `disabled` HTML attribute, which indicates whether the control is disabled.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/disabled)
+ */
+pub (value: HTMLSelectElement) disabled(): std.core.Bool ->
+    native.
+
+/**
+ * The **`form`** read-only property of the HTMLSelectElement interface returns an HTMLFormElement object that owns this select, or `null` if this select is not owned by any form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/form)
+ */
+pub (value: HTMLSelectElement) form(): Option[HTMLFormElement] ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.labels`** read-only property returns a A NodeList containing the `<label>` elements associated with the `<select>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/labels)
+ */
+pub (value: HTMLSelectElement) labels(): NodeListOf[HTMLLabelElement] ->
+    native.
+
+/**
+ * The **`length`** property of the HTMLSelectElement interface specifies the number of option elements in the select element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/length)
+ */
+pub (value: HTMLSelectElement) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`multiple`** property of the HTMLSelectElement interface specifies that the user may select more than one option from the list of options.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/multiple)
+ */
+pub (value: HTMLSelectElement) multiple(): std.core.Bool ->
+    native.
+
+/**
+ * The **`name`** property of the HTMLSelectElement interface indicates the name of the select element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/name)
+ */
+pub (value: HTMLSelectElement) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.options`** read-only property returns a HTMLOptionsCollection of the option elements contained by the select element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/options)
+ */
+pub (value: HTMLSelectElement) options(): HTMLOptionsCollection ->
+    native.
+
+/**
+ * The **`required`** property of the HTMLSelectElement interface specifies that the user must select an option with a non-empty string value before submitting a form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/required)
+ */
+pub (value: HTMLSelectElement) required(): std.core.Bool ->
+    native.
+
+/**
+ * The **`selectedIndex`** property of the HTMLSelectElement interface is the numeric index of the first selected option element in a select element, if any, or `−1` if no `<option>` is selected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/selectedIndex)
+ */
+pub (value: HTMLSelectElement) selected_index(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **read-only** HTMLSelectElement property **`selectedOptions`** contains a list of the element that are currently selected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/selectedOptions)
+ */
+pub (value: HTMLSelectElement) selected_options(): HTMLCollectionOf[HTMLOptionElement] ->
+    native.
+
+/**
+ * The **`size`** property of the HTMLSelectElement interface specifies the number of options, or rows, that should be visible at one time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/size)
+ */
+pub (value: HTMLSelectElement) size(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`validationMessage`** read-only property of the HTMLSelectElement interface returns a string representing a localized message that describes the validation constraints that the select control does not satisfy (if any).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/validationMessage)
+ */
+pub (value: HTMLSelectElement) validation_message(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`validity`** read-only property of the HTMLSelectElement interface returns a ValidityState object that represents the validity states this element is in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/validity)
+ */
+pub (value: HTMLSelectElement) validity(): ValidityState ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.value`** property contains the value of the first selected option element associated with this select element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/value)
+ */
+pub (value: HTMLSelectElement) value(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`willValidate`** read-only property of the HTMLSelectElement interface indicates whether the select element is a candidate for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/willValidate)
+ */
+pub (value: HTMLSelectElement) will_validate(): std.core.Bool ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.add()`** method adds an element to the collection of `option` elements for this `select` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/add)
+ */
+pub (value: HTMLSelectElement) add(element: HTMLOptGroupElement | HTMLOptionElement, before: Option[HTMLElement | std.js.Number.JsNumber]): std.core.Unit ->
+    native.
+
+/**
+ * The **`checkValidity()`** method of the HTMLSelectElement interface returns a boolean value which indicates if the element meets any constraint validation rules applied to it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/checkValidity)
+ */
+pub (value: HTMLSelectElement) check_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.item()`** method returns the position in the options list corresponds to the index given in the parameter, or `null` if there are none.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/item)
+ */
+pub (value: HTMLSelectElement) item(index: std.js.Number.JsNumber): Option[HTMLOptionElement] ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.namedItem()`** method returns the whose `name` or `id` match the specified name, or `null` if no option matches.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/namedItem)
+ */
+pub (value: HTMLSelectElement) named_item(name: std.js.String.JsString): Option[HTMLOptionElement] ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.remove()`** method removes the element at the specified index from the options collection for this select element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/remove)
+ */
+pub (value: HTMLSelectElement) remove(): std.core.Unit ->
+    native.
+
+pub (value: HTMLSelectElement) remove(index: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+/**
+ * The **`reportValidity()`** method of the HTMLSelectElement interface performs the same validity checking steps as the HTMLSelectElement.checkValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/reportValidity)
+ */
+pub (value: HTMLSelectElement) report_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.setCustomValidity()`** method sets the custom validity message for the selection element to the specified message.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/setCustomValidity)
+ */
+pub (value: HTMLSelectElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`HTMLSelectElement.showPicker()`** method displays the browser picker for a `select` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/showPicker)
+ */
+pub (value: HTMLSelectElement) show_picker(): std.core.Unit ->
+    native.
+
+pub (value: HTMLSelectElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLSelectElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

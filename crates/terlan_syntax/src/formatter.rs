@@ -1,11 +1,15 @@
 use crate::parse_tree::{
     AnnotationKeyOption, AnnotationSchemaDecl, AnnotationSchemaEntry, AnnotationValue, BinaryOp,
-    CaseClause, ConstructorDecl, ConstructorParam, Decl, ExportDecl, Expr, FunctionClause,
-    FunctionDecl, HtmlAttr, HtmlAttrValue, HtmlNode, ImportDecl, ImportKind, MapExprField,
-    MapField, MethodDecl, Module, Param, Pattern, StructDecl, StructFieldDecl, TemplateDecl,
-    TraitDecl, TraitImplDecl, TypeDecl, TypeExpr, UnaryOp, UnsupportedDecl,
+    CaseClause, Decl, ExportDecl, Expr, ImportDecl, ImportKind, MapExprField, MapField, Module,
+    Pattern, TemplateDecl, TypeExpr, UnaryOp,
 };
 use crate::parser::{parse_interface_module, parse_module, ParseError};
+
+mod declarations;
+mod html;
+
+use declarations::*;
+use html::format_html_block;
 
 /// Formats canonical Terlan source text.
 ///
@@ -50,17 +54,27 @@ pub fn format_interface_source_module(source: &str) -> Result<String, ParseError
 /// - Pretty-printed Terlan text with a module header and formatted declarations.
 ///
 /// Transformation:
-/// - Walks declarations in source order and delegates each declaration to the
-///   matching formatter. Normal `.terl` parsing rejects `Decl::Export`; if export
-///   declarations appear here they are interface summaries from `.terli` parsing.
+/// - Renders imports first in canonical alphabetical order, then walks the
+///   remaining declarations in source order. Normal `.terl` parsing rejects
+///   `Decl::Export`; if export declarations appear here they are interface
+///   summaries from `.terli` parsing.
 pub(crate) fn format_module(module: &Module) -> String {
     let mut out = String::new();
+    if !module.docs.is_empty() {
+        out.push_str(&format_docs(&module.docs, 0));
+        out.push('\n');
+    }
     out.push_str("module ");
     out.push_str(&module.name);
     out.push_str(".\n\n");
 
-    for (i, decl) in module.declarations.iter().enumerate() {
+    for (i, decl) in ordered_declarations_for_format(module).iter().enumerate() {
         if i > 0 {
+            out.push('\n');
+        }
+        let docs = format_decl_docs(decl);
+        if !docs.is_empty() {
+            out.push_str(&docs);
             out.push('\n');
         }
         out.push_str(&format_decl(decl));
@@ -68,6 +82,120 @@ pub(crate) fn format_module(module: &Module) -> String {
     }
 
     out
+}
+
+/// Returns declarations in formatter output order.
+///
+/// Inputs:
+/// - `module`: parsed Terlan module or interface.
+///
+/// Output:
+/// - Declaration references ordered for canonical rendering.
+///
+/// Transformation:
+/// - Extracts import declarations, sorts them by their formatted source text,
+///   and places them before non-import declarations. Non-import declarations
+///   preserve source order to avoid reordering code with semantic bodies.
+fn ordered_declarations_for_format(module: &Module) -> Vec<&Decl> {
+    let mut imports = module
+        .declarations
+        .iter()
+        .filter(|decl| matches!(decl, Decl::Import(_)))
+        .collect::<Vec<_>>();
+    imports.sort_by(|left, right| import_sort_text(left).cmp(&import_sort_text(right)));
+
+    let mut ordered = imports;
+    ordered.extend(
+        module
+            .declarations
+            .iter()
+            .filter(|decl| !matches!(decl, Decl::Import(_))),
+    );
+    ordered
+}
+
+/// Returns the canonical text used to order import declarations.
+///
+/// Inputs:
+/// - `decl`: declaration known to be an import.
+///
+/// Output:
+/// - Formatted import text, or an empty string for non-import callers.
+///
+/// Transformation:
+/// - Reuses the import formatter so sorting follows the same canonical spelling
+///   that will be written to disk.
+fn import_sort_text(decl: &Decl) -> String {
+    match decl {
+        Decl::Import(import) => format_import(import),
+        _ => String::new(),
+    }
+}
+
+/// Formats parsed TypeDoc-style documentation as canonical block comments.
+///
+/// Inputs:
+/// - `docs`: normalized documentation text captured by the lexer.
+/// - `indent`: indentation depth measured in formatter levels of four spaces.
+///
+/// Output:
+/// - A canonical `/** ... */` documentation block, or an empty string when no
+///   documentation exists.
+///
+/// Transformation:
+/// - Joins adjacent parsed doc tokens into one block and emits every body line
+///   as ` * text`, ensuring the marker has a separating space before content.
+pub(super) fn format_docs(docs: &[String], indent: usize) -> String {
+    if docs.is_empty() {
+        return String::new();
+    }
+
+    let padding = "    ".repeat(indent);
+    let mut out = String::new();
+    out.push_str(&padding);
+    out.push_str("/**");
+    for line in docs.iter().flat_map(|doc| doc.lines()) {
+        out.push('\n');
+        out.push_str(&padding);
+        if line.is_empty() {
+            out.push_str(" *");
+        } else {
+            out.push_str(" * ");
+            out.push_str(line);
+        }
+    }
+    out.push('\n');
+    out.push_str(&padding);
+    out.push_str(" */");
+    out
+}
+
+/// Formats documentation attached to a declaration.
+///
+/// Inputs:
+/// - `decl`: parsed declaration with optional documentation metadata.
+///
+/// Output:
+/// - Canonical documentation block for the declaration, or an empty string.
+///
+/// Transformation:
+/// - Selects the documentation-bearing field for declarations that support
+///   docs and ignores imports/exports, which currently carry no source docs.
+fn format_decl_docs(decl: &Decl) -> String {
+    let docs = match decl {
+        Decl::Type(decl) => &decl.docs,
+        Decl::Struct(decl) => &decl.docs,
+        Decl::Constructor(decl) => &decl.docs,
+        Decl::Function(decl) => &decl.docs,
+        Decl::Method(decl) => &decl.docs,
+        Decl::Trait(decl) => &decl.docs,
+        Decl::TraitImpl(decl) => &decl.docs,
+        Decl::AnnotationSchema(decl) => &decl.docs,
+        Decl::Template(decl) => &decl.docs,
+        Decl::Raw(decl) => &decl.docs,
+        Decl::Import(_) | Decl::Export(_) => return String::new(),
+    };
+    format_docs(docs, 0)
 }
 
 /// Formats one parsed declaration.
@@ -283,6 +411,11 @@ fn format_import(import: &ImportDecl) -> String {
     out.push_str(&import.module_name);
     out.push('.');
 
+    if import.items.len() == 1 && import.items[0].name == "*" {
+        out.push_str("{*}.");
+        return out;
+    }
+
     if import.items.len() == 1 {
         if import.is_type && is_redundant_default_type_import(import) {
             out.push_str(&import.module_name);
@@ -331,6 +464,9 @@ fn is_redundant_default_type_import(import: &ImportDecl) -> bool {
 /// Inputs: parsed import item. Output: source item text. Transformation:
 /// appends `as Alias` only when an alias is present.
 fn format_import_item(item: &crate::parse_tree::ImportItem) -> String {
+    if item.name == "*" {
+        return "*".to_string();
+    }
     let mut text = String::from(&item.name);
     if let Some(alias) = &item.as_alias {
         text.push(' ');
@@ -362,6 +498,10 @@ fn format_template_decl(template: &TemplateDecl) -> String {
         out.push_str(&prop.name);
         out.push_str(": ");
         out.push_str(&prop.annotation.text);
+        if let Some(default) = &prop.default {
+            out.push_str(" = ");
+            out.push_str(&format_expr(default, 0));
+        }
         if index + 1 < template.props.len() {
             out.push(',');
         }
@@ -421,425 +561,7 @@ fn format_export(export: &ExportDecl) -> String {
 /// Inputs: parsed type declaration. Output: canonical type source text.
 /// Transformation: emits visibility, opacity, params, implements clauses, and
 /// union variants with stable indentation.
-fn format_type_decl(ty: &TypeDecl) -> String {
-    let mut out = String::new();
-    if ty.is_public {
-        out.push_str("pub ");
-    }
-
-    if ty.is_opaque {
-        out.push_str("opaque ");
-    }
-
-    out.push_str("type ");
-    out.push_str(&ty.name);
-
-    if !ty.params.is_empty() {
-        out.push('[');
-        out.push_str(&ty.params.join(", "));
-        out.push(']');
-    }
-
-    if !ty.implements.is_empty() {
-        out.push_str(" implements ");
-        out.push_str(
-            &ty.implements
-                .iter()
-                .map(format_type_expr)
-                .collect::<Vec<_>>()
-                .join(", "),
-        );
-    }
-
-    if ty.variants.is_empty() {
-        out.push('.');
-        return out;
-    }
-
-    out.push_str(" =\n");
-    for (i, variant) in ty.variants.iter().enumerate() {
-        if i == 0 {
-            out.push_str("      ");
-            out.push_str(&format_type_expr(variant));
-        } else {
-            out.push_str("\n    | ");
-            out.push_str(&format_type_expr(variant));
-        }
-    }
-    out.push('.');
-    out
-}
-
-/// Formats a struct declaration.
-///
-/// Inputs: parsed struct declaration. Output: canonical struct source text.
-/// Transformation: emits visibility, derives/implements clauses, and fields in
-/// source order.
-fn format_struct_decl(decl: &StructDecl) -> String {
-    let mut out = String::new();
-    if decl.is_public {
-        out.push_str("pub ");
-    }
-    out.push_str("struct ");
-    out.push_str(&decl.name);
-    if !decl.derives.is_empty() {
-        out.push_str(" derives ");
-        out.push_str(&decl.derives.join(", "));
-    }
-    if !decl.implements.is_empty() {
-        out.push_str(" implements ");
-        out.push_str(
-            &decl
-                .implements
-                .iter()
-                .map(format_type_expr)
-                .collect::<Vec<_>>()
-                .join(", "),
-        );
-    }
-    out.push_str(" {\n");
-
-    for field in &decl.fields {
-        out.push_str("    ");
-        out.push_str(&format_struct_field(field));
-        out.push('\n');
-    }
-    out.push_str("}.");
-    out
-}
-
-/// Formats a struct field.
-///
-/// Inputs: parsed struct field. Output: source field text. Transformation:
-/// emits name/type and optional default expression.
-fn format_struct_field(field: &StructFieldDecl) -> String {
-    let mut out = String::new();
-    out.push_str(&field.name);
-    out.push_str(": ");
-    out.push_str(&format_type_expr(&field.annotation));
-    if let Some(default) = &field.default {
-        out.push_str(" = ");
-        out.push_str(&format_expr(default, 0));
-    }
-    out
-}
-
-/// Formats a constructor declaration.
-///
-/// Inputs: parsed constructor declaration. Output: canonical constructor block.
-/// Transformation: emits visibility, type params, clauses, params, return
-/// types, and bodies with stable separators.
-fn format_constructor_decl(decl: &ConstructorDecl) -> String {
-    let mut out = String::new();
-    if decl.is_public {
-        out.push_str("pub ");
-    }
-    out.push_str("constructor ");
-    out.push_str(&decl.name);
-    if !decl.params.is_empty() {
-        out.push('[');
-        out.push_str(&decl.params.join(", "));
-        out.push(']');
-    }
-    out.push_str(" {\n");
-
-    for (index, clause) in decl.clauses.iter().enumerate() {
-        out.push_str("    (");
-        out.push_str(
-            &clause
-                .params
-                .iter()
-                .map(format_constructor_param)
-                .collect::<Vec<_>>()
-                .join(", "),
-        );
-        out.push_str("): ");
-        out.push_str(&format_type_expr(&clause.return_type));
-        out.push_str(" ->\n        ");
-        out.push_str(&format_expr(&clause.body, 2));
-        if index + 1 < decl.clauses.len() {
-            out.push_str(";\n\n");
-        } else {
-            out.push('\n');
-        }
-    }
-
-    out.push_str("}.");
-    out
-}
-
-/// Formats one constructor parameter.
-///
-/// Inputs: parsed constructor parameter. Output: source parameter text.
-/// Transformation: emits varargs marker, name/type, and optional default.
-fn format_constructor_param(param: &ConstructorParam) -> String {
-    let mut out = String::new();
-    if param.is_varargs {
-        out.push_str("...");
-    }
-    out.push_str(&param.name);
-    out.push_str(": ");
-    out.push_str(&format_type_expr(&param.annotation));
-    if let Some(default) = &param.default {
-        out.push_str(" = ");
-        out.push_str(&format_expr(default, 0));
-    }
-    out
-}
-
-/// Formats a function declaration.
-///
-/// Inputs: parsed function declaration. Output: canonical function source.
-/// Transformation: handles bodyless signatures, single-clause inline bodies,
-/// and multi-clause function bodies.
-fn format_function(function: &FunctionDecl) -> String {
-    let mut out = String::new();
-    if function.is_public {
-        out.push_str("pub ");
-        if function.is_macro {
-            out.push_str("macro ");
-        }
-    }
-
-    if function.clauses.is_empty() {
-        out.push_str(&format_function_signature(
-            &function.name,
-            &function.params,
-            &function.return_type,
-        ));
-        out.push('.');
-        return out;
-    }
-
-    if function.clauses.len() == 1 && single_clause_matches_header(function) {
-        out.push_str(&format_function_signature(
-            &function.name,
-            &function.params,
-            &function.return_type,
-        ));
-        out.push_str(" ->\n    ");
-        out.push_str(&format_expr(&function.clauses[0].body, 1));
-        out.push('.');
-        return out;
-    }
-
-    out.push_str(&format_function_signature(
-        &function.name,
-        &function.params,
-        &function.return_type,
-    ));
-    out.push('.');
-    out.push('\n');
-
-    for (i, clause) in function.clauses.iter().enumerate() {
-        out.push_str(&format_function_clause(function, clause));
-        if i + 1 < function.clauses.len() {
-            out.push_str(";\n");
-        }
-    }
-
-    if !out.ends_with('.') {
-        out.push('.');
-    }
-
-    out
-}
-
-/// Formats a receiver-method declaration.
-///
-/// Inputs:
-/// - `method`: structured method declaration containing receiver, method
-///   params, return type, and body clauses.
-///
-/// Output:
-/// - Canonical Terlan receiver-method source text.
-///
-/// Transformation:
-/// - Renders the receiver as `(name: Type)` or `(mut name: Type)` before the
-///   method name and formats the first body clause as a declaration body.
-///   Multi-clause receiver methods are not currently produced by the parser, so
-///   only the first clause is emitted.
-fn format_method(method: &MethodDecl) -> String {
-    let mut out = String::new();
-    if method.is_public {
-        out.push_str("pub ");
-    }
-    out.push('(');
-    if method.receiver.is_mutable {
-        out.push_str("mut ");
-    }
-    out.push_str(&method.receiver.name);
-    out.push_str(": ");
-    out.push_str(&format_type_expr(&method.receiver.annotation));
-    out.push_str(") ");
-    out.push_str(&format_function_signature(
-        &method.name,
-        &method.params,
-        &method.return_type,
-    ));
-    if let Some(clause) = method.clauses.first() {
-        out.push_str(" ->\n    ");
-        out.push_str(&format_expr(&clause.body, 1));
-    }
-    out.push('.');
-    out
-}
-
-/// Formats a function signature.
-///
-/// Inputs: function name, params, and return type. Output: `name(params):
-/// Type` text. Transformation: formats params in source order and normalizes
-/// type expressions through `format_type_expr`.
-fn format_function_signature(name: &str, params: &[Param], ret: &TypeExpr) -> String {
-    let mut out = String::new();
-    out.push_str(name);
-    out.push('(');
-    out.push_str(
-        &params
-            .iter()
-            .map(|param| format!("{}: {}", param.name, format_type_expr(&param.annotation)))
-            .collect::<Vec<_>>()
-            .join(", "),
-    );
-    out.push(')');
-    out.push_str(": ");
-    out.push_str(&format_type_expr(ret));
-    out
-}
-
-/// Formats a trait declaration.
-///
-/// Inputs: parsed trait declaration. Output: canonical trait source text.
-/// Transformation: emits visibility, params, super traits, method signatures,
-/// and default bodies.
-fn format_trait_decl(trait_decl: &TraitDecl) -> String {
-    let mut out = String::new();
-    if trait_decl.is_public {
-        out.push_str("pub ");
-    }
-    out.push_str("trait ");
-    out.push_str(&trait_decl.name);
-    if !trait_decl.params.is_empty() {
-        out.push('[');
-        out.push_str(&trait_decl.params.join(", "));
-        out.push(']');
-    }
-    if !trait_decl.super_traits.is_empty() {
-        out.push_str(" extends ");
-        out.push_str(&trait_decl.super_traits.join(", "));
-    }
-    out.push_str(" {\n");
-    for method in &trait_decl.methods {
-        out.push_str("    ");
-        out.push_str(&method.name);
-        if !method.params.is_empty() {
-            out.push('(');
-            out.push_str(
-                &method
-                    .params
-                    .iter()
-                    .map(|param| format!("{}: {}", param.name, param.annotation.text))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            );
-            out.push(')');
-        } else {
-            out.push_str("()");
-        }
-        out.push_str(": ");
-        out.push_str(&method.return_type.text);
-        if let Some(default_body) = &method.default_body {
-            out.push_str(" ->\n        ");
-            out.push_str(&format_expr(default_body, 2));
-        }
-        out.push_str(".\n");
-    }
-    out.push_str("}.");
-    out
-}
-
-/// Formats an explicit trait conformance declaration.
-///
-/// Inputs:
-/// - `trait_impl`: parsed conformance block with trait reference, target type,
-///   visibility, and method declarations.
-///
-/// Output:
-/// - Canonical `impl TraitRef for Type { ... }.` source text.
-///
-/// Transformation:
-/// - Renders each implementation method using the normal function formatter
-///   without declaration-site `pub`, because visibility belongs to the impl
-///   declaration itself.
-fn format_trait_impl_decl(trait_impl: &TraitImplDecl) -> String {
-    let mut out = String::new();
-    if trait_impl.is_public {
-        out.push_str("pub ");
-    }
-    out.push_str("impl ");
-    out.push_str(&format_type_expr(&trait_impl.trait_ref));
-    out.push_str(" for ");
-    out.push_str(&format_type_expr(&trait_impl.for_type));
-    out.push_str(" {\n");
-    for method in &trait_impl.methods {
-        let mut method = method.clone();
-        method.is_public = false;
-        for line in format_function(&method).lines() {
-            out.push_str("    ");
-            out.push_str(line);
-            out.push('\n');
-        }
-    }
-    out.push_str("}.");
-    out
-}
-
-/// Formats a raw/unsupported declaration.
-///
-/// Inputs: raw declaration payload. Output: raw text with terminating period.
-/// Transformation: preserves raw declaration text exactly apart from appending
-/// the declaration terminator.
-fn format_raw_decl(raw: &UnsupportedDecl) -> String {
-    format!("{}.", raw.text)
-}
-
-/// Formats one multi-clause function clause.
-///
-/// Inputs: parent function metadata and parsed clause. Output: source clause
-/// text. Transformation: uses the parent function name and clause patterns,
-/// optional guard, and body.
-fn format_function_clause(function: &FunctionDecl, clause: &FunctionClause) -> String {
-    let mut out = String::new();
-    out.push_str(&function.name);
-    out.push('(');
-    out.push_str(
-        &clause
-            .patterns
-            .iter()
-            .map(format_pattern)
-            .collect::<Vec<_>>()
-            .join(", "),
-    );
-    out.push(')');
-
-    if let Some(guard) = &clause.guard {
-        out.push(' ');
-        out.push_str("when");
-        out.push(' ');
-        out.push_str(&format_expr(guard, 1));
-    }
-
-    out.push_str(" ->\n    ");
-    out.push_str(&format_expr(&clause.body, 1));
-
-    out
-}
-
-/// Formats a pattern.
-///
-/// Inputs: parsed pattern. Output: canonical pattern text. Transformation:
-/// recursively formats tuples, lists, cons patterns, maps, and records.
-fn format_pattern(pattern: &Pattern) -> String {
+pub(super) fn format_pattern(pattern: &Pattern) -> String {
     match pattern {
         Pattern::Wildcard => "_".to_string(),
         Pattern::Var(name) => name.clone(),
@@ -927,7 +649,7 @@ fn format_template_expr_field(field: &MapExprField) -> String {
 ///
 /// Inputs: parsed type expression. Output: source type text. Transformation:
 /// trims whitespace and substitutes `Dynamic` for empty type text.
-fn format_type_expr(ty: &TypeExpr) -> String {
+pub(super) fn format_type_expr(ty: &TypeExpr) -> String {
     let mut text = ty.text.trim().to_string();
     if text.is_empty() {
         text.push_str("Dynamic");
@@ -940,7 +662,7 @@ fn format_type_expr(ty: &TypeExpr) -> String {
 /// Inputs: parsed expression and indentation level. Output: canonical
 /// expression text. Transformation: recursively formats expression variants and
 /// uses indentation for block-like forms.
-fn format_expr(expr: &Expr, indent: usize) -> String {
+pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
     let spacing = "    ".repeat(indent);
     match expr {
         Expr::Int(value) => value.to_string(),
@@ -1055,7 +777,13 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Let { bindings, body } => {
             let mut parts = bindings
                 .iter()
-                .map(|binding| format!("{} = {}", binding.name, format_expr(&binding.value, 0)))
+                .map(|binding| {
+                    format!(
+                        "{} = {}",
+                        format_pattern(&binding.pattern),
+                        format_expr(&binding.value, 0)
+                    )
+                })
                 .collect::<Vec<_>>();
             if let Some(body) = body {
                 parts.push(format_expr(body, 0));
@@ -1069,21 +797,52 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
             .join("; "),
         Expr::Call {
             callee,
+            type_args,
             args,
+            arg_names,
             remote,
             is_fun_value,
         } => {
             let args_text = args
                 .iter()
-                .map(|arg| format_expr(arg, 0))
+                .enumerate()
+                .map(
+                    |(index, arg)| match arg_names.get(index).and_then(Option::as_ref) {
+                        Some(name) => format!("{name} = {}", format_expr(arg, 0)),
+                        None => format_expr(arg, 0),
+                    },
+                )
                 .collect::<Vec<_>>()
                 .join(", ");
+            let rendered_type_args = if type_args.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "[{}]",
+                    type_args
+                        .iter()
+                        .map(|type_arg| type_arg.text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            };
             if let Some(remote) = remote {
-                format!("{}.{}({})", remote, format_expr(callee, 0), args_text)
+                format!(
+                    "{}.{}{}({})",
+                    remote,
+                    format_expr(callee, 0),
+                    rendered_type_args,
+                    args_text
+                )
             } else if *is_fun_value {
                 format!("{}.({})", format_expr(callee, 0), args_text)
             } else {
-                format!("{}({})", format_expr(callee, 0), args_text)
+                format!(
+                    "{}{}({})",
+                    format_expr(callee, 0),
+                    rendered_type_args,
+                    args_text
+                )
             }
         }
         Expr::Case { scrutinee, clauses } => {
@@ -1185,7 +944,26 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        Expr::RawMacro { name, raw } => format!("{} {{{}}}", name, raw),
+        Expr::RawMacro {
+            name,
+            type_args,
+            interpolations: _,
+            raw,
+        } => {
+            let rendered_type_args = if type_args.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "[{}]",
+                    type_args
+                        .iter()
+                        .map(|ty| ty.text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            };
+            format!("{}{} {{{}}}", name, rendered_type_args, raw)
+        }
         Expr::BinaryOp { op, left, right } => {
             format!(
                 "{} {} {}",
@@ -1206,84 +984,6 @@ fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Unquote(expr) => format!("unquote({})", format_expr(expr, 0)),
         Expr::HtmlBlock(block) => format_html_block(block.macro_kind.name(), &block.nodes, indent),
     }
-}
-
-/// Formats an HTML/raw block expression.
-///
-/// Inputs: macro/block name, HTML nodes, and indentation. Output: block source
-/// text. Transformation: formats children one per line and closes at the parent
-/// indentation level.
-fn format_html_block(name: &str, nodes: &[HtmlNode], indent: usize) -> String {
-    let spacing = "    ".repeat(indent);
-    let mut out = format!("{name} {{\n");
-    for node in nodes {
-        out.push_str(&format_html_node(node, indent + 1));
-        out.push('\n');
-    }
-    out.push_str(&spacing);
-    out.push('}');
-    out
-}
-
-/// Formats one HTML node.
-///
-/// Inputs: parsed HTML node and indentation. Output: HTML source fragment.
-/// Transformation: formats text, interpolation, named slots, and elements
-/// recursively.
-fn format_html_node(node: &HtmlNode, indent: usize) -> String {
-    let spacing = "    ".repeat(indent);
-    match node {
-        HtmlNode::Text(text) => format!("{}{}", spacing, text),
-        HtmlNode::Expr(expr) => format!("{}{{{}}}", spacing, format_expr(expr, indent)),
-        HtmlNode::NamedSlot(slot) => {
-            let mut out = format!("{}@{} {{\n", spacing, slot.name);
-            for child in &slot.children {
-                out.push_str(&format_html_node(child, indent + 1));
-                out.push('\n');
-            }
-            out.push_str(&spacing);
-            out.push('}');
-            out
-        }
-        HtmlNode::Element(element) => {
-            let attrs = format_html_attrs(&element.attrs);
-            if element.children.is_empty() {
-                return format!("{}<{}{} />", spacing, element.name, attrs);
-            }
-
-            let mut out = format!("{}<{}{}>\n", spacing, element.name, attrs);
-            for child in &element.children {
-                out.push_str(&format_html_node(child, indent + 1));
-                out.push('\n');
-            }
-            out.push_str(&spacing);
-            out.push_str("</");
-            out.push_str(&element.name);
-            out.push('>');
-            out
-        }
-    }
-}
-
-/// Formats HTML attributes.
-///
-/// Inputs: parsed attributes. Output: sorted attribute source text.
-/// Transformation: sorts by attribute name for deterministic output and formats
-/// static or expression values.
-fn format_html_attrs(attrs: &[HtmlAttr]) -> String {
-    let mut attrs = attrs.iter().collect::<Vec<_>>();
-    attrs.sort_by(|left, right| left.name.cmp(&right.name));
-    attrs
-        .into_iter()
-        .map(|attr| match &attr.value {
-            None => format!(" {}", attr.name),
-            Some(HtmlAttrValue::Text(value)) => format!(" {}=\"{}\"", attr.name, value),
-            Some(HtmlAttrValue::Expr(expr)) => {
-                format!(" {}={{{}}}", attr.name, format_expr(expr, 0))
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("")
 }
 
 /// Returns canonical source text for a binary operator.
@@ -1325,30 +1025,6 @@ fn format_case_clause(clause: &CaseClause) -> String {
     out.push_str(" -> ");
     out.push_str(&format_expr(&clause.body, 2));
     out
-}
-
-/// Returns whether a single function clause duplicates the declaration header.
-///
-/// Inputs: parsed function declaration. Output: `true` when the first clause
-/// patterns are exactly the header parameter names. Transformation: compares
-/// clause variables with params to decide compact formatting.
-fn single_clause_matches_header(function: &FunctionDecl) -> bool {
-    let Some(clause) = function.clauses.first() else {
-        return false;
-    };
-
-    if clause.patterns.len() != function.params.len() {
-        return false;
-    }
-
-    clause
-        .patterns
-        .iter()
-        .zip(function.params.iter())
-        .all(|(pattern, param)| match pattern {
-            Pattern::Var(name) => name == &param.name,
-            _ => false,
-        })
 }
 
 #[cfg(test)]

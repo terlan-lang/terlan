@@ -93,6 +93,9 @@ fn std_module_call_heads(
 /// - Rejects asset imports for normal target-profile compilation. Asset imports
 ///   require a command-owned resolver, such as static-site rendering, and must
 ///   not pass through generic backend emission silently.
+/// - Validates type-only std module imports through the same target-family
+///   table because backend-specific contracts, such as BEAM process types,
+///   are still non-portable even when mentioned only in signatures.
 pub(super) fn validate_core_imports(
     profile: TargetProfile,
     module: &CoreModule,
@@ -101,9 +104,10 @@ pub(super) fn validate_core_imports(
 ) {
     for import in &module.imports {
         match import.kind {
-            CoreImportKind::Module => {
+            CoreImportKind::Module | CoreImportKind::TypeModule => {
                 if let Some(violation) = std_module_import_violation(
                     profile,
+                    options,
                     &format!("module {}", module.module),
                     &import.module,
                 ) {
@@ -142,6 +146,7 @@ pub(super) fn validate_core_imports(
 ///   between build and formal validation paths.
 pub(super) fn std_module_import_violation(
     profile: TargetProfile,
+    options: TargetProfileCheckOptions,
     context: &str,
     import_module: &str,
 ) -> Option<TargetProfileViolation> {
@@ -150,7 +155,11 @@ pub(super) fn std_module_import_violation(
     }
 
     if is_rust_backed_std_module(import_module)
-        && !target_profile_supports_rust_backed_std_module(profile, import_module)
+        && !target_profile_supports_rust_backed_std_module_with_options(
+            profile,
+            options,
+            import_module,
+        )
     {
         Some(TargetProfileViolation::unsupported(
             "rust-backed std module",
@@ -210,28 +219,71 @@ fn is_rust_backed_std_module(module: &str) -> bool {
             | "std.encoding.Base64"
             | "std.io.Path"
             | "std.net.Uri"
+            | "std.db.Postgres"
             | "std.http.Request"
+            | "std.http.Cookies"
             | "std.http.Response"
     )
 }
 
-/// Returns whether a target profile can execute a Rust-backed std module.
+/// Returns whether a target profile and command can execute a Rust-backed std
+/// module.
 ///
 /// Inputs:
 /// - `profile`: backend profile under validation.
+/// - `options`: command-owned validation switches.
 /// - `module`: fully qualified Rust-backed std module path.
 ///
 /// Output:
 /// - `true` only when the target profile owns executable lowering for the
-///   module's Rust/SafeNative implementation.
+///   module's Rust/SafeNative implementation or the command owns SafeNative
+///   packaging for Erlang output.
 ///
 /// Transformation:
-/// - Separates the source-level std contract from executable backend support
-///   so importing a module without a target implementation fails with a stable
-///   capability diagnostic instead of falling into backend-specific errors.
-fn target_profile_supports_rust_backed_std_module(profile: TargetProfile, module: &str) -> bool {
-    let _ = (profile, module);
+/// - Keeps generic/pure validation conservative while allowing normal
+///   BEAM build/test paths to compile portable Rust-backed std APIs through
+///   the SafeNative bridge.
+fn target_profile_supports_rust_backed_std_module_with_options(
+    profile: TargetProfile,
+    options: TargetProfileCheckOptions,
+    module: &str,
+) -> bool {
+    if options.allow_rust_backed_std_modules && matches!(profile, TargetProfile::Erlang) {
+        let _ = module;
+        return true;
+    }
+
+    if is_http_rust_backed_std_module(module) {
+        return matches!(
+            profile,
+            TargetProfile::Erlang
+                | TargetProfile::JsBrowser
+                | TargetProfile::JsShared
+                | TargetProfile::JsWorker
+        );
+    }
+
+    let _ = module;
     false
+}
+
+/// Returns whether a Rust-backed std module belongs to HTTP server packaging.
+///
+/// Inputs:
+/// - `module`: fully qualified Rust-backed std module path.
+///
+/// Output:
+/// - `true` for HTTP request/response/cookie modules that are valid in the
+///   0.0.5 web package/server path.
+///
+/// Transformation:
+/// - Separates web-server Rust support from still-gated Rust-backed APIs such
+///   as Postgres, JSON, Base64, paths, and URI helpers.
+fn is_http_rust_backed_std_module(module: &str) -> bool {
+    matches!(
+        module,
+        "std.http.Request" | "std.http.Cookies" | "std.http.Response"
+    )
 }
 
 /// Returns whether a std module belongs to the native target family.
@@ -256,15 +308,15 @@ fn is_native_std_module(module: &str) -> bool {
 /// - `module`: fully qualified native std module path.
 ///
 /// Output:
-/// - `true` only when the selected profile owns native std lowering.
+/// - `true` only when the selected profile owns a native std bridge.
 ///
 /// Transformation:
 /// - Keeps native std modules available to source/interface generation while
-///   rejecting them from JS and BEAM artifact paths until a native target owns
-///   their execution contract.
+///   rejecting them from unsupported artifact paths. The current BEAM profile
+///   admits `std.native.collections.Vector` through the SafeNative boundary
+///   module instead of lowering it to BEAM data.
 fn target_profile_supports_native_std_module(profile: TargetProfile, module: &str) -> bool {
-    let _ = (profile, module);
-    false
+    matches!(profile, TargetProfile::Erlang) && matches!(module, "std.native.collections.Vector")
 }
 
 /// Returns whether a std module is explicitly tied to BEAM runtime semantics.

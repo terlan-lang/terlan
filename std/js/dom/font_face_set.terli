@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface FontFaceSet
+ */
+
+module std.js.Dom.FontFaceSet.
+
+/**
+ * The **`FontFaceSet`** interface of the CSS Font Loading API manages the loading of font-faces and querying of their download status.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet)
+ */
+pub opaque type FontFaceSet.
+
+/**
+ * The `ready` read-only property of the FontFaceSet interface returns a Promise that resolves to the given FontFaceSet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/ready)
+ */
+pub (value: FontFaceSet) ready(): std.js.Promise[FontFaceSet].
+
+/**
+ * The **`status`** read-only property of the FontFaceSet interface returns the loading state of the fonts in the set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/status)
+ */
+pub (value: FontFaceSet) status(): FontFaceSetLoadStatus.
+
+/**
+ * The `check()` method of the FontFaceSet returns `true` if you can render some text using the given font specification without attempting to use any fonts in this `FontFaceSet` that are not yet fully loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/check)
+ */
+pub (value: FontFaceSet) check(font: std.js.String.JsString, text: std.js.String.JsString): std.core.Bool.
+
+/**
+ * The `load()` method of the FontFaceSet forces all the fonts given in parameters to be loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/load)
+ */
+pub (value: FontFaceSet) load(font: std.js.String.JsString, text: std.js.String.JsString): std.js.Promise[std.js.Array[FontFace]].
+
+pub (value: FontFaceSet) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: FontFaceSet) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

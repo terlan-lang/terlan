@@ -6,31 +6,18 @@ use terlan_syntax::{
     SyntaxTemplatePropOutput,
 };
 
+use super::render_lookup::{find_syntax_template_decl_by_tag, syntax_static_template_prop_type};
+use super::render_markdown::render_syntax_static_markdown_field;
+use super::render_values::{
+    is_static_template_html_type, is_template_children_slot, static_literal_text,
+    static_template_slot_value, static_template_value_text, StaticTemplateValue,
+};
 use super::TEMPLATE_CHILDREN_SLOT;
+use terlan_html::{escape_html_attr, escape_html_text};
 
-/// Runtime value model for static template rendering.
-///
-/// Inputs:
-/// - Produced by evaluating syntax-output expressions used as template props.
-///
-/// Output:
-/// - A constrained static value that can be rendered, passed to component
-///   templates, or inspected by slot paths.
-///
-/// Transformation:
-/// - Keeps only compile-time-renderable values and rejects dynamic expression
-///   shapes before HTML output is written.
-#[derive(Debug, Clone, PartialEq)]
-enum StaticTemplateValue {
-    Text(String),
-    Int(i64),
-    Bool(bool),
-    Html(String),
-    Record {
-        name: String,
-        fields: BTreeMap<String, StaticTemplateValue>,
-    },
-}
+#[path = "template_calls.rs"]
+mod template_calls;
+use template_calls::syntax_static_template_call_fields;
 
 /// Error returned by the static syntax renderer.
 ///
@@ -114,6 +101,18 @@ pub(crate) fn render_syntax_static_entrypoint(
                 &body.fields,
             )
         }
+        SyntaxExprKind::Call => {
+            if let Some(html) =
+                render_syntax_static_template_call(module, templates, markdown_imports, body)?
+            {
+                Ok(html)
+            } else {
+                Err(StaticSyntaxRenderError::Invalid(format!(
+                    "static entrypoint `{}` must return a static html block, external template instantiation, or Markdown html",
+                    entrypoint
+                )))
+            }
+        }
         _ => Err(StaticSyntaxRenderError::Invalid(format!(
             "static entrypoint `{}` must return a static html block, external template instantiation, or Markdown html",
             entrypoint
@@ -167,6 +166,35 @@ fn render_syntax_static_template_instantiation(
     render_syntax_static_template_nodes(module, templates, name, template_props, template, &values)
 }
 
+/// Renders a call expression as a generated static template function.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing template declarations.
+/// - `templates`: parsed external template bodies.
+/// - `markdown_imports`: Markdown documents available to prop expressions.
+/// - `expr`: call expression to test and possibly render.
+///
+/// Output:
+/// - `Some(rendered_html)` when the call target is a known template.
+/// - `None` when the call is not a template call.
+/// - Render error when a known template call has invalid arguments.
+///
+/// Transformation:
+/// - Converts `Page("Home")` and `Page(title = "Home")` into the existing
+///   template-instantiation field model using declaration prop order.
+fn render_syntax_static_template_call(
+    module: &SyntaxModuleOutput,
+    templates: &BTreeMap<String, terlan_html::HtmlTemplate>,
+    markdown_imports: &BTreeMap<String, terlan_html::MarkdownDocument>,
+    expr: &SyntaxExprOutput,
+) -> Result<Option<String>, StaticSyntaxRenderError> {
+    let Some((name, fields)) = syntax_static_template_call_fields(module, expr)? else {
+        return Ok(None);
+    };
+    render_syntax_static_template_instantiation(module, templates, markdown_imports, &name, &fields)
+        .map(Some)
+}
+
 /// Finds the declared props for a syntax-output template.
 ///
 /// Inputs:
@@ -178,7 +206,7 @@ fn render_syntax_static_template_instantiation(
 ///
 /// Transformation:
 /// - Scans declarations and selects the matching template payload.
-fn find_syntax_template_props<'a>(
+pub(super) fn find_syntax_template_props<'a>(
     module: &'a SyntaxModuleOutput,
     name: &str,
 ) -> Option<&'a [SyntaxTemplatePropOutput]> {
@@ -258,6 +286,21 @@ fn eval_syntax_static_template_expr(
                 )?,
             ))
         }
+        SyntaxExprKind::Call => {
+            if let Some(html) =
+                render_syntax_static_template_call(module, templates, markdown_imports, expr)?
+            {
+                Ok(StaticTemplateValue::Html(html))
+            } else if let Some(record) =
+                eval_syntax_static_struct_constructor(module, templates, markdown_imports, expr)?
+            {
+                Ok(record)
+            } else {
+                Err(StaticSyntaxRenderError::Invalid(
+                    "static template output only supports literal template props".to_string(),
+                ))
+            }
+        }
         SyntaxExprKind::FieldAccess => Ok(StaticTemplateValue::Html(
             render_syntax_static_markdown_field(markdown_imports, expr)?,
         )),
@@ -285,6 +328,69 @@ fn eval_syntax_static_template_expr(
     }
 }
 
+/// Evaluates a default struct-constructor call as a static record value.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing local struct declarations.
+/// - `templates` and `markdown_imports`: static render dependencies for field
+///   values.
+/// - `expr`: call expression to inspect.
+///
+/// Output:
+/// - `Some(StaticTemplateValue::Record)` when `expr` is `Struct(field = value)`
+///   for a local struct and every field value is itself static.
+/// - `None` when the expression is not a default struct-constructor call.
+///
+/// Transformation:
+/// - Keeps the static renderer aligned with canonical Terlan struct
+///   construction while preserving the existing record-valued slot model used
+///   by dotted template slots such as `${user.name}`.
+fn eval_syntax_static_struct_constructor(
+    module: &SyntaxModuleOutput,
+    templates: &BTreeMap<String, terlan_html::HtmlTemplate>,
+    markdown_imports: &BTreeMap<String, terlan_html::MarkdownDocument>,
+    expr: &SyntaxExprOutput,
+) -> Result<Option<StaticTemplateValue>, StaticSyntaxRenderError> {
+    if expr.kind != SyntaxExprKind::Call || expr.remote.is_some() {
+        return Ok(None);
+    }
+    let Some(callee) = expr.children.first().and_then(|child| child.text.as_ref()) else {
+        return Ok(None);
+    };
+    if !module.declarations.iter().any(|declaration| {
+        matches!(
+            &declaration.payload,
+            SyntaxDeclarationPayload::Struct { name, .. } if name == callee
+        )
+    }) {
+        return Ok(None);
+    }
+    if expr.children.len().saturating_sub(1) != expr.arg_names.len()
+        || expr.arg_names.iter().any(Option::is_none)
+    {
+        return Err(StaticSyntaxRenderError::Invalid(format!(
+            "static struct constructor `{}` requires named field props",
+            callee
+        )));
+    }
+
+    let fields = expr.children[1..]
+        .iter()
+        .zip(expr.arg_names.iter())
+        .map(|(value, name)| {
+            Ok((
+                name.clone().unwrap_or_default(),
+                eval_syntax_static_template_expr(module, templates, markdown_imports, value)?,
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, StaticSyntaxRenderError>>()?;
+
+    Ok(Some(StaticTemplateValue::Record {
+        name: callee.clone(),
+        fields,
+    }))
+}
+
 /// Renders all nodes in a parsed static template.
 ///
 /// Inputs:
@@ -300,7 +406,7 @@ fn eval_syntax_static_template_expr(
 ///
 /// Transformation:
 /// - Appends each parsed template node to a single output buffer.
-fn render_syntax_static_template_nodes(
+pub(super) fn render_syntax_static_template_nodes(
     module: &SyntaxModuleOutput,
     templates: &BTreeMap<String, terlan_html::HtmlTemplate>,
     template_name: &str,
@@ -422,39 +528,6 @@ fn render_syntax_static_template_node(
         }
     }
     Ok(())
-}
-
-/// Finds the template declaration associated with an HTML component tag.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing template declarations.
-/// - `templates`: parsed templates with optional tag names.
-/// - `tag`: HTML tag name to resolve as a component.
-///
-/// Output:
-/// - Template name and prop declarations when the tag is a component.
-///
-/// Transformation:
-/// - Cross-references declarations with parsed templates by tag metadata.
-fn find_syntax_template_decl_by_tag<'a>(
-    module: &'a SyntaxModuleOutput,
-    templates: &'a BTreeMap<String, terlan_html::HtmlTemplate>,
-    tag: &str,
-) -> Option<(&'a str, &'a [SyntaxTemplatePropOutput])> {
-    module
-        .declarations
-        .iter()
-        .find_map(|declaration| match &declaration.payload {
-            SyntaxDeclarationPayload::Template { name, props, .. } => {
-                let template = templates.get(name)?;
-                if template.tag_name.as_deref() == Some(tag) {
-                    Some((name.as_str(), props.as_slice()))
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        })
 }
 
 /// Renders a component used inside an external static template.
@@ -634,80 +707,6 @@ fn render_syntax_static_template_slot(
         &static_template_value_text(&value).map_err(StaticSyntaxRenderError::Invalid)?,
     ));
     Ok(())
-}
-
-/// Looks up the declared type text for a template prop.
-///
-/// Inputs:
-/// - `template_props`: prop declarations to search.
-/// - `name`: prop name.
-///
-/// Output:
-/// - Borrowed annotation text when the prop exists.
-///
-/// Transformation:
-/// - Performs a linear name lookup across current template props.
-fn syntax_static_template_prop_type<'a>(
-    template_props: &'a [SyntaxTemplatePropOutput],
-    name: &str,
-) -> Option<&'a str> {
-    template_props
-        .iter()
-        .find(|prop| prop.name == name)
-        .map(|prop| prop.annotation.text.as_str())
-}
-
-/// Renders a supported static Markdown field access.
-///
-/// Inputs:
-/// - `markdown_imports`: Markdown documents keyed by import alias.
-/// - `expr`: syntax-output field access expression.
-///
-/// Output:
-/// - Rendered Markdown HTML or a render error.
-///
-/// Transformation:
-/// - Validates the access is `alias.html` for an imported Markdown document and
-///   rejects non-renderable fields such as `raw`.
-fn render_syntax_static_markdown_field(
-    markdown_imports: &BTreeMap<String, terlan_html::MarkdownDocument>,
-    expr: &SyntaxExprOutput,
-) -> Result<String, StaticSyntaxRenderError> {
-    let field = expr.text.as_deref().ok_or_else(|| {
-        StaticSyntaxRenderError::Invalid(
-            "static Markdown field access is missing a field name".to_string(),
-        )
-    })?;
-    let value = expr.children.first().ok_or_else(|| {
-        StaticSyntaxRenderError::Invalid(
-            "static Markdown field access is missing a value".to_string(),
-        )
-    })?;
-    if value.kind != SyntaxExprKind::Var {
-        return Err(StaticSyntaxRenderError::Invalid(
-            "static Markdown output must reference an imported Markdown alias".to_string(),
-        ));
-    }
-    let alias = value.text.as_deref().ok_or_else(|| {
-        StaticSyntaxRenderError::Invalid(
-            "static Markdown field access is missing an alias".to_string(),
-        )
-    })?;
-    let document = markdown_imports.get(alias).ok_or_else(|| {
-        StaticSyntaxRenderError::Invalid(format!("unknown static Markdown import `{}`", alias))
-    })?;
-
-    match field {
-        "html" => Ok(document.rendered_html.clone()),
-        "raw" => Err(StaticSyntaxRenderError::Invalid(format!(
-            "Markdown import `{}.raw` is Binary and cannot be rendered as static Html",
-            alias
-        ))),
-        other => Err(StaticSyntaxRenderError::Invalid(format!(
-            "unknown static Markdown field `{}.{}`",
-            alias, other
-        ))),
-    }
 }
 
 /// Renders inline syntax-output HTML nodes.
@@ -1015,209 +1014,6 @@ fn render_syntax_static_inline_template_component_children(
     Ok((children, named_slots))
 }
 
-/// Resolves a slot path to a static template value.
-///
-/// Inputs:
-/// - `values`: evaluated template prop values.
-/// - `slot`: parsed slot path.
-///
-/// Output:
-/// - Cloned static value at the slot path, or an error message.
-///
-/// Transformation:
-/// - Resolves the root value and walks record fields for dotted slot paths.
-fn static_template_slot_value(
-    values: &BTreeMap<String, StaticTemplateValue>,
-    slot: &terlan_html::HtmlSlot,
-) -> Result<StaticTemplateValue, String> {
-    let root = slot
-        .path
-        .first()
-        .ok_or_else(|| "empty static template slot".to_string())?;
-    let mut value = values
-        .get(root)
-        .cloned()
-        .ok_or_else(|| format!("missing static template slot value `{}`", root))?;
-    for field in slot.path.iter().skip(1) {
-        match value {
-            StaticTemplateValue::Record { ref fields, .. } => {
-                value = fields.get(field).cloned().ok_or_else(|| {
-                    format!(
-                        "missing static template field `{}` in slot `{}`",
-                        field,
-                        slot.path.join(".")
-                    )
-                })?;
-            }
-            _ => {
-                return Err(format!(
-                    "static template slot `{}` does not reference a record field",
-                    slot.path.join(".")
-                ))
-            }
-        }
-    }
-    Ok(value)
-}
-
-/// Returns whether a slot path refers to the reserved `children` slot.
-///
-/// Inputs:
-/// - `slot`: parsed slot path.
-///
-/// Output:
-/// - `true` when the path is exactly `children`.
-///
-/// Transformation:
-/// - Compares the single path segment with the reserved slot name.
-fn is_template_children_slot(slot: &terlan_html::HtmlSlot) -> bool {
-    slot.path.len() == 1
-        && slot
-            .path
-            .first()
-            .is_some_and(|root| root == TEMPLATE_CHILDREN_SLOT)
-}
-
-/// Converts a static template value into text.
-///
-/// Inputs:
-/// - `value`: static template value.
-///
-/// Output:
-/// - Text representation or an error when the value is not text-renderable.
-///
-/// Transformation:
-/// - Stringifies scalar values and HTML fragments, and rejects records.
-fn static_template_value_text(value: &StaticTemplateValue) -> Result<String, String> {
-    match value {
-        StaticTemplateValue::Text(text) => Ok(text.clone()),
-        StaticTemplateValue::Int(value) => Ok(value.to_string()),
-        StaticTemplateValue::Bool(value) => Ok(value.to_string()),
-        StaticTemplateValue::Html(html) => Ok(html.clone()),
-        StaticTemplateValue::Record { name, .. } => {
-            Err(format!("cannot render static record `{}` as text", name))
-        }
-    }
-}
-
-/// Decodes supported static string and binary string literals.
-///
-/// Inputs:
-/// - `text`: literal text from syntax output.
-///
-/// Output:
-/// - Literal contents with simple escapes decoded.
-///
-/// Transformation:
-/// - Strips `<<"...">>` or `"..."` delimiters when present, then unescapes the
-///   inner text.
-fn static_literal_text(text: &str) -> String {
-    if let Some(inner) = text
-        .strip_prefix("<<\"")
-        .and_then(|text| text.strip_suffix("\">>"))
-        .or_else(|| {
-            text.strip_prefix('"')
-                .and_then(|text| text.strip_suffix('"'))
-        })
-    {
-        return unescape_static_literal_text(inner);
-    }
-    text.to_string()
-}
-
-/// Unescapes the supported static literal escape sequences.
-///
-/// Inputs:
-/// - `text`: literal contents without delimiters.
-///
-/// Output:
-/// - String with supported escapes decoded.
-///
-/// Transformation:
-/// - Replaces newline, carriage-return, tab, quote, and backslash escapes while
-///   preserving unknown escapes verbatim.
-fn unescape_static_literal_text(text: &str) -> String {
-    let mut out = String::new();
-    let mut chars = text.chars();
-    while let Some(ch) = chars.next() {
-        if ch != '\\' {
-            out.push(ch);
-            continue;
-        }
-        match chars.next() {
-            Some('n') => out.push('\n'),
-            Some('r') => out.push('\r'),
-            Some('t') => out.push('\t'),
-            Some('"') => out.push('"'),
-            Some('\\') => out.push('\\'),
-            Some(other) => {
-                out.push('\\');
-                out.push(other);
-            }
-            None => out.push('\\'),
-        }
-    }
-    out
-}
-
-/// Returns whether a template prop annotation denotes HTML.
-///
-/// Inputs:
-/// - `type_text`: annotation text from syntax output.
-///
-/// Output:
-/// - `true` for `Html` and parameterized `Html[...]` annotations.
-///
-/// Transformation:
-/// - Trims the annotation and checks the supported HTML type spellings.
-fn is_static_template_html_type(type_text: &str) -> bool {
-    let trimmed = type_text.trim();
-    trimmed == "Html" || trimmed.starts_with("Html[")
-}
-
-/// Escapes text for an HTML attribute value.
-///
-/// Inputs:
-/// - `text`: raw attribute value text.
-///
-/// Output:
-/// - Attribute-safe HTML text.
-///
-/// Transformation:
-/// - Escapes ampersands, quotes, and angle brackets.
-fn escape_html_attr(text: &str) -> String {
-    let mut out = String::new();
-    for ch in text.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '"' => out.push_str("&quot;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            _ => out.push(ch),
-        }
-    }
-    out
-}
-
-/// Escapes text for an HTML text node.
-///
-/// Inputs:
-/// - `text`: raw text node contents.
-///
-/// Output:
-/// - Text-node-safe HTML text.
-///
-/// Transformation:
-/// - Escapes ampersands and angle brackets.
-fn escape_html_text(text: &str) -> String {
-    let mut out = String::new();
-    for ch in text.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            _ => out.push(ch),
-        }
-    }
-    out
-}
+#[cfg(test)]
+#[path = "render_test.rs"]
+mod render_test;

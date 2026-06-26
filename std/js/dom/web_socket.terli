@@ -1,0 +1,83 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WebSocket
+ */
+
+module std.js.Dom.WebSocket.
+
+/**
+ * The `WebSocket` object provides the API for creating and managing a WebSocket connection to a server, as well as for sending and receiving data on the connection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket)
+ */
+pub opaque type WebSocket.
+
+/**
+ * The **`WebSocket.binaryType`** property controls the type of binary data being received over the WebSocket connection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/binaryType)
+ */
+pub (value: WebSocket) binary_type(): BinaryType.
+
+/**
+ * The **`WebSocket.bufferedAmount`** read-only property returns the number of bytes of data that have been queued using calls to `send()` but not yet transmitted to the network.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/bufferedAmount)
+ */
+pub (value: WebSocket) buffered_amount(): std.js.Number.JsNumber.
+
+/**
+ * The **`WebSocket.extensions`** read-only property returns the extensions selected by the server.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)
+ */
+pub (value: WebSocket) extensions(): std.js.String.JsString.
+
+/**
+ * The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the `protocols` parameter when creating the WebSocket object, or the empty string if no connection is established.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)
+ */
+pub (value: WebSocket) protocol(): std.js.String.JsString.
+
+/**
+ * The **`WebSocket.readyState`** read-only property returns the current state of the WebSocket connection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/readyState)
+ */
+pub (value: WebSocket) ready_state(): std.js.Number.JsNumber.
+
+/**
+ * The **`WebSocket.url`** read-only property returns the absolute URL of the WebSocket as resolved by the constructor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)
+ */
+pub (value: WebSocket) url(): std.js.String.JsString.
+
+/**
+ * The **`WebSocket.close()`** method closes the already `CLOSED`, this method does nothing.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)
+ */
+pub (value: WebSocket) close(code: std.js.Number.JsNumber, reason: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`WebSocket.send()`** method enqueues the specified data to be transmitted to the server over the WebSocket connection, increasing the value of `bufferedAmount` by the number of bytes needed to contain the data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/send)
+ */
+pub (value: WebSocket) send(data: ArrayBufferLike | ArrayBufferView | Blob | std.js.String.JsString): std.core.Unit.
+
+pub (value: WebSocket) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: WebSocket) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

@@ -27,3 +27,90 @@ pub opaque type Request.
 
 pub (request: Request) body_json(): Result[Json, Error].
 
+/// Returns the request body as text.
+///
+/// Input: one `Request` receiver.
+/// Output: the raw UTF-8 body text captured by the server bridge.
+/// Transformation: reads target-owned request body storage without parsing it
+/// as JSON or form data.
+
+pub (request: Request) body_text(): String.
+
+/// Returns a request cookie value.
+///
+/// Input: one `Request` receiver and one cookie name.
+/// Output: `Some(value)` when the request included a cookie named `name`,
+/// otherwise `None`.
+/// Transformation: reads parsed request-cookie metadata supplied by the server
+/// bridge.
+
+pub (request: Request) cookie(name: String): Option[String].
+
+/// Returns the request-scoped cookie jar.
+///
+/// Input: one `Request` receiver.
+/// Output: a mutable-capable `Cookies.Jar` handle for reading incoming cookies
+/// and recording response cookie mutations.
+/// Transformation: asks the HTTP runtime for the request-owned cookie view
+/// without exposing raw headers or response-header threading to handlers.
+
+pub (request: Request) cookies(): Jar.
+
+/// Returns a request header value.
+///
+/// Input: one `Request` receiver and one header name.
+/// Output: `Some(value)` when the request included a header named `name`,
+/// otherwise `None`.
+/// Transformation: reads normalized request-header metadata supplied by the
+/// server bridge without exposing backend header storage.
+
+pub (request: Request) header(name: String): Option[String].
+
+/// Returns the HTTP method.
+///
+/// Input: one `Request` receiver.
+/// Output: the request method, such as `"GET"` or `"POST"`.
+/// Transformation: reads server-owned request metadata without exposing the
+/// concrete request implementation.
+
+pub (request: Request) method(): String.
+
+/// Returns a route parameter value.
+///
+/// Input: one `Request` receiver and one parameter name.
+/// Output: `Some(value)` when the matched route captured `name`, otherwise
+/// `None`.
+/// Transformation: reads decoded route parameters captured by the generated
+/// router manifest.
+
+pub (request: Request) param(name: String): Option[String].
+
+/// Returns the request path.
+///
+/// Input: one `Request` receiver.
+/// Output: the URL path without query text.
+/// Transformation: reads server-owned request metadata without exposing the
+/// concrete request implementation.
+
+pub (request: Request) path(): String.
+
+/// Returns a query parameter value.
+///
+/// Input: one `Request` receiver and one query parameter name.
+/// Output: `Some(value)` when the request query included `name`, otherwise
+/// `None`.
+/// Transformation: reads decoded query parameters supplied by the server bridge.
+
+pub (request: Request) query(name: String): Option[String].
+
+/// Returns the raw query string.
+///
+/// Input: one `Request` receiver.
+/// Output: the raw query text without the leading `?`, or an empty string when
+/// the request has no query string.
+/// Transformation: reads server-supplied query metadata without decoding or
+/// splitting it, so handlers can preserve the exact incoming query text when
+/// needed.
+
+pub (request: Request) query_string(): String.
+

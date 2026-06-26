@@ -1,0 +1,76 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLElementDeprecatedTagNameMap
+ */
+
+module std.js.Dom.HTMLElementDeprecatedTagNameMap.
+
+pub opaque type HTMLElementDeprecatedTagNameMap.
+
+pub (value: HTMLElementDeprecatedTagNameMap) acronym(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) applet(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) basefont(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) bgsound(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) big(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) blink(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) center(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) dir(): HTMLDirectoryElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) font(): HTMLFontElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) frame(): HTMLFrameElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) frameset(): HTMLFrameSetElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) isindex(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) keygen(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) listing(): HTMLPreElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) marquee(): HTMLMarqueeElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) menuitem(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) multicol(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) nextid(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) nobr(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) noembed(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) noframes(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) param(): HTMLParamElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) plaintext(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) rb(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) rtc(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) spacer(): HTMLUnknownElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) strike(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) tt(): HTMLElement.
+
+pub (value: HTMLElementDeprecatedTagNameMap) xmp(): HTMLPreElement.

@@ -150,7 +150,8 @@ pub(super) fn map_ts_type_to_terlan(ty: &TsTypeRef) -> TsTypeMapping {
 ///
 /// Transformation:
 /// - Delegates union handling to the optional/simple-union mapper and keeps
-///   scalar mapping local and deterministic.
+///   scalar mapping local and deterministic. Callback types are skipped until
+///   Terlan's public function-type syntax is stable in generated interfaces.
 fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
     match ty {
         TsTypeRef::Primitive(TsPrimitiveType::String) => Ok("std.js.String.JsString".to_string()),
@@ -159,16 +160,16 @@ fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
         TsTypeRef::Primitive(TsPrimitiveType::Void) => Ok("std.core.Unit".to_string()),
         TsTypeRef::Named(name) => Ok(name.clone()),
         TsTypeRef::Generic { name, args } => map_ts_generic_to_terlan(name, args),
-        TsTypeRef::StringLiteral(value) => Ok(format!("{:?}", value)),
-        TsTypeRef::NumberLiteral(value) => Ok(value.clone()),
-        TsTypeRef::BooleanLiteral(value) => Ok(value.to_string()),
+        TsTypeRef::StringLiteral(_)
+        | TsTypeRef::NumberLiteral(_)
+        | TsTypeRef::BooleanLiteral(_) => Err(skip_type("ts_bindgen.unsupported_literal_type", ty)),
         TsTypeRef::Array(item) => Ok(format!("std.js.Array[{}]", map_ts_type_inner(item)?)),
         TsTypeRef::Union(items) => map_ts_union_to_terlan(items),
         TsTypeRef::Record(fields) => map_ts_record_to_terlan(fields),
         TsTypeRef::Callback {
-            params,
-            return_type,
-        } => map_ts_callback_to_terlan(params, return_type),
+            params: _,
+            return_type: _,
+        } => Err(skip_type("ts_bindgen.unsupported_callback_type", ty)),
         TsTypeRef::OverloadSet(_) => Err(skip_type("ts_bindgen.overload_requires_resolution", ty)),
         TsTypeRef::Null | TsTypeRef::Undefined => {
             Err(skip_type("ts_bindgen.nullish_without_value_type", ty))

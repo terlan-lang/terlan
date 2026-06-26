@@ -1,0 +1,181 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Animation
+ */
+
+module std.js.Dom.Animation.
+
+/**
+ * The **`Animation`** interface of the Web Animations API represents a single animation player and provides playback controls and a timeline for an animation node or source.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation)
+ */
+pub opaque type Animation.
+
+/**
+ * The **`Animation.currentTime`** property of the Web Animations API returns and sets the current time value of the animation in milliseconds, whether running or paused.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/currentTime)
+ */
+pub (value: Animation) current_time(): Option[CSSNumberish] ->
+    native.
+
+/**
+ * The **`Animation.effect`** property of the Web Animations API gets and sets the target effect of an animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/effect)
+ */
+pub (value: Animation) effect(): Option[AnimationEffect] ->
+    native.
+
+/**
+ * The **`Animation.finished`** read-only property of the Web Animations API returns a Promise which resolves once the animation has finished playing.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/finished)
+ */
+pub (value: Animation) finished(): std.js.Promise[Animation] ->
+    native.
+
+/**
+ * The **`Animation.id`** property of the Web Animations API returns or sets a string used to identify the animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/id)
+ */
+pub (value: Animation) id(): std.js.String.JsString ->
+    native.
+
+/**
+ * The read-only **`Animation.pending`** property of the Web Animations API indicates whether the animation is currently waiting for an asynchronous operation such as initiating playback or pausing a running animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/pending)
+ */
+pub (value: Animation) pending(): std.core.Bool ->
+    native.
+
+/**
+ * The read-only **`Animation.playState`** property of the Web Animations API returns an enumerated value describing the playback state of an animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/playState)
+ */
+pub (value: Animation) play_state(): AnimationPlayState ->
+    native.
+
+/**
+ * The **`Animation.playbackRate`** property of the Web Animations API returns or sets the playback rate of the animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/playbackRate)
+ */
+pub (value: Animation) playback_rate(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The read-only **`Animation.ready`** property of the Web Animations API returns a Promise which resolves when the animation is ready to play.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/ready)
+ */
+pub (value: Animation) ready(): std.js.Promise[Animation] ->
+    native.
+
+/**
+ * The read-only **`Animation.replaceState`** property of the Web Animations API indicates whether the animation has been removed by the browser automatically after being replaced by another animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/replaceState)
+ */
+pub (value: Animation) replace_state(): AnimationReplaceState ->
+    native.
+
+/**
+ * The **`Animation.startTime`** property of the Animation interface is a double-precision floating-point value which indicates the scheduled time when an animation's playback should begin.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/startTime)
+ */
+pub (value: Animation) start_time(): Option[CSSNumberish] ->
+    native.
+
+/**
+ * The **`Animation.timeline`** property of the Animation interface returns or sets the AnimationTimeline associated with this animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/timeline)
+ */
+pub (value: Animation) timeline(): Option[AnimationTimeline] ->
+    native.
+
+/**
+ * The Web Animations API's **`cancel()`** method of the Animation interface clears all KeyframeEffects caused by this animation and aborts its playback.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/cancel)
+ */
+pub (value: Animation) cancel(): std.core.Unit ->
+    native.
+
+/**
+ * The `commitStyles()` method of the Web Animations API's Animation interface writes the computed values of the animation's current styles into its target element's `style` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/commitStyles)
+ */
+pub (value: Animation) commit_styles(): std.core.Unit ->
+    native.
+
+/**
+ * The **`finish()`** method of the Web Animations API's Animation Interface sets the current playback time to the end of the animation corresponding to the current playback direction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/finish)
+ */
+pub (value: Animation) finish(): std.core.Unit ->
+    native.
+
+/**
+ * The **`pause()`** method of the Web Animations API's Animation interface suspends playback of the animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/pause)
+ */
+pub (value: Animation) pause(): std.core.Unit ->
+    native.
+
+/**
+ * The `persist()` method of the Web Animations API's Animation interface explicitly persists an animation, preventing it from being automatically removed when it is replaced by another animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/persist)
+ */
+pub (value: Animation) persist(): std.core.Unit ->
+    native.
+
+/**
+ * The **`play()`** method of the Web Animations API's Animation Interface starts or resumes playing of an animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/play)
+ */
+pub (value: Animation) play(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Animation.reverse()`** method of the Animation Interface reverses the playback direction, meaning the animation ends at its beginning.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/reverse)
+ */
+pub (value: Animation) reverse(): std.core.Unit ->
+    native.
+
+/**
+ * The **`updatePlaybackRate()`** method of the Web Animations API's synchronizing its playback position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/updatePlaybackRate)
+ */
+pub (value: Animation) update_playback_rate(playback_rate: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+pub (value: Animation) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: Animation) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

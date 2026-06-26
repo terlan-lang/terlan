@@ -1,0 +1,256 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLTextAreaElement
+ */
+
+module std.js.Dom.HTMLTextAreaElement.
+
+/**
+ * The **`HTMLTextAreaElement`** interface provides properties and methods for manipulating the layout and presentation of textarea elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement)
+ */
+pub opaque type HTMLTextAreaElement.
+
+/**
+ * The **`autocomplete`** property of the HTMLTextAreaElement interface indicates whether the value of the control can be automatically completed by the browser.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/autocomplete)
+ */
+pub (value: HTMLTextAreaElement) autocomplete(): AutoFill ->
+    native.
+
+/**
+ * The **`cols`** property of the HTMLTextAreaElement interface is a positive integer representing the visible width of the multi-line text control, in average character widths.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/cols)
+ */
+pub (value: HTMLTextAreaElement) cols(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`defaultValue`** property of the HTMLTextAreaElement interface represents the default text content of this text area.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/defaultValue)
+ */
+pub (value: HTMLTextAreaElement) default_value(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`dirName`** property of the HTMLTextAreaElement interface is the directionality of the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/dirName)
+ */
+pub (value: HTMLTextAreaElement) dir_name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`disabled`** property of the HTMLTextAreaElement interface indicates whether this multi-line text control is disabled and cannot be interacted with.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/disabled)
+ */
+pub (value: HTMLTextAreaElement) disabled(): std.core.Bool ->
+    native.
+
+/**
+ * The **`form`** read-only property of the HTMLTextAreaElement interface returns an HTMLFormElement object that owns this textarea, or `null` if this textarea is not owned by any form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/form)
+ */
+pub (value: HTMLTextAreaElement) form(): Option[HTMLFormElement] ->
+    native.
+
+/**
+ * The **`HTMLTextAreaElement.labels`** read-only property returns a NodeList of the label elements associated with the A NodeList containing the `<label>` elements associated with the `<textArea>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/labels)
+ */
+pub (value: HTMLTextAreaElement) labels(): NodeListOf[HTMLLabelElement] ->
+    native.
+
+/**
+ * The **`maxLength`** property of the HTMLTextAreaElement interface indicates the maximum number of characters (in UTF-16 code units) allowed to be entered for the value of the textarea element, and the maximum number of characters allowed for the value to be valid.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/maxLength)
+ */
+pub (value: HTMLTextAreaElement) max_length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`minLength`** property of the HTMLTextAreaElement interface indicates the minimum number of characters (in UTF-16 code units) required for the value of the textarea element to be valid.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/minLength)
+ */
+pub (value: HTMLTextAreaElement) min_length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`name`** property of the HTMLTextAreaElement interface indicates the name of the textarea element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/name)
+ */
+pub (value: HTMLTextAreaElement) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`placeholder`** property of the HTMLTextAreaElement interface represents a hint to the user of what can be entered in the control.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/placeholder)
+ */
+pub (value: HTMLTextAreaElement) placeholder(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`readOnly`** property of the HTMLTextAreaElement interface indicates that the user cannot modify the value of the control.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/readOnly)
+ */
+pub (value: HTMLTextAreaElement) read_only(): std.core.Bool ->
+    native.
+
+/**
+ * The **`required`** property of the HTMLTextAreaElement interface specifies that the user must fill in a value before submitting a form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/required)
+ */
+pub (value: HTMLTextAreaElement) required(): std.core.Bool ->
+    native.
+
+/**
+ * The **`rows`** property of the HTMLTextAreaElement interface is a positive integer representing the visible text lines of the text control.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/rows)
+ */
+pub (value: HTMLTextAreaElement) rows(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`selectionEnd`** property of the HTMLTextAreaElement interface specifies the end position of the current text selection in a textarea element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/selectionEnd)
+ */
+pub (value: HTMLTextAreaElement) selection_end(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`selectionStart`** property of the HTMLTextAreaElement interface specifies the start position of the current text selection in a textarea element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/selectionStart)
+ */
+pub (value: HTMLTextAreaElement) selection_start(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`textLength`** read-only property of the HTMLTextAreaElement interface is a non-negative integer representing the number of characters, in UTF-16 code units, of the textarea element's value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/textLength)
+ */
+pub (value: HTMLTextAreaElement) text_length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`type`** read-only property of the HTMLTextAreaElement interface returns the string `'textarea'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/type)
+ */
+pub (value: HTMLTextAreaElement) type_(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`validationMessage`** read-only property of the HTMLTextAreaElement interface returns a string representing a localized message that describes the validation constraints that the textarea control does not satisfy (if any).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/validationMessage)
+ */
+pub (value: HTMLTextAreaElement) validation_message(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`validity`** read-only property of the HTMLTextAreaElement interface returns a ValidityState object that represents the validity states this element is in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/validity)
+ */
+pub (value: HTMLTextAreaElement) validity(): ValidityState ->
+    native.
+
+/**
+ * The **`value`** property of the HTMLTextAreaElement interface represents the value of the textarea element as a string, which is an empty string if the widget contains no content.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/value)
+ */
+pub (value: HTMLTextAreaElement) value(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`willValidate`** read-only property of the HTMLTextAreaElement interface indicates whether the textarea element is a candidate for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/willValidate)
+ */
+pub (value: HTMLTextAreaElement) will_validate(): std.core.Bool ->
+    native.
+
+/**
+ * The **`wrap`** property of the HTMLTextAreaElement interface indicates how the control should wrap the value for form submission.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/wrap)
+ */
+pub (value: HTMLTextAreaElement) wrap(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`checkValidity()`** method of the HTMLTextAreaElement interface returns a boolean value which indicates if the element meets any constraint validation rules applied to it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/checkValidity)
+ */
+pub (value: HTMLTextAreaElement) check_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`reportValidity()`** method of the HTMLTextAreaElement interface performs the same validity checking steps as the HTMLTextAreaElement.checkValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/reportValidity)
+ */
+pub (value: HTMLTextAreaElement) report_validity(): std.core.Bool ->
+    native.
+
+/**
+ * The **`select()`** method of the HTMLTextAreaElement interface selects the entire contents of the textarea element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/select)
+ */
+pub (value: HTMLTextAreaElement) select(): std.core.Unit ->
+    native.
+
+/**
+ * The **`setCustomValidity()`** method of the HTMLTextAreaElement interface sets the custom validity message for the textarea element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/setCustomValidity)
+ */
+pub (value: HTMLTextAreaElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`setRangeText()`** method of the HTMLTextAreaElement interface replaces a range of text in a textarea element with new text passed as the argument.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/setRangeText)
+ */
+pub (value: HTMLTextAreaElement) set_range_text(replacement: std.js.String.JsString): std.core.Unit ->
+    native.
+
+pub (value: HTMLTextAreaElement) set_range_text(replacement: std.js.String.JsString, start: std.js.Number.JsNumber, end: std.js.Number.JsNumber, selection_mode: SelectionMode): std.core.Unit ->
+    native.
+
+pub (value: HTMLTextAreaElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLTextAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

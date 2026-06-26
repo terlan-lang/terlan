@@ -28,9 +28,6 @@ pub trait Equal[T] {
 pub impl Equal[Bool] for Bool {
 }.
 
-pub impl Equal[Comparison] for Comparison {
-}.
-
 pub impl Equal[Float] for Float {
 }.
 
@@ -40,6 +37,9 @@ pub impl Equal[Int] for Int {
 pub impl Equal[String] for String {
 }.
 
-pub impl Equal[Unit] for Unit {
+pub impl Equal[std.core.Ordering.Comparison.Comparison] for std.core.Ordering.Comparison.Comparison {
+}.
+
+pub impl Equal[std.core.Unit.Unit] for std.core.Unit.Unit {
 }.
 

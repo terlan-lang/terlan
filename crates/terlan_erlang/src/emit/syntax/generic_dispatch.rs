@@ -167,7 +167,7 @@ pub(super) fn lower_syntax_generic_bound_dictionaries(
     ctx: &SyntaxLowerCtx,
     env: &SyntaxLowerEnv,
 ) -> Option<Vec<ErlExpr>> {
-    let substitutions = infer_generic_function_type_substitutions(&target.params, args, env)?;
+    let substitutions = infer_generic_function_type_substitutions(&target.params, args, ctx, env)?;
     target
         .bounds
         .iter()
@@ -192,6 +192,7 @@ pub(super) fn lower_syntax_generic_bound_dictionaries(
 fn infer_generic_function_type_substitutions(
     params: &[String],
     args: &[SyntaxExprOutput],
+    ctx: &SyntaxLowerCtx,
     env: &SyntaxLowerEnv,
 ) -> Option<BTreeMap<String, String>> {
     if params.len() != args.len() {
@@ -202,7 +203,7 @@ fn infer_generic_function_type_substitutions(
         if !is_generic_type_var(param) {
             continue;
         }
-        let arg_type = infer_syntax_trait_dispatch_type(arg, env)?;
+        let arg_type = infer_syntax_trait_dispatch_type(arg, ctx, env)?;
         substitutions.insert(param.clone(), arg_type);
     }
     Some(substitutions)
@@ -271,7 +272,7 @@ pub(super) fn lower_syntax_bound_trait_method_call(
 ) -> Option<ErlExpr> {
     let type_arg = args
         .first()
-        .and_then(|arg| infer_syntax_trait_dispatch_type(arg, env))?;
+        .and_then(|arg| infer_syntax_trait_dispatch_type(arg, ctx, env))?;
     let dict = env
         .trait_bound_dicts
         .get(&(trait_name.to_string(), type_arg))?;

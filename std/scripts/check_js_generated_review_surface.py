@@ -9,14 +9,18 @@ Inputs:
 
 Outputs:
 - Exit status 0 when generated artifacts are present and carry provenance
-  headers.
+  headers, and unsupported TypeScript declarations have stable skip records.
 - Exit status 1 with stable diagnostics when a manifest reference, generated
-  file, or header field is missing.
+  file, header field, or skip-record field is missing.
 
 Transformation:
 - Reads the generated binding manifest.
 - Verifies referenced files exist.
-- Checks generated headers for machine-readable provenance keys.
+- Checks generated headers for machine-readable provenance keys on binding
+  artifacts and leaves normalized summary contents to the std summary drift
+  checker.
+- Checks skipped TypeScript declaration rows so missing std.js coverage stays
+  explicit and reviewable.
 """
 
 from __future__ import annotations
@@ -40,6 +44,18 @@ REQUIRED_GENERATED_HEADER_KEYS = (
     "@source-package",
     "@source-input",
     "@source-interface",
+)
+REQUIRED_ES2015_COLLECTION_MODULES = (
+    "std.js.Map",
+    "std.js.MapConstructor",
+    "std.js.ReadonlyMap",
+    "std.js.Set",
+    "std.js.SetConstructor",
+    "std.js.ReadonlySet",
+    "std.js.WeakMap",
+    "std.js.WeakMapConstructor",
+    "std.js.WeakSet",
+    "std.js.WeakSetConstructor",
 )
 
 
@@ -194,7 +210,6 @@ def output_diagnostics(output: object) -> list[ReviewDiagnostic]:
     path_fields = {
         "source": "source",
         "interface": "interface",
-        "summary": None,
         "test": "test",
     }
     for field, expected_kind in path_fields.items():
@@ -206,10 +221,17 @@ def output_diagnostics(output: object) -> list[ReviewDiagnostic]:
             continue
         diagnostics.extend(check_generated_header(relative, expected_kind))
 
-        if field == "summary":
-            deps = Path(f"{relative.as_posix()}.deps")
-            if not (ROOT / deps).is_file():
-                diagnostics.append(ReviewDiagnostic(deps, "missing generated summary dependency file"))
+    summary = repository_path(output.get("summary"))
+    if summary is None:
+        diagnostics.append(
+            ReviewDiagnostic(BINDINGS_MANIFEST.relative_to(ROOT), "output field `summary` must be a safe path")
+        )
+    elif not (ROOT / summary).is_file():
+        diagnostics.append(ReviewDiagnostic(summary, "missing normalized summary artifact"))
+    else:
+        deps = Path(f"{summary.as_posix()}.deps")
+        if not (ROOT / deps).is_file():
+            diagnostics.append(ReviewDiagnostic(deps, "missing generated summary dependency file"))
     return diagnostics
 
 
@@ -224,7 +246,8 @@ def manifest_diagnostics(manifest: dict[str, Any]) -> list[ReviewDiagnostic]:
       surface issues.
 
     Transformation:
-    - Checks schema metadata, skipped-manifest linkage, and every output entry.
+    - Checks schema metadata, skipped-manifest linkage, skipped declaration
+      records, and every output entry.
     """
 
     diagnostics: list[ReviewDiagnostic] = []
@@ -246,14 +269,101 @@ def manifest_diagnostics(manifest: dict[str, Any]) -> list[ReviewDiagnostic]:
         diagnostics.extend(skipped_errors)
         if skipped is not None and skipped.get("schema") != "terlan.std.js.skipped-declarations.v1":
             diagnostics.append(ReviewDiagnostic(skipped_relative, "invalid skipped-declarations schema"))
+        if skipped is not None:
+            diagnostics.extend(skipped_manifest_diagnostics(manifest, skipped_relative, skipped))
 
     outputs = manifest.get("outputs")
     if not isinstance(outputs, list) or not outputs:
         diagnostics.append(ReviewDiagnostic(manifest_path, "outputs must be a non-empty array"))
     elif isinstance(outputs, list):
+        diagnostics.extend(required_module_diagnostics(outputs))
         for output in outputs:
             diagnostics.extend(output_diagnostics(output))
     return diagnostics
+
+
+def skipped_manifest_diagnostics(
+    manifest: dict[str, Any], skipped_relative: Path, skipped_manifest: dict[str, Any]
+) -> list[ReviewDiagnostic]:
+    """Validate unsupported TypeScript declaration skip records.
+
+    Inputs:
+    - `manifest`: parsed generated binding manifest.
+    - `skipped_relative`: repository-relative skipped-manifest path.
+    - `skipped_manifest`: parsed standalone skipped-declarations manifest.
+
+    Outputs:
+    - Diagnostics for malformed skip rows or mismatched manifest copies.
+
+    Transformation:
+    - Treats every skipped TypeScript declaration as a required review record
+      with stable source, reason, and detail text.
+    - Compares the binding-manifest embedded skip list with the standalone
+      skip manifest so release artifacts cannot drift silently.
+    """
+
+    diagnostics: list[ReviewDiagnostic] = []
+    embedded_skipped = manifest.get("skipped")
+    skipped = skipped_manifest.get("skipped")
+
+    if not isinstance(embedded_skipped, list):
+        diagnostics.append(ReviewDiagnostic(BINDINGS_MANIFEST.relative_to(ROOT), "`skipped` must be an array"))
+    if not isinstance(skipped, list):
+        diagnostics.append(ReviewDiagnostic(skipped_relative, "`skipped` must be an array"))
+        return diagnostics
+    if isinstance(embedded_skipped, list) and embedded_skipped != skipped:
+        diagnostics.append(
+            ReviewDiagnostic(
+                skipped_relative,
+                "standalone skipped declarations must match binding manifest `skipped` entries",
+            )
+        )
+
+    for index, item in enumerate(skipped):
+        row_path = Path(f"{skipped_relative.as_posix()}#/skipped/{index}")
+        if not isinstance(item, dict):
+            diagnostics.append(ReviewDiagnostic(row_path, "skip row must be an object"))
+            continue
+        source = item.get("source")
+        reason = item.get("reason")
+        detail = item.get("detail")
+        if not isinstance(source, str) or not source.strip():
+            diagnostics.append(ReviewDiagnostic(row_path, "skip row must include non-empty `source`"))
+        if not isinstance(reason, str) or not reason.strip():
+            diagnostics.append(ReviewDiagnostic(row_path, "skip row must include non-empty `reason`"))
+        elif not reason.startswith("ts_bindgen."):
+            diagnostics.append(ReviewDiagnostic(row_path, "`reason` must use the `ts_bindgen.` namespace"))
+        if not isinstance(detail, str) or not detail.strip():
+            diagnostics.append(ReviewDiagnostic(row_path, "skip row must include non-empty `detail`"))
+    return diagnostics
+
+
+def required_module_diagnostics(outputs: list[Any]) -> list[ReviewDiagnostic]:
+    """Validate required generated std.js module coverage.
+
+    Inputs:
+    - `outputs`: raw binding-manifest output entries.
+
+    Outputs:
+    - Diagnostics for required modules missing from `std_js_bindings.json`.
+
+    Transformation:
+    - Builds the generated module-name set and checks the ES2015 collection
+      surface that must stay present now that `lib.es2015.collection.d.ts` is a
+      pinned standard-library input.
+    """
+
+    manifest_path = BINDINGS_MANIFEST.relative_to(ROOT)
+    modules = {
+        output.get("module")
+        for output in outputs
+        if isinstance(output, dict) and isinstance(output.get("module"), str)
+    }
+    return [
+        ReviewDiagnostic(manifest_path, f"missing required ES2015 collection module `{module}`")
+        for module in REQUIRED_ES2015_COLLECTION_MODULES
+        if module not in modules
+    ]
 
 
 def main() -> int:

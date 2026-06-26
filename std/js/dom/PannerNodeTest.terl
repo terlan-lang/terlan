@@ -1,0 +1,70 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface PannerNode
+ */
+
+module std.js.Dom.PannerNodeTest.
+
+import type std.js.Dom.PannerNode.PannerNode.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub cone_inner_angle_typechecks(receiver: PannerNode): std.js.Number.JsNumber ->
+    receiver.cone_inner_angle().
+
+pub cone_outer_angle_typechecks(receiver: PannerNode): std.js.Number.JsNumber ->
+    receiver.cone_outer_angle().
+
+pub cone_outer_gain_typechecks(receiver: PannerNode): std.js.Number.JsNumber ->
+    receiver.cone_outer_gain().
+
+pub distance_model_typechecks(receiver: PannerNode): DistanceModelType ->
+    receiver.distance_model().
+
+pub max_distance_typechecks(receiver: PannerNode): std.js.Number.JsNumber ->
+    receiver.max_distance().
+
+pub orientation_x_typechecks(receiver: PannerNode): AudioParam ->
+    receiver.orientation_x().
+
+pub orientation_y_typechecks(receiver: PannerNode): AudioParam ->
+    receiver.orientation_y().
+
+pub orientation_z_typechecks(receiver: PannerNode): AudioParam ->
+    receiver.orientation_z().
+
+pub panning_model_typechecks(receiver: PannerNode): PanningModelType ->
+    receiver.panning_model().
+
+pub position_x_typechecks(receiver: PannerNode): AudioParam ->
+    receiver.position_x().
+
+pub position_y_typechecks(receiver: PannerNode): AudioParam ->
+    receiver.position_y().
+
+pub position_z_typechecks(receiver: PannerNode): AudioParam ->
+    receiver.position_z().
+
+pub ref_distance_typechecks(receiver: PannerNode): std.js.Number.JsNumber ->
+    receiver.ref_distance().
+
+pub rolloff_factor_typechecks(receiver: PannerNode): std.js.Number.JsNumber ->
+    receiver.rolloff_factor().
+
+pub set_orientation_typechecks(receiver: PannerNode, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.set_orientation(x, y, z).
+
+pub set_position_typechecks(receiver: PannerNode, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.set_position(x, y, z).

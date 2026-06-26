@@ -1,0 +1,124 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DOMMatrix
+ */
+
+module std.js.Dom.DOMMatrixTest.
+
+import type std.js.Dom.DOMMatrix.DOMMatrix.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub a_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.a().
+
+pub b_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.b().
+
+pub c_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.c().
+
+pub d_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.d().
+
+pub e_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.e().
+
+pub f_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.f().
+
+pub m11_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m11().
+
+pub m12_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m12().
+
+pub m13_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m13().
+
+pub m14_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m14().
+
+pub m21_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m21().
+
+pub m22_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m22().
+
+pub m23_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m23().
+
+pub m24_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m24().
+
+pub m31_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m31().
+
+pub m32_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m32().
+
+pub m33_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m33().
+
+pub m34_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m34().
+
+pub m41_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m41().
+
+pub m42_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m42().
+
+pub m43_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m43().
+
+pub m44_typechecks(receiver: DOMMatrix): std.js.Number.JsNumber ->
+    receiver.m44().
+
+pub invert_self_typechecks(receiver: DOMMatrix): DOMMatrix ->
+    receiver.invert_self().
+
+pub multiply_self_typechecks(receiver: DOMMatrix, other: DOMMatrixInit): DOMMatrix ->
+    receiver.multiply_self(other).
+
+pub pre_multiply_self_typechecks(receiver: DOMMatrix, other: DOMMatrixInit): DOMMatrix ->
+    receiver.pre_multiply_self(other).
+
+pub rotate_axis_angle_self_typechecks(receiver: DOMMatrix, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber, angle: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.rotate_axis_angle_self(x, y, z, angle).
+
+pub rotate_from_vector_self_typechecks(receiver: DOMMatrix, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.rotate_from_vector_self(x, y).
+
+pub rotate_self_typechecks(receiver: DOMMatrix, rot_x: std.js.Number.JsNumber, rot_y: std.js.Number.JsNumber, rot_z: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.rotate_self(rot_x, rot_y, rot_z).
+
+pub scale3d_self_typechecks(receiver: DOMMatrix, scale: std.js.Number.JsNumber, origin_x: std.js.Number.JsNumber, origin_y: std.js.Number.JsNumber, origin_z: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.scale3d_self(scale, origin_x, origin_y, origin_z).
+
+pub scale_self_typechecks(receiver: DOMMatrix, scale_x: std.js.Number.JsNumber, scale_y: std.js.Number.JsNumber, scale_z: std.js.Number.JsNumber, origin_x: std.js.Number.JsNumber, origin_y: std.js.Number.JsNumber, origin_z: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.scale_self(scale_x, scale_y, scale_z, origin_x, origin_y, origin_z).
+
+pub set_matrix_value_typechecks(receiver: DOMMatrix, transform_list: std.js.String.JsString): DOMMatrix ->
+    receiver.set_matrix_value(transform_list).
+
+pub skew_x_self_typechecks(receiver: DOMMatrix, sx: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.skew_x_self(sx).
+
+pub skew_y_self_typechecks(receiver: DOMMatrix, sy: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.skew_y_self(sy).
+
+pub translate_self_typechecks(receiver: DOMMatrix, tx: std.js.Number.JsNumber, ty: std.js.Number.JsNumber, tz: std.js.Number.JsNumber): DOMMatrix ->
+    receiver.translate_self(tx, ty, tz).

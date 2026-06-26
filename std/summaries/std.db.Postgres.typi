@@ -1,0 +1,128 @@
+//! Portable Postgres capability contract.
+//!
+//! `std.db.Postgres` defines the source-level Postgres API for Terlan
+//! applications. Runtime execution is target-owned: the default BEAM path uses
+//! a SafeNative supervised worker backed by a Rust/Tokio Postgres adapter.
+
+module std.db.Postgres.
+
+/// Config represents the minimal Postgres connection configuration.
+///
+/// Input: no type parameter.
+/// Output: typed configuration record.
+/// Transformation: keeps the first connection surface intentionally small
+/// while leaving pool tuning and TLS options for later explicit fields.
+
+pub type Config =
+    {url : String}.
+
+/// Connection represents one transaction-scoped Postgres connection.
+///
+/// Input: no type parameter.
+/// Output: an opaque transaction connection handle.
+/// Transformation: keeps transaction execution scoped to the adapter while
+/// allowing Terlan code to express transaction boundaries.
+
+pub opaque type Connection.
+
+/// Pool represents a configured Postgres connection pool.
+///
+/// Input: no type parameter.
+/// Output: an opaque pool handle.
+/// Transformation: hides target-owned pool, socket, TLS, and driver state from
+/// Terlan source.
+
+pub opaque type Pool.
+
+/// Row represents one returned Postgres row.
+///
+/// Input: no type parameter.
+/// Output: an opaque row handle.
+/// Transformation: hides target row storage while exposing explicit typed
+/// accessors.
+
+pub opaque type Row.
+
+/// Reads a boolean column by name.
+///
+/// Input: one row and one column name.
+/// Output: `Ok(value)` when the column exists and can decode as `Bool`,
+/// otherwise `Err(Error)`.
+/// Transformation: delegates typed row decoding to the Postgres adapter.
+
+pub (row: Row) bool(name: String): Result[Bool, Error].
+
+/// Connects to Postgres and returns a pool.
+///
+/// Input: one `Config`.
+/// Output: `Ok(pool)` when the adapter creates a pool, otherwise `Err(Error)`.
+/// Transformation: delegates connection setup to the selected Postgres runtime
+/// adapter without exposing driver state to source code.
+
+pub connect(config: Config): Result[Pool, Error].
+
+/// Runs a SQL command and returns the affected row count.
+///
+/// Input: one pool, SQL text, and JSON-encoded parameter values.
+/// Output: `Ok(count)` when the command succeeds, otherwise `Err(Error)`.
+/// Transformation: delegates command execution to the adapter and exposes only
+/// the portable affected-row count.
+
+pub execute(pool: Pool, sql: String, params: List[Json]): Result[Int, Error].
+
+/// Reads an integer column by name.
+///
+/// Input: one row and one column name.
+/// Output: `Ok(value)` when the column exists and can decode as `Int`,
+/// otherwise `Err(Error)`.
+/// Transformation: delegates typed row decoding to the Postgres adapter.
+
+pub (row: Row) int(name: String): Result[Int, Error].
+
+/// Reads a JSON column by name.
+///
+/// Input: one row and one column name.
+/// Output: `Ok(value)` when the column exists and can decode as `Json`,
+/// otherwise `Err(Error)`.
+/// Transformation: delegates typed row decoding to the Postgres adapter and
+/// returns the portable JSON handle.
+
+pub (row: Row) json(name: String): Result[Json, Error].
+
+/// Runs a SQL query and returns all rows.
+///
+/// Input: one pool, SQL text, and JSON-encoded parameter values.
+/// Output: `Ok(rows)` when the query succeeds, otherwise `Err(Error)`.
+/// Transformation: delegates SQL execution and row decoding to the Postgres
+/// adapter while preserving a portable row handle surface.
+
+pub query(pool: Pool, sql: String, params: List[Json]): Result[List[Row], Error].
+
+/// Runs a SQL query and returns at most one row.
+///
+/// Input: one pool, SQL text, and JSON-encoded parameter values.
+/// Output: `Ok(Some(row))`, `Ok(None)`, or `Err(Error)`.
+/// Transformation: delegates SQL execution to the adapter and normalizes the
+/// single-row result shape into `Option`.
+
+pub query_one(pool: Pool, sql: String, params: List[Json]): Result[Option[Row], Error].
+
+/// Reads a string column by name.
+///
+/// Input: one row and one column name.
+/// Output: `Ok(value)` when the column exists and can decode as `String`,
+/// otherwise `Err(Error)`.
+/// Transformation: delegates typed row decoding to the Postgres adapter.
+
+pub (row: Row) string(name: String): Result[String, Error].
+
+/// Runs a transaction body.
+///
+/// Input: one pool and one function that receives a transaction connection.
+/// Output: the transaction body's result when commit succeeds, otherwise
+/// `Err(Error)`.
+/// Transformation: lets source code own the transaction boundary while the
+/// adapter owns begin, commit, rollback, and connection lifecycle details.
+
+pub transaction[T](pool: Pool, body: (Connection ) -> Result[T, Error]): Result[T, Error].
+

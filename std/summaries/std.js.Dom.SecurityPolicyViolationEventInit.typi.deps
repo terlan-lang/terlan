@@ -1,0 +1,8 @@
+module=std.js.Dom.SecurityPolicyViolationEventInit
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16249851841215686348
+interface_hash=3268892895114078598
+interface_doc_hash=3268892895114078598
+deps=0

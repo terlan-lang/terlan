@@ -50,20 +50,19 @@ fn run_check_single_file_rejects_multi_generator_list_comprehension_before_phase
     assert!(manifest_text.contains(r#""name":"core","status":"skipped""#));
 }
 
-/// Verifies binary segment lowering fails before backend emission.
+/// Verifies Erlang binary segment syntax fails at parse time.
 ///
 /// Inputs:
-/// - A temporary single-file Terlan module containing structured binary
+/// - A temporary single-file Terlan module containing Erlang binary
 ///   segment syntax and a requested phase-manifest output path.
 ///
 /// Output:
 /// - Test assertion only; the command must fail and write a phase manifest
-///   whose CoreIR phase records the target-profile diagnostic.
+///   whose parse phase records the source-syntax diagnostic.
 ///
 /// Transformation:
-/// - Runs the command-level check path and confirms the parser preserves
-///   binary segment text while target-profile validation rejects deferred
-///   segment lowering before backend-ready success.
+/// - Runs the command-level check path and confirms backend Erlang binary
+///   syntax cannot enter Terlan typechecking or CoreIR.
 #[test]
 fn run_check_single_file_rejects_binary_segment_lowering_in_phase_manifest() {
     let dir = make_temp_dir("check_single_file_binary_segment_lowering_rejected");
@@ -89,11 +88,10 @@ fn run_check_single_file_rejects_binary_segment_lowering_in_phase_manifest() {
 
     assert_ne!(exit, ExitCode::SUCCESS);
     let manifest_text = fs::read_to_string(&manifest).expect("read phase manifest");
-    assert!(manifest_text.contains(r#""name":"parse","status":"ok""#));
-    assert!(manifest_text.contains(r#""name":"typecheck","status":"ok""#));
-    assert!(manifest_text.contains(r#""name":"core","status":"error""#));
-    assert!(manifest_text.contains("binary segment lowering"));
-    assert!(manifest_text.contains("<<value:8/integer-unsigned-big>>"));
+    assert!(manifest_text.contains(r#""name":"parse","status":"error""#));
+    assert!(manifest_text.contains(r#""name":"typecheck","status":"skipped""#));
+    assert!(manifest_text.contains(r#""name":"core","status":"skipped""#));
+    assert!(manifest_text.contains("Erlang binary literal syntax"));
 }
 
 /// Verifies unsupported subject-bearing annotations stop in the syntax
@@ -334,9 +332,8 @@ fn run_check_single_file_rejects_constructor_edge_cases_before_phase_manifest() 
 /// Verifies unsupported function declaration and clause shapes fail early.
 ///
 /// Inputs:
-/// - Temporary Terlan modules containing function defaults, function
-///   varargs, mismatched secondary clause names, and mismatched secondary
-///   clause arities.
+/// - Temporary Terlan modules containing function varargs, mismatched
+///   secondary clause names, and mismatched secondary clause arities.
 ///
 /// Output:
 /// - Test assertions only; each command run must fail and write a phase
@@ -350,11 +347,6 @@ fn run_check_single_file_rejects_constructor_edge_cases_before_phase_manifest() 
 #[test]
 fn run_check_single_file_rejects_function_clause_edge_cases_before_phase_manifest() {
     let cases = [
-        (
-            "function_default_param",
-            "function default parameters are not supported in Terlan 0.0.1",
-            "module bad.function_default_param.\n\npub add(x: Int = 1): Int ->\n  x.\n",
-        ),
         (
             "function_varargs_param",
             "function varargs parameters are not supported in Terlan 0.0.1",

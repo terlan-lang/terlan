@@ -84,6 +84,46 @@ pub value(error: Error): Error -> error.
     assert!(!formatted.contains("import type std.core.Error.Error."));
 }
 
+/// Verifies `terlc fmt` normalizes TypeDoc block marker spacing.
+///
+/// Inputs:
+/// - A source module containing documentation lines written as `*Text`.
+///
+/// Output:
+/// - Formatted source containing `* Text`.
+///
+/// Transformation:
+/// - Routes source through the formal syntax-output parser and source
+///   formatter used by the CLI so file formatting and stdlib policy checks
+///   enforce the same documentation shape.
+#[test]
+fn fmt_normalizes_doc_block_marker_spacing() {
+    let formatted = parse_source(
+        "sample.terl",
+        r#"
+/**
+ *Module docs.
+ */
+module sample.
+
+/**
+ *Returns the input.
+ *
+ *Input: one integer.
+ *Output: the same integer.
+ *Transformation: identity.
+ */
+pub value(input: Int): Int -> input.
+"#,
+    )
+    .expect("doc marker spacing should format");
+
+    assert!(formatted.contains(" * Module docs."));
+    assert!(formatted.contains(" * Returns the input."));
+    assert!(formatted.contains(" * Input: one integer."));
+    assert!(!formatted.contains("*Returns"));
+}
+
 /// Verifies `terlc fmt` keeps aliased default-export type imports explicit.
 ///
 /// Inputs:

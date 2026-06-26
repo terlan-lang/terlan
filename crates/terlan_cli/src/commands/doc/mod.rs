@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use crate::{CliCommand, CliState, DocFormat};
+use terlan_html::escape_html_text;
 
 mod render;
 mod validation;
@@ -347,20 +348,10 @@ fn project_doc_html_styles() -> &'static str {
 /// - HTML-escaped text.
 ///
 /// Transformation:
-/// - Replaces the five special HTML text characters with entities.
+/// - Delegates text escaping to `terlan_html` so the project documentation
+///   index and module documentation pages share one escaping boundary.
 fn escape_doc_html_text(input: &str) -> String {
-    let mut out = String::new();
-    for ch in input.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            '\'' => out.push_str("&#39;"),
-            _ => out.push(ch),
-        }
-    }
-    out
+    escape_html_text(input)
 }
 
 /// Renders the aggregate project documentation JSON model.

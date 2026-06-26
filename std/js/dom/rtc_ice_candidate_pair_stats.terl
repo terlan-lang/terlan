@@ -1,0 +1,84 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCIceCandidatePairStats
+ */
+
+module std.js.Dom.RTCIceCandidatePairStats.
+
+pub opaque type RTCIceCandidatePairStats.
+
+pub (value: RTCIceCandidatePairStats) available_incoming_bitrate(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) available_outgoing_bitrate(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) bytes_discarded_on_send(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) bytes_received(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) bytes_sent(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) consent_requests_sent(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) current_round_trip_time(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) last_packet_received_timestamp(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) last_packet_sent_timestamp(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) local_candidate_id(): std.js.String.JsString ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) nominated(): std.core.Bool ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) packets_discarded_on_send(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) packets_received(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) packets_sent(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) remote_candidate_id(): std.js.String.JsString ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) requests_received(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) requests_sent(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) responses_received(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) responses_sent(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) state(): RTCStatsIceCandidatePairState ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) total_round_trip_time(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCIceCandidatePairStats) transport_id(): std.js.String.JsString ->
+    native.

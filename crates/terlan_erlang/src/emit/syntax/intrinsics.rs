@@ -1,5 +1,13 @@
 use super::*;
 
+mod http;
+
+pub(super) use http::{
+    is_http_response_mutating_receiver_method, lower_http_response_builder_call,
+    lower_http_response_receiver_method_call, lower_http_router_builder_call,
+    lower_syntax_primitive_receiver_method_call,
+};
+
 /// Lowers selected std trait conformances through primitive intrinsics.
 ///
 /// Inputs:
@@ -215,6 +223,7 @@ pub(super) fn primitive_function_intrinsic(
         ("std.collections.List", "clear", 1) => Some(CorePrimitiveIntrinsic::ListClear),
         ("std.collections.Iterator", "next", 1) => Some(CorePrimitiveIntrinsic::IteratorNext),
         ("std.collections.Map", "new", 0) => Some(CorePrimitiveIntrinsic::MapNew),
+        ("std.collections.Map", "from_entries", 1) => Some(CorePrimitiveIntrinsic::MapFromEntries),
         ("std.collections.Map", "is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
         ("std.collections.Map", "size", 1) => Some(CorePrimitiveIntrinsic::MapSize),
         ("std.collections.Map", "get", 2) => Some(CorePrimitiveIntrinsic::MapGet),
@@ -223,7 +232,17 @@ pub(super) fn primitive_function_intrinsic(
         ("std.collections.Map", "put", 3) => Some(CorePrimitiveIntrinsic::MapPut),
         ("std.collections.Map", "remove", 2) => Some(CorePrimitiveIntrinsic::MapRemove),
         ("std.collections.Map", "clear", 1) => Some(CorePrimitiveIntrinsic::MapClear),
+        ("std.core.Object", "new", 0) => Some(CorePrimitiveIntrinsic::MapNew),
+        ("std.core.Object", "from_entries", 1) => Some(CorePrimitiveIntrinsic::MapFromEntries),
+        ("std.core.Object", "is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
+        ("std.core.Object", "size", 1) => Some(CorePrimitiveIntrinsic::MapSize),
+        ("std.core.Object", "get", 2) => Some(CorePrimitiveIntrinsic::MapGet),
+        ("std.core.Object", "contains_key", 2) => Some(CorePrimitiveIntrinsic::MapContainsKey),
+        ("std.core.Object", "put", 3) => Some(CorePrimitiveIntrinsic::MapPut),
+        ("std.core.Object", "remove", 2) => Some(CorePrimitiveIntrinsic::MapRemove),
+        ("std.core.Object", "clear", 1) => Some(CorePrimitiveIntrinsic::MapClear),
         ("std.collections.Set", "new", 0) => Some(CorePrimitiveIntrinsic::SetNew),
+        ("std.collections.Set", "from_list", 1) => Some(CorePrimitiveIntrinsic::SetFromList),
         ("std.collections.Set", "is_empty", 1) => Some(CorePrimitiveIntrinsic::SetIsEmpty),
         ("std.collections.Set", "size", 1) => Some(CorePrimitiveIntrinsic::SetSize),
         ("std.collections.Set", "contains", 2) => Some(CorePrimitiveIntrinsic::SetContains),
@@ -253,6 +272,22 @@ pub(super) fn primitive_function_intrinsic(
             Some(CorePrimitiveIntrinsic::BeamNativeBridgeDispose)
         }
         ("std.beam.NativeBridge", "stop", 1) => Some(CorePrimitiveIntrinsic::BeamNativeBridgeStop),
+        ("std.beam.Bytes", "from_list", 1) => Some(CorePrimitiveIntrinsic::BeamBytesFromList),
+        ("std.beam.Bytes", "to_list", 1) => Some(CorePrimitiveIntrinsic::BeamBytesToList),
+        ("std.beam.Bytes", "length", 1) => Some(CorePrimitiveIntrinsic::BeamBytesLength),
+        ("std.beam.Bytes", "concat", 2) => Some(CorePrimitiveIntrinsic::BeamBytesConcat),
+        ("std.beam.Timeout", "milliseconds", 1) => {
+            Some(CorePrimitiveIntrinsic::BeamTimeoutMilliseconds)
+        }
+        ("std.beam.Timeout", "forever", 0) => Some(CorePrimitiveIntrinsic::BeamTimeoutForever),
+        ("std.beam.Tcp", "connect", 3) => Some(CorePrimitiveIntrinsic::BeamTcpConnect),
+        ("std.beam.Tcp", "send", 2) => Some(CorePrimitiveIntrinsic::BeamTcpSend),
+        ("std.beam.Tcp", "receive", 3) => Some(CorePrimitiveIntrinsic::BeamTcpReceive),
+        ("std.beam.Tcp", "close", 1) => Some(CorePrimitiveIntrinsic::BeamTcpClose),
+        ("std.beam.Port", "open", 1) => Some(CorePrimitiveIntrinsic::BeamPortOpen),
+        ("std.beam.Port", "write", 2) => Some(CorePrimitiveIntrinsic::BeamPortWrite),
+        ("std.beam.Port", "read", 3) => Some(CorePrimitiveIntrinsic::BeamPortRead),
+        ("std.beam.Port", "close", 1) => Some(CorePrimitiveIntrinsic::BeamPortClose),
         ("std.beam.Supervisor", "child_spec", 1) => {
             Some(CorePrimitiveIntrinsic::BeamSupervisorChildSpec)
         }
@@ -271,6 +306,7 @@ pub(super) fn primitive_function_intrinsic(
 /// - `module`: source module path or alias at the call boundary.
 /// - `function`: source function name.
 /// - `args`: source argument expressions.
+/// - `arg_names`: optional source argument names parallel to `args`.
 /// - `ctx`, `env`: active syntax lowering context and lexical environment.
 ///
 /// Output:
@@ -286,12 +322,33 @@ pub(super) fn lower_syntax_runtime_capability_call(
     module: &str,
     function: &str,
     args: &[SyntaxExprOutput],
+    arg_names: &[Option<String>],
     ctx: &SyntaxLowerCtx,
     env: &SyntaxLowerEnv,
 ) -> Option<ErlExpr> {
     let resolved_module = ctx.resolve_remote_module(module);
+    if let Some(expr) =
+        lower_http_response_builder_call(&resolved_module, function, args, arg_names, ctx, env)
+    {
+        return Some(expr);
+    }
+    if let Some(expr) =
+        lower_http_router_builder_call(&resolved_module, function, args, arg_names, ctx, env)
+    {
+        return Some(expr);
+    }
     match (resolved_module.as_str(), function, args.len()) {
         ("std.io.Console", "println", 1) => {
+            let lowered_args = args
+                .iter()
+                .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
+                .collect::<Option<Vec<_>>>()?;
+            lower_runtime_console_println(lowered_args)
+        }
+        ("std.log", "debug", 1)
+        | ("std.log", "info", 1)
+        | ("std.log", "warn", 1)
+        | ("std.log", "error", 1) => {
             let lowered_args = args
                 .iter()
                 .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
@@ -337,44 +394,81 @@ pub(super) fn lower_syntax_runtime_capability_call(
     }
 }
 
-/// Lowers compiler-known primitive receiver method calls.
+/// Orders primitive receiver method arguments by compiler-known parameter name.
 ///
 /// Inputs:
-/// - `callee`: field-access callee from a method call expression.
-/// - `args`: ordinary call arguments after the receiver.
-/// - `ctx`: syntax lowering context for module aliases and expression lowering.
-/// - `env`: local type environment used to infer receiver primitive type.
+/// - `method`: primitive receiver method name.
+/// - `args`: non-receiver source argument expressions.
+/// - `arg_names`: optional source names parallel to `args`.
 ///
 /// Output:
-/// - `Some(ErlExpr::Call)` for known primitive receiver methods.
-/// - `None` when the callee is not a primitive method call.
+/// - Argument references in primitive ABI order.
+/// - `None` when named metadata targets an unsupported primitive signature.
 ///
 /// Transformation:
-/// - Rewrites primitive receiver calls such as `"abc".trim()` or
-///   `1.to_string()` into CoreIR primitive intrinsic calls and delegates to the
-///   shared CoreIR intrinsic Erlang lowerer.
-pub(super) fn lower_syntax_primitive_receiver_method_call(
-    callee: &SyntaxExprOutput,
-    args: &[SyntaxExprOutput],
-    ctx: &SyntaxLowerCtx,
-    env: &SyntaxLowerEnv,
-) -> Option<ErlExpr> {
-    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+/// - Keeps positional calls unchanged and moves named primitive arguments into
+///   the order expected by the backend intrinsic lowerer.
+fn ordered_primitive_receiver_method_args<'a>(
+    method: &str,
+    args: &'a [SyntaxExprOutput],
+    arg_names: &[Option<String>],
+) -> Option<Vec<&'a SyntaxExprOutput>> {
+    if !arg_names.iter().any(Option::is_some) {
+        return Some(args.iter().collect());
+    }
+    let param_names = primitive_receiver_method_param_names(method, args.len())?;
+    if param_names.len() != args.len() {
         return None;
     }
-    let method = callee.text.as_deref()?;
-    let receiver = callee.children.first()?;
-    let receiver_type = infer_syntax_trait_dispatch_type(receiver, env)?;
-    let intrinsic = primitive_receiver_method_intrinsic(&receiver_type, method, args.len())?;
-    let mut lowered_args = Vec::with_capacity(args.len() + 1);
-    lowered_args.push(lower_syntax_expr_with_env(receiver, ctx, env)?);
-    lowered_args.extend(
-        args.iter()
-            .map(|arg| lower_syntax_expr_with_env(arg, ctx, env))
-            .collect::<Option<Vec<_>>>()?,
-    );
 
-    lower_core_primitive_intrinsic_to_erlang(&intrinsic, lowered_args)
+    let mut ordered = vec![None; args.len()];
+    for (index, arg) in args.iter().enumerate() {
+        match arg_names.get(index).and_then(Option::as_ref) {
+            Some(name) => {
+                let param_index = param_names.iter().position(|param| param == name)?;
+                if param_index < ordered.len() {
+                    ordered[param_index] = Some(arg);
+                }
+            }
+            None => {
+                if index < ordered.len() {
+                    ordered[index] = Some(arg);
+                }
+            }
+        }
+    }
+
+    ordered.into_iter().collect()
+}
+
+/// Returns parameter names for compiler-owned primitive receiver methods.
+///
+/// Inputs:
+/// - `method`: primitive receiver method name.
+/// - `arg_count`: number of non-receiver arguments.
+///
+/// Output:
+/// - Source parameter names in backend intrinsic order.
+///
+/// Transformation:
+/// - Mirrors the typechecker primitive scalar surface so syntax lowering can
+///   reorder named arguments without inferring semantic declarations.
+fn primitive_receiver_method_param_names(
+    method: &str,
+    arg_count: usize,
+) -> Option<Vec<&'static str>> {
+    match (method, arg_count) {
+        ("equal", 1) | ("compare", 1) => Some(vec!["other"]),
+        ("append", 1) => Some(vec!["suffix"]),
+        ("contains", 1) => Some(vec!["pattern"]),
+        ("starts_with", 1) => Some(vec!["prefix"]),
+        ("ends_with", 1) => Some(vec!["suffix"]),
+        ("replace", 2) => Some(vec!["pattern", "replacement"]),
+        ("split", 1) | ("split_once", 1) => Some(vec!["separator"]),
+        ("params", 1) | ("query", 1) | ("headers", 1) | ("cookies", 1) => Some(vec!["name"]),
+        (_, 0) => Some(Vec::new()),
+        _ => None,
+    }
 }
 
 /// Resolves a primitive receiver method to its compiler-owned intrinsic.
@@ -489,6 +583,13 @@ fn collection_receiver_method_intrinsic(
         ("Map", "put", 2) => Some(CorePrimitiveIntrinsic::MapPut),
         ("Map", "remove", 1) => Some(CorePrimitiveIntrinsic::MapRemove),
         ("Map", "clear", 0) => Some(CorePrimitiveIntrinsic::MapClear),
+        ("Object", "is_empty", 0) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
+        ("Object", "size", 0) => Some(CorePrimitiveIntrinsic::MapSize),
+        ("Object", "get", 1) => Some(CorePrimitiveIntrinsic::MapGet),
+        ("Object", "contains_key", 1) => Some(CorePrimitiveIntrinsic::MapContainsKey),
+        ("Object", "put", 2) => Some(CorePrimitiveIntrinsic::MapPut),
+        ("Object", "remove", 1) => Some(CorePrimitiveIntrinsic::MapRemove),
+        ("Object", "clear", 0) => Some(CorePrimitiveIntrinsic::MapClear),
         ("Set", "is_empty", 0) => Some(CorePrimitiveIntrinsic::SetIsEmpty),
         ("Set", "size", 0) => Some(CorePrimitiveIntrinsic::SetSize),
         ("Set", "contains", 1) => Some(CorePrimitiveIntrinsic::SetContains),
@@ -507,6 +608,15 @@ fn collection_receiver_method_intrinsic(
         ("NativeBridge", "call", 1) => Some(CorePrimitiveIntrinsic::BeamNativeBridgeCall),
         ("NativeBridge", "dispose", 0) => Some(CorePrimitiveIntrinsic::BeamNativeBridgeDispose),
         ("NativeBridge", "stop", 0) => Some(CorePrimitiveIntrinsic::BeamNativeBridgeStop),
+        ("Bytes", "to_list", 0) => Some(CorePrimitiveIntrinsic::BeamBytesToList),
+        ("Bytes", "length", 0) => Some(CorePrimitiveIntrinsic::BeamBytesLength),
+        ("Bytes", "concat", 1) => Some(CorePrimitiveIntrinsic::BeamBytesConcat),
+        ("TcpSocket", "send", 1) => Some(CorePrimitiveIntrinsic::BeamTcpSend),
+        ("TcpSocket", "receive", 2) => Some(CorePrimitiveIntrinsic::BeamTcpReceive),
+        ("TcpSocket", "close", 0) => Some(CorePrimitiveIntrinsic::BeamTcpClose),
+        ("Port", "write", 1) => Some(CorePrimitiveIntrinsic::BeamPortWrite),
+        ("Port", "read", 2) => Some(CorePrimitiveIntrinsic::BeamPortRead),
+        ("Port", "close", 0) => Some(CorePrimitiveIntrinsic::BeamPortClose),
         ("Supervisor", "start", 1) => Some(CorePrimitiveIntrinsic::BeamSupervisorStart),
         ("Supervisor", "stop", 1) => Some(CorePrimitiveIntrinsic::BeamSupervisorStop),
         _ => None,

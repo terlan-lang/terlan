@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CacheStorage
+ */
+
+module std.js.Dom.CacheStorage.
+
+/**
+ * The **`CacheStorage`** interface represents the storage for Cache objects.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage)
+ */
+pub opaque type CacheStorage.
+
+/**
+ * The **`delete()`** method of the CacheStorage interface finds the Cache object matching the `cacheName`, and if found, deletes the Cache object and returns a Promise that resolves to `true`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/delete)
+ */
+pub (value: CacheStorage) delete(cache_name: std.js.String.JsString): std.js.Promise[std.core.Bool] ->
+    native.
+
+/**
+ * The **`has()`** method of the CacheStorage interface returns a Promise that resolves to `true` if a You can access `CacheStorage` through the Window.caches property in windows or through the WorkerGlobalScope.caches property in workers.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/has)
+ */
+pub (value: CacheStorage) has(cache_name: std.js.String.JsString): std.js.Promise[std.core.Bool] ->
+    native.
+
+/**
+ * The **`keys()`** method of the CacheStorage interface returns a Promise that will resolve with an array containing strings corresponding to all of the named Cache objects tracked by the CacheStorage object in the order they were created.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/keys)
+ */
+pub (value: CacheStorage) keys(): std.js.Promise[std.js.Array[std.js.String.JsString]] ->
+    native.
+
+/**
+ * The **`match()`** method of the CacheStorage interface checks if a given Request or URL string is a key for a stored Response.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/match)
+ */
+pub (value: CacheStorage) match(request: RequestInfo | URL, options: MultiCacheQueryOptions): std.js.Promise[Option[Response]] ->
+    native.
+
+/**
+ * The **`open()`** method of the the Cache object matching the `cacheName`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/open)
+ */
+pub (value: CacheStorage) open(cache_name: std.js.String.JsString): std.js.Promise[Cache] ->
+    native.

@@ -1,8 +1,8 @@
 /**
- *Core enumerable trait.
+ * Core enumerable trait.
  *
- *`std.collections.Enumerable` is the portable contract for user-facing
- *collection consumption operations.
+ * `std.collections.Enumerable` is the portable contract for user-facing
+ * collection consumption operations.
  */
 
 module std.collections.Enumerable.
@@ -18,13 +18,13 @@ import std.core.Option.{None, Some}.
 import std.core.Unit.{Unit}.
 
 /**
- *Enumerable connects a collection type `C` to the item type `T` it contains.
+ * Enumerable connects a collection type `C` to the item type `T` it contains.
  *
- *Input: collection type `C` and contained item type `T`.
- *Output: a trait requiring effectful consumption and value transformation
- *methods.
- *Transformation: exposes collection behavior through callbacks while leaving
- *traversal-state creation to `std.collections.Iterable`.
+ * Input: collection type `C` and contained item type `T`.
+ * Output: a trait requiring effectful consumption and value transformation
+ * methods.
+ * Transformation: exposes collection behavior through callbacks while leaving
+ * traversal-state creation to `std.collections.Iterable`.
  */
 pub trait Enumerable[C, T] {
     each(collection: C, cb: (T) -> Unit): Unit.
@@ -34,14 +34,14 @@ pub trait Enumerable[C, T] {
 }.
 
 /**
- *Connects the portable List type to Enumerable consumption.
+ * Connects the portable List type to Enumerable consumption.
  *
- *Input: one `List[T]` and one callback from `T` to `Unit`.
- *Output: `Unit` for `each`, or a transformed `List[U]` for `map`.
- *Transformation: delegates to the compiler-owned `std.collections.List.each`
- *receiver contract for consumption and uses list-comprehension source shape
- *for transformation. Trait dispatch and direct receiver dispatch share the
- *same backend-neutral traversal shape.
+ * Input: one `List[T]` and one callback from `T` to `Unit`.
+ * Output: `Unit` for `each`, or a transformed `List[U]` for `map`.
+ * Transformation: delegates to the compiler-owned `std.collections.List.each`
+ * receiver contract for consumption and uses list-comprehension source shape
+ * for transformation. Trait dispatch and direct receiver dispatch share the
+ * same backend-neutral traversal shape.
  */
 pub impl Enumerable[List[T], T] for List[T] {
     each(collection: List[T], cb: (T) -> Unit): Unit ->
@@ -58,13 +58,13 @@ pub impl Enumerable[List[T], T] for List[T] {
 }.
 
 /**
- *Connects the portable Map type to Enumerable consumption.
+ * Connects the portable Map type to Enumerable consumption.
  *
- *Input: one `Map[K, V]` and callbacks over `{K, V}` pairs.
- *Output: `Unit` for `each`, a transformed `List[U]` for `map`, a filtered
- *`List[{K, V}]` for `filter`, or a folded accumulator for `fold`.
- *Transformation: delegates traversal to `Map.iterator(collection)` so the map
- *representation and traversal order remain backend-owned.
+ * Input: one `Map[K, V]` and callbacks over `{K, V}` pairs.
+ * Output: `Unit` for `each`, a transformed `List[U]` for `map`, a filtered
+ * `List[{K, V}]` for `filter`, or a folded accumulator for `fold`.
+ * Transformation: delegates traversal to `Map.iterator(collection)` so the map
+ * representation and traversal order remain backend-owned.
  */
 pub impl Enumerable[Map[K, V], {K, V}] for Map[K, V] {
     each(collection: Map[K, V], cb: ({K, V}) -> Unit): Unit ->
@@ -81,13 +81,13 @@ pub impl Enumerable[Map[K, V], {K, V}] for Map[K, V] {
 }.
 
 /**
- *Connects the portable Set type to Enumerable consumption.
+ * Connects the portable Set type to Enumerable consumption.
  *
- *Input: one `Set[T]` and callbacks over `T` values.
- *Output: `Unit` for `each`, a transformed `List[U]` for `map`, a filtered
- *`List[T]` for `filter`, or a folded accumulator for `fold`.
- *Transformation: delegates traversal to `Set.iterator(collection)` so the set
- *representation and traversal order remain backend-owned.
+ * Input: one `Set[T]` and callbacks over `T` values.
+ * Output: `Unit` for `each`, a transformed `List[U]` for `map`, a filtered
+ * `List[T]` for `filter`, or a folded accumulator for `fold`.
+ * Transformation: delegates traversal to `Set.iterator(collection)` so the set
+ * representation and traversal order remain backend-owned.
  */
 pub impl Enumerable[Set[T], T] for Set[T] {
     each(collection: Set[T], cb: (T) -> Unit): Unit ->
@@ -104,12 +104,12 @@ pub impl Enumerable[Set[T], T] for Set[T] {
 }.
 
 /**
- *Maps iterator values into a list.
+ * Maps iterator values into a list.
  *
- *Input: one `Iterator[T]` and a callback from `T` to `U`.
- *Output: a `List[U]` containing one transformed value for each yielded item.
- *Transformation: recursively consumes explicit iterator state and constructs a
- *persistent result list without relying on platform-native iterator protocols.
+ * Input: one `Iterator[T]` and a callback from `T` to `U`.
+ * Output: a `List[U]` containing one transformed value for each yielded item.
+ * Transformation: recursively consumes explicit iterator state and constructs a
+ * persistent result list without relying on platform-native iterator protocols.
  */
 map_iterator[T, U](iterator: Iterator[T], cb: (T) -> U): List[U] ->
     case Iterator.next(iterator) {
@@ -120,12 +120,12 @@ map_iterator[T, U](iterator: Iterator[T], cb: (T) -> U): List[U] ->
     }.
 
 /**
- *Filters iterator values into a list.
+ * Filters iterator values into a list.
  *
- *Input: one `Iterator[T]` and a predicate from `T` to `Bool`.
- *Output: a `List[T]` containing values whose predicate result is `true`.
- *Transformation: recursively consumes explicit iterator state and preserves the
- *relative yield order exposed by the selected backend iterator.
+ * Input: one `Iterator[T]` and a predicate from `T` to `Bool`.
+ * Output: a `List[T]` containing values whose predicate result is `true`.
+ * Transformation: recursively consumes explicit iterator state and preserves the
+ * relative yield order exposed by the selected backend iterator.
  */
 filter_iterator[T](iterator: Iterator[T], predicate: (T) -> Bool): List[T] ->
     case Iterator.next(iterator) {
@@ -141,13 +141,13 @@ filter_iterator[T](iterator: Iterator[T], predicate: (T) -> Bool): List[T] ->
     }.
 
 /**
- *Folds iterator values with an explicit accumulator.
+ * Folds iterator values with an explicit accumulator.
  *
- *Input: one `Iterator[T]`, an initial accumulator `U`, and a reducer from
- *`(U, T)` to `U`.
- *Output: the final accumulator.
- *Transformation: recursively consumes explicit iterator state and applies the
- *reducer in source order using Terlan's accumulator-first callback convention.
+ * Input: one `Iterator[T]`, an initial accumulator `U`, and a reducer from
+ * `(U, T)` to `U`.
+ * Output: the final accumulator.
+ * Transformation: recursively consumes explicit iterator state and applies the
+ * reducer in source order using Terlan's accumulator-first callback convention.
  */
 fold_iterator[T, U](iterator: Iterator[T], acc: U, reducer: (U, T) -> U): U ->
     case Iterator.next(iterator) {

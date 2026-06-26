@@ -1,0 +1,8 @@
+module=std.js.Dom.RTCInboundRtpStreamStats
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=2846243543948059278
+interface_hash=6385427117606926672
+interface_doc_hash=6385427117606926672
+deps=0

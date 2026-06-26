@@ -1,0 +1,8 @@
+module=std.js.Dom.PerformancePaintTiming
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=17785849451470730980
+interface_hash=9023816356244611481
+interface_doc_hash=9023816356244611481
+deps=0

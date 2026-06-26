@@ -1,5 +1,9 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+
+use serde_json::json;
+use terlan_hir::module_path_to_safe_native_module;
 
 use crate::validation::native_policy::NativePolicy;
 
@@ -31,33 +35,35 @@ impl NativeMetadata {
     /// - Pretty JSON text ending in a trailing newline.
     ///
     /// Transformation:
-    /// - Escapes string fields and renders function signatures as name/arity
-    ///   objects with optional compiler-native operation identifiers.
+    /// - Serializes string fields through `serde_json` and renders function
+    ///   signatures as name/arity objects with optional compiler-native
+    ///   operation identifiers.
     pub(crate) fn to_json(&self) -> String {
-        let functions =
-            self.functions
-                .iter()
-                .map(|function| {
-                    let operation = function.operation.as_ref().map(|operation| {
-                        format!(", \"operation\": \"{}\"", escape_json(operation))
-                    });
-                    format!(
-                        "\n    {{ \"name\": \"{}\", \"arity\": {}{} }}",
-                        escape_json(&function.name),
-                        function.arity,
-                        operation.as_deref().unwrap_or("")
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(",");
-        format!(
-            "{{\n  \"source_module\": \"{}\",\n  \"module\": \"{}\",\n  \"scheduler\": \"{}\",\n  \"native_policy\": \"{}\",\n  \"functions\": [{}]\n}}\n",
-            escape_json(&self.source_module),
-            escape_json(&self.native_module),
-            escape_json(&self.scheduler),
-            self.native_policy.as_str(),
-            functions
-        )
+        let functions = self
+            .functions
+            .iter()
+            .map(|function| {
+                let mut value = json!({
+                    "name": function.name,
+                    "arity": function.arity,
+                });
+                if let Some(operation) = &function.operation {
+                    value["operation"] = json!(operation);
+                }
+                value
+            })
+            .collect::<Vec<_>>();
+        let metadata = json!({
+            "source_module": self.source_module,
+            "module": self.native_module,
+            "scheduler": self.scheduler,
+            "native_policy": self.native_policy.as_str(),
+            "functions": functions,
+        });
+        let mut rendered =
+            serde_json::to_string_pretty(&metadata).expect("native metadata JSON should serialize");
+        rendered.push('\n');
+        rendered
     }
 }
 
@@ -175,7 +181,8 @@ pub(crate) fn extract_native_metadata(
 ) -> Result<NativeMetadata, String> {
     let source_module = extract_declared_module_name(source)
         .ok_or_else(|| "native metadata source is missing module declaration".to_string())?;
-    let compiler_native_functions = extract_compiler_native_functions(source);
+    let compiler_native_functions =
+        dedupe_native_function_signatures(extract_compiler_native_functions(source));
     if compiler_native_functions.is_empty() {
         return Err("native metadata source is missing @compiler.native declarations".to_string());
     }
@@ -254,6 +261,39 @@ fn extract_compiler_native_functions(source: &str) -> Vec<NativeFunctionSignatur
             out.push(signature);
         }
         pending_operation = None;
+    }
+
+    out
+}
+
+/// Removes duplicate native backend signatures while preserving source order.
+///
+/// Inputs:
+/// - `functions`: native declarations extracted from source annotations.
+///
+/// Output:
+/// - Function signatures with duplicate `(name, arity, operation)` rows
+///   removed.
+///
+/// Transformation:
+/// - Keeps the first occurrence of each backend signature so source-level
+///   overloads may share a native operation without generating duplicate
+///   metadata rows or duplicate Rust match arms.
+fn dedupe_native_function_signatures(
+    functions: Vec<NativeFunctionSignature>,
+) -> Vec<NativeFunctionSignature> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+
+    for function in functions {
+        let key = (
+            function.name.clone(),
+            function.arity,
+            function.operation.clone(),
+        );
+        if seen.insert(key) {
+            out.push(function);
+        }
     }
 
     out
@@ -347,61 +387,6 @@ fn parse_compiler_native_receiver_signature(signature: &str) -> Option<NativeFun
         arity: native_signature_arity(args) + 1,
         operation: None,
     })
-}
-
-/// Derives the SafeNative backend module from a Terlan module path.
-///
-/// Inputs:
-/// - `module`: source module path such as `std.data.Json`.
-///
-/// Output:
-/// - Lower-snake SafeNative module name such as `std_data_json_safe_native`.
-///
-/// Transformation:
-/// - Converts each path segment to lower snake case, joins segments with
-///   underscores, and appends the SafeNative suffix.
-fn module_path_to_safe_native_module(module: &str) -> String {
-    let base = module
-        .split('.')
-        .filter(|segment| !segment.is_empty())
-        .map(identifier_to_snake)
-        .collect::<Vec<_>>()
-        .join("_");
-    format!("{base}_safe_native")
-}
-
-/// Converts one identifier segment to lower snake case.
-///
-/// Inputs:
-/// - `segment`: module path segment in Terlan casing.
-///
-/// Output:
-/// - Lower-snake representation.
-///
-/// Transformation:
-/// - Inserts underscores before uppercase boundaries where needed and lowers
-///   alphabetic characters.
-fn identifier_to_snake(segment: &str) -> String {
-    let mut out = String::new();
-    let mut previous_was_lower_or_digit = false;
-    for ch in segment.chars() {
-        if ch.is_ascii_uppercase() {
-            if previous_was_lower_or_digit && !out.ends_with('_') {
-                out.push('_');
-            }
-            out.push(ch.to_ascii_lowercase());
-            previous_was_lower_or_digit = false;
-        } else if ch == '-' {
-            if !out.ends_with('_') {
-                out.push('_');
-            }
-            previous_was_lower_or_digit = false;
-        } else {
-            out.push(ch.to_ascii_lowercase());
-            previous_was_lower_or_digit = ch.is_ascii_lowercase() || ch.is_ascii_digit();
-        }
-    }
-    out
 }
 
 /// Finds the closing parenthesis for an opening parenthesis.
@@ -520,6 +505,7 @@ fn emit_safe_native_erl_stub(metadata: &NativeMetadata) -> String {
     out.push_str("-export([load/0, metadata/0, operations/0]).\n");
     out.push_str("-export([start_worker/1, call_worker/3, dispose_worker/2, stop_worker/1]).\n");
     out.push_str("-on_load(load/0).\n");
+    out.push_str("-record(error, {code, message}).\n");
     for function in &metadata.functions {
         out.push_str(&format!(
             "-export([{}/{}]).\n",
@@ -528,10 +514,7 @@ fn emit_safe_native_erl_stub(metadata: &NativeMetadata) -> String {
     }
     out.push('\n');
     out.push_str("load() ->\n");
-    out.push_str("    case os:getenv(\"TERLAN_SAFE_NATIVE_PATH\") of\n");
-    out.push_str("        false -> ok;\n");
-    out.push_str("        _Path -> ok\n");
-    out.push_str("    end.\n\n");
+    out.push_str("    ok.\n\n");
     out.push_str("metadata() ->\n");
     out.push_str("    #{source_module => ");
     out.push_str(&erlang_binary_literal(&metadata.source_module));
@@ -562,35 +545,200 @@ fn emit_safe_native_erl_stub(metadata: &NativeMetadata) -> String {
         }
         out.push_str("].\n\n");
     }
-    out.push_str("start_worker(_Options) ->\n");
-    out.push_str("    {error, safe_native_not_loaded_error()}.\n\n");
+    out.push_str("start_worker(Options) ->\n");
+    out.push_str("    case helper_path() of\n");
+    out.push_str("        {ok, Path} ->\n");
+    out.push_str("            Parent = self(),\n");
+    out.push_str("            Pid = spawn_link(fun() ->\n");
+    out.push_str("                Port = open_port({spawn_executable, Path}, [binary, exit_status, use_stdio, stderr_to_stdout, {line, 65536}, {args, helper_args(Options)}]),\n");
+    out.push_str("                Parent ! {self(), started},\n");
+    out.push_str("                worker_loop(Port)\n");
+    out.push_str("            end),\n");
+    out.push_str("            receive\n");
+    out.push_str("                {Pid, started} -> {ok, Pid}\n");
+    out.push_str("            after 5000 ->\n");
+    out.push_str("                {error, safe_native_error(<<\"safe_native.start_timeout\">>, <<\"SafeNative helper did not start.\">>)}\n");
+    out.push_str("            end;\n");
+    out.push_str("        {error, Error} -> {error, Error}\n");
+    out.push_str("    end.\n\n");
     out.push_str(
         "call_worker(RequestId, Operation, Args) when is_integer(RequestId), is_list(Args) ->\n",
     );
-    out.push_str("    _ = Operation,\n");
-    out.push_str(
-        "    {safe_native_reply, RequestId, {error, safe_native_not_loaded_error()}, 0}.\n\n",
-    );
+    out.push_str("    case ensure_worker() of\n");
+    out.push_str("        {ok, Worker} ->\n");
+    out.push_str("            Worker ! {self(), RequestId, Operation, Args},\n");
+    out.push_str("            receive\n");
+    out.push_str("                {safe_native_reply, RequestId, Result, Credits} ->\n");
+    out.push_str("                    {safe_native_reply, RequestId, Result, Credits}\n");
+    out.push_str("            after 30000 ->\n");
+    out.push_str("                {safe_native_reply, RequestId, {error, safe_native_error(<<\"safe_native.timeout\">>, <<\"SafeNative helper did not reply before timeout.\">>)}, 0}\n");
+    out.push_str("            end;\n");
+    out.push_str("        {error, Error} ->\n");
+    out.push_str("            {safe_native_reply, RequestId, {error, Error}, 0}\n");
+    out.push_str("    end.\n\n");
     out.push_str("dispose_worker(RequestId, _Handle) when is_integer(RequestId) ->\n");
-    out.push_str(
-        "    {safe_native_reply, RequestId, {error, safe_native_not_loaded_error()}, 0}.\n\n",
-    );
+    out.push_str("    {safe_native_reply, RequestId, {ok, unit}, 0}.\n\n");
     out.push_str("stop_worker(_Bridge) ->\n");
     out.push_str("    ok.\n\n");
+    out.push_str("helper_path() ->\n");
+    out.push_str("    case os:getenv(\"TERLAN_SAFE_NATIVE_PATH\") of\n");
+    out.push_str("        false -> {error, safe_native_not_loaded_error()};\n");
+    out.push_str("        \"\" -> {error, safe_native_not_loaded_error()};\n");
+    out.push_str("        Path -> {ok, Path}\n");
+    out.push_str("    end.\n\n");
+    out.push_str("helper_args(Options) when is_list(Options) ->\n");
+    out.push_str("    case proplists:get_value(args, Options, []) of\n");
+    out.push_str("        Args when is_list(Args) -> Args;\n");
+    out.push_str("        _ -> []\n");
+    out.push_str("    end;\n");
+    out.push_str("helper_args(_) ->\n");
+    out.push_str("    [].\n\n");
+    out.push_str("ensure_worker() ->\n");
+    out.push_str("    Key = {?MODULE, safe_native_worker},\n");
+    out.push_str("    case persistent_term:get(Key, undefined) of\n");
+    out.push_str("        Pid when is_pid(Pid) ->\n");
+    out.push_str("            case is_process_alive(Pid) of\n");
+    out.push_str("                true -> {ok, Pid};\n");
+    out.push_str("                false -> start_and_store_worker(Key)\n");
+    out.push_str("            end;\n");
+    out.push_str("        _ -> start_and_store_worker(Key)\n");
+    out.push_str("    end.\n\n");
+    out.push_str("start_and_store_worker(Key) ->\n");
+    out.push_str("    case start_worker([]) of\n");
+    out.push_str("        {ok, Pid} ->\n");
+    out.push_str("            persistent_term:put(Key, Pid),\n");
+    out.push_str("            {ok, Pid};\n");
+    out.push_str("        {error, Error} -> {error, Error}\n");
+    out.push_str("    end.\n\n");
+    out.push_str("worker_loop(Port) ->\n");
+    out.push_str("    receive\n");
+    out.push_str("        {Caller, RequestId, Operation, Args} ->\n");
+    out.push_str("            port_command(Port, [encode_request(RequestId, Operation, Args), <<\"\\n\">>]),\n");
+    out.push_str("            Result = read_port_reply(Port),\n");
+    out.push_str("            Caller ! {safe_native_reply, RequestId, Result, 32},\n");
+    out.push_str("            worker_loop(Port);\n");
+    out.push_str("        {Port, {exit_status, _Status}} ->\n");
+    out.push_str("            ok;\n");
+    out.push_str("        stop ->\n");
+    out.push_str("            port_close(Port),\n");
+    out.push_str("            ok\n");
+    out.push_str("    end.\n\n");
+    out.push_str("read_port_reply(Port) ->\n");
+    out.push_str("    receive\n");
+    out.push_str("        {Port, {data, {eol, Line}}} -> decode_reply(iolist_to_binary(Line));\n");
+    out.push_str(
+        "        {Port, {data, {noeol, Line}}} -> decode_reply(iolist_to_binary(Line));\n",
+    );
+    out.push_str("        {Port, {data, Line}} -> decode_reply(iolist_to_binary(Line));\n");
+    out.push_str("        {Port, {exit_status, Status}} -> {error, safe_native_error(<<\"safe_native.helper_exit\">>, list_to_binary(io_lib:format(\"SafeNative helper exited with status ~p.\", [Status])))}\n");
+    out.push_str("    after 30000 ->\n");
+    out.push_str("        {error, safe_native_error(<<\"safe_native.timeout\">>, <<\"SafeNative helper did not produce a reply line.\">>)}\n");
+    out.push_str("    end.\n\n");
+    out.push_str("encode_request(RequestId, Operation, Args) ->\n");
+    out.push_str("    EncodedArgs = [encode_arg(Arg) || Arg <- Args],\n");
+    out.push_str("    iolist_to_binary(lists:join(<<\" \">>, [<<\"call\">>, integer_to_binary(RequestId), base64:encode(operation_binary(Operation)) | EncodedArgs])).\n\n");
+    out.push_str("operation_binary(Operation) when is_binary(Operation) -> Operation;\n");
+    out.push_str(
+        "operation_binary(Operation) when is_atom(Operation) -> atom_to_binary(Operation, utf8);\n",
+    );
+    out.push_str("operation_binary(Operation) when is_list(Operation) -> unicode:characters_to_binary(Operation).\n\n");
+    out.push_str("encode_arg(Value) when is_binary(Value) ->\n");
+    out.push_str("    <<\"s:\", (base64:encode(Value))/binary>>;\n");
+    out.push_str("encode_arg(Value) when is_integer(Value) ->\n");
+    out.push_str("    <<\"i:\", (integer_to_binary(Value))/binary>>;\n");
+    out.push_str("encode_arg({safe_native_handle, _Module, Id, Generation, Type}) when is_integer(Id), is_integer(Generation) ->\n");
+    out.push_str("    TypeBinary = operation_binary(Type),\n");
+    out.push_str("    <<\"h:\", (integer_to_binary(Id))/binary, \":\", (integer_to_binary(Generation))/binary, \":\", (base64:encode(TypeBinary))/binary>>;\n");
+    out.push_str("encode_arg(Value) when is_list(Value) ->\n");
+    out.push_str("    case is_charlist(Value) of\n");
+    out.push_str("        true -> <<\"s:\", (base64:encode(unicode:characters_to_binary(Value)))/binary>>;\n");
+    out.push_str("        false -> encode_string_list(Value)\n");
+    out.push_str("    end;\n");
+    out.push_str("encode_arg(Value) ->\n");
+    out.push_str("    <<\"u:\", (base64:encode(term_to_binary(Value)))/binary>>.\n\n");
+    out.push_str("encode_string_list(Values) ->\n");
+    out.push_str("    Encoded = [base64:encode(operation_binary(Value)) || Value <- Values],\n");
+    out.push_str("    iolist_to_binary([<<\"ls:\">>, lists:join(<<\",\">>, Encoded)]).\n\n");
+    out.push_str("is_charlist([]) -> true;\n");
+    out.push_str("is_charlist(Value) ->\n");
+    out.push_str("    lists:all(fun(Item) -> is_integer(Item) andalso Item >= 0 andalso Item =< 16#10ffff end, Value).\n\n");
+    out.push_str("decode_reply(Line) ->\n");
+    out.push_str("    case binary:split(trim_line(Line), <<\" \">>, [global]) of\n");
+    out.push_str("        [<<\"result_ok_handle\">>, Id, Generation, Type] -> {ok, {ok, handle(Id, Generation, Type)}};\n");
+    out.push_str(
+        "        [<<\"result_ok_string\">>, Value] -> {ok, {ok, decode_string(Value)}};\n",
+    );
+    out.push_str(
+        "        [<<\"result_ok_int\">>, Value] -> {ok, {ok, binary_to_integer(Value)}};\n",
+    );
+    out.push_str(
+        "        [<<\"result_ok_bool\">>, Value] -> {ok, {ok, Value =:= <<\"true\">>}};\n",
+    );
+    out.push_str("        [<<\"ok_handle\">>, Id, Generation, Type] -> {ok, handle(Id, Generation, Type)};\n");
+    out.push_str("        [<<\"ok_string\">>, Value] -> {ok, decode_string(Value)};\n");
+    out.push_str("        [<<\"ok_int\">>, Value] -> {ok, binary_to_integer(Value)};\n");
+    out.push_str("        [<<\"ok_bool\">>, Value] -> {ok, Value =:= <<\"true\">>};\n");
+    out.push_str("        [<<\"ok_strings\">>, Values] -> {ok, decode_string_list(Values)};\n");
+    out.push_str("        [<<\"ok_unit\">>] -> {ok, unit};\n");
+    out.push_str("        [<<\"result_err\">>, Code, Message] -> {ok, {error, safe_native_error(base64:decode(Code), base64:decode(Message))}};\n");
+    out.push_str("        [<<\"err\">>, Code, Message] -> {error, safe_native_error(base64:decode(Code), base64:decode(Message))};\n");
+    out.push_str("        _ -> {error, safe_native_error(<<\"safe_native.protocol_error\">>, <<\"SafeNative helper returned an invalid reply.\">>)}\n");
+    out.push_str("    end.\n\n");
+    out.push_str("trim_line(Line) ->\n");
+    out.push_str("    case byte_size(Line) of\n");
+    out.push_str("        0 -> Line;\n");
+    out.push_str("        Size ->\n");
+    out.push_str("            case binary:at(Line, Size - 1) of\n");
+    out.push_str("                13 -> binary:part(Line, 0, Size - 1);\n");
+    out.push_str("                _ -> Line\n");
+    out.push_str("            end\n");
+    out.push_str("    end.\n\n");
+    out.push_str("handle(Id, Generation, Type) ->\n");
+    out.push_str("    {safe_native_handle, ?MODULE, binary_to_integer(Id), binary_to_integer(Generation), base64:decode(Type)}.\n\n");
+    out.push_str("decode_string_list(<<>>) -> [];\n");
+    out.push_str("decode_string_list(Values) ->\n");
+    out.push_str(
+        "    [decode_string(Value) || Value <- binary:split(Values, <<\",\">>, [global])].\n\n",
+    );
+    out.push_str("decode_string(Value) ->\n");
+    out.push_str("    unicode:characters_to_list(base64:decode(Value), utf8).\n\n");
     out.push_str("safe_native_not_loaded_error() ->\n");
-    out.push_str("    #{code => <<\"safe_native.not_loaded\">>,\n");
-    out.push_str("      message => <<\"SafeNative library is not loaded.\">>,\n");
-    out.push_str("      offset => 0}.\n\n");
+    out.push_str("    safe_native_error(<<\"safe_native.not_loaded\">>, <<\"SafeNative library is not loaded. Set TERLAN_SAFE_NATIVE_PATH to a package helper executable.\">>).\n\n");
+    out.push_str("safe_native_error(Code, Message) ->\n");
+    out.push_str("    #error{code = error_code_atom(Code), message = Message}.\n\n");
+    out.push_str("error_code_atom(Code) when is_binary(Code) ->\n");
+    out.push_str("    binary_to_atom(sanitize_error_code(Code), utf8).\n\n");
+    out.push_str("sanitize_error_code(Code) ->\n");
+    out.push_str("    << <<(sanitize_error_code_char(Char))>> || <<Char>> <= Code >>.\n\n");
+    out.push_str("sanitize_error_code_char(Char) when Char >= $a, Char =< $z -> Char;\n");
+    out.push_str("sanitize_error_code_char(Char) when Char >= $A, Char =< $Z -> Char + 32;\n");
+    out.push_str("sanitize_error_code_char(Char) when Char >= $0, Char =< $9 -> Char;\n");
+    out.push_str("sanitize_error_code_char($_) -> $_;\n");
+    out.push_str("sanitize_error_code_char($.) -> $_;\n");
+    out.push_str("sanitize_error_code_char($-) -> $_;\n");
+    out.push_str("sanitize_error_code_char(_) -> $_.\n\n");
     for function in &metadata.functions {
         let vars = (0..function.arity)
             .map(|idx| format!("A{}", idx + 1))
-            .collect::<Vec<_>>()
-            .join(", ");
+            .collect::<Vec<_>>();
+        let vars_joined = vars.join(", ");
+        let operation = function.operation.as_deref().unwrap_or(&function.name);
         out.push_str(&format!(
-            "{}({}) ->\n    {{error, safe_native_not_loaded_error()}}.\n\n",
-            function.name, vars
+            "{}({}) ->\n    call_operation({}, [{}]).\n\n",
+            function.name,
+            vars_joined,
+            erlang_binary_literal(operation),
+            vars_joined
         ));
     }
+    out.push_str("call_operation(Operation, Args) ->\n");
+    out.push_str("    RequestId = erlang:unique_integer([positive, monotonic]),\n");
+    out.push_str("    case call_worker(RequestId, Operation, Args) of\n");
+    out.push_str("        {safe_native_reply, RequestId, {ok, Value}, _Credits} -> Value;\n");
+    out.push_str(
+        "        {safe_native_reply, RequestId, {error, Error}, _Credits} -> {error, Error}\n",
+    );
+    out.push_str("    end.\n\n");
     out
 }
 
@@ -795,7 +943,7 @@ fn emit_safe_native_rust_stub(metadata: &NativeMetadata) -> String {
         let operation = function.operation.as_deref().unwrap_or(&function.name);
         out.push_str(&format!(
             "                        \"{}\" => native_unimplemented_operation(operation),\n",
-            escape_json(operation)
+            escape_rust_string(operation)
         ));
     }
     out.push_str("                        _ => native_unknown_operation(operation),\n");
@@ -867,18 +1015,18 @@ fn escape_erlang_quoted_atom(input: &str) -> String {
     format!("'{}'", escaped)
 }
 
-/// Escapes text for JSON string contents.
+/// Escapes text for a generated Rust string literal body.
 ///
 /// Inputs:
-/// - `input`: raw text.
+/// - `input`: raw string content.
 ///
 /// Output:
-/// - Text safe to place inside a JSON string literal.
+/// - Text safe to place between double quotes in generated Rust source.
 ///
 /// Transformation:
-/// - Escapes JSON quote, slash, and control characters used by generated
-///   metadata.
-fn escape_json(input: &str) -> String {
+/// - Escapes Rust quote, slash, and common control characters used by generated
+///   SafeNative operation names.
+fn escape_rust_string(input: &str) -> String {
     input
         .replace('\\', "\\\\")
         .replace('"', "\\\"")

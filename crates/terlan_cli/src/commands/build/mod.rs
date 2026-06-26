@@ -1,34 +1,51 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Output};
+use std::time::Instant;
 
 use terlan_erlang::{
-    emit_html_runtime_to_erlang, try_emit_core_module_to_erlang_with_syntax_bridge,
-    try_emit_syntax_struct_headers_to_hrl,
+    emit_html_runtime_to_erlang, emit_native_vector_runtime_to_erlang, emit_sql_runtime_to_erlang,
+    try_emit_core_module_to_erlang_with_syntax_bridge, try_emit_syntax_struct_headers_to_hrl,
 };
+use terlan_hir::syntax_module_output_to_interface;
+use terlan_typeck::expand_syntax_raw_macros;
 
 use crate::commands::artifacts::{
     collect_syntax_file_import_bytes, collect_syntax_markdown_inputs,
     collect_syntax_template_inputs, fingerprint,
 };
+use crate::commands::source_layout::expected_module_name_for_source_path;
 use crate::formal_pipeline::CheckedSyntaxModuleArtifacts;
-use crate::validation::target_profile::{
-    target_profile_std_module_import_error, TargetProfile, TargetProfileCheckOptions,
-};
+use crate::validation::native_policy::{source_uses_native, NativePolicy};
+use crate::validation::target_profile::{TargetFamily, TargetProfile, TargetProfileCheckOptions};
 use crate::{CliCommand, CliState};
 
 mod js;
+mod js_assets;
 mod js_browser;
+mod js_model;
+mod js_source_classification;
 mod metadata;
+mod package_artifact;
 mod package_layout;
+mod project_roots;
+mod target_gate;
+mod wasm_model;
 
-use package_layout::{source_package_path, validate_project_source_package_root};
+use package_artifact::{
+    validate_build_entrypoint, write_build_executable_launcher, write_build_package_metadata,
+};
+use package_layout::validate_project_source_package_root;
+use project_roots::{reject_unsupported_external_dependencies, resolve_project_build_roots};
+use target_gate::{
+    reject_erlang_native_package_source, reject_unsupported_target_std_source,
+    target_profile_supports_erlang_backend,
+};
 
 use metadata::{
     build_package_metadata, BuildDebugMap, BuildDebugModuleEntry, BuildDebugProject,
-    BuildEntrypoint, BuildEntrypointFunction, BuildModuleArtifact, BuildPackageExecutable,
-    BuildPackageMetadata, ProjectBuildRoots, ProjectSourceRoot,
+    BuildEntrypointFunction, BuildModuleArtifact, BuildPackageMetadata, ProjectSourceRoot,
 };
 
 pub(crate) mod project_manifest;
@@ -54,6 +71,68 @@ const BUILD_DEBUG_MAP_SCHEMA: &str = "terlan-build-debug-map-v1";
 const BUILD_PACKAGE_METADATA_FILE: &str = "terlan-package-build.json";
 const BUILD_PACKAGE_METADATA_SCHEMA: &str = "terlan-package-build-v1";
 const TERLAN_PROJECT_MANIFEST_FILE: &str = "terlan.toml";
+
+/// Timing probe for optional `terlc build --timings` output.
+///
+/// Inputs:
+/// - Wall-clock instants captured as build phases are reached.
+///
+/// Output:
+/// - Human-readable timing lines on stderr when enabled.
+///
+/// Transformation:
+/// - Computes phase deltas and total elapsed time without changing build
+///   artifacts.
+struct BuildTimings {
+    enabled: bool,
+    started: Instant,
+    last: Instant,
+}
+
+impl BuildTimings {
+    /// Creates a build timing tracker.
+    ///
+    /// Inputs:
+    /// - `enabled`: whether timing output should be emitted.
+    ///
+    /// Output:
+    /// - Initialized timing state anchored at the current instant.
+    ///
+    /// Transformation:
+    /// - Captures the start and last phase clocks from the same timestamp.
+    fn new(enabled: bool) -> Self {
+        let now = Instant::now();
+        Self {
+            enabled,
+            started: now,
+            last: now,
+        }
+    }
+
+    /// Records completion of one build phase.
+    ///
+    /// Inputs:
+    /// - `phase`: display name for the completed phase.
+    ///
+    /// Output:
+    /// - Optional stderr timing line.
+    ///
+    /// Transformation:
+    /// - Converts elapsed wall-clock durations into millisecond diagnostics and
+    ///   advances the phase boundary.
+    fn mark(&mut self, phase: &str) {
+        if !self.enabled {
+            return;
+        }
+        let now = Instant::now();
+        eprintln!(
+            "terlc timing: {phase}: +{}ms total={}ms",
+            now.duration_since(self.last).as_millis(),
+            now.duration_since(self.started).as_millis()
+        );
+        self.last = now;
+    }
+}
 
 /// Error shape for one source build attempt.
 ///
@@ -232,25 +311,16 @@ fn parse_build_target(value: &str) -> Result<BuildTarget, String> {
         )
         .map(BuildTarget::Js)
         .ok_or_else(|| {
-            format!("unsupported build target `{js_target}`; supported targets: erlang, js, js.shared, js.browser, js.worker")
+            if let Some(family) = TargetFamily::reserved_target(js_target) {
+                format!(
+                    "build target `{js_target}` is reserved for the {} target family but is not implemented yet; supported targets: erlang, js, js.shared, js.browser, js.worker",
+                    family.as_str()
+                )
+            } else {
+                format!("unsupported build target `{js_target}`; supported targets: erlang, js, js.shared, js.browser, js.worker")
+            }
         }),
     }
-}
-
-/// Returns whether a target profile can produce Erlang artifacts.
-///
-/// Inputs:
-/// - `profile`: globally selected target-profile gate.
-///
-/// Output:
-/// - `true` when the profile is Erlang-compatible.
-///
-/// Transformation:
-/// - Treats the general `erlang` profile and release-slice `*-erlang` profiles
-///   as valid build gates, while rejecting backend-agnostic profiles such as
-///   `core-v0`.
-fn target_profile_supports_erlang_backend(profile: TargetProfile) -> bool {
-    profile == TargetProfile::Erlang || profile.as_str().ends_with("-erlang")
 }
 
 /// Runs the single-file Erlang build.
@@ -306,240 +376,6 @@ fn run_erlang_directory_build(dir: &Path, state: &CliState) -> ExitCode {
     run_erlang_source_root_build(dir, state)
 }
 
-/// Resolves project and local path dependency source roots.
-///
-/// Inputs:
-/// - `project_dir`: root package directory.
-/// - `manifest`: parsed root package manifest.
-///
-/// Output:
-/// - Ordered project source roots, including local dependency roots first.
-/// - `Err(String)` when a local dependency path is invalid, lacks
-///   `terlan.toml`, has a missing source root, or participates in a cycle.
-///
-/// Transformation:
-/// - Recursively walks only local `path` dependencies and leaves target-scoped
-///   external dependency metadata for later target-adapter diagnostics.
-fn resolve_project_build_roots(
-    project_dir: &Path,
-    manifest: &project_manifest::ProjectManifest,
-) -> Result<ProjectBuildRoots, String> {
-    reject_unsupported_external_dependencies(manifest)?;
-    let mut resolver = LocalDependencyResolver::default();
-    let root_dir = canonical_project_dir(project_dir)?;
-    resolver.resolve_package(&root_dir, manifest)?;
-    Ok(ProjectBuildRoots {
-        source_roots: resolver.source_roots,
-    })
-}
-
-/// Rejects target-scoped external dependency metadata for the current build.
-///
-/// Inputs:
-/// - `manifest`: parsed root project manifest.
-///
-/// Output:
-/// - `Ok(())` when no unsupported external dependency metadata is present.
-/// - `Err(String)` with a stable diagnostic for the first unsupported external
-///   dependency.
-///
-/// Transformation:
-/// - Allows local path dependencies to continue into closure validation and
-///   stops `hex`, `npm`, and `cargo` dependencies before backend emission until
-///   target package-manager adapters land.
-fn reject_unsupported_external_dependencies(
-    manifest: &project_manifest::ProjectManifest,
-) -> Result<(), String> {
-    for dependency in &manifest.dependencies {
-        if let Some((target, source, package, version)) = external_dependency_metadata(dependency) {
-            return Err(format!(
-                "terlc build package `{}` declares unsupported {} dependency `{}` from {} package `{}` version `{}`; package-manager integration is not available in A0.42.4",
-                manifest.package.name,
-                target,
-                dependency.alias,
-                source,
-                package,
-                version
-            ));
-        }
-    }
-    Ok(())
-}
-
-/// Extracts target-scoped external dependency metadata.
-///
-/// Inputs:
-/// - `dependency`: parsed project dependency.
-///
-/// Output:
-/// - Target name, source kind, package name, and version for external
-///   dependencies.
-/// - `None` for local path dependencies.
-///
-/// Transformation:
-/// - Converts dependency enum variants into diagnostic strings without
-///   changing dependency resolution state.
-fn external_dependency_metadata(
-    dependency: &project_manifest::ProjectDependency,
-) -> Option<(&'static str, &'static str, &str, &str)> {
-    match (&dependency.scope, &dependency.source) {
-        (
-            project_manifest::ProjectDependencyScope::Target(
-                project_manifest::ProjectTarget::Erlang,
-            ),
-            project_manifest::ProjectDependencySource::Hex { package, version },
-        ) => Some(("erlang", "hex", package.as_str(), version.as_str())),
-        (
-            project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Js),
-            project_manifest::ProjectDependencySource::Npm { package, version },
-        ) => Some(("js", "npm", package.as_str(), version.as_str())),
-        (
-            project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Rust),
-            project_manifest::ProjectDependencySource::Cargo {
-                package, version, ..
-            },
-        ) => Some(("rust", "cargo", package.as_str(), version.as_str())),
-        _ => None,
-    }
-}
-
-/// Resolver state for local path dependency closure.
-///
-/// Inputs:
-/// - Created per project build.
-///
-/// Output:
-/// - Accumulates ordered source roots and cycle/duplicate tracking state.
-///
-/// Transformation:
-/// - Tracks packages currently being visited separately from packages already
-///   resolved, so dependency cycles can be rejected before backend emission.
-#[derive(Debug, Default)]
-struct LocalDependencyResolver {
-    visiting: BTreeSet<PathBuf>,
-    visited: BTreeSet<PathBuf>,
-    source_roots: Vec<ProjectSourceRoot>,
-}
-
-impl LocalDependencyResolver {
-    /// Resolves one package and its local path dependencies.
-    ///
-    /// Inputs:
-    /// - `project_dir`: canonical package directory.
-    /// - `manifest`: parsed package manifest.
-    ///
-    /// Output:
-    /// - `Ok(())` after dependency roots and package roots are appended.
-    /// - `Err(String)` for cycles, invalid dependency manifests, or missing
-    ///   source roots.
-    ///
-    /// Transformation:
-    /// - Performs depth-first dependency traversal so dependencies are emitted
-    ///   before dependents.
-    fn resolve_package(
-        &mut self,
-        project_dir: &Path,
-        manifest: &project_manifest::ProjectManifest,
-    ) -> Result<(), String> {
-        if self.visited.contains(project_dir) {
-            return Ok(());
-        }
-        if !self.visiting.insert(project_dir.to_path_buf()) {
-            return Err(format!(
-                "terlc build local path dependency cycle includes package `{}` at {}",
-                manifest.package.name,
-                project_dir.display()
-            ));
-        }
-
-        for dependency in &manifest.dependencies {
-            if let project_manifest::ProjectDependencySource::Path { path } = &dependency.source {
-                let dependency_dir =
-                    canonical_dependency_dir(project_dir, &dependency.alias, path)?;
-                let dependency_manifest_path = project_manifest_path(&dependency_dir);
-                if !dependency_manifest_path.is_file() {
-                    return Err(format!(
-                        "terlc build local path dependency `{}` does not contain {}: {}",
-                        dependency.alias,
-                        TERLAN_PROJECT_MANIFEST_FILE,
-                        dependency_manifest_path.display()
-                    ));
-                }
-                let dependency_manifest =
-                    project_manifest::read_project_manifest(&dependency_manifest_path)?;
-                self.resolve_package(&dependency_dir, &dependency_manifest)?;
-            }
-        }
-
-        for root in &manifest.source_roots {
-            let source_root = project_dir.join(root);
-            if !source_root.is_dir() {
-                return Err(format!(
-                    "terlc build package `{}` source root does not exist: {}",
-                    manifest.package.name,
-                    source_root.display()
-                ));
-            }
-            self.source_roots.push(ProjectSourceRoot {
-                path: source_root,
-                package_path: source_package_path(&manifest.package),
-            });
-        }
-
-        self.visiting.remove(project_dir);
-        self.visited.insert(project_dir.to_path_buf());
-        Ok(())
-    }
-}
-
-/// Canonicalizes a project directory for closure tracking.
-///
-/// Inputs:
-/// - `project_dir`: package directory path.
-///
-/// Output:
-/// - Canonical absolute package directory.
-///
-/// Transformation:
-/// - Uses filesystem canonicalization so equivalent relative paths are treated
-///   as the same package during duplicate and cycle detection.
-fn canonical_project_dir(project_dir: &Path) -> Result<PathBuf, String> {
-    project_dir.canonicalize().map_err(|err| {
-        format!(
-            "terlc build cannot canonicalize project directory {}: {err}",
-            project_dir.display()
-        )
-    })
-}
-
-/// Canonicalizes a local path dependency directory.
-///
-/// Inputs:
-/// - `project_dir`: canonical depending package directory.
-/// - `alias`: dependency alias used in diagnostics.
-/// - `path`: manifest path dependency value.
-///
-/// Output:
-/// - Canonical dependency package directory.
-///
-/// Transformation:
-/// - Resolves the dependency path relative to the depending package directory
-///   and canonicalizes it before closure traversal.
-fn canonical_dependency_dir(
-    project_dir: &Path,
-    alias: &str,
-    path: &str,
-) -> Result<PathBuf, String> {
-    let dependency_dir = project_dir.join(path);
-    dependency_dir.canonicalize().map_err(|err| {
-        format!(
-            "terlc build local path dependency `{}` cannot be resolved: {} ({err})",
-            alias,
-            dependency_dir.display()
-        )
-    })
-}
-
 /// Runs an Erlang build for a parsed project manifest.
 ///
 /// Inputs:
@@ -560,6 +396,11 @@ fn run_erlang_project_manifest_build(
     manifest: &project_manifest::ProjectManifest,
     state: &CliState,
 ) -> ExitCode {
+    if let Some(message) = reserved_project_artifact_build_error(manifest) {
+        eprintln!("{message}");
+        return ExitCode::from(1);
+    }
+
     let roots = match resolve_project_build_roots(project_dir, manifest) {
         Ok(roots) => roots,
         Err(message) => {
@@ -578,8 +419,46 @@ fn run_erlang_project_manifest_build(
             source_roots: manifest.source_roots.clone(),
             artifact: manifest.artifact.as_str().to_string(),
         }),
-        Some(build_package_metadata(manifest)),
+        Some(build_package_metadata(
+            project_dir,
+            manifest,
+            &roots.native_rust_dependencies,
+        )),
     )
+}
+
+/// Returns a stable diagnostic for project artifact families not owned by the
+/// Erlang build path.
+///
+/// Inputs:
+/// - Parsed project manifest.
+///
+/// Output:
+/// - `Some(String)` when the manifest selected a reserved Wasm/WASI artifact.
+/// - `None` for current Erlang-compatible artifact modes.
+///
+/// Transformation:
+/// - Keeps manifest reservation parsing independent from build execution until
+///   the Wasm/WASI dispatch gates are implemented.
+fn reserved_project_artifact_build_error(
+    manifest: &project_manifest::ProjectManifest,
+) -> Option<String> {
+    match manifest.artifact {
+        project_manifest::ProjectArtifactKind::BeamThin
+        | project_manifest::ProjectArtifactKind::Library => None,
+        project_manifest::ProjectArtifactKind::WasmCore
+        | project_manifest::ProjectArtifactKind::WasmBrowser
+        | project_manifest::ProjectArtifactKind::WasmComponent => Some(format!(
+            "terlc build artifact `{}` is reserved for the Wasm target family but is not implemented yet",
+            manifest.artifact.as_str()
+        )),
+        project_manifest::ProjectArtifactKind::WasiCli
+        | project_manifest::ProjectArtifactKind::WasiHttp
+        | project_manifest::ProjectArtifactKind::WasiWorker => Some(format!(
+            "terlc build artifact `{}` is reserved for the WASI target family but is not implemented yet",
+            manifest.artifact.as_str()
+        )),
+    }
 }
 
 /// Runs the recursive source-root Erlang build.
@@ -709,6 +588,7 @@ fn run_erlang_source_roots_build(
     project: Option<BuildDebugProject>,
     package_metadata: Option<BuildPackageMetadata>,
 ) -> ExitCode {
+    let mut timings = BuildTimings::new(state.timings);
     let mut files = Vec::new();
     for root in source_roots {
         let root_files = match crate::formal_pipeline::terlan_sources_in_dir(&root.path) {
@@ -719,10 +599,7 @@ fn run_erlang_source_roots_build(
             }
         };
         if root_files.is_empty() {
-            eprintln!(
-                "terlc build found no .terl files in {}",
-                root.path.display()
-            );
+            report_empty_source_root(&root.path);
             return ExitCode::from(1);
         }
         if let Some(package_path) = root.package_path.as_deref() {
@@ -737,33 +614,49 @@ fn run_erlang_source_roots_build(
         }
         files.extend(root_files);
     }
+    timings.mark("erlang.scan");
 
     let mut directory_state = state.clone();
     if directory_state.cache_dir.is_none() {
         directory_state.cache_dir = Some(state.out_dir.join(".terlan"));
     }
 
-    for root in source_roots {
-        let check_status = crate::commands::check::run_check_dir(
-            &root.path.to_string_lossy(),
-            directory_state.clone(),
-            None,
-        );
+    if directory_state.incremental {
+        for root in source_roots {
+            if let Err(message) = prepare_source_root_interfaces(&root.path, &directory_state) {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        }
+        timings.mark("erlang.interface-prepass");
+    } else {
+        let check_status = run_full_source_root_checks(source_roots, &directory_state);
         if check_status != ExitCode::SUCCESS {
             return check_status;
         }
-    }
-    if state.no_emit {
-        return ExitCode::SUCCESS;
+        timings.mark("erlang.full-check");
     }
 
-    let mut module_artifacts = Vec::new();
-    for file in files {
-        match build_one_erlang_source_artifact(&file.to_string_lossy(), &directory_state) {
-            Ok(Some(artifact)) => module_artifacts.push(artifact),
-            Ok(None) => {}
-            Err(err) => return err.into_exit_code(),
+    let module_artifacts = match build_erlang_source_artifacts(&files, &directory_state) {
+        Ok(artifacts) => artifacts,
+        Err(err) => {
+            if !directory_state.incremental {
+                return err.into_exit_code();
+            }
+            let check_status = run_full_source_root_checks(source_roots, &directory_state);
+            if check_status != ExitCode::SUCCESS {
+                return check_status;
+            }
+            match build_erlang_source_artifacts(&files, &directory_state) {
+                Ok(artifacts) => artifacts,
+                Err(err) => return err.into_exit_code(),
+            }
         }
+    };
+    timings.mark("erlang.compile");
+
+    if state.no_emit {
+        return ExitCode::SUCCESS;
     }
 
     let entrypoint = if let Some(metadata) = package_metadata.as_ref() {
@@ -828,93 +721,224 @@ fn run_erlang_source_roots_build(
     ExitCode::SUCCESS
 }
 
-/// Validates the manifest-backed package executable entrypoint.
+/// Runs formal checks for every source root before Erlang artifact emission.
 ///
 /// Inputs:
-/// - `modules`: build artifacts and CoreIR function summaries for every
-///   emitted package module.
-/// - `metadata`: manifest-derived package/build metadata.
+/// - `source_roots`: resolved source roots in the current build.
+/// - `state`: CLI state reused by the check command.
 ///
 /// Output:
-/// - `Ok(BuildEntrypoint)` when `<package_root>.Main.main(): Unit` exists,
-///   is public, and has arity zero.
-/// - `Err(message)` when the entrypoint module, function, visibility, arity,
-///   or return type violates the package executable contract.
+/// - Success when all roots pass, or the first failing check exit code.
 ///
 /// Transformation:
-/// - Checks the package-root entrypoint convention against backend-neutral
-///   CoreIR summaries before any user-facing executable launcher is written.
-fn validate_build_entrypoint(
-    modules: &[BuildModuleArtifact],
-    metadata: &BuildPackageMetadata,
-) -> Result<BuildEntrypoint, String> {
-    let expected = &metadata
-        .executable
-        .as_ref()
-        .expect("entrypoint validation requires executable metadata")
-        .entrypoint;
-    let module = modules
-        .iter()
-        .find(|artifact| artifact.debug_entry.module == expected.module)
-        .ok_or_else(|| {
+/// - Delegates each root to `terlc check` so build output uses the same
+///   diagnostics as explicit validation.
+fn run_full_source_root_checks(source_roots: &[SourceRootBuildUnit], state: &CliState) -> ExitCode {
+    for root in source_roots {
+        let check_status = crate::commands::check::run_check_dir(
+            &root.path.to_string_lossy(),
+            state.clone(),
+            None,
+        );
+        if check_status != ExitCode::SUCCESS {
+            return check_status;
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// Emits Erlang build artifacts for a list of Terlan source files.
+///
+/// Inputs:
+/// - `files`: source files selected for the Erlang build.
+/// - `state`: build-local CLI state including output and cache directories.
+///
+/// Output:
+/// - Module artifacts ready for metadata and launcher generation.
+///
+/// Transformation:
+/// - Compiles each file through the formal single-source Erlang path and drops
+///   files that intentionally produce no runtime module.
+fn build_erlang_source_artifacts(
+    files: &[PathBuf],
+    state: &CliState,
+) -> Result<Vec<BuildModuleArtifact>, BuildOneError> {
+    let mut module_artifacts = Vec::new();
+    for file in files {
+        match build_one_erlang_source_artifact(&file.to_string_lossy(), state) {
+            Ok(Some(artifact)) => module_artifacts.push(artifact),
+            Ok(None) => {}
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(module_artifacts)
+}
+
+/// Writes project-local interfaces needed by per-file build compilation.
+///
+/// This is intentionally narrower than `terlc check`: it parses and validates
+/// module layout, then writes `.typi` files so the following per-module build
+/// pass can resolve imports while doing the actual typecheck only once.
+pub(super) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> Result<(), String> {
+    let cache_dir = state
+        .cache_dir
+        .as_deref()
+        .ok_or_else(|| "internal build error: interface cache directory missing".to_string())?;
+    fs::create_dir_all(cache_dir).map_err(|err| {
+        format!(
+            "cannot create cache directory {}: {err}",
+            cache_dir.display()
+        )
+    })?;
+    let files = crate::formal_pipeline::terlan_sources_in_dir(root)?;
+    for file in files {
+        let path_text = file.to_string_lossy().to_string();
+        let source = crate::support::read_file(&path_text)?;
+        let syntax_output = crate::formal_pipeline::parse_source_as_syntax_output(
+            &path_text, &source,
+        )
+        .map_err(|err| {
             format!(
-                "terlc build package `{}` requires entrypoint `{}.{}(): Unit`; module `{}` was not built",
-                metadata.package.name, expected.module, expected.function, expected.module
+                "cannot parse source {} during build interface prepass: {err:?}",
+                path_text
             )
         })?;
-
-    let matching_arity = module
-        .functions
-        .iter()
-        .find(|function| function.name == expected.function && function.arity == expected.arity);
-    let Some(function) = matching_arity else {
-        let arities = module
-            .functions
-            .iter()
-            .filter(|function| function.name == expected.function)
-            .map(|function| function.arity.to_string())
-            .collect::<Vec<_>>();
-        if arities.is_empty() {
+        let (syntax_output, macro_diagnostics) = expand_syntax_raw_macros(syntax_output);
+        if let Some(diagnostic) = macro_diagnostics.first() {
             return Err(format!(
-                "terlc build package `{}` requires entrypoint `{}.{}(): Unit`; function `{}` is missing from module `{}`",
-                metadata.package.name,
-                expected.module,
-                expected.function,
-                expected.function,
-                expected.module
+                "{}: macro expansion failed during build interface prepass: {}",
+                path_text, diagnostic.message
             ));
         }
-        return Err(format!(
-            "terlc build package `{}` requires entrypoint `{}.{}(): Unit`; found `{}` with arity {}",
-            metadata.package.name,
-            expected.module,
-            expected.function,
-            expected.function,
-            arities.join(", ")
-        ));
-    };
+        validate_build_directory_module_layout(root, &file, &syntax_output.module_name)?;
+        let interface = syntax_module_output_to_interface(&syntax_output);
+        let target = cache_dir.join(format!("{}.typi", syntax_output.module_name));
+        write_build_file(
+            &target,
+            interface.to_terlan_interface_text().as_bytes(),
+            state.incremental,
+        )?;
+    }
+    Ok(())
+}
 
-    if !function.public {
-        return Err(format!(
-            "terlc build package `{}` entrypoint `{}.{}(): Unit` must be declared `pub`",
-            metadata.package.name, expected.module, expected.function
-        ));
+/// Validates that a module declaration matches its source-root-relative path.
+///
+/// Inputs:
+/// - `root`: source root that owns the file.
+/// - `file`: source file being prepared for build.
+/// - `module_name`: module declared by the source file.
+///
+/// Output:
+/// - Success for a matching declaration or a stable layout error.
+///
+/// Transformation:
+/// - Derives the expected module from the path and compares it to source text.
+fn validate_build_directory_module_layout(
+    root: &Path,
+    file: &Path,
+    module_name: &str,
+) -> Result<(), String> {
+    let expected = expected_module_name_for_source_path(root, file)?;
+    if expected == module_name {
+        return Ok(());
+    }
+    Err(format!(
+        "module declaration `{module_name}` does not match source path `{}`; expected `module {expected}.`",
+        file.display()
+    ))
+}
+
+/// Reports an empty build source root with nested-project guidance.
+///
+/// Inputs:
+/// - `root`: source root that produced no `.terl` files.
+///
+/// Output:
+/// - User-facing diagnostic text on stderr.
+///
+/// Transformation:
+/// - Looks for nested `terlan.toml` project roots below the empty source root
+///   and, when present, adds a concrete command hint so parent scratch
+///   directories do not look like broken module-layout roots.
+fn report_empty_source_root(root: &Path) {
+    let nested_projects = nested_project_roots(root).unwrap_or_default();
+    if nested_projects.is_empty() {
+        eprintln!("terlc build found no .terl files in {}", root.display());
+        return;
     }
 
-    if function.return_type != "Unit" {
-        return Err(format!(
-            "terlc build package `{}` entrypoint `{}.{}(): Unit` must return `Unit`, got `{}`",
-            metadata.package.name, expected.module, expected.function, function.return_type
-        ));
-    }
+    let projects = nested_projects
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    eprintln!(
+        "terlc build found no .terl files in {}. Found nested Terlan project(s): {projects}. Run `terlc build <project>` or `cd <project> && terlc build`.",
+        root.display()
+    );
+}
 
-    Ok(BuildEntrypoint {
-        module: expected.module.clone(),
-        function: expected.function.clone(),
-        arity: expected.arity,
-        erlang_module: crate::support::erlang_output_stem(&expected.module),
-        erlang_function: expected.function.clone(),
-    })
+/// Finds nested Terlan project roots under a directory.
+///
+/// Inputs:
+/// - `root`: directory to scan for child project manifests.
+///
+/// Output:
+/// - Sorted nested directories containing `terlan.toml`.
+/// - `Err(message)` when the filesystem cannot be read.
+///
+/// Transformation:
+/// - Recursively walks deterministic directory entries, records child
+///   directories containing the canonical manifest, and does not descend into
+///   a recorded project root.
+fn nested_project_roots(root: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut projects = Vec::new();
+    collect_nested_project_roots(root, &mut projects)?;
+    projects.sort();
+    Ok(projects)
+}
+
+/// Recursively collects nested Terlan project roots.
+///
+/// Inputs:
+/// - `dir`: directory currently being scanned.
+/// - `projects`: mutable list of discovered nested project roots.
+///
+/// Output:
+/// - `Ok(())` when scan completes.
+/// - `Err(message)` when an entry or file type cannot be read.
+///
+/// Transformation:
+/// - Reads one directory level, sorts child entries, records manifest-bearing
+///   child directories, and only descends into non-project directories.
+fn collect_nested_project_roots(dir: &Path, projects: &mut Vec<PathBuf>) -> Result<(), String> {
+    let entries = fs::read_dir(dir)
+        .map_err(|err| format!("failed to read dir {}: {}", dir.display(), err))?;
+    let mut children = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|err| format!("failed to read dir entry: {err}"))?;
+        let file_type = entry.file_type().map_err(|err| {
+            format!(
+                "failed to read file type for {}: {err}",
+                entry.path().display()
+            )
+        })?;
+        children.push((entry.path(), file_type));
+    }
+    children.sort_by(|left, right| left.0.cmp(&right.0));
+
+    for (path, file_type) in children {
+        if !file_type.is_dir() {
+            continue;
+        }
+        if path.join(TERLAN_PROJECT_MANIFEST_FILE).is_file() {
+            projects.push(path);
+            continue;
+        }
+        collect_nested_project_roots(&path, projects)?;
+    }
+    Ok(())
 }
 
 /// Computes the canonical project manifest path for a build directory.
@@ -995,8 +1019,13 @@ fn build_one_erlang_source_artifact(
     if let Err(message) = reject_erlang_native_package_source(path, &source) {
         return Err(BuildOneError::Message(message));
     }
-    if let Err(message) = reject_unsupported_target_std_source(path, &source, state.target_profile)
-    {
+    let target_profile_options = build_target_profile_options(state, true);
+    if let Err(message) = reject_unsupported_target_std_source(
+        path,
+        &source,
+        state.target_profile,
+        target_profile_options,
+    ) {
         return Err(BuildOneError::Message(message));
     }
 
@@ -1008,9 +1037,7 @@ fn build_one_erlang_source_artifact(
             state.cache_dir.as_deref(),
             state.native_policy,
             state.target_profile,
-            TargetProfileCheckOptions {
-                allow_asset_imports: true,
-            },
+            target_profile_options,
         ) {
             Ok(compiled) => compiled,
             Err(exit_code) => return Err(BuildOneError::Exit(exit_code)),
@@ -1025,121 +1052,25 @@ fn build_one_erlang_source_artifact(
         .map_err(BuildOneError::Message)
 }
 
-/// Rejects native package source on the Erlang backend.
+/// Builds command-owned target-profile options for Erlang package emission.
 ///
 /// Inputs:
-/// - `path`: source path used for diagnostics.
-/// - `source`: Terlan source text to inspect before formal lowering.
+/// - `state`: global CLI state carrying native policy.
+/// - `allow_asset_imports`: whether this command owns asset import resolution.
 ///
 /// Output:
-/// - `Ok(())` when the source does not declare or import `std.native.*`.
-/// - `Err(String)` with a stable target-capability diagnostic when native
-///   package syntax is present.
+/// - Target-profile validation options aligned with build command packaging.
 ///
 /// Transformation:
-/// - Performs a conservative textual boundary check before Erlang emission so
-///   native package modules and consumers fail with a target-neutral capability
-///   message instead of leaking unresolved imports or backend-specific errors.
-fn reject_erlang_native_package_source(path: &str, source: &str) -> Result<(), String> {
-    if source.contains("module std.native.") {
-        return Err(format!(
-            "terlc build --target erlang cannot compile native package module `{path}`; `std.native` packages require the Rust/native target capability"
-        ));
-    }
-    if source.contains("import std.native.") || source.contains("import type std.native.") {
-        return Err(format!(
-            "terlc build --target erlang cannot import native package from `{path}`; `std.native` packages require the Rust/native target capability"
-        ));
-    }
-    Ok(())
-}
-
-/// Rejects std imports that the selected target profile cannot execute.
-///
-/// Inputs:
-/// - `path`: source path used for diagnostics.
-/// - `source`: Terlan source text to scan for module and import declarations.
-/// - `profile`: backend capability profile selected by the build command.
-///
-/// Output:
-/// - `Ok(())` when all discovered target-gated std modules are supported.
-/// - `Err(String)` with the first stable target-profile diagnostic.
-///
-/// Transformation:
-/// - Extracts only top-level `module`, `import`, and `import type`
-///   declaration paths from raw source text, then delegates std-family support
-///   decisions to target-profile validation. This catches unsupported platform
-///   std imports before interface loading can obscure the target error.
-pub(super) fn reject_unsupported_target_std_source(
-    path: &str,
-    source: &str,
-    profile: TargetProfile,
-) -> Result<(), String> {
-    let context = format!("source `{path}`");
-    for module in source_declared_or_imported_modules(source) {
-        if let Some(message) = target_profile_std_module_import_error(profile, &context, &module) {
-            return Err(format!("terlc build target-profile error: {message}"));
-        }
-    }
-    Ok(())
-}
-
-/// Extracts declaration module paths from source text for build preflight gates.
-///
-/// Inputs:
-/// - `source`: Terlan source text.
-///
-/// Output:
-/// - Ordered module paths mentioned by top-level `module`, `import`, and
-///   `import type` declarations.
-///
-/// Transformation:
-/// - Performs a lightweight line-oriented scan and normalizes trailing
-///   statement dots or selective-import braces. It does not replace parsing;
-///   it only feeds conservative target-family rejection before the formal
-///   parser and interface loader run.
-fn source_declared_or_imported_modules(source: &str) -> Vec<String> {
-    source
-        .lines()
-        .filter_map(|line| {
-            let trimmed = line.trim();
-            if let Some(rest) = trimmed.strip_prefix("module ") {
-                source_declaration_path(rest)
-            } else if let Some(rest) = trimmed.strip_prefix("import type ") {
-                source_declaration_path(rest)
-            } else if let Some(rest) = trimmed.strip_prefix("import ") {
-                source_declaration_path(rest)
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-/// Normalizes one module path fragment from a declaration line.
-///
-/// Inputs:
-/// - `rest`: declaration text after the keyword prefix.
-///
-/// Output:
-/// - `Some(String)` for a non-empty module path candidate.
-/// - `None` when the declaration has no path token.
-///
-/// Transformation:
-/// - Takes the first whitespace-delimited token, strips the statement
-///   terminator, and removes selective-import suffixes such as `.{println}` so
-///   target-family matching sees the declared module identity.
-fn source_declaration_path(rest: &str) -> Option<String> {
-    let token = rest.split_whitespace().next()?.trim_end_matches('.');
-    let module = token
-        .split(".{")
-        .next()
-        .unwrap_or(token)
-        .trim_end_matches('.');
-    if module.is_empty() {
-        None
-    } else {
-        Some(module.to_string())
+/// - Admits Rust-backed std modules only when the selected native policy is not
+///   pure, keeping `--native-policy pure` as an explicit no-bridge build mode.
+fn build_target_profile_options(
+    state: &CliState,
+    allow_asset_imports: bool,
+) -> TargetProfileCheckOptions {
+    TargetProfileCheckOptions {
+        allow_asset_imports,
+        allow_rust_backed_std_modules: state.native_policy != NativePolicy::Pure,
     }
 }
 
@@ -1190,10 +1121,32 @@ fn write_and_compile_erlang_build(
             emit_html_runtime_to_erlang().as_bytes(),
             state.incremental,
         )?;
-        compile_erlang_source(&source_dir, &ebin_dir, &runtime_path)?;
+        compile_erlang_source(&source_dir, &ebin_dir, &runtime_path, state.incremental)?;
     }
 
-    compile_erlang_source(&source_dir, &ebin_dir, &erl_path)?;
+    if compiled.core.uses_sql_runtime_boundary() {
+        let runtime_path = source_dir.join("terlan_sql_runtime.erl");
+        write_build_file(
+            &runtime_path,
+            emit_sql_runtime_to_erlang().as_bytes(),
+            state.incremental,
+        )?;
+        compile_erlang_source(&source_dir, &ebin_dir, &runtime_path, state.incremental)?;
+    }
+
+    if compiled_module_uses_native_vector(compiled) {
+        let runtime_path = source_dir.join("std_native_collections_vector_safe_native.erl");
+        write_build_file(
+            &runtime_path,
+            emit_native_vector_runtime_to_erlang().as_bytes(),
+            state.incremental,
+        )?;
+        compile_erlang_source(&source_dir, &ebin_dir, &runtime_path, state.incremental)?;
+    }
+
+    emit_and_compile_safe_native_stubs(source_path, &source_dir, &ebin_dir, state)?;
+
+    compile_erlang_source(&source_dir, &ebin_dir, &erl_path, state.incremental)?;
 
     Ok(BuildModuleArtifact {
         debug_entry: BuildDebugModuleEntry {
@@ -1215,6 +1168,78 @@ fn write_and_compile_erlang_build(
             })
             .collect(),
     })
+}
+
+/// Emits and compiles SafeNative stubs for compiler-native package modules.
+///
+/// Inputs:
+/// - `source_path`: Terlan source path being built.
+/// - `source_dir`: build source directory that will receive generated Erlang.
+/// - `ebin_dir`: build BEAM output directory.
+/// - `state`: CLI state carrying native policy and incremental behavior.
+///
+/// Output:
+/// - `Ok(())` when no native stubs are needed or all generated stubs compile.
+/// - `Err(message)` for source reads, metadata emission, or Erlang compile
+///   failures.
+///
+/// Transformation:
+/// - Reuses the existing SafeNative metadata emitter during normal build/test
+///   paths so `@compiler.native` declarations call a concrete Erlang not-loaded
+///   stub instead of lowering the literal `native` expression.
+fn emit_and_compile_safe_native_stubs(
+    source_path: &str,
+    source_dir: &Path,
+    ebin_dir: &Path,
+    state: &CliState,
+) -> Result<(), String> {
+    let source = crate::support::read_file(source_path)?;
+    if !source_uses_native(&source) {
+        return Ok(());
+    }
+
+    crate::commands::emit_native_metadata::emit_native_artifacts(
+        &source,
+        source_dir,
+        state.native_policy,
+        state.incremental,
+    )?;
+
+    for entry in fs::read_dir(source_dir)
+        .map_err(|err| format!("cannot read build source directory: {err}"))?
+    {
+        let path = entry
+            .map_err(|err| format!("cannot read build source entry: {err}"))?
+            .path();
+        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if file_name.ends_with("_safe_native.erl") {
+            compile_erlang_source(source_dir, ebin_dir, &path, state.incremental)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Returns whether compiled artifacts need the native vector bridge runtime.
+///
+/// Inputs:
+/// - `compiled`: checked compiler artifacts for one source module.
+///
+/// Output:
+/// - `true` when the module imports `std.native.collections.Vector`.
+///
+/// Transformation:
+/// - Reads formal CoreIR import metadata instead of scanning source text so
+///   runtime companion emission follows the same resolved import identity used
+///   by target-profile validation and backend lowering.
+fn compiled_module_uses_native_vector(compiled: &CheckedSyntaxModuleArtifacts) -> bool {
+    compiled
+        .core
+        .imports
+        .iter()
+        .any(|import| import.module == "std.native.collections.Vector")
 }
 
 /// Writes the build debug map into the build output directory.
@@ -1252,154 +1277,6 @@ fn write_build_debug_map(
         .map_err(|err| format!("failed to serialize build debug map: {err}"))?;
     write_build_file(
         &out_dir.join(BUILD_DEBUG_MAP_FILE),
-        format!("{json}\n").as_bytes(),
-        incremental,
-    )
-}
-
-/// Writes the selected user-facing executable launcher.
-///
-/// Inputs:
-/// - `out_dir`: build output root.
-/// - `metadata`: manifest-derived package/build metadata.
-/// - `incremental`: whether unchanged files may be left untouched.
-///
-/// Output:
-/// - `Ok(())` after the executable launcher exists.
-/// - `Err(message)` when directory creation, writing, or permission updates
-///   fail.
-///
-/// Transformation:
-/// - Materializes the current `beam-thin` executable contract as a single
-///   launcher file under `bin/` that points Erlang at the generated `ebin`
-///   directory. It does not assemble an OTP release or bundle ERTS.
-fn write_build_executable_launcher(
-    out_dir: &Path,
-    executable: &BuildPackageExecutable,
-    entrypoint: &BuildEntrypoint,
-    incremental: bool,
-) -> Result<(), String> {
-    match executable.mode.as_str() {
-        "beam-thin" => write_beam_thin_launcher(out_dir, &executable.path, entrypoint, incremental),
-        other => Err(format!(
-            "cannot write unsupported executable artifact mode `{other}`"
-        )),
-    }
-}
-
-/// Writes a thin BEAM launcher script.
-///
-/// Inputs:
-/// - `out_dir`: build output root.
-/// - `relative_path`: metadata-relative executable path, such as `bin/demo`.
-/// - `incremental`: whether unchanged files may be left untouched.
-///
-/// Output:
-/// - `Ok(())` after the launcher exists and is executable on Unix.
-/// - `Err(message)` when directory creation, writing, or permission updates
-///   fail.
-///
-/// Transformation:
-/// - Emits a portable POSIX shell launcher that resolves its own build root and
-///   starts `erl` with the generated `ebin` directory on the BEAM code path.
-fn write_beam_thin_launcher(
-    out_dir: &Path,
-    relative_path: &str,
-    entrypoint: &BuildEntrypoint,
-    incremental: bool,
-) -> Result<(), String> {
-    let executable_path = out_dir.join(relative_path);
-    let parent = executable_path.parent().ok_or_else(|| {
-        format!(
-            "cannot resolve parent directory for executable artifact {}",
-            executable_path.display()
-        )
-    })?;
-    fs::create_dir_all(parent)
-        .map_err(|err| format!("cannot create build executable directory: {err}"))?;
-
-    let script = format!(
-        "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nROOT_DIR=$(CDPATH= cd -- \"$SCRIPT_DIR/..\" && pwd)\nexec erl -noshell -pa \"$ROOT_DIR/ebin\" -eval \"case catch {module}:{function}() of {{'EXIT', Reason}} -> io:format(standard_error, \\\"terlan entrypoint {source_module}.{source_function}/{arity} failed: ~p~n\\\", [Reason]), halt(1); _ -> halt(0) end.\" \"$@\"\n",
-        module = entrypoint.erlang_module,
-        function = entrypoint.erlang_function,
-        source_module = entrypoint.module,
-        source_function = entrypoint.function,
-        arity = entrypoint.arity,
-    );
-    write_build_file(&executable_path, script.as_bytes(), incremental)?;
-    mark_build_file_executable(&executable_path)
-}
-
-/// Marks a generated build file executable when the platform supports Unix
-/// mode bits.
-///
-/// Inputs:
-/// - `path`: generated build file path.
-///
-/// Output:
-/// - `Ok(())` after permissions are updated or when the platform has no Unix
-///   mode bits.
-/// - `Err(message)` when permission reads or writes fail.
-///
-/// Transformation:
-/// - Adds user/group/other execute bits to the generated launcher on Unix and
-///   leaves non-Unix platforms to their native execution policy.
-#[cfg(unix)]
-fn mark_build_file_executable(path: &Path) -> Result<(), String> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let metadata = fs::metadata(path).map_err(|err| {
-        format!(
-            "cannot read executable permissions {}: {err}",
-            path.display()
-        )
-    })?;
-    let mut permissions = metadata.permissions();
-    permissions.set_mode(permissions.mode() | 0o111);
-    fs::set_permissions(path, permissions)
-        .map_err(|err| format!("cannot mark executable {}: {err}", path.display()))
-}
-
-/// Marks a generated build file executable when the platform supports Unix
-/// mode bits.
-///
-/// Inputs:
-/// - `path`: generated build file path.
-///
-/// Output:
-/// - Always `Ok(())` on non-Unix platforms.
-///
-/// Transformation:
-/// - Keeps the call site cross-platform while non-Unix executable semantics
-///   remain owned by downstream target packaging.
-#[cfg(not(unix))]
-fn mark_build_file_executable(_path: &Path) -> Result<(), String> {
-    Ok(())
-}
-
-/// Writes package/build metadata into the build output directory.
-///
-/// Inputs:
-/// - `out_dir`: build output root.
-/// - `metadata`: manifest-derived package/build metadata.
-/// - `incremental`: whether unchanged files may be left untouched.
-///
-/// Output:
-/// - `Ok(())` after package metadata exists.
-/// - `Err(message)` when serialization or writing fails.
-///
-/// Transformation:
-/// - Serializes deterministic package metadata as stable JSON at
-///   `terlan-package-build.json`.
-fn write_build_package_metadata(
-    out_dir: &Path,
-    metadata: BuildPackageMetadata,
-    incremental: bool,
-) -> Result<(), String> {
-    let json = serde_json::to_string_pretty(&metadata)
-        .map_err(|err| format!("failed to serialize build package metadata: {err}"))?;
-    write_build_file(
-        &out_dir.join(BUILD_PACKAGE_METADATA_FILE),
         format!("{json}\n").as_bytes(),
         incremental,
     )
@@ -1484,19 +1361,27 @@ fn write_build_file(path: &Path, bytes: &[u8], incremental: bool) -> Result<(), 
 /// - `source_dir`: build source directory used as the Erlang include path.
 /// - `ebin_dir`: destination directory for generated `.beam` files.
 /// - `erl_path`: Erlang source file to compile.
+/// - `incremental`: whether an already-current `.beam` may be reused.
 ///
 /// Output:
 /// - `Ok(())` when `erlc` exits successfully.
 /// - `Err(message)` for process spawn failures or non-zero compiler exits.
 ///
 /// Transformation:
-/// - Runs `erlc -I <source_dir> -o <ebin_dir> <erl_path>` with crash dumps
+/// - In incremental mode, skips `erlc` when the destination `.beam` is newer
+///   than the `.erl` and generated headers. Otherwise runs
+///   `erlc -I <source_dir> -o <ebin_dir> <erl_path>` with crash dumps
 ///   redirected outside the build source tree.
 fn compile_erlang_source(
     source_dir: &Path,
     ebin_dir: &Path,
     erl_path: &Path,
+    incremental: bool,
 ) -> Result<(), String> {
+    if incremental && erlang_source_compile_is_current(source_dir, ebin_dir, erl_path)? {
+        return Ok(());
+    }
+
     let crash_dump = ebin_dir.join("erl_crash.dump");
     let mut command = Command::new("erlc");
     command
@@ -1524,6 +1409,81 @@ fn compile_erlang_source(
             stderr
         ))
     }
+}
+
+/// Returns whether an Erlang source already has a current BEAM artifact.
+///
+/// Inputs:
+/// - `source_dir`: generated Erlang source directory containing `.erl` and
+///   optional `.hrl` files.
+/// - `ebin_dir`: generated BEAM output directory.
+/// - `erl_path`: generated Erlang source being considered for compilation.
+///
+/// Output:
+/// - `Ok(true)` when the expected `.beam` exists and is newer than the source
+///   and every generated header.
+/// - `Ok(false)` when the source should be compiled.
+/// - `Err(message)` when filesystem metadata cannot be read.
+///
+/// Transformation:
+/// - Maps `foo.erl` to `foo.beam`, compares filesystem modification times,
+///   and treats any newer generated header as invalidating the BEAM. Header
+///   invalidation is intentionally conservative because the current bridge may
+///   include generated records from any source module.
+fn erlang_source_compile_is_current(
+    source_dir: &Path,
+    ebin_dir: &Path,
+    erl_path: &Path,
+) -> Result<bool, String> {
+    let Some(stem) = erl_path.file_stem().and_then(|stem| stem.to_str()) else {
+        return Ok(false);
+    };
+    let beam_path = ebin_dir.join(format!("{stem}.beam"));
+    if !beam_path.exists() {
+        return Ok(false);
+    }
+
+    let beam_modified = file_modified_at(&beam_path)?;
+    if file_modified_at(erl_path)? > beam_modified {
+        return Ok(false);
+    }
+
+    let entries = fs::read_dir(source_dir)
+        .map_err(|err| format!("failed to read build source directory: {err}"))?;
+    for entry in entries {
+        let entry = entry.map_err(|err| format!("failed to read build source entry: {err}"))?;
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) == Some("hrl")
+            && file_modified_at(&path)? > beam_modified
+        {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+/// Reads the modification time for a generated artifact.
+///
+/// Inputs:
+/// - `path`: generated source, header, or BEAM artifact path.
+///
+/// Output:
+/// - Filesystem modification timestamp.
+/// - `Err(message)` when metadata or modification time cannot be read.
+///
+/// Transformation:
+/// - Wraps `std::fs::metadata(...).modified()` with build-oriented error
+///   context so incremental compiler-cache decisions fail visibly.
+fn file_modified_at(path: &Path) -> Result<std::time::SystemTime, String> {
+    fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .map_err(|err| {
+            format!(
+                "failed to read modification time for {}: {err}",
+                path.display()
+            )
+        })
 }
 
 /// Runs a process while preventing local Erlang crash dumps in source output.

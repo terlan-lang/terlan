@@ -1,0 +1,8 @@
+module=std.js.Dom.VideoFrameBufferInit
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=1363206503858263865
+interface_hash=6249797064212250536
+interface_doc_hash=6249797064212250536
+deps=0

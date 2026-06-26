@@ -1,0 +1,49 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGLengthList
+ */
+
+module std.js.Dom.SVGLengthListTest.
+
+import type std.js.Dom.SVGLengthList.SVGLengthList.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub length_typechecks(receiver: SVGLengthList): std.js.Number.JsNumber ->
+    receiver.length().
+
+pub number_of_items_typechecks(receiver: SVGLengthList): std.js.Number.JsNumber ->
+    receiver.number_of_items().
+
+pub append_item_typechecks(receiver: SVGLengthList, new_item: SVGLength): SVGLength ->
+    receiver.append_item(new_item).
+
+pub clear_typechecks(receiver: SVGLengthList): std.core.Unit ->
+    receiver.clear().
+
+pub get_item_typechecks(receiver: SVGLengthList, index: std.js.Number.JsNumber): SVGLength ->
+    receiver.get_item(index).
+
+pub initialize_typechecks(receiver: SVGLengthList, new_item: SVGLength): SVGLength ->
+    receiver.initialize(new_item).
+
+pub insert_item_before_typechecks(receiver: SVGLengthList, new_item: SVGLength, index: std.js.Number.JsNumber): SVGLength ->
+    receiver.insert_item_before(new_item, index).
+
+pub remove_item_typechecks(receiver: SVGLengthList, index: std.js.Number.JsNumber): SVGLength ->
+    receiver.remove_item(index).
+
+pub replace_item_typechecks(receiver: SVGLengthList, new_item: SVGLength, index: std.js.Number.JsNumber): SVGLength ->
+    receiver.replace_item(new_item, index).

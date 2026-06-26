@@ -1,0 +1,130 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCPeerConnection
+ */
+
+module std.js.Dom.RTCPeerConnectionTest.
+
+import type std.js.Dom.RTCPeerConnection.RTCPeerConnection.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub can_trickle_ice_candidates_typechecks(receiver: RTCPeerConnection): Option[std.core.Bool] ->
+    receiver.can_trickle_ice_candidates().
+
+pub connection_state_typechecks(receiver: RTCPeerConnection): RTCPeerConnectionState ->
+    receiver.connection_state().
+
+pub current_local_description_typechecks(receiver: RTCPeerConnection): Option[RTCSessionDescription] ->
+    receiver.current_local_description().
+
+pub current_remote_description_typechecks(receiver: RTCPeerConnection): Option[RTCSessionDescription] ->
+    receiver.current_remote_description().
+
+pub ice_connection_state_typechecks(receiver: RTCPeerConnection): RTCIceConnectionState ->
+    receiver.ice_connection_state().
+
+pub ice_gathering_state_typechecks(receiver: RTCPeerConnection): RTCIceGatheringState ->
+    receiver.ice_gathering_state().
+
+pub local_description_typechecks(receiver: RTCPeerConnection): Option[RTCSessionDescription] ->
+    receiver.local_description().
+
+pub pending_local_description_typechecks(receiver: RTCPeerConnection): Option[RTCSessionDescription] ->
+    receiver.pending_local_description().
+
+pub pending_remote_description_typechecks(receiver: RTCPeerConnection): Option[RTCSessionDescription] ->
+    receiver.pending_remote_description().
+
+pub remote_description_typechecks(receiver: RTCPeerConnection): Option[RTCSessionDescription] ->
+    receiver.remote_description().
+
+pub sctp_typechecks(receiver: RTCPeerConnection): Option[RTCSctpTransport] ->
+    receiver.sctp().
+
+pub signaling_state_typechecks(receiver: RTCPeerConnection): RTCSignalingState ->
+    receiver.signaling_state().
+
+pub add_ice_candidate_typechecks(receiver: RTCPeerConnection, candidate: Option[RTCIceCandidateInit]): std.js.Promise[std.core.Unit] ->
+    receiver.add_ice_candidate(candidate).
+
+pub add_ice_candidate_typechecks(receiver: RTCPeerConnection, candidate: Option[RTCIceCandidateInit], success_callback: VoidFunction, failure_callback: RTCPeerConnectionErrorCallback): std.js.Promise[std.core.Unit] ->
+    receiver.add_ice_candidate(candidate, success_callback, failure_callback).
+
+pub add_track_typechecks(receiver: RTCPeerConnection, track: MediaStreamTrack): RTCRtpSender ->
+    receiver.add_track(track).
+
+pub add_transceiver_typechecks(receiver: RTCPeerConnection, track_or_kind: MediaStreamTrack | std.js.String.JsString, init: RTCRtpTransceiverInit): RTCRtpTransceiver ->
+    receiver.add_transceiver(track_or_kind, init).
+
+pub close_typechecks(receiver: RTCPeerConnection): std.core.Unit ->
+    receiver.close().
+
+pub create_answer_typechecks(receiver: RTCPeerConnection, options: RTCAnswerOptions): std.js.Promise[RTCSessionDescriptionInit] ->
+    receiver.create_answer(options).
+
+pub create_answer_typechecks(receiver: RTCPeerConnection, success_callback: RTCSessionDescriptionCallback, failure_callback: RTCPeerConnectionErrorCallback): std.js.Promise[std.core.Unit] ->
+    receiver.create_answer(success_callback, failure_callback).
+
+pub create_data_channel_typechecks(receiver: RTCPeerConnection, label: std.js.String.JsString, data_channel_dict: RTCDataChannelInit): RTCDataChannel ->
+    receiver.create_data_channel(label, data_channel_dict).
+
+pub create_offer_typechecks(receiver: RTCPeerConnection, options: RTCOfferOptions): std.js.Promise[RTCSessionDescriptionInit] ->
+    receiver.create_offer(options).
+
+pub create_offer_typechecks(receiver: RTCPeerConnection, success_callback: RTCSessionDescriptionCallback, failure_callback: RTCPeerConnectionErrorCallback, options: RTCOfferOptions): std.js.Promise[std.core.Unit] ->
+    receiver.create_offer(success_callback, failure_callback, options).
+
+pub get_configuration_typechecks(receiver: RTCPeerConnection): RTCConfiguration ->
+    receiver.get_configuration().
+
+pub get_receivers_typechecks(receiver: RTCPeerConnection): std.js.Array[RTCRtpReceiver] ->
+    receiver.get_receivers().
+
+pub get_senders_typechecks(receiver: RTCPeerConnection): std.js.Array[RTCRtpSender] ->
+    receiver.get_senders().
+
+pub get_stats_typechecks(receiver: RTCPeerConnection, selector: Option[MediaStreamTrack]): std.js.Promise[RTCStatsReport] ->
+    receiver.get_stats(selector).
+
+pub get_transceivers_typechecks(receiver: RTCPeerConnection): std.js.Array[RTCRtpTransceiver] ->
+    receiver.get_transceivers().
+
+pub remove_track_typechecks(receiver: RTCPeerConnection, sender: RTCRtpSender): std.core.Unit ->
+    receiver.remove_track(sender).
+
+pub restart_ice_typechecks(receiver: RTCPeerConnection): std.core.Unit ->
+    receiver.restart_ice().
+
+pub set_configuration_typechecks(receiver: RTCPeerConnection, configuration: RTCConfiguration): std.core.Unit ->
+    receiver.set_configuration(configuration).
+
+pub set_local_description_typechecks(receiver: RTCPeerConnection, description: RTCLocalSessionDescriptionInit): std.js.Promise[std.core.Unit] ->
+    receiver.set_local_description(description).
+
+pub set_local_description_typechecks(receiver: RTCPeerConnection, description: RTCLocalSessionDescriptionInit, success_callback: VoidFunction, failure_callback: RTCPeerConnectionErrorCallback): std.js.Promise[std.core.Unit] ->
+    receiver.set_local_description(description, success_callback, failure_callback).
+
+pub set_remote_description_typechecks(receiver: RTCPeerConnection, description: RTCSessionDescriptionInit): std.js.Promise[std.core.Unit] ->
+    receiver.set_remote_description(description).
+
+pub set_remote_description_typechecks(receiver: RTCPeerConnection, description: RTCSessionDescriptionInit, success_callback: VoidFunction, failure_callback: RTCPeerConnectionErrorCallback): std.js.Promise[std.core.Unit] ->
+    receiver.set_remote_description(description, success_callback, failure_callback).
+
+pub add_event_listener_typechecks(receiver: RTCPeerConnection, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: RTCPeerConnection, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

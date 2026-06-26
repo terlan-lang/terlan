@@ -3,9 +3,13 @@ use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
 use super::{
-    is_repl_help_args, parse_repl_value_binding, render_repl_json_event,
-    repl_expression_with_bindings, repl_load_sources, ReplValueBinding,
+    evaluate_repl_prompt_inputs, is_repl_help_args, parse_repl_value_binding,
+    render_repl_json_event, repl_expression_with_bindings, repl_json_field, repl_load_sources,
+    ReplValueBinding,
 };
+use crate::validation::native_policy::NativePolicy;
+use crate::validation::target_profile::TargetProfile;
+use crate::{ColorChoice, DiagnosticFormat};
 
 /// Verifies REPL command-local help aliases are recognized.
 ///
@@ -61,8 +65,28 @@ fn repl_help_args_reject_non_help_invocations() {
 fn repl_value_binding_parser_accepts_simple_binding() {
     let binding = parse_repl_value_binding("let total = 1 + 2").unwrap();
 
-    assert_eq!(binding.name, "total");
+    assert_eq!(binding.pattern, "total");
     assert_eq!(binding.value, "1 + 2");
+}
+
+/// Verifies that REPL binding syntax accepts destructuring patterns.
+///
+/// Inputs:
+/// - A terminator-stripped REPL entry with a tuple pattern on the left side.
+///
+/// Output:
+/// - Parsed pattern text and value expression.
+///
+/// Transformation:
+/// - Keeps the REPL persistence parser broad enough for formal pattern
+///   validation to happen through the compiler path instead of local name
+///   filtering.
+#[test]
+fn repl_value_binding_parser_accepts_tuple_pattern() {
+    let binding = parse_repl_value_binding("let {head, _} = pair").unwrap();
+
+    assert_eq!(binding.pattern, "{head, _}");
+    assert_eq!(binding.value, "pair");
 }
 
 /// Verifies that full Terlan `let` expressions are left to source parsing.
@@ -99,17 +123,139 @@ fn repl_expression_with_bindings_builds_source_let_expression() {
         "x + y",
         &[
             ReplValueBinding {
-                name: "x".to_string(),
+                pattern: "x".to_string(),
                 value: "1".to_string(),
             },
             ReplValueBinding {
-                name: "y".to_string(),
+                pattern: "y".to_string(),
                 value: "2".to_string(),
             },
         ],
     );
 
-    assert_eq!(expression, "let x = 1; y = 2; x + y");
+    assert_eq!(expression, "let x = (1); y = (2); x + y");
+}
+
+/// Verifies persisted lambda bindings remain separated from the later body.
+///
+/// Inputs:
+/// - Current function-value call expression and one persisted lambda binding.
+///
+/// Output:
+/// - Generated source expression with the lambda parenthesized.
+///
+/// Transformation:
+/// - Protects anonymous-function bodies from consuming the hidden REPL
+///   semicolon separator when prompt state is converted into a Terlan `let`.
+#[test]
+fn repl_expression_with_bindings_parenthesizes_lambda_binding_values() {
+    let expression = repl_expression_with_bindings(
+        "a.(10)",
+        &[ReplValueBinding {
+            pattern: "a".to_string(),
+            value: "(x) -> x + x".to_string(),
+        }],
+    );
+
+    assert_eq!(expression, "let a = ((x) -> x + x); a.(10)");
+}
+
+/// Verifies REPL prompt evaluation supports persisted function values.
+///
+/// Inputs:
+/// - One REPL binding prompt defining a lambda value.
+/// - One later prompt invoking the persisted function value.
+///
+/// Output:
+/// - First prompt evaluates to `Unit`; second prompt evaluates to `20`.
+///
+/// Transformation:
+/// - Exercises the full prompt path used by docs and non-interactive REPL
+///   checks: parse prompt terminators, persist `let` bindings, compile through
+///   CoreIR, and evaluate function-value invocation without BEAM execution.
+#[test]
+fn repl_prompt_inputs_apply_persisted_lambda_binding() {
+    let outputs = evaluate_repl_prompt_inputs(
+        &["let a = (x) -> x + x.".to_string(), "a.(10).".to_string()],
+        DiagnosticFormat::Text {
+            color: ColorChoice::Never,
+        },
+        NativePolicy::SafeNativeOptional,
+        TargetProfile::Erlang,
+    )
+    .expect("evaluate repl prompts");
+
+    assert_eq!(
+        outputs,
+        vec![vec!["Unit".to_string()], vec!["20".to_string()]]
+    );
+}
+
+/// Verifies REPL prompt evaluation supports persisted destructuring bindings.
+///
+/// Inputs:
+/// - One prompt binding a tuple value.
+/// - One prompt destructuring that tuple.
+/// - One prompt reading the destructured variable.
+///
+/// Output:
+/// - `Unit` for each binding and the destructured value for the final prompt.
+///
+/// Transformation:
+/// - Exercises the full REPL prompt pipeline for pattern bindings so
+///   persistent session state stays aligned with ordinary Terlan `let`
+///   semantics.
+#[test]
+fn repl_prompt_inputs_support_destructuring_binding() {
+    let outputs = evaluate_repl_prompt_inputs(
+        &[
+            "let a = {1, 3}.".to_string(),
+            "let {b, _} = a.".to_string(),
+            "b.".to_string(),
+        ],
+        DiagnosticFormat::Text {
+            color: ColorChoice::Never,
+        },
+        NativePolicy::SafeNativeOptional,
+        TargetProfile::Erlang,
+    )
+    .expect("evaluate repl prompts");
+
+    assert_eq!(
+        outputs,
+        vec![
+            vec!["Unit".to_string()],
+            vec!["Unit".to_string()],
+            vec!["1".to_string()]
+        ]
+    );
+}
+
+/// Verifies REPL prompt evaluation renders standalone lambdas as functions.
+///
+/// Inputs:
+/// - One REPL expression prompt containing a lambda value.
+///
+/// Output:
+/// - `"<function>"`, proving the prompt path no longer reports unsupported
+///   `Lam` for anonymous function values.
+///
+/// Transformation:
+/// - Locks the user-facing REPL behavior separately from the lower evaluator
+///   unit tests so prompt parsing and generated module wrapping stay aligned.
+#[test]
+fn repl_prompt_inputs_render_standalone_lambda_value() {
+    let outputs = evaluate_repl_prompt_inputs(
+        &["(x) -> x + x.".to_string()],
+        DiagnosticFormat::Text {
+            color: ColorChoice::Never,
+        },
+        NativePolicy::SafeNativeOptional,
+        TargetProfile::Erlang,
+    )
+    .expect("evaluate repl prompt");
+
+    assert_eq!(outputs, vec![vec!["<function>".to_string()]]);
 }
 
 /// Verifies JSON REPL events are valid without optional fields.
@@ -125,7 +271,7 @@ fn repl_expression_with_bindings_builds_source_let_expression() {
 ///   parses it back through `serde_json`.
 #[test]
 fn repl_json_event_without_extra_fields_is_valid_json() {
-    let event = render_repl_json_event("ready", None, "REPL ready");
+    let event = render_repl_json_event("ready", &[], "REPL ready");
     let value: serde_json::Value = serde_json::from_str(&event).expect("parse repl event");
 
     assert_eq!(value["schema"], "terlan-repl-event-v1");
@@ -136,19 +282,22 @@ fn repl_json_event_without_extra_fields_is_valid_json() {
 /// Verifies JSON REPL events are valid with optional fields.
 ///
 /// Inputs:
-/// - Event kind, field payload, and human-readable text.
+/// - Event kind, structured field payload, and human-readable text.
 ///
 /// Output:
 /// - Parsed JSON containing both the payload field and text field.
 ///
 /// Transformation:
-/// - Confirms optional field insertion preserves comma separation before
-///   the final `text` property.
+/// - Confirms optional field insertion delegates object and array encoding to
+///   `serde_json`.
 #[test]
 fn repl_json_event_with_extra_fields_is_valid_json() {
     let event = render_repl_json_event(
         "result",
-        Some("\"value\":\"Unit\",\"message\":\"ok\""),
+        &[
+            repl_json_field("value", "Unit"),
+            repl_json_field("commands", serde_json::json!([":help", ":quit"])),
+        ],
         "Unit",
     );
     let value: serde_json::Value = serde_json::from_str(&event).expect("parse repl event");
@@ -156,7 +305,7 @@ fn repl_json_event_with_extra_fields_is_valid_json() {
     assert_eq!(value["schema"], "terlan-repl-event-v1");
     assert_eq!(value["kind"], "result");
     assert_eq!(value["value"], "Unit");
-    assert_eq!(value["message"], "ok");
+    assert_eq!(value["commands"], serde_json::json!([":help", ":quit"]));
     assert_eq!(value["text"], "Unit");
 }
 

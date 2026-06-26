@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 
 use crate::{
-    apply_subst, expand_type_aliases, infer_syntax_expr, instantiate_constructor_scheme,
-    instantiate_type, is_constructor_name, next_constructor_type_var, normalize_union,
-    substitute_type_vars, syntax_callee_name, unify, ConstructorScheme, ExprInferContext, Type,
-    TypeAlias, TypeVarId,
+    apply_subst, call_has_named_args, complete_defaulted_call_arg_types, expand_type_aliases,
+    infer_syntax_expr, instantiate_constructor_scheme, instantiate_type, is_constructor_name,
+    next_constructor_type_var, normalize_union, reorder_named_call_arg_types, substitute_type_vars,
+    supplied_named_parameter_slots, syntax_callee_name, unify, validate_named_call_args,
+    ConstructorScheme, ExprInferContext, Type, TypeAlias, TypeVarId,
 };
 
 /// Infers a constructor call from explicit constructors or alias constructors.
@@ -14,6 +15,7 @@ use crate::{
 /// Inputs:
 /// - `name`: constructor name from source call syntax.
 /// - `args`: inferred argument types.
+/// - `arg_names`: optional source argument names parallel to `args`.
 /// - `ctx`: expression inference context containing constructor and alias maps.
 /// - `subst`: active type-variable substitution.
 /// - `errors`: mutable diagnostic text sink.
@@ -29,16 +31,17 @@ use crate::{
 pub(super) fn infer_constructor_call(
     name: &str,
     args: &[Type],
+    arg_names: &[Option<String>],
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Option<Type> {
     if let Some(schemes) = ctx.constructors.get(name) {
-        return infer_constructor_schemes(name, schemes, args, subst, errors);
+        return infer_constructor_schemes(name, schemes, args, arg_names, subst, errors);
     }
 
     let schemes = alias_constructor_call_schemes(name, ctx.aliases)?;
-    infer_constructor_schemes(name, &schemes, args, subst, errors)
+    infer_constructor_schemes(name, &schemes, args, arg_names, subst, errors)
 }
 
 /// Infers a constructor call against a candidate scheme set.
@@ -47,6 +50,7 @@ pub(super) fn infer_constructor_call(
 /// - `name`: constructor name used for diagnostics.
 /// - `schemes`: explicit or alias-derived constructor schemes.
 /// - `args`: inferred argument types.
+/// - `arg_names`: optional source argument names parallel to `args`.
 /// - `subst`: active type-variable substitution.
 /// - `errors`: mutable diagnostic text sink.
 ///
@@ -61,28 +65,77 @@ pub(super) fn infer_constructor_schemes(
     name: &str,
     schemes: &[ConstructorScheme],
     args: &[Type],
+    arg_names: &[Option<String>],
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Option<Type> {
     let mut last_error = None;
+    let mut last_named_errors = Vec::new();
 
     for scheme in schemes {
         let instantiated =
             instantiate_constructor_scheme(scheme, next_constructor_type_var(args, subst));
+        let param_names = instantiated
+            .param_names
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        let effective_args = if call_has_named_args(arg_names) {
+            let mut named_errors = Vec::new();
+            if !validate_named_call_args(name, arg_names, &param_names, &mut named_errors) {
+                last_named_errors = named_errors;
+                continue;
+            }
+
+            if instantiated.vararg.is_none() {
+                if !validate_required_defaulted_constructor_call_args(
+                    name,
+                    arg_names,
+                    &instantiated,
+                    &mut named_errors,
+                ) {
+                    last_named_errors = named_errors;
+                    continue;
+                }
+                complete_defaulted_call_arg_types(
+                    args,
+                    arg_names,
+                    &param_names,
+                    &instantiated.fixed_params,
+                )
+            } else {
+                reorder_named_call_arg_types(args, arg_names, &param_names)
+            }
+        } else if instantiated.vararg.is_none() && args.len() >= instantiated.min_arity {
+            complete_defaulted_call_arg_types(
+                args,
+                arg_names,
+                &param_names,
+                &instantiated.fixed_params,
+            )
+        } else {
+            args.to_vec()
+        };
         let mut trial_subst = subst.clone();
         let result = if let Some(vararg) = &instantiated.vararg {
-            infer_varargs_constructor_call(name, &instantiated, vararg, args, &mut trial_subst)
-        } else if args.len() >= instantiated.min_arity
-            && args.len() <= instantiated.fixed_params.len()
+            infer_varargs_constructor_call(
+                name,
+                &instantiated,
+                vararg,
+                &effective_args,
+                &mut trial_subst,
+            )
+        } else if effective_args.len() >= instantiated.min_arity
+            && effective_args.len() <= instantiated.fixed_params.len()
         {
-            infer_fixed_constructor_call(&instantiated, args, &mut trial_subst)
+            infer_fixed_constructor_call(&instantiated, &effective_args, &mut trial_subst)
         } else {
             Err(format!(
                 "constructor {} has arity mismatch: expected {}..{} args, found {}",
                 name,
                 instantiated.min_arity,
                 instantiated.fixed_params.len(),
-                args.len()
+                effective_args.len()
             ))
         };
 
@@ -95,10 +148,53 @@ pub(super) fn infer_constructor_schemes(
         }
     }
 
-    errors.push(
-        last_error.unwrap_or_else(|| format!("no matching constructor {} / {}", name, args.len())),
-    );
+    if last_error.is_none() && !last_named_errors.is_empty() {
+        errors.extend(last_named_errors);
+    } else {
+        errors.push(
+            last_error
+                .unwrap_or_else(|| format!("no matching constructor {} / {}", name, args.len())),
+        );
+    }
     Some(Type::Dynamic)
+}
+
+/// Validates required constructor parameters for default-aware calls.
+///
+/// Inputs:
+/// - `name`: constructor name used in diagnostics.
+/// - `arg_names`: optional source names parallel to supplied arguments.
+/// - `scheme`: selected constructor scheme.
+/// - `errors`: output diagnostic sink.
+///
+/// Output:
+/// - `true` when all required constructor parameters are supplied.
+///
+/// Transformation:
+/// - Computes supplied declaration slots from positional and named arguments,
+///   then rejects any required slot before the constructor's `min_arity`.
+fn validate_required_defaulted_constructor_call_args(
+    name: &str,
+    arg_names: &[Option<String>],
+    scheme: &ConstructorScheme,
+    errors: &mut Vec<String>,
+) -> bool {
+    let param_names = scheme
+        .param_names
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let supplied = supplied_named_parameter_slots(arg_names, &param_names);
+    for (index, parameter) in scheme.param_names.iter().take(scheme.min_arity).enumerate() {
+        if !supplied.contains(&index) {
+            errors.push(format!(
+                "missing required argument `{}` for constructor `{}`",
+                parameter, name
+            ));
+        }
+    }
+
+    errors.is_empty()
 }
 
 /// Infers a fixed-arity constructor call.
@@ -247,7 +343,8 @@ pub(super) fn infer_opaque_constructor(
 ///
 /// Transformation:
 /// - Expands aliases, extracts constructor payload parameters from the runtime
-///   representation, and returns a scheme whose return type is the alias body.
+///   representation, attaches source tuple-field labels when present, and
+///   returns a scheme whose return type is the alias body.
 pub(crate) fn alias_constructor_schemes(
     name: &str,
     aliases: &HashMap<String, TypeAlias>,
@@ -264,7 +361,13 @@ pub(crate) fn alias_constructor_schemes(
 
     let body = expand_type_aliases(&alias.body, aliases);
     let fixed_params = alias_constructor_params(&body)?;
+    let param_names = if alias.constructor_param_names.len() == fixed_params.len() {
+        alias.constructor_param_names.clone()
+    } else {
+        Vec::new()
+    };
     Some(vec![ConstructorScheme {
+        param_names,
         min_arity: fixed_params.len(),
         fixed_params,
         vararg: None,

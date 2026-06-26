@@ -1,0 +1,85 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WebGLRenderingContextOverloads
+ */
+
+module std.js.Dom.WebGLRenderingContextOverloadsTest.
+
+import type std.js.Dom.WebGLRenderingContextOverloads.WebGLRenderingContextOverloads.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub buffer_data_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, size: GLsizeiptr, usage: GLenum): std.core.Unit ->
+    receiver.buffer_data(target_, size, usage).
+
+pub buffer_data_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, data: Option[AllowSharedBufferSource], usage: GLenum): std.core.Unit ->
+    receiver.buffer_data(target_, data, usage).
+
+pub buffer_sub_data_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, offset: GLintptr, data: AllowSharedBufferSource): std.core.Unit ->
+    receiver.buffer_sub_data(target_, offset, data).
+
+pub compressed_tex_image2_d_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, level: GLint, internalformat: GLenum, width: GLsizei, height: GLsizei, border: GLint, data: ArrayBufferView[ArrayBufferLike]): std.core.Unit ->
+    receiver.compressed_tex_image2_d(target_, level, internalformat, width, height, border, data).
+
+pub compressed_tex_sub_image2_d_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, width: GLsizei, height: GLsizei, format: GLenum, data: ArrayBufferView[ArrayBufferLike]): std.core.Unit ->
+    receiver.compressed_tex_sub_image2_d(target_, level, xoffset, yoffset, width, height, format, data).
+
+pub read_pixels_typechecks(receiver: WebGLRenderingContextOverloads, x: GLint, y: GLint, width: GLsizei, height: GLsizei, format: GLenum, type_: GLenum, pixels: Option[ArrayBufferView[ArrayBufferLike]]): std.core.Unit ->
+    receiver.read_pixels(x, y, width, height, format, type_, pixels).
+
+pub tex_image2_d_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, type_: GLenum, pixels: Option[ArrayBufferView[ArrayBufferLike]]): std.core.Unit ->
+    receiver.tex_image2_d(target_, level, internalformat, width, height, border, format, type_, pixels).
+
+pub tex_image2_d_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, level: GLint, internalformat: GLint, format: GLenum, type_: GLenum, source: TexImageSource): std.core.Unit ->
+    receiver.tex_image2_d(target_, level, internalformat, format, type_, source).
+
+pub tex_sub_image2_d_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, width: GLsizei, height: GLsizei, format: GLenum, type_: GLenum, pixels: Option[ArrayBufferView[ArrayBufferLike]]): std.core.Unit ->
+    receiver.tex_sub_image2_d(target_, level, xoffset, yoffset, width, height, format, type_, pixels).
+
+pub tex_sub_image2_d_typechecks(receiver: WebGLRenderingContextOverloads, target_: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, format: GLenum, type_: GLenum, source: TexImageSource): std.core.Unit ->
+    receiver.tex_sub_image2_d(target_, level, xoffset, yoffset, format, type_, source).
+
+pub uniform1fv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Float32List): std.core.Unit ->
+    receiver.uniform1fv(location, v).
+
+pub uniform1iv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Int32List): std.core.Unit ->
+    receiver.uniform1iv(location, v).
+
+pub uniform2fv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Float32List): std.core.Unit ->
+    receiver.uniform2fv(location, v).
+
+pub uniform2iv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Int32List): std.core.Unit ->
+    receiver.uniform2iv(location, v).
+
+pub uniform3fv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Float32List): std.core.Unit ->
+    receiver.uniform3fv(location, v).
+
+pub uniform3iv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Int32List): std.core.Unit ->
+    receiver.uniform3iv(location, v).
+
+pub uniform4fv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Float32List): std.core.Unit ->
+    receiver.uniform4fv(location, v).
+
+pub uniform4iv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], v: Int32List): std.core.Unit ->
+    receiver.uniform4iv(location, v).
+
+pub uniform_matrix2fv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], transpose: GLboolean, value: Float32List): std.core.Unit ->
+    receiver.uniform_matrix2fv(location, transpose, value).
+
+pub uniform_matrix3fv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], transpose: GLboolean, value: Float32List): std.core.Unit ->
+    receiver.uniform_matrix3fv(location, transpose, value).
+
+pub uniform_matrix4fv_typechecks(receiver: WebGLRenderingContextOverloads, location: Option[WebGLUniformLocation], transpose: GLboolean, value: Float32List): std.core.Unit ->
+    receiver.uniform_matrix4fv(location, transpose, value).

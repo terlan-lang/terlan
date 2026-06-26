@@ -11,8 +11,6 @@ crates/terlan_cli/src/validation/mod.rs
 crates/terlan_cli/src/validation/target_profile/mod.rs
 crates/terlan_erlang/src/emit.rs
 crates/terlan_erlang/src/emit/core.rs
-crates/terlan_erlang/src/emit/util.rs
-crates/terlan_lsp/src/lib.rs
 crates/terlan_syntax/src/ebnf.rs
 crates/terlan_syntax/src/lib.rs
 crates/terlan_syntax/src/parser_contract.rs

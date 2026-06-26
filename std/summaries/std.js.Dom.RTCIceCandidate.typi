@@ -1,0 +1,128 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCIceCandidate
+ */
+
+module std.js.Dom.RTCIceCandidate.
+
+/**
+ * The **`RTCIceCandidate`** interface—part of the WebRTC API—represents a candidate Interactive Connectivity Establishment (ICE) configuration which may be used to establish an RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate)
+ */
+pub opaque type RTCIceCandidate.
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`address`** property is a string providing the IP address of the device which is the source of the candidate.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/address)
+ */
+pub (value: RTCIceCandidate) address(): Option[std.js.String.JsString].
+
+/**
+ * The read-only property **`candidate`** on the RTCIceCandidate interface returns a string describing the candidate in detail.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/candidate)
+ */
+pub (value: RTCIceCandidate) candidate(): std.js.String.JsString.
+
+/**
+ * The read-only **`component`** property on the RTCIceCandidate interface is a string which indicates whether the candidate is an RTP or an RTCP candidate.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/component)
+ */
+pub (value: RTCIceCandidate) component(): Option[RTCIceComponent].
+
+/**
+ * The **`foundation`** read-only property of the RTCIceCandidate interface is a string that allows correlation of candidates from a common network path on multiple RTCIceTransport objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/foundation)
+ */
+pub (value: RTCIceCandidate) foundation(): Option[std.js.String.JsString].
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`port`** property contains the port number on the device at the address given by RTCIceCandidate.address at which the candidate's peer can be reached.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/port)
+ */
+pub (value: RTCIceCandidate) port(): Option[std.js.Number.JsNumber].
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`priority`** property specifies the candidate's priority according to the remote peer; the higher this value is, the better the remote peer considers the candidate to be.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/priority)
+ */
+pub (value: RTCIceCandidate) priority(): Option[std.js.Number.JsNumber].
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`protocol`** property is a string which indicates whether the candidate uses UDP or TCP as its transport protocol.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/protocol)
+ */
+pub (value: RTCIceCandidate) protocol(): Option[RTCIceProtocol].
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`relatedAddress`** property is a string indicating the **related address** of a relay or reflexive candidate.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/relatedAddress)
+ */
+pub (value: RTCIceCandidate) related_address(): Option[std.js.String.JsString].
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`relatedPort`** property indicates the port number of reflexive or relay candidates.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/relatedPort)
+ */
+pub (value: RTCIceCandidate) related_port(): Option[std.js.Number.JsNumber].
+
+/**
+ * The read-only **`sdpMLineIndex`** property on the RTCIceCandidate interface is a zero-based index of the m-line describing the media associated with the candidate.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/sdpMLineIndex)
+ */
+pub (value: RTCIceCandidate) sdp_m_line_index(): Option[std.js.Number.JsNumber].
+
+/**
+ * The read-only property **`sdpMid`** on the RTCIceCandidate interface returns a string specifying the media stream identification tag of the media component with which the candidate is associated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/sdpMid)
+ */
+pub (value: RTCIceCandidate) sdp_mid(): Option[std.js.String.JsString].
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`tcpType`** property is included on TCP candidates to provide additional details about the candidate type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/tcpType)
+ */
+pub (value: RTCIceCandidate) tcp_type(): Option[RTCIceTcpCandidateType].
+
+/**
+ * The **RTCIceCandidate** interface's read-only **`type`** specifies the type of candidate the object represents.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/type)
+ */
+pub (value: RTCIceCandidate) type_(): Option[RTCIceCandidateType].
+
+/**
+ * The read-only **`usernameFragment`** property on the RTCIceCandidate interface is a string indicating the username fragment ('ufrag') that uniquely identifies a single ICE interaction session.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/usernameFragment)
+ */
+pub (value: RTCIceCandidate) username_fragment(): Option[std.js.String.JsString].
+
+/**
+ * The RTCIceCandidate method **`toJSON()`** converts the `RTCIceCandidate` on which it's called into JSON.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/toJSON)
+ */
+pub (value: RTCIceCandidate) to_json(): RTCIceCandidateInit.

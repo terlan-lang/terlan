@@ -1,8 +1,8 @@
 /**
- *Core float conformance helpers.
+ * Core float conformance helpers.
  *
- *`std.core.Float` provides named operations used by stdlib trait/conformance
- *implementations for primitive `Float`.
+ * `std.core.Float` provides named operations used by stdlib trait/conformance
+ * implementations for primitive `Float`.
  */
 
 module std.core.Float.
@@ -104,25 +104,25 @@ pub abs(value: Float): Float ->
     }.
 
 /**
- *Compares two supported finite `Float` values using numeric ordering.
+ * Compares two supported finite `Float` values using numeric ordering.
  *
- *Input: two supported finite `Float` values.
- *Output: `Lt` when `left` is numerically less than `right`, `Eq` when the
- *values are equal, and `Gt` when `left` is numerically greater than
- *`right`.
- *Transformation: maps the selected finite float ordering relation onto
- *`std.core.Ordering.Comparison`.
+ * Input: two supported finite `Float` values.
+ * Output: `Lt` when `left` is numerically less than `right`, `Eq` when the
+ * values are equal, and `Gt` when `left` is numerically greater than
+ * `right`.
+ * Transformation: maps the selected finite float ordering relation onto
+ * `std.core.Ordering.Comparison`.
  *
- *This function is the named implementation hook for compiler-known
- *`std.core.Ordering.Ordering[Float]` conformance in 0.0.1. Non-finite values
- *are outside the 0.0.1 source contract.
+ * This function is the named implementation hook for compiler-known
+ * `std.core.Ordering.Ordering[Float]` conformance in 0.0.1. Non-finite values
+ * are outside the 0.0.1 source contract.
  *
- *```terlan
- *module float_compare_example.
+ * ```terlan
+ * module float_compare_example.
  *
- *pub demo(): std.core.Ordering.Comparison ->
+ * pub demo(): std.core.Ordering.Comparison ->
  *    std.core.Float.compare(1.5, 2.5).
- *```
+ * ```
  */
 pub compare(left: Float, right: Float): std.core.Ordering.Comparison ->
     case left == right {
@@ -140,39 +140,39 @@ pub compare(left: Float, right: Float): std.core.Ordering.Comparison ->
     }.
 
 /**
- *Renders a finite `Float` as its canonical UTF-8 `String`.
+ * Renders a finite `Float` as its canonical UTF-8 `String`.
  *
- *Input: one supported finite `Float` value.
- *Output: the compact decimal string for the input float.
- *Transformation: lowers through the compiler-owned `core.float.to_string`
- *intrinsic with compact decimal formatting for `std.core.String.Show[Float]`.
+ * Input: one supported finite `Float` value.
+ * Output: the compact decimal string for the input float.
+ * Transformation: lowers through the compiler-owned `core.float.to_string`
+ * intrinsic with compact decimal formatting for `std.core.String.Show[Float]`.
  *
- *```terlan
- *module float_to_string_example.
+ * ```terlan
+ * module float_to_string_example.
  *
- *pub demo(): String ->
+ * pub demo(): String ->
  *    std.core.Float.to_string(1.5).
- *```
+ * ```
  */
 @compiler.intrinsic
 pub to_string(value: Float): String ->
     "".
 
 /**
- *Parses a canonical UTF-8 `String` into `Float`.
+ * Parses a canonical UTF-8 `String` into `Float`.
  *
- *Input: one `String` value.
- *Output: `Option[Float]`, where supported finite decimal float text returns
- *`Some(value)` and invalid text returns `None`.
- *Transformation: lowers through the compiler-owned `core.float.from_string`
- *intrinsic and accepts only inputs where the full string is consumed.
+ * Input: one `String` value.
+ * Output: `Option[Float]`, where supported finite decimal float text returns
+ * `Some(value)` and invalid text returns `None`.
+ * Transformation: lowers through the compiler-owned `core.float.from_string`
+ * intrinsic and accepts only inputs where the full string is consumed.
  *
- *```terlan
- *module float_from_string_example.
+ * ```terlan
+ * module float_from_string_example.
  *
- *pub demo(): Option[Float] ->
+ * pub demo(): Option[Float] ->
  *    std.core.Float.from_string("1.5").
- *```
+ * ```
  */
 @compiler.intrinsic
 pub from_string(value: String): Option[Float] ->

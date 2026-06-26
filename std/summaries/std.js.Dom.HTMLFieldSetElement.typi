@@ -1,0 +1,104 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLFieldSetElement
+ */
+
+module std.js.Dom.HTMLFieldSetElement.
+
+/**
+ * The **`HTMLFieldSetElement`** interface provides special properties and methods (beyond the regular HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of fieldset elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement)
+ */
+pub opaque type HTMLFieldSetElement.
+
+/**
+ * The **`disabled`** property of the HTMLFieldSetElement interface is a boolean value that reflects the fieldset element's `disabled` attribute, which indicates whether the control is disabled.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/disabled)
+ */
+pub (value: HTMLFieldSetElement) disabled(): std.core.Bool.
+
+/**
+ * The **`elements`** read-only property of the HTMLFieldSetElement interface returns an HTMLCollection object containing all form control elements (button, fieldset, input, object, output, select, and textarea) that are descendants of this field set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/elements)
+ */
+pub (value: HTMLFieldSetElement) elements(): HTMLCollection.
+
+/**
+ * The **`form`** read-only property of the HTMLFieldSetElement interface returns an HTMLFormElement object that owns this fieldset, or `null` if this fieldset is not owned by any form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/form)
+ */
+pub (value: HTMLFieldSetElement) form(): Option[HTMLFormElement].
+
+/**
+ * The **`name`** property of the HTMLFieldSetElement interface indicates the name of the fieldset element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/name)
+ */
+pub (value: HTMLFieldSetElement) name(): std.js.String.JsString.
+
+/**
+ * The **`type`** read-only property of the HTMLFieldSetElement interface returns the string `'fieldset'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/type)
+ */
+pub (value: HTMLFieldSetElement) type_(): std.js.String.JsString.
+
+/**
+ * The **`validationMessage`** read-only property of the HTMLFieldSetElement interface returns a string representing a localized message that describes the validation constraints that the fieldset control does not satisfy (if any).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/validationMessage)
+ */
+pub (value: HTMLFieldSetElement) validation_message(): std.js.String.JsString.
+
+/**
+ * The **`validity`** read-only property of the HTMLFieldSetElement interface returns a ValidityState object that represents the validity states this element is in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/validity)
+ */
+pub (value: HTMLFieldSetElement) validity(): ValidityState.
+
+/**
+ * The **`willValidate`** read-only property of the HTMLFieldSetElement interface returns `false`, because fieldset elements are not candidates for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/willValidate)
+ */
+pub (value: HTMLFieldSetElement) will_validate(): std.core.Bool.
+
+/**
+ * The **`checkValidity()`** method of the HTMLFieldSetElement interface checks if the element is valid, but always returns true because fieldset elements are never candidates for constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/checkValidity)
+ */
+pub (value: HTMLFieldSetElement) check_validity(): std.core.Bool.
+
+/**
+ * The **`reportValidity()`** method of the HTMLFieldSetElement interface performs the same validity checking steps as the HTMLFieldSetElement.checkValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/reportValidity)
+ */
+pub (value: HTMLFieldSetElement) report_validity(): std.core.Bool.
+
+/**
+ * The **`setCustomValidity()`** method of the HTMLFieldSetElement interface sets the custom validity message for the fieldset element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/setCustomValidity)
+ */
+pub (value: HTMLFieldSetElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
+
+pub (value: HTMLFieldSetElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: HTMLFieldSetElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

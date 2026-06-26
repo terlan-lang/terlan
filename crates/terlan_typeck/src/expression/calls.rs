@@ -1,4 +1,13 @@
 use super::*;
+mod imported;
+mod local;
+mod receiver;
+mod template;
+
+use imported::*;
+use local::*;
+use receiver::*;
+use template::*;
 
 /// Infers a named call expression.
 ///
@@ -19,13 +28,138 @@ pub(super) fn infer_syntax_call_expr(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Type {
-    let arg_types = expr
-        .children
+    let arg_types = infer_syntax_call_arg_types(expr, locals, ctx, subst, errors);
+    infer_syntax_call_with_arg_types(expr, &arg_types, locals, ctx, subst, errors)
+}
+
+/// Infers call argument types with available local-call context.
+///
+/// Inputs:
+/// - `expr`: syntax-output call expression.
+/// - `locals`, `ctx`, `subst`, and `errors`: active expression inference state.
+///
+/// Output:
+/// - Argument types in source order.
+///
+/// Transformation:
+/// - For ordinary local calls with a known exact signature, supplies each
+///   argument's expected parameter type to contextual expressions such as
+///   `Module.member` function values. All other calls use ordinary expression
+///   inference.
+fn infer_syntax_call_arg_types(
+    expr: &SyntaxExprOutput,
+    locals: &HashMap<String, Type>,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Vec<Type> {
+    let expected_arg_types = exact_local_call_expected_arg_types(expr, ctx, subst);
+    expr.children
         .iter()
         .skip(1)
-        .map(|arg| infer_syntax_expr(arg, locals, ctx, subst, errors))
+        .enumerate()
+        .map(|(index, arg)| {
+            expected_arg_types
+                .as_ref()
+                .and_then(|expected| expected.get(index))
+                .and_then(Option::as_ref)
+                .and_then(|expected| {
+                    infer_syntax_expr_with_expected(arg, expected, locals, ctx, subst, errors)
+                })
+                .unwrap_or_else(|| infer_syntax_expr(arg, locals, ctx, subst, errors))
+        })
+        .collect()
+}
+
+/// Builds positional expected argument types for an exact local function call.
+///
+/// Inputs:
+/// - `expr`: syntax-output call expression.
+/// - `ctx`: expression inference context containing local function signatures.
+/// - `subst`: active substitution table used when instantiating generic
+///   function schemes.
+///
+/// Output:
+/// - Expected source-argument types when the call head is a direct local
+///   function and the supplied arity exactly matches a known declaration.
+/// - `None` for remote calls, receiver calls, constructors, imports, or calls
+///   whose local signature is not exact.
+///
+/// Transformation:
+/// - Parses the local function scheme, instantiates generic variables, and
+///   maps named arguments back to declaration slots without changing source
+///   argument order.
+fn exact_local_call_expected_arg_types(
+    expr: &SyntaxExprOutput,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Option<Vec<Option<Type>>> {
+    if expr.remote.is_some() || !syntax_callee_is_var(expr) {
+        return None;
+    }
+    let function_name = syntax_callee_name(expr)?;
+    let supplied_arity = expr.children.len().saturating_sub(1);
+    let symbol = ctx
+        .local_fns
+        .get(&(function_name.to_string(), supplied_arity))?;
+    let scheme = parse_symbol_scheme(symbol)?;
+    let instantiated =
+        instantiate_function_scheme_from(&scheme, next_function_type_var(&[], subst));
+    let param_names = symbol
+        .params
+        .iter()
+        .map(|param| param.name.as_str())
         .collect::<Vec<_>>();
-    infer_syntax_call_with_arg_types(expr, &arg_types, locals, ctx, subst, errors)
+
+    let mut next_positional = 0;
+    Some(
+        expr.arg_names
+            .iter()
+            .map(|arg_name| {
+                let slot = if let Some(arg_name) = arg_name {
+                    param_names.iter().position(|param| param == arg_name)
+                } else {
+                    while next_positional < param_names.len()
+                        && expr
+                            .arg_names
+                            .iter()
+                            .any(|name| name.as_deref() == Some(param_names[next_positional]))
+                    {
+                        next_positional += 1;
+                    }
+                    let slot = (next_positional < param_names.len()).then_some(next_positional);
+                    next_positional += 1;
+                    slot
+                }?;
+                instantiated.params.get(slot).cloned()
+            })
+            .collect(),
+    )
+}
+
+/// Infers one expression with a contextual expected type when supported.
+///
+/// Inputs:
+/// - `expr`: argument expression.
+/// - `expected`: expected parameter type from the receiving call.
+/// - `locals`, `ctx`, `subst`, and `errors`: active expression inference state.
+///
+/// Output:
+/// - Contextually inferred type for supported forms.
+/// - `None` when the expression has no contextual inference behavior.
+///
+/// Transformation:
+/// - Currently uses function-value expectations to resolve overloaded
+///   imported module-member references such as `Users.index`.
+pub(crate) fn infer_syntax_expr_with_expected(
+    expr: &SyntaxExprOutput,
+    expected: &Type,
+    _locals: &HashMap<String, Type>,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    infer_imported_module_member_function_value_with_expected(expr, expected, ctx, subst, errors)
 }
 
 /// Infers a dedicated function-value invocation expression.
@@ -72,8 +206,9 @@ pub(super) fn infer_syntax_function_value_call(
 /// - `Dynamic` when the callee is not a function or arguments do not match.
 ///
 /// Transformation:
-/// - Infers the callee expression, requires a `Type::Function`, unifies each
-///   parameter with the provided argument type, and returns the substituted
+/// - Infers the callee expression, requires a `Type::Function`, checks each
+///   provided argument against the corresponding parameter with alias-aware
+///   subtyping before falling back to unification, and returns the substituted
 ///   result type.
 fn infer_syntax_function_value_call_with_arg_types(
     expr: &SyntaxExprOutput,
@@ -104,8 +239,21 @@ fn infer_syntax_function_value_call_with_arg_types(
             }
 
             for (expected, actual) in params.iter().zip(arg_types.iter()) {
-                if let Err(message) = unify(expected, actual, subst) {
-                    errors.push(message);
+                let expected_substituted = apply_subst(expected, subst);
+                let actual_substituted = apply_subst(actual, subst);
+                if is_subtype_with_aliases(&actual_substituted, &expected_substituted, ctx.aliases)
+                {
+                    continue;
+                }
+                if let Err(original_message) = unify(expected, actual, subst) {
+                    let expected_expanded = expand_type_aliases(&expected_substituted, ctx.aliases);
+                    let actual_expanded = expand_type_aliases(&actual_substituted, ctx.aliases);
+                    if is_subtype_with_aliases(&actual_expanded, &expected_expanded, ctx.aliases) {
+                        continue;
+                    }
+                    if unify(&expected_expanded, &actual_expanded, subst).is_err() {
+                        errors.push(original_message);
+                    }
                 }
             }
 
@@ -223,21 +371,38 @@ fn infer_syntax_call_with_arg_types(
     };
 
     if expr.remote.is_none() && syntax_callee_is_var(expr) {
-        if let Some(constructed) =
-            infer_constructor_call(function_name, &arg_types, ctx, subst, errors)
+        if let Some(template_result) =
+            infer_syntax_template_call(function_name, expr, locals, ctx, subst, errors)
         {
+            return template_result;
+        }
+
+        if ctx.current_constructor_target == Some(function_name) {
+            if let Some(constructed) = infer_default_struct_constructor_call(
+                function_name,
+                &arg_types,
+                &expr.arg_names,
+                ctx,
+                subst,
+                errors,
+            ) {
+                return constructed;
+            }
+        }
+
+        if let Some(constructed) = infer_constructor_call(
+            function_name,
+            &arg_types,
+            &expr.arg_names,
+            ctx,
+            subst,
+            errors,
+        ) {
             return constructed;
         }
 
         if let Some(imported) = ctx.constructor_aliases.get(function_name) {
             if let Some(interface) = ctx.interface_map.get(&imported.module) {
-                if interface.opaque_types.contains(&imported.name) {
-                    errors.push(format!(
-                        "cannot construct opaque type {}.{} outside defining module",
-                        imported.module, imported.name
-                    ));
-                    return Type::Dynamic;
-                }
                 if let Some(schemes) = parse_interface_constructor_schemes(
                     interface
                         .constructors
@@ -249,6 +414,7 @@ fn infer_syntax_call_with_arg_types(
                         function_name,
                         &schemes,
                         &arg_types,
+                        &expr.arg_names,
                         subst,
                         errors,
                     ) {
@@ -256,7 +422,25 @@ fn infer_syntax_call_with_arg_types(
                         return expand_type_aliases(&constructed, &interface_aliases);
                     }
                 }
+                if interface.opaque_types.contains(&imported.name) {
+                    errors.push(format!(
+                        "cannot construct opaque type {}.{} outside defining module",
+                        imported.module, imported.name
+                    ));
+                    return Type::Dynamic;
+                }
             }
+        }
+
+        if let Some(constructed) = infer_default_struct_constructor_call(
+            function_name,
+            &arg_types,
+            &expr.arg_names,
+            ctx,
+            subst,
+            errors,
+        ) {
+            return constructed;
         }
 
         if let Some(constructed) =
@@ -287,20 +471,45 @@ fn infer_syntax_call_with_arg_types(
         }
 
         if is_constructor_name(function_name) {
-            errors.push(format!(
-                "unknown constructor {} / {}",
-                function_name,
-                arg_types.len()
+            let diagnostic_span = expr
+                .children
+                .first()
+                .map(|callee| callee.span.into())
+                .unwrap_or_else(|| expr.span.into());
+            errors.push(spanned_expression_error(
+                diagnostic_span,
+                format!(
+                    "unknown constructor {} / {}",
+                    function_name,
+                    arg_types.len()
+                ),
             ));
             return Type::Dynamic;
         }
     }
 
     if let Some(module_name) = expr.remote.as_deref() {
-        return infer_syntax_remote_call(module_name, function_name, arg_types, ctx, subst, errors);
+        return infer_syntax_remote_call(
+            module_name,
+            function_name,
+            arg_types,
+            &expr.type_args,
+            &expr.arg_names,
+            ctx,
+            subst,
+            errors,
+        );
     }
 
-    infer_syntax_local_call(function_name, arg_types, ctx, subst, errors)
+    infer_syntax_local_call(
+        function_name,
+        arg_types,
+        &expr.type_args,
+        &expr.arg_names,
+        ctx,
+        subst,
+        errors,
+    )
 }
 
 /// Returns whether a local function can also accept a pipe-inserted call.
@@ -419,7 +628,7 @@ fn infer_syntax_receiver_method_pipe_forward(
 
     let method = syntax_callee_name(right)?;
     let arity = right.children.len().saturating_sub(1);
-    let candidates = ctx.receiver_methods.get(&(method.to_string(), arity))?;
+    let candidates = receiver_method_candidates_accepting_call(ctx, method, arity)?;
     let receiver_type = infer_syntax_expr(left, locals, ctx, subst, errors);
     let arg_types = right
         .children
@@ -431,11 +640,41 @@ fn infer_syntax_receiver_method_pipe_forward(
     pipe_inserted_arg_types.push(receiver_type.clone());
     pipe_inserted_arg_types.extend(arg_types.iter().cloned());
 
-    for candidate in candidates {
+    for candidate in &candidates {
         let mut trial_subst = subst.clone();
-        if unify(&candidate.receiver_type, &receiver_type, &mut trial_subst).is_err() {
-            continue;
+        let param_names = candidate
+            .param_names
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        if !validate_named_call_args(method, &right.arg_names, &param_names, errors) {
+            return Some(Type::Dynamic);
         }
+        if !validate_required_defaulted_receiver_call_args(
+            method,
+            &right.arg_names,
+            candidate,
+            errors,
+        ) {
+            return Some(Type::Dynamic);
+        }
+        let effective_arg_types = complete_defaulted_receiver_call_arg_types(
+            &arg_types,
+            &right.arg_names,
+            &param_names,
+            candidate,
+        );
+        let candidate_result = infer_receiver_method_candidate(
+            candidate,
+            Some(method),
+            &receiver_type,
+            &effective_arg_types,
+            ctx,
+            &mut trial_subst,
+        );
+        let Ok(ty) = candidate_result else {
+            continue;
+        };
         if local_function_pipe_target_matches(method, &pipe_inserted_arg_types, ctx, &trial_subst)
             || imported_function_pipe_target_matches(
                 method,
@@ -451,27 +690,13 @@ fn infer_syntax_receiver_method_pipe_forward(
             ));
             return Some(Type::Dynamic);
         }
-        match infer_function_with_bounds(
-            &candidate.scheme,
-            Some(method),
-            &arg_types,
-            ctx,
-            &mut trial_subst,
-        ) {
-            Ok(ty) => {
-                let pipe_type = if candidate.receiver_mutable {
-                    apply_subst(&receiver_type, &trial_subst)
-                } else {
-                    ty
-                };
-                *subst = trial_subst;
-                return Some(pipe_type);
-            }
-            Err(message) => {
-                errors.push(message);
-                return Some(Type::Dynamic);
-            }
-        }
+        let pipe_type = if candidate.receiver_mutable {
+            apply_subst(&receiver_type, &trial_subst)
+        } else {
+            ty
+        };
+        *subst = trial_subst;
+        return Some(pipe_type);
     }
 
     let candidate_types = candidates
@@ -487,6 +712,73 @@ fn infer_syntax_receiver_method_pipe_forward(
         candidate_types
     ));
     Some(Type::Dynamic)
+}
+
+/// Infers one receiver-method candidate with linked receiver generics.
+///
+/// Inputs:
+/// - `candidate`: receiver dispatch candidate selected by method name/arity.
+/// - `function_name`: optional diagnostic label for the method.
+/// - `receiver_type`: inferred type of the receiver expression.
+/// - `arg_types`: inferred non-receiver argument types after default
+///   completion.
+/// - `ctx` and `subst`: active inference context and substitutions.
+///
+/// Output:
+/// - Candidate return type when the receiver and arguments satisfy the method
+///   signature.
+/// - Diagnostic text when this candidate does not accept the call.
+///
+/// Transformation:
+/// - Builds a synthetic function scheme whose first parameter is the receiver
+///   type, freshens that complete scheme once, then infers the call without a
+///   second freshening step. This keeps receiver generics such as
+///   `Map[K, V]` tied to method parameters and return types.
+fn infer_receiver_method_candidate(
+    candidate: &ReceiverMethodDispatchSignature,
+    function_name: Option<&str>,
+    receiver_type: &Type,
+    arg_types: &[Type],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<Type, String> {
+    let candidate_receiver_type = qualify_imported_named_heads(&candidate.receiver_type, ctx);
+    let receiver_type = qualify_imported_named_heads(receiver_type, ctx);
+    let method_params = candidate
+        .scheme
+        .params
+        .iter()
+        .map(|param| qualify_imported_named_heads(param, ctx))
+        .collect::<Vec<_>>();
+    let method_return = qualify_imported_named_heads(&candidate.scheme.ret, ctx);
+    let arg_types = arg_types
+        .iter()
+        .map(|arg| qualify_imported_named_heads(arg, ctx))
+        .collect::<Vec<_>>();
+    let mut params = Vec::with_capacity(arg_types.len() + 1);
+    params.push(candidate_receiver_type);
+    params.extend(method_params);
+    let combined_scheme = FunctionScheme {
+        params,
+        ret: method_return,
+        generic_params: candidate.scheme.generic_params.clone(),
+        bounds: candidate.scheme.bounds.clone(),
+    };
+    let mut combined_args = Vec::with_capacity(arg_types.len() + 1);
+    combined_args.push(receiver_type);
+    combined_args.extend(arg_types);
+    let instantiated = instantiate_function_scheme_from(
+        &combined_scheme,
+        next_function_type_var(&combined_args, subst),
+    );
+
+    infer_instantiated_function_with_bounds(
+        &instantiated,
+        function_name,
+        &combined_args,
+        ctx,
+        subst,
+    )
 }
 
 /// Infers a pipe-forwarding expression.
@@ -590,6 +882,7 @@ pub(super) fn syntax_callee_is_var(expr: &SyntaxExprOutput) -> bool {
 /// Inputs:
 /// - `expr`: call expression with a remote qualifier.
 /// - `arg_types`: inferred argument types.
+/// - `type_args`: explicit generic call arguments from `Module.fun[Type](...)`.
 /// - `ctx`, `subst`, and `errors`: active inference state.
 ///
 /// Output:
@@ -602,15 +895,19 @@ fn infer_syntax_remote_call(
     module_name: &str,
     function_name: &str,
     arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    arg_names: &[Option<String>],
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Type {
+    let (trait_remote_name, explicit_trait_type_arg) =
+        split_explicit_trait_call_target(module_name, ctx);
     let resolved_module_name = ctx
         .module_aliases
-        .get(module_name)
+        .get(&trait_remote_name)
         .map(String::as_str)
-        .unwrap_or(module_name);
+        .unwrap_or(trait_remote_name.as_str());
 
     if resolved_module_name == "Html" && function_name == "raw" {
         if arg_types.len() != 1 {
@@ -636,7 +933,12 @@ fn infer_syntax_remote_call(
             .iter()
             .map(|arg| apply_subst(arg, subst))
             .collect::<Vec<_>>();
-        let cached_lookup_arg_types = canonicalize_trait_lookup_types(lookup_arg_types.as_slice());
+        let dispatch_arg_types = lookup_arg_types
+            .iter()
+            .map(|arg| qualify_imported_named_heads(arg, ctx))
+            .collect::<Vec<_>>();
+        let cached_lookup_arg_types =
+            canonicalize_trait_lookup_types(dispatch_arg_types.as_slice());
         let lookup_key = TraitMethodLookupKey {
             trait_name: resolved_module_name.to_string(),
             method_name: function_name.to_string(),
@@ -651,18 +953,29 @@ fn infer_syntax_remote_call(
                 let mut matching = None::<usize>;
                 let mut matches = 0usize;
                 for (index, impl_candidate) in impls.iter().enumerate() {
+                    if !explicit_trait_type_arg.as_ref().is_none_or(|expected| {
+                        trait_candidate_matches_explicit_type_arg(
+                            impl_candidate,
+                            expected,
+                            ctx,
+                            subst,
+                        )
+                    }) {
+                        continue;
+                    }
                     if !trait_method_candidate_matches_call(
                         impl_candidate,
-                        &lookup_arg_types,
+                        &dispatch_arg_types,
                         ctx,
                         subst,
                     ) {
                         continue;
                     }
                     let mut trial_subst = subst.clone();
-                    if infer_function_call(
+                    if infer_function_with_bounds(
                         &impl_candidate.scheme,
-                        &lookup_arg_types,
+                        None,
+                        &dispatch_arg_types,
                         ctx,
                         &mut trial_subst,
                     )
@@ -700,9 +1013,10 @@ fn infer_syntax_remote_call(
                 let mut inferred_subst = subst.clone();
                 let mut success = None::<(Type, HashMap<TypeVarId, Type>)>;
                 if let Some(impl_candidate) = impls.get(index) {
-                    if let Ok(ty) = infer_function_call(
+                    if let Ok(ty) = infer_function_with_bounds(
                         &impl_candidate.scheme,
-                        &lookup_arg_types,
+                        None,
+                        &dispatch_arg_types,
                         ctx,
                         &mut inferred_subst,
                     ) {
@@ -746,11 +1060,34 @@ fn infer_syntax_remote_call(
     }
 
     if let Some(interface) = ctx.interface_map.get(resolved_module_name) {
-        match infer_interface_function_overload(
+        let candidate_signatures =
+            interface_function_signatures(interface, function_name, arg_types.len());
+        let effective_arg_types = if !candidate_signatures.is_empty() {
+            let mut default_errors = Vec::new();
+            match complete_defaulted_imported_call_args_for_any_signature(
+                &format!("{}.{}", resolved_module_name, function_name),
+                arg_types,
+                arg_names,
+                &candidate_signatures,
+                interface,
+                ctx,
+                &mut default_errors,
+            ) {
+                Some(completed) => completed,
+                None => {
+                    errors.extend(default_errors);
+                    return Type::Dynamic;
+                }
+            }
+        } else {
+            arg_types.to_vec()
+        };
+        match infer_interface_function_overload_with_explicit_type_args(
             interface,
             function_name,
             &format!("{}.{}", resolved_module_name, function_name),
-            arg_types,
+            &effective_arg_types,
+            type_args,
             ctx,
             subst,
         ) {
@@ -765,9 +1102,14 @@ fn infer_syntax_remote_call(
             interface.constructors.get(function_name).map(Vec::as_slice),
             interface,
         ) {
-            if let Some(constructed) =
-                infer_constructor_schemes(function_name, &schemes, arg_types, subst, errors)
-            {
+            if let Some(constructed) = infer_constructor_schemes(
+                function_name,
+                &schemes,
+                arg_types,
+                arg_names,
+                subst,
+                errors,
+            ) {
                 let interface_aliases = interface_type_aliases(interface);
                 return expand_type_aliases(&constructed, &interface_aliases);
             }
@@ -781,9 +1123,14 @@ fn infer_syntax_remote_call(
         if let Some(schemes) =
             alias_constructor_call_schemes(&qualified_alias_name, &qualified_aliases)
         {
-            if let Some(constructed) =
-                infer_constructor_schemes(function_name, &schemes, arg_types, subst, errors)
-            {
+            if let Some(constructed) = infer_constructor_schemes(
+                function_name,
+                &schemes,
+                arg_types,
+                arg_names,
+                subst,
+                errors,
+            ) {
                 return expand_type_aliases(&constructed, &qualified_aliases);
             }
         }
@@ -841,7 +1188,145 @@ fn infer_syntax_remote_call(
         return Type::Binary;
     }
 
+    errors.push(unresolved_remote_call_message(
+        resolved_module_name,
+        function_name,
+        arg_types.len(),
+        ctx,
+    ));
     Type::Dynamic
+}
+
+/// Infers the compiler-provided field-assignment constructor for a struct.
+///
+/// Inputs:
+/// - `function_name`: source call head, expected to name a visible struct.
+/// - `arg_types`: inferred argument types in source order.
+/// - `arg_names`: field names supplied by named call arguments.
+/// - `ctx`, `subst`, and `errors`: active expression inference state.
+///
+/// Output:
+/// - `Some(Type::Named)` when `function_name` resolves to a visible struct.
+/// - `None` when the call head is not a struct name.
+///
+/// Transformation:
+/// - Treats `User(name = value)` as the default struct constructor, requiring
+///   explicit field assignments, rejecting unknown/duplicate/missing fields,
+///   enforcing field visibility, and unifying each supplied value with the
+///   declared field type.
+fn infer_default_struct_constructor_call(
+    function_name: &str,
+    arg_types: &[Type],
+    arg_names: &[Option<String>],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    let field_types = ctx.struct_fields.get(function_name)?;
+    if ctx.constructors.contains_key(function_name)
+        && ctx.current_constructor_target != Some(function_name)
+    {
+        errors.push(format!(
+            "implicit struct constructor `{}` is disabled because explicit constructors are declared",
+            function_name
+        ));
+        return Some(Type::Dynamic);
+    }
+    let mut supplied = HashSet::new();
+
+    for (index, actual) in arg_types.iter().enumerate() {
+        let Some(source_field_name) = arg_names.get(index).and_then(Option::as_deref) else {
+            errors.push(format!(
+                "struct constructor `{}` requires named field arguments",
+                function_name
+            ));
+            continue;
+        };
+        let (field_name, requested_private) = split_private_field_spelling(source_field_name);
+        if !supplied.insert(field_name.to_string()) {
+            errors.push(format!(
+                "duplicate field `{}` in struct constructor `{}`",
+                field_name, function_name
+            ));
+            continue;
+        }
+
+        let Some(expected) = field_types.get(field_name) else {
+            errors.push(format!(
+                "unknown field `{}` on struct `{}`",
+                field_name, function_name
+            ));
+            continue;
+        };
+        if let Some(message) = struct_field_visibility_error(
+            function_name,
+            field_name,
+            requested_private,
+            ctx.struct_field_visibility,
+            ctx.imported_type_names,
+        ) {
+            errors.push(message);
+        }
+
+        let expected_expanded = expand_type_aliases(expected, ctx.aliases);
+        let actual_expanded = expand_type_aliases(actual, ctx.aliases);
+        if let Err(message) = unify(&expected_expanded, &actual_expanded, subst) {
+            errors.push(format!(
+                "field `{}` on struct `{}` {}",
+                field_name, function_name, message
+            ));
+        }
+    }
+
+    for field_name in field_types.keys() {
+        if !supplied.contains(field_name) {
+            errors.push(format!(
+                "missing field `{}` in struct constructor `{}`",
+                field_name, function_name
+            ));
+        }
+    }
+
+    Some(Type::Named {
+        module: None,
+        name: function_name.to_string(),
+        args: Vec::new(),
+    })
+}
+
+/// Builds a diagnostic for an unresolved qualified call.
+///
+/// Inputs:
+/// - `module_name`: resolved remote module head from the call.
+/// - `function_name`: function segment from the qualified call.
+/// - `arity`: number of supplied call arguments.
+/// - `ctx`: expression inference context containing loaded interfaces.
+///
+/// Output:
+/// - Human-facing diagnostic explaining whether the module or function is
+///   missing.
+///
+/// Transformation:
+/// - Distinguishes an unknown module from a known module with no matching
+///   public function so compiler diagnostics catch issues that would otherwise
+///   lower into backend-specific runtime failures.
+fn unresolved_remote_call_message(
+    module_name: &str,
+    function_name: &str,
+    arity: usize,
+    ctx: &ExprInferContext,
+) -> String {
+    if ctx.interface_map.contains_key(module_name) {
+        format!(
+            "module `{}` has no public function `{}/{}`",
+            module_name, function_name, arity
+        )
+    } else {
+        format!(
+            "cannot resolve module `{}` for call `{}.{}/{}`",
+            module_name, module_name, function_name, arity
+        )
+    }
 }
 
 /// Checks whether a trait candidate can own the current call.
@@ -853,22 +1338,47 @@ fn infer_syntax_remote_call(
 /// - `subst`: current type-variable substitution table.
 ///
 /// Output:
-/// - `true` when the candidate has no owner type information or when its first
-///   impl type argument unifies with the call's first argument type.
+/// - `true` when the candidate has no owner type information, when its
+///   specialized first parameter unifies with the call's first argument type,
+///   or when its first impl type argument unifies with that argument type.
 /// - `false` when a different concrete conformance owns the method.
 ///
 /// Transformation:
-/// - Uses a cloned substitution table and transparent alias expansion to filter
-///   trait method candidates before ambiguity counting. This keeps imported
-///   multi-conformance traits such as `std.core.String.Show` from treating
-///   `Show[Int]`, `Show[Bool]`, and `Show[String]` as simultaneous matches for
-///   one receiver/value argument.
+/// - Uses cloned substitution tables and transparent alias expansion to filter
+///   trait method candidates before ambiguity counting. Specialized parameter
+///   matching handles higher-kinded impls such as `Functor[Option]`, while the
+///   owner fallback keeps imported multi-conformance traits such as
+///   `std.core.String.Show` from treating `Show[Int]`, `Show[Bool]`, and
+///   `Show[String]` as simultaneous matches for one receiver/value argument.
 pub(super) fn trait_method_candidate_matches_call(
     candidate: &ResolvedTraitMethod,
     arg_types: &[Type],
     ctx: &ExprInferContext,
     subst: &HashMap<TypeVarId, Type>,
 ) -> bool {
+    if let (Some(first_param_type), Some(first_arg_type)) =
+        (candidate.scheme.params.first(), arg_types.first())
+    {
+        let mut trial_subst = subst.clone();
+        if unify(first_param_type, first_arg_type, &mut trial_subst).is_ok() {
+            return true;
+        }
+
+        let param_expanded = expand_type_aliases(first_param_type, ctx.aliases);
+        let arg_expanded = expand_type_aliases(first_arg_type, ctx.aliases);
+        let mut expanded_subst = subst.clone();
+        if unify(&param_expanded, &arg_expanded, &mut expanded_subst).is_ok() {
+            return true;
+        }
+
+        let param_qualified = qualify_imported_named_heads(first_param_type, ctx);
+        let arg_qualified = qualify_imported_named_heads(first_arg_type, ctx);
+        let mut qualified_subst = subst.clone();
+        if unify(&param_qualified, &arg_qualified, &mut qualified_subst).is_ok() {
+            return true;
+        }
+    }
+
     let Some(owner_type) = candidate.impl_type_args.first() else {
         return true;
     };
@@ -883,121 +1393,219 @@ pub(super) fn trait_method_candidate_matches_call(
 
     let owner_expanded = expand_type_aliases(owner_type, ctx.aliases);
     let arg_expanded = expand_type_aliases(first_arg_type, ctx.aliases);
-    unify(&owner_expanded, &arg_expanded, &mut trial_subst).is_ok()
+    if unify(&owner_expanded, &arg_expanded, &mut trial_subst).is_ok() {
+        return true;
+    }
+
+    let owner_qualified = qualify_imported_named_heads(owner_type, ctx);
+    let arg_qualified = qualify_imported_named_heads(first_arg_type, ctx);
+    let mut qualified_subst = subst.clone();
+    unify(&owner_qualified, &arg_qualified, &mut qualified_subst).is_ok()
 }
 
-/// Infers a local receiver-method call.
+/// Splits a possible explicit trait call target.
 ///
 /// Inputs:
-/// - `expr`: syntax-output call expression whose callee may be field access.
-/// - `arg_types`: inferred non-receiver argument types.
-/// - `locals`, `ctx`, `subst`, and `errors`: active inference context.
+/// - `remote`: source remote qualifier such as `Functor[Option]` or `Module`.
+/// - `ctx`: active expression inference context with visible type aliases.
 ///
 /// Output:
-/// - `Some(Type)` for a resolved local receiver method or a method-shaped call
-///   that has candidates but no matching receiver.
-/// - `None` when the expression is not a receiver-method call known to the
-///   current module.
+/// - Remote head name and optional parsed explicit trait implementation type.
 ///
 /// Transformation:
-/// - Reads `receiver.method(args...)` from the field-access callee, infers the
-///   receiver type, selects a receiver-method signature by method/arity and
-///   receiver unification, then checks the non-receiver arguments with the
-///   existing function-scheme inference path.
-fn infer_syntax_receiver_method_call(
-    expr: &SyntaxExprOutput,
-    arg_types: &[Type],
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Option<Type> {
-    let callee = expr.children.first()?;
-    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
-        return None;
-    }
-    let method = callee.text.as_deref()?;
-    let candidates = ctx
-        .receiver_methods
-        .get(&(method.to_string(), arg_types.len()))?;
-    let receiver = callee.children.first()?;
-    let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
-
-    for candidate in candidates {
-        let mut trial_subst = subst.clone();
-        if unify(&candidate.receiver_type, &receiver_type, &mut trial_subst).is_err() {
-            continue;
-        }
-        match infer_function_with_bounds(
-            &candidate.scheme,
-            Some(method),
-            arg_types,
-            ctx,
-            &mut trial_subst,
-        ) {
-            Ok(ty) => {
-                *subst = trial_subst;
-                return Some(ty);
-            }
-            Err(message) => {
-                errors.push(message);
-                return Some(Type::Dynamic);
-            }
-        }
+/// - Recognizes the closed `Trait[Type]` form used for explicit trait dispatch,
+///   parses the first type argument through the normal type parser, and leaves
+///   all ordinary remote qualifiers unchanged.
+fn split_explicit_trait_call_target(
+    remote: &str,
+    ctx: &ExprInferContext<'_>,
+) -> (String, Option<Type>) {
+    let Some((head, raw_args)) = remote.split_once('[') else {
+        return (remote.to_string(), None);
+    };
+    let Some(raw_arg) = raw_args.strip_suffix(']') else {
+        return (remote.to_string(), None);
+    };
+    let head = head.trim();
+    let raw_arg = raw_arg.trim();
+    if head.is_empty() || raw_arg.is_empty() || raw_arg.contains(',') {
+        return (remote.to_string(), None);
     }
 
-    let candidate_types = candidates
-        .iter()
-        .map(|candidate| pretty_type(&candidate.receiver_type))
-        .collect::<Vec<_>>()
-        .join(", ");
-    errors.push(format!(
-        "no receiver method `{}` / {} for {}; candidates: {}",
-        method,
-        arg_types.len(),
-        pretty_type(&receiver_type),
-        candidate_types
-    ));
-    Some(Type::Dynamic)
+    let mut vars = HashMap::new();
+    let mut next_var = 0usize;
+    let mut alias_names = ctx.aliases.keys().cloned().collect::<HashSet<_>>();
+    alias_names.extend(ctx.imported_type_names.keys().cloned());
+    let parsed = parse_type_expr(raw_arg, &alias_names, &mut vars, &mut next_var);
+    (head.to_string(), parsed)
 }
 
-/// Infers compiler-known primitive receiver method calls.
+/// Checks one trait candidate against an explicit implementation type target.
 ///
 /// Inputs:
-/// - `expr`: syntax-output call expression whose callee may be field access.
-/// - `arg_types`: inferred non-receiver argument types.
-/// - `locals`, `ctx`, `subst`, and `errors`: active inference context.
+/// - `candidate`: resolved trait method candidate.
+/// - `expected`: explicit type argument from `Trait[Type].method(...)`.
+/// - `ctx` and `subst`: active type aliases and substitutions.
 ///
 /// Output:
-/// - `Some(Type)` for supported primitive receiver calls.
-/// - `None` when the expression is not a supported primitive receiver call.
+/// - `true` when the candidate's first implementation type matches `expected`.
 ///
 /// Transformation:
-/// - Reads the receiver type from the field-access callee, prepends that type to
-///   the argument check, validates the primitive method's arity and parameter
-///   types, and returns the method result type.
-fn infer_syntax_primitive_receiver_method_call(
-    expr: &SyntaxExprOutput,
-    arg_types: &[Type],
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Option<Type> {
-    let callee = expr.children.first()?;
-    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
-        return None;
+/// - Applies current substitutions, tries direct unification, and then retries
+///   after transparent alias expansion so imported aliases such as `Option`
+///   match their provider-qualified implementation type.
+fn trait_candidate_matches_explicit_type_arg(
+    candidate: &ResolvedTraitMethod,
+    expected: &Type,
+    ctx: &ExprInferContext<'_>,
+    subst: &HashMap<TypeVarId, Type>,
+) -> bool {
+    let Some(owner_type) = candidate.impl_type_args.first() else {
+        return false;
+    };
+    let owner = apply_subst(owner_type, subst);
+    let expected = apply_subst(expected, subst);
+
+    let mut direct_subst = subst.clone();
+    if unify(&owner, &expected, &mut direct_subst).is_ok() {
+        return true;
     }
-    let method = callee.text.as_deref()?;
-    let receiver = callee.children.first()?;
-    let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
-    let scheme = primitive_receiver_method_scheme(&receiver_type, method, arg_types.len())?;
-    infer_function_with_bounds(&scheme, Some(method), arg_types, ctx, subst)
-        .map(Some)
-        .unwrap_or_else(|message| {
-            errors.push(message);
-            Some(Type::Dynamic)
-        })
+    if named_type_heads_match(&owner, &expected) {
+        return true;
+    }
+
+    let owner_expanded = expand_type_aliases(&owner, ctx.aliases);
+    let expected_expanded = expand_type_aliases(&expected, ctx.aliases);
+    let mut expanded_subst = subst.clone();
+    if unify(&owner_expanded, &expected_expanded, &mut expanded_subst).is_ok() {
+        return true;
+    }
+
+    let owner_qualified = qualify_imported_named_heads(&owner, ctx);
+    let expected_qualified = qualify_imported_named_heads(&expected, ctx);
+    let mut qualified_subst = subst.clone();
+    unify(&owner_qualified, &expected_qualified, &mut qualified_subst).is_ok()
+}
+
+/// Checks whether two named type heads represent the same source type name.
+///
+/// Inputs:
+/// - `left` and `right`: candidate implementation and explicit target types.
+///
+/// Output:
+/// - `true` when both are named types with the same final type constructor
+///   segment.
+///
+/// Transformation:
+/// - Ignores module qualification for explicit trait target matching so a
+///   consumer import like `Option` can target a provider conformance recorded
+///   as `std.core.Option.Option`.
+fn named_type_heads_match(left: &Type, right: &Type) -> bool {
+    match (left, right) {
+        (
+            Type::Named {
+                name: left_name, ..
+            },
+            Type::Named {
+                name: right_name, ..
+            },
+        ) => left_name == right_name,
+        _ => false,
+    }
+}
+
+/// Qualifies imported local type names inside one inferred type tree.
+///
+/// Inputs:
+/// - `ty`: source-visible type inferred at a call site or stored on a trait
+///   candidate.
+/// - `ctx`: expression context containing selected/default imported type names.
+///
+/// Output:
+/// - Type tree with imported unqualified named heads rewritten to their
+///   provider-qualified nominal names.
+///
+/// Transformation:
+/// - Recurses through generic arguments, tuple/list/map/function shapes, and
+///   higher-kinded applications so imported opaque types such as
+///   `List[Int]` compare with provider conformances recorded as
+///   `std.collections.List.List[Int]`.
+fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>) -> Type {
+    match ty {
+        Type::Named { module, name, args } => {
+            let args = args
+                .iter()
+                .map(|arg| qualify_imported_named_heads(arg, ctx))
+                .collect::<Vec<_>>();
+            if module.is_none() {
+                if let Some(imported) = ctx.imported_type_names.get(name) {
+                    return Type::Named {
+                        module: Some(imported.module.clone()),
+                        name: imported.name.clone(),
+                        args,
+                    };
+                }
+            }
+            Type::Named {
+                module: module.clone(),
+                name: name.clone(),
+                args,
+            }
+        }
+        Type::Apply { constructor, args } => Type::Apply {
+            constructor: *constructor,
+            args: args
+                .iter()
+                .map(|arg| qualify_imported_named_heads(arg, ctx))
+                .collect(),
+        },
+        Type::List(inner) => {
+            let inner = qualify_imported_named_heads(inner, ctx);
+            if let Some(imported) = ctx.imported_type_names.get("List") {
+                Type::Named {
+                    module: Some(imported.module.clone()),
+                    name: imported.name.clone(),
+                    args: vec![inner],
+                }
+            } else {
+                Type::List(Box::new(inner))
+            }
+        }
+        Type::Tuple(items) => Type::Tuple(
+            items
+                .iter()
+                .map(|item| qualify_imported_named_heads(item, ctx))
+                .collect(),
+        ),
+        Type::Union(items) => Type::Union(
+            items
+                .iter()
+                .map(|item| qualify_imported_named_heads(item, ctx))
+                .collect(),
+        ),
+        Type::Map(fields) => Type::Map(
+            fields
+                .iter()
+                .map(|field| super::MapFieldType {
+                    key: field.key.clone(),
+                    value: qualify_imported_named_heads(&field.value, ctx),
+                    required: field.required,
+                })
+                .collect(),
+        ),
+        Type::Function { params, ret } => Type::Function {
+            params: params
+                .iter()
+                .map(|param| qualify_imported_named_heads(param, ctx))
+                .collect(),
+            ret: Box::new(qualify_imported_named_heads(ret, ctx)),
+        },
+        Type::FixedArray { size, elem } => Type::FixedArray {
+            size: *size,
+            elem: Box::new(qualify_imported_named_heads(elem, ctx)),
+        },
+        other => other.clone(),
+    }
 }
 
 /// Unwraps macro-specific return wrappers.
@@ -1022,152 +1630,4 @@ fn unwrap_macro_return_type(ty: Type) -> Type {
         }
         other => other,
     }
-}
-
-/// Infers a local named call.
-///
-/// Inputs:
-/// - `expr`: call expression without an explicit remote qualifier.
-/// - `arg_types`: inferred argument types.
-/// - `ctx`, `subst`, and `errors`: active inference state.
-///
-/// Output:
-/// - Resolved local call return type.
-///
-/// Transformation:
-/// - Checks constructors, local functions, imports, aliases, trait shorthands,
-///   receiver forms, and intrinsics in source-call priority order.
-fn infer_syntax_local_call(
-    function_name: &str,
-    arg_types: &[Type],
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    if is_removed_implicit_builtin_call(function_name, arg_types.len()) {
-        errors.push(format!(
-            "`{function_name}/{}` is not part of the implicit prelude; import or define it explicitly",
-            arg_types.len()
-        ));
-        return Type::Dynamic;
-    }
-
-    if let Some(scheme) = builtin_call(function_name, arg_types.len()) {
-        if let Err(message) =
-            infer_function_with_bounds(&scheme, Some(function_name), arg_types, ctx, subst)
-        {
-            errors.push(message);
-        }
-        return scheme.ret;
-    }
-
-    if let Some(ty) =
-        infer_syntax_imported_function_call(function_name, arg_types, ctx, subst, errors)
-    {
-        return ty;
-    }
-
-    if let Some(schemes) = ctx
-        .signatures
-        .get(&(function_name.to_string(), arg_types.len()))
-    {
-        match infer_function_scheme_overload(schemes, function_name, arg_types, ctx, subst) {
-            Ok(ty) => return ty,
-            Err(message) => {
-                errors.push(message);
-                return Type::Dynamic;
-            }
-        }
-    }
-
-    if let Some(symbol) = ctx
-        .local_fns
-        .get(&(function_name.to_string(), arg_types.len()))
-    {
-        if let Some(scheme) = parse_symbol_scheme(symbol) {
-            match infer_function_with_bounds(&scheme, Some(function_name), arg_types, ctx, subst) {
-                Ok(ty) => return ty,
-                Err(message) => {
-                    errors.push(message);
-                    return Type::Dynamic;
-                }
-            }
-        }
-    }
-
-    Type::Dynamic
-}
-
-/// Infers a selected imported function call.
-///
-/// Inputs:
-/// - `function_name`: local call name from source, possibly an import alias.
-/// - `arg_types`: already inferred argument types.
-/// - `ctx`, `subst`, and `errors`: active expression inference state.
-///
-/// Output:
-/// - `Some(Type)` when the local name is a selected function import.
-/// - `None` when the local name is not imported as a function.
-///
-/// Transformation:
-/// - Resolves the local import target to its provider module interface, parses
-///   the public function signature for the call arity, and reuses ordinary
-///   function-call inference so argument mismatches are reported before backend
-///   emission.
-fn infer_syntax_imported_function_call(
-    function_name: &str,
-    arg_types: &[Type],
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Option<Type> {
-    let target = ctx.function_imports.get(function_name)?;
-    let resolved_module = ctx
-        .module_aliases
-        .get(&target.module)
-        .map(String::as_str)
-        .unwrap_or(target.module.as_str());
-    let Some(interface) = ctx.interface_map.get(resolved_module) else {
-        errors.push(spanned_expression_error(
-            target.span,
-            missing_imported_function_interface_message(
-                resolved_module,
-                &target.function,
-                ctx.interface_map,
-            ),
-        ));
-        return Some(Type::Dynamic);
-    };
-
-    match infer_interface_function_overload(
-        interface,
-        &target.function,
-        function_name,
-        arg_types,
-        ctx,
-        subst,
-    ) {
-        Ok(Some(ty)) => return Some(ty),
-        Ok(None) => {}
-        Err(message) => {
-            errors.push(spanned_expression_error(target.span, message));
-            return Some(Type::Dynamic);
-        }
-    }
-
-    if !interface
-        .functions
-        .contains_key(&(target.function.clone(), arg_types.len()))
-        && !interface
-            .function_overloads
-            .contains_key(&(target.function.clone(), arg_types.len()))
-    {
-        errors.push(spanned_expression_error(
-            target.span,
-            missing_imported_function_message(interface, &target.function, arg_types.len()),
-        ));
-        return Some(Type::Dynamic);
-    }
-
-    Some(Type::Dynamic)
 }

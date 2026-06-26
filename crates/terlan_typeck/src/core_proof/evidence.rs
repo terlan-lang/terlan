@@ -45,7 +45,8 @@ fn core_expr_substitution_freshness_evidence(expr: &CoreExpr) -> CoreSubstitutio
         | CoreExpr::Binary(_)
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
-        | CoreExpr::RemoteFunRef { .. } => none,
+        | CoreExpr::RemoteFunRef { .. }
+        | CoreExpr::SqlQuery { .. } => none,
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
             combine_expr_freshness(items.iter().map(core_expr_substitution_freshness_evidence))
         }
@@ -322,6 +323,7 @@ fn core_expr_has_checked_preservation_evidence(expr: &CoreExpr) -> bool {
                 && core_expr_has_checked_preservation_evidence(record)
         }
         CoreExpr::RemoteFunRef { .. } => true,
+        CoreExpr::SqlQuery { .. } => true,
         CoreExpr::RemoteCall { args, .. } => {
             args.iter().all(core_expr_has_checked_preservation_evidence)
         }

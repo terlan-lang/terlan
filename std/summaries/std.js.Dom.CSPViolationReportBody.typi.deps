@@ -1,0 +1,8 @@
+module=std.js.Dom.CSPViolationReportBody
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=18067649523350967727
+interface_hash=6395977779253406031
+interface_doc_hash=6395977779253406031
+deps=0

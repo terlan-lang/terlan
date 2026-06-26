@@ -1,4 +1,10 @@
+use std::collections::HashSet;
+
 use super::*;
+use crate::{
+    normalize_type_param_name, parse_generic_bounds, primitive_type_names, type_param_variances,
+    FunctionBound, FunctionScheme,
+};
 
 /// Parses a resolved function symbol into a callable type scheme.
 ///
@@ -32,6 +38,7 @@ pub(crate) fn parse_symbol_scheme(symbol: &FunctionSymbol) -> Option<FunctionSch
     Some(FunctionScheme {
         params,
         ret,
+        generic_params: symbol.generic_params.clone(),
         bounds: Vec::new(),
     })
 }
@@ -57,6 +64,10 @@ pub(crate) fn parse_interface_signature(
 ) -> Option<FunctionScheme> {
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
+    for param in &signature.generic_params {
+        vars.insert(normalize_type_param_name(param), next_var);
+        next_var += 1;
+    }
     let alias_names = interface_type_names(interface);
     let qualified_names = interface_qualified_type_names(interface);
     let interface_aliases = interface_type_aliases(interface);
@@ -81,10 +92,24 @@ pub(crate) fn parse_interface_signature(
     let ret = expand_type_aliases(&ret, &interface_aliases);
     let ret = expand_interface_global_aliases(&ret, global_aliases);
     let ret = qualify_type_names(&ret, &qualified_names);
+    let bounds = parse_generic_bounds(&signature.generic_bounds, &vars, &alias_names)
+        .into_iter()
+        .map(|bound| FunctionBound {
+            trait_name: bound.trait_name,
+            trait_args: bound
+                .trait_args
+                .into_iter()
+                .map(|arg| expand_type_aliases(&arg, &interface_aliases))
+                .map(|arg| expand_interface_global_aliases(&arg, global_aliases))
+                .map(|arg| qualify_type_names(&arg, &qualified_names))
+                .collect(),
+        })
+        .collect();
     Some(FunctionScheme {
         params,
         ret,
-        bounds: Vec::new(),
+        generic_params: signature.generic_params.clone(),
+        bounds,
     })
 }
 
@@ -104,14 +129,17 @@ pub(crate) fn parse_interface_signature(
 ///   such as `Option[T]` to resolve to the single loaded
 ///   `std.core.Option.Option[T]` alias without requiring every summary to spell
 ///   fully qualified type names.
-fn expand_interface_global_aliases(ty: &Type, global_aliases: &HashMap<String, TypeAlias>) -> Type {
+pub(crate) fn expand_interface_global_aliases(
+    ty: &Type,
+    global_aliases: &HashMap<String, TypeAlias>,
+) -> Type {
     match ty {
         Type::Named {
             module: None,
             name,
             args,
         } => {
-            if let Some(alias) = unique_global_alias(name, global_aliases) {
+            if let Some((qualified_name, alias)) = unique_global_alias(name, global_aliases) {
                 if alias.params.len() != args.len() {
                     return Type::Named {
                         module: None,
@@ -132,13 +160,15 @@ fn expand_interface_global_aliases(ty: &Type, global_aliases: &HashMap<String, T
                     .cloned()
                     .zip(args)
                     .collect::<HashMap<_, _>>();
-                if alias.is_opaque {
-                    return substitute_type_vars(&alias.body, &mapping);
-                }
-                return expand_interface_global_aliases(
+                let scoped_aliases = module_scoped_global_aliases(qualified_name, global_aliases);
+                let expanded_body = expand_type_aliases(
                     &substitute_type_vars(&alias.body, &mapping),
-                    global_aliases,
+                    &scoped_aliases,
                 );
+                if alias.is_opaque {
+                    return expanded_body;
+                }
+                return expand_interface_global_aliases(&expanded_body, global_aliases);
             }
             expand_type_aliases(ty, global_aliases)
         }
@@ -191,7 +221,8 @@ fn expand_interface_global_aliases(ty: &Type, global_aliases: &HashMap<String, T
 /// - `global_aliases`: fully qualified aliases keyed as `module.Type`.
 ///
 /// Output:
-/// - The alias when exactly one global alias has the requested final segment.
+/// - The fully qualified alias key and alias when exactly one global alias has
+///   the requested final segment.
 ///
 /// Transformation:
 /// - Scans fully qualified alias keys by their final dotted segment and rejects
@@ -200,11 +231,11 @@ fn expand_interface_global_aliases(ty: &Type, global_aliases: &HashMap<String, T
 fn unique_global_alias<'a>(
     name: &str,
     global_aliases: &'a HashMap<String, TypeAlias>,
-) -> Option<&'a TypeAlias> {
+) -> Option<(&'a str, &'a TypeAlias)> {
     let mut matches = global_aliases.iter().filter_map(|(qualified, alias)| {
         qualified
             .rsplit_once('.')
-            .and_then(|(_, short)| (short == name).then_some(alias))
+            .and_then(|(_, short)| (short == name).then_some((qualified.as_str(), alias)))
     });
     let first = matches.next()?;
     if matches.next().is_some() {
@@ -212,6 +243,41 @@ fn unique_global_alias<'a>(
     } else {
         Some(first)
     }
+}
+
+/// Builds a provider-local alias scope for a globally resolved alias.
+///
+/// Inputs:
+/// - `qualified_name`: fully qualified alias key such as
+///   `std.core.Option.Option`.
+/// - `global_aliases`: fully qualified aliases from all loaded interfaces.
+///
+/// Output:
+/// - Alias map containing all global aliases plus unqualified aliases from the
+///   owning module.
+///
+/// Transformation:
+/// - Reintroduces provider-local short names while expanding a provider alias
+///   body, so `Option[T] = None | Some[T]` resolves its own `None` even when
+///   another interface also exports a `None` alias.
+fn module_scoped_global_aliases(
+    qualified_name: &str,
+    global_aliases: &HashMap<String, TypeAlias>,
+) -> HashMap<String, TypeAlias> {
+    let mut scoped = global_aliases.clone();
+    let Some((module_name, _)) = qualified_name.rsplit_once('.') else {
+        return scoped;
+    };
+    let prefix = format!("{module_name}.");
+    for (qualified, alias) in global_aliases {
+        let Some(short) = qualified.strip_prefix(&prefix) else {
+            continue;
+        };
+        scoped
+            .entry(short.to_string())
+            .or_insert_with(|| alias.clone());
+    }
+    scoped
 }
 
 /// Parses public constructor signatures from an imported interface.
@@ -254,6 +320,11 @@ pub(crate) fn parse_interface_constructor_schemes(
                 .map(|param| expand_type_aliases(&param, &interface_aliases))
                 .map(|param| qualify_type_names(&param, &qualified_names))
                 .collect::<Vec<_>>();
+            let param_names = signature
+                .params
+                .iter()
+                .map(|param| param.name.clone())
+                .collect::<Vec<_>>();
 
             let vararg = signature.vararg.as_ref().map(|param| {
                 let parsed =
@@ -274,6 +345,7 @@ pub(crate) fn parse_interface_constructor_schemes(
             let ret = qualify_type_names(&ret, &qualified_names);
 
             ConstructorScheme {
+                param_names,
                 min_arity: signature.min_arity,
                 fixed_params,
                 vararg,
@@ -348,7 +420,13 @@ pub(crate) fn interface_type_aliases(interface: &ModuleInterface) -> HashMap<Str
             name.clone(),
             TypeAlias {
                 params,
+                param_variance: interface
+                    .type_params
+                    .get(name)
+                    .map(|params| type_param_variances(params))
+                    .unwrap_or_default(),
                 body,
+                constructor_param_names: alias_constructor_param_names_from_variants(variants),
                 is_opaque: false,
             },
         );

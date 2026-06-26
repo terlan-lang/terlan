@@ -1,0 +1,93 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface PaymentAddress
+ */
+
+module std.js.Dom.PaymentAddress.
+
+/**
+ * The **`ContactAddress`** interface of the Contact Picker API represents a physical address.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress)
+ */
+pub opaque type PaymentAddress.
+
+/**
+ * The **`addressLine`** read-only property of the ContactAddress interface is an array of strings, each specifying a line of the address that is not covered by one of the other properties of `ContactAddress`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/addressLine)
+ */
+pub (value: PaymentAddress) address_line(): std.js.Array[std.js.String.JsString].
+
+/**
+ * The **`city`** read-only property of the ContactAddress interface returns a string containing the city or town portion of the address.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/city)
+ */
+pub (value: PaymentAddress) city(): std.js.String.JsString.
+
+/**
+ * The **`country`** read-only property of the ContactAddress interface is a string identifying the address's country using the ISO 3166-1 alpha-2 standard.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/country)
+ */
+pub (value: PaymentAddress) country(): std.js.String.JsString.
+
+/**
+ * The read-only **`dependentLocality`** property of the ContactAddress interface is a string containing a locality or sublocality designation within a city, such as a neighborhood, borough, district, or, in the United Kingdom, a dependent locality.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/dependentLocality)
+ */
+pub (value: PaymentAddress) dependent_locality(): std.js.String.JsString.
+
+/**
+ * The **`organization`** read-only property of the ContactAddress interface returns a string containing the name of the organization, firm, company, or institution at the address.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/organization)
+ */
+pub (value: PaymentAddress) organization(): std.js.String.JsString.
+
+/**
+ * The read-only **`phone`** property of the ContactAddress interface returns a string containing the telephone number of the recipient or contact person at the address.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/phone)
+ */
+pub (value: PaymentAddress) phone(): std.js.String.JsString.
+
+/**
+ * The **`postalCode`** read-only property of the ContactAddress interface returns a string containing a code used by a jurisdiction for mail routing, for example, the ZIP Code in the United States or the Postal Index Number (PIN code) in India.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/postalCode)
+ */
+pub (value: PaymentAddress) postal_code(): std.js.String.JsString.
+
+/**
+ * The read-only **`recipient`** property of the ContactAddress interface returns a string containing the name of the recipient, purchaser, or contact person at the address.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/recipient)
+ */
+pub (value: PaymentAddress) recipient(): std.js.String.JsString.
+
+/**
+ * The read-only **`region`** property of the ContactAddress interface returns a string containing the top-level administrative subdivision of the country in which the address is located.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/region)
+ */
+pub (value: PaymentAddress) region(): std.js.String.JsString.
+
+/**
+ * The **`sortingCode`** read-only property of the ContactAddress interface returns a string containing a postal sorting code such as is used in France.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/sortingCode)
+ */
+pub (value: PaymentAddress) sorting_code(): std.js.String.JsString.

@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLTemplateElement
+ */
+
+module std.js.Dom.HTMLTemplateElementTest.
+
+import type std.js.Dom.HTMLTemplateElement.HTMLTemplateElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub content_typechecks(receiver: HTMLTemplateElement): DocumentFragment ->
+    receiver.content().
+
+pub shadow_root_clonable_typechecks(receiver: HTMLTemplateElement): std.core.Bool ->
+    receiver.shadow_root_clonable().
+
+pub shadow_root_delegates_focus_typechecks(receiver: HTMLTemplateElement): std.core.Bool ->
+    receiver.shadow_root_delegates_focus().
+
+pub shadow_root_mode_typechecks(receiver: HTMLTemplateElement): std.js.String.JsString ->
+    receiver.shadow_root_mode().
+
+pub shadow_root_serializable_typechecks(receiver: HTMLTemplateElement): std.core.Bool ->
+    receiver.shadow_root_serializable().
+
+pub add_event_listener_typechecks(receiver: HTMLTemplateElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: HTMLTemplateElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

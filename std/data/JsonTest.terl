@@ -1,0 +1,100 @@
+/**
+ * Release API surface checks for `std.data.Json`.
+ *
+ * These tests keep JSON public type shapes visible to the release manifest
+ * without executing Rust-backed native JSON operations through the Terlan test
+ * runner.
+ */
+
+module std.data.JsonTest.
+
+import type std.core.Result.
+import type std.data.Json.{Json, JsonError}.
+
+/**
+ * Accepts one JSON value and returns it unchanged.
+ *
+ * Input: one opaque `Json` value.
+ * Output: the same `Json` value.
+ * Transformation: proves the `Json` type is importable and usable in public
+ * function signatures.
+ */
+pub accepts_json(value: Json): Json ->
+    value.
+
+/**
+ * Accepts one JSON error value and returns it unchanged.
+ *
+ * Input: one `JsonError` value.
+ * Output: the same `JsonError` value.
+ * Transformation: proves the portable JSON error type is importable and usable
+ * in public function signatures.
+ */
+pub accepts_json_error(value: JsonError): JsonError ->
+    value.
+
+/**
+ * Accepts a JSON result and returns it unchanged.
+ *
+ * Input: one `Result[Json, JsonError]` value.
+ * Output: the same result value.
+ * Transformation: proves JSON-producing operations have a stable result shape.
+ */
+pub accepts_json_result(value: Result[Json, JsonError]): Result[Json, JsonError] ->
+    value.
+
+/**
+ * Accepts a JSON string result and returns it unchanged.
+ *
+ * Input: one `Result[String, JsonError]` value.
+ * Output: the same result value.
+ * Transformation: proves string-rendering and string-accessor operations have
+ * a stable result shape.
+ */
+pub accepts_string_result(value: Result[String, JsonError]): Result[String, JsonError] ->
+    value.
+
+/**
+ * Accepts a JSON integer result and returns it unchanged.
+ *
+ * Input: one `Result[Int, JsonError]` value.
+ * Output: the same result value.
+ * Transformation: proves integer accessor operations have a stable result
+ * shape.
+ */
+pub accepts_int_result(value: Result[Int, JsonError]): Result[Int, JsonError] ->
+    value.
+
+/**
+ * Accepts a JSON float result and returns it unchanged.
+ *
+ * Input: one `Result[Float, JsonError]` value.
+ * Output: the same result value.
+ * Transformation: proves floating-point JSON operations have a stable result
+ * shape.
+ */
+pub accepts_float_result(value: Result[Float, JsonError]): Result[Float, JsonError] ->
+    value.
+
+/**
+ * Accepts a JSON boolean result and returns it unchanged.
+ *
+ * Input: one `Result[Bool, JsonError]` value.
+ * Output: the same result value.
+ * Transformation: proves boolean accessor operations have a stable result
+ * shape.
+ */
+pub accepts_bool_result(value: Result[Bool, JsonError]): Result[Bool, JsonError] ->
+    value.
+
+/**
+ * Marks the JSON release surface as declared.
+ *
+ * Input: no runtime input.
+ * Output: `true` for the std release API manifest.
+ * Transformation: gives every JSON API row a nearby annotated release-test
+ * marker without executing native JSON operations in this surface test.
+ */
+@test
+pub json_surface_is_declared(): Bool ->
+    true.

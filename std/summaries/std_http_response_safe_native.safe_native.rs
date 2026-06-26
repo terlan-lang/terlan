@@ -11,17 +11,27 @@ pub const NATIVE_MODULE: &str = "std_http_response_safe_native";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
-    ("json", 1),
-    ("text", 1),
+    ("json", 2),
+    ("json_text", 2),
+    ("text", 2),
+    ("html", 2),
+    ("file", 3),
+    ("redirect", 2),
     ("status", 2),
     ("header", 3),
+    ("set_cookie_header", 2),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
-    ("json", "std.http.response.json", 1),
-    ("text", "std.http.response.text", 1),
+    ("json", "std.http.response.json", 2),
+    ("json_text", "std.http.response.json_text", 2),
+    ("text", "std.http.response.text", 2),
+    ("html", "std.http.response.html", 2),
+    ("file", "std.http.response.file", 3),
+    ("redirect", "std.http.response.redirect", 2),
     ("status", "std.http.response.status", 2),
     ("header", "std.http.response.header", 3),
+    ("set_cookie_header", "std.http.response.set_cookie_header", 2),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -150,9 +160,14 @@ fn worker_loop(rx: Receiver<SafeNativeCommand>, credit_window: usize) {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
                         "std.http.response.json" => native_unimplemented_operation(operation),
+                        "std.http.response.json_text" => native_unimplemented_operation(operation),
                         "std.http.response.text" => native_unimplemented_operation(operation),
+                        "std.http.response.html" => native_unimplemented_operation(operation),
+                        "std.http.response.file" => native_unimplemented_operation(operation),
+                        "std.http.response.redirect" => native_unimplemented_operation(operation),
                         "std.http.response.status" => native_unimplemented_operation(operation),
                         "std.http.response.header" => native_unimplemented_operation(operation),
+                        "std.http.response.set_cookie_header" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

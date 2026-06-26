@@ -1,0 +1,8 @@
+module=std.js.Dom.WebGLContextEvent
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=15878328851371647793
+interface_hash=18124117264006140369
+interface_doc_hash=18124117264006140369
+deps=0

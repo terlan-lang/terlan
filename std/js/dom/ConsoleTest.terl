@@ -1,0 +1,76 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Console
+ */
+
+module std.js.Dom.ConsoleTest.
+
+import type std.js.Dom.Console.Console.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub assert_typechecks(receiver: Console, condition: std.core.Bool): std.core.Unit ->
+    receiver.assert(condition).
+
+pub clear_typechecks(receiver: Console): std.core.Unit ->
+    receiver.clear().
+
+pub count_typechecks(receiver: Console, label: std.js.String.JsString): std.core.Unit ->
+    receiver.count(label).
+
+pub count_reset_typechecks(receiver: Console, label: std.js.String.JsString): std.core.Unit ->
+    receiver.count_reset(label).
+
+pub debug_typechecks(receiver: Console): std.core.Unit ->
+    receiver.debug().
+
+pub dirxml_typechecks(receiver: Console): std.core.Unit ->
+    receiver.dirxml().
+
+pub error_typechecks(receiver: Console): std.core.Unit ->
+    receiver.error().
+
+pub group_typechecks(receiver: Console): std.core.Unit ->
+    receiver.group().
+
+pub group_collapsed_typechecks(receiver: Console): std.core.Unit ->
+    receiver.group_collapsed().
+
+pub group_end_typechecks(receiver: Console): std.core.Unit ->
+    receiver.group_end().
+
+pub info_typechecks(receiver: Console): std.core.Unit ->
+    receiver.info().
+
+pub log_typechecks(receiver: Console): std.core.Unit ->
+    receiver.log().
+
+pub time_typechecks(receiver: Console, label: std.js.String.JsString): std.core.Unit ->
+    receiver.time(label).
+
+pub time_end_typechecks(receiver: Console, label: std.js.String.JsString): std.core.Unit ->
+    receiver.time_end(label).
+
+pub time_log_typechecks(receiver: Console, label: std.js.String.JsString): std.core.Unit ->
+    receiver.time_log(label).
+
+pub time_stamp_typechecks(receiver: Console, label: std.js.String.JsString): std.core.Unit ->
+    receiver.time_stamp(label).
+
+pub trace_typechecks(receiver: Console): std.core.Unit ->
+    receiver.trace().
+
+pub warn_typechecks(receiver: Console): std.core.Unit ->
+    receiver.warn().

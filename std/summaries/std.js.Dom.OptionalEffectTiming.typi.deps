@@ -1,0 +1,8 @@
+module=std.js.Dom.OptionalEffectTiming
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=13853937065121776111
+interface_hash=913208080882376261
+interface_doc_hash=913208080882376261
+deps=0

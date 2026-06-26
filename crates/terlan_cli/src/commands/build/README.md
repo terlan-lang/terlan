@@ -113,6 +113,30 @@ files, or invoke Rebar3.
   project builds.
 - Emit package/build metadata for successful manifest-backed project builds.
 - Reject backend targets and target profiles that are not Erlang-compatible.
+- For JS browser builds, emit `_build/web/manifest.json` with copied assets,
+  static responses, dynamic BEAM-backed route handlers, and source metadata
+  that `terlc serve` can use for request logs and development errors.
+
+## File Layout
+
+- `mod.rs` routes build command execution and coordinates target-specific
+  output.
+- `project_roots.rs` resolves manifest source roots and local path dependency
+  closures for both Erlang and JavaScript project builds.
+- `package_artifact.rs` validates manifest-backed executable entrypoints,
+  writes beam-thin launchers, and writes package metadata.
+- `target_gate.rs` owns build-target compatibility checks for native packages
+  and target-specific std imports.
+- `project_manifest.rs` parses `terlan.toml`, assigns TOML keys to typed
+  builders, and reports stable manifest diagnostics.
+- `project_manifest/model.rs` defines the typed project-manifest data model
+  re-exported through `project_manifest`.
+- `project_manifest/config.rs` owns optional `[web.assets]` and `[server.tls]`
+  builders plus scalar config parsers.
+- `project_manifest/strings.rs` owns shared string constants used by manifest
+  parsing and diagnostics.
+- `project_manifest/validation.rs` owns manifest-facing identifier and package
+  validation helpers.
 
 ## Boundaries
 

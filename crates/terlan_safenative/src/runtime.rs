@@ -6,7 +6,8 @@
 
 use crate::dispatch::dispatch_with_resources;
 use crate::handle::SafeNativeHandle;
-use crate::resource::{ResourceError, ResourceStore};
+use crate::http;
+use crate::resource::{ResourceError, ResourceStore, ResourceValue};
 use crate::term::{decode_bridge_args, encode_dispatch_reply, SafeNativeReplyTerm, SafeNativeTerm};
 
 /// SafeNative runtime state owned by one native worker.
@@ -30,6 +31,64 @@ impl SafeNativeRuntime {
         Self {
             resources: ResourceStore::new(),
         }
+    }
+
+    /// Registers a server-owned HTTP request resource.
+    ///
+    /// Inputs:
+    /// - `request`: request snapshot produced by a Rust HTTP server adapter.
+    ///
+    /// Output:
+    /// - `Ok(handle)` for the stored request.
+    /// - `Err(ResourceError)` if resource id allocation fails.
+    ///
+    /// Transformation:
+    /// - Moves the request into the runtime resource store so handler bridge
+    ///   code can pass only an opaque handle through the SafeNative term
+    ///   boundary.
+    pub fn register_http_request(
+        &mut self,
+        request: http::Request,
+    ) -> Result<SafeNativeHandle, ResourceError> {
+        self.resources.insert(ResourceValue::HttpRequest(request))
+    }
+
+    /// Returns recorded response-cookie mutations for a cookie jar resource.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle returned by `std.http.request.cookies`.
+    ///
+    /// Output:
+    /// - `Ok(headers)` with serialized `Set-Cookie` values in mutation order.
+    /// - `Err(ResourceError)` when the handle is stale or not a cookie jar.
+    ///
+    /// Transformation:
+    /// - Validates the runtime resource handle, reads the adapter-owned jar,
+    ///   and clones response metadata so the HTTP writer can apply it after a
+    ///   Terlan handler returns its response.
+    pub fn http_cookie_mutations(
+        &self,
+        handle: SafeNativeHandle,
+    ) -> Result<Vec<String>, ResourceError> {
+        self.resources
+            .http_cookie_jar(handle)
+            .map(|jar| jar.mutations().to_vec())
+    }
+
+    /// Returns a server-owned HTTP response resource snapshot.
+    ///
+    /// Inputs:
+    /// - `handle`: opaque handle returned by `std.http.response.*`.
+    ///
+    /// Output:
+    /// - `Ok(response)` with the portable response metadata and body.
+    /// - `Err(ResourceError)` when the handle is stale or not a response.
+    ///
+    /// Transformation:
+    /// - Validates the runtime resource handle and clones the response so an
+    ///   HTTP server adapter can serialize it after handler execution.
+    pub fn http_response(&self, handle: SafeNativeHandle) -> Result<http::Response, ResourceError> {
+        self.resources.http_response(handle).cloned()
     }
 
     /// Calls one operation through the stable term boundary.

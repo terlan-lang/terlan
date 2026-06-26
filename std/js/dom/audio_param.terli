@@ -1,0 +1,102 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface AudioParam
+ */
+
+module std.js.Dom.AudioParam.
+
+/**
+ * The Web Audio API's `AudioParam` interface represents an audio-related parameter, usually a parameter of an AudioNode (such as GainNode.gain).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam)
+ */
+pub opaque type AudioParam.
+
+pub (value: AudioParam) automation_rate(): AutomationRate.
+
+/**
+ * The **`defaultValue`** read-only property of the AudioParam interface represents the initial value of the attributes as defined by the specific AudioNode creating the `AudioParam`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/defaultValue)
+ */
+pub (value: AudioParam) default_value(): std.js.Number.JsNumber.
+
+/**
+ * The **`maxValue`** read-only property of the AudioParam interface represents the maximum possible value for the parameter's nominal (effective) range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/maxValue)
+ */
+pub (value: AudioParam) max_value(): std.js.Number.JsNumber.
+
+/**
+ * The **`minValue`** read-only property of the AudioParam interface represents the minimum possible value for the parameter's nominal (effective) range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/minValue)
+ */
+pub (value: AudioParam) min_value(): std.js.Number.JsNumber.
+
+/**
+ * The **`value`** property of the AudioParam interface gets or sets the value of this `AudioParam` at the current time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/value)
+ */
+pub (value: AudioParam) value(): std.js.Number.JsNumber.
+
+/**
+ * The **`cancelAndHoldAtTime()`** method of the `AudioParam` but holds its value at a given time until further changes are made using other methods.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/cancelAndHoldAtTime)
+ */
+pub (value: AudioParam) cancel_and_hold_at_time(cancel_time: std.js.Number.JsNumber): AudioParam.
+
+/**
+ * The `cancelScheduledValues()` method of the AudioParam Interface cancels all scheduled future changes to the `AudioParam`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/cancelScheduledValues)
+ */
+pub (value: AudioParam) cancel_scheduled_values(cancel_time: std.js.Number.JsNumber): AudioParam.
+
+/**
+ * The **`exponentialRampToValueAtTime()`** method of the AudioParam Interface schedules a gradual exponential change in the value of the AudioParam.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/exponentialRampToValueAtTime)
+ */
+pub (value: AudioParam) exponential_ramp_to_value_at_time(value: std.js.Number.JsNumber, end_time: std.js.Number.JsNumber): AudioParam.
+
+/**
+ * The `linearRampToValueAtTime()` method of the AudioParam Interface schedules a gradual linear change in the value of the `AudioParam`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/linearRampToValueAtTime)
+ */
+pub (value: AudioParam) linear_ramp_to_value_at_time(value: std.js.Number.JsNumber, end_time: std.js.Number.JsNumber): AudioParam.
+
+/**
+ * The `setTargetAtTime()` method of the `AudioParam` value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setTargetAtTime)
+ */
+pub (value: AudioParam) set_target_at_time(target_: std.js.Number.JsNumber, start_time: std.js.Number.JsNumber, time_constant: std.js.Number.JsNumber): AudioParam.
+
+/**
+ * The `setValueAtTime()` method of the `AudioParam` value at a precise time, as measured against ```js-nolint setValueAtTime(value, startTime) ``` - `value` - : A floating point number representing the value the AudioParam will change to at the given time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setValueAtTime)
+ */
+pub (value: AudioParam) set_value_at_time(value: std.js.Number.JsNumber, start_time: std.js.Number.JsNumber): AudioParam.
+
+/**
+ * The **`setValueCurveAtTime()`** method of the following a curve defined by a list of values.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setValueCurveAtTime)
+ */
+pub (value: AudioParam) set_value_curve_at_time(values: Float32Array | std.js.Array[std.js.Number.JsNumber], start_time: std.js.Number.JsNumber, duration: std.js.Number.JsNumber): AudioParam.

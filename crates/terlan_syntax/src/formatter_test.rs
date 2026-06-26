@@ -1,6 +1,114 @@
 use super::*;
 use crate::{parse_interface_module, parse_module};
 
+/// Verifies block documentation is emitted with canonical marker spacing.
+///
+/// Inputs:
+/// - A source module containing a TypeDoc-style block where body lines are
+///   written as `*Text` instead of `* Text`.
+///
+/// Output:
+/// - Formatted source preserving the doc block with one space after each body
+///   marker.
+///
+/// Transformation:
+/// - Parses documentation through the lexer-normalized doc metadata and renders
+///   it back as canonical `/** ... */` formatter output.
+#[test]
+fn formatter_normalizes_doc_block_marker_spacing() {
+    let output = format_source_module(
+        r#"
+module doc_spacing_fmt.
+
+/**
+ *Core boolean conformance helpers.
+ *@param value input value.
+ *@returns canonical bool.
+ */
+pub value(value: Bool): Bool ->
+    value.
+"#,
+    )
+    .expect("source with doc block should format");
+
+    assert!(output.contains(" * Core boolean conformance helpers."));
+    assert!(output.contains(" * @param value input value."));
+    assert!(output.contains(" * @returns canonical bool."));
+    assert!(!output.contains("*Core boolean"));
+    assert!(!output.contains("*@param"));
+    assert!(!output.contains("*@returns"));
+}
+
+/// Verifies wildcard imports use the braced selector form after formatting.
+///
+/// Inputs:
+/// - Path-style wildcard import syntax.
+///
+/// Output:
+/// - Canonical import source using `.{*}.`.
+///
+/// Transformation:
+/// - Parses the compatibility import spelling and renders the stable wildcard
+///   import selector form so the declaration terminator stays visually clear.
+#[test]
+fn formatter_canonicalizes_wildcard_imports() {
+    let output = format_source_module(
+        r#"
+module wildcard_import_fmt.
+
+import test.Other.*.
+
+pub main(): Int -> 1.
+"#,
+    )
+    .expect("format wildcard import");
+
+    assert!(output.contains("import test.Other.{*}."));
+    assert!(!output.contains("import test.Other.*."));
+}
+
+/// Verifies formatter output organizes imports alphabetically.
+///
+/// Inputs:
+/// - A source module with imports in non-alphabetical order.
+///
+/// Output:
+/// - Formatted source whose import declarations are sorted by canonical import
+///   text before ordinary declarations.
+///
+/// Transformation:
+/// - Parses and formats the module, then compares the emitted import line order
+///   after wildcard spelling has been canonicalized.
+#[test]
+fn formatter_sorts_imports_alphabetically() {
+    let output = format_source_module(
+        r#"
+module sorted_import_fmt.
+
+import std.io.Console.{println}.
+import app.z.Zed.
+import app.alpha.Alpha.
+import app.middle.Tools.{*}.
+
+pub main(): Int -> 1.
+"#,
+    )
+    .expect("format sorted imports");
+
+    let import_lines = output
+        .lines()
+        .filter(|line| line.starts_with("import "))
+        .collect::<Vec<_>>();
+    let mut sorted_import_lines = import_lines.clone();
+    sorted_import_lines.sort();
+    assert_eq!(import_lines, sorted_import_lines);
+    assert_eq!(import_lines.first(), Some(&"import app.alpha. Alpha."));
+    assert_eq!(
+        import_lines.last(),
+        Some(&"import std.io.Console. println.")
+    );
+}
+
 /// Verifies source modules cannot reach formatter export-list normalization.
 ///
 /// Inputs:

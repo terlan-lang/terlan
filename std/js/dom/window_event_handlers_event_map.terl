@@ -1,0 +1,78 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WindowEventHandlersEventMap
+ */
+
+module std.js.Dom.WindowEventHandlersEventMap.
+
+pub opaque type WindowEventHandlersEventMap.
+
+pub (value: WindowEventHandlersEventMap) afterprint(): Event ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) beforeprint(): Event ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) beforeunload(): BeforeUnloadEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) gamepadconnected(): GamepadEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) gamepaddisconnected(): GamepadEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) hashchange(): HashChangeEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) languagechange(): Event ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) message(): MessageEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) messageerror(): MessageEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) offline(): Event ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) online(): Event ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) pagehide(): PageTransitionEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) pagereveal(): PageRevealEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) pageshow(): PageTransitionEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) pageswap(): PageSwapEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) popstate(): PopStateEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) rejectionhandled(): PromiseRejectionEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) storage(): StorageEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) unhandledrejection(): PromiseRejectionEvent ->
+    native.
+
+pub (value: WindowEventHandlersEventMap) unload(): Event ->
+    native.

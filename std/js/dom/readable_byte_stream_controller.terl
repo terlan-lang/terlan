@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ReadableByteStreamController
+ */
+
+module std.js.Dom.ReadableByteStreamController.
+
+/**
+ * The **`ReadableByteStreamController`** interface of the Streams API represents a controller for a readable byte stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController)
+ */
+pub opaque type ReadableByteStreamController.
+
+/**
+ * The **`byobRequest`** read-only property of the ReadableByteStreamController interface returns the current BYOB request, or `null` if there are no pending requests.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/byobRequest)
+ */
+pub (value: ReadableByteStreamController) byob_request(): Option[ReadableStreamBYOBRequest] ->
+    native.
+
+/**
+ * The **`desiredSize`** read-only property of the ReadableByteStreamController interface returns the number of bytes required to fill the stream's internal queue to its 'desired size'.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/desiredSize)
+ */
+pub (value: ReadableByteStreamController) desired_size(): Option[std.js.Number.JsNumber] ->
+    native.
+
+/**
+ * The **`close()`** method of the ReadableByteStreamController interface closes the associated stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/close)
+ */
+pub (value: ReadableByteStreamController) close(): std.core.Unit ->
+    native.
+
+/**
+ * The **`enqueue()`** method of the ReadableByteStreamController interface enqueues a given chunk on the associated readable byte stream (the chunk is copied into the stream's internal queues).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/enqueue)
+ */
+pub (value: ReadableByteStreamController) enqueue(chunk: ArrayBufferView[ArrayBuffer]): std.core.Unit ->
+    native.

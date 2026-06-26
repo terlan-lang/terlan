@@ -1,0 +1,107 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLAreaElement
+ */
+
+module std.js.Dom.HTMLAreaElement.
+
+/**
+ * The **`HTMLAreaElement`** interface provides special properties and methods (beyond those of the regular object HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of area elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement)
+ */
+pub opaque type HTMLAreaElement.
+
+/**
+ * The **`alt`** property of the HTMLAreaElement interface specifies the text of the hyperlink, defining the textual label for an image map's link.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/alt)
+ */
+pub (value: HTMLAreaElement) alt(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`coords`** property of the HTMLAreaElement interface specifies the coordinates of the element's shape as a list of floating-point numbers.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/coords)
+ */
+pub (value: HTMLAreaElement) coords(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`download`** property of the HTMLAreaElement interface is a string indicating that the linked resource is intended to be downloaded rather than displayed in the browser.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/download)
+ */
+pub (value: HTMLAreaElement) download(): std.js.String.JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLAreaElement) no_href(): std.core.Bool ->
+    native.
+
+/**
+ * The **`ping`** property of the HTMLAreaElement interface is a space-separated list of URLs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/ping)
+ */
+pub (value: HTMLAreaElement) ping(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLAreaElement.referrerPolicy`** property reflect the HTML `referrerpolicy` attribute of the resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/referrerPolicy)
+ */
+pub (value: HTMLAreaElement) referrer_policy(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLAreaElement.rel`** property reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/rel)
+ */
+pub (value: HTMLAreaElement) rel(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLAreaElement.relList`** read-only property reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/relList)
+ */
+pub (value: HTMLAreaElement) rel_list(): DOMTokenList ->
+    native.
+
+/**
+ * The **`shape`** property of the HTMLAreaElement interface specifies the shape of an image map area.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/shape)
+ */
+pub (value: HTMLAreaElement) shape(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`target`** property of the HTMLAreaElement interface is a string that indicates where to display the linked resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/target)
+ */
+pub (value: HTMLAreaElement) target_(): std.js.String.JsString ->
+    native.
+
+pub (value: HTMLAreaElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

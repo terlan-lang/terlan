@@ -1,0 +1,91 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MouseEvent
+ */
+
+module std.js.Dom.MouseEventTest.
+
+import type std.js.Dom.MouseEvent.MouseEvent.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub alt_key_typechecks(receiver: MouseEvent): std.core.Bool ->
+    receiver.alt_key().
+
+pub button_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.button().
+
+pub buttons_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.buttons().
+
+pub client_x_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.client_x().
+
+pub client_y_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.client_y().
+
+pub ctrl_key_typechecks(receiver: MouseEvent): std.core.Bool ->
+    receiver.ctrl_key().
+
+pub layer_x_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.layer_x().
+
+pub layer_y_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.layer_y().
+
+pub meta_key_typechecks(receiver: MouseEvent): std.core.Bool ->
+    receiver.meta_key().
+
+pub movement_x_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.movement_x().
+
+pub movement_y_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.movement_y().
+
+pub offset_x_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.offset_x().
+
+pub offset_y_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.offset_y().
+
+pub page_x_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.page_x().
+
+pub page_y_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.page_y().
+
+pub related_target_typechecks(receiver: MouseEvent): Option[EventTarget] ->
+    receiver.related_target().
+
+pub screen_x_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.screen_x().
+
+pub screen_y_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.screen_y().
+
+pub shift_key_typechecks(receiver: MouseEvent): std.core.Bool ->
+    receiver.shift_key().
+
+pub x_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.x().
+
+pub y_typechecks(receiver: MouseEvent): std.js.Number.JsNumber ->
+    receiver.y().
+
+pub get_modifier_state_typechecks(receiver: MouseEvent, key_arg: std.js.String.JsString): std.core.Bool ->
+    receiver.get_modifier_state(key_arg).
+
+pub init_mouse_event_typechecks(receiver: MouseEvent, type_arg: std.js.String.JsString, can_bubble_arg: std.core.Bool, cancelable_arg: std.core.Bool, view_arg: Window, detail_arg: std.js.Number.JsNumber, screen_x_arg: std.js.Number.JsNumber, screen_y_arg: std.js.Number.JsNumber, client_x_arg: std.js.Number.JsNumber, client_y_arg: std.js.Number.JsNumber, ctrl_key_arg: std.core.Bool, alt_key_arg: std.core.Bool, shift_key_arg: std.core.Bool, meta_key_arg: std.core.Bool, button_arg: std.js.Number.JsNumber, related_target_arg: Option[EventTarget]): std.core.Unit ->
+    receiver.init_mouse_event(type_arg, can_bubble_arg, cancelable_arg, view_arg, detail_arg, screen_x_arg, screen_y_arg, client_x_arg, client_y_arg, ctrl_key_arg, alt_key_arg, shift_key_arg, meta_key_arg, button_arg, related_target_arg).

@@ -1,0 +1,8 @@
+module=std.js.Dom.GetAnimationsOptions
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=13502136588947239827
+interface_hash=3544482422538336558
+interface_doc_hash=3544482422538336558
+deps=0

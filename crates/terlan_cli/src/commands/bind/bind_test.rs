@@ -144,8 +144,8 @@ fn parse_bind_js_dom_args_requires_out_dir() {
 ///   files.
 ///
 /// Transformation:
-/// - Runs the public generator function against the committed tiny DOM fixture
-///   without npm resolution or network access.
+/// - Runs the public generator function against the committed TypeScript
+///   standard-library fixtures without npm resolution or network access.
 #[test]
 fn generate_js_dom_bindings_writes_fixture_outputs() {
     let out_dir = temp_output_dir("js_dom_bindings");
@@ -160,10 +160,13 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
 
     assert!(out_dir.join("std/js/dom/document.terl").exists());
     assert!(out_dir.join("std/js/dom/document.terli").exists());
+    assert!(out_dir.join("std/js/map.terl").exists());
+    assert!(out_dir.join("std/js/set.terl").exists());
     assert!(out_dir
         .join("std/summaries/std.js.Dom.Document.typi")
         .exists());
-    assert!(out_dir.join("std/js/dom/document_test.terl").exists());
+    assert!(out_dir.join("std/summaries/std.js.Map.typi").exists());
+    assert!(out_dir.join("std/js/dom/DocumentTest.terl").exists());
     assert!(out_dir
         .join("std/js/manifests/std_js_bindings.json")
         .exists());
@@ -178,7 +181,13 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_source.contains("@generator terlc"));
     assert!(document_source.contains("@input-manifest std/js/manifests/std_js_dom_inputs.json"));
     assert!(document_source.contains(
-        "@source-input std/js/dom/fixtures/document.d.ts sha256=704034867b337bd7ac6018794cf13f032c2a0fd5b56cd5d78d92232cb4ea62e1"
+        "@source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1"
+    ));
+    assert!(document_source.contains(
+        "@source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44"
+    ));
+    assert!(document_source.contains(
+        "@source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9"
     ));
     assert!(document_source.contains("module std.js.Dom.Document."));
     assert!(document_source.contains("pub opaque type Document."));
@@ -187,24 +196,38 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     ));
     assert!(document_source.contains("    native."));
 
-    let document_test = fs::read_to_string(out_dir.join("std/js/dom/document_test.terl"))
+    let document_test = fs::read_to_string(out_dir.join("std/js/dom/DocumentTest.terl"))
         .expect("read generated DOM test");
     assert!(document_test.contains("@artifact-kind test"));
     assert!(document_test.contains("module std.js.Dom.DocumentTest."));
     assert!(document_test.contains("import type std.js.Dom.Document.Document."));
     assert!(document_test.contains("@test\npub generated_binding_surface_exists(): Bool ->"));
     assert!(document_test.contains(
-        "pub get_element_by_id_typechecks(value: Document, element_id: std.js.String.JsString): Option[HTMLElement] ->"
+        "pub get_element_by_id_typechecks(receiver: Document, element_id: std.js.String.JsString): Option[HTMLElement] ->"
     ));
-    assert!(document_test.contains("    value.get_element_by_id(element_id)."));
+    assert!(document_test.contains("    receiver.get_element_by_id(element_id)."));
+
+    let map_source =
+        fs::read_to_string(out_dir.join("std/js/map.terl")).expect("read generated map source");
+    assert!(map_source.contains("module std.js.Map."));
+    assert!(map_source.contains("pub opaque type Map[K, V]."));
+    assert!(
+        map_source.contains("@returns true if an element in the Map existed and has been removed")
+    );
+    assert!(map_source.contains("pub (value: Map[K, V]) get(key: K): Option[V] ->"));
+    assert!(map_source.contains("Returns a specified element from the Map object."));
+    assert!(map_source.contains("pub (value: Map[K, V]) size(): std.js.Number.JsNumber ->"));
+    assert!(map_source.contains("@returns the number of elements in the Map."));
 
     let binding_manifest =
         fs::read_to_string(out_dir.join("std/js/manifests/std_js_bindings.json"))
             .expect("read binding manifest");
     assert!(binding_manifest.contains("\"schema\": \"terlan.std.js.bindings.v1\""));
     assert!(binding_manifest.contains("\"module\": \"std.js.Dom.Document\""));
+    assert!(binding_manifest.contains("\"module\": \"std.js.Map\""));
     assert!(binding_manifest.contains("\"summary\": \"std/summaries/std.js.Dom.Document.typi\""));
-    assert!(binding_manifest.contains("\"test\": \"std/js/dom/document_test.terl\""));
+    assert!(binding_manifest.contains("\"summary\": \"std/summaries/std.js.Map.typi\""));
+    assert!(binding_manifest.contains("\"test\": \"std/js/dom/DocumentTest.terl\""));
     assert!(
         binding_manifest.contains("\"skipped_manifest\": \"std/js/manifests/std_js_skipped.json\"")
     );
@@ -212,7 +235,9 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     let skipped_manifest = fs::read_to_string(out_dir.join("std/js/manifests/std_js_skipped.json"))
         .expect("read skipped manifest");
     assert!(skipped_manifest.contains("\"schema\": \"terlan.std.js.skipped-declarations.v1\""));
-    assert!(skipped_manifest.contains("\"skipped\": []"));
+    assert!(skipped_manifest.contains("\"source\": \"Map.set\""));
+    assert!(skipped_manifest.contains("\"source\": \"std.js.NaN\""));
+    assert!(skipped_manifest.contains("\"reason\": \"ts_bindgen.unsupported_type\""));
 
     fs::remove_dir_all(out_dir).expect("remove generated bindings");
 }

@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_atom_literal
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 export=status/0
 function=status/0 public=true params= return=Atom return_core=Atom
 function_clause=status/0#0 patterns= core_patterns= pattern_proof= pattern_preservation= guard=none body=Atom:core=Atom(ok):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Atom(ok)):proof=lean-covered:text=ok:arity=0

@@ -1,0 +1,83 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IDBTransaction
+ */
+
+module std.js.Dom.IDBTransaction.
+
+/**
+ * The **`IDBTransaction`** interface of the IndexedDB API provides a static, asynchronous transaction on a database using event handler attributes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction)
+ */
+pub opaque type IDBTransaction.
+
+/**
+ * The **`db`** read-only property of the IDBTransaction interface returns the database connection with which this transaction is associated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/db)
+ */
+pub (value: IDBTransaction) db(): IDBDatabase.
+
+/**
+ * The **`durability`** read-only property of the IDBTransaction interface returns the durability hint the transaction was created with.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/durability)
+ */
+pub (value: IDBTransaction) durability(): IDBTransactionDurability.
+
+/**
+ * The **`IDBTransaction.error`** property of the IDBTransaction interface returns the type of error when there is an unsuccessful transaction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/error)
+ */
+pub (value: IDBTransaction) error(): Option[DOMException].
+
+/**
+ * The **`mode`** read-only property of the data in the object stores in the scope of the transaction (i.e., is the mode to be read-only, or do you want to write to the object stores?) The default value is `readonly`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/mode)
+ */
+pub (value: IDBTransaction) mode(): IDBTransactionMode.
+
+/**
+ * The **`objectStoreNames`** read-only property of the of IDBObjectStore objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/objectStoreNames)
+ */
+pub (value: IDBTransaction) object_store_names(): DOMStringList.
+
+/**
+ * The **`abort()`** method of the IDBTransaction interface rolls back all the changes to objects in the database associated with this transaction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/abort)
+ */
+pub (value: IDBTransaction) abort(): std.core.Unit.
+
+/**
+ * The **`commit()`** method of the IDBTransaction interface commits the transaction if it is called on an active transaction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/commit)
+ */
+pub (value: IDBTransaction) commit(): std.core.Unit.
+
+/**
+ * The **`objectStore()`** method of the added to the scope of this transaction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/objectStore)
+ */
+pub (value: IDBTransaction) object_store(name: std.js.String.JsString): IDBObjectStore.
+
+pub (value: IDBTransaction) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: IDBTransaction) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

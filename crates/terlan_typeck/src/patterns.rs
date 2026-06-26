@@ -2,12 +2,50 @@ use std::collections::HashMap;
 
 use terlan_syntax::{SyntaxPatternKind, SyntaxPatternOutput};
 
+use crate::field_visibility::{split_private_field_spelling, struct_field_visibility_error};
+
 use super::{
     alias_constructor_schemes, apply_subst, bind_var, expand_type_aliases,
     instantiate_constructor_scheme, is_literal_atom, is_map_type, next_constructor_type_var,
     normalize_union, parse_interface_constructor_schemes, pretty_type, unify, ConstructorScheme,
     ExprInferContext, MapFieldType, Type, TypeAlias, TypeVarId,
 };
+
+/// Checks record-pattern field visibility against expression context metadata.
+///
+/// Inputs:
+/// - `struct_name`: expected struct type name for the record pattern.
+/// - `field_key`: pattern field key, optionally written as `#field`.
+/// - `ctx`: optional expression inference context with visibility/import data.
+///
+/// Output:
+/// - `Ok(())` when the field key is visibility-compatible, otherwise a
+///   diagnostic message.
+///
+/// Transformation:
+/// - Normalizes private field spelling and delegates the actual visibility rule
+///   to the shared typechecker helper.
+fn check_record_pattern_field_visibility(
+    struct_name: &str,
+    field_key: &str,
+    ctx: Option<&ExprInferContext<'_>>,
+) -> Result<(), String> {
+    let Some(ctx) = ctx else {
+        return Ok(());
+    };
+    let (field_name, requested_private) = split_private_field_spelling(field_key);
+    if let Some(message) = struct_field_visibility_error(
+        struct_name,
+        field_name,
+        requested_private,
+        ctx.struct_field_visibility,
+        ctx.imported_type_names,
+    ) {
+        Err(message)
+    } else {
+        Ok(())
+    }
+}
 
 /// Returns whether a pattern covers one variant of an expected union.
 ///
@@ -189,8 +227,9 @@ fn syntax_pattern_shape_type(pattern: &SyntaxPatternOutput) -> Type {
 ///
 /// Transformation:
 /// - Expands aliases, recursively validates structural pattern children,
-///   inserts pattern bindings, and applies constructor-pattern schemes when a
-///   constructor context is available.
+///   inserts pattern bindings after active substitutions are applied, and
+///   applies constructor-pattern schemes when a constructor context is
+///   available.
 pub(super) fn check_syntax_pattern(
     pattern: &SyntaxPatternOutput,
     expected: &Type,
@@ -199,11 +238,14 @@ pub(super) fn check_syntax_pattern(
     locals: &mut HashMap<String, Type>,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<(), String> {
-    let expected = expand_type_aliases(expected, aliases);
+    let expected = apply_subst(&expand_type_aliases(expected, aliases), subst);
 
     match pattern.kind {
         SyntaxPatternKind::Var => {
-            locals.insert(pattern.text.clone().unwrap_or_default(), expected);
+            locals.insert(
+                pattern.text.clone().unwrap_or_default(),
+                apply_subst(&expected, subst),
+            );
             Ok(())
         }
         SyntaxPatternKind::Wildcard
@@ -232,6 +274,11 @@ pub(super) fn check_syntax_pattern(
             }
         }
         SyntaxPatternKind::Constructor => {
+            if let Some(result) = check_structural_constructor_pattern(
+                pattern, &expected, aliases, ctx, locals, subst,
+            ) {
+                return result;
+            }
             check_syntax_constructor_pattern(pattern, &expected, aliases, ctx, locals, subst)
                 .unwrap_or_else(|| {
                     Err(format!(
@@ -429,6 +476,7 @@ pub(super) fn check_syntax_pattern(
                 let name = pattern.text.as_deref().unwrap_or_default();
                 if expected_name == name {
                     for field in &pattern.fields {
+                        check_record_pattern_field_visibility(expected_name, &field.key, ctx)?;
                         check_syntax_pattern(
                             &field.value,
                             &Type::Dynamic,
@@ -467,6 +515,105 @@ pub(super) fn check_syntax_pattern(
             )),
         },
     }
+}
+
+/// Checks a constructor pattern against a structural constructor shape.
+///
+/// Inputs:
+/// - `pattern`: constructor-style pattern from syntax output.
+/// - `expected`: expected scrutinee type.
+/// - `aliases`: visible type aliases.
+/// - `ctx`: optional expression inference context.
+/// - `locals`: branch-local bindings to populate.
+/// - `subst`: active type-variable substitutions.
+///
+/// Output:
+/// - `Some(Ok(()))` when the structural shape matches, `Some(Err(_))` for an
+///   applicable mismatch, or `None` when this helper cannot handle the shape.
+///
+/// Transformation:
+/// - Matches constructor names to tuple atom heads or literal atoms and checks
+///   child patterns against payload positions.
+fn check_structural_constructor_pattern(
+    pattern: &SyntaxPatternOutput,
+    expected: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+    ctx: Option<&ExprInferContext<'_>>,
+    locals: &mut HashMap<String, Type>,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Option<Result<(), String>> {
+    let name = pattern.text.as_deref().unwrap_or_default();
+    let atom = constructor_pattern_atom_name(name);
+    match expected {
+        Type::Union(variants) => {
+            let mut last_error = None;
+            for variant in variants {
+                let mut trial_subst = subst.clone();
+                let mut trial_locals = locals.clone();
+                match check_structural_constructor_pattern(
+                    pattern,
+                    variant,
+                    aliases,
+                    ctx,
+                    &mut trial_locals,
+                    &mut trial_subst,
+                ) {
+                    Some(Ok(())) => {
+                        *subst = trial_subst;
+                        *locals = trial_locals;
+                        return Some(Ok(()));
+                    }
+                    Some(Err(message)) => last_error = Some(message),
+                    None => {}
+                }
+            }
+            last_error.map(Err)
+        }
+        Type::Tuple(items) => {
+            let Some(Type::LiteralAtom(head)) = items.first() else {
+                return None;
+            };
+            if head != &atom {
+                return None;
+            }
+            if pattern.children.len() != items.len().saturating_sub(1) {
+                let expected_arity = items.len().saturating_sub(1);
+                return Some(Err(format!(
+                    "constructor {} has arity mismatch: expected {}..{} args, found {}",
+                    name,
+                    expected_arity,
+                    expected_arity,
+                    pattern.children.len()
+                )));
+            }
+            for (child, expected_child) in pattern.children.iter().zip(items.iter().skip(1)) {
+                if let Err(message) =
+                    check_syntax_pattern(child, expected_child, aliases, ctx, locals, subst)
+                {
+                    return Some(Err(message));
+                }
+            }
+            Some(Ok(()))
+        }
+        Type::LiteralAtom(head) if head == &atom && pattern.children.is_empty() => Some(Ok(())),
+        _ => None,
+    }
+}
+
+/// Converts a constructor-pattern name to its structural atom head.
+///
+/// Inputs:
+/// - `name`: constructor-pattern identifier such as `Some`.
+///
+/// Output:
+/// - Lowercase atom name used by structural tuple aliases.
+///
+/// Transformation:
+/// - Lowercases all characters without adding punctuation or backend syntax.
+fn constructor_pattern_atom_name(name: &str) -> String {
+    name.chars()
+        .flat_map(|ch| ch.to_lowercase())
+        .collect::<String>()
 }
 
 /// Checks a constructor-style pattern against an expected type.

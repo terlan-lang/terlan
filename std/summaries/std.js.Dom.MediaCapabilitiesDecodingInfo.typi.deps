@@ -1,0 +1,8 @@
+module=std.js.Dom.MediaCapabilitiesDecodingInfo
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16927109339605959458
+interface_hash=10301666137296990078
+interface_doc_hash=10301666137296990078
+deps=0

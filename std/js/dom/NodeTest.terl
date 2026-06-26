@@ -1,0 +1,109 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Node
+ */
+
+module std.js.Dom.NodeTest.
+
+import type std.js.Dom.Node.Node.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub base_uri_typechecks(receiver: Node): std.js.String.JsString ->
+    receiver.base_uri().
+
+pub child_nodes_typechecks(receiver: Node): NodeListOf[ChildNode] ->
+    receiver.child_nodes().
+
+pub first_child_typechecks(receiver: Node): Option[ChildNode] ->
+    receiver.first_child().
+
+pub is_connected_typechecks(receiver: Node): std.core.Bool ->
+    receiver.is_connected().
+
+pub last_child_typechecks(receiver: Node): Option[ChildNode] ->
+    receiver.last_child().
+
+pub next_sibling_typechecks(receiver: Node): Option[ChildNode] ->
+    receiver.next_sibling().
+
+pub node_name_typechecks(receiver: Node): std.js.String.JsString ->
+    receiver.node_name().
+
+pub node_type_typechecks(receiver: Node): std.js.Number.JsNumber ->
+    receiver.node_type().
+
+pub node_value_typechecks(receiver: Node): Option[std.js.String.JsString] ->
+    receiver.node_value().
+
+pub owner_document_typechecks(receiver: Node): Option[Document] ->
+    receiver.owner_document().
+
+pub parent_element_typechecks(receiver: Node): Option[HTMLElement] ->
+    receiver.parent_element().
+
+pub parent_node_typechecks(receiver: Node): Option[ParentNode] ->
+    receiver.parent_node().
+
+pub previous_sibling_typechecks(receiver: Node): Option[ChildNode] ->
+    receiver.previous_sibling().
+
+pub text_content_typechecks(receiver: Node): Option[std.js.String.JsString] ->
+    receiver.text_content().
+
+pub append_child_typechecks(receiver: Node, node: T): T ->
+    receiver.append_child(node).
+
+pub clone_node_typechecks(receiver: Node, subtree: std.core.Bool): Node ->
+    receiver.clone_node(subtree).
+
+pub compare_document_position_typechecks(receiver: Node, other: Node): std.js.Number.JsNumber ->
+    receiver.compare_document_position(other).
+
+pub contains_typechecks(receiver: Node, other: Option[Node]): std.core.Bool ->
+    receiver.contains(other).
+
+pub get_root_node_typechecks(receiver: Node, options: GetRootNodeOptions): Node ->
+    receiver.get_root_node(options).
+
+pub has_child_nodes_typechecks(receiver: Node): std.core.Bool ->
+    receiver.has_child_nodes().
+
+pub insert_before_typechecks(receiver: Node, node: T, child: Option[Node]): T ->
+    receiver.insert_before(node, child).
+
+pub is_default_namespace_typechecks(receiver: Node, namespace: Option[std.js.String.JsString]): std.core.Bool ->
+    receiver.is_default_namespace(namespace).
+
+pub is_equal_node_typechecks(receiver: Node, other_node: Option[Node]): std.core.Bool ->
+    receiver.is_equal_node(other_node).
+
+pub is_same_node_typechecks(receiver: Node, other_node: Option[Node]): std.core.Bool ->
+    receiver.is_same_node(other_node).
+
+pub lookup_namespace_uri_typechecks(receiver: Node, prefix: Option[std.js.String.JsString]): Option[std.js.String.JsString] ->
+    receiver.lookup_namespace_uri(prefix).
+
+pub lookup_prefix_typechecks(receiver: Node, namespace: Option[std.js.String.JsString]): Option[std.js.String.JsString] ->
+    receiver.lookup_prefix(namespace).
+
+pub normalize_typechecks(receiver: Node): std.core.Unit ->
+    receiver.normalize().
+
+pub remove_child_typechecks(receiver: Node, child: T): T ->
+    receiver.remove_child(child).
+
+pub replace_child_typechecks(receiver: Node, node: Node, child: T): T ->
+    receiver.replace_child(node, child).

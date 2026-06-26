@@ -1,0 +1,8 @@
+module=std.js.Dom.ServiceWorkerEventMap
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=3297704132551545894
+interface_hash=11744984431644026421
+interface_doc_hash=11744984431644026421
+deps=0

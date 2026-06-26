@@ -1,0 +1,64 @@
+//! BEAM byte buffer contract.
+//!
+//! `std.beam.Bytes` represents binary protocol frames owned by the BEAM target.
+//! It is intentionally target-specific so daemon and socket tests can exchange
+//! exact byte sequences without adding byte-array syntax to portable Terlan.
+
+module std.beam.Bytes.
+
+/// Byte is an integer interpreted as one unsigned octet.
+///
+/// Input: no runtime input.
+/// Output: an `Int` value constrained by this module's constructors and
+/// operations to the range `0..255`.
+/// Transformation: names the protocol-byte intent without creating a new
+/// portable numeric primitive.
+
+pub type Byte =
+    Int.
+
+/// Bytes represents a BEAM-owned binary byte buffer.
+///
+/// Input: no runtime input.
+/// Output: an opaque target-owned byte buffer handle.
+/// Transformation: keeps Erlang binary representation behind the BEAM runtime
+/// contract while exposing a typed protocol-frame value in Terlan source.
+
+pub opaque type Bytes.
+
+/// Concatenates two byte buffers.
+///
+/// Input: two `Bytes` values.
+/// Output: a new buffer with `left` followed by `right`.
+/// Transformation: asks the BEAM runtime to join binary buffers without copying
+/// byte lists through portable collection code.
+
+pub concat(left: Bytes, right: Bytes): Bytes.
+
+/// Builds a byte buffer from unsigned octets.
+///
+/// Input: one list of byte values.
+/// Output: `Bytes` containing the values in source order.
+/// Transformation: asks the BEAM runtime to validate each octet and pack the
+/// values into a binary protocol frame.
+
+pub from_list(values: List[Byte]): Bytes.
+
+/// Returns the byte length of a buffer.
+///
+/// Input: one `Bytes` receiver.
+/// Output: count of octets in the buffer.
+/// Transformation: delegates to the BEAM binary size operation while preserving
+/// the opaque source-level representation.
+
+pub (bytes: Bytes) length(): Int.
+
+/// Returns a byte buffer as unsigned octets.
+///
+/// Input: one `Bytes` receiver.
+/// Output: the byte values in buffer order.
+/// Transformation: asks the BEAM runtime to unpack the binary into a typed
+/// Terlan list without exposing Erlang bit syntax.
+
+pub (bytes: Bytes) to_list(): List[Byte].
+

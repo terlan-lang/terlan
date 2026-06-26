@@ -1,0 +1,87 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCRtpReceiver
+ */
+
+module std.js.Dom.RTCRtpReceiver.
+
+/**
+ * The **`RTCRtpReceiver`** interface of the WebRTC API manages the reception and decoding of data for a MediaStreamTrack on an RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver)
+ */
+pub opaque type RTCRtpReceiver.
+
+/**
+ * The **`jitterBufferTarget`** property of the RTCRtpReceiver interface is a DOMHighResTimeStamp that indicates the application's preferred duration, in milliseconds, for which the jitter buffer should hold media before playing it out.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/jitterBufferTarget)
+ */
+pub (value: RTCRtpReceiver) jitter_buffer_target(): Option[DOMHighResTimeStamp] ->
+    native.
+
+/**
+ * The **`track`** read-only property of the associated with the current RTCRtpReceiver instance.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/track)
+ */
+pub (value: RTCRtpReceiver) track(): MediaStreamTrack ->
+    native.
+
+/**
+ * The **`transform`** property of the RTCRtpReceiver object is used to insert a transform stream (TransformStream) running in a worker thread into the receiver pipeline.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/transform)
+ */
+pub (value: RTCRtpReceiver) transform(): Option[RTCRtpTransform] ->
+    native.
+
+/**
+ * The read-only **`transport`** property of an used to interact with the underlying transport over which the receiver is exchanging Real-time Transport Control Protocol (RTCP) packets.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/transport)
+ */
+pub (value: RTCRtpReceiver) transport(): Option[RTCDtlsTransport] ->
+    native.
+
+/**
+ * The **`getContributingSources()`** method of the RTCRtpReceiver interface returns an array of objects, each corresponding to one CSRC (contributing source) identifier received by the current `RTCRtpReceiver` in the last ten seconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getContributingSources)
+ */
+pub (value: RTCRtpReceiver) get_contributing_sources(): std.js.Array[RTCRtpContributingSource] ->
+    native.
+
+/**
+ * The **`getParameters()`** method of the RTCRtpReceiver interface returns an object describing the current configuration for how the receiver's RTCRtpReceiver.track is decoded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getParameters)
+ */
+pub (value: RTCRtpReceiver) get_parameters(): RTCRtpReceiveParameters ->
+    native.
+
+/**
+ * The RTCRtpReceiver method **`getStats()`** asynchronously requests an RTCStatsReport object which provides statistics about incoming traffic on the owning RTCPeerConnection, returning a Promise whose fulfillment handler will be called once the results are available.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getStats)
+ */
+pub (value: RTCRtpReceiver) get_stats(): std.js.Promise[RTCStatsReport] ->
+    native.
+
+/**
+ * The **`getSynchronizationSources()`** method of the RTCRtpReceiver interface returns an array of objects, each corresponding to one SSRC (synchronization source) identifier received by the current `RTCRtpReceiver` in the last ten seconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getSynchronizationSources)
+ */
+pub (value: RTCRtpReceiver) get_synchronization_sources(): std.js.Array[RTCRtpSynchronizationSource] ->
+    native.

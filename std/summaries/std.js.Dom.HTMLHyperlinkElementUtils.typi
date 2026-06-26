@@ -1,0 +1,117 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLHyperlinkElementUtils
+ */
+
+module std.js.Dom.HTMLHyperlinkElementUtils.
+
+pub opaque type HTMLHyperlinkElementUtils.
+
+/**
+ * Returns the hyperlink's URL's fragment (includes leading "#" if non-empty).
+ *
+ * Can be set, to change the URL's fragment (ignores leading "#").
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/hash)
+ */
+pub (value: HTMLHyperlinkElementUtils) hash(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's host and port (if different from the default port for the scheme).
+ *
+ * Can be set, to change the URL's host and port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/host)
+ */
+pub (value: HTMLHyperlinkElementUtils) host(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's host.
+ *
+ * Can be set, to change the URL's host.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/hostname)
+ */
+pub (value: HTMLHyperlinkElementUtils) hostname(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL.
+ *
+ * Can be set, to change the URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/href)
+ */
+pub (value: HTMLHyperlinkElementUtils) href(): std.js.String.JsString.
+
+pub (value: HTMLHyperlinkElementUtils) to_string(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's origin.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/origin)
+ */
+pub (value: HTMLHyperlinkElementUtils) origin(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's password.
+ *
+ * Can be set, to change the URL's password.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/password)
+ */
+pub (value: HTMLHyperlinkElementUtils) password(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's path.
+ *
+ * Can be set, to change the URL's path.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/pathname)
+ */
+pub (value: HTMLHyperlinkElementUtils) pathname(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's port.
+ *
+ * Can be set, to change the URL's port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/port)
+ */
+pub (value: HTMLHyperlinkElementUtils) port(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's scheme.
+ *
+ * Can be set, to change the URL's scheme.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/protocol)
+ */
+pub (value: HTMLHyperlinkElementUtils) protocol(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's query (includes leading "?" if non-empty).
+ *
+ * Can be set, to change the URL's query (ignores leading "?").
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/search)
+ */
+pub (value: HTMLHyperlinkElementUtils) search(): std.js.String.JsString.
+
+/**
+ * Returns the hyperlink's URL's username.
+ *
+ * Can be set, to change the URL's username.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/username)
+ */
+pub (value: HTMLHyperlinkElementUtils) username(): std.js.String.JsString.

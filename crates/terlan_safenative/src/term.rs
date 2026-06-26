@@ -6,6 +6,7 @@
 
 use crate::dispatch::{DispatchError, SafeNativeBridgeValue};
 use crate::handle::SafeNativeHandle;
+use crate::postgres;
 
 /// Stable term shape accepted by the SafeNative bridge.
 #[derive(Clone, Debug, PartialEq)]
@@ -31,6 +32,10 @@ pub enum SafeNativeTerm {
     OptionalText(Option<String>),
     /// Optional opaque resource handle result.
     OptionalHandle(Option<SafeNativeHandle>),
+    /// Postgres connection configuration accepted by `std.db.postgres.connect`.
+    PostgresConfig(postgres::Config),
+    /// Terlan list carrying bridge-stable element terms.
+    List(Vec<SafeNativeTerm>),
 }
 
 /// Stable reply shape returned by a SafeNative bridge call.
@@ -187,6 +192,13 @@ pub fn encode_bridge_value(value: SafeNativeBridgeValue) -> SafeNativeTerm {
         },
         SafeNativeBridgeValue::OptionalText(value) => SafeNativeTerm::OptionalText(value),
         SafeNativeBridgeValue::OptionalHandle(value) => SafeNativeTerm::OptionalHandle(value),
+        SafeNativeBridgeValue::PostgresConfig(value) => SafeNativeTerm::PostgresConfig(value),
+        SafeNativeBridgeValue::List(values) => SafeNativeTerm::List(
+            values
+                .into_iter()
+                .map(encode_bridge_value)
+                .collect::<Vec<_>>(),
+        ),
     }
 }
 
@@ -216,6 +228,12 @@ pub fn decode_bridge_value(term: &SafeNativeTerm) -> SafeNativeBridgeValue {
         }
         SafeNativeTerm::OptionalText(value) => SafeNativeBridgeValue::OptionalText(value.clone()),
         SafeNativeTerm::OptionalHandle(value) => SafeNativeBridgeValue::OptionalHandle(*value),
+        SafeNativeTerm::PostgresConfig(value) => {
+            SafeNativeBridgeValue::PostgresConfig(value.clone())
+        }
+        SafeNativeTerm::List(values) => {
+            SafeNativeBridgeValue::List(values.iter().map(decode_bridge_value).collect::<Vec<_>>())
+        }
     }
 }
 

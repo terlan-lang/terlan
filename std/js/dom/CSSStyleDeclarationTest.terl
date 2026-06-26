@@ -1,0 +1,1564 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CSSStyleDeclaration
+ */
+
+module std.js.Dom.CSSStyleDeclarationTest.
+
+import type std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub accent_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.accent_color().
+
+pub align_content_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.align_content().
+
+pub align_items_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.align_items().
+
+pub align_self_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.align_self().
+
+pub alignment_baseline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.alignment_baseline().
+
+pub all_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.all().
+
+pub animation_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation().
+
+pub animation_composition_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_composition().
+
+pub animation_delay_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_delay().
+
+pub animation_direction_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_direction().
+
+pub animation_duration_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_duration().
+
+pub animation_fill_mode_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_fill_mode().
+
+pub animation_iteration_count_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_iteration_count().
+
+pub animation_name_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_name().
+
+pub animation_play_state_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_play_state().
+
+pub animation_timing_function_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.animation_timing_function().
+
+pub appearance_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.appearance().
+
+pub aspect_ratio_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.aspect_ratio().
+
+pub backdrop_filter_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.backdrop_filter().
+
+pub backface_visibility_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.backface_visibility().
+
+pub background_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background().
+
+pub background_attachment_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_attachment().
+
+pub background_blend_mode_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_blend_mode().
+
+pub background_clip_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_clip().
+
+pub background_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_color().
+
+pub background_image_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_image().
+
+pub background_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_origin().
+
+pub background_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_position().
+
+pub background_position_x_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_position_x().
+
+pub background_position_y_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_position_y().
+
+pub background_repeat_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_repeat().
+
+pub background_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.background_size().
+
+pub baseline_shift_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.baseline_shift().
+
+pub baseline_source_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.baseline_source().
+
+pub block_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.block_size().
+
+pub border_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border().
+
+pub border_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block().
+
+pub border_block_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_color().
+
+pub border_block_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_end().
+
+pub border_block_end_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_end_color().
+
+pub border_block_end_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_end_style().
+
+pub border_block_end_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_end_width().
+
+pub border_block_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_start().
+
+pub border_block_start_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_start_color().
+
+pub border_block_start_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_start_style().
+
+pub border_block_start_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_start_width().
+
+pub border_block_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_style().
+
+pub border_block_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_block_width().
+
+pub border_bottom_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_bottom().
+
+pub border_bottom_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_bottom_color().
+
+pub border_bottom_left_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_bottom_left_radius().
+
+pub border_bottom_right_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_bottom_right_radius().
+
+pub border_bottom_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_bottom_style().
+
+pub border_bottom_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_bottom_width().
+
+pub border_collapse_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_collapse().
+
+pub border_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_color().
+
+pub border_end_end_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_end_end_radius().
+
+pub border_end_start_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_end_start_radius().
+
+pub border_image_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_image().
+
+pub border_image_outset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_image_outset().
+
+pub border_image_repeat_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_image_repeat().
+
+pub border_image_slice_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_image_slice().
+
+pub border_image_source_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_image_source().
+
+pub border_image_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_image_width().
+
+pub border_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline().
+
+pub border_inline_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_color().
+
+pub border_inline_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_end().
+
+pub border_inline_end_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_end_color().
+
+pub border_inline_end_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_end_style().
+
+pub border_inline_end_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_end_width().
+
+pub border_inline_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_start().
+
+pub border_inline_start_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_start_color().
+
+pub border_inline_start_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_start_style().
+
+pub border_inline_start_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_start_width().
+
+pub border_inline_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_style().
+
+pub border_inline_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_inline_width().
+
+pub border_left_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_left().
+
+pub border_left_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_left_color().
+
+pub border_left_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_left_style().
+
+pub border_left_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_left_width().
+
+pub border_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_radius().
+
+pub border_right_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_right().
+
+pub border_right_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_right_color().
+
+pub border_right_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_right_style().
+
+pub border_right_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_right_width().
+
+pub border_spacing_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_spacing().
+
+pub border_start_end_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_start_end_radius().
+
+pub border_start_start_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_start_start_radius().
+
+pub border_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_style().
+
+pub border_top_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_top().
+
+pub border_top_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_top_color().
+
+pub border_top_left_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_top_left_radius().
+
+pub border_top_right_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_top_right_radius().
+
+pub border_top_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_top_style().
+
+pub border_top_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_top_width().
+
+pub border_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.border_width().
+
+pub bottom_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.bottom().
+
+pub box_decoration_break_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.box_decoration_break().
+
+pub box_shadow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.box_shadow().
+
+pub box_sizing_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.box_sizing().
+
+pub break_after_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.break_after().
+
+pub break_before_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.break_before().
+
+pub break_inside_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.break_inside().
+
+pub caption_side_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.caption_side().
+
+pub caret_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.caret_color().
+
+pub clear_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.clear().
+
+pub clip_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.clip().
+
+pub clip_path_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.clip_path().
+
+pub clip_rule_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.clip_rule().
+
+pub color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.color().
+
+pub color_interpolation_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.color_interpolation().
+
+pub color_interpolation_filters_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.color_interpolation_filters().
+
+pub color_scheme_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.color_scheme().
+
+pub column_count_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_count().
+
+pub column_fill_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_fill().
+
+pub column_gap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_gap().
+
+pub column_rule_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_rule().
+
+pub column_rule_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_rule_color().
+
+pub column_rule_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_rule_style().
+
+pub column_rule_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_rule_width().
+
+pub column_span_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_span().
+
+pub column_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.column_width().
+
+pub columns_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.columns().
+
+pub contain_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.contain().
+
+pub contain_intrinsic_block_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.contain_intrinsic_block_size().
+
+pub contain_intrinsic_height_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.contain_intrinsic_height().
+
+pub contain_intrinsic_inline_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.contain_intrinsic_inline_size().
+
+pub contain_intrinsic_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.contain_intrinsic_size().
+
+pub contain_intrinsic_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.contain_intrinsic_width().
+
+pub container_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.container().
+
+pub container_name_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.container_name().
+
+pub container_type_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.container_type().
+
+pub content_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.content().
+
+pub content_visibility_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.content_visibility().
+
+pub counter_increment_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.counter_increment().
+
+pub counter_reset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.counter_reset().
+
+pub counter_set_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.counter_set().
+
+pub css_float_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.css_float().
+
+pub css_text_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.css_text().
+
+pub cursor_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.cursor().
+
+pub cx_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.cx().
+
+pub cy_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.cy().
+
+pub d_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.d().
+
+pub direction_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.direction().
+
+pub display_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.display().
+
+pub dominant_baseline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.dominant_baseline().
+
+pub empty_cells_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.empty_cells().
+
+pub fill_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.fill().
+
+pub fill_opacity_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.fill_opacity().
+
+pub fill_rule_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.fill_rule().
+
+pub filter_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.filter().
+
+pub flex_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flex().
+
+pub flex_basis_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flex_basis().
+
+pub flex_direction_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flex_direction().
+
+pub flex_flow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flex_flow().
+
+pub flex_grow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flex_grow().
+
+pub flex_shrink_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flex_shrink().
+
+pub flex_wrap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flex_wrap().
+
+pub float_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.float().
+
+pub flood_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flood_color().
+
+pub flood_opacity_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.flood_opacity().
+
+pub font_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font().
+
+pub font_family_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_family().
+
+pub font_feature_settings_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_feature_settings().
+
+pub font_kerning_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_kerning().
+
+pub font_optical_sizing_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_optical_sizing().
+
+pub font_palette_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_palette().
+
+pub font_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_size().
+
+pub font_size_adjust_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_size_adjust().
+
+pub font_stretch_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_stretch().
+
+pub font_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_style().
+
+pub font_synthesis_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_synthesis().
+
+pub font_synthesis_small_caps_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_synthesis_small_caps().
+
+pub font_synthesis_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_synthesis_style().
+
+pub font_synthesis_weight_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_synthesis_weight().
+
+pub font_variant_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variant().
+
+pub font_variant_alternates_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variant_alternates().
+
+pub font_variant_caps_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variant_caps().
+
+pub font_variant_east_asian_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variant_east_asian().
+
+pub font_variant_ligatures_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variant_ligatures().
+
+pub font_variant_numeric_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variant_numeric().
+
+pub font_variant_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variant_position().
+
+pub font_variation_settings_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_variation_settings().
+
+pub font_weight_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.font_weight().
+
+pub forced_color_adjust_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.forced_color_adjust().
+
+pub gap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.gap().
+
+pub grid_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid().
+
+pub grid_area_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_area().
+
+pub grid_auto_columns_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_auto_columns().
+
+pub grid_auto_flow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_auto_flow().
+
+pub grid_auto_rows_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_auto_rows().
+
+pub grid_column_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_column().
+
+pub grid_column_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_column_end().
+
+pub grid_column_gap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_column_gap().
+
+pub grid_column_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_column_start().
+
+pub grid_gap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_gap().
+
+pub grid_row_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_row().
+
+pub grid_row_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_row_end().
+
+pub grid_row_gap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_row_gap().
+
+pub grid_row_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_row_start().
+
+pub grid_template_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_template().
+
+pub grid_template_areas_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_template_areas().
+
+pub grid_template_columns_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_template_columns().
+
+pub grid_template_rows_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.grid_template_rows().
+
+pub height_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.height().
+
+pub hyphenate_character_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.hyphenate_character().
+
+pub hyphenate_limit_chars_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.hyphenate_limit_chars().
+
+pub hyphens_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.hyphens().
+
+pub image_orientation_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.image_orientation().
+
+pub image_rendering_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.image_rendering().
+
+pub inline_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inline_size().
+
+pub inset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inset().
+
+pub inset_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inset_block().
+
+pub inset_block_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inset_block_end().
+
+pub inset_block_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inset_block_start().
+
+pub inset_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inset_inline().
+
+pub inset_inline_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inset_inline_end().
+
+pub inset_inline_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.inset_inline_start().
+
+pub isolation_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.isolation().
+
+pub justify_content_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.justify_content().
+
+pub justify_items_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.justify_items().
+
+pub justify_self_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.justify_self().
+
+pub left_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.left().
+
+pub length_typechecks(receiver: CSSStyleDeclaration): std.js.Number.JsNumber ->
+    receiver.length().
+
+pub letter_spacing_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.letter_spacing().
+
+pub lighting_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.lighting_color().
+
+pub line_break_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.line_break().
+
+pub line_height_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.line_height().
+
+pub list_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.list_style().
+
+pub list_style_image_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.list_style_image().
+
+pub list_style_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.list_style_position().
+
+pub list_style_type_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.list_style_type().
+
+pub margin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin().
+
+pub margin_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_block().
+
+pub margin_block_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_block_end().
+
+pub margin_block_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_block_start().
+
+pub margin_bottom_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_bottom().
+
+pub margin_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_inline().
+
+pub margin_inline_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_inline_end().
+
+pub margin_inline_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_inline_start().
+
+pub margin_left_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_left().
+
+pub margin_right_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_right().
+
+pub margin_top_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.margin_top().
+
+pub marker_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.marker().
+
+pub marker_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.marker_end().
+
+pub marker_mid_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.marker_mid().
+
+pub marker_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.marker_start().
+
+pub mask_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask().
+
+pub mask_clip_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_clip().
+
+pub mask_composite_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_composite().
+
+pub mask_image_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_image().
+
+pub mask_mode_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_mode().
+
+pub mask_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_origin().
+
+pub mask_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_position().
+
+pub mask_repeat_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_repeat().
+
+pub mask_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_size().
+
+pub mask_type_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mask_type().
+
+pub math_depth_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.math_depth().
+
+pub math_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.math_style().
+
+pub max_block_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.max_block_size().
+
+pub max_height_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.max_height().
+
+pub max_inline_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.max_inline_size().
+
+pub max_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.max_width().
+
+pub min_block_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.min_block_size().
+
+pub min_height_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.min_height().
+
+pub min_inline_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.min_inline_size().
+
+pub min_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.min_width().
+
+pub mix_blend_mode_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.mix_blend_mode().
+
+pub object_fit_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.object_fit().
+
+pub object_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.object_position().
+
+pub offset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.offset().
+
+pub offset_anchor_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.offset_anchor().
+
+pub offset_distance_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.offset_distance().
+
+pub offset_path_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.offset_path().
+
+pub offset_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.offset_position().
+
+pub offset_rotate_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.offset_rotate().
+
+pub opacity_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.opacity().
+
+pub order_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.order().
+
+pub orphans_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.orphans().
+
+pub outline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.outline().
+
+pub outline_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.outline_color().
+
+pub outline_offset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.outline_offset().
+
+pub outline_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.outline_style().
+
+pub outline_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.outline_width().
+
+pub overflow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow().
+
+pub overflow_anchor_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow_anchor().
+
+pub overflow_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow_block().
+
+pub overflow_clip_margin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow_clip_margin().
+
+pub overflow_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow_inline().
+
+pub overflow_wrap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow_wrap().
+
+pub overflow_x_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow_x().
+
+pub overflow_y_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overflow_y().
+
+pub overscroll_behavior_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overscroll_behavior().
+
+pub overscroll_behavior_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overscroll_behavior_block().
+
+pub overscroll_behavior_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overscroll_behavior_inline().
+
+pub overscroll_behavior_x_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overscroll_behavior_x().
+
+pub overscroll_behavior_y_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.overscroll_behavior_y().
+
+pub padding_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding().
+
+pub padding_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_block().
+
+pub padding_block_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_block_end().
+
+pub padding_block_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_block_start().
+
+pub padding_bottom_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_bottom().
+
+pub padding_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_inline().
+
+pub padding_inline_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_inline_end().
+
+pub padding_inline_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_inline_start().
+
+pub padding_left_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_left().
+
+pub padding_right_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_right().
+
+pub padding_top_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.padding_top().
+
+pub page_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.page().
+
+pub page_break_after_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.page_break_after().
+
+pub page_break_before_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.page_break_before().
+
+pub page_break_inside_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.page_break_inside().
+
+pub paint_order_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.paint_order().
+
+pub parent_rule_typechecks(receiver: CSSStyleDeclaration): Option[CSSRule] ->
+    receiver.parent_rule().
+
+pub perspective_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.perspective().
+
+pub perspective_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.perspective_origin().
+
+pub place_content_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.place_content().
+
+pub place_items_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.place_items().
+
+pub place_self_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.place_self().
+
+pub pointer_events_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.pointer_events().
+
+pub position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.position().
+
+pub print_color_adjust_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.print_color_adjust().
+
+pub quotes_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.quotes().
+
+pub r_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.r().
+
+pub resize_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.resize().
+
+pub right_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.right().
+
+pub rotate_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.rotate().
+
+pub row_gap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.row_gap().
+
+pub ruby_align_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.ruby_align().
+
+pub ruby_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.ruby_position().
+
+pub rx_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.rx().
+
+pub ry_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.ry().
+
+pub scale_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scale().
+
+pub scroll_behavior_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_behavior().
+
+pub scroll_margin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin().
+
+pub scroll_margin_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_block().
+
+pub scroll_margin_block_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_block_end().
+
+pub scroll_margin_block_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_block_start().
+
+pub scroll_margin_bottom_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_bottom().
+
+pub scroll_margin_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_inline().
+
+pub scroll_margin_inline_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_inline_end().
+
+pub scroll_margin_inline_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_inline_start().
+
+pub scroll_margin_left_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_left().
+
+pub scroll_margin_right_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_right().
+
+pub scroll_margin_top_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_margin_top().
+
+pub scroll_padding_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding().
+
+pub scroll_padding_block_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_block().
+
+pub scroll_padding_block_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_block_end().
+
+pub scroll_padding_block_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_block_start().
+
+pub scroll_padding_bottom_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_bottom().
+
+pub scroll_padding_inline_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_inline().
+
+pub scroll_padding_inline_end_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_inline_end().
+
+pub scroll_padding_inline_start_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_inline_start().
+
+pub scroll_padding_left_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_left().
+
+pub scroll_padding_right_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_right().
+
+pub scroll_padding_top_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_padding_top().
+
+pub scroll_snap_align_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_snap_align().
+
+pub scroll_snap_stop_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_snap_stop().
+
+pub scroll_snap_type_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scroll_snap_type().
+
+pub scrollbar_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scrollbar_color().
+
+pub scrollbar_gutter_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scrollbar_gutter().
+
+pub scrollbar_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.scrollbar_width().
+
+pub shape_image_threshold_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.shape_image_threshold().
+
+pub shape_margin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.shape_margin().
+
+pub shape_outside_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.shape_outside().
+
+pub shape_rendering_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.shape_rendering().
+
+pub stop_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stop_color().
+
+pub stop_opacity_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stop_opacity().
+
+pub stroke_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke().
+
+pub stroke_dasharray_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke_dasharray().
+
+pub stroke_dashoffset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke_dashoffset().
+
+pub stroke_linecap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke_linecap().
+
+pub stroke_linejoin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke_linejoin().
+
+pub stroke_miterlimit_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke_miterlimit().
+
+pub stroke_opacity_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke_opacity().
+
+pub stroke_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.stroke_width().
+
+pub tab_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.tab_size().
+
+pub table_layout_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.table_layout().
+
+pub text_align_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_align().
+
+pub text_align_last_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_align_last().
+
+pub text_anchor_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_anchor().
+
+pub text_box_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_box().
+
+pub text_box_edge_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_box_edge().
+
+pub text_box_trim_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_box_trim().
+
+pub text_combine_upright_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_combine_upright().
+
+pub text_decoration_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_decoration().
+
+pub text_decoration_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_decoration_color().
+
+pub text_decoration_line_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_decoration_line().
+
+pub text_decoration_skip_ink_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_decoration_skip_ink().
+
+pub text_decoration_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_decoration_style().
+
+pub text_decoration_thickness_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_decoration_thickness().
+
+pub text_emphasis_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_emphasis().
+
+pub text_emphasis_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_emphasis_color().
+
+pub text_emphasis_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_emphasis_position().
+
+pub text_emphasis_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_emphasis_style().
+
+pub text_indent_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_indent().
+
+pub text_orientation_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_orientation().
+
+pub text_overflow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_overflow().
+
+pub text_rendering_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_rendering().
+
+pub text_shadow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_shadow().
+
+pub text_transform_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_transform().
+
+pub text_underline_offset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_underline_offset().
+
+pub text_underline_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_underline_position().
+
+pub text_wrap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_wrap().
+
+pub text_wrap_mode_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_wrap_mode().
+
+pub text_wrap_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.text_wrap_style().
+
+pub top_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.top().
+
+pub touch_action_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.touch_action().
+
+pub transform_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transform().
+
+pub transform_box_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transform_box().
+
+pub transform_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transform_origin().
+
+pub transform_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transform_style().
+
+pub transition_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transition().
+
+pub transition_behavior_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transition_behavior().
+
+pub transition_delay_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transition_delay().
+
+pub transition_duration_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transition_duration().
+
+pub transition_property_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transition_property().
+
+pub transition_timing_function_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.transition_timing_function().
+
+pub translate_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.translate().
+
+pub unicode_bidi_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.unicode_bidi().
+
+pub user_select_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.user_select().
+
+pub vector_effect_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.vector_effect().
+
+pub vertical_align_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.vertical_align().
+
+pub view_transition_class_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.view_transition_class().
+
+pub view_transition_name_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.view_transition_name().
+
+pub visibility_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.visibility().
+
+pub webkit_align_content_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_align_content().
+
+pub webkit_align_items_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_align_items().
+
+pub webkit_align_self_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_align_self().
+
+pub webkit_animation_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation().
+
+pub webkit_animation_delay_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_delay().
+
+pub webkit_animation_direction_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_direction().
+
+pub webkit_animation_duration_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_duration().
+
+pub webkit_animation_fill_mode_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_fill_mode().
+
+pub webkit_animation_iteration_count_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_iteration_count().
+
+pub webkit_animation_name_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_name().
+
+pub webkit_animation_play_state_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_play_state().
+
+pub webkit_animation_timing_function_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_animation_timing_function().
+
+pub webkit_appearance_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_appearance().
+
+pub webkit_backface_visibility_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_backface_visibility().
+
+pub webkit_background_clip_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_background_clip().
+
+pub webkit_background_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_background_origin().
+
+pub webkit_background_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_background_size().
+
+pub webkit_border_bottom_left_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_border_bottom_left_radius().
+
+pub webkit_border_bottom_right_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_border_bottom_right_radius().
+
+pub webkit_border_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_border_radius().
+
+pub webkit_border_top_left_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_border_top_left_radius().
+
+pub webkit_border_top_right_radius_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_border_top_right_radius().
+
+pub webkit_box_align_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_box_align().
+
+pub webkit_box_flex_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_box_flex().
+
+pub webkit_box_ordinal_group_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_box_ordinal_group().
+
+pub webkit_box_orient_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_box_orient().
+
+pub webkit_box_pack_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_box_pack().
+
+pub webkit_box_shadow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_box_shadow().
+
+pub webkit_box_sizing_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_box_sizing().
+
+pub webkit_filter_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_filter().
+
+pub webkit_flex_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_flex().
+
+pub webkit_flex_basis_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_flex_basis().
+
+pub webkit_flex_direction_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_flex_direction().
+
+pub webkit_flex_flow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_flex_flow().
+
+pub webkit_flex_grow_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_flex_grow().
+
+pub webkit_flex_shrink_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_flex_shrink().
+
+pub webkit_flex_wrap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_flex_wrap().
+
+pub webkit_justify_content_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_justify_content().
+
+pub webkit_line_clamp_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_line_clamp().
+
+pub webkit_mask_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask().
+
+pub webkit_mask_box_image_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_box_image().
+
+pub webkit_mask_box_image_outset_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_box_image_outset().
+
+pub webkit_mask_box_image_repeat_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_box_image_repeat().
+
+pub webkit_mask_box_image_slice_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_box_image_slice().
+
+pub webkit_mask_box_image_source_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_box_image_source().
+
+pub webkit_mask_box_image_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_box_image_width().
+
+pub webkit_mask_clip_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_clip().
+
+pub webkit_mask_composite_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_composite().
+
+pub webkit_mask_image_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_image().
+
+pub webkit_mask_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_origin().
+
+pub webkit_mask_position_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_position().
+
+pub webkit_mask_repeat_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_repeat().
+
+pub webkit_mask_size_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_mask_size().
+
+pub webkit_order_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_order().
+
+pub webkit_perspective_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_perspective().
+
+pub webkit_perspective_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_perspective_origin().
+
+pub webkit_text_fill_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_text_fill_color().
+
+pub webkit_text_size_adjust_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_text_size_adjust().
+
+pub webkit_text_stroke_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_text_stroke().
+
+pub webkit_text_stroke_color_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_text_stroke_color().
+
+pub webkit_text_stroke_width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_text_stroke_width().
+
+pub webkit_transform_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transform().
+
+pub webkit_transform_origin_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transform_origin().
+
+pub webkit_transform_style_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transform_style().
+
+pub webkit_transition_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transition().
+
+pub webkit_transition_delay_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transition_delay().
+
+pub webkit_transition_duration_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transition_duration().
+
+pub webkit_transition_property_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transition_property().
+
+pub webkit_transition_timing_function_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_transition_timing_function().
+
+pub webkit_user_select_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.webkit_user_select().
+
+pub white_space_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.white_space().
+
+pub white_space_collapse_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.white_space_collapse().
+
+pub widows_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.widows().
+
+pub width_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.width().
+
+pub will_change_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.will_change().
+
+pub word_break_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.word_break().
+
+pub word_spacing_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.word_spacing().
+
+pub word_wrap_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.word_wrap().
+
+pub writing_mode_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.writing_mode().
+
+pub x_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.x().
+
+pub y_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.y().
+
+pub z_index_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.z_index().
+
+pub zoom_typechecks(receiver: CSSStyleDeclaration): std.js.String.JsString ->
+    receiver.zoom().
+
+pub get_property_priority_typechecks(receiver: CSSStyleDeclaration, property: std.js.String.JsString): std.js.String.JsString ->
+    receiver.get_property_priority(property).
+
+pub get_property_value_typechecks(receiver: CSSStyleDeclaration, property: std.js.String.JsString): std.js.String.JsString ->
+    receiver.get_property_value(property).
+
+pub item_typechecks(receiver: CSSStyleDeclaration, index: std.js.Number.JsNumber): std.js.String.JsString ->
+    receiver.item(index).
+
+pub remove_property_typechecks(receiver: CSSStyleDeclaration, property: std.js.String.JsString): std.js.String.JsString ->
+    receiver.remove_property(property).
+
+pub set_property_typechecks(receiver: CSSStyleDeclaration, property: std.js.String.JsString, value: Option[std.js.String.JsString], priority: std.js.String.JsString): std.core.Unit ->
+    receiver.set_property(property, value, priority).

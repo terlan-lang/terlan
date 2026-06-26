@@ -1,0 +1,75 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ParentNode
+ */
+
+module std.js.Dom.ParentNode.
+
+pub opaque type ParentNode.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/childElementCount)
+ */
+pub (value: ParentNode) child_element_count(): std.js.Number.JsNumber.
+
+/**
+ * Returns the child elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/children)
+ */
+pub (value: ParentNode) children(): HTMLCollection.
+
+/**
+ * Returns the first child that is an element, and null otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/firstElementChild)
+ */
+pub (value: ParentNode) first_element_child(): Option[Element].
+
+/**
+ * Returns the last child that is an element, and null otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/lastElementChild)
+ */
+pub (value: ParentNode) last_element_child(): Option[Element].
+
+/**
+ * Inserts nodes after the last child of node, while replacing strings in nodes with equivalent Text nodes.
+ *
+ * Throws a "HierarchyRequestError" DOMException if the constraints of the node tree are violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/append)
+ */
+pub (value: ParentNode) append(): std.core.Unit.
+
+/**
+ * Inserts nodes before the first child of node, while replacing strings in nodes with equivalent Text nodes.
+ *
+ * Throws a "HierarchyRequestError" DOMException if the constraints of the node tree are violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/prepend)
+ */
+pub (value: ParentNode) prepend(): std.core.Unit.
+
+pub (value: ParentNode) query_selector(selectors: std.js.String.JsString): Option[E].
+
+pub (value: ParentNode) query_selector_all(selectors: std.js.String.JsString): NodeListOf[E].
+
+/**
+ * Replace all children of node with nodes, while replacing strings in nodes with equivalent Text nodes.
+ *
+ * Throws a "HierarchyRequestError" DOMException if the constraints of the node tree are violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/replaceChildren)
+ */
+pub (value: ParentNode) replace_children(): std.core.Unit.

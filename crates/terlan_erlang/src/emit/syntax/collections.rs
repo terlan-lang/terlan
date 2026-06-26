@@ -30,28 +30,28 @@ pub(super) fn lower_syntax_std_collection_trait_bridge(
 ) -> Option<ErlExpr> {
     match (module_name, trait_name, method, args) {
         ("std.collections.Enumerable", "Enumerable", "each", [collection, callback]) => {
-            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            let collection_type = infer_syntax_trait_dispatch_type(collection, ctx, env)?;
             if !is_supported_enumerable_receiver(&collection_type) {
                 return None;
             }
             lower_syntax_list_each_bridge(collection, callback, ctx, env)
         }
         ("std.collections.Enumerable", "Enumerable", "map", [collection, callback]) => {
-            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            let collection_type = infer_syntax_trait_dispatch_type(collection, ctx, env)?;
             if !is_supported_enumerable_receiver(&collection_type) {
                 return None;
             }
             lower_syntax_list_map_bridge(collection, callback, ctx, env)
         }
         ("std.collections.Enumerable", "Enumerable", "filter", [collection, predicate]) => {
-            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            let collection_type = infer_syntax_trait_dispatch_type(collection, ctx, env)?;
             if !is_supported_enumerable_receiver(&collection_type) {
                 return None;
             }
             lower_syntax_list_filter_bridge(collection, predicate, ctx, env)
         }
         ("std.collections.Enumerable", "Enumerable", "fold", [collection, initial, reducer]) => {
-            let collection_type = infer_syntax_trait_dispatch_type(collection, env)?;
+            let collection_type = infer_syntax_trait_dispatch_type(collection, ctx, env)?;
             if !is_supported_enumerable_receiver(&collection_type) {
                 return None;
             }
@@ -93,7 +93,7 @@ pub(super) fn lower_syntax_list_each_receiver_method_call(
         return None;
     }
     let receiver = callee.children.first()?;
-    let receiver_type = infer_syntax_trait_dispatch_type(receiver, env)?;
+    let receiver_type = infer_syntax_trait_dispatch_type(receiver, ctx, env)?;
     if receiver_type_head(&receiver_type) != "List" {
         return None;
     }
@@ -142,7 +142,7 @@ fn lower_syntax_enumerable_source(
     env: &SyntaxLowerEnv,
 ) -> Option<ErlExpr> {
     let lowered_receiver = lower_syntax_expr_with_env(receiver, ctx, env)?;
-    match receiver_type_head(&infer_syntax_trait_dispatch_type(receiver, env)?).as_str() {
+    match receiver_type_head(&infer_syntax_trait_dispatch_type(receiver, ctx, env)?).as_str() {
         "List" => Some(lowered_receiver),
         "Map" => Some(ErlExpr::Call {
             module: Some("maps".to_string()),

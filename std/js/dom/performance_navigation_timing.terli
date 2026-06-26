@@ -1,0 +1,93 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface PerformanceNavigationTiming
+ */
+
+module std.js.Dom.PerformanceNavigationTiming.
+
+/**
+ * The **`PerformanceNavigationTiming`** interface provides methods and properties to store and retrieve metrics regarding the browser's document navigation events.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming)
+ */
+pub opaque type PerformanceNavigationTiming.
+
+/**
+ * The **`domComplete`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the user agent sets the document's `readyState` to `'complete'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domComplete)
+ */
+pub (value: PerformanceNavigationTiming) dom_complete(): DOMHighResTimeStamp.
+
+/**
+ * The **`domContentLoadedEventEnd`** read-only property returns a DOMHighResTimeStamp representing the time immediately after the current document's `DOMContentLoaded` event handler completes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domContentLoadedEventEnd)
+ */
+pub (value: PerformanceNavigationTiming) dom_content_loaded_event_end(): DOMHighResTimeStamp.
+
+/**
+ * The **`domContentLoadedEventStart`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the current document's `DOMContentLoaded` event handler starts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domContentLoadedEventStart)
+ */
+pub (value: PerformanceNavigationTiming) dom_content_loaded_event_start(): DOMHighResTimeStamp.
+
+/**
+ * The **`domInteractive`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the user agent sets the document's `readyState` to `'interactive'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domInteractive)
+ */
+pub (value: PerformanceNavigationTiming) dom_interactive(): DOMHighResTimeStamp.
+
+/**
+ * The **`loadEventEnd`** read-only property returns a DOMHighResTimeStamp representing the time immediately after the current document's `load` event handler completes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/loadEventEnd)
+ */
+pub (value: PerformanceNavigationTiming) load_event_end(): DOMHighResTimeStamp.
+
+/**
+ * The **`loadEventStart`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the current document's `load` event handler starts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/loadEventStart)
+ */
+pub (value: PerformanceNavigationTiming) load_event_start(): DOMHighResTimeStamp.
+
+/**
+ * The **`redirectCount`** read-only property returns a number representing the number of redirects since the last non-redirect navigation in the current browsing context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/redirectCount)
+ */
+pub (value: PerformanceNavigationTiming) redirect_count(): std.js.Number.JsNumber.
+
+/**
+ * The **`type`** read-only property returns the type of navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/type)
+ */
+pub (value: PerformanceNavigationTiming) type_(): NavigationTimingType.
+
+/**
+ * The **`unloadEventEnd`** read-only property returns a DOMHighResTimeStamp representing the time immediately after the current document's `unload` event handler completes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/unloadEventEnd)
+ */
+pub (value: PerformanceNavigationTiming) unload_event_end(): DOMHighResTimeStamp.
+
+/**
+ * The **`unloadEventStart`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the current document's `unload` event handler starts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/unloadEventStart)
+ */
+pub (value: PerformanceNavigationTiming) unload_event_start(): DOMHighResTimeStamp.

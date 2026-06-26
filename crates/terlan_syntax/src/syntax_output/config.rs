@@ -1,4 +1,58 @@
 use super::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Config block key/value entry.
+///
+/// Inputs:
+/// - Parsed config key and value.
+///
+/// Output:
+/// - Serializable config entry.
+///
+/// Transformation:
+/// - Keeps config keys as source text and values as structured config payloads.
+pub struct SyntaxConfigEntryOutput {
+    pub key: String,
+    pub value: SyntaxConfigValueOutput,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+/// Config value represented by syntax output.
+///
+/// Inputs:
+/// - Parsed config literal or compound value.
+///
+/// Output:
+/// - Tagged config value.
+///
+/// Transformation:
+/// - Normalizes bools, symbols, numbers, strings, lists, and maps for
+///   target-profile validation.
+pub enum SyntaxConfigValueOutput {
+    Bool {
+        value: bool,
+    },
+    Symbol {
+        value: String,
+    },
+    Int {
+        value: String,
+    },
+    Float {
+        value: String,
+    },
+    String {
+        value: String,
+    },
+    List {
+        values: Vec<SyntaxConfigValueOutput>,
+    },
+    Map {
+        entries: Vec<SyntaxConfigEntryOutput>,
+    },
+}
 
 /// Returns whether a preserved raw declaration is a canonical config declaration.
 ///

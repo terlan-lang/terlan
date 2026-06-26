@@ -1,8 +1,8 @@
 /**
- *Core list collection contract.
+ * Core list collection contract.
  *
- *`std.collections.List` is the portable ordered collection surface for Terlan list
- *values.
+ * `std.collections.List` is the portable ordered collection surface for Terlan list
+ * values.
  */
 
 module std.collections.List.
@@ -13,109 +13,122 @@ import std.core.Option.{None, Option}.
 import std.core.Unit.{Unit}.
 
 /**
- *List represents an ordered collection of values.
+ * List represents an ordered collection of values.
  *
- *Input: type parameter `T`.
- *Output: an opaque ordered collection type.
- *Transformation: hides the selected backend representation behind the
- *portable `std.collections.List` API.
+ * Input: type parameter `T`.
+ * Output: an opaque ordered collection type.
+ * Transformation: hides the selected backend representation behind the
+ * portable `std.collections.List` API.
  */
 pub opaque type List[T].
 
 /**
- *Creates an empty list.
+ * Constructs a list from positional values.
  *
- *Input: no value input.
- *Output: an empty `List[T]`.
- *Transformation: lowers through the compiler-owned `core.list.new`
- *intrinsic, using the selected backend's canonical empty-list value.
+ * Input: zero or more values of the same element type `T`.
+ * Output: a `List[T]` containing the supplied values in source order.
+ * Transformation: uses constructor varargs to pack positional values into the
+ * portable list representation.
+ */
+pub constructor List[T] {
+    (...items: T): List[T] ->
+        items
+}.
+
+/**
+ * Creates an empty list.
+ *
+ * Input: no value input.
+ * Output: an empty `List[T]`.
+ * Transformation: lowers through the compiler-owned `core.list.new`
+ * intrinsic, using the selected backend's canonical empty-list value.
  */
 @compiler.intrinsic
 pub new[T](): List[T] ->
     [].
 
 /**
- *Returns whether a list contains no values.
+ * Returns whether a list contains no values.
  *
- *Input: one `List[T]`.
- *Output: `true` when the list is empty; otherwise `false`.
- *Transformation: lowers through the compiler-owned `core.list.is_empty`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `List[T]`.
+ * Output: `true` when the list is empty; otherwise `false`.
+ * Transformation: lowers through the compiler-owned `core.list.is_empty`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (list: List[T]) is_empty(): Bool ->
     true.
 
 /**
- *Returns the number of values in a list.
+ * Returns the number of values in a list.
  *
- *Input: one `List[T]`.
- *Output: the number of values currently visible in the list.
- *Transformation: lowers through the compiler-owned `core.list.length`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `List[T]`.
+ * Output: the number of values currently visible in the list.
+ * Transformation: lowers through the compiler-owned `core.list.length`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (list: List[T]) length(): Int ->
     0.
 
 /**
- *Returns the first value in a list.
+ * Returns the first value in a list.
  *
- *Input: one `List[T]`.
- *Output: `Some(value)` when the list is non-empty; otherwise `None`.
- *Transformation: lowers through the compiler-owned `core.list.first`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `List[T]`.
+ * Output: `Some(value)` when the list is non-empty; otherwise `None`.
+ * Transformation: lowers through the compiler-owned `core.list.first`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (list: List[T]) first(): Option[T] ->
     None.
 
 /**
- *Returns an iterator over the list.
+ * Returns an iterator over the list.
  *
- *Input: one `List[T]`.
- *Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
- *of the list.
- *Transformation: lowers through the compiler-owned `core.list.iterator`
- *intrinsic. The source-level iterator state is immutable; backends choose
- *the efficient representation behind the opaque iterator type.
+ * Input: one `List[T]`.
+ * Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
+ * of the list.
+ * Transformation: lowers through the compiler-owned `core.list.iterator`
+ * intrinsic. The source-level iterator state is immutable; backends choose
+ * the efficient representation behind the opaque iterator type.
  */
 @compiler.intrinsic
 pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T] ->
     list.
 
 /**
- *Applies a callback to each value in a list.
+ * Applies a callback to each value in a list.
  *
- *Input: one `List[T]` receiver and one callback from `T` to `Unit`.
- *Output: `Unit`.
- *Transformation: creates a traversal state with `list.iterator()` and
- *delegates to `std.collections.Iterator.each`, preserving list contents while the
- *callback performs any requested effects.
+ * Input: one `List[T]` receiver and one callback from `T` to `Unit`.
+ * Output: `Unit`.
+ * Transformation: creates a traversal state with `list.iterator()` and
+ * delegates to `std.collections.Iterator.each`, preserving list contents while the
+ * callback performs any requested effects.
  */
 pub (list: List[T]) each(cb: (T) -> Unit): Unit ->
     Iterator.each(list.iterator(), cb).
 
 /**
- *Appends a value to the end of a list.
+ * Appends a value to the end of a list.
  *
- *Input: a mutable `List[T]` receiver and one value of type `T`.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.list.push`
- *intrinsic and updates the receiver binding in source order. Pipe chains
- *continue with the updated receiver.
+ * Input: a mutable `List[T]` receiver and one value of type `T`.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.list.push`
+ * intrinsic and updates the receiver binding in source order. Pipe chains
+ * continue with the updated receiver.
  */
 @compiler.intrinsic
 pub (mut list: List[T]) push(value: T): Unit ->
     list.
 
 /**
- *Removes every value from a list.
+ * Removes every value from a list.
  *
- *Input: a mutable `List[T]` receiver.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.list.clear`
- *intrinsic and updates the receiver binding so it becomes empty.
+ * Input: a mutable `List[T]` receiver.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.list.clear`
+ * intrinsic and updates the receiver binding so it becomes empty.
  */
 @compiler.intrinsic
 pub (mut list: List[T]) clear(): Unit ->

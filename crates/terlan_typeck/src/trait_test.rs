@@ -111,7 +111,7 @@ pub struct Error {\n\
 pub (error: Error) display(): String ->\n\
     error.message.\n\
 \n\
-pub struct FileError derives Error implements Display[FileError] {\n\
+pub struct FileError includes Error implements Display[FileError] {\n\
     path: String\n\
 }.\n\
 \n\
@@ -618,6 +618,194 @@ pub impl Identity[ExternalUser] for ExternalUser {\n\
 \n\
 pub roundtrip(value: ExternalUser): ExternalUser ->\n\
     Identity.id(value).\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies HKT trait implementations specialize constructor parameters.
+///
+/// Inputs:
+/// - A unary higher-kinded trait `Functor[F[_]]`.
+/// - A concrete `Option` type constructor implementing that trait.
+/// - A trait method call returning `Option[String]`.
+///
+/// Output:
+/// - No diagnostics; `F[A]` in the trait method specializes to
+///   `Option[Int]`, and `F[B]` specializes to `Option[String]`.
+///
+/// Transformation:
+/// - Exercises explicit trait impl dispatch with a higher-kinded constructor
+///   argument so raw `F[_]` parameter text cannot leak into method parsing.
+#[test]
+fn syntax_output_resolves_explicit_hkt_trait_impl_method_calls_on_formal_path() {
+    let diagnostics = check_syntax_output(
+        "\
+module explicit_hkt_trait_impl_dispatch.\n\
+\n\
+pub type None = Atom[\"none\"].\n\
+pub type Some[T] = {Atom[\"some\"], value: T}.\n\
+pub type Option[T] = None | Some[T].\n\
+\n\
+pub trait Functor[F[_]] {\n\
+    map[A, B](value: F[A], f: (A) -> B): F[B].\n\
+}.\n\
+\n\
+pub impl Functor[Option] for Option {\n\
+    map(value: Option[A], f: (A) -> B): Option[B] ->\n\
+        case value {\n\
+            None -> None;\n\
+            Some(x) -> Some(f(x))\n\
+        }.\n\
+}.\n\
+\n\
+pub render(value: Int): String ->\n\
+    \"value\".\n\
+\n\
+pub demo(value: Option[Int]): Option[String] ->\n\
+    Functor.map(value, render).\n\
+",
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies imported HKT trait implementations specialize provider types.
+///
+/// Inputs:
+/// - A provider interface exposing `Functor[F[_]]`, provider-owned `Option`,
+///   and a public `Functor[Option] for Option` conformance.
+/// - A consumer module importing the trait, provider option types, and a
+///   provider function that returns `Option[Int]`.
+///
+/// Output:
+/// - No diagnostics; `Functor.map` sees the imported conformance and returns
+///   the provider-owned `Option[String]`.
+///
+/// Transformation:
+/// - Exercises interface-summary conformance import, provider-local type
+///   qualification, HKT constructor substitution, and trait-method dispatch in
+///   one cross-module call.
+#[test]
+fn syntax_output_resolves_imported_hkt_trait_impl_method_calls_on_formal_path() {
+    let interface_source = "\
+module hkt_functor_provider.\n\
+\n\
+pub type None = Atom[\"none\"].\n\
+pub type Some[T] = {Atom[\"some\"], value: T}.\n\
+pub type Option[T] = None | Some[T].\n\
+\n\
+pub trait Functor[F[_]] {\n\
+    map[A, B](value: F[A], f: (A) -> B): F[B].\n\
+}.\n\
+\n\
+pub impl Functor[Option] for Option {\n\
+    map(value: Option[A], f: (A) -> B): Option[B].\n\
+}.\n\
+\n\
+pub sample(): Option[Int].\n\
+";
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module imported_hkt_trait_impl_dispatch.\n\
+\n\
+import hkt_functor_provider.{Functor, Option, sample}.\n\
+\n\
+pub render(value: Int): String ->\n\
+    \"value\".\n\
+\n\
+pub demo(): Option[String] ->\n\
+    Functor.map(sample(), render).\n\
+",
+        interface_source,
+    );
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies HKT trait inheritance supports monadic abstractions.
+///
+/// Inputs:
+/// - `Functor`, `Applicative`, and `Monad` traits parameterized by a unary
+///   type constructor.
+/// - An `Option` implementation of `Monad`.
+/// - A `Monad.flat_map` call from source.
+///
+/// Output:
+/// - No diagnostics; inherited HKT traits and the concrete `Option`
+///   implementation remain type-correct.
+///
+/// Transformation:
+/// - Locks the standard advanced-FP hierarchy shape before the same contracts
+///   are exposed from std.
+#[test]
+fn syntax_output_resolves_hkt_monad_trait_hierarchy_on_formal_path() {
+    let diagnostics = check_syntax_output(
+        "\
+module hkt_monad_trait_hierarchy.\n\
+\n\
+pub type None = Atom[\"none\"].\n\
+pub type Some[T] = {Atom[\"some\"], value: T}.\n\
+pub type Option[T] = None | Some[T].\n\
+\n\
+pub trait Functor[F[_]] {\n\
+    map[A, B](value: F[A], f: (A) -> B): F[B].\n\
+}.\n\
+\n\
+pub trait Applicative[F[_]] extends Functor[F] {\n\
+    pure[A](value: A): F[A].\n\
+    apply[A, B](f: F[(A) -> B], value: F[A]): F[B].\n\
+}.\n\
+\n\
+pub trait Monad[F[_]] extends Applicative[F] {\n\
+    flat_map[A, B](value: F[A], f: (A) -> F[B]): F[B].\n\
+}.\n\
+\n\
+pub impl Monad[Option] for Option {\n\
+    map(value: Option[A], f: (A) -> B): Option[B] ->\n\
+        case value {\n\
+            None -> None;\n\
+            Some(x) -> Some(f(x))\n\
+        }.\n\
+\n\
+    pure(value: A): Option[A] ->\n\
+        Some(value).\n\
+\n\
+    apply(f: Option[(A) -> B], value: Option[A]): Option[B] ->\n\
+        case f {\n\
+            None -> None;\n\
+            Some(unwrapped) ->\n\
+                case value {\n\
+                    None -> None;\n\
+                    Some(x) -> Some(unwrapped(x))\n\
+                }\n\
+        }.\n\
+\n\
+    flat_map(value: Option[A], f: (A) -> Option[B]): Option[B] ->\n\
+        case value {\n\
+            None -> None;\n\
+            Some(x) -> f(x)\n\
+        }.\n\
+}.\n\
+\n\
+pub positive(value: Int): Option[Int] ->\n\
+    Some(value).\n\
+\n\
+pub demo(value: Option[Int]): Option[Int] ->\n\
+    Monad.flat_map(value, positive).\n\
 ",
     );
 

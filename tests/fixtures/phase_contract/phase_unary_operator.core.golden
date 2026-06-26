@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_unary_operator
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 export=negate/1
 function=negate/1 public=true params=value:Int:core=Int return=Int return_core=Int
 function_clause=negate/1#0 patterns=Var:text=value:arity=0 core_patterns=Var(value) pattern_proof=lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(value)) guard=none body=UnaryOp:core=UnaryOp(-;Var(value)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=UnaryOp(-;Var(value))):proof=lean-covered:op=-:arity=1:children=[Var:core=Var(value):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(value)):proof=lean-covered:text=value:arity=0]

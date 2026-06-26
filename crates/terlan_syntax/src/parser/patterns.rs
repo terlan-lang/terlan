@@ -60,7 +60,31 @@ impl Parser {
             }
             TokenKind::Var => {
                 self.bump();
-                if self.check(TokenKind::LParen)
+                if self.check(TokenKind::LBrace)
+                    && token
+                        .text
+                        .chars()
+                        .next()
+                        .is_some_and(|ch| ch.is_ascii_uppercase())
+                {
+                    self.bump();
+                    let mut fields = Vec::new();
+                    if !self.consume_if(TokenKind::RBrace) {
+                        loop {
+                            fields.push(self.parse_record_pattern_field()?);
+                            if !self.consume_if(TokenKind::Comma) {
+                                break;
+                            }
+                        }
+
+                        self.expect(TokenKind::RBrace)?;
+                    }
+
+                    Ok(Pattern::Record {
+                        name: token.text,
+                        fields,
+                    })
+                } else if self.check(TokenKind::LParen)
                     && token
                         .text
                         .chars()
@@ -251,15 +275,7 @@ impl Parser {
     /// - Consumes record pattern field syntax and reuses the map-field payload
     ///   shape so record and map matching can share later lowering code.
     fn parse_record_pattern_field(&mut self) -> ParseResult<MapField> {
-        let key_token = self.current().clone();
-        if key_token.kind != TokenKind::Atom && key_token.kind != TokenKind::Var {
-            return Err(ParseError {
-                message: "expected record field key atom".to_string(),
-                span: key_token.span(),
-            });
-        }
-
-        self.bump();
+        let key = self.parse_record_field_key("expected record field key atom")?;
         let required = if self.consume_if(TokenKind::Equals) {
             true
         } else if self.consume_if(TokenKind::FatArrow) {
@@ -273,7 +289,7 @@ impl Parser {
 
         let value = self.parse_pattern()?;
         Ok(MapField {
-            key: key_token.text,
+            key: Self::field_key_text(&key),
             value: Box::new(value),
             required,
         })

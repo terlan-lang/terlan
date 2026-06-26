@@ -1,9 +1,9 @@
 # Proof Baseline Validation Internals
 
 This directory owns the static LP8 proof-baseline contract used by CLI formal
-gates. The implementation in `mod.rs` is centered on small immutable records
-that describe which phase-contract fixtures are trusted as compiler-side Lean
-handoff inputs.
+gates. `mod.rs` exposes the small immutable records and reusable validators;
+`contracts.rs` and `manifests.rs` hold the static fixture tables that describe
+which phase-contract fixtures are trusted as compiler-side Lean handoff inputs.
 
 ## Responsibilities
 
@@ -14,6 +14,8 @@ handoff inputs.
 - Record required phase-manifest `core_proof_coverage` counters for each
   fixture.
 - Keep proof-baseline expectations out of the CLI entrypoint test code.
+- Keep large static baseline tables out of `mod.rs` so the public validation
+  surface remains reviewable.
 
 ## Public Surface
 
@@ -35,6 +37,15 @@ handoff inputs.
 - `proof_baseline_phase_trait_pins_remote_dispatch_contract`: static
   regression coverage that keeps the `phase_trait` compiler-data blocker pinned
   while it remains a next-model candidate.
+
+## Files
+
+- `mod.rs`: public model types and reusable validation helpers.
+- `contracts.rs`: CoreIR contract snippet baselines and next-model contract
+  candidates.
+- `manifests.rs`: phase-manifest proof-counter baselines and constructor
+  counter field groups.
+- `proof_baseline_test.rs`: static table shape and validator regression tests.
 
 Public methods or values exposed to callers include the Lean-ready baseline
 tables, the next-model candidate baseline tables, and the reusable validation

@@ -1,0 +1,45 @@
+//! JavaScript-native number wrapper.
+//!
+//! `std.js.Number` exposes JavaScript numbers as an explicit target-specific
+//! numeric surface. Portable modules should use `Int` or `Float`; JavaScript
+//! targeted modules may opt into `JsNumber` when interop requires the
+//! JavaScript runtime number shape.
+
+module std.js.Number.
+
+/// Represents a JavaScript-native number value.
+///
+/// Input: no value input.
+/// Output: an opaque target-specific wrapper type.
+/// Transformation: preserves JavaScript number identity at the Terlan type
+/// level while keeping portable numeric conversions explicit.
+
+pub opaque type JsNumber.
+
+/// Converts a portable Terlan `Float` into a JavaScript-native `JsNumber`.
+///
+/// Input: one portable `Float`.
+/// Output: one JavaScript-native `JsNumber`.
+/// Transformation: asks the JavaScript target backend to wrap or reinterpret
+/// the portable float at the platform boundary.
+
+pub from_float(value: Float): JsNumber.
+
+/// Converts a JavaScript-native `JsNumber` into a portable Terlan `Float`.
+///
+/// Input: one `JsNumber`.
+/// Output: one portable `Float`.
+/// Transformation: asks the JavaScript target backend to produce a portable
+/// float value from the target-native wrapper.
+
+pub (value: JsNumber) to_float(): Float.
+
+/// Returns the portable string representation of a `JsNumber`.
+///
+/// Input: one `JsNumber`.
+/// Output: one portable UTF-8 `String`.
+/// Transformation: asks the JavaScript target backend to stringify the
+/// target-native number according to JavaScript number semantics.
+
+pub (value: JsNumber) to_string(): String.
+

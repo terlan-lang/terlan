@@ -1,77 +1,70 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use serde::Deserialize;
 use terlan_safenative::http as native_http;
 
+use crate::commands::web_route::{
+    is_identifier, route_param_names, route_param_types, validate_route_pattern,
+};
+
 use super::manifest::read_web_manifest;
-use super::RELOAD_ENDPOINT;
+use super::{package_relative_path, RELOAD_ENDPOINT};
 
-/// One dynamic handler entry inside the browser package manifest.
+mod beam_eval;
+mod response_bridge;
+mod route;
+mod types;
+
+use beam_eval::{
+    beam_ebin_dir_for_web_root, render_beam_error_handler_eval, render_beam_handler_eval,
+};
+use response_bridge::validate_response_header;
+pub(super) use response_bridge::{static_response_header_tuples, BeamHandlerResponse};
+use route::select_handler_for_request;
+pub(super) use route::{validate_handler_routes, MatchedWebPackageHandler};
+pub(super) use types::{
+    WebPackageErrorHandler, WebPackageFileResponse, WebPackageHandler, WebPackageSourceSpan,
+    WebPackageStaticResponse, WebPackageWebSocket,
+};
+
+/// Handler identity used by local request logs.
 ///
 /// Inputs:
-/// - Deserialized from `_build/web/manifest.json`.
+/// - Borrowed from a matched web package handler.
 ///
 /// Output:
-/// - Route method/path and Terlan module/function identity reserved for
-///   BEAM-backed handler dispatch.
+/// - Source-visible route and handler target metadata.
 ///
 /// Transformation:
-/// - Keeps dynamic routes declarative in the package manifest so the local
-///   server does not hard-code application route behavior.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-pub(super) struct WebPackageHandler {
-    pub(super) method: String,
-    pub(super) route: String,
-    pub(super) module: String,
-    pub(super) function: String,
-    pub(super) arity: usize,
+/// - Exposes only immutable identity fields needed by `terlc serve` logging
+///   without making the matched route internals public.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct HandlerLogIdentity<'a> {
+    pub(super) method: &'a str,
+    pub(super) route: &'a str,
+    pub(super) module: &'a str,
+    pub(super) function: &'a str,
+    pub(super) source: Option<&'a WebPackageSourceSpan>,
 }
 
-/// HTTP response returned by a BEAM-backed handler.
+/// Returns log identity for one matched handler.
 ///
 /// Inputs:
-/// - Produced by the handler runner after parsing the stable handler ABI.
+/// - `matched`: selected dynamic route handler.
 ///
 /// Output:
-/// - Status, content type, and byte body ready for the local HTTP writer.
+/// - Borrowed handler identity fields for logging.
 ///
 /// Transformation:
-/// - Keeps BEAM process output separate from socket writing so handler
-///   execution can be tested without binding a server.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct BeamHandlerResponse {
-    pub(super) status: u16,
-    pub(super) content_type: String,
-    pub(super) body: Vec<u8>,
-}
-
-impl BeamHandlerResponse {
-    /// Converts a Rust-native HTTP adapter response into the server wire shape.
-    ///
-    /// Inputs:
-    /// - `response`: Rust-native `std.http.Response` backing value.
-    ///
-    /// Output:
-    /// - Internal handler response accepted by the local HTTP writer.
-    /// - Stable serve-handler error when the status cannot be represented as
-    ///   an HTTP status code.
-    ///
-    /// Transformation:
-    /// - Copies native response status, content type, and UTF-8 body into the
-    ///   bridge response without exposing the BEAM tuple ABI to source code.
-    fn from_native_response(response: &native_http::Response) -> Result<Self, String> {
-        let status = response.status_code();
-        if !(100..=599).contains(&status) {
-            return Err(format!(
-                "error[serve_handler]: native HTTP response status `{status}` is outside HTTP range"
-            ));
-        }
-        Ok(Self {
-            status: status as u16,
-            content_type: response.content_type().to_string(),
-            body: response.body().as_bytes().to_vec(),
-        })
+/// - Reads manifest handler metadata while preserving route params and other
+///   execution details inside the handler module.
+pub(super) fn handler_log_identity(matched: &MatchedWebPackageHandler) -> HandlerLogIdentity<'_> {
+    HandlerLogIdentity {
+        method: &matched.handler.method,
+        route: &matched.handler.route,
+        module: &matched.handler.module,
+        function: &matched.handler.function,
+        source: matched.handler.source.as_ref(),
     }
 }
 
@@ -92,11 +85,226 @@ pub(super) fn validate_handler(handler: &WebPackageHandler) -> Result<(), String
     validate_handler_route(&handler.route)?;
     validate_handler_module(&handler.module)?;
     validate_handler_function(&handler.function)?;
+    if let Some(source) = &handler.source {
+        validate_source_span(
+            "handler",
+            &format!("{}.{}", handler.module, handler.function),
+            source,
+        )?;
+    }
+    let route_param_count = route_param_names(&handler.route)?.len();
+    let expected_with_params = 1 + route_param_count;
+    if handler.arity != 1 && handler.arity != expected_with_params {
+        return Err(format!(
+            "error[serve_package]: handler `{}` `{}` must have arity 1 for Request input or arity {} for Request plus route parameter(s), got {}",
+            handler.method, handler.route, expected_with_params, handler.arity
+        ));
+    }
+    Ok(())
+}
+
+/// Validates one WebSocket manifest route.
+///
+/// Inputs:
+/// - `websocket`: manifest-declared socket route and protocol identity.
+///
+/// Output:
+/// - `Ok(())` when the route and protocol are safe.
+/// - Stable serve-package diagnostic otherwise.
+///
+/// Transformation:
+/// - Reuses HTTP route pattern validation for upgrade paths and constrains the
+///   protocol name to the first runtime-owned protocol supported by local
+///   serve.
+pub(super) fn validate_websocket(websocket: &WebPackageWebSocket) -> Result<(), String> {
+    validate_handler_route(&websocket.route)?;
+    if websocket.protocol != "battleship.room.v1" {
+        return Err(format!(
+            "error[serve_package]: websocket `{}` uses unsupported protocol `{}`",
+            websocket.route, websocket.protocol
+        ));
+    }
+    if let Some(source) = &websocket.source {
+        validate_source_span(
+            "websocket",
+            &format!("{} {}", websocket.protocol, websocket.route),
+            source,
+        )?;
+    }
+    Ok(())
+}
+
+/// Validates optional source metadata attached to a handler manifest entry.
+///
+/// Inputs:
+/// - `kind`: manifest row kind for diagnostics.
+/// - `identity`: source-visible row identity for diagnostics.
+/// - `source`: source metadata supplied by the generated manifest.
+///
+/// Output:
+/// - `Ok(())` when the source path and span are safe.
+/// - Stable serve-package diagnostic otherwise.
+///
+/// Transformation:
+/// - Keeps source metadata project-relative and one-based before it can appear
+///   in local logs or development error pages.
+fn validate_source_span(
+    kind: &str,
+    identity: &str,
+    source: &WebPackageSourceSpan,
+) -> Result<(), String> {
+    let path = Path::new(&source.path);
+    if source.path.trim().is_empty()
+        || source.path.contains('\\')
+        || source.path.contains('\0')
+        || path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::ParentDir
+                    | std::path::Component::RootDir
+                    | std::path::Component::Prefix(_)
+            )
+        })
+    {
+        return Err(format!(
+            "error[serve_package]: {kind} `{identity}` has unsafe source path `{}`",
+            source.path
+        ));
+    }
+    if source.line == 0 || source.column == 0 {
+        return Err(format!(
+            "error[serve_package]: {kind} `{identity}` source span must use one-based line and column"
+        ));
+    }
+    Ok(())
+}
+
+/// Validates one router-level error handler manifest entry.
+///
+/// Inputs:
+/// - `handler`: manifest-declared Terlan function target.
+///
+/// Output:
+/// - `Ok(())` when the handler identity is safe and arity is supported.
+/// - `Err(String)` with a stable serve-package diagnostic otherwise.
+///
+/// Transformation:
+/// - Reuses module/function spelling checks from normal route handlers while
+///   enforcing the single `HttpError` input expected by `std.http.Router.error`.
+pub(super) fn validate_error_handler(handler: &WebPackageErrorHandler) -> Result<(), String> {
+    validate_handler_module(&handler.module)?;
+    validate_handler_function(&handler.function)?;
     if handler.arity != 1 {
         return Err(format!(
-            "error[serve_package]: handler `{}` `{}` must have arity 1 for Request input, got {}",
-            handler.method, handler.route, handler.arity
+            "error[serve_package]: error handler `{}.{}` must have arity 1 for HttpError input, got {}",
+            handler.module, handler.function, handler.arity
         ));
+    }
+    Ok(())
+}
+
+/// Validates one static response manifest entry.
+///
+/// Inputs:
+/// - `response`: manifest-declared static response row.
+///
+/// Output:
+/// - `Ok(())` when the method, route, status, content type, and body are safe.
+/// - Stable serve-package diagnostic otherwise.
+///
+/// Transformation:
+/// - Reuses route/method validation from dynamic handlers and adds the smaller
+///   literal response checks needed before a server can emit the row directly.
+pub(super) fn validate_static_response(response: &WebPackageStaticResponse) -> Result<(), String> {
+    validate_handler_method(&response.method)?;
+    validate_handler_route(&response.route)?;
+    if !(100..=599).contains(&response.status) {
+        return Err(format!(
+            "error[serve_package]: static response `{}` `{}` has invalid status `{}`",
+            response.method, response.route, response.status
+        ));
+    }
+    if response.content_type.trim().is_empty()
+        || response
+            .content_type
+            .bytes()
+            .any(|byte| byte == b'\r' || byte == b'\n')
+    {
+        return Err(format!(
+            "error[serve_package]: static response `{}` `{}` has invalid content type",
+            response.method, response.route
+        ));
+    }
+    for header in &response.headers {
+        validate_response_header(&header.name, &header.value).map_err(|message| {
+            format!(
+                "error[serve_package]: static response `{}` `{}` has invalid header: {message}",
+                response.method, response.route
+            )
+        })?;
+    }
+    if let Some(source) = &response.source {
+        validate_source_span(
+            "static response",
+            &format!("{} {}", response.method, response.route),
+            source,
+        )?;
+    }
+    Ok(())
+}
+
+/// Validates one file response manifest entry.
+///
+/// Inputs:
+/// - `response`: manifest-declared file response row.
+///
+/// Output:
+/// - `Ok(())` when the method, route, status, and optional content type are
+///   safe.
+/// - Stable serve-package diagnostic otherwise.
+///
+/// Transformation:
+/// - Reuses route/method validation from dynamic handlers and leaves
+///   filesystem existence checks to the package validator, which has the
+///   package root.
+pub(super) fn validate_file_response(response: &WebPackageFileResponse) -> Result<(), String> {
+    validate_handler_method(&response.method)?;
+    validate_handler_route(&response.route)?;
+    if response.path.trim().is_empty()
+        || response.path.contains('\\')
+        || response.path.contains('\0')
+        || Path::new(&response.path).is_absolute()
+    {
+        return Err(format!(
+            "error[serve_package]: file response `{}` `{}` has unsafe path `{}`",
+            response.method, response.route, response.path
+        ));
+    }
+    if !(100..=599).contains(&response.status) {
+        return Err(format!(
+            "error[serve_package]: file response `{}` `{}` has invalid status `{}`",
+            response.method, response.route, response.status
+        ));
+    }
+    if let Some(content_type) = &response.content_type {
+        if content_type.trim().is_empty()
+            || content_type
+                .bytes()
+                .any(|byte| byte == b'\r' || byte == b'\n')
+        {
+            return Err(format!(
+                "error[serve_package]: file response `{}` `{}` has invalid content type",
+                response.method, response.route
+            ));
+        }
+    }
+    if let Some(source) = &response.source {
+        validate_source_span(
+            "file response",
+            &format!("{} {}", response.method, response.route),
+            source,
+        )?;
     }
     Ok(())
 }
@@ -111,11 +319,11 @@ pub(super) fn validate_handler(handler: &WebPackageHandler) -> Result<(), String
 /// - `Err(String)` for unsupported methods.
 ///
 /// Transformation:
-/// - Restricts dynamic handler declarations to common methods the request
-///   parser can identify without committing to a framework-specific router.
+/// - Restricts dynamic handler declarations to the HTTP methods generated by
+///   `std.http.Router` manifest extraction.
 fn validate_handler_method(method: &str) -> Result<(), String> {
     match method {
-        "GET" | "POST" | "PUT" | "PATCH" | "DELETE" => Ok(()),
+        "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS" => Ok(()),
         other => Err(format!(
             "error[serve_package]: unsupported handler method `{other}`"
         )),
@@ -128,13 +336,16 @@ fn validate_handler_method(method: &str) -> Result<(), String> {
 /// - `route`: manifest-declared URL path.
 ///
 /// Output:
-/// - `Ok(())` for safe absolute route paths.
+/// - `Ok(())` for safe absolute route paths and the canonical `*` fallback.
 /// - `Err(String)` for traversal, query strings, fragments, or reserved paths.
 ///
 /// Transformation:
 /// - Applies URL-route safety checks separate from filesystem path handling so
 ///   dynamic routes cannot escape into package file lookup semantics.
 fn validate_handler_route(route: &str) -> Result<(), String> {
+    if route == "*" {
+        return validate_route_pattern(route);
+    }
     if !route.starts_with('/') || route.contains('\\') || route.contains('\0') {
         return Err(format!(
             "error[serve_package]: unsafe handler route `{route}`"
@@ -150,18 +361,7 @@ fn validate_handler_route(route: &str) -> Result<(), String> {
             "error[serve_package]: handler route `{route}` is reserved for live reload"
         ));
     }
-    for component in Path::new(route.trim_start_matches('/')).components() {
-        if matches!(
-            component,
-            std::path::Component::ParentDir
-                | std::path::Component::RootDir
-                | std::path::Component::Prefix(_)
-        ) {
-            return Err(format!(
-                "error[serve_package]: unsafe handler route `{route}`"
-            ));
-        }
-    }
+    validate_route_pattern(route)?;
     Ok(())
 }
 
@@ -216,29 +416,6 @@ fn validate_handler_function(function: &str) -> Result<(), String> {
     }
 }
 
-/// Returns whether text is an ASCII Terlan identifier.
-///
-/// Inputs:
-/// - `value`: candidate identifier text.
-///
-/// Output:
-/// - `true` when the text starts with an ASCII letter or underscore and
-///   continues with ASCII letters, digits, or underscores.
-///
-/// Transformation:
-/// - Applies the manifest-level identifier subset needed for route targets
-///   without invoking the full source parser.
-fn is_identifier(value: &str) -> bool {
-    let mut chars = value.chars();
-    let Some(first) = chars.next() else {
-        return false;
-    };
-    if !(first.is_ascii_alphabetic() || first == '_') {
-        return false;
-    }
-    chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
-}
-
 /// Finds a manifest-declared handler for one request.
 ///
 /// Inputs:
@@ -259,12 +436,106 @@ pub(super) fn manifest_handler_for_request(
     web_root: &Path,
     method: &str,
     request_path: &str,
-) -> Option<WebPackageHandler> {
+) -> Option<MatchedWebPackageHandler> {
     let manifest = read_web_manifest(web_root).ok()?;
-    manifest.handlers.into_iter().find(|handler| {
-        handler.route == request_path
-            && (handler.method == method || (method == "HEAD" && handler.method == "GET"))
+    select_handler_for_request(manifest.handlers, method, request_path)
+}
+
+/// Finds a manifest-declared static response for one request.
+///
+/// Inputs:
+/// - `web_root`: package root containing `manifest.json`.
+/// - `method`: parsed HTTP request method.
+/// - `request_path`: parsed URL path without query text.
+///
+/// Output:
+/// - Matching static response when the manifest declares one.
+/// - `None` when no static response route matches.
+///
+/// Transformation:
+/// - Reuses the dynamic route selector by projecting static responses into
+///   temporary route candidates, preserving exact/parameter/wildcard/fallback
+///   precedence and `HEAD` to `GET` fallback behavior.
+pub(super) fn manifest_static_response_for_request(
+    web_root: &Path,
+    method: &str,
+    request_path: &str,
+) -> Option<WebPackageStaticResponse> {
+    let manifest = read_web_manifest(web_root).ok()?;
+    let candidates = manifest
+        .static_responses
+        .iter()
+        .map(|response| WebPackageHandler {
+            method: response.method.clone(),
+            route: response.route.clone(),
+            module: "static".to_string(),
+            function: "response".to_string(),
+            arity: 1,
+            source: response.source.clone(),
+        })
+        .collect();
+    let matched = select_handler_for_request(candidates, method, request_path)?;
+    manifest.static_responses.into_iter().find(|response| {
+        response.method == matched.handler.method && response.route == matched.handler.route
     })
+}
+
+/// Finds a manifest-declared file response for one request.
+///
+/// Inputs:
+/// - `web_root`: package root containing `manifest.json`.
+/// - `method`: parsed HTTP request method.
+/// - `request_path`: parsed URL path without query text.
+///
+/// Output:
+/// - Matching file response plus resolved package file path when declared.
+/// - `None` when no file response route matches or the resolved path is unsafe
+///   or missing.
+///
+/// Transformation:
+/// - Reuses the dynamic route selector by projecting file responses into
+///   temporary route candidates, preserving exact/parameter/wildcard/fallback
+///   precedence and `HEAD` to `GET` fallback behavior.
+pub(super) fn manifest_file_response_for_request(
+    web_root: &Path,
+    method: &str,
+    request_path: &str,
+) -> Option<(WebPackageFileResponse, PathBuf)> {
+    let manifest = read_web_manifest(web_root).ok()?;
+    let candidates = manifest
+        .file_responses
+        .iter()
+        .map(|response| WebPackageHandler {
+            method: response.method.clone(),
+            route: response.route.clone(),
+            module: "static".to_string(),
+            function: "file".to_string(),
+            arity: 1,
+            source: response.source.clone(),
+        })
+        .collect();
+    let matched = select_handler_for_request(candidates, method, request_path)?;
+    let response = manifest.file_responses.into_iter().find(|response| {
+        response.method == matched.handler.method && response.route == matched.handler.route
+    })?;
+    let path = package_relative_path(web_root, &response.path)?;
+    path.is_file().then_some((response, path))
+}
+
+/// Finds the manifest-declared router error handler.
+///
+/// Inputs:
+/// - `web_root`: package root containing `manifest.json`.
+///
+/// Output:
+/// - Error handler metadata when the manifest declares one.
+/// - `None` when no manifest exists or no error handler is declared.
+///
+/// Transformation:
+/// - Reads the web package manifest and extracts only the optional
+///   source-visible `HttpError -> Response` callback identity.
+pub(super) fn manifest_error_handler(web_root: &Path) -> Option<WebPackageErrorHandler> {
+    read_web_manifest(web_root).ok()?.error_handler
 }
 
 /// Executes a manifest-declared handler through the generated BEAM artifacts.
@@ -274,6 +545,10 @@ pub(super) fn manifest_handler_for_request(
 /// - `handler`: validated manifest handler target.
 /// - `method`: request method as parsed from the HTTP request line.
 /// - `request_path`: request URL path without query text.
+/// - `request_query`: raw query text without leading `?`.
+/// - `headers`: normalized request header pairs.
+/// - `cookie_header`: raw `Cookie` request header value.
+/// - `request_body`: buffered request body text.
 ///
 /// Output:
 /// - Parsed handler response when BEAM execution succeeds.
@@ -283,13 +558,18 @@ pub(super) fn manifest_handler_for_request(
 /// Transformation:
 /// - Resolves the sibling `_build/ebin` directory, invokes `erl -noshell` with
 ///   the generated BEAM code path, passes a small request map, and parses the
-///   stable `{terlan_response, Status, ContentType, Body}` ABI printed by the
+///   stable `{terlan_response, Status, ContentType, Body}` or
+///   `{terlan_response, Status, ContentType, Headers, Body}` ABI printed by the
 ///   Erlang runner expression.
 pub(super) fn execute_beam_handler(
     web_root: &Path,
-    handler: &WebPackageHandler,
+    matched: &MatchedWebPackageHandler,
     method: &str,
     request_path: &str,
+    request_query: &str,
+    headers: &[(String, String)],
+    cookie_header: &str,
+    request_body: &str,
 ) -> Result<BeamHandlerResponse, String> {
     let ebin_dir = beam_ebin_dir_for_web_root(web_root)?;
     if !ebin_dir.is_dir() {
@@ -299,6 +579,7 @@ pub(super) fn execute_beam_handler(
         ));
     }
 
+    let handler = &matched.handler;
     let erlang_module = crate::support::erlang_output_stem(&handler.module);
     let beam_path = ebin_dir.join(format!("{erlang_module}.beam"));
     if !beam_path.is_file() {
@@ -311,14 +592,26 @@ pub(super) fn execute_beam_handler(
         ));
     }
 
-    let request = native_http::Request::from_parts(method, request_path, "");
-    let eval = render_beam_handler_eval(&erlang_module, &handler.function, &request);
+    let request = native_http::Request::from_parts(method, request_path, request_body);
+    let route_param_types = route_param_types(&handler.route)?;
+    let eval = render_beam_handler_eval(
+        &erlang_module,
+        &handler.function,
+        &request,
+        &matched.params,
+        &route_param_types,
+        handler.arity,
+        request_query,
+        headers,
+        cookie_header,
+    );
     let output = Command::new("erl")
         .arg("-noshell")
         .arg("-pa")
         .arg(&ebin_dir)
         .arg("-eval")
         .arg(eval)
+        .env("TERLAN_SQL_RUNTIME_HELPER", current_terlc_helper()?)
         .current_dir(&ebin_dir)
         .output()
         .map_err(|err| format!("error[serve_handler]: failed to run `erl`: {err}"))?;
@@ -332,7 +625,75 @@ pub(super) fn execute_beam_handler(
             detail.to_string()
         };
         return Err(format!(
-            "error[serve_handler]: handler `{}.{}/1` failed through BEAM: {detail}",
+            "error[serve_handler]: handler `{}.{}/{}` failed through BEAM: {detail}",
+            handler.module, handler.function, handler.arity
+        ));
+    }
+
+    parse_beam_handler_stdout(&output.stdout)
+}
+
+/// Executes a manifest-declared router error handler through BEAM artifacts.
+///
+/// Inputs:
+/// - `web_root`: package root, normally `_build/web`.
+/// - `handler`: validated router error handler target.
+/// - `message`: source-aware diagnostic from the failed route handler.
+///
+/// Output:
+/// - Parsed handler response when BEAM execution succeeds.
+/// - Stable `error[serve_handler]` text when artifacts, `erl`, execution, or
+///   handler return shape are invalid.
+///
+/// Transformation:
+/// - Resolves the sibling `_build/ebin` directory, invokes the generated
+///   error handler with a portable `HttpError` record tuple, and parses the
+///   same response ABI used by ordinary route handlers.
+pub(super) fn execute_beam_error_handler(
+    web_root: &Path,
+    handler: &WebPackageErrorHandler,
+    message: &str,
+) -> Result<BeamHandlerResponse, String> {
+    let ebin_dir = beam_ebin_dir_for_web_root(web_root)?;
+    if !ebin_dir.is_dir() {
+        return Err(format!(
+            "error[serve_handler]: BEAM ebin directory `{}` does not exist; run `terlc build --target erlang` for handler modules",
+            ebin_dir.display()
+        ));
+    }
+
+    let erlang_module = crate::support::erlang_output_stem(&handler.module);
+    let beam_path = ebin_dir.join(format!("{erlang_module}.beam"));
+    if !beam_path.is_file() {
+        return Err(format!(
+            "error[serve_handler]: BEAM module `{}` for error handler was not found at `{}`",
+            handler.module,
+            beam_path.display()
+        ));
+    }
+
+    let eval = render_beam_error_handler_eval(&erlang_module, &handler.function, message);
+    let output = Command::new("erl")
+        .arg("-noshell")
+        .arg("-pa")
+        .arg(&ebin_dir)
+        .arg("-eval")
+        .arg(eval)
+        .env("TERLAN_SQL_RUNTIME_HELPER", current_terlc_helper()?)
+        .current_dir(&ebin_dir)
+        .output()
+        .map_err(|err| format!("error[serve_handler]: failed to run `erl`: {err}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let detail = stderr.trim();
+        let detail = if detail.is_empty() {
+            format!("erl exited with status {}", output.status)
+        } else {
+            detail.to_string()
+        };
+        return Err(format!(
+            "error[serve_handler]: error handler `{}.{}/1` failed through BEAM: {detail}",
             handler.module, handler.function
         ));
     }
@@ -340,75 +701,19 @@ pub(super) fn execute_beam_handler(
     parse_beam_handler_stdout(&output.stdout)
 }
 
-/// Resolves the BEAM output directory for a web package root.
+/// Resolves the current `terlc` executable for handler trampoline calls.
 ///
 /// Inputs:
-/// - `web_root`: package root passed to `terlc serve`.
+/// - Process executable metadata from the operating system.
 ///
 /// Output:
-/// - Sibling `ebin` directory under the build root.
-/// - Stable error if the package root has no parent.
+/// - Path to the running compiler binary or a stable serve-handler error.
 ///
 /// Transformation:
-/// - Treats `_build/web` as one view of the same build root that also owns
-///   `_build/ebin`.
-fn beam_ebin_dir_for_web_root(web_root: &Path) -> Result<PathBuf, String> {
-    let build_root = web_root.parent().ok_or_else(|| {
-        format!(
-            "error[serve_handler]: cannot resolve build root for web package `{}`",
-            web_root.display()
-        )
-    })?;
-    Ok(build_root.join("ebin"))
-}
-
-/// Renders the Erlang expression used to invoke one handler.
-///
-/// Inputs:
-/// - `erlang_module`: generated Erlang module atom text.
-/// - `function`: generated Erlang function atom text.
-/// - `method`: HTTP method text.
-/// - `request_path`: URL path without query text.
-///
-/// Output:
-/// - Erlang `-eval` source that exits zero only for the stable response ABI.
-///
-/// Transformation:
-/// - Builds a small request map and converts the handler return value into a
-///   three-part stdout protocol: status line, content-type line, and raw body.
-fn render_beam_handler_eval(
-    erlang_module: &str,
-    function: &str,
-    request: &native_http::Request,
-) -> String {
-    let method = erlang_binary_literal(request.method().as_bytes());
-    let path = erlang_binary_literal(request.path().as_bytes());
-    format!(
-        "Request = #{{method => {method}, path => {path}}}, Result = catch {erlang_module}:{function}(Request), case Result of {{terlan_response, Status, ContentType, Body}} when is_integer(Status), is_binary(ContentType), is_binary(Body) -> io:format(\"~B~n~ts~n\", [Status, ContentType]), io:put_chars(Body), halt(0); {{'EXIT', Reason}} -> io:format(standard_error, \"handler failed: ~p~n\", [Reason]), halt(11); Other -> io:format(standard_error, \"handler returned unsupported value: ~p~n\", [Other]), halt(12) end."
-    )
-}
-
-/// Renders bytes as an Erlang binary literal.
-///
-/// Inputs:
-/// - `bytes`: exact byte sequence to embed.
-///
-/// Output:
-/// - Erlang binary syntax such as `<<47,97,112,105>>`.
-///
-/// Transformation:
-/// - Uses numeric bytes instead of string escapes so request data cannot break
-///   the generated `erl -eval` expression.
-fn erlang_binary_literal(bytes: &[u8]) -> String {
-    if bytes.is_empty() {
-        return "<<>>".to_string();
-    }
-    let body = bytes
-        .iter()
-        .map(u8::to_string)
-        .collect::<Vec<_>>()
-        .join(",");
-    format!("<<{body}>>")
+/// - Converts `current_exe` failures into user-facing handler diagnostics.
+fn current_terlc_helper() -> Result<PathBuf, String> {
+    std::env::current_exe()
+        .map_err(|err| format!("error[serve_handler]: failed to resolve current terlc: {err}"))
 }
 
 /// Parses stdout from the BEAM handler runner.
@@ -420,8 +725,9 @@ fn erlang_binary_literal(bytes: &[u8]) -> String {
 /// - Parsed handler response or stable serve-handler error text.
 ///
 /// Transformation:
-/// - Reads the first line as status, the second line as content type, and
-///   preserves all remaining bytes as the response body.
+/// - Reads the first line as status, the second line as content type, then
+///   parses an optional `#terlan-headers:N` section before preserving all
+///   remaining bytes as the response body.
 fn parse_beam_handler_stdout(stdout: &[u8]) -> Result<BeamHandlerResponse, String> {
     let first_newline = stdout
         .iter()
@@ -452,10 +758,64 @@ fn parse_beam_handler_stdout(stdout: &[u8]) -> Result<BeamHandlerResponse, Strin
         return Err("error[serve_handler]: BEAM handler content type is empty".to_string());
     }
 
-    let body = String::from_utf8(rest[second_newline + 1..].to_vec())
+    let (headers, body_bytes) = parse_optional_beam_response_headers(&rest[second_newline + 1..])?;
+    let body = String::from_utf8(body_bytes)
         .map_err(|err| format!("error[serve_handler]: BEAM handler body is not UTF-8: {err}"))?;
-    let native_response = native_http::Response::from_parts(status as i64, content_type, body);
+    let mut native_response = native_http::Response::from_parts(status as i64, content_type, body);
+    for (name, value) in headers {
+        native_http::header(&mut native_response, &name, &value);
+    }
     BeamHandlerResponse::from_native_response(&native_response)
+}
+
+/// Parses the optional BEAM response header section.
+///
+/// Inputs:
+/// - `rest`: response bytes after status and content-type lines.
+///
+/// Output:
+/// - Parsed response headers and body bytes.
+///
+/// Transformation:
+/// - Preserves backward compatibility with the original three-line protocol by
+///   treating missing `#terlan-headers:` marker text as body bytes.
+fn parse_optional_beam_response_headers(
+    rest: &[u8],
+) -> Result<(Vec<(String, String)>, Vec<u8>), String> {
+    const MARKER: &[u8] = b"#terlan-headers:";
+    if !rest.starts_with(MARKER) {
+        return Ok((Vec::new(), rest.to_vec()));
+    }
+    let marker_newline = rest.iter().position(|byte| *byte == b'\n').ok_or_else(|| {
+        "error[serve_handler]: BEAM handler response header marker is incomplete".to_string()
+    })?;
+    let count_text = std::str::from_utf8(&rest[MARKER.len()..marker_newline]).map_err(|err| {
+        format!("error[serve_handler]: BEAM handler header count is not UTF-8: {err}")
+    })?;
+    let count = count_text.trim().parse::<usize>().map_err(|err| {
+        format!("error[serve_handler]: BEAM handler header count `{count_text}` is invalid: {err}")
+    })?;
+    let mut headers = Vec::with_capacity(count);
+    let mut offset = marker_newline + 1;
+    for _ in 0..count {
+        let relative_newline = rest[offset..]
+            .iter()
+            .position(|byte| *byte == b'\n')
+            .ok_or_else(|| {
+                "error[serve_handler]: BEAM handler response ended before declared headers"
+                    .to_string()
+            })?;
+        let line = &rest[offset..offset + relative_newline];
+        let line = std::str::from_utf8(line).map_err(|err| {
+            format!("error[serve_handler]: BEAM handler header line is not UTF-8: {err}")
+        })?;
+        let (name, value) = line.split_once('\t').ok_or_else(|| {
+            format!("error[serve_handler]: BEAM handler header line `{line}` is missing a tab delimiter")
+        })?;
+        headers.push((name.to_string(), value.to_string()));
+        offset += relative_newline + 1;
+    }
+    Ok((headers, rest[offset..].to_vec()))
 }
 
 /// Returns a basic HTTP reason phrase for a status code.

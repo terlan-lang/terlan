@@ -18,7 +18,7 @@ pub view(Users: List[User], Name: Text, Saving: Bool): Html[Never] ->
         <main class={["page", "active"]}>
             <input name="name" value={Name} />
             <button disabled={Saving}>Save</button>
-            {Html.raw(<<"<hr>">>)}
+            {Html.raw("<hr>")}
             <ul>
                 {for User <- Users {
                     <li>{user_name(User)}</li>

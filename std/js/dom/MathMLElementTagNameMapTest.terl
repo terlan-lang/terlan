@@ -1,0 +1,112 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MathMLElementTagNameMap
+ */
+
+module std.js.Dom.MathMLElementTagNameMapTest.
+
+import type std.js.Dom.MathMLElementTagNameMap.MathMLElementTagNameMap.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub annotation__typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.annotation_().
+
+pub annotation_xml_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.annotation_xml().
+
+pub maction_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.maction().
+
+pub math_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.math().
+
+pub merror_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.merror().
+
+pub mfrac_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mfrac().
+
+pub mi_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mi().
+
+pub mmultiscripts_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mmultiscripts().
+
+pub mn_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mn().
+
+pub mo_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mo().
+
+pub mover_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mover().
+
+pub mpadded_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mpadded().
+
+pub mphantom_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mphantom().
+
+pub mprescripts_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mprescripts().
+
+pub mroot_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mroot().
+
+pub mrow_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mrow().
+
+pub ms_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.ms().
+
+pub mspace_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mspace().
+
+pub msqrt_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.msqrt().
+
+pub mstyle_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mstyle().
+
+pub msub_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.msub().
+
+pub msubsup_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.msubsup().
+
+pub msup_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.msup().
+
+pub mtable_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mtable().
+
+pub mtd_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mtd().
+
+pub mtext_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mtext().
+
+pub mtr_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.mtr().
+
+pub munder_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.munder().
+
+pub munderover_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.munderover().
+
+pub semantics_typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
+    receiver.semantics().

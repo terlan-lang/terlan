@@ -1,5 +1,6 @@
 use super::*;
 use crate::dispatch::DispatchError;
+use crate::postgres;
 
 /// Builds a stable handle fixture for term codec tests.
 ///
@@ -96,6 +97,29 @@ fn optional_values_round_trip_through_terms() {
         let term = encode_bridge_value(value.clone());
         assert_eq!(decode_bridge_value(&term), value);
     }
+}
+
+/// Verifies Postgres config values round-trip through explicit terms.
+///
+/// Inputs:
+/// - A Postgres connection config used by the runtime connect operation.
+///
+/// Output:
+/// - Test passes when the config survives encode/decode unchanged.
+///
+/// Transformation:
+/// - Exercises the input-only bridge term shape needed before a handler can
+///   call `std.db.postgres.connect` through `SafeNativeRuntime`.
+#[test]
+fn postgres_config_round_trips_through_terms() {
+    let config = postgres::Config::new("postgres://localhost/terlan")
+        .with_pool_limits(1, 2)
+        .with_timeouts(100, 200);
+    let value = SafeNativeBridgeValue::PostgresConfig(config);
+
+    let term = encode_bridge_value(value.clone());
+
+    assert_eq!(decode_bridge_value(&term), value);
 }
 
 /// Verifies argument lists preserve order through term encoding.

@@ -1,0 +1,53 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "connect",
+      "operation": "std.db.postgres.connect"
+    },
+    {
+      "arity": 3,
+      "name": "query",
+      "operation": "std.db.postgres.query"
+    },
+    {
+      "arity": 3,
+      "name": "query_one",
+      "operation": "std.db.postgres.query_one"
+    },
+    {
+      "arity": 3,
+      "name": "execute",
+      "operation": "std.db.postgres.execute"
+    },
+    {
+      "arity": 2,
+      "name": "transaction",
+      "operation": "std.db.postgres.transaction"
+    },
+    {
+      "arity": 2,
+      "name": "string",
+      "operation": "std.db.postgres.string"
+    },
+    {
+      "arity": 2,
+      "name": "int",
+      "operation": "std.db.postgres.int"
+    },
+    {
+      "arity": 2,
+      "name": "bool",
+      "operation": "std.db.postgres.bool"
+    },
+    {
+      "arity": 2,
+      "name": "json",
+      "operation": "std.db.postgres.json"
+    }
+  ],
+  "module": "std_db_postgres_safe_native",
+  "native_policy": "safe_native_optional",
+  "scheduler": "normal",
+  "source_module": "std.db.Postgres"
+}

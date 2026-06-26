@@ -27,6 +27,27 @@ pub(crate) enum ReplValue {
     Type(String),
     Tuple(Vec<ReplValue>),
     List(Vec<ReplValue>),
+    Closure(ReplClosure),
+}
+
+/// Captured anonymous function value for the compiler-owned REPL evaluator.
+///
+/// Inputs:
+/// - `params`: CoreIR lambda parameter patterns.
+/// - `body`: CoreIR body evaluated when the closure is applied.
+/// - `env`: lexical environment captured when the lambda expression evaluated.
+///
+/// Output:
+/// - Stored inside `ReplValue::Closure` until a function-value call applies it.
+///
+/// Transformation:
+/// - Preserves enough lexical state for REPL lambdas without lowering through a
+///   target runtime or exposing backend function values.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ReplClosure {
+    params: Vec<CorePattern>,
+    body: CoreExpr,
+    env: HashMap<String, ReplValue>,
 }
 
 impl ReplValue {
@@ -66,6 +87,7 @@ impl ReplValue {
                     .join(", ");
                 format!("[{rendered}]")
             }
+            Self::Closure(_) => "<function>".to_string(),
         }
     }
 }
@@ -184,7 +206,7 @@ fn evaluate_expr(
             let mut next_env = env.clone();
             for binding in bindings {
                 let value = evaluate_expr(core, &binding.value, &mut next_env, output)?;
-                next_env.insert(binding.name.clone(), value);
+                bind_repl_pattern(&binding.pattern, value, &mut next_env)?;
             }
             evaluate_expr(core, body, &mut next_env, output)
         }
@@ -201,7 +223,15 @@ fn evaluate_expr(
             let right = evaluate_expr(core, right, env, output)?;
             evaluate_binary(operator, left, right)
         }
+        CoreExpr::Lam { params, body } => Ok(ReplValue::Closure(ReplClosure {
+            params: params.clone(),
+            body: (**body).clone(),
+            env: env.clone(),
+        })),
         CoreExpr::Call { function, args } => evaluate_call(core, function, args, env, output),
+        CoreExpr::FunctionCall { callee, args } => {
+            evaluate_function_call(core, callee, args, env, output)
+        }
         CoreExpr::Intrinsic(call) => evaluate_intrinsic(core, call, env, output),
         other => Err(format!(
             "CoreIR evaluator does not yet support {}",
@@ -319,6 +349,190 @@ fn evaluate_call(
     evaluate_expr(core, body, &mut call_env, output)
 }
 
+/// Evaluates a first-class function call in the REPL evaluator.
+///
+/// Inputs:
+/// - `core`: containing module used for nested expression evaluation.
+/// - `callee`: CoreIR expression expected to evaluate to a closure.
+/// - `args`: call argument expressions.
+/// - `env`: caller lexical environment.
+/// - `output`: callback invoked for console output effects.
+///
+/// Output:
+/// - Closure body result, or a stable evaluator error when the callee or
+///   parameter patterns are unsupported.
+///
+/// Transformation:
+/// - Evaluates the callee and arguments in caller order, then evaluates the
+///   lambda body in the captured lexical environment extended with argument
+///   bindings.
+fn evaluate_function_call(
+    core: &CoreModule,
+    callee: &CoreExpr,
+    args: &[CoreExpr],
+    env: &mut HashMap<String, ReplValue>,
+    output: &mut dyn FnMut(&str),
+) -> Result<ReplValue, String> {
+    let callee = evaluate_expr(core, callee, env, output)?;
+    let evaluated_args = evaluate_exprs(core, args, env, output)?;
+    let ReplValue::Closure(closure) = callee else {
+        return Err(format!(
+            "function-value call expects Function, found {}",
+            callee.render()
+        ));
+    };
+    apply_closure(core, closure, evaluated_args, output)
+}
+
+/// Applies a captured REPL closure.
+///
+/// Inputs:
+/// - `core`: containing module used for nested calls in the body.
+/// - `closure`: captured lambda value.
+/// - `args`: evaluated argument values.
+/// - `output`: callback invoked for console output effects.
+///
+/// Output:
+/// - Evaluated closure body or arity/pattern error.
+///
+/// Transformation:
+/// - Starts from the closure's captured environment, binds simple CoreIR
+///   parameter patterns, and evaluates the body in that extended environment.
+fn apply_closure(
+    core: &CoreModule,
+    closure: ReplClosure,
+    args: Vec<ReplValue>,
+    output: &mut dyn FnMut(&str),
+) -> Result<ReplValue, String> {
+    if closure.params.len() != args.len() {
+        return Err(format!(
+            "function-value call expects {} argument(s), found {}",
+            closure.params.len(),
+            args.len()
+        ));
+    }
+    let mut call_env = closure.env;
+    for (pattern, value) in closure.params.iter().zip(args.into_iter()) {
+        bind_repl_pattern(pattern, value, &mut call_env)?;
+    }
+    evaluate_expr(core, &closure.body, &mut call_env, output)
+}
+
+/// Binds one supported CoreIR pattern for REPL evaluation.
+///
+/// Inputs:
+/// - `pattern`: CoreIR pattern from a let binding, function parameter, or
+///   lambda parameter.
+/// - `value`: evaluated value to match against the pattern.
+/// - `env`: lexical environment to extend with bound variables.
+///
+/// Output:
+/// - Success when the pattern matches and all variable bindings are inserted.
+/// - Stable mismatch or unsupported-pattern errors otherwise.
+///
+/// Transformation:
+/// - Applies the same structural pattern model used by Terlan source syntax to
+///   compiler-owned REPL values without relying on any backend runtime.
+fn bind_repl_pattern(
+    pattern: &CorePattern,
+    value: ReplValue,
+    env: &mut HashMap<String, ReplValue>,
+) -> Result<(), String> {
+    match pattern {
+        CorePattern::Var(name) => {
+            env.insert(name.clone(), value);
+            Ok(())
+        }
+        CorePattern::Wildcard => Ok(()),
+        CorePattern::Int(expected) => match value {
+            ReplValue::Int(actual) if actual == *expected => Ok(()),
+            other => Err(pattern_mismatch(pattern, &other)),
+        },
+        CorePattern::Float(expected) => match value {
+            ReplValue::Float(actual) if actual == *expected => Ok(()),
+            other => Err(pattern_mismatch(pattern, &other)),
+        },
+        CorePattern::Atom(expected) => match value {
+            ReplValue::Atom(actual) if actual == *expected => Ok(()),
+            ReplValue::Unit if expected == "Unit" => Ok(()),
+            ReplValue::Bool(true) if expected == "true" => Ok(()),
+            ReplValue::Bool(false) if expected == "false" => Ok(()),
+            other => Err(pattern_mismatch(pattern, &other)),
+        },
+        CorePattern::Tuple(patterns) => match value {
+            ReplValue::Tuple(values) if values.len() == patterns.len() => {
+                bind_repl_patterns(patterns, values, env)
+            }
+            other => Err(pattern_mismatch(pattern, &other)),
+        },
+        CorePattern::List(patterns) => match value {
+            ReplValue::List(values) if values.len() == patterns.len() => {
+                bind_repl_patterns(patterns, values, env)
+            }
+            other => Err(pattern_mismatch(pattern, &other)),
+        },
+        CorePattern::ListCons { head, tail } => match value {
+            ReplValue::List(values) if !values.is_empty() => {
+                let mut values = values.into_iter();
+                let first = values
+                    .next()
+                    .expect("non-empty list checked immediately above");
+                bind_repl_pattern(head, first, env)?;
+                bind_repl_pattern(tail, ReplValue::List(values.collect()), env)
+            }
+            other => Err(pattern_mismatch(pattern, &other)),
+        },
+        other => Err(format!(
+            "REPL evaluator does not yet support pattern {}",
+            core_pattern_kind(other)
+        )),
+    }
+}
+
+/// Binds parallel pattern/value lists for structural REPL patterns.
+///
+/// Inputs:
+/// - `patterns`: ordered structural subpatterns.
+/// - `values`: ordered evaluated values with matching arity.
+/// - `env`: lexical environment to extend.
+///
+/// Output:
+/// - Success when every subpattern matches, or the first mismatch error.
+///
+/// Transformation:
+/// - Zips already arity-checked aggregate patterns and values into recursive
+///   binding calls so tuple and list destructuring share one implementation.
+fn bind_repl_patterns(
+    patterns: &[CorePattern],
+    values: Vec<ReplValue>,
+    env: &mut HashMap<String, ReplValue>,
+) -> Result<(), String> {
+    for (pattern, value) in patterns.iter().zip(values.into_iter()) {
+        bind_repl_pattern(pattern, value, env)?;
+    }
+    Ok(())
+}
+
+/// Builds a stable REPL pattern mismatch diagnostic.
+///
+/// Inputs:
+/// - `pattern`: pattern that failed to match.
+/// - `value`: evaluated value that was checked.
+///
+/// Output:
+/// - Human-readable mismatch text.
+///
+/// Transformation:
+/// - Converts internal pattern kind and REPL value rendering into a compact
+///   diagnostic suitable for text and JSON REPL modes.
+fn pattern_mismatch(pattern: &CorePattern, value: &ReplValue) -> String {
+    format!(
+        "REPL pattern {} did not match {}",
+        core_pattern_kind(pattern),
+        value.render()
+    )
+}
+
 /// Returns whether a name is an implicit target-neutral type value.
 ///
 /// Inputs:
@@ -358,6 +572,7 @@ fn type_of_value(value: &ReplValue) -> String {
         ReplValue::Atom(_) => "Atom".to_string(),
         ReplValue::Bool(_) => "Bool".to_string(),
         ReplValue::Type(_) => "Type".to_string(),
+        ReplValue::Closure(_) => "Function".to_string(),
         ReplValue::Tuple(items) => {
             let types = items
                 .iter()
@@ -713,6 +928,7 @@ fn core_expr_kind(expr: &CoreExpr) -> &'static str {
         CoreExpr::FunctionCall { .. } => "FunctionCall",
         CoreExpr::Cast { .. } => "Cast",
         CoreExpr::Intrinsic(_) => "Intrinsic",
+        CoreExpr::SqlQuery { .. } => "SqlQuery",
         CoreExpr::Case { .. } => "Case",
         CoreExpr::Try { .. } => "Try",
         CoreExpr::If { .. } => "If",

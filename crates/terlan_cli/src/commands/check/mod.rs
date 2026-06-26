@@ -7,11 +7,12 @@ use terlan_hir::{
     load_interfaces_from_dir, resolve_syntax_module_output_with_interfaces,
     syntax_module_output_to_interface, ModuleInterface,
 };
-use terlan_typeck::{expand_syntax_derives, expand_syntax_raw_macros};
+use terlan_typeck::{expand_syntax_includes, expand_syntax_raw_macros};
 
 use crate::commands::artifacts::{
     collect_syntax_dependency_hashes, fingerprint, read_manifest, DependencyManifest,
 };
+use crate::commands::source_layout::expected_module_name_for_source_path;
 use crate::validation::native_policy::validate_native_policy;
 use crate::validation::phase_manifest::{
     create_phase, current_syntax_contract_identity, emit_or_log_phase_manifest_error,
@@ -108,24 +109,24 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             compile.macro_expansion_diagnostics.clone(),
         )
     };
-    let derive_output = if !compile.parse_diagnostics.is_empty()
+    let include_output = if !compile.parse_diagnostics.is_empty()
         || !compile.macro_expansion_diagnostics.is_empty()
     {
-        create_phase("derive_expansion", "skipped", Vec::new())
+        create_phase("include_expansion", "skipped", Vec::new())
     } else {
         create_phase(
-            "derive_expansion",
-            if compile.derive_expansion_diagnostics.is_empty() {
+            "include_expansion",
+            if compile.include_expansion_diagnostics.is_empty() {
                 "ok"
             } else {
                 "error"
             },
-            compile.derive_expansion_diagnostics.clone(),
+            compile.include_expansion_diagnostics.clone(),
         )
     };
     let resolve_output = if !compile.parse_diagnostics.is_empty()
         || !compile.macro_expansion_diagnostics.is_empty()
-        || !compile.derive_expansion_diagnostics.is_empty()
+        || !compile.include_expansion_diagnostics.is_empty()
     {
         create_phase("resolve", "skipped", Vec::new())
     } else {
@@ -145,7 +146,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         .any(|diag| diag.severity != "warning");
     let type_output = if !compile.parse_diagnostics.is_empty()
         || !compile.macro_expansion_diagnostics.is_empty()
-        || !compile.derive_expansion_diagnostics.is_empty()
+        || !compile.include_expansion_diagnostics.is_empty()
     {
         create_phase("typecheck", "skipped", Vec::new())
     } else if has_type_errors {
@@ -155,7 +156,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     };
     let core_output = if !compile.parse_diagnostics.is_empty()
         || !compile.macro_expansion_diagnostics.is_empty()
-        || !compile.derive_expansion_diagnostics.is_empty()
+        || !compile.include_expansion_diagnostics.is_empty()
         || !compile.resolve_diagnostics.is_empty()
         || has_type_errors
     {
@@ -200,7 +201,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                 &[
                     parse_output.clone(),
                     macro_output.clone(),
-                    derive_output.clone(),
+                    include_output.clone(),
                     resolve_output.clone(),
                     type_output.clone(),
                     core_output.clone(),
@@ -223,7 +224,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                 &[
                     parse_output,
                     macro_output,
-                    derive_output,
+                    include_output,
                     resolve_output,
                     type_output,
                     core_output,
@@ -430,7 +431,7 @@ pub(crate) fn run_check_dir(
                             &[
                                 parse_output,
                                 create_phase("macro_expansion", "skipped", Vec::new()),
-                                create_phase("derive_expansion", "skipped", Vec::new()),
+                                create_phase("include_expansion", "skipped", Vec::new()),
                                 create_phase("resolve", "skipped", Vec::new()),
                                 create_phase("typecheck", "skipped", Vec::new()),
                                 create_phase("core", "skipped", Vec::new()),
@@ -477,7 +478,7 @@ pub(crate) fn run_check_dir(
                             &[
                                 parse_output,
                                 create_phase("macro_expansion", "skipped", Vec::new()),
-                                create_phase("derive_expansion", "skipped", Vec::new()),
+                                create_phase("include_expansion", "skipped", Vec::new()),
                                 create_phase("resolve", "skipped", Vec::new()),
                                 create_phase("typecheck", "skipped", Vec::new()),
                                 create_phase("core", "skipped", Vec::new()),
@@ -537,7 +538,7 @@ pub(crate) fn run_check_dir(
                     &[
                         create_phase("parse", "ok", Vec::new()),
                         macro_output,
-                        create_phase("derive_expansion", "skipped", Vec::new()),
+                        create_phase("include_expansion", "skipped", Vec::new()),
                         create_phase("resolve", "skipped", Vec::new()),
                         create_phase("typecheck", "skipped", Vec::new()),
                         create_phase("core", "skipped", Vec::new()),
@@ -588,7 +589,7 @@ pub(crate) fn run_check_dir(
                     &[
                         create_phase("parse", "ok", Vec::new()),
                         create_phase("macro_expansion", "ok", Vec::new()),
-                        create_phase("derive_expansion", "skipped", Vec::new()),
+                        create_phase("include_expansion", "skipped", Vec::new()),
                         layout_output,
                         create_phase("typecheck", "skipped", Vec::new()),
                         create_phase("core", "skipped", Vec::new()),
@@ -697,12 +698,12 @@ pub(crate) fn run_check_dir(
             })
             .collect::<Vec<_>>();
         has_errors = has_errors || !resolve_diagnostics.is_empty();
-        let (syntax_output, derive_expansion_diagnostics) =
-            expand_syntax_derives(syntax_output.clone(), &resolved);
-        let derive_diagnostics = derive_expansion_diagnostics
+        let (syntax_output, include_expansion_diagnostics) =
+            expand_syntax_includes(syntax_output.clone(), &resolved);
+        let include_diagnostics = include_expansion_diagnostics
             .iter()
             .map(|diag| PhaseManifestDiagnostic {
-                code: "derive_expansion_error",
+                code: "include_expansion_error",
                 severity: "error",
                 message: diag.message.clone(),
                 path: file.to_string_lossy().into_owned(),
@@ -711,7 +712,7 @@ pub(crate) fn run_check_dir(
                 ..Default::default()
             })
             .collect::<Vec<_>>();
-        for diag in &derive_expansion_diagnostics {
+        for diag in &include_expansion_diagnostics {
             crate::support::emit_diagnostic(
                 "type_error",
                 &diag.message,
@@ -721,9 +722,9 @@ pub(crate) fn run_check_dir(
                 state.diagnostic_format,
             );
         }
-        has_errors = has_errors || !derive_expansion_diagnostics.is_empty();
+        has_errors = has_errors || !include_expansion_diagnostics.is_empty();
 
-        let diagnostics = if derive_expansion_diagnostics.is_empty() {
+        let diagnostics = if include_expansion_diagnostics.is_empty() {
             let mut diagnostics =
                 type_check_syntax_module_output_with_templates(&syntax_output, &resolved, file);
             diagnostics.extend(check_config_declarations_syntax_output(&syntax_output));
@@ -776,14 +777,14 @@ pub(crate) fn run_check_dir(
                     ..Default::default()
                 })
                 .collect::<Vec<_>>();
-            let derive_output = create_phase(
-                "derive_expansion",
-                if derive_expansion_diagnostics.is_empty() {
+            let include_output = create_phase(
+                "include_expansion",
+                if include_expansion_diagnostics.is_empty() {
                     "ok"
                 } else {
                     "error"
                 },
-                derive_diagnostics,
+                include_diagnostics,
             );
             let type_output = create_phase(
                 "typecheck",
@@ -840,7 +841,7 @@ pub(crate) fn run_check_dir(
                 &[
                     create_phase("parse", "ok", Vec::new()),
                     macro_output,
-                    derive_output,
+                    include_output,
                     resolve_output,
                     type_output,
                     core_output,
@@ -910,58 +911,6 @@ fn validate_directory_module_layout(
         "module declaration `{module_name}` does not match source path `{}`; expected `module {expected}.`",
         file.display()
     ))
-}
-
-/// Computes the module name implied by a source-root-relative file path.
-///
-/// Inputs:
-/// - `root`: source root used for directory compilation.
-/// - `file`: implementation source path.
-///
-/// Output:
-/// - Dotted module name implied by the relative `.terl` path.
-/// - `Err(message)` when the path cannot be represented as canonical source
-///   layout input.
-///
-/// Transformation:
-/// - Removes the source root prefix, drops the `.terl` extension from the final
-///   path segment, validates UTF-8 path segments, and joins all relative
-///   segments with dots.
-fn expected_module_name_for_source_path(root: &Path, file: &Path) -> Result<String, String> {
-    let relative = file.strip_prefix(root).map_err(|_| {
-        format!(
-            "source file `{}` is not under source root `{}`",
-            file.display(),
-            root.display()
-        )
-    })?;
-    let mut segments = Vec::new();
-    for component in relative.components() {
-        let value = component.as_os_str().to_str().ok_or_else(|| {
-            format!(
-                "source path `{}` contains a non-UTF-8 module segment",
-                file.display()
-            )
-        })?;
-        segments.push(value.to_string());
-    }
-    let last = segments
-        .last_mut()
-        .ok_or_else(|| format!("source path `{}` has no module file name", file.display()))?;
-    if !last.ends_with(".terl") {
-        return Err(format!(
-            "source path `{}` is not a Terlan implementation source",
-            file.display()
-        ));
-    }
-    last.truncate(last.len() - ".terl".len());
-    if segments.iter().any(|segment| segment.is_empty()) {
-        return Err(format!(
-            "source path `{}` contains an empty module segment",
-            file.display()
-        ));
-    }
-    Ok(segments.join("."))
 }
 
 /// Computes the per-module phase-manifest path for a directory check.

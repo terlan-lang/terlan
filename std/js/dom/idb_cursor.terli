@@ -1,0 +1,79 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IDBCursor
+ */
+
+module std.js.Dom.IDBCursor.
+
+/**
+ * The **`IDBCursor`** interface of the IndexedDB API represents a cursor for traversing or iterating over multiple records in a database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor)
+ */
+pub opaque type IDBCursor.
+
+/**
+ * The **`direction`** read-only property of the direction of traversal of the cursor (set using section below for possible values.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/direction)
+ */
+pub (value: IDBCursor) direction(): IDBCursorDirection.
+
+/**
+ * The **`key`** read-only property of the position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/key)
+ */
+pub (value: IDBCursor) key(): IDBValidKey.
+
+/**
+ * The **`primaryKey`** read-only property of the cursor is currently being iterated or has iterated outside its range, this is set to undefined.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/primaryKey)
+ */
+pub (value: IDBCursor) primary_key(): IDBValidKey.
+
+/**
+ * The **`request`** read-only property of the IDBCursor interface returns the IDBRequest used to obtain the cursor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/request)
+ */
+pub (value: IDBCursor) request(): IDBRequest.
+
+/**
+ * The **`source`** read-only property of the null or throws an exception, even if the cursor is currently being iterated, has iterated past its end, or its transaction is not active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/source)
+ */
+pub (value: IDBCursor) source(): IDBIndex | IDBObjectStore.
+
+/**
+ * The **`advance()`** method of the IDBCursor interface sets the number of times a cursor should move its position forward.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/advance)
+ */
+pub (value: IDBCursor) advance(count: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`continue()`** method of the IDBCursor interface advances the cursor to the next position along its direction, to the item whose key matches the optional key parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/continue)
+ */
+pub (value: IDBCursor) continue(key: IDBValidKey): std.core.Unit.
+
+/**
+ * The **`continuePrimaryKey()`** method of the matches the key parameter as well as whose primary key matches the primary key parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/continuePrimaryKey)
+ */
+pub (value: IDBCursor) continue_primary_key(key: IDBValidKey, primary_key: IDBValidKey): std.core.Unit.

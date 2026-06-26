@@ -1,0 +1,139 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLMediaElement
+ */
+
+module std.js.Dom.HTMLMediaElementTest.
+
+import type std.js.Dom.HTMLMediaElement.HTMLMediaElement.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub autoplay_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.autoplay().
+
+pub buffered_typechecks(receiver: HTMLMediaElement): TimeRanges ->
+    receiver.buffered().
+
+pub controls_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.controls().
+
+pub cross_origin_typechecks(receiver: HTMLMediaElement): Option[std.js.String.JsString] ->
+    receiver.cross_origin().
+
+pub current_src_typechecks(receiver: HTMLMediaElement): std.js.String.JsString ->
+    receiver.current_src().
+
+pub current_time_typechecks(receiver: HTMLMediaElement): std.js.Number.JsNumber ->
+    receiver.current_time().
+
+pub default_muted_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.default_muted().
+
+pub default_playback_rate_typechecks(receiver: HTMLMediaElement): std.js.Number.JsNumber ->
+    receiver.default_playback_rate().
+
+pub disable_remote_playback_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.disable_remote_playback().
+
+pub duration_typechecks(receiver: HTMLMediaElement): std.js.Number.JsNumber ->
+    receiver.duration().
+
+pub ended_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.ended().
+
+pub error_typechecks(receiver: HTMLMediaElement): Option[MediaError] ->
+    receiver.error().
+
+pub loop_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.loop().
+
+pub media_keys_typechecks(receiver: HTMLMediaElement): Option[MediaKeys] ->
+    receiver.media_keys().
+
+pub muted_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.muted().
+
+pub network_state_typechecks(receiver: HTMLMediaElement): std.js.Number.JsNumber ->
+    receiver.network_state().
+
+pub paused_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.paused().
+
+pub playback_rate_typechecks(receiver: HTMLMediaElement): std.js.Number.JsNumber ->
+    receiver.playback_rate().
+
+pub played_typechecks(receiver: HTMLMediaElement): TimeRanges ->
+    receiver.played().
+
+pub preserves_pitch_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.preserves_pitch().
+
+pub ready_state_typechecks(receiver: HTMLMediaElement): std.js.Number.JsNumber ->
+    receiver.ready_state().
+
+pub remote_typechecks(receiver: HTMLMediaElement): RemotePlayback ->
+    receiver.remote().
+
+pub seekable_typechecks(receiver: HTMLMediaElement): TimeRanges ->
+    receiver.seekable().
+
+pub seeking_typechecks(receiver: HTMLMediaElement): std.core.Bool ->
+    receiver.seeking().
+
+pub sink_id_typechecks(receiver: HTMLMediaElement): std.js.String.JsString ->
+    receiver.sink_id().
+
+pub src_typechecks(receiver: HTMLMediaElement): std.js.String.JsString ->
+    receiver.src().
+
+pub src_object_typechecks(receiver: HTMLMediaElement): Option[MediaProvider] ->
+    receiver.src_object().
+
+pub text_tracks_typechecks(receiver: HTMLMediaElement): TextTrackList ->
+    receiver.text_tracks().
+
+pub volume_typechecks(receiver: HTMLMediaElement): std.js.Number.JsNumber ->
+    receiver.volume().
+
+pub add_text_track_typechecks(receiver: HTMLMediaElement, kind: TextTrackKind, label: std.js.String.JsString, language: std.js.String.JsString): TextTrack ->
+    receiver.add_text_track(kind, label, language).
+
+pub can_play_type_typechecks(receiver: HTMLMediaElement, type_: std.js.String.JsString): CanPlayTypeResult ->
+    receiver.can_play_type(type_).
+
+pub fast_seek_typechecks(receiver: HTMLMediaElement, time: std.js.Number.JsNumber): std.core.Unit ->
+    receiver.fast_seek(time).
+
+pub load_typechecks(receiver: HTMLMediaElement): std.core.Unit ->
+    receiver.load().
+
+pub pause_typechecks(receiver: HTMLMediaElement): std.core.Unit ->
+    receiver.pause().
+
+pub play_typechecks(receiver: HTMLMediaElement): std.js.Promise[std.core.Unit] ->
+    receiver.play().
+
+pub set_media_keys_typechecks(receiver: HTMLMediaElement, media_keys: Option[MediaKeys]): std.js.Promise[std.core.Unit] ->
+    receiver.set_media_keys(media_keys).
+
+pub set_sink_id_typechecks(receiver: HTMLMediaElement, sink_id: std.js.String.JsString): std.js.Promise[std.core.Unit] ->
+    receiver.set_sink_id(sink_id).
+
+pub add_event_listener_typechecks(receiver: HTMLMediaElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: HTMLMediaElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

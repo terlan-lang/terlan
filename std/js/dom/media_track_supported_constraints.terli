@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface MediaTrackSupportedConstraints
+ */
+
+module std.js.Dom.MediaTrackSupportedConstraints.
+
+pub opaque type MediaTrackSupportedConstraints.
+
+pub (value: MediaTrackSupportedConstraints) aspect_ratio(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) auto_gain_control(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) background_blur(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) channel_count(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) device_id(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) display_surface(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) echo_cancellation(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) facing_mode(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) frame_rate(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) group_id(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) height(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) noise_suppression(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) sample_rate(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) sample_size(): std.core.Bool.
+
+pub (value: MediaTrackSupportedConstraints) width(): std.core.Bool.

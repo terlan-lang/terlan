@@ -318,6 +318,7 @@ pub(super) fn lower_syntax_template_instantiation(
             ))
         })
         .collect::<Option<BTreeMap<_, _>>>()?;
+    let values = lower_syntax_template_default_values(values, template, ctx, env)?;
 
     Some(ErlExpr::List(
         template
@@ -326,6 +327,148 @@ pub(super) fn lower_syntax_template_instantiation(
             .flat_map(|node| lower_syntax_template_node(node, &values, template, ctx))
             .collect(),
     ))
+}
+
+/// Lowers a generated template function call such as `Page(title = value)`.
+///
+/// Inputs:
+/// - `name`: template declaration name used as the call head.
+/// - `args`: positional or named call arguments.
+/// - `arg_names`: optional source names parallel to `args`.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang iolist expression for the rendered template, or `None` when the
+///   call does not match a declared template function.
+///
+/// Transformation:
+/// - Maps call arguments onto template properties using declaration order,
+///   fills omitted defaulted properties, and delegates to the same parsed-node
+///   rendering path used by `Page{ ... }` template instantiation.
+pub(super) fn lower_syntax_template_call(
+    name: &str,
+    args: &[SyntaxExprOutput],
+    arg_names: &[Option<String>],
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    let template = ctx.templates.get(name)?;
+    if args.len() > template.prop_order.len() {
+        return None;
+    }
+
+    let mut values = BTreeMap::new();
+    if arg_names.iter().any(Option::is_some) {
+        for (index, arg) in args.iter().enumerate() {
+            let key = match arg_names.get(index).and_then(Option::as_ref) {
+                Some(name) => name.clone(),
+                None => template.prop_order.get(index)?.clone(),
+            };
+            if !template.props.contains_key(&key) {
+                return None;
+            }
+            values.insert(key, lower_syntax_template_arg(arg, ctx, env)?);
+        }
+    } else {
+        for (index, arg) in args.iter().enumerate() {
+            values.insert(
+                template.prop_order.get(index)?.clone(),
+                lower_syntax_template_arg(arg, ctx, env)?,
+            );
+        }
+    }
+    let values = lower_syntax_template_default_values(values, template, ctx, env)?;
+    if template
+        .prop_order
+        .iter()
+        .any(|name| !values.contains_key(name))
+    {
+        return None;
+    }
+
+    Some(lower_syntax_template_values(template, &values, ctx))
+}
+
+/// Lowers one template call argument in a slot-preserving way.
+///
+/// Inputs:
+/// - `arg`: source expression supplied to a template property.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Erlang expression to bind to the property.
+///
+/// Transformation:
+/// - Preserves `Html.raw(...)` values as trusted HTML and otherwise uses the
+///   ordinary syntax expression lowerer.
+fn lower_syntax_template_arg(
+    arg: &SyntaxExprOutput,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<ErlExpr> {
+    lower_syntax_html_raw_expr_with_env(arg, ctx, env)
+        .or_else(|| lower_syntax_expr_with_env(arg, ctx, env))
+}
+
+/// Renders parsed template nodes from already-lowered property values.
+///
+/// Inputs:
+/// - `template`: parsed template body and property metadata.
+/// - `values`: lowered values keyed by property name.
+/// - `ctx`: syntax lowering context for nested field access.
+///
+/// Output:
+/// - Erlang iolist expression for the rendered template.
+///
+/// Transformation:
+/// - Reuses the node renderer shared by constructor-like template
+///   instantiation and generated template function calls.
+fn lower_syntax_template_values(
+    template: &LowerTemplate,
+    values: &BTreeMap<String, ErlExpr>,
+    ctx: &SyntaxLowerCtx,
+) -> ErlExpr {
+    ErlExpr::List(
+        template
+            .nodes
+            .iter()
+            .flat_map(|node| lower_syntax_template_node(node, values, template, ctx))
+            .collect(),
+    )
+}
+
+/// Fills omitted template properties from declaration defaults.
+///
+/// Inputs:
+/// - `values`: lowered values supplied by the template instantiation.
+/// - `template`: template metadata including optional default expressions.
+/// - `ctx`, `env`: active syntax lowering context and lexical environment.
+///
+/// Output:
+/// - Completed slot-value map containing source values plus lowered defaults
+///   for omitted defaulted properties.
+///
+/// Transformation:
+/// - Leaves supplied properties unchanged and lowers only missing properties
+///   that declare defaults in the template signature.
+fn lower_syntax_template_default_values(
+    mut values: BTreeMap<String, ErlExpr>,
+    template: &LowerTemplate,
+    ctx: &SyntaxLowerCtx,
+    env: &SyntaxLowerEnv,
+) -> Option<BTreeMap<String, ErlExpr>> {
+    for (name, prop) in &template.props {
+        if values.contains_key(name) {
+            continue;
+        }
+        let Some(default) = &prop.default else {
+            continue;
+        };
+        let lowered = lower_syntax_html_raw_expr_with_env(default, ctx, env)
+            .or_else(|| lower_syntax_expr_with_env(default, ctx, env))?;
+        values.insert(name.clone(), lowered);
+    }
+    Some(values)
 }
 
 /// Lowers one parsed template node.
@@ -471,7 +614,7 @@ fn lower_syntax_template_slot_text(
             .path
             .first()
             .and_then(|root| template.props.get(root))
-            .is_some_and(|type_text| is_template_html_type(type_text))
+            .is_some_and(|prop| is_template_html_type(&prop.type_text))
     {
         return lower_syntax_template_slot_value(slot, values, template, ctx);
     }
@@ -509,7 +652,7 @@ fn lower_syntax_template_slot_value(
     let mut current_type = template
         .props
         .get(root)
-        .and_then(|type_text| simple_template_type_name(type_text))
+        .and_then(|prop| simple_template_type_name(&prop.type_text))
         .map(str::to_string);
 
     for field in slot.path.iter().skip(1) {

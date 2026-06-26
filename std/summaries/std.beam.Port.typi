@@ -1,0 +1,94 @@
+//! BEAM external port contract.
+//!
+//! `std.beam.Port` models BEAM-owned external OS processes and ports. It is the
+//! process primitive needed by daemon integration tests such as epmd parity
+//! tests.
+
+module std.beam.Port.
+
+/// Command represents one external command invocation.
+///
+/// Input: executable path, argument list, and environment additions.
+/// Output: a typed command description.
+/// Transformation: separates command construction from BEAM port startup so
+/// tests can build deterministic process specifications.
+
+pub struct Command {
+    executable: String,
+    arguments: List[String],
+    environment: List[EnvVar]
+}.
+
+/// EnvVar represents one environment variable assignment.
+///
+/// Input: key and value strings supplied by a caller.
+/// Output: a typed environment pair.
+/// Transformation: carries environment configuration without exposing backend
+/// tuple formats.
+
+pub struct EnvVar {
+    key: String,
+    value: String
+}.
+
+/// Port represents a running external process or BEAM port.
+///
+/// Input: no runtime input.
+/// Output: an opaque target-owned process handle.
+/// Transformation: keeps OS process identity, streams, and cleanup inside the
+/// BEAM runtime while exposing a typed lifecycle handle.
+
+pub opaque type Port.
+
+/// Stops a running external process.
+///
+/// Input: a mutable port receiver.
+/// Output: `Unit`.
+/// Transformation: asks the BEAM runtime to close the port and release any
+/// process resources owned by the target.
+
+pub (mut port: Port) close(): Unit.
+
+/// Builds a command description.
+///
+/// Input: executable path, arguments, and environment additions.
+/// Output: `Command`.
+/// Transformation: stores command startup data without starting a process.
+
+pub command(executable: String, arguments: List[String], environment: List[EnvVar]): Command.
+
+/// Builds an environment variable assignment.
+///
+/// Input: variable key and value.
+/// Output: `EnvVar`.
+/// Transformation: stores both strings in a typed value used by `Command`.
+
+pub env(key: String, value: String): EnvVar.
+
+/// Starts an external process.
+///
+/// Input: one command description.
+/// Output: `Ok(Port)` when the process starts, otherwise `Err(Error)`.
+/// Transformation: asks the BEAM runtime to spawn a linked external port and
+/// normalize startup failures into the standard error channel.
+
+pub open(command: Command): Result[Port, Error].
+
+/// Reads bytes from the process standard output.
+///
+/// Input: a port receiver, maximum byte count, and timeout.
+/// Output: `Ok(Bytes)` when data is read, otherwise `Err(Error)`.
+/// Transformation: receives target port output and normalizes timeout or exit
+/// failures into the standard error channel.
+
+pub (port: Port) read(max_bytes: Int, timeout: Timeout): Result[Bytes, Error].
+
+/// Writes bytes to the process standard input.
+///
+/// Input: a port receiver and byte buffer.
+/// Output: `Ok(Unit)` on successful write, otherwise `Err(Error)`.
+/// Transformation: sends a binary frame to the BEAM port without exposing
+/// backend stream messages.
+
+pub (port: Port) write(bytes: Bytes): Result[Unit, Error].
+

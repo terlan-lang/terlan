@@ -1,0 +1,8 @@
+module=std.js.Dom.SVGClipPathElement
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=17480369943799825832
+interface_hash=16492449394683670278
+interface_doc_hash=16492449394683670278
+deps=0

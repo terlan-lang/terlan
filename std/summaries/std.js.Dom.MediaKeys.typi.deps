@@ -1,0 +1,8 @@
+module=std.js.Dom.MediaKeys
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=11723149888578108047
+interface_hash=908377338841271144
+interface_doc_hash=908377338841271144
+deps=0

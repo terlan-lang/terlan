@@ -1,0 +1,8 @@
+module=std.js.Dom.AbortSignal
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=1649662285269841511
+interface_hash=4543358846014252028
+interface_doc_hash=4543358846014252028
+deps=0

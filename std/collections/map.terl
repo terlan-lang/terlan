@@ -1,131 +1,160 @@
 /**
- *Core map collection contract.
+ * Core map collection contract.
  *
- *`std.collections.Map` is the portable key-value collection surface. Backends own
- *the efficient runtime representation while preserving this source contract.
+ * `std.collections.Map` is the portable key-value collection surface. Backends own
+ * the efficient runtime representation while preserving this source contract.
  */
 
 module std.collections.Map.
 
+import type std.collections.List.
 import std.core.Option.{None, Option}.
 import std.core.Unit.{Unit}.
 import std.collections.Iterator.{Iterator}.
 
 /**
- *Map represents a collection of values addressed by keys.
+ * Map represents a collection of values addressed by keys.
  *
- *Input: type parameters `K` and `V`.
- *Output: an opaque key-value collection type.
- *Transformation: hides the selected backend representation behind the
- *portable `std.collections.Map` API.
+ * Input: type parameters `K` and `V`.
+ * Output: an opaque key-value collection type.
+ * Transformation: hides the selected backend representation behind the
+ * portable `std.collections.Map` API.
  */
 pub opaque type Map[K, V].
 
 /**
- *Creates an empty map.
+ * Constructs a map from explicit key-value entry tuples.
  *
- *Input: no value input.
- *Output: an empty `Map[K, V]`.
- *Transformation: lowers through the compiler-owned `core.map.new`
- *intrinsic, using the selected backend's canonical empty-map value.
+ * Input: zero or more `{K, V}` entries.
+ * Output: a `Map[K, V]` containing the supplied entries.
+ * Transformation: uses constructor varargs to pack positional entries into a
+ * portable list and delegates to `from_entries` so backend-specific map
+ * representation stays behind the intrinsic boundary. Later duplicate keys
+ * replace earlier keys according to the backend map contract.
+ */
+pub constructor Map[K, V] {
+    (...entries: {K, V}): Map[K, V] ->
+        from_entries(entries)
+}.
+
+/**
+ * Creates an empty map.
+ *
+ * Input: no value input.
+ * Output: an empty `Map[K, V]`.
+ * Transformation: lowers through the compiler-owned `core.map.new`
+ * intrinsic, using the selected backend's canonical empty-map value.
  */
 @compiler.intrinsic
 pub new[K, V](): Map[K, V] ->
     {}.
 
 /**
- *Returns whether a map contains no entries.
+ * Creates a map from explicit key-value entry tuples.
  *
- *Input: one `Map[K, V]`.
- *Output: `true` when the map has no entries; otherwise `false`.
- *Transformation: lowers through the compiler-owned `core.map.is_empty`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `List[{K, V}]`.
+ * Output: a `Map[K, V]` containing the supplied entries.
+ * Transformation: lowers through the compiler-owned `core.map.from_entries`
+ * intrinsic. Backends choose the efficient map representation and duplicate
+ * key handling behind the portable `Map[K, V]` contract.
+ */
+@compiler.intrinsic
+pub from_entries[K, V](entries: List[{K, V}]): Map[K, V] ->
+    new().
+
+/**
+ * Returns whether a map contains no entries.
+ *
+ * Input: one `Map[K, V]`.
+ * Output: `true` when the map has no entries; otherwise `false`.
+ * Transformation: lowers through the compiler-owned `core.map.is_empty`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (map: Map[K, V]) is_empty(): Bool ->
     true.
 
 /**
- *Returns the number of entries in a map.
+ * Returns the number of entries in a map.
  *
- *Input: one `Map[K, V]`.
- *Output: the number of key-value entries currently visible in the map.
- *Transformation: lowers through the compiler-owned `core.map.size`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `Map[K, V]`.
+ * Output: the number of key-value entries currently visible in the map.
+ * Transformation: lowers through the compiler-owned `core.map.size`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (map: Map[K, V]) size(): Int ->
     0.
 
 /**
- *Looks up a value by key.
+ * Looks up a value by key.
  *
- *Input: one `Map[K, V]` receiver and one key of type `K`.
- *Output: `Some(value)` when the key exists; otherwise `None`.
- *Transformation: lowers through the compiler-owned `core.map.get`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `Map[K, V]` receiver and one key of type `K`.
+ * Output: `Some(value)` when the key exists; otherwise `None`.
+ * Transformation: lowers through the compiler-owned `core.map.get`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (map: Map[K, V]) get(key: K): Option[V] ->
     None.
 
 /**
- *Returns whether a key exists.
+ * Returns whether a key exists.
  *
- *Input: one `Map[K, V]` receiver and one key of type `K`.
- *Output: `true` when the key exists; otherwise `false`.
- *Transformation: lowers through the compiler-owned `core.map.contains_key`
- *intrinsic and observes the receiver without changing its contents.
+ * Input: one `Map[K, V]` receiver and one key of type `K`.
+ * Output: `true` when the key exists; otherwise `false`.
+ * Transformation: lowers through the compiler-owned `core.map.contains_key`
+ * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
 pub (map: Map[K, V]) contains_key(key: K): Bool ->
     false.
 
 /**
- *Creates an iterator over key-value entries.
+ * Creates an iterator over key-value entries.
  *
- *Input: one `Map[K, V]`.
- *Output: an `Iterator[{K, V}]` yielding one `{key, value}` pair per entry.
- *Transformation: lowers through the compiler-owned `core.map.iterator`
- *intrinsic. Backends choose their own traversal order and representation while
- *preserving the portable pair-yielding contract.
+ * Input: one `Map[K, V]`.
+ * Output: an `Iterator[{K, V}]` yielding one `{key, value}` pair per entry.
+ * Transformation: lowers through the compiler-owned `core.map.iterator`
+ * intrinsic. Backends choose their own traversal order and representation while
+ * preserving the portable pair-yielding contract.
  */
 @compiler.intrinsic
 pub (map: Map[K, V]) iterator(): Iterator[{K, V}] ->
     map.
 
 /**
- *Inserts or replaces a key-value entry.
+ * Inserts or replaces a key-value entry.
  *
- *Input: a mutable `Map[K, V]` receiver, one key, and one value.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.map.put`
- *intrinsic and updates the receiver binding in source order. Pipe chains
- *continue with the updated receiver.
+ * Input: a mutable `Map[K, V]` receiver, one key, and one value.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.map.put`
+ * intrinsic and updates the receiver binding in source order. Pipe chains
+ * continue with the updated receiver.
  */
 @compiler.intrinsic
 pub (mut map: Map[K, V]) put(key: K, value: V): Unit ->
     map.
 
 /**
- *Removes a key-value entry if it exists.
+ * Removes a key-value entry if it exists.
  *
- *Input: a mutable `Map[K, V]` receiver and one key.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.map.remove`
- *intrinsic and updates the receiver binding in source order.
+ * Input: a mutable `Map[K, V]` receiver and one key.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.map.remove`
+ * intrinsic and updates the receiver binding in source order.
  */
 @compiler.intrinsic
 pub (mut map: Map[K, V]) remove(key: K): Unit ->
     map.
 
 /**
- *Removes every entry from a map.
+ * Removes every entry from a map.
  *
- *Input: a mutable `Map[K, V]` receiver.
- *Output: `Unit`.
- *Transformation: lowers through the compiler-owned `core.map.clear`
- *intrinsic and updates the receiver binding so it becomes empty.
+ * Input: a mutable `Map[K, V]` receiver.
+ * Output: `Unit`.
+ * Transformation: lowers through the compiler-owned `core.map.clear`
+ * intrinsic and updates the receiver binding so it becomes empty.
  */
 @compiler.intrinsic
 pub (mut map: Map[K, V]) clear(): Unit ->

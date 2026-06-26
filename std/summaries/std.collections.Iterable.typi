@@ -12,15 +12,15 @@ module std.collections.Iterable.
 /// depending on a platform-native iterator protocol.
 
 pub trait Iterable[C, T] {
-    iterator(collection: C): Iterator[T].
+    iterator(collection: C): std.collections.Iterator.Iterator[T].
 }.
 
-pub impl Iterable[List[T], T] for List[T] {
+pub impl Iterable[std.collections.List.List[T], T] for std.collections.List.List[T] {
 }.
 
-pub impl Iterable[Map[K, V], {K, V}] for Map[K, V] {
+pub impl Iterable[std.collections.Map.Map[K, V], {K, V}] for std.collections.Map.Map[K, V] {
 }.
 
-pub impl Iterable[Set[T], T] for Set[T] {
+pub impl Iterable[std.collections.Set.Set[T], T] for std.collections.Set.Set[T] {
 }.
 

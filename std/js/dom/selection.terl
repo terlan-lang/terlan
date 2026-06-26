@@ -1,0 +1,218 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Selection
+ */
+
+module std.js.Dom.Selection.
+
+/**
+ * A **`Selection`** object represents the range of text selected by the user or the current position of the caret.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection)
+ */
+pub opaque type Selection.
+
+/**
+ * The **`Selection.anchorNode`** read-only property returns the Node in which the selection begins.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/anchorNode)
+ */
+pub (value: Selection) anchor_node(): Option[Node] ->
+    native.
+
+/**
+ * The **`Selection.anchorOffset`** read-only property returns the number of characters that the selection's anchor is offset within the In the case of Selection.anchorNode being another type of node, **`Selection.anchorOffset`** returns the number of Node.childNodes the selection's anchor is offset within the Selection.anchorNode.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/anchorOffset)
+ */
+pub (value: Selection) anchor_offset(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`direction`** read-only property of the Selection interface is a string that provides the direction of the current selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/direction)
+ */
+pub (value: Selection) direction(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Selection.focusNode`** read-only property returns the Node in which the selection ends.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/focusNode)
+ */
+pub (value: Selection) focus_node(): Option[Node] ->
+    native.
+
+/**
+ * The **`Selection.focusOffset`** read-only property returns the number of characters that the selection's focus is offset within the In the case of Selection.focusNode being another type of node, **`Selection.focusOffset`** returns the number of Node.childNodes the selection's focus is offset within the Selection.focusNode.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/focusOffset)
+ */
+pub (value: Selection) focus_offset(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`Selection.isCollapsed`** read-only property returns a boolean value which indicates whether or not there is currently any text selected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/isCollapsed)
+ */
+pub (value: Selection) is_collapsed(): std.core.Bool ->
+    native.
+
+/**
+ * The **`Selection.rangeCount`** read-only property returns the number of ranges in the selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/rangeCount)
+ */
+pub (value: Selection) range_count(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`type`** read-only property of the type of the current selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/type)
+ */
+pub (value: Selection) type_(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`Selection.addRange()`** method adds a ```js-nolint addRange(range) ``` - `range` - : A Range object that will be added to the Selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/addRange)
+ */
+pub (value: Selection) add_range(range: Range): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.collapse()`** method collapses the current selection to a single point.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/collapse)
+ */
+pub (value: Selection) collapse(node: Option[Node], offset: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.collapseToEnd()`** method collapses the selection to the end of the last range in the selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/collapseToEnd)
+ */
+pub (value: Selection) collapse_to_end(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.collapseToStart()`** method collapses the selection to the start of the first range in the selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/collapseToStart)
+ */
+pub (value: Selection) collapse_to_start(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.containsNode()`** method indicates whether a specified node is part of the selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/containsNode)
+ */
+pub (value: Selection) contains_node(node: Node, allow_partial_containment: std.core.Bool): std.core.Bool ->
+    native.
+
+/**
+ * The **`deleteFromDocument()`** method of the ```js-nolint deleteFromDocument() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/deleteFromDocument)
+ */
+pub (value: Selection) delete_from_document(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.empty()`** method removes all ranges from the selection, leaving the Selection.anchorNode and Selection.focusNode properties equal to `null` and nothing selected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/empty)
+ */
+pub (value: Selection) empty(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.extend()`** method moves the focus of the selection to a specified point.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/extend)
+ */
+pub (value: Selection) extend(node: Node, offset: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.getComposedRanges()`** method returns an array of StaticRange objects representing the current selection ranges, and can return ranges that potentially cross shadow boundaries.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/getComposedRanges)
+ */
+pub (value: Selection) get_composed_ranges(options: GetComposedRangesOptions): std.js.Array[StaticRange] ->
+    native.
+
+/**
+ * The **`getRangeAt()`** method of the Selection interface returns a range object representing a currently selected range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/getRangeAt)
+ */
+pub (value: Selection) get_range_at(index: std.js.Number.JsNumber): Range ->
+    native.
+
+/**
+ * The **`Selection.modify()`** method applies a change to the current selection or cursor position, using simple textual commands.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/modify)
+ */
+pub (value: Selection) modify(alter: std.js.String.JsString, direction: std.js.String.JsString, granularity: std.js.String.JsString): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.removeAllRanges()`** method removes all ranges from the selection, leaving the Selection.anchorNode and Selection.focusNode properties equal to `null` and nothing selected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/removeAllRanges)
+ */
+pub (value: Selection) remove_all_ranges(): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.removeRange()`** method removes a range from a selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/removeRange)
+ */
+pub (value: Selection) remove_range(range: Range): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.selectAllChildren()`** method adds all the children of the specified node to the selection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/selectAllChildren)
+ */
+pub (value: Selection) select_all_children(node: Node): std.core.Unit ->
+    native.
+
+/**
+ * The **`setBaseAndExtent()`** method of the Selection interface sets the selection to be a range including all or parts of two specified DOM nodes, and any content located between them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/setBaseAndExtent)
+ */
+pub (value: Selection) set_base_and_extent(anchor_node: Node, anchor_offset: std.js.Number.JsNumber, focus_node: Node, focus_offset: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+/**
+ * The **`Selection.setPosition()`** method collapses the current selection to a single point.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/setPosition)
+ */
+pub (value: Selection) set_position(node: Option[Node], offset: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+pub (value: Selection) to_string(): std.js.String.JsString ->
+    native.

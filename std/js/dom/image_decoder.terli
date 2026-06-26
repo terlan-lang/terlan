@@ -1,0 +1,73 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ImageDecoder
+ */
+
+module std.js.Dom.ImageDecoder.
+
+/**
+ * The **`ImageDecoder`** interface of the WebCodecs API provides a way to unpack and decode encoded image data.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder)
+ */
+pub opaque type ImageDecoder.
+
+/**
+ * The **`complete`** read-only property of the ImageDecoder interface returns true if encoded data has completed buffering.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/complete)
+ */
+pub (value: ImageDecoder) complete(): std.core.Bool.
+
+/**
+ * The **`completed`** read-only property of the ImageDecoder interface returns a promise that resolves once encoded data has finished buffering.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/completed)
+ */
+pub (value: ImageDecoder) completed(): std.js.Promise[std.core.Unit].
+
+/**
+ * The **`tracks`** read-only property of the ImageDecoder interface returns a list of the tracks in the encoded image data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/tracks)
+ */
+pub (value: ImageDecoder) tracks(): ImageTrackList.
+
+/**
+ * The **`type`** read-only property of the ImageDecoder interface reflects the MIME type configured during construction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/type)
+ */
+pub (value: ImageDecoder) type_(): std.js.String.JsString.
+
+/**
+ * The **`close()`** method of the ImageDecoder interface ends all pending work and releases system resources.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/close)
+ */
+pub (value: ImageDecoder) close(): std.core.Unit.
+
+/**
+ * The **`decode()`** method of the ImageDecoder interface enqueues a control message to decode the frame of an image.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/decode)
+ */
+pub (value: ImageDecoder) decode(options: ImageDecodeOptions): std.js.Promise[ImageDecodeResult].
+
+/**
+ * The **`reset()`** method of the ImageDecoder interface aborts all pending `decode()` operations; rejecting all pending promises.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/reset)
+ */
+pub (value: ImageDecoder) reset(): std.core.Unit.

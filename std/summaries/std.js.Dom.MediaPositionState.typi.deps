@@ -1,0 +1,8 @@
+module=std.js.Dom.MediaPositionState
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=15692559972539058084
+interface_hash=18298549268141660171
+interface_doc_hash=18298549268141660171
+deps=0

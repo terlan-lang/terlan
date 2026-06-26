@@ -22,7 +22,7 @@ pub opaque type Vector[T].
 /// Transformation: copies or transfers values into the target-native indexed
 /// storage representation.
 
-pub from_list(values: List[T]): Vector[T].
+pub from_list[T](values: List[T]): Vector[T].
 
 /// Returns the value at an index.
 ///
@@ -32,6 +32,15 @@ pub from_list(values: List[T]): Vector[T].
 /// `IndexGet[Vector[T], Int, T]` and backs bracket read syntax.
 
 pub (vector: Vector[T]) get_at(index: Int): T.
+
+/// Returns the number of values in a vector.
+///
+/// Input: one `Vector[T]`.
+/// Output: the current vector length.
+/// Transformation: aliases the native vector length operation with the shorter
+/// receiver name used by algorithm-oriented code.
+
+pub (vector: Vector[T]) len(): Int.
 
 /// Returns the number of values in a vector.
 ///
@@ -48,7 +57,7 @@ pub (vector: Vector[T]) length(): Int.
 /// Output: an empty `Vector[T]`.
 /// Transformation: requires a target-native vector allocation capability.
 
-pub new(): Vector[T].
+pub new[T](): Vector[T].
 
 /// Appends a value to the end of a vector.
 ///
@@ -84,6 +93,19 @@ pub (mut vector: Vector[T]) swap(left: Int, right: Int): Unit.
 
 pub (vector: Vector[T]) to_list(): List[T].
 
-pub impl IndexGet[Vector[T], Int, T] for Vector[T] {
+pub impl std.collections.Index.IndexGet[Vector[T], Int, T] for Vector[T] {
+}.
+
+/// Constructs a native vector from positional values.
+///
+/// Input: zero or more values of the same element type `T`.
+/// Output: a `Vector[T]` containing the supplied values in source order.
+/// Transformation: packs constructor varargs into a portable list-shaped
+/// argument and delegates to `from_list` so target-native allocation remains
+/// behind the vector bridge.
+
+pub constructor Vector[T] {
+    (...items: T): Vector[T] ->
+        from_list(items)
 }.
 

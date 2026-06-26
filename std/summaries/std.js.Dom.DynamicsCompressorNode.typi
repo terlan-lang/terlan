@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DynamicsCompressorNode
+ */
+
+module std.js.Dom.DynamicsCompressorNode.
+
+/**
+ * The `DynamicsCompressorNode` interface provides a compression effect, which lowers the volume of the loudest parts of the signal in order to help prevent clipping and distortion that can occur when multiple sounds are played and multiplexed together at once.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode)
+ */
+pub opaque type DynamicsCompressorNode.
+
+/**
+ * The `attack` property of the DynamicsCompressorNode interface is a k-rate AudioParam representing the amount of time, in seconds, required to reduce the gain by 10 dB.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/attack)
+ */
+pub (value: DynamicsCompressorNode) attack(): AudioParam.
+
+/**
+ * The `knee` property of the DynamicsCompressorNode interface is a k-rate AudioParam containing a decibel value representing the range above the threshold where the curve smoothly transitions to the compressed portion.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/knee)
+ */
+pub (value: DynamicsCompressorNode) knee(): AudioParam.
+
+/**
+ * The `ratio` property of the DynamicsCompressorNode interface Is a k-rate AudioParam representing the amount of change, in dB, needed in the input for a 1 dB change in the output.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/ratio)
+ */
+pub (value: DynamicsCompressorNode) ratio(): AudioParam.
+
+/**
+ * The **`reduction`** read-only property of the DynamicsCompressorNode interface is a float representing the amount of gain reduction currently applied by the compressor to the signal.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/reduction)
+ */
+pub (value: DynamicsCompressorNode) reduction(): std.js.Number.JsNumber.
+
+/**
+ * The `release` property of the DynamicsCompressorNode interface Is a k-rate AudioParam representing the amount of time, in seconds, required to increase the gain by 10 dB.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/release)
+ */
+pub (value: DynamicsCompressorNode) release(): AudioParam.
+
+/**
+ * The `threshold` property of the DynamicsCompressorNode interface is a k-rate AudioParam representing the decibel value above which the compression will start taking effect.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/threshold)
+ */
+pub (value: DynamicsCompressorNode) threshold(): AudioParam.

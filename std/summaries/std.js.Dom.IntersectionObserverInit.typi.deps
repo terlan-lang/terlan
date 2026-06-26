@@ -1,0 +1,8 @@
+module=std.js.Dom.IntersectionObserverInit
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=6360906628188803531
+interface_hash=10734271349714500630
+interface_doc_hash=10734271349714500630
+deps=0

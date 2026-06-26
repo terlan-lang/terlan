@@ -203,6 +203,7 @@ fn core_type_from_syntax_struct_fields(
             core_type_from_text(&field.annotation.text).map(|ty| CoreStructTypeField {
                 name: field.name.clone(),
                 ty,
+                is_private: field.is_private,
             })
         })
         .collect::<Option<Vec<_>>>()

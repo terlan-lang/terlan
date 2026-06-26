@@ -1,6 +1,14 @@
 use super::core_expr_lowering::core_expr_from_syntax;
 use super::*;
 
+mod effects;
+mod return_types;
+
+pub(crate) use effects::{
+    core_io_effect_set, core_pure_effect_set, core_receiver_mutation_effect_set,
+};
+use return_types::core_runtime_capability_return_type;
+
 /// Converts a syntax-output call into a compiler-owned intrinsic call when selected.
 ///
 /// Inputs:
@@ -196,11 +204,62 @@ fn core_receiver_intrinsic_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Opt
     let receiver = callee.children.first()?;
     let module = core_receiver_intrinsic_module(receiver, method, args.len())?;
     let args = std::iter::once(receiver)
-        .chain(args.iter())
+        .chain(ordered_core_receiver_intrinsic_args(
+            method,
+            args,
+            &expr.arg_names,
+        )?)
         .map(core_expr_from_syntax)
         .collect::<Option<Vec<_>>>()?;
 
     core_intrinsic_expr_from_parts(module, method, args, expr.span.into())
+}
+
+/// Orders primitive receiver intrinsic arguments for CoreIR lowering.
+///
+/// Inputs:
+/// - `method`: primitive receiver method name.
+/// - `args`: non-receiver source arguments in written order.
+/// - `arg_names`: optional source names parallel to `args`.
+///
+/// Output:
+/// - Argument references in primitive method parameter order.
+/// - `None` when named metadata targets an unsupported primitive shape.
+///
+/// Transformation:
+/// - Leaves positional calls unchanged and reorders named arguments according
+///   to the shared primitive receiver method parameter-name table.
+fn ordered_core_receiver_intrinsic_args<'a>(
+    method: &str,
+    args: &'a [SyntaxExprOutput],
+    arg_names: &[Option<String>],
+) -> Option<Vec<&'a SyntaxExprOutput>> {
+    if !arg_names.iter().any(Option::is_some) {
+        return Some(args.iter().collect());
+    }
+    let param_names = primitive_receiver_method_arg_names(method, args.len())?;
+    if param_names.len() != args.len() {
+        return None;
+    }
+
+    let mut ordered = vec![None; args.len()];
+    for (index, arg) in args.iter().enumerate() {
+        match arg_names.get(index).and_then(Option::as_ref) {
+            Some(name) => {
+                let param_index = param_names.iter().position(|param| param == name)?;
+                if param_index < ordered.len() {
+                    ordered[param_index] = Some(arg);
+                }
+            }
+            None => {
+                if index < ordered.len() {
+                    ordered[index] = Some(arg);
+                }
+            }
+        }
+    }
+
+    ordered.into_iter().collect()
 }
 
 /// Resolves a primitive receiver method to its CoreIR intrinsic owner module.
@@ -294,7 +353,7 @@ fn core_intrinsic_expr_from_parts(
 /// - Dispatches stable std.core primitive API calls to closed compiler-owned
 ///   intrinsic identities without carrying backend module/function names into
 ///   CoreIR.
-fn core_primitive_intrinsic(
+pub(crate) fn core_primitive_intrinsic(
     module: &str,
     function: &str,
     arity: usize,
@@ -309,11 +368,16 @@ fn core_primitive_intrinsic(
         "std.collections.List" => core_list_primitive_intrinsic(function, arity),
         "std.collections.Iterator" => core_iterator_primitive_intrinsic(function, arity),
         "std.collections.Map" => core_map_primitive_intrinsic(function, arity),
+        "std.core.Object" => core_map_primitive_intrinsic(function, arity),
         "std.collections.Set" => core_set_primitive_intrinsic(function, arity),
         "std.core.Task" => core_task_primitive_intrinsic(function, arity),
         "std.beam.Agent" => core_beam_agent_primitive_intrinsic(function, arity),
         "std.beam.GenServer" => core_beam_gen_server_primitive_intrinsic(function, arity),
         "std.beam.NativeBridge" => core_beam_native_bridge_primitive_intrinsic(function, arity),
+        "std.beam.Bytes" => core_beam_bytes_primitive_intrinsic(function, arity),
+        "std.beam.Timeout" => core_beam_timeout_primitive_intrinsic(function, arity),
+        "std.beam.Tcp" => core_beam_tcp_primitive_intrinsic(function, arity),
+        "std.beam.Port" => core_beam_port_primitive_intrinsic(function, arity),
         "std.beam.Supervisor" => core_beam_supervisor_primitive_intrinsic(function, arity),
         "std.beam.Task" => core_beam_task_primitive_intrinsic(function, arity),
         _ => None,
@@ -334,9 +398,9 @@ fn core_primitive_intrinsic(
 ///   names, or arity mismatch.
 ///
 /// Transformation:
-/// - Maps source APIs such as `std.io.Console.println(value)` to backend-neutral
-///   CoreIR runtime capability identities without carrying target module names
-///   into CoreIR.
+/// - Maps source APIs such as `std.io.Console.println(value)` and
+///   `std.log.info(value)` to backend-neutral CoreIR runtime capability
+///   identities without carrying target module names into CoreIR.
 fn core_runtime_capability(
     module: &str,
     function: &str,
@@ -344,6 +408,10 @@ fn core_runtime_capability(
 ) -> Option<CoreRuntimeCapability> {
     match (module, function, arity) {
         ("std.io.Console", "println", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
+        ("std.log", "debug", 1)
+        | ("std.log", "info", 1)
+        | ("std.log", "warn", 1)
+        | ("std.log", "error", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
         ("std.io.File", "exists", 1) => Some(CoreRuntimeCapability::FileExists),
         ("std.io.File", "read_text", 1) => Some(CoreRuntimeCapability::FileReadText),
         ("std.io.File", "write_text", 2) => Some(CoreRuntimeCapability::FileWriteText),
@@ -574,6 +642,7 @@ fn core_iterator_primitive_intrinsic(
 fn core_map_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
     match (function, arity) {
         ("new", 0) => Some(CorePrimitiveIntrinsic::MapNew),
+        ("from_entries", 1) => Some(CorePrimitiveIntrinsic::MapFromEntries),
         ("is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
         ("size", 1) => Some(CorePrimitiveIntrinsic::MapSize),
         ("get", 2) => Some(CorePrimitiveIntrinsic::MapGet),
@@ -606,6 +675,7 @@ fn core_map_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrim
 fn core_set_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
     match (function, arity) {
         ("new", 0) => Some(CorePrimitiveIntrinsic::SetNew),
+        ("from_list", 1) => Some(CorePrimitiveIntrinsic::SetFromList),
         ("is_empty", 1) => Some(CorePrimitiveIntrinsic::SetIsEmpty),
         ("size", 1) => Some(CorePrimitiveIntrinsic::SetSize),
         ("contains", 2) => Some(CorePrimitiveIntrinsic::SetContains),
@@ -735,6 +805,116 @@ fn core_beam_native_bridge_primitive_intrinsic(
     }
 }
 
+/// Resolves a `std.beam.Bytes` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.beam.Bytes`
+///   module path.
+/// - `arity`: argument count after receiver methods have been normalized to
+///   receiver-first calls.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for executable BEAM byte-buffer
+///   operations.
+/// - `None` for unsupported operations or arity mismatch.
+///
+/// Transformation:
+/// - Maps the byte-buffer contract to closed CoreIR identities so protocol
+///   tests can use typed buffers without exposing Erlang binary syntax.
+fn core_beam_bytes_primitive_intrinsic(
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("from_list", 1) => Some(CorePrimitiveIntrinsic::BeamBytesFromList),
+        ("to_list", 1) => Some(CorePrimitiveIntrinsic::BeamBytesToList),
+        ("length", 1) => Some(CorePrimitiveIntrinsic::BeamBytesLength),
+        ("concat", 2) => Some(CorePrimitiveIntrinsic::BeamBytesConcat),
+        _ => None,
+    }
+}
+
+/// Resolves a `std.beam.Timeout` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.beam.Timeout`
+///   module path.
+/// - `arity`: source-visible argument count.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for executable timeout constructors.
+/// - `None` for unsupported operations or arity mismatch.
+///
+/// Transformation:
+/// - Keeps BEAM timeout representation target-owned while source tests use a
+///   typed timeout value.
+fn core_beam_timeout_primitive_intrinsic(
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("milliseconds", 1) => Some(CorePrimitiveIntrinsic::BeamTimeoutMilliseconds),
+        ("forever", 0) => Some(CorePrimitiveIntrinsic::BeamTimeoutForever),
+        _ => None,
+    }
+}
+
+/// Resolves a `std.beam.Tcp` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.beam.Tcp` module
+///   path.
+/// - `arity`: argument count after receiver methods have been normalized to
+///   receiver-first calls.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for executable TCP operations.
+/// - `None` for unsupported operations or arity mismatch.
+///
+/// Transformation:
+/// - Maps TCP socket lifecycle operations to closed CoreIR identities so
+///   daemon tests can depend on typed sockets instead of backend modules.
+fn core_beam_tcp_primitive_intrinsic(
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("connect", 3) => Some(CorePrimitiveIntrinsic::BeamTcpConnect),
+        ("send", 2) => Some(CorePrimitiveIntrinsic::BeamTcpSend),
+        ("receive", 3) => Some(CorePrimitiveIntrinsic::BeamTcpReceive),
+        ("close", 1) => Some(CorePrimitiveIntrinsic::BeamTcpClose),
+        _ => None,
+    }
+}
+
+/// Resolves a `std.beam.Port` operation name and arity to a primitive intrinsic.
+///
+/// Inputs:
+/// - `function`: source-level operation name after the `std.beam.Port` module
+///   path.
+/// - `arity`: argument count after receiver methods have been normalized to
+///   receiver-first calls.
+///
+/// Output:
+/// - `Some(CorePrimitiveIntrinsic)` for executable external-port operations.
+/// - `None` for unsupported operations or arity mismatch.
+///
+/// Transformation:
+/// - Maps external process lifecycle operations to closed CoreIR identities
+///   while leaving command construction as ordinary Terlan structs.
+fn core_beam_port_primitive_intrinsic(
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("open", 1) => Some(CorePrimitiveIntrinsic::BeamPortOpen),
+        ("write", 2) => Some(CorePrimitiveIntrinsic::BeamPortWrite),
+        ("read", 3) => Some(CorePrimitiveIntrinsic::BeamPortRead),
+        ("close", 1) => Some(CorePrimitiveIntrinsic::BeamPortClose),
+        _ => None,
+    }
+}
+
 /// Resolves a `std.beam.Supervisor` operation name and arity to a primitive intrinsic.
 ///
 /// Inputs:
@@ -805,7 +985,7 @@ fn core_beam_task_primitive_intrinsic(
 /// - Encodes the intrinsic registry's output column as CoreIR type payloads so
 ///   target lowering can validate operation results without re-reading source
 ///   signatures.
-fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> CoreType {
+pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> CoreType {
     match intrinsic {
         CorePrimitiveIntrinsic::TypeOf => CoreType::Named("Type".to_string()),
         CorePrimitiveIntrinsic::IsType => CoreType::Bool,
@@ -878,6 +1058,7 @@ fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> C
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
         CorePrimitiveIntrinsic::MapNew
+        | CorePrimitiveIntrinsic::MapFromEntries
         | CorePrimitiveIntrinsic::MapPut
         | CorePrimitiveIntrinsic::MapRemove
         | CorePrimitiveIntrinsic::MapClear => CoreType::Named("Map".to_string()),
@@ -894,6 +1075,7 @@ fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> C
             CoreTupleTypeElem::Type(CoreType::Named("Dynamic".to_string())),
         ]))),
         CorePrimitiveIntrinsic::SetNew
+        | CorePrimitiveIntrinsic::SetFromList
         | CorePrimitiveIntrinsic::SetAdd
         | CorePrimitiveIntrinsic::SetRemove
         | CorePrimitiveIntrinsic::SetClear => CoreType::Named("Set".to_string()),
@@ -987,6 +1169,57 @@ fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> C
             constructor: "NativeBridge".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
+        CorePrimitiveIntrinsic::BeamBytesFromList | CorePrimitiveIntrinsic::BeamBytesConcat => {
+            CoreType::Named("Bytes".to_string())
+        }
+        CorePrimitiveIntrinsic::BeamBytesToList => CoreType::List(Box::new(CoreType::Int)),
+        CorePrimitiveIntrinsic::BeamBytesLength => CoreType::Int,
+        CorePrimitiveIntrinsic::BeamTimeoutMilliseconds
+        | CorePrimitiveIntrinsic::BeamTimeoutForever => CoreType::Named("Timeout".to_string()),
+        CorePrimitiveIntrinsic::BeamTcpConnect => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("TcpSocket".to_string()),
+                CoreType::Named("Error".to_string()),
+            ],
+        },
+        CorePrimitiveIntrinsic::BeamTcpSend => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Unit".to_string()),
+                CoreType::Named("Error".to_string()),
+            ],
+        },
+        CorePrimitiveIntrinsic::BeamTcpReceive => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Bytes".to_string()),
+                CoreType::Named("Error".to_string()),
+            ],
+        },
+        CorePrimitiveIntrinsic::BeamTcpClose => CoreType::Named("Unit".to_string()),
+        CorePrimitiveIntrinsic::BeamPortOpen => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Port".to_string()),
+                CoreType::Named("Error".to_string()),
+            ],
+        },
+        CorePrimitiveIntrinsic::BeamPortWrite => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Unit".to_string()),
+                CoreType::Named("Error".to_string()),
+            ],
+        },
+        CorePrimitiveIntrinsic::BeamPortRead => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Bytes".to_string()),
+                CoreType::Named("Error".to_string()),
+            ],
+        },
+        CorePrimitiveIntrinsic::BeamPortClose => CoreType::Named("Unit".to_string()),
         CorePrimitiveIntrinsic::BeamSupervisorChildSpec => CoreType::Apply {
             constructor: "ChildSpec".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
@@ -1020,92 +1253,5 @@ fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> C
             constructor: "Task".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
-    }
-}
-
-/// Returns the Core return type for a runtime capability.
-///
-/// Inputs:
-/// - `capability`: compiler-owned runtime capability identity.
-///
-/// Output:
-/// - Backend-neutral `CoreType` result expected from the capability call.
-///
-/// Transformation:
-/// - Encodes the runtime capability registry's output column as CoreIR type
-///   payloads so target lowering can validate effectful operation results
-///   without re-reading source signatures.
-fn core_runtime_capability_return_type(capability: &CoreRuntimeCapability) -> CoreType {
-    match capability {
-        CoreRuntimeCapability::ConsolePrintln => CoreType::Named("Unit".to_string()),
-        CoreRuntimeCapability::FileExists => CoreType::Bool,
-        CoreRuntimeCapability::FileReadText => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::String,
-                CoreType::Named("std.io.File.FileError".to_string()),
-            ],
-        },
-        CoreRuntimeCapability::FileWriteText
-        | CoreRuntimeCapability::FileAppendText
-        | CoreRuntimeCapability::FileDelete => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Named("Unit".to_string()),
-                CoreType::Named("std.io.File.FileError".to_string()),
-            ],
-        },
-    }
-}
-
-/// Builds the canonical pure Core effect set.
-///
-/// Inputs:
-/// - None.
-///
-/// Output:
-/// - `CoreEffectSet` containing the stable `pure` label.
-///
-/// Transformation:
-/// - Centralizes the effect payload used by primitive intrinsics that do not
-///   perform observable side effects.
-pub(crate) fn core_pure_effect_set() -> CoreEffectSet {
-    CoreEffectSet {
-        effects: vec!["pure".to_string()],
-    }
-}
-
-/// Builds the canonical IO Core effect set.
-///
-/// Inputs:
-/// - None.
-///
-/// Output:
-/// - `CoreEffectSet` containing the stable `io` label.
-///
-/// Transformation:
-/// - Centralizes the effect payload used by runtime capabilities that perform
-///   observable console or stream effects.
-pub(crate) fn core_io_effect_set() -> CoreEffectSet {
-    CoreEffectSet {
-        effects: vec!["io".to_string()],
-    }
-}
-
-/// Builds the canonical mutable receiver Core effect set.
-///
-/// Inputs:
-/// - None.
-///
-/// Output:
-/// - `CoreEffectSet` containing the stable `receiver_mutation` label.
-///
-/// Transformation:
-/// - Centralizes the effect payload used by receiver methods whose source
-///   receiver is declared mutable, keeping mutation separate from ordinary
-///   `Unit`-returning calls in CoreIR.
-pub(crate) fn core_receiver_mutation_effect_set() -> CoreEffectSet {
-    CoreEffectSet {
-        effects: vec!["receiver_mutation".to_string()],
     }
 }

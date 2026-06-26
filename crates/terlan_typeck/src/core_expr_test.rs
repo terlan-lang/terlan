@@ -622,7 +622,7 @@ pub final_value(x: Int): Int ->\n\
         Some(CoreExpr::Let {
             bindings: vec![
                 CoreLetBinding {
-                    name: "y".to_string(),
+                    pattern: CorePattern::Var("y".to_string()),
                     value: CoreExpr::BinaryOp {
                         operator: "+".to_string(),
                         left: Box::new(CoreExpr::Var("x".to_string())),
@@ -630,7 +630,7 @@ pub final_value(x: Int): Int ->\n\
                     },
                 },
                 CoreLetBinding {
-                    name: "z".to_string(),
+                    pattern: CorePattern::Var("z".to_string()),
                     value: CoreExpr::BinaryOp {
                         operator: "*".to_string(),
                         left: Box::new(CoreExpr::Var("y".to_string())),
@@ -660,7 +660,7 @@ pub final_value(x: Int): Int ->\n\
         Some(CoreExpr::Let {
             bindings: vec![
                 CoreLetBinding {
-                    name: "y".to_string(),
+                    pattern: CorePattern::Var("y".to_string()),
                     value: CoreExpr::BinaryOp {
                         operator: "+".to_string(),
                         left: Box::new(CoreExpr::Var("x".to_string())),
@@ -668,7 +668,7 @@ pub final_value(x: Int): Int ->\n\
                     },
                 },
                 CoreLetBinding {
-                    name: "z".to_string(),
+                    pattern: CorePattern::Var("z".to_string()),
                     value: CoreExpr::BinaryOp {
                         operator: "*".to_string(),
                         left: Box::new(CoreExpr::Var("y".to_string())),
@@ -681,7 +681,7 @@ pub final_value(x: Int): Int ->\n\
     );
     assert!(
         core.contract_text()
-            .contains("Let(y=BinaryOp(+;Var(x), Int(1));z=BinaryOp(*;Var(y), Int(2));"),
+            .contains("Let(Var(y)=BinaryOp(+;Var(x), Int(1));Var(z)=BinaryOp(*;Var(y), Int(2));"),
         "contract text: {}",
         core.contract_text()
     );
@@ -819,4 +819,51 @@ pub make(): Dynamic ->\n\
         "contract text: {}",
         core.contract_text()
     );
+}
+
+/// Verifies generated template function calls lower to Core template nodes.
+///
+/// Inputs:
+/// - Syntax output containing a template declaration and a direct named
+///   template call.
+///
+/// Output:
+/// - Test passes when the function body Core expression is
+///   `CoreExpr::TemplateInstantiate`.
+///
+/// Transformation:
+/// - Confirms CoreIR lowering uses template declaration context before treating
+///   uppercase call names as constructor-call candidates.
+#[test]
+fn syntax_output_lowering_to_core_template_call_expr() {
+    let module = parse_module_as_syntax_output(
+        "\
+module core_template_call_expr_boundary.\n\
+template Page from \"./templates/page.terl.html\" {\n\
+    title: Binary\n\
+}.\n\
+\n\
+pub make(): Html[Dynamic] ->\n\
+    Page(title = \"Ada\").\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output(&module).module;
+    let core = lower_syntax_module_output_to_core(&module, &resolved);
+
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "make")
+        .expect("core make function");
+    let Some(CoreExpr::TemplateInstantiate { name, fields }) = &function.clauses[0].body.core_expr
+    else {
+        panic!(
+            "expected generated template call to lower to template instantiation: {:?}",
+            function.clauses[0].body.core_expr
+        );
+    };
+    assert_eq!(name, "Page");
+    assert_eq!(fields.len(), 1);
+    assert_eq!(fields[0].key, "title");
+    assert!(matches!(fields[0].value, CoreExpr::Binary(_)));
 }

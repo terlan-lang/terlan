@@ -1,0 +1,278 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ARIAMixin
+ */
+
+module std.js.Dom.ARIAMixin.
+
+pub opaque type ARIAMixin.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaActiveDescendantElement)
+ */
+pub (value: ARIAMixin) aria_active_descendant_element(): Option[Element].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaAtomic)
+ */
+pub (value: ARIAMixin) aria_atomic(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaAutoComplete)
+ */
+pub (value: ARIAMixin) aria_auto_complete(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaBrailleLabel)
+ */
+pub (value: ARIAMixin) aria_braille_label(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaBrailleRoleDescription)
+ */
+pub (value: ARIAMixin) aria_braille_role_description(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaBusy)
+ */
+pub (value: ARIAMixin) aria_busy(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaChecked)
+ */
+pub (value: ARIAMixin) aria_checked(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaColCount)
+ */
+pub (value: ARIAMixin) aria_col_count(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaColIndex)
+ */
+pub (value: ARIAMixin) aria_col_index(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaColIndexText)
+ */
+pub (value: ARIAMixin) aria_col_index_text(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaColSpan)
+ */
+pub (value: ARIAMixin) aria_col_span(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaControlsElements)
+ */
+pub (value: ARIAMixin) aria_controls_elements(): Option[std.js.Array[Element]].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaCurrent)
+ */
+pub (value: ARIAMixin) aria_current(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaDescribedByElements)
+ */
+pub (value: ARIAMixin) aria_described_by_elements(): Option[std.js.Array[Element]].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaDescription)
+ */
+pub (value: ARIAMixin) aria_description(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaDetailsElements)
+ */
+pub (value: ARIAMixin) aria_details_elements(): Option[std.js.Array[Element]].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaDisabled)
+ */
+pub (value: ARIAMixin) aria_disabled(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaErrorMessageElements)
+ */
+pub (value: ARIAMixin) aria_error_message_elements(): Option[std.js.Array[Element]].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaExpanded)
+ */
+pub (value: ARIAMixin) aria_expanded(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaFlowToElements)
+ */
+pub (value: ARIAMixin) aria_flow_to_elements(): Option[std.js.Array[Element]].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaHasPopup)
+ */
+pub (value: ARIAMixin) aria_has_popup(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaHidden)
+ */
+pub (value: ARIAMixin) aria_hidden(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaInvalid)
+ */
+pub (value: ARIAMixin) aria_invalid(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaKeyShortcuts)
+ */
+pub (value: ARIAMixin) aria_key_shortcuts(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaLabel)
+ */
+pub (value: ARIAMixin) aria_label(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaLabelledByElements)
+ */
+pub (value: ARIAMixin) aria_labelled_by_elements(): Option[std.js.Array[Element]].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaLevel)
+ */
+pub (value: ARIAMixin) aria_level(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaLive)
+ */
+pub (value: ARIAMixin) aria_live(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaModal)
+ */
+pub (value: ARIAMixin) aria_modal(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaMultiLine)
+ */
+pub (value: ARIAMixin) aria_multi_line(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaMultiSelectable)
+ */
+pub (value: ARIAMixin) aria_multi_selectable(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaOrientation)
+ */
+pub (value: ARIAMixin) aria_orientation(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaOwnsElements)
+ */
+pub (value: ARIAMixin) aria_owns_elements(): Option[std.js.Array[Element]].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaPlaceholder)
+ */
+pub (value: ARIAMixin) aria_placeholder(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaPosInSet)
+ */
+pub (value: ARIAMixin) aria_pos_in_set(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaPressed)
+ */
+pub (value: ARIAMixin) aria_pressed(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaReadOnly)
+ */
+pub (value: ARIAMixin) aria_read_only(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaRelevant)
+ */
+pub (value: ARIAMixin) aria_relevant(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaRequired)
+ */
+pub (value: ARIAMixin) aria_required(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaRoleDescription)
+ */
+pub (value: ARIAMixin) aria_role_description(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaRowCount)
+ */
+pub (value: ARIAMixin) aria_row_count(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaRowIndex)
+ */
+pub (value: ARIAMixin) aria_row_index(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaRowIndexText)
+ */
+pub (value: ARIAMixin) aria_row_index_text(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaRowSpan)
+ */
+pub (value: ARIAMixin) aria_row_span(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaSelected)
+ */
+pub (value: ARIAMixin) aria_selected(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaSetSize)
+ */
+pub (value: ARIAMixin) aria_set_size(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaSort)
+ */
+pub (value: ARIAMixin) aria_sort(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaValueMax)
+ */
+pub (value: ARIAMixin) aria_value_max(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaValueMin)
+ */
+pub (value: ARIAMixin) aria_value_min(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaValueNow)
+ */
+pub (value: ARIAMixin) aria_value_now(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaValueText)
+ */
+pub (value: ARIAMixin) aria_value_text(): Option[std.js.String.JsString].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/role)
+ */
+pub (value: ARIAMixin) role(): Option[std.js.String.JsString].

@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCTrackEvent
+ */
+
+module std.js.Dom.RTCTrackEvent.
+
+/**
+ * The WebRTC API interface **`RTCTrackEvent`** represents the RTCPeerConnection.track_event event, which is sent when a new MediaStreamTrack is added to an RTCRtpReceiver which is part of the RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent)
+ */
+pub opaque type RTCTrackEvent.
+
+/**
+ * The read-only **`receiver`** property of the RTCTrackEvent interface indicates the The RTCRtpReceiver which pairs the `receiver` with a sender and other properties which establish a single bidirectional RTP stream for use by the RTCTrackEvent.track associated with the `RTCTrackEvent`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/receiver)
+ */
+pub (value: RTCTrackEvent) receiver(): RTCRtpReceiver ->
+    native.
+
+/**
+ * The WebRTC API interface RTCTrackEvent's read-only **`streams`** property specifies an array of track being added to the RTCPeerConnection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/streams)
+ */
+pub (value: RTCTrackEvent) streams(): std.js.Array[MediaStream] ->
+    native.
+
+/**
+ * The
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/track)
+ */
+pub (value: RTCTrackEvent) track(): MediaStreamTrack ->
+    native.
+
+/**
+ * The WebRTC API interface RTCTrackEvent's read-only **`transceiver`** property indicates the The transceiver pairs the track's The RTCRtpTransceiver which pairs the `receiver` with a sender and other properties which establish a single bidirectional RTP stream for use by the RTCTrackEvent.track associated with the `RTCTrackEvent`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/transceiver)
+ */
+pub (value: RTCTrackEvent) transceiver(): RTCRtpTransceiver ->
+    native.

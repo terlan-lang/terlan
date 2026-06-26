@@ -1,0 +1,8 @@
+module=std.js.Dom.SVGNumber
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=3092111748412790598
+interface_hash=7449232595663941357
+interface_doc_hash=7449232595663941357
+deps=0

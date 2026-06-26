@@ -1,0 +1,8 @@
+module=std.js.Dom.PageRevealEvent
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=9860935430055163513
+interface_hash=18261314269400974417
+interface_doc_hash=18261314269400974417
+deps=0

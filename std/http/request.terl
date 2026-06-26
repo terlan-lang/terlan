@@ -11,6 +11,8 @@ module std.http.Request.
 import type std.core.Result.
 import type std.data.Json.
 import type std.core.Error.
+import type std.core.Option.
+import type std.http.Cookies.Jar.
 
 /**
  * Request represents one HTTP request received by a Terlan server.
@@ -22,6 +24,120 @@ import type std.core.Error.
  * stable typed receiver for handler functions.
  */
 pub opaque type Request.
+
+/**
+ * Returns the HTTP method.
+ *
+ * Input: one `Request` receiver.
+ * Output: the request method, such as `"GET"` or `"POST"`.
+ * Transformation: reads server-owned request metadata without exposing the
+ * concrete request implementation.
+ */
+@compiler.native {std.http.request.method}
+pub (request: Request) method(): String ->
+    native.
+
+/**
+ * Returns the request path.
+ *
+ * Input: one `Request` receiver.
+ * Output: the URL path without query text.
+ * Transformation: reads server-owned request metadata without exposing the
+ * concrete request implementation.
+ */
+@compiler.native {std.http.request.path}
+pub (request: Request) path(): String ->
+    native.
+
+/**
+ * Returns a route parameter value.
+ *
+ * Input: one `Request` receiver and one parameter name.
+ * Output: `Some(value)` when the matched route captured `name`, otherwise
+ * `None`.
+ * Transformation: reads decoded route parameters captured by the generated
+ * router manifest.
+ */
+@compiler.native {std.http.request.param}
+pub (request: Request) param(name: String): Option[String] ->
+    native.
+
+/**
+ * Returns a query parameter value.
+ *
+ * Input: one `Request` receiver and one query parameter name.
+ * Output: `Some(value)` when the request query included `name`, otherwise
+ * `None`.
+ * Transformation: reads decoded query parameters supplied by the server bridge.
+ */
+@compiler.native {std.http.request.query}
+pub (request: Request) query(name: String): Option[String] ->
+    native.
+
+/**
+ * Returns the raw query string.
+ *
+ * Input: one `Request` receiver.
+ * Output: the raw query text without the leading `?`, or an empty string when
+ * the request has no query string.
+ * Transformation: reads server-supplied query metadata without decoding or
+ * splitting it, so handlers can preserve the exact incoming query text when
+ * needed.
+ */
+@compiler.native {std.http.request.query_string}
+pub (request: Request) query_string(): String ->
+    native.
+
+/**
+ * Returns a request header value.
+ *
+ * Input: one `Request` receiver and one header name.
+ * Output: `Some(value)` when the request included a header named `name`,
+ * otherwise `None`.
+ * Transformation: reads normalized request-header metadata supplied by the
+ * server bridge without exposing backend header storage.
+ */
+@compiler.native {std.http.request.header}
+pub (request: Request) header(name: String): Option[String] ->
+    native.
+
+/**
+ * Returns a request cookie value.
+ *
+ * Input: one `Request` receiver and one cookie name.
+ * Output: `Some(value)` when the request included a cookie named `name`,
+ * otherwise `None`.
+ * Transformation: reads parsed request-cookie metadata supplied by the server
+ * bridge.
+ */
+@compiler.native {std.http.request.cookie}
+pub (request: Request) cookie(name: String): Option[String] ->
+    native.
+
+/**
+ * Returns the request-scoped cookie jar.
+ *
+ * Input: one `Request` receiver.
+ * Output: a mutable-capable `Cookies.Jar` handle for reading incoming cookies
+ * and recording response cookie mutations.
+ * Transformation: asks the HTTP runtime for the request-owned cookie view
+ * without exposing raw headers or response-header threading to handlers.
+ */
+@compiler.native {std.http.request.cookies}
+pub (request: Request) cookies(): Jar ->
+    native.
+
+/**
+ * Returns the request body as text.
+ *
+ * Input: one `Request` receiver.
+ * Output: the raw UTF-8 body text captured by the server bridge.
+ * Transformation: reads target-owned request body storage without parsing it
+ * as JSON or form data.
+ */
+@compiler.native {std.http.request.body_text}
+pub (request: Request) body_text(): String ->
+    native.
 
 /**
  * Parses the request body as JSON.

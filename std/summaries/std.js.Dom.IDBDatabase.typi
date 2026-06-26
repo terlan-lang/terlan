@@ -1,0 +1,76 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface IDBDatabase
+ */
+
+module std.js.Dom.IDBDatabase.
+
+/**
+ * The **`IDBDatabase`** interface of the IndexedDB API provides a connection to a database; you can use an `IDBDatabase` object to open a transaction on your database then create, manipulate, and delete objects (data) in that database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase)
+ */
+pub opaque type IDBDatabase.
+
+/**
+ * The **`name`** read-only property of the `IDBDatabase` interface is a string that contains the name of the connected database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/name)
+ */
+pub (value: IDBDatabase) name(): std.js.String.JsString.
+
+/**
+ * The **`objectStoreNames`** read-only property of the list of the names of the object stores currently in the connected database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/objectStoreNames)
+ */
+pub (value: IDBDatabase) object_store_names(): DOMStringList.
+
+/**
+ * The **`version`** property of the IDBDatabase interface is a 64-bit integer that contains the version of the connected database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/version)
+ */
+pub (value: IDBDatabase) version(): std.js.Number.JsNumber.
+
+/**
+ * The **`close()`** method of the IDBDatabase interface returns immediately and closes the connection in a separate thread.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/close)
+ */
+pub (value: IDBDatabase) close(): std.core.Unit.
+
+/**
+ * The **`createObjectStore()`** method of the The method takes the name of the store as well as a parameter object that lets you define important optional properties.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/createObjectStore)
+ */
+pub (value: IDBDatabase) create_object_store(name: std.js.String.JsString, options: IDBObjectStoreParameters): IDBObjectStore.
+
+/**
+ * The **`deleteObjectStore()`** method of the the connected database, along with any indexes that reference it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/deleteObjectStore)
+ */
+pub (value: IDBDatabase) delete_object_store(name: std.js.String.JsString): std.core.Unit.
+
+/**
+ * The **`transaction`** method of the IDBDatabase interface immediately returns a transaction object (IDBTransaction) containing the IDBTransaction.objectStore method, which you can use to access your object store.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/transaction)
+ */
+pub (value: IDBDatabase) transaction(store_names: std.js.Array[std.js.String.JsString] | std.js.String.JsString, mode: IDBTransactionMode, options: IDBTransactionOptions): IDBTransaction.
+
+pub (value: IDBDatabase) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: IDBDatabase) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

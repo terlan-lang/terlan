@@ -1,0 +1,94 @@
+module std.core.OrderingTest.
+
+import std.core.Ordering.{Eq, Gt, Lt}.
+import std.core.Option.{None, Some}.
+import type std.core.Ordering.Comparison.
+
+pub less(): Comparison ->
+    Lt.
+
+pub equal(): Comparison ->
+    Eq.
+
+pub greater(): Comparison ->
+    Gt.
+
+@test
+pub less_is_lt(): Bool ->
+    std.test.Test.assert(less() == Lt).
+
+@test
+pub equal_is_eq(): Bool ->
+    std.test.Test.assert(equal() == Eq).
+
+@test
+pub greater_is_gt(): Bool ->
+    std.test.Test.assert(greater() == Gt).
+
+@test
+pub compare_orders_lt_before_eq(): Bool ->
+    std.test.Test.assert_equal(Lt, std.core.Ordering.compare(Lt, Eq)).
+
+@test
+pub compare_orders_eq_before_gt(): Bool ->
+    std.test.Test.assert_equal(Lt, std.core.Ordering.compare(Eq, Gt)).
+
+@test
+pub compare_orders_gt_after_eq(): Bool ->
+    std.test.Test.assert_equal(Gt, std.core.Ordering.compare(Gt, Eq)).
+
+@test
+pub compare_orders_eq_after_lt(): Bool ->
+    std.test.Test.assert_equal(Gt, std.core.Ordering.compare(Eq, Lt)).
+
+@test
+pub compare_accepts_equal_comparison_values(): Bool ->
+    std.test.Test.assert_equal(Eq, std.core.Ordering.compare(Gt, Gt)).
+
+@test
+pub to_string_renders_lt(): Bool ->
+    std.test.Test.assert_equal("lt", std.core.Ordering.to_string(Lt)).
+
+@test
+pub to_string_renders_eq(): Bool ->
+    std.test.Test.assert_equal("eq", std.core.Ordering.to_string(Eq)).
+
+@test
+pub to_string_renders_gt(): Bool ->
+    std.test.Test.assert_equal("gt", std.core.Ordering.to_string(Gt)).
+
+@test
+pub from_string_parses_lt(): Bool ->
+    case std.core.Ordering.from_string("lt") {
+        Some(value) ->
+            std.test.Test.assert_equal(Lt, value);
+        None ->
+            false
+    }.
+
+@test
+pub from_string_parses_eq(): Bool ->
+    case std.core.Ordering.from_string("eq") {
+        Some(value) ->
+            std.test.Test.assert_equal(Eq, value);
+        None ->
+            false
+    }.
+
+@test
+pub from_string_parses_gt(): Bool ->
+    case std.core.Ordering.from_string("gt") {
+        Some(value) ->
+            std.test.Test.assert_equal(Gt, value);
+        None ->
+            false
+    }.
+
+@test
+pub from_string_rejects_unknown_text(): Bool ->
+    case std.core.Ordering.from_string("equal") {
+        None ->
+            true;
+        Some(_value) ->
+            false
+    }.

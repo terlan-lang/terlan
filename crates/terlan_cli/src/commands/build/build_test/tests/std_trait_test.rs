@@ -291,6 +291,7 @@ import std.core.Int.\n\
 import std.core.Option.{None, Some}.\n\
 import std.collections.Iterable.{Iterable}.\n\
 import std.collections.Iterator.\n\
+import type std.collections.Iterator.Iterator.\n\
 import type std.collections.List.List.\n\
 \n\
 pub first(values: List[Int]): Int ->\n\

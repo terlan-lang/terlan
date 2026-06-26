@@ -39,7 +39,7 @@ main() ->
 
 ## Status
 
-Current version: `0.0.4`
+Current version: `0.0.5`
 
 Terlan is in a very early experimental stage. The compiler, standard library,
 syntax, and release tooling are still changing quickly.
@@ -52,7 +52,13 @@ If you want to support the project, please star the repository.
 Install the Linux x86_64 release artifact:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/v0.0.5/install.sh | sh
+```
+
+To install a specific release through the latest installer:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.5 sh
 ```
 
 Or install from a release checkout with Rust:
@@ -116,7 +122,7 @@ terlc build
 Run it:
 
 ```sh
-./_build/bin/hello
+terlc run
 ```
 
 Expected output:
@@ -130,13 +136,13 @@ hello from Terlan
 `terlc init` creates a sample test file:
 
 ```text
-tests/hello/main_test.terl
+tests/hello/MainTest.terl
 ```
 
 Run it with:
 
 ```sh
-terlc test tests/hello/main_test.terl
+terlc test tests/hello/MainTest.terl
 ```
 
 Expected output:
@@ -149,8 +155,10 @@ test result: ok. 1 passed; 0 failed
 
 ## Current Scope
 
-0.0.4 adds the first JavaScript and browser-web target path while preserving
-the existing Erlang/BEAM release path.
+0.0.5 expands Terlan from compiler-only web output into an early full-stack
+toolchain: static-site generation, typed templates, HTTP serving, TLS planning,
+Postgres access, database migrations, editor packages, and language-server
+support now have release-gated paths.
 
 ## JavaScript Target
 

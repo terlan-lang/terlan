@@ -1,0 +1,100 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ValidityState
+ */
+
+module std.js.Dom.ValidityState.
+
+/**
+ * The **`ValidityState`** interface represents the _validity states_ that an element can be in, with respect to constraint validation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState)
+ */
+pub opaque type ValidityState.
+
+/**
+ * The read-only **`badInput`** property of the ValidityState interface indicates if the user has provided input that the browser is unable to convert.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/badInput)
+ */
+pub (value: ValidityState) bad_input(): std.core.Bool.
+
+/**
+ * The read-only **`customError`** property of the `ValidityState` interface returns `true` if an element doesn't meet the validation required in the custom validity set by the element's HTMLInputElement.setCustomValidity method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/customError)
+ */
+pub (value: ValidityState) custom_error(): std.core.Bool.
+
+/**
+ * The read-only **`patternMismatch`** property of the `ValidityState` interface indicates if the value of an input, after having been edited by the user, does not conform to the constraints set by the element's `pattern` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/patternMismatch)
+ */
+pub (value: ValidityState) pattern_mismatch(): std.core.Bool.
+
+/**
+ * The read-only **`rangeOverflow`** property of the `ValidityState` interface indicates if the value of an input, after having been edited by the user, does not conform to the constraints set by the element's `max` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/rangeOverflow)
+ */
+pub (value: ValidityState) range_overflow(): std.core.Bool.
+
+/**
+ * The read-only **`rangeUnderflow`** property of the `ValidityState` interface indicates if the value of an input, after having been edited by the user, does not conform to the constraints set by the element's `min` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/rangeUnderflow)
+ */
+pub (value: ValidityState) range_underflow(): std.core.Bool.
+
+/**
+ * The read-only **`stepMismatch`** property of the `ValidityState` interface indicates if the value of an input, after having been edited by the user, does not conform to the constraints set by the element's `step` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/stepMismatch)
+ */
+pub (value: ValidityState) step_mismatch(): std.core.Bool.
+
+/**
+ * The read-only **`tooLong`** property of the `ValidityState` interface indicates if the value of an input or textarea, after having been edited by the user, exceeds the maximum code-unit length established by the element's `maxlength` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/tooLong)
+ */
+pub (value: ValidityState) too_long(): std.core.Bool.
+
+/**
+ * The read-only **`tooShort`** property of the `ValidityState` interface indicates if the value of an input, button, select, output, fieldset or textarea, after having been edited by the user, is less than the minimum code-unit length established by the element's `minlength` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/tooShort)
+ */
+pub (value: ValidityState) too_short(): std.core.Bool.
+
+/**
+ * The read-only **`typeMismatch`** property of the `ValidityState` interface indicates if the value of an input, after having been edited by the user, does not conform to the constraints set by the element's `type` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/typeMismatch)
+ */
+pub (value: ValidityState) type_mismatch(): std.core.Bool.
+
+/**
+ * The read-only **`valid`** property of the `ValidityState` interface indicates if the value of an input element meets all its validation constraints, and is therefore considered to be valid.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/valid)
+ */
+pub (value: ValidityState) valid(): std.core.Bool.
+
+/**
+ * The read-only **`valueMissing`** property of the `ValidityState` interface indicates if a `required` control, such as an input, select, or textarea, has an empty value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ValidityState/valueMissing)
+ */
+pub (value: ValidityState) value_missing(): std.core.Bool.

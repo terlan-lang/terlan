@@ -1,0 +1,44 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface DOMImplementation
+ */
+
+module std.js.Dom.DOMImplementation.
+
+/**
+ * The **`DOMImplementation`** interface represents an object providing methods which are not dependent on any particular document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation)
+ */
+pub opaque type DOMImplementation.
+
+/**
+ * The **`DOMImplementation.createDocument()`** method creates and returns an XMLDocument.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createDocument)
+ */
+pub (value: DOMImplementation) create_document(namespace: Option[std.js.String.JsString], qualified_name: Option[std.js.String.JsString], doctype: Option[DocumentType]): XMLDocument.
+
+/**
+ * The **`DOMImplementation.createDocumentType()`** method returns a DocumentType object which can either be used with into the document via methods like Node.insertBefore() or ```js-nolint createDocumentType(qualifiedNameStr, publicId, systemId) ``` - `qualifiedNameStr` - : A string containing the qualified name, like `svg:svg`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createDocumentType)
+ */
+pub (value: DOMImplementation) create_document_type(name: std.js.String.JsString, public_id: std.js.String.JsString, system_id: std.js.String.JsString): DocumentType.
+
+/**
+ * The **`DOMImplementation.createHTMLDocument()`** method creates a new HTML Document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createHTMLDocument)
+ */
+pub (value: DOMImplementation) create_html_document(title: std.js.String.JsString): Document.

@@ -1,0 +1,13 @@
+module=std.beam.Port
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=12878583836226689410
+interface_hash=10811504206384012090
+interface_doc_hash=15058165859575017445
+deps=5
+std.beam.Bytes=13938407202053274265
+std.beam.Timeout=17826171935872526956
+std.core.Error=9899337511333859675
+std.core.Result=9304271609900710313
+std.core.Unit=9706956153418545572

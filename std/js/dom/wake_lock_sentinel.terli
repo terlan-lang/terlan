@@ -1,0 +1,49 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface WakeLockSentinel
+ */
+
+module std.js.Dom.WakeLockSentinel.
+
+/**
+ * The **`WakeLockSentinel`** interface of the Screen Wake Lock API can be used to monitor the status of the platform screen wake lock, and manually release the lock when needed.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel)
+ */
+pub opaque type WakeLockSentinel.
+
+/**
+ * The **`released`** read-only property of the WakeLockSentinel interface returns a boolean that indicates whether a WakeLockSentinel has been released.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/released)
+ */
+pub (value: WakeLockSentinel) released(): std.core.Bool.
+
+/**
+ * The **`type`** read-only property of the WakeLockSentinel interface returns a string representation of the currently acquired WakeLockSentinel type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/type)
+ */
+pub (value: WakeLockSentinel) type_(): WakeLockType.
+
+/**
+ * The **`release()`** method of the WakeLockSentinel interface releases the WakeLockSentinel, returning a Promise that is resolved once the sentinel has been successfully released.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/release)
+ */
+pub (value: WakeLockSentinel) release(): std.js.Promise[std.core.Unit].
+
+pub (value: WakeLockSentinel) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: WakeLockSentinel) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

@@ -1,0 +1,45 @@
+module std.http.RequestTest.
+
+import type std.core.Error.
+import type std.core.Option.
+import type std.core.Result.
+import type std.data.Json.Json.
+import type std.http.Cookies.Jar.
+import type std.http.Request.Request.
+
+pub accepts_request(value: Request): Request ->
+    value.
+
+pub sample_method(request: Request): String ->
+    request.method().
+
+pub sample_path(request: Request): String ->
+    request.path().
+
+pub sample_param(request: Request): Option[String] ->
+    request.param("id").
+
+pub sample_query(request: Request): Option[String] ->
+    request.query("page").
+
+pub sample_query_string(request: Request): String ->
+    request.query_string().
+
+pub sample_header(request: Request): Option[String] ->
+    request.header("accept").
+
+pub sample_cookie(request: Request): Option[String] ->
+    request.cookie("session").
+
+pub sample_cookies(request: Request): Jar ->
+    request.cookies().
+
+pub sample_body_text(request: Request): String ->
+    request.body_text().
+
+pub sample_body_json(request: Request): Result[Json, Error] ->
+    request.body_json().
+
+@test
+pub request_surface_is_declared(): Bool ->
+    true.

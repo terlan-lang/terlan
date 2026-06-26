@@ -1,0 +1,8 @@
+module=std.js.Dom.Storage
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=812181372697385541
+interface_hash=17639514983137379590
+interface_doc_hash=17639514983137379590
+deps=0

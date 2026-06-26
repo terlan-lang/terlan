@@ -142,7 +142,7 @@ pub trait Convertable[From, To] {
     convert(value: From): To.
 }.
 
-pub struct Task {
+pub struct AppTask {
     id: Int
 }.
 
@@ -150,12 +150,12 @@ pub struct JsPromise {
     id: Int
 }.
 
-pub impl Convertable[Task, JsPromise] for JsPromise {
-    convert(value: Task): JsPromise ->
+pub impl Convertable[AppTask, JsPromise] for JsPromise {
+    convert(value: AppTask): JsPromise ->
         value as JsPromise.
 }.
 
-pub wrap(value: Task): JsPromise ->
+pub wrap(value: AppTask): JsPromise ->
     value as JsPromise.
 ",
         ),
@@ -168,7 +168,7 @@ pub trait Convertable[From, To] {
     convert(value: From): To.
 }.
 
-pub struct Map {
+pub struct AppMap {
     size: Int
 }.
 
@@ -176,12 +176,12 @@ pub struct JsMap {
     size: Int
 }.
 
-pub impl Convertable[Map, JsMap] for JsMap {
-    convert(value: Map): JsMap ->
+pub impl Convertable[AppMap, JsMap] for JsMap {
+    convert(value: AppMap): JsMap ->
         value as JsMap.
 }.
 
-pub wrap(value: Map): JsMap ->
+pub wrap(value: AppMap): JsMap ->
     value as JsMap.
 ",
         ),

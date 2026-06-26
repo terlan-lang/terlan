@@ -20,6 +20,10 @@ runtime.
 - `std.beam.Task`: task-style asynchronous process contract.
 - `std.beam.GenServer` and `std.beam.Supervisor`: OTP-shaped process modules.
 - `std.beam.NativeBridge`: bridge boundary for supervised native resources.
+- `std.beam.Bytes`: BEAM-owned binary protocol frames.
+- `std.beam.Timeout`: typed timeout values for BEAM receive-style operations.
+- `std.beam.Tcp`: connected TCP socket operations for BEAM integration tests.
+- `std.beam.Port`: external OS process and BEAM port lifecycle operations.
 
 ## Core Model
 
@@ -39,6 +43,8 @@ Important invariants:
 - BEAM-only APIs stay under `std.beam`.
 - Process protocols are typed at the Terlan boundary.
 - Native bridge APIs are reserved for supervised or long-lived native work.
+- Daemon and socket protocol tests should use `Bytes`, `Tcp`, `Port`, and
+  `Timeout` instead of embedding backend-specific Erlang helper code in tests.
 
 ## Integration Points
 
@@ -63,6 +69,15 @@ Important invariants:
 
 `NativeBridge`
 : BEAM-supervised native resource bridge boundary.
+
+`Bytes`
+: BEAM-owned binary protocol frame.
+
+`TcpSocket`
+: BEAM-owned TCP socket handle.
+
+`Port`
+: BEAM-owned external process or port handle.
 
 ## Testing Notes
 

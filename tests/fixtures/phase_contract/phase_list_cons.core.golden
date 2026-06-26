@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_list_cons
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:511fd31cb5830310
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
 export=prepend/2
 function=prepend/2 public=true params=head:Int:core=Int,tail:List[Int]:core=List(Int) return=List[Int] return_core=List(Int)
 function_clause=prepend/2#0 patterns=Var:text=head:arity=0,Var:text=tail:arity=0 core_patterns=Var(head),Var(tail) pattern_proof=lean-covered,lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(head)),structural-core-pattern(freshness=runtime-bindings-required;target=Var(tail)) guard=none body=ListCons:core=ListCons(Var(head)|Var(tail)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=ListCons(Var(head)|Var(tail))):proof=lean-covered:arity=2:children=[Var:core=Var(head):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(head)):proof=lean-covered:text=head:arity=0;Var:core=Var(tail):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(tail)):proof=lean-covered:text=tail:arity=0]

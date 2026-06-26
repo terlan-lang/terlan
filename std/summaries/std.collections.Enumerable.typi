@@ -16,16 +16,16 @@ module std.collections.Enumerable.
 pub trait Enumerable[C, T] {
     each(collection: C, cb: (T ) -> Unit): Unit.
     filter(collection: C, predicate: (T ) -> Bool): List[T].
-    fold(collection: C, initial: U, reducer: (U, T ) -> U): U.
-    map(collection: C, cb: (T ) -> U): List[U].
+    fold[U](collection: C, initial: U, reducer: (U, T ) -> U): U.
+    map[U](collection: C, cb: (T ) -> U): List[U].
 }.
 
-pub impl Enumerable[List[T], T] for List[T] {
+pub impl Enumerable[std.collections.List.List[T], T] for std.collections.List.List[T] {
 }.
 
-pub impl Enumerable[Map[K, V], {K, V}] for Map[K, V] {
+pub impl Enumerable[std.collections.Map.Map[K, V], {K, V}] for std.collections.Map.Map[K, V] {
 }.
 
-pub impl Enumerable[Set[T], T] for Set[T] {
+pub impl Enumerable[std.collections.Set.Set[T], T] for std.collections.Set.Set[T] {
 }.
 

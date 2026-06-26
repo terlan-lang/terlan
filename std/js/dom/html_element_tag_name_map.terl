@@ -1,0 +1,354 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLElementTagNameMap
+ */
+
+module std.js.Dom.HTMLElementTagNameMap.
+
+pub opaque type HTMLElementTagNameMap.
+
+pub (value: HTMLElementTagNameMap) a(): HTMLAnchorElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) abbr(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) address(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) area(): HTMLAreaElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) article(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) aside(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) audio(): HTMLAudioElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) b(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) base(): HTMLBaseElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) bdi(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) bdo(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) blockquote(): HTMLQuoteElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) body(): HTMLBodyElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) br(): HTMLBRElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) button(): HTMLButtonElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) canvas(): HTMLCanvasElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) caption(): HTMLTableCaptionElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) cite(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) code(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) col(): HTMLTableColElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) colgroup(): HTMLTableColElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) data(): HTMLDataElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) datalist(): HTMLDataListElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) dd(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) del(): HTMLModElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) details(): HTMLDetailsElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) dfn(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) dialog(): HTMLDialogElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) div_(): HTMLDivElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) dl(): HTMLDListElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) dt(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) em(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) embed(): HTMLEmbedElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) fieldset(): HTMLFieldSetElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) figcaption(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) figure(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) footer(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) form(): HTMLFormElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) h1(): HTMLHeadingElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) h2(): HTMLHeadingElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) h3(): HTMLHeadingElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) h4(): HTMLHeadingElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) h5(): HTMLHeadingElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) h6(): HTMLHeadingElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) head(): HTMLHeadElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) header(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) hgroup(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) hr(): HTMLHRElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) html_(): HTMLHtmlElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) i(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) iframe(): HTMLIFrameElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) img(): HTMLImageElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) input(): HTMLInputElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) ins(): HTMLModElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) kbd(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) label(): HTMLLabelElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) legend(): HTMLLegendElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) li(): HTMLLIElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) link(): HTMLLinkElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) main(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) map(): HTMLMapElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) mark(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) menu(): HTMLMenuElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) meta(): HTMLMetaElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) meter(): HTMLMeterElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) nav(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) noscript(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) object(): HTMLObjectElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) ol(): HTMLOListElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) optgroup(): HTMLOptGroupElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) option(): HTMLOptionElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) output(): HTMLOutputElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) p(): HTMLParagraphElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) picture(): HTMLPictureElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) pre(): HTMLPreElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) progress(): HTMLProgressElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) q(): HTMLQuoteElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) rp(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) rt(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) ruby(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) s(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) samp(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) script(): HTMLScriptElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) search(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) section(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) select(): HTMLSelectElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) slot(): HTMLSlotElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) small(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) source(): HTMLSourceElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) span(): HTMLSpanElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) strong(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) style(): HTMLStyleElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) sub(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) summary(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) sup(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) table(): HTMLTableElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) tbody(): HTMLTableSectionElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) td(): HTMLTableCellElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) template_(): HTMLTemplateElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) textarea(): HTMLTextAreaElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) tfoot(): HTMLTableSectionElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) th(): HTMLTableCellElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) thead(): HTMLTableSectionElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) time(): HTMLTimeElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) title(): HTMLTitleElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) tr(): HTMLTableRowElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) track(): HTMLTrackElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) u(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) ul(): HTMLUListElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) var(): HTMLElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) video(): HTMLVideoElement ->
+    native.
+
+pub (value: HTMLElementTagNameMap) wbr(): HTMLElement ->
+    native.

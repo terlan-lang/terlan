@@ -1,0 +1,163 @@
+//! Portable HTTP cookie contract.
+//!
+//! `std.http.Cookies` defines the typed cookie option surface for Terlan HTTP
+//! handlers. `Request.cookies()` returns a request-scoped jar that can read
+//! incoming cookies and record response cookie mutations while the HTTP runtime
+//! owns concrete header storage.
+
+module std.http.Cookies.
+
+/// Jar represents request-scoped cookie state.
+///
+/// Input: no type parameter.
+/// Output: an opaque cookie jar handle owned by the HTTP runtime.
+/// Transformation: lets handlers read incoming cookies and record outgoing
+/// cookie mutations without manually threading response headers.
+
+pub opaque type Jar.
+
+/// Lax represents the default practical SameSite cookie policy.
+///
+/// Input: no value input.
+/// Output: atom-backed SameSite marker.
+/// Transformation: gives cookie option records a stable source-visible policy
+/// value without exposing backend header formatting.
+
+pub type Lax =
+    Atom["lax"].
+
+/// None represents the cross-site SameSite cookie policy.
+///
+/// Input: no value input.
+/// Output: atom-backed SameSite marker.
+/// Transformation: gives cookie option records a stable source-visible policy
+/// value without exposing backend header formatting.
+
+pub type None =
+    Atom["none"].
+
+/// Options represents optional `Set-Cookie` metadata.
+///
+/// Input: no type parameter.
+/// Output: typed cookie option record.
+/// Transformation: keeps cookie mutation options explicit so the runtime
+/// cookie jar can validate and serialize them without changing the source API.
+
+pub struct Options {
+    path: Option[String],
+    domain: Option[String],
+    max_age: Option[Int],
+    expires: Option[String],
+    http_only: Bool,
+    secure: Bool,
+    same_site: Option[SameSite]
+}.
+
+/// SameSite represents the supported SameSite cookie policies.
+///
+/// Input: no type parameter.
+/// Output: one of the supported SameSite policy markers.
+/// Transformation: narrows cookie policy values before runtime header
+/// serialization and validation.
+
+pub type SameSite =
+    Lax
+  | Strict
+  | None.
+
+/// Strict represents the strict SameSite cookie policy.
+///
+/// Input: no value input.
+/// Output: atom-backed SameSite marker.
+/// Transformation: gives cookie option records a stable source-visible policy
+/// value without exposing backend header formatting.
+
+pub type Strict =
+    Atom["strict"].
+
+/// Records a response cookie deletion.
+///
+/// Input: one mutable cookie jar receiver, cookie name, and optional path.
+/// Output: `Unit`.
+/// Transformation: validates the cookie name/path and records an expiring
+/// `Set-Cookie` mutation through the HTTP adapter.
+
+pub (mut jar: Jar) delete(name: String, path: String = "/"): Unit.
+
+/// Builds an expiring `Set-Cookie` header value.
+///
+/// Input: cookie name and optional path.
+/// Output: serialized `Set-Cookie` header value that expires the cookie.
+/// Transformation: delegates deletion-header construction to the Rust HTTP
+/// adapter so path handling stays consistent with `set_header`.
+
+pub delete_header(name: String, path: String = "/"): String.
+
+/// Returns an incoming cookie value.
+///
+/// Input: one cookie jar receiver and one cookie name.
+/// Output: `Some(value)` when the request included a cookie named `name`,
+/// otherwise `None`.
+/// Transformation: reads parsed request-cookie metadata from the runtime-owned
+/// jar without exposing the raw `Cookie` header.
+
+pub (jar: Jar) get(name: String): Option[String].
+
+/// Records a response cookie mutation.
+///
+/// Input: one mutable cookie jar receiver, cookie name, cookie value, optional
+/// path, and practical boolean flags.
+/// Output: `Unit`.
+/// Transformation: validates and serializes the mutation through the HTTP
+/// adapter so the server can apply the resulting `Set-Cookie` header to the
+/// returned response.
+
+pub (mut jar: Jar) set(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): Unit.
+
+/// Builds a `Set-Cookie` header value.
+///
+/// Input: cookie name, cookie value, optional path, and practical boolean
+/// flags.
+/// Output: serialized `Set-Cookie` header value.
+/// Transformation: delegates conservative cookie name/value/path validation and
+/// serialization to the Rust HTTP adapter so handlers do not assemble cookie
+/// headers by hand.
+
+pub set_header(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): String.
+
+/// Builds a `Set-Cookie` header value from typed options.
+///
+/// Input: cookie name, cookie value, and one typed `Options` record.
+/// Output: serialized `Set-Cookie` header value.
+/// Transformation: projects the typed option record into the current Rust HTTP
+/// adapter call shape, preserving `None` as an omitted header attribute and
+/// converting `SameSite` markers into the adapter's string vocabulary.
+
+pub set_header_options(name: String, value: String, options: Options): String.
+
+/// Builds a `Set-Cookie` header value with the full option surface.
+///
+/// Input: cookie name, cookie value, path, optional domain text, `Max-Age`
+/// seconds plus an inclusion flag, optional expires text, practical boolean
+/// flags, and optional SameSite text (`"lax"`, `"strict"`, `"none"`, or empty
+/// string).
+/// Output: serialized `Set-Cookie` header value.
+/// Transformation: delegates validation and deterministic serialization to the
+/// Rust HTTP adapter while keeping the source API ready for a future `Options`
+/// record wrapper once records can cross SafeNative directly.
+
+pub set_header_with_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): String.
+
+/// Constructs typed cookie options.
+///
+/// Input: optional path/domain/max-age/expires values, practical boolean flags,
+/// and an optional SameSite policy.
+/// Output: an `Options` record.
+/// Transformation: centralizes public construction so callers do not raw-build
+/// the `Options` struct outside this module.
+
+pub constructor Options {
+    (path: Option[String], domain: Option[String], max_age: Option[Int], expires: Option[String], http_only: Bool, secure: Bool, same_site: Option[SameSite]): Options ->
+        terlan_interface_constructor
+}.
+

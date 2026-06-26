@@ -70,6 +70,59 @@ pub(crate) enum TargetProfile {
     CoreV0,
 }
 
+/// Coarse backend/runtime family for target routing.
+///
+/// Inputs:
+/// - Supported target-profile variants and reserved future target spellings.
+///
+/// Output:
+/// - Stable family identity used by CLI dispatch and diagnostics.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum TargetFamily {
+    Beam,
+    Js,
+    Wasm,
+    Wasi,
+    Core,
+}
+
+impl TargetFamily {
+    /// Human-readable family name for CLI diagnostics.
+    ///
+    /// Inputs:
+    /// - One target family.
+    ///
+    /// Output:
+    /// - Stable ASCII family label.
+    pub(crate) const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Beam => "BEAM",
+            Self::Js => "JS",
+            Self::Wasm => "Wasm",
+            Self::Wasi => "WASI",
+            Self::Core => "Core",
+        }
+    }
+
+    /// Classifies reserved target names that do not have an implementation yet.
+    ///
+    /// Inputs:
+    /// - Raw CLI target spelling.
+    ///
+    /// Output:
+    /// - `Some(TargetFamily)` for reserved Wasm/WASI target families.
+    /// - `None` for supported or unrelated target names.
+    pub(crate) fn reserved_target(value: &str) -> Option<Self> {
+        match value {
+            "wasm" | "wasm.core" | "wasm.browser" | "wasm.component" | "wasm.worker" => {
+                Some(Self::Wasm)
+            }
+            "wasi" | "wasi.cli" | "wasi.http" | "wasi.worker" => Some(Self::Wasi),
+            _ => None,
+        }
+    }
+}
+
 impl TargetProfile {
     /// Human-readable profile name.
     ///
@@ -123,6 +176,43 @@ impl TargetProfile {
     ///   validation can gate `std.js.*` without duplicating enum matches.
     pub(crate) const fn is_js(&self) -> bool {
         matches!(self, Self::JsShared | Self::JsBrowser | Self::JsWorker)
+    }
+
+    /// Returns the coarse runtime family for a supported target profile.
+    ///
+    /// Inputs:
+    /// - One implemented target profile.
+    ///
+    /// Output:
+    /// - Family identity used by dispatch code.
+    pub(crate) const fn family(&self) -> TargetFamily {
+        match self {
+            Self::JsShared | Self::JsBrowser | Self::JsWorker => TargetFamily::Js,
+            Self::CoreV0 => TargetFamily::Core,
+            Self::Erlang
+            | Self::A0Erlang
+            | Self::A01Erlang
+            | Self::A02Erlang
+            | Self::A03Erlang
+            | Self::A04Erlang
+            | Self::A05Erlang
+            | Self::A06Erlang
+            | Self::A07Erlang
+            | Self::A08Erlang
+            | Self::A09Erlang
+            | Self::A010Erlang
+            | Self::A011Erlang
+            | Self::A012Erlang
+            | Self::A013Erlang
+            | Self::A014Erlang
+            | Self::A015Erlang
+            | Self::A016Erlang
+            | Self::A017Erlang
+            | Self::A018Erlang
+            | Self::A019Erlang
+            | Self::A020Erlang
+            | Self::A021Erlang => TargetFamily::Beam,
+        }
     }
 
     /// Returns whether profile allows a given expression-level proof coverage.
@@ -1132,6 +1222,7 @@ impl TargetProfile {
                 | CoreExpr::RemoteCall { .. }
                 | CoreExpr::MutableReceiverCall { .. }
                 | CoreExpr::Intrinsic(_)
+                | CoreExpr::SqlQuery { .. }
                 | CoreExpr::Try { .. } => false,
             },
         }

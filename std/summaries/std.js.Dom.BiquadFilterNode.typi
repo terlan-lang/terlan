@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface BiquadFilterNode
+ */
+
+module std.js.Dom.BiquadFilterNode.
+
+/**
+ * The `BiquadFilterNode` interface represents a simple low-order filter, and is created using the BaseAudioContext/createBiquadFilter method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode)
+ */
+pub opaque type BiquadFilterNode.
+
+/**
+ * The `Q` property of the BiquadFilterNode interface is an a-rate AudioParam, a double representing a Q factor, or _quality factor_.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/Q)
+ */
+pub (value: BiquadFilterNode) q(): AudioParam.
+
+/**
+ * The `detune` property of the BiquadFilterNode interface is an a-rate AudioParam representing detuning of the frequency in cents.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/detune)
+ */
+pub (value: BiquadFilterNode) detune(): AudioParam.
+
+/**
+ * The `frequency` property of the BiquadFilterNode interface is an a-rate AudioParam — a double representing a frequency in the current filtering algorithm measured in hertz (Hz).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/frequency)
+ */
+pub (value: BiquadFilterNode) frequency(): AudioParam.
+
+/**
+ * The `gain` property of the BiquadFilterNode interface is an a-rate AudioParam — a double representing the gain used in the current filtering algorithm.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/gain)
+ */
+pub (value: BiquadFilterNode) gain(): AudioParam.
+
+/**
+ * The `type` property of the BiquadFilterNode interface is a string (enum) value defining the kind of filtering algorithm the node is implementing.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/type)
+ */
+pub (value: BiquadFilterNode) type_(): BiquadFilterType.
+
+/**
+ * The `getFrequencyResponse()` method of the BiquadFilterNode interface takes the current filtering algorithm's settings and calculates the frequency response for frequencies specified in a specified array of frequencies.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/getFrequencyResponse)
+ */
+pub (value: BiquadFilterNode) get_frequency_response(frequency_hz: Float32Array[ArrayBuffer], mag_response: Float32Array[ArrayBuffer], phase_response: Float32Array[ArrayBuffer]): std.core.Unit.

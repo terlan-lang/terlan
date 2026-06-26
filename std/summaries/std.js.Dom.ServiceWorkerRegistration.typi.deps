@@ -1,0 +1,8 @@
+module=std.js.Dom.ServiceWorkerRegistration
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16302264101929990116
+interface_hash=7239770438666172183
+interface_doc_hash=7239770438666172183
+deps=0

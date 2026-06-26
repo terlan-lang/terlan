@@ -81,11 +81,11 @@ formal-syntax-a0-24-collection-gate:
 	$(EXACT_CARGO_TEST) -p terlan_syntax parser::tests::formal_cons_list_expr_is_distinct_from_generator_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan_syntax parser::tests::formal_list_comprehension_rejects_unrepresented_extra_generators -- --exact
 	$(EXACT_CARGO_TEST) -p terlan_syntax parser::tests::formal_collection_exprs_preserve_ast_shapes -- --exact
-	$(EXACT_CARGO_TEST) -p terlan_syntax parser::tests::formal_binary_segments_are_preserved_as_binary_literal_text -- --exact
+	$(EXACT_CARGO_TEST) -p terlan_syntax parser::tests::formal_binary_segments_are_rejected_as_erlang_source_syntax -- --exact
 	$(MAKE) -f $(SYNTAX_MAKEFILE) --no-print-directory parser-fixture-check
 
 formal-syntax-a0-24-status:
-	@echo "A0.24 successor matrix: A0.24 syntax collection and binary forms"
+	@echo "A0.24 successor matrix: A0.24 syntax collection forms and Erlang binary rejection"
 	@echo "A0.24 successor fixture: docs/grammar/fixtures/core/19_collection_binary_forms.terl"
 	@echo "A0.24 successor negative fixture: docs/grammar/fixtures/negative/33_multi_generator_list_comprehension.terl"
 	@echo "A0.24 successor gate: make formal-syntax-a0-24-collection-gate"

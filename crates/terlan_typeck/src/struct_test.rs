@@ -3,44 +3,44 @@ use super::*;
 use terlan_syntax::parse_module_as_syntax_output;
 
 #[test]
-fn expands_syntax_derives_no_ops_without_struct_derives() {
+fn expands_syntax_includes_no_ops_without_struct_includes() {
     let module = parse_module_as_syntax_output(
         "\
-module syntax_derive_expansion_ok.\n\
+module syntax_include_expansion_ok.\n\
 pub struct User {\n\
     id: Int\n\
 }.\n",
     )
-    .expect("parse syntax-output derive expansion fixture");
+    .expect("parse syntax-output include expansion fixture");
     let resolved = terlan_hir::resolve_syntax_module_output(&module).module;
 
-    let (expanded, diagnostics) = expand_syntax_derives(module.clone(), &resolved);
+    let (expanded, diagnostics) = expand_syntax_includes(module.clone(), &resolved);
 
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
     assert_eq!(
         expanded, module,
-        "non-derived modules must pass through unchanged"
+        "non-including modules must pass through unchanged"
     );
 }
 
 #[test]
-fn expands_syntax_derives_copies_local_parent_struct_fields() {
+fn expands_syntax_includes_copies_local_parent_struct_fields() {
     let module = parse_module_as_syntax_output(
         "\
-module syntax_derive_expansion_fields.\n\
+module syntax_include_expansion_fields.\n\
 pub struct Error {\n\
     code: Atom,\n\
     message: String\n\
 }.\n\
 \n\
-pub struct FileError derives Error {\n\
+pub struct FileError includes Error {\n\
     path: String\n\
 }.\n",
     )
-    .expect("parse syntax-output derive expansion fixture");
+    .expect("parse syntax-output include expansion fixture");
     let resolved = terlan_hir::resolve_syntax_module_output(&module).module;
 
-    let (expanded, diagnostics) = expand_syntax_derives(module, &resolved);
+    let (expanded, diagnostics) = expand_syntax_includes(module, &resolved);
 
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
     let file_error_fields = expanded
@@ -78,16 +78,16 @@ pub user_id(value: Int): UserId ->\n\
 }
 
 #[test]
-fn syntax_output_checks_struct_derives_on_formal_path() {
+fn syntax_output_checks_struct_includes_on_formal_path() {
     let valid_diagnostics = check_syntax_output(
         "\
-module struct_derives_ok.\n\
+module struct_includes_ok.\n\
 pub struct Error {\n\
     code: Atom,\n\
     message: String\n\
 }.\n\
 \n\
-pub struct FileError derives Error {\n\
+pub struct FileError includes Error {\n\
     path: String\n\
 }.\n\
 ",
@@ -100,8 +100,8 @@ pub struct FileError derives Error {\n\
 
     let unknown_diagnostics = check_syntax_output(
         "\
-module struct_derives_unknown.\n\
-pub struct User derives NoSuch {\n\
+module struct_includes_unknown.\n\
+pub struct User includes NoSuch {\n\
     id: Int\n\
 }.\n\
 ",
@@ -109,19 +109,19 @@ pub struct User derives NoSuch {\n\
     assert!(
         unknown_diagnostics
             .iter()
-            .any(|diag| diag.message.contains("unknown derived struct `NoSuch`")),
+            .any(|diag| diag.message.contains("unknown included struct `NoSuch`")),
         "diagnostics: {:?}",
         unknown_diagnostics
     );
 
     let trait_instance_diagnostics = check_syntax_output(
         "\
-module struct_derives_trait_instance.\n\
+module struct_includes_trait_instance.\n\
 pub trait Show[A] {\n\
     show(value: A): Binary.\n\
 }.\n\
 \n\
-pub struct User derives Show[User] {\n\
+pub struct User includes Show[User] {\n\
     id: Int\n\
 }.\n\
 ",
@@ -136,12 +136,12 @@ pub struct User derives Show[User] {\n\
 
     let duplicate_diagnostics = check_syntax_output(
         "\
-module struct_derives_duplicate.\n\
+module struct_includes_duplicate.\n\
 pub struct Error {\n\
     code: Atom\n\
 }.\n\
 \n\
-pub struct User derives Error, Error {\n\
+pub struct User includes Error, Error {\n\
     id: Int\n\
 }.\n\
 ",
@@ -149,7 +149,7 @@ pub struct User derives Error, Error {\n\
     assert!(
         duplicate_diagnostics
             .iter()
-            .any(|diag| diag.message.contains("duplicate derived struct `Error`")),
+            .any(|diag| diag.message.contains("duplicate included struct `Error`")),
         "diagnostics: {:?}",
         duplicate_diagnostics
     );

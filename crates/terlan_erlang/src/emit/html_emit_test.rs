@@ -117,9 +117,9 @@ body: Html[:none]
 
 pub page(): Html[:none] ->
 Page{
-    title = <<"Hi & Bye">>,
-    url = <<"/posts?tag=a&b=1">>,
-    body = Html.raw(<<"<strong>ok</strong>">>)
+    title = "Hi & Bye",
+    url = "/posts?tag=a&b=1",
+    body = Html.raw("<strong>ok</strong>")
 }.
 "#,
     )
@@ -146,9 +146,170 @@ Page{
     .render();
 
     assert!(output.contains("page() ->"));
-    assert!(output.contains("typer_html:escape(<<\"/posts?tag=a&b=1\">>)"));
-    assert!(output.contains("typer_html:escape(<<\"Hi & Bye\">>)"));
-    assert!(output.contains("<<\"<strong>ok</strong>\">>"));
+    assert!(output.contains("typer_html:escape(\"/posts?tag=a&b=1\")"));
+    assert!(output.contains("typer_html:escape(\"Hi & Bye\")"));
+    assert!(output.contains("\"<strong>ok</strong>\""));
+}
+
+/// Verifies generated template function calls lower through the Erlang syntax
+/// bridge.
+///
+/// Inputs:
+/// - A template declaration with two properties.
+/// - A function returning `Page(title = ..., body = ...)`.
+///
+/// Output:
+/// - Test passes when the named call renders the parsed template body instead
+///   of falling through to unsupported uppercase call lowering.
+///
+/// Transformation:
+/// - Routes source-visible template function calls into the same HTML template
+///   renderer used by constructor-style template instantiation.
+#[test]
+fn formal_syntax_output_direct_emit_lowers_named_template_call() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module syntax_output_template_named_call_emit.
+
+template Page from "./page.terl.html" {
+title: Binary,
+body: Html[:none]
+}.
+
+pub page(): Html[:none] ->
+Page(
+    title = "Hi & Bye",
+    body = Html.raw("<strong>ok</strong>")
+).
+"#,
+    )
+    .expect("parse syntax output named template call fixture");
+
+    let mut templates = BTreeMap::new();
+    templates.insert(
+        "Page".to_string(),
+        terlan_html::parse_html_template(
+            r#"<h1>{title}</h1><main>{body}</main>"#,
+            "page.terl.html",
+        )
+        .expect("parse template"),
+    );
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &templates,
+        &BTreeMap::new(),
+    )
+    .expect("named template call should lower directly from syntax output")
+    .render();
+
+    assert!(output.contains("page() ->"));
+    assert!(output.contains("typer_html:escape(\"Hi & Bye\")"));
+    assert!(output.contains("\"<strong>ok</strong>\""));
+    assert!(!output.contains("Page("), "output:\n{}", output);
+}
+
+/// Verifies positional template calls apply declaration order and defaults.
+///
+/// Inputs:
+/// - A template declaration with one required and one defaulted property.
+/// - A function returning `Page("Hello")`.
+///
+/// Output:
+/// - Test passes when the first argument maps to `title` and the omitted
+///   `subtitle` property lowers from its default expression.
+///
+/// Transformation:
+/// - Exercises the generated template callable path used by ordinary BEAM
+///   project builds.
+#[test]
+fn formal_syntax_output_direct_emit_lowers_positional_template_call_with_default() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module syntax_output_template_positional_call_emit.
+
+template Page from "./page.terl.html" {
+title: Binary,
+subtitle: Binary = "Ready"
+}.
+
+pub page(): Html[:none] ->
+Page("Hello").
+"#,
+    )
+    .expect("parse syntax output positional template call fixture");
+
+    let mut templates = BTreeMap::new();
+    templates.insert(
+        "Page".to_string(),
+        terlan_html::parse_html_template(r#"<h1>{title}</h1><p>{subtitle}</p>"#, "page.terl.html")
+            .expect("parse template"),
+    );
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &templates,
+        &BTreeMap::new(),
+    )
+    .expect("positional template call should lower directly from syntax output")
+    .render();
+
+    assert!(output.contains("typer_html:escape(\"Hello\")"));
+    assert!(output.contains("typer_html:escape(\"Ready\")"));
+}
+
+/// Verifies template instantiation lowering inserts omitted default properties.
+///
+/// Inputs:
+/// - A template declaration whose `title` property has a binary default.
+/// - A template instantiation that supplies no explicit fields.
+/// - A parsed template body that reads `{title}`.
+///
+/// Output:
+/// - Test passes when emitted Erlang escapes the default title value.
+///
+/// Transformation:
+/// - Completes the template slot-value map from declaration defaults before
+///   lowering parsed template nodes.
+#[test]
+fn formal_syntax_output_direct_emit_inserts_template_default_properties() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module syntax_output_template_default_emit.
+
+template Page from "./page.terl.html" {
+title: Binary = "Untitled"
+}.
+
+pub page(): Html[:none] ->
+Page{}.
+"#,
+    )
+    .expect("parse syntax output template default fixture");
+
+    let mut templates = BTreeMap::new();
+    templates.insert(
+        "Page".to_string(),
+        terlan_html::parse_html_template(r#"<h1>{title}</h1>"#, "page.terl.html")
+            .expect("parse template"),
+    );
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &templates,
+        &BTreeMap::new(),
+    )
+    .expect("template default subset should lower directly from syntax output")
+    .render();
+
+    assert!(output.contains("page() ->"));
+    assert!(output.contains("typer_html:escape(\"Untitled\")"));
 }
 
 #[test]

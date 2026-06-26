@@ -1,0 +1,61 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SubtleCrypto
+ */
+
+module std.js.Dom.SubtleCryptoTest.
+
+import type std.js.Dom.SubtleCrypto.SubtleCrypto.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub decrypt_typechecks(receiver: SubtleCrypto, algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams, key: CryptoKey, data: BufferSource): std.js.Promise[ArrayBuffer] ->
+    receiver.decrypt(algorithm, key, data).
+
+pub derive_bits_typechecks(receiver: SubtleCrypto, algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, base_key: CryptoKey, length: Option[std.js.Number.JsNumber]): std.js.Promise[ArrayBuffer] ->
+    receiver.derive_bits(algorithm, base_key, length).
+
+pub derive_key_typechecks(receiver: SubtleCrypto, algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, base_key: CryptoKey, derived_key_type: AesDerivedKeyParams | AlgorithmIdentifier | HkdfParams | HmacImportParams | Pbkdf2Params, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey] ->
+    receiver.derive_key(algorithm, base_key, derived_key_type, extractable, key_usages).
+
+pub digest_typechecks(receiver: SubtleCrypto, algorithm: AlgorithmIdentifier, data: BufferSource): std.js.Promise[ArrayBuffer] ->
+    receiver.digest(algorithm, data).
+
+pub encrypt_typechecks(receiver: SubtleCrypto, algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams, key: CryptoKey, data: BufferSource): std.js.Promise[ArrayBuffer] ->
+    receiver.encrypt(algorithm, key, data).
+
+pub export_key_typechecks(receiver: SubtleCrypto, format: KeyFormat, key: CryptoKey): std.js.Promise[ArrayBuffer | JsonWebKey] ->
+    receiver.export_key(format, key).
+
+pub generate_key_typechecks(receiver: SubtleCrypto, algorithm: EcKeyGenParams | RsaHashedKeyGenParams, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKeyPair] ->
+    receiver.generate_key(algorithm, extractable, key_usages).
+
+pub generate_key_typechecks(receiver: SubtleCrypto, algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey] ->
+    receiver.generate_key(algorithm, extractable, key_usages).
+
+pub generate_key_typechecks(receiver: SubtleCrypto, algorithm: AlgorithmIdentifier, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey | CryptoKeyPair] ->
+    receiver.generate_key(algorithm, extractable, key_usages).
+
+pub sign_typechecks(receiver: SubtleCrypto, algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams, key: CryptoKey, data: BufferSource): std.js.Promise[ArrayBuffer] ->
+    receiver.sign(algorithm, key, data).
+
+pub unwrap_key_typechecks(receiver: SubtleCrypto, format: KeyFormat, wrapped_key: BufferSource, unwrapping_key: CryptoKey, unwrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams, unwrapped_key_algorithm: AesKeyAlgorithm | AlgorithmIdentifier | EcKeyImportParams | HmacImportParams | RsaHashedImportParams, extractable: std.core.Bool, key_usages: std.js.Array[KeyUsage]): std.js.Promise[CryptoKey] ->
+    receiver.unwrap_key(format, wrapped_key, unwrapping_key, unwrap_algorithm, unwrapped_key_algorithm, extractable, key_usages).
+
+pub verify_typechecks(receiver: SubtleCrypto, algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams, key: CryptoKey, signature: BufferSource, data: BufferSource): std.js.Promise[std.core.Bool] ->
+    receiver.verify(algorithm, key, signature, data).
+
+pub wrap_key_typechecks(receiver: SubtleCrypto, format: KeyFormat, key: CryptoKey, wrapping_key: CryptoKey, wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams): std.js.Promise[ArrayBuffer] ->
+    receiver.wrap_key(format, key, wrapping_key, wrap_algorithm).

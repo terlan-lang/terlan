@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ebnf::EbnfSourceSpan;
 
-use super::{SyntaxHtmlNodeOutput, SyntaxPatternOutput};
+use super::{SyntaxHtmlNodeOutput, SyntaxPatternOutput, SyntaxTypeOutput};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// Serializable expression node emitted by the formal syntax-output pipeline.
@@ -24,8 +24,12 @@ pub struct SyntaxExprOutput {
     pub span: EbnfSourceSpan,
     #[serde(default)]
     pub raw: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub type_args: Vec<SyntaxTypeOutput>,
     pub operator: Option<String>,
     pub remote: Option<String>,
+    #[serde(default, skip_serializing_if = "arg_names_are_empty")]
+    pub arg_names: Vec<Option<String>>,
     pub children: Vec<SyntaxExprOutput>,
     pub patterns: Vec<SyntaxPatternOutput>,
     pub fields: Vec<SyntaxExprFieldOutput>,
@@ -36,6 +40,20 @@ pub struct SyntaxExprOutput {
     pub try_after: Option<SyntaxTryAfterOutput>,
     #[serde(default)]
     pub html_nodes: Vec<SyntaxHtmlNodeOutput>,
+}
+
+/// Returns whether a call argument-name vector carries no source names.
+///
+/// Inputs:
+/// - Optional call-site names parallel to an expression argument vector.
+///
+/// Output:
+/// - `true` when the vector is empty or contains only positional markers.
+///
+/// Transformation:
+/// - Used by serde to omit empty/default call metadata from syntax output.
+fn arg_names_are_empty(arg_names: &Vec<Option<String>>) -> bool {
+    arg_names.iter().all(Option::is_none)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

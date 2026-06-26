@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SpeechSynthesisVoice
+ */
+
+module std.js.Dom.SpeechSynthesisVoice.
+
+/**
+ * The **`SpeechSynthesisVoice`** interface of the Web Speech API represents a voice that the system supports.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice)
+ */
+pub opaque type SpeechSynthesisVoice.
+
+/**
+ * The **`default`** read-only property of the indicating whether the voice is the default voice for the current app (`true`), or not (`false`.) A boolean value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/default)
+ */
+pub (value: SpeechSynthesisVoice) default(): std.core.Bool.
+
+/**
+ * The **`lang`** read-only property of the SpeechSynthesisVoice interface returns a BCP 47 language tag indicating the language of the voice.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/lang)
+ */
+pub (value: SpeechSynthesisVoice) lang(): std.js.String.JsString.
+
+/**
+ * The **`localService`** read-only property of the indicating whether the voice is supplied by a local speech synthesizer service (`true`), or a remote speech synthesizer service (`false`.) This property is provided to allow differentiation in the case that some voice options are provided by a remote service; it is possible that remote voices might have extra latency, bandwidth or cost associated with them, so such distinction may be useful.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/localService)
+ */
+pub (value: SpeechSynthesisVoice) local_service(): std.core.Bool.
+
+/**
+ * The **`name`** read-only property of the represents the voice.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/name)
+ */
+pub (value: SpeechSynthesisVoice) name(): std.js.String.JsString.
+
+/**
+ * The **`voiceURI`** read-only property of the the speech synthesis service for this voice.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/voiceURI)
+ */
+pub (value: SpeechSynthesisVoice) voice_uri(): std.js.String.JsString.

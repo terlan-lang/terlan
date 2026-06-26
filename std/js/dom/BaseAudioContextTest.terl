@@ -1,0 +1,103 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface BaseAudioContext
+ */
+
+module std.js.Dom.BaseAudioContextTest.
+
+import type std.js.Dom.BaseAudioContext.BaseAudioContext.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub audio_worklet_typechecks(receiver: BaseAudioContext): AudioWorklet ->
+    receiver.audio_worklet().
+
+pub current_time_typechecks(receiver: BaseAudioContext): std.js.Number.JsNumber ->
+    receiver.current_time().
+
+pub destination_typechecks(receiver: BaseAudioContext): AudioDestinationNode ->
+    receiver.destination().
+
+pub listener_typechecks(receiver: BaseAudioContext): AudioListener ->
+    receiver.listener().
+
+pub sample_rate_typechecks(receiver: BaseAudioContext): std.js.Number.JsNumber ->
+    receiver.sample_rate().
+
+pub state_typechecks(receiver: BaseAudioContext): AudioContextState ->
+    receiver.state().
+
+pub create_analyser_typechecks(receiver: BaseAudioContext): AnalyserNode ->
+    receiver.create_analyser().
+
+pub create_biquad_filter_typechecks(receiver: BaseAudioContext): BiquadFilterNode ->
+    receiver.create_biquad_filter().
+
+pub create_buffer_typechecks(receiver: BaseAudioContext, number_of_channels: std.js.Number.JsNumber, length: std.js.Number.JsNumber, sample_rate: std.js.Number.JsNumber): AudioBuffer ->
+    receiver.create_buffer(number_of_channels, length, sample_rate).
+
+pub create_buffer_source_typechecks(receiver: BaseAudioContext): AudioBufferSourceNode ->
+    receiver.create_buffer_source().
+
+pub create_channel_merger_typechecks(receiver: BaseAudioContext, number_of_inputs: std.js.Number.JsNumber): ChannelMergerNode ->
+    receiver.create_channel_merger(number_of_inputs).
+
+pub create_channel_splitter_typechecks(receiver: BaseAudioContext, number_of_outputs: std.js.Number.JsNumber): ChannelSplitterNode ->
+    receiver.create_channel_splitter(number_of_outputs).
+
+pub create_constant_source_typechecks(receiver: BaseAudioContext): ConstantSourceNode ->
+    receiver.create_constant_source().
+
+pub create_convolver_typechecks(receiver: BaseAudioContext): ConvolverNode ->
+    receiver.create_convolver().
+
+pub create_delay_typechecks(receiver: BaseAudioContext, max_delay_time: std.js.Number.JsNumber): DelayNode ->
+    receiver.create_delay(max_delay_time).
+
+pub create_dynamics_compressor_typechecks(receiver: BaseAudioContext): DynamicsCompressorNode ->
+    receiver.create_dynamics_compressor().
+
+pub create_gain_typechecks(receiver: BaseAudioContext): GainNode ->
+    receiver.create_gain().
+
+pub create_iir_filter_typechecks(receiver: BaseAudioContext, feedforward: std.js.Array[std.js.Number.JsNumber], feedback: std.js.Array[std.js.Number.JsNumber]): IIRFilterNode ->
+    receiver.create_iir_filter(feedforward, feedback).
+
+pub create_oscillator_typechecks(receiver: BaseAudioContext): OscillatorNode ->
+    receiver.create_oscillator().
+
+pub create_panner_typechecks(receiver: BaseAudioContext): PannerNode ->
+    receiver.create_panner().
+
+pub create_periodic_wave_typechecks(receiver: BaseAudioContext, real: Float32Array | std.js.Array[std.js.Number.JsNumber], imag: Float32Array | std.js.Array[std.js.Number.JsNumber], constraints: PeriodicWaveConstraints): PeriodicWave ->
+    receiver.create_periodic_wave(real, imag, constraints).
+
+pub create_script_processor_typechecks(receiver: BaseAudioContext, buffer_size: std.js.Number.JsNumber, number_of_input_channels: std.js.Number.JsNumber, number_of_output_channels: std.js.Number.JsNumber): ScriptProcessorNode ->
+    receiver.create_script_processor(buffer_size, number_of_input_channels, number_of_output_channels).
+
+pub create_stereo_panner_typechecks(receiver: BaseAudioContext): StereoPannerNode ->
+    receiver.create_stereo_panner().
+
+pub create_wave_shaper_typechecks(receiver: BaseAudioContext): WaveShaperNode ->
+    receiver.create_wave_shaper().
+
+pub decode_audio_data_typechecks(receiver: BaseAudioContext, audio_data: ArrayBuffer, success_callback: Option[DecodeSuccessCallback], error_callback: Option[DecodeErrorCallback]): std.js.Promise[AudioBuffer] ->
+    receiver.decode_audio_data(audio_data, success_callback, error_callback).
+
+pub add_event_listener_typechecks(receiver: BaseAudioContext, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.add_event_listener(type_, listener, options).
+
+pub remove_event_listener_typechecks(receiver: BaseAudioContext, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    receiver.remove_event_listener(type_, listener, options).

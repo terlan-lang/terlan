@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface CryptoKey
+ */
+
+module std.js.Dom.CryptoKey.
+
+/**
+ * The **`CryptoKey`** interface of the Web Crypto API represents a cryptographic key obtained from one of the SubtleCrypto methods SubtleCrypto.generateKey, SubtleCrypto.deriveKey, SubtleCrypto.importKey, or SubtleCrypto.unwrapKey.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey)
+ */
+pub opaque type CryptoKey.
+
+/**
+ * The read-only **`algorithm`** property of the CryptoKey interface returns an object describing the algorithm for which this key can be used, and any associated extra parameters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/algorithm)
+ */
+pub (value: CryptoKey) algorithm(): KeyAlgorithm.
+
+/**
+ * The read-only **`extractable`** property of the CryptoKey interface indicates whether or not the key may be extracted using `SubtleCrypto.exportKey()` or `SubtleCrypto.wrapKey()`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/extractable)
+ */
+pub (value: CryptoKey) extractable(): std.core.Bool.
+
+/**
+ * The read-only **`type`** property of the CryptoKey interface indicates which kind of key is represented by the object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/type)
+ */
+pub (value: CryptoKey) type_(): KeyType.
+
+/**
+ * The read-only **`usages`** property of the CryptoKey interface indicates what can be done with the key.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/usages)
+ */
+pub (value: CryptoKey) usages(): std.js.Array[KeyUsage].

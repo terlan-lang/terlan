@@ -1,0 +1,114 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface FontFace
+ */
+
+module std.js.Dom.FontFace.
+
+/**
+ * The **`FontFace`** interface of the CSS Font Loading API represents a single usable font face.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace)
+ */
+pub opaque type FontFace.
+
+/**
+ * The **`ascentOverride`** property of the FontFace interface returns and sets the ascent metric for the font, the height above the baseline that CSS uses to lay out line boxes in an inline formatting context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/ascentOverride)
+ */
+pub (value: FontFace) ascent_override(): std.js.String.JsString.
+
+/**
+ * The **`descentOverride`** property of the FontFace interface returns and sets the value of the @font-face/descent-override descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/descentOverride)
+ */
+pub (value: FontFace) descent_override(): std.js.String.JsString.
+
+/**
+ * The **`display`** property of the FontFace interface determines how a font face is displayed based on whether and when it is downloaded and ready to use.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/display)
+ */
+pub (value: FontFace) display(): FontDisplay.
+
+/**
+ * The **`FontFace.family`** property allows the author to get or set the font family of a FontFace object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/family)
+ */
+pub (value: FontFace) family(): std.js.String.JsString.
+
+/**
+ * The **`featureSettings`** property of the FontFace interface retrieves or sets infrequently used font features that are not available from a font's variant properties.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/featureSettings)
+ */
+pub (value: FontFace) feature_settings(): std.js.String.JsString.
+
+/**
+ * The **`lineGapOverride`** property of the FontFace interface returns and sets the value of the @font-face/line-gap-override descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/lineGapOverride)
+ */
+pub (value: FontFace) line_gap_override(): std.js.String.JsString.
+
+/**
+ * The **`loaded`** read-only property of the FontFace interface returns a Promise that resolves with the current `FontFace` object when the font specified in the object's constructor is done loading or rejects with a `SyntaxError`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/loaded)
+ */
+pub (value: FontFace) loaded(): std.js.Promise[FontFace].
+
+/**
+ * The **`status`** read-only property of the FontFace interface returns an enumerated value indicating the status of the font, one of `'unloaded'`, `'loading'`, `'loaded'`, or `'error'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/status)
+ */
+pub (value: FontFace) status(): FontFaceLoadStatus.
+
+/**
+ * The **`stretch`** property of the FontFace interface retrieves or sets how the font stretches.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/stretch)
+ */
+pub (value: FontFace) stretch(): std.js.String.JsString.
+
+/**
+ * The **`style`** property of the FontFace interface retrieves or sets the font's style.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/style)
+ */
+pub (value: FontFace) style(): std.js.String.JsString.
+
+/**
+ * The **`unicodeRange`** property of the FontFace interface retrieves or sets the range of unicode code points encompassing the font.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/unicodeRange)
+ */
+pub (value: FontFace) unicode_range(): std.js.String.JsString.
+
+/**
+ * The **`weight`** property of the FontFace interface retrieves or sets the weight of the font.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/weight)
+ */
+pub (value: FontFace) weight(): std.js.String.JsString.
+
+/**
+ * The **`load()`** method of the FontFace interface requests and loads a font whose `source` was specified as a URL.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/load)
+ */
+pub (value: FontFace) load(): std.js.Promise[FontFace].

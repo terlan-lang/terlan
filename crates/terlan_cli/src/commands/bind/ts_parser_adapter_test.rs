@@ -195,6 +195,114 @@ fn parses_generic_callback_and_record_type_shapes() {
     );
 }
 
+/// Verifies unsupported top-level declarations retain concrete source names.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with named variable, type alias, function, class,
+///   enum, and namespace declarations.
+///
+/// Output:
+/// - Test passes when skip rows use declaration names instead of coarse kind
+///   buckets.
+///
+/// Transformation:
+/// - Pins generated skip-manifest provenance for broad TypeScript standard
+///   library generation.
+#[test]
+fn labels_named_unsupported_top_level_declarations() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        declare var MapConstructor: MapConstructor;
+        type ArrayLike<T> = { length: number };
+        declare function parseInt(value: string): number;
+        declare class URLSearchParams {}
+        declare enum ReadyState { Done }
+        declare namespace Intl {}
+        "#,
+    )
+    .expect("unsupported declarations should become skip rows");
+
+    let skipped = unsupported_sources(&declarations);
+
+    assert_eq!(
+        skipped,
+        vec![
+            "MapConstructor",
+            "ArrayLike",
+            "parseInt",
+            "URLSearchParams",
+            "ReadyState",
+            "Intl"
+        ]
+    );
+}
+
+/// Verifies complex top-level variable declarations stay conservative.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with one multi-binding variable declaration.
+///
+/// Output:
+/// - Test passes when the adapter keeps the stable coarse `variable` label.
+///
+/// Transformation:
+/// - Avoids assigning one misleading source symbol to unsupported declarations
+///   that contain multiple source bindings.
+#[test]
+fn labels_multi_binding_top_level_variables_conservatively() {
+    let declarations = parse_ts_declaration_file("declare var first: string, second: string;")
+        .expect("unsupported variables should become skip rows");
+
+    assert_eq!(unsupported_sources(&declarations), vec!["variable"]);
+}
+
+/// Verifies leading TypeScript JSDoc is preserved by the neutral model.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with interface, property, and method JSDoc blocks.
+///
+/// Output:
+/// - Test passes when generated declarations carry normalized doc bodies.
+///
+/// Transformation:
+/// - Uses Oxc comment attachment metadata so docs remain tied to the parsed
+///   TypeScript declaration rather than recovered by ad hoc string matching.
+#[test]
+fn preserves_leading_jsdoc_for_interfaces_and_members() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        /**
+         * Stores values by key.
+         */
+        interface Dictionary {
+          /**
+           * Number of stored values.
+           * @returns the current size.
+           */
+          readonly size: number;
+          /**
+           * Reads one value.
+           * @param key lookup key.
+           * @returns the associated value.
+           */
+          get(key: string): string | undefined;
+        }
+        "#,
+    )
+    .expect("documented declarations should parse");
+    let dictionary = interface(&declarations, "Dictionary");
+
+    assert_eq!(dictionary.doc.as_deref(), Some("Stores values by key."));
+    assert_eq!(
+        property(dictionary, "size").doc.as_deref(),
+        Some("Number of stored values.\n@returns the current size.")
+    );
+    assert_eq!(
+        method(dictionary, "get").doc.as_deref(),
+        Some("Reads one value.\n@param key lookup key.\n@returns the associated value.")
+    );
+}
+
 /// Returns interface names in declaration order.
 ///
 /// Inputs:
@@ -209,8 +317,30 @@ fn interface_names(declarations: &TsDeclarationFile) -> Vec<&str> {
     declarations
         .declarations
         .iter()
-        .map(|declaration| match declaration {
-            TsDeclaration::Interface(interface) => interface.name.as_str(),
+        .filter_map(|declaration| match declaration {
+            TsDeclaration::Interface(interface) => Some(interface.name.as_str()),
+            TsDeclaration::Unsupported(_) => None,
+        })
+        .collect()
+}
+
+/// Returns unsupported top-level declaration source labels in source order.
+///
+/// Inputs:
+/// - `declarations`: parsed neutral declaration file.
+///
+/// Output:
+/// - Ordered unsupported source labels.
+///
+/// Transformation:
+/// - Filters parser output into stable labels used by skip-manifest tests.
+fn unsupported_sources(declarations: &TsDeclarationFile) -> Vec<&str> {
+    declarations
+        .declarations
+        .iter()
+        .filter_map(|declaration| match declaration {
+            TsDeclaration::Interface(_) => None,
+            TsDeclaration::Unsupported(unsupported) => Some(unsupported.source.as_str()),
         })
         .collect()
 }
@@ -230,8 +360,9 @@ fn interface<'a>(declarations: &'a TsDeclarationFile, name: &str) -> &'a TsInter
     declarations
         .declarations
         .iter()
-        .map(|declaration| match declaration {
-            TsDeclaration::Interface(interface) => interface,
+        .filter_map(|declaration| match declaration {
+            TsDeclaration::Interface(interface) => Some(interface),
+            TsDeclaration::Unsupported(_) => None,
         })
         .find(|interface| interface.name == name)
         .unwrap_or_else(|| panic!("missing interface {name}"))
@@ -255,6 +386,7 @@ fn property<'a>(interface: &'a TsInterfaceDeclaration, name: &str) -> &'a TsProp
         .filter_map(|member| match member {
             TsInterfaceMember::Property(property) => Some(property),
             TsInterfaceMember::Method(_) => None,
+            TsInterfaceMember::Unsupported(_) => None,
         })
         .find(|property| property.name == name)
         .unwrap_or_else(|| panic!("missing property {name}"))
@@ -278,6 +410,7 @@ fn method<'a>(interface: &'a TsInterfaceDeclaration, name: &str) -> &'a TsMethod
         .filter_map(|member| match member {
             TsInterfaceMember::Method(method) => Some(method),
             TsInterfaceMember::Property(_) => None,
+            TsInterfaceMember::Unsupported(_) => None,
         })
         .find(|method| method.name == name)
         .unwrap_or_else(|| panic!("missing method {name}"))

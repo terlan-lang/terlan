@@ -204,6 +204,22 @@ pub(super) fn lower_core_map_new(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     Some(ErlExpr::Map(vec![]))
 }
 
+/// Lowers `core.map.from_entries` to the BEAM map backing shape.
+///
+/// Inputs:
+/// - `args`: one list expression containing `{Key, Value}` tuples.
+///
+/// Output:
+/// - Compiler-owned map expression containing the supplied key-value entries.
+///
+/// Transformation:
+/// - Uses `maps:from_list/1` so the BEAM implementation remains map-backed
+///   while Terlan source only observes the portable `Map[K, V]` contract.
+pub(super) fn lower_core_map_from_entries(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [entries] = exact_array_args(args)?;
+    Some(erl_remote_call("maps", "from_list", vec![entries]))
+}
+
 /// Lowers `core.map.is_empty` to a BEAM map-size comparison.
 ///
 /// Inputs:
@@ -411,6 +427,26 @@ pub(super) fn lower_core_task_result(args: Vec<ErlExpr>) -> Option<ErlExpr> {
 pub(super) fn lower_core_set_new(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     exact_args(args, 0)?;
     Some(ErlExpr::Map(vec![]))
+}
+
+/// Lowers `core.set.from_list` to the BEAM set backing shape.
+///
+/// Inputs:
+/// - `args`: one list expression containing source values.
+///
+/// Output:
+/// - Compiler-owned set expression containing each distinct list value.
+///
+/// Transformation:
+/// - Uses `maps:from_keys/2` so the BEAM implementation remains map-backed
+///   while Terlan source only observes the portable `Set[T]` contract.
+pub(super) fn lower_core_set_from_list(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [values] = exact_array_args(args)?;
+    Some(erl_remote_call(
+        "maps",
+        "from_keys",
+        vec![values, ErlExpr::Atom("true".to_string())],
+    ))
 }
 
 /// Lowers `core.set.is_empty` to a set-size comparison.

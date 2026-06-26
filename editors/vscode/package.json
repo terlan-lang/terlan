@@ -1,0 +1,328 @@
+{
+  "name": "terlan-vscode",
+  "displayName": "Terlan",
+  "description": "Syntax highlighting and language-server integration for Terlan source files.",
+  "version": "0.0.5",
+  "publisher": "terlan-lang",
+  "license": "Apache-2.0",
+  "icon": "icons/png/terlan-extension-128.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terlan-lang/terlan.git"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "icons",
+    "language-configuration.json",
+    "syntaxes",
+    "src"
+  ],
+  "scripts": {
+    "check:main": "node -c src/client_config.js && node -c src/run_command.js && node -c src/template_links.js && node -c src/extension.js",
+    "pack:dry-run": "npm pack --dry-run --json",
+    "test": "node test/client_config_test.js && node test/run_command_test.js && node test/template_links_test.js && node test/manifest_test.js && node test/package_smoke_test.js && node test/diagnostics_smoke_test.js && node test/textmate_bridge_test.js",
+    "test:all": "npm run check && npm test",
+    "check": "node -c src/client_config.js && node -c src/run_command.js && node -c src/template_links.js && node -c src/extension.js && node -c test/client_config_test.js && node -c test/run_command_test.js && node -c test/template_links_test.js && node -c test/manifest_test.js && node -c test/package_smoke_test.js && node -c test/diagnostics_smoke_test.js && node -c test/pack_dry_run_test.js && node -c test/textmate_bridge_test.js"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:terlan",
+    "onLanguage:terlan-test",
+    "onLanguage:terlan-interface",
+    "onLanguage:terlan-template-html",
+    "onLanguage:terlan-template-markdown",
+    "onLanguage:terlan-template-json",
+    "onLanguage:terlan-template-toml",
+    "onLanguage:terlan-template-yaml",
+    "onLanguage:terlan-template-text",
+    "onCommand:terlan.runMain",
+    "onCommand:terlan.runTestFile",
+    "onCommand:terlan.runTestAtCursor"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Terlan",
+      "properties": {
+        "terlan.lsp.command": {
+          "type": "string",
+          "default": "terlc",
+          "description": "Command used to start the Terlan language server."
+        },
+        "terlan.lsp.args": {
+          "type": "array",
+          "default": [
+            "lsp",
+            "--stdio"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Arguments passed to the Terlan language-server command."
+        },
+        "terlan.run.command": {
+          "type": "string",
+          "default": "terlc",
+          "description": "Command used by the Run Terlan Main button."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "terlan.runMain",
+        "title": "Run Terlan Main",
+        "category": "Terlan",
+        "icon": "$(play)"
+      },
+      {
+        "command": "terlan.runTestFile",
+        "title": "Run Terlan Test File",
+        "category": "Terlan",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "terlan.runTestAtCursor",
+        "title": "Run Terlan Test at Cursor",
+        "category": "Terlan",
+        "icon": "$(play)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "terlan.runMain",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runTestAtCursor",
+          "when": "resourceFilename =~ /Test\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runTestFile",
+          "when": "resourceFilename =~ /Test\\.terl$/",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "terlan.runMain",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runTestFile",
+          "when": "resourceFilename =~ /Test\\.terl$/",
+          "group": "navigation"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "terlan-test",
+        "aliases": [
+          "Terlan Test",
+          "terlan-test"
+        ],
+        "filenamePatterns": [
+          "*Test.terl"
+        ],
+        "icon": {
+          "light": "./icons/terlan-test-file.svg",
+          "dark": "./icons/terlan-test-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan",
+        "aliases": [
+          "Terlan",
+          "terlan"
+        ],
+        "extensions": [
+          ".terl"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-interface",
+        "aliases": [
+          "Terlan Interface",
+          "terli"
+        ],
+        "extensions": [
+          ".terli"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-template-html",
+        "aliases": [
+          "Terlan HTML Template",
+          "Terlan HTML",
+          "HTML"
+        ],
+        "extensions": [
+          ".terl.html"
+        ],
+        "icon": {
+          "light": "./icons/terlan-template-html-file.svg",
+          "dark": "./icons/terlan-template-html-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-template-markdown",
+        "aliases": [
+          "Terlan Markdown Template"
+        ],
+        "extensions": [
+          ".terl.md"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-template-json",
+        "aliases": [
+          "Terlan JSON Template"
+        ],
+        "extensions": [
+          ".terl.json"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-template-toml",
+        "aliases": [
+          "Terlan TOML Template"
+        ],
+        "extensions": [
+          ".terl.toml"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-template-yaml",
+        "aliases": [
+          "Terlan YAML Template"
+        ],
+        "extensions": [
+          ".terl.yaml",
+          ".terl.yml"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-template-text",
+        "aliases": [
+          "Terlan Text Template"
+        ],
+        "extensions": [
+          ".terl.txt"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "terlan-test",
+        "scopeName": "source.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
+        "language": "terlan",
+        "scopeName": "source.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
+        "language": "terlan-interface",
+        "scopeName": "source.terlan.interface",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
+        "language": "terlan-template-html",
+        "scopeName": "text.html.terlan",
+        "path": "./syntaxes/terlan-template-html.tmLanguage.json",
+        "embeddedLanguages": {
+          "text.html.basic": "html",
+          "source.terlan.embedded": "terlan"
+        }
+      },
+      {
+        "language": "terlan-template-markdown",
+        "scopeName": "text.html.markdown.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
+        "language": "terlan-template-json",
+        "scopeName": "source.json.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
+        "language": "terlan-template-toml",
+        "scopeName": "source.toml.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
+        "language": "terlan-template-yaml",
+        "scopeName": "source.yaml.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
+        "language": "terlan-template-text",
+        "scopeName": "text.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "terlan-file-icons",
+        "label": "Terlan File Icons",
+        "path": "./icons/terlan-file-icon-theme.json"
+      }
+    ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0"
+  }
+}

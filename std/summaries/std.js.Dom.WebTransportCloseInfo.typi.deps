@@ -1,0 +1,8 @@
+module=std.js.Dom.WebTransportCloseInfo
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=16095344959863585807
+interface_hash=5715904250949428982
+interface_doc_hash=5715904250949428982
+deps=0

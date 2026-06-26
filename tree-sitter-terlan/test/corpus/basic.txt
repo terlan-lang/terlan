@@ -1,0 +1,122 @@
+==================
+module and function
+==================
+
+module app.Main.
+
+import std.io.Console.{println}.
+
+pub main(): Unit ->
+  println("Hello Terlan").
+
+---
+
+(source_file
+  (module_declaration)
+  (import_declaration)
+  (function_declaration))
+
+==================
+struct and trait
+==================
+
+module app.User.
+
+pub trait Show[T] {
+  to_string(value: T): String.
+}.
+
+pub struct User implements Show[User] {
+  id: Int,
+  name: String,
+  #email: String
+}.
+
+---
+
+(source_file
+  (module_declaration)
+  (trait_declaration)
+  (struct_declaration))
+
+==================
+template declaration
+==================
+
+module web.Http.
+
+import std.template.Template.
+
+template Page from "../../templates/page.terl.html" {
+  title: String
+}.
+
+pub page(): Template.Html ->
+  Page(title = "Hello").
+
+---
+
+(source_file
+  (module_declaration)
+  (import_declaration)
+  (template_declaration)
+  (function_declaration))
+
+==================
+template expression island
+==================
+
+${count.to_string()}
+
+---
+
+(source_file
+  (interpolation))
+
+==================
+0.0.5 web handler syntax
+==================
+
+module web.Routes.
+
+import std.http.Request.
+import std.http.Response.
+
+@route {
+  method = "GET"
+  path = "/users/:id"
+}
+pub show_user(request: Request): Response ->
+  Response.text("ok", status = 200).
+
+pub (user: User) display_name(): String ->
+  case user.name {
+    "" -> "guest";
+    _ -> user.name
+  }.
+
+pub (user: User) email(): String ->
+  user.#email.
+
+pub choose(user: User): String ->
+  if {
+    True -> user.display_name();
+    _ -> "unknown"
+  }.
+
+pub lookup(): Query ->
+  sql {
+    SELECT id, name FROM users WHERE id = $1
+  }.
+
+---
+
+(source_file
+  (module_declaration)
+  (import_declaration)
+  (import_declaration)
+  (function_declaration)
+  (function_declaration)
+  (function_declaration)
+  (function_declaration)
+  (function_declaration))

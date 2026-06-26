@@ -1,25 +1,41 @@
 mod calls;
+mod casts;
 mod construction;
 mod control_flow;
 mod indexing;
+mod operators;
 mod overloads;
+mod sql;
+mod values;
 
+pub(crate) use calls::infer_syntax_expr_with_expected;
 pub(super) use calls::syntax_callee_name;
 use calls::{
     infer_syntax_call_expr, infer_syntax_function_value_call, infer_syntax_macro_call,
     infer_syntax_pipe_forward, trait_method_candidate_matches_call,
 };
+use casts::infer_syntax_cast_expr;
 use construction::{
-    infer_syntax_constructor_chain, infer_syntax_field_access, infer_syntax_record_access,
-    infer_syntax_record_construct, infer_syntax_record_update, infer_syntax_template_instantiation,
+    infer_imported_module_member_function_value_with_expected, infer_syntax_constructor_chain,
+    infer_syntax_field_access, infer_syntax_record_access, infer_syntax_record_construct,
+    infer_syntax_record_update, infer_syntax_template_instantiation,
 };
 use control_flow::{
     infer_syntax_case_expr, infer_syntax_fun_expr, infer_syntax_if_expr, infer_syntax_let_expr,
     infer_syntax_list_comprehension, infer_syntax_try_expr,
 };
 use indexing::{infer_syntax_index, infer_syntax_index_assign};
-pub(crate) use overloads::infer_function_scheme_overload;
-use overloads::{infer_imported_function_candidate_matches, infer_interface_function_overload};
+use operators::{infer_syntax_binary_op, infer_syntax_unary_op};
+pub(crate) use overloads::{
+    infer_function_scheme_overload, infer_function_scheme_overload_with_explicit_type_args,
+};
+use overloads::{
+    infer_imported_function_candidate_matches,
+    infer_interface_function_overload_with_explicit_type_args,
+};
+use sql::{infer_sql_form_result_type, validate_sql_form_row_type};
+use values::infer_syntax_var;
+pub(crate) use values::is_constructor_name;
 
 use super::*;
 
@@ -120,12 +136,14 @@ pub(super) struct ExprInferContext<'a> {
     pub(super) templates: &'a HashMap<String, TemplateScheme>,
     pub(super) aliases: &'a HashMap<String, TypeAlias>,
     pub(super) struct_fields: &'a HashMap<String, HashMap<String, Type>>,
+    pub(super) struct_field_visibility: &'a HashMap<String, HashMap<String, StructFieldVisibility>>,
     pub(super) receiver_methods: &'a HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     pub(super) trait_method_calls: &'a HashMap<(String, String), Vec<ResolvedTraitMethod>>,
     pub(super) trait_bound_impl_type_args: &'a HashMap<String, Vec<Vec<Type>>>,
     pub(super) trait_signatures: &'a HashMap<String, ParsedTraitSignature>,
     pub(super) alias_names: &'a HashSet<String>,
     pub(super) current_bounds: &'a [FunctionBound],
+    pub(super) current_constructor_target: Option<&'a str>,
     pub(super) trait_lookup_cache: &'a RefCell<TraitLookupCache>,
 }
 
@@ -165,12 +183,59 @@ where
         templates: ctx.templates,
         aliases: ctx.aliases,
         struct_fields: ctx.struct_fields,
+        struct_field_visibility: ctx.struct_field_visibility,
         receiver_methods: ctx.receiver_methods,
         trait_method_calls: ctx.trait_method_calls,
         trait_bound_impl_type_args: ctx.trait_bound_impl_type_args,
         trait_signatures: ctx.trait_signatures,
         alias_names: ctx.alias_names,
         current_bounds,
+        current_constructor_target: ctx.current_constructor_target,
+        trait_lookup_cache: ctx.trait_lookup_cache,
+    }
+}
+
+/// Creates an expression-inference context for one constructor body.
+///
+/// Inputs:
+/// - `ctx`: module-wide expression inference context.
+/// - `constructor_target`: struct/type name whose constructor body is active.
+///
+/// Output:
+/// - A shallow context view that marks the active constructor target.
+///
+/// Transformation:
+/// - Preserves all lookup tables and callable bounds while setting the
+///   constructor target used by default struct-initializer call validation.
+pub(super) fn expr_ctx_with_current_constructor<'a, 'b>(
+    ctx: &'a ExprInferContext<'a>,
+    constructor_target: &'b str,
+) -> ExprInferContext<'b>
+where
+    'a: 'b,
+{
+    ExprInferContext {
+        local_fns: ctx.local_fns,
+        signatures: ctx.signatures,
+        interface_map: ctx.interface_map,
+        module_aliases: ctx.module_aliases,
+        file_imports: ctx.file_imports,
+        markdown_imports: ctx.markdown_imports,
+        function_imports: ctx.function_imports,
+        imported_type_names: ctx.imported_type_names,
+        constructor_aliases: ctx.constructor_aliases,
+        constructors: ctx.constructors,
+        templates: ctx.templates,
+        aliases: ctx.aliases,
+        struct_fields: ctx.struct_fields,
+        struct_field_visibility: ctx.struct_field_visibility,
+        receiver_methods: ctx.receiver_methods,
+        trait_method_calls: ctx.trait_method_calls,
+        trait_bound_impl_type_args: ctx.trait_bound_impl_type_args,
+        trait_signatures: ctx.trait_signatures,
+        alias_names: ctx.alias_names,
+        current_bounds: ctx.current_bounds,
+        current_constructor_target: Some(constructor_target),
         trait_lookup_cache: ctx.trait_lookup_cache,
     }
 }
@@ -390,12 +455,17 @@ pub(super) fn infer_syntax_expr(
             Type::Dynamic
         }
         SyntaxExprKind::RawMacro => {
-            let name = expr.text.as_deref().unwrap_or("<unknown>");
-            errors.push(format!(
-                "raw macro expression `{}` requires macro resolution before type checking",
-                name
-            ));
-            Type::Dynamic
+            for child in &expr.children {
+                infer_syntax_expr(child, locals, ctx, subst, errors);
+            }
+            validate_sql_form_row_type(expr, ctx, errors);
+            let sql_result_type = infer_sql_form_result_type(expr, ctx, errors);
+            if crate::raw_macros::raw_macro_requires_resolution_diagnostic(expr) {
+                errors.push(crate::raw_macros::raw_macro_resolution_message_for_expr(
+                    expr,
+                ));
+            }
+            sql_result_type.unwrap_or(Type::Dynamic)
         }
         SyntaxExprKind::HtmlBlock => infer_syntax_html_block(expr, locals, ctx, subst, errors),
         SyntaxExprKind::RecordConstruct => {
@@ -441,466 +511,6 @@ pub(super) fn infer_syntax_expr(
     }
 }
 
-/// Infers the type for a syntax-output cast expression.
-///
-/// Inputs:
-/// - `expr`: syntax-output cast node with one child and target type text.
-/// - `locals`, `ctx`, and `subst`: the active expression inference context.
-/// - `errors`: mutable diagnostic text sink for unsupported conversion claims.
-///
-/// Output:
-/// - Parsed target type when available, otherwise `Dynamic`.
-///
-/// Transformation:
-/// - Type-checks the cast source child, parses the preserved target type text,
-///   accepts casts that are already compatible after substitutions and aliases,
-///   and rejects conversions that still require explicit conversion-trait
-///   resolution.
-fn infer_syntax_cast_expr(
-    expr: &SyntaxExprOutput,
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    let source_type = expr
-        .children
-        .first()
-        .map(|child| infer_syntax_expr(child, locals, ctx, subst, errors))
-        .unwrap_or(Type::Dynamic);
-    let target_text = expr.text.as_deref().unwrap_or("Dynamic");
-    let mut vars = HashMap::new();
-    let mut next_var = 0;
-    let alias_names = ctx.aliases.keys().cloned().collect::<HashSet<_>>();
-    let target_type = parse_type_expr(target_text, &alias_names, &mut vars, &mut next_var)
-        .unwrap_or_else(|| {
-            errors.push(format!("invalid cast target type `{}`", target_text));
-            Type::Dynamic
-        });
-
-    if !cast_source_is_assignable_to_target(&source_type, &target_type, ctx, subst)
-        && !cast_source_has_conversion_to_target(&source_type, &target_type, ctx, subst)
-    {
-        errors.push(format!(
-            "cast from {} to {} requires trait-backed conversion resolution before backend emission",
-            pretty_type(&apply_subst(&source_type, subst)),
-            pretty_type(&target_type)
-        ));
-    }
-    target_type
-}
-
-/// Returns whether a cast source can already be viewed as the target type.
-///
-/// Inputs:
-/// - `source_type`: inferred source expression type.
-/// - `target_type`: parsed cast target type.
-/// - `ctx` and `subst`: active expression inference context and substitutions.
-///
-/// Output:
-/// - `true` when no runtime or trait-backed conversion is required.
-///
-/// Transformation:
-/// - Applies current substitutions, expands visible type aliases on both sides,
-///   then delegates to the existing subtype relation so literal widening,
-///   `Number`, `Term`, and Unit equivalence stay consistent with the rest of
-///   typechecking.
-fn cast_source_is_assignable_to_target(
-    source_type: &Type,
-    target_type: &Type,
-    ctx: &ExprInferContext,
-    subst: &HashMap<TypeVarId, Type>,
-) -> bool {
-    let source = apply_subst(source_type, subst);
-    let target = apply_subst(target_type, subst);
-    let source = expand_type_aliases(&source, ctx.aliases);
-    let target = expand_type_aliases(&target, ctx.aliases);
-    is_subtype(&source, &target)
-}
-
-/// Returns whether a cast has an explicit conversion trait conformance.
-///
-/// Inputs:
-/// - `source_type`: inferred source expression type.
-/// - `target_type`: parsed cast target type.
-/// - `ctx` and `subst`: active expression inference context and substitutions.
-///
-/// Output:
-/// - `true` when a visible `Convertable[Source, Target]` implementation or
-///   active generic bound proves the conversion is explicit.
-///
-/// Transformation:
-/// - Applies substitutions, expands local aliases, canonicalizes the two trait
-///   arguments, and reuses the normal trait-bound lookup cache so cast
-///   conversion proof follows the same conformance visibility rules as generic
-///   function bounds.
-fn cast_source_has_conversion_to_target(
-    source_type: &Type,
-    target_type: &Type,
-    ctx: &ExprInferContext,
-    subst: &HashMap<TypeVarId, Type>,
-) -> bool {
-    let source = expand_type_aliases(&apply_subst(source_type, subst), ctx.aliases);
-    let target = expand_type_aliases(&apply_subst(target_type, subst), ctx.aliases);
-    let bound_args = canonicalize_trait_lookup_types(&[source, target]);
-    trait_has_bound_implementation("Convertable", &bound_args, ctx)
-}
-
-/// Infers a variable-like expression.
-///
-/// Inputs:
-/// - `name`: source identifier.
-/// - `locals`: local binding type environment.
-/// - `ctx`: module inference context with implicit values and imports.
-///
-/// Output:
-/// - The resolved local, alias, intrinsic value, function-value, import, or
-///   `Dynamic` type.
-///
-/// Transformation:
-/// - Tries local bindings first, then singleton aliases, built-ins, unique
-///   local functions, and imported file/markdown bindings.
-fn infer_syntax_var(name: &str, locals: &HashMap<String, Type>, ctx: &ExprInferContext) -> Type {
-    locals
-        .get(name)
-        .cloned()
-        .or_else(|| infer_singleton_alias_value(name, ctx))
-        .or_else(|| infer_implicit_unit_value(name))
-        .or_else(|| infer_implicit_type_value(name))
-        .or_else(|| infer_unique_local_function_value(name, ctx))
-        .or_else(|| ctx.file_imports.get(name).map(|_| Type::Binary))
-        .or_else(|| {
-            ctx.markdown_imports.get(name).map(|_| Type::Named {
-                module: None,
-                name: "Markdown".to_string(),
-                args: Vec::new(),
-            })
-        })
-        .unwrap_or(Type::Dynamic)
-}
-
-/// Infers a bare singleton type alias used as a value expression.
-///
-/// Inputs:
-/// - `name`: source identifier from a variable expression.
-/// - `ctx`: expression inference context containing local aliases, selected
-///   imported aliases, and provider interfaces.
-///
-/// Output:
-/// - The alias representation type for zero-payload aliases such as
-///   `None = Atom["none"]` or `Unit = Atom["unit"]`.
-/// - `None` for aliases that carry associated values, non-alias names, opaque
-///   aliases, or unresolved imports.
-///
-/// Transformation:
-/// - Resolves local aliases directly from the merged alias map.
-/// - Resolves selected imported aliases through their provider interface, then
-///   qualifies any provider-local type references before returning the expanded
-///   singleton representation.
-fn infer_singleton_alias_value(name: &str, ctx: &ExprInferContext<'_>) -> Option<Type> {
-    if let Some(alias) = ctx.aliases.get(name) {
-        return singleton_alias_value_type(alias, ctx.aliases);
-    }
-
-    let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(&imported.module)?;
-    let interface_aliases = interface_type_aliases(interface);
-    let alias = interface_aliases.get(&imported.name)?;
-    let qualified_names = interface_qualified_type_names(interface);
-    singleton_alias_value_type(alias, &interface_aliases)
-        .map(|ty| qualify_type_names(&ty, &qualified_names))
-}
-
-/// Returns the value type represented by a zero-payload transparent alias.
-///
-/// Inputs:
-/// - `alias`: transparent type alias candidate.
-/// - `aliases`: alias environment used to expand the candidate body.
-///
-/// Output:
-/// - `Some(Type)` for aliases whose runtime representation is a single literal
-///   atom and carries no associated values.
-/// - `None` for aliases with type parameters, opaque aliases, tuple payloads,
-///   unions, or any non-singleton representation.
-///
-/// Transformation:
-/// - Expands aliases before checking singleton shape so source spelling does
-///   not affect whether the value can be used bare.
-fn singleton_alias_value_type(
-    alias: &TypeAlias,
-    aliases: &HashMap<String, TypeAlias>,
-) -> Option<Type> {
-    if alias.is_opaque || !alias.params.is_empty() {
-        return None;
-    }
-
-    match expand_type_aliases(&alias.body, aliases) {
-        Type::LiteralAtom(atom) => Some(Type::LiteralAtom(atom)),
-        _ => None,
-    }
-}
-
-/// Infers a bare local function name used as a first-class value.
-///
-/// Inputs:
-/// - `name`: source identifier from a variable expression.
-/// - `ctx`: expression inference context containing local function schemes.
-///
-/// Output:
-/// - `Some(Type::Function)` when exactly one local function with `name` is in
-///   scope; otherwise `None`.
-///
-/// Transformation:
-/// - Converts a unique local function signature into a function-value type so
-///   higher-order calls can constrain callback parameters without treating the
-///   identifier as an arbitrary dynamic value.
-fn infer_unique_local_function_value(name: &str, ctx: &ExprInferContext<'_>) -> Option<Type> {
-    let mut matches = ctx
-        .signatures
-        .iter()
-        .filter(|((candidate, _arity), _schemes)| candidate == name)
-        .flat_map(|(_key, schemes)| schemes.iter())
-        .map(instantiate_function_scheme);
-
-    let first = matches.next()?;
-    if matches.next().is_some() {
-        return None;
-    }
-
-    Some(Type::Function {
-        params: first.params,
-        ret: Box::new(first.ret),
-    })
-}
-
-/// Infers a binary operator expression.
-///
-/// Inputs:
-/// - `expr`: syntax-output binary operator expression.
-/// - `locals`, `ctx`, `subst`, and `errors`: active expression inference state.
-///
-/// Output:
-/// - Operator result type, or `Dynamic` for malformed operators.
-///
-/// Transformation:
-/// - Infers both operands, parses the operator token, handles pipe forwarding,
-///   and delegates ordinary operators to binary type rules.
-fn infer_syntax_binary_op(
-    expr: &SyntaxExprOutput,
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    let op = syntax_binary_op(expr.operator.as_deref());
-    if matches!(op, SyntaxBinaryOp::PipeForward) {
-        return infer_syntax_pipe_forward(expr, locals, ctx, subst, errors);
-    }
-    let left_type = expr
-        .children
-        .first()
-        .map(|left| infer_syntax_expr(left, locals, ctx, subst, errors))
-        .unwrap_or(Type::Dynamic);
-    let right_type = expr
-        .children
-        .get(1)
-        .map(|right| infer_syntax_expr(right, locals, ctx, subst, errors))
-        .unwrap_or(Type::Dynamic);
-    infer_syntax_binary_types(&op, &left_type, &right_type, ctx.aliases, subst, errors)
-}
-
-/// Infers a unary operator expression.
-///
-/// Inputs:
-/// - `expr`: syntax-output unary operator expression.
-/// - `locals`, `ctx`, `subst`, and `errors`: active expression inference state.
-///
-/// Output:
-/// - Unary operator result type.
-///
-/// Transformation:
-/// - Infers the operand, then applies numeric or boolean unary constraints.
-fn infer_syntax_unary_op(
-    expr: &SyntaxExprOutput,
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    let inner_type = expr
-        .children
-        .first()
-        .map(|inner| infer_syntax_expr(inner, locals, ctx, subst, errors))
-        .unwrap_or(Type::Dynamic);
-    infer_unary_operator(
-        expr.operator.as_deref().unwrap_or(""),
-        &inner_type,
-        subst,
-        errors,
-    )
-}
-
-/// Applies unary operator type rules.
-///
-/// Inputs:
-/// - `op`: unary operator token.
-/// - `value`: inferred operand type.
-/// - `subst` and `errors`: active substitution and diagnostic state.
-///
-/// Output:
-/// - Operator result type.
-///
-/// Transformation:
-/// - Constrains numeric negation to numbers and logical negation to booleans.
-fn infer_unary_operator(
-    op: &str,
-    value: &Type,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    match op {
-        "-" => {
-            if let Err(message) = unify(value, &Type::Number, subst) {
-                errors.push(message);
-            }
-            let normalized = apply_subst(value, subst);
-            if is_int_like(&normalized) {
-                Type::Int
-            } else if matches!(normalized, Type::Float) {
-                Type::Float
-            } else {
-                Type::Number
-            }
-        }
-        "not" | "!" => {
-            if let Err(message) = unify(value, &Type::Bool, subst) {
-                errors.push(message);
-            }
-            Type::Bool
-        }
-        _ => Type::Dynamic,
-    }
-}
-
-/// Applies binary operator type rules.
-///
-/// Inputs:
-/// - `op`: parsed binary operator.
-/// - `left` and `right`: inferred operand types.
-/// - `aliases`, `subst`, and `errors`: alias, substitution, and diagnostic
-///   state.
-///
-/// Output:
-/// - Operator result type.
-///
-/// Transformation:
-/// - Enforces arithmetic, comparison, boolean, and division constraints and
-///   returns the source-level operator result type.
-fn infer_syntax_binary_types(
-    op: &SyntaxBinaryOp,
-    left: &Type,
-    right: &Type,
-    aliases: &HashMap<String, TypeAlias>,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    match op {
-        SyntaxBinaryOp::Add | SyntaxBinaryOp::Sub | SyntaxBinaryOp::Mul => {
-            if let Err(message) = unify(left, &Type::Number, subst) {
-                errors.push(format!("left side {}", message));
-            }
-            if let Err(message) = unify(right, &Type::Number, subst) {
-                errors.push(format!("right side {}", message));
-            }
-
-            let normalized_left = apply_subst(left, subst);
-            let normalized_right = apply_subst(right, subst);
-            if is_int_like(&normalized_left) && is_int_like(&normalized_right) {
-                Type::Int
-            } else {
-                Type::Number
-            }
-        }
-        SyntaxBinaryOp::Div => {
-            if let Err(message) = unify(left, &Type::Number, subst) {
-                errors.push(format!("left side {}", message));
-            }
-            if let Err(message) = unify(right, &Type::Number, subst) {
-                errors.push(format!("right side {}", message));
-            }
-
-            Type::Number
-        }
-        SyntaxBinaryOp::DivRem => {
-            if let Err(message) = unify(left, &Type::Int, subst) {
-                errors.push(format!("left side {}", message));
-            }
-            if let Err(message) = unify(right, &Type::Int, subst) {
-                errors.push(format!("right side {}", message));
-            }
-            Type::Int
-        }
-        SyntaxBinaryOp::Eq
-        | SyntaxBinaryOp::EqEq
-        | SyntaxBinaryOp::EqEqEq
-        | SyntaxBinaryOp::NotEq
-        | SyntaxBinaryOp::NotEqEq
-        | SyntaxBinaryOp::Lt
-        | SyntaxBinaryOp::Gt
-        | SyntaxBinaryOp::LtEq
-        | SyntaxBinaryOp::GtEq => {
-            if let Err(message) = unify_comparable_types(left, right, aliases, subst) {
-                errors.push(message);
-            }
-            Type::Bool
-        }
-        SyntaxBinaryOp::And | SyntaxBinaryOp::Or => {
-            if let Err(message) = unify(&Type::Bool, left, subst) {
-                errors.push(format!("left side {}", message));
-            }
-            if let Err(message) = unify(&Type::Bool, right, subst) {
-                errors.push(format!("right side {}", message));
-            }
-            Type::Bool
-        }
-        SyntaxBinaryOp::PipeForward => Type::Dynamic,
-    }
-}
-
-/// Unifies binary comparison operands with transparent alias expansion.
-///
-/// Inputs:
-/// - `left` and `right`: inferred operand types from a comparison expression.
-/// - `aliases`: the visible type aliases for the current inference context.
-/// - `subst`: the mutable type-variable substitution table.
-///
-/// Output:
-/// - `Ok(())` when the operands are directly compatible, or compatible after
-///   transparent alias expansion.
-/// - The original direct-unification diagnostic when expansion still fails.
-///
-/// Transformation:
-/// - First attempts normal unification so existing substitutions and
-///   diagnostics remain unchanged for ordinary comparisons.
-/// - If that fails, expands non-opaque aliases on both sides and retries using
-///   the same substitution table.
-fn unify_comparable_types(
-    left: &Type,
-    right: &Type,
-    aliases: &HashMap<String, TypeAlias>,
-    subst: &mut HashMap<TypeVarId, Type>,
-) -> Result<(), String> {
-    if let Err(original_message) = unify(left, right, subst) {
-        let left_expanded = expand_type_aliases(left, aliases);
-        let right_expanded = expand_type_aliases(right, aliases);
-        if unify(&left_expanded, &right_expanded, subst).is_err() {
-            return Err(original_message);
-        }
-    }
-
-    Ok(())
-}
-
 /// Finds a transparent alias name for a concrete type.
 ///
 /// Inputs:
@@ -927,57 +537,6 @@ fn alias_name_for_type(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> Optio
     })
 }
 
-/// Checks whether a type can act as an integer.
-///
-/// Inputs:
-/// - `ty`: inferred type.
-///
-/// Output:
-/// - `true` for `Int` and integer literals.
-///
-/// Transformation:
-/// - Performs a small structural match without alias expansion.
-fn is_int_like(ty: &Type) -> bool {
-    matches!(ty, Type::Int | Type::LiteralInt(_))
-}
-
-/// Checks whether a name has constructor spelling.
-///
-/// Inputs:
-/// - `name`: source identifier.
-///
-/// Output:
-/// - `true` when the identifier starts with an uppercase ASCII character.
-///
-/// Transformation:
-/// - Uses spelling only; semantic constructor validation happens elsewhere.
-pub(crate) fn is_constructor_name(name: &str) -> bool {
-    name.chars()
-        .next()
-        .is_some_and(|ch| ch.is_ascii_uppercase())
-}
-
-/// Infers an ordinary function call against a scheme.
-///
-/// Inputs:
-/// - `scheme`: function type scheme.
-/// - `args`: inferred argument types.
-/// - `ctx` and `subst`: active inference context and substitutions.
-///
-/// Output:
-/// - Instantiated return type or call diagnostic.
-///
-/// Transformation:
-/// - Delegates to bound-aware function inference without a named call context.
-fn infer_function_call(
-    scheme: &FunctionScheme,
-    args: &[Type],
-    ctx: &ExprInferContext<'_>,
-    subst: &mut HashMap<TypeVarId, Type>,
-) -> Result<Type, String> {
-    infer_function_with_bounds(scheme, None, args, ctx, subst)
-}
-
 /// Infers a function call while checking generic trait bounds.
 ///
 /// Inputs:
@@ -999,31 +558,547 @@ pub(super) fn infer_function_with_bounds(
     ctx: &ExprInferContext<'_>,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Type, String> {
+    infer_function_with_explicit_type_args(scheme, function_name, args, &[], ctx, subst)
+}
+
+/// Infers a function call with optional explicit generic arguments.
+///
+/// Inputs:
+/// - `scheme`: function type scheme.
+/// - `function_name`: optional diagnostic context.
+/// - `args`: inferred argument types.
+/// - `type_args`: explicit source type arguments from `name[Type](...)`.
+/// - `ctx` and `subst`: active inference context and substitutions.
+///
+/// Output:
+/// - Instantiated return type or diagnostic string.
+///
+/// Transformation:
+/// - Instantiates generic variables, binds explicit call type arguments to the
+///   scheme's deterministic type-variable order, unifies parameters with
+///   value arguments, validates bounds, and returns the substituted result.
+pub(super) fn infer_function_with_explicit_type_args(
+    scheme: &FunctionScheme,
+    function_name: Option<&str>,
+    args: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    ctx: &ExprInferContext<'_>,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<Type, String> {
     let instantiated =
         instantiate_function_scheme_from(scheme, next_function_type_var(args, subst));
-    if instantiated.params.len() != args.len() {
+    bind_explicit_call_type_args(&instantiated, function_name, type_args, ctx, subst)?;
+    infer_instantiated_function_with_bounds(&instantiated, function_name, args, ctx, subst)
+}
+
+/// Infers a function call from an already-instantiated function scheme.
+///
+/// Inputs:
+/// - `scheme`: function scheme whose generic variables have already been
+///   freshened for this call site.
+/// - `function_name`: optional diagnostic context.
+/// - `args`: inferred argument types.
+/// - `ctx` and `subst`: active inference context and substitutions.
+///
+/// Output:
+/// - Instantiated return type or diagnostic string.
+///
+/// Transformation:
+/// - Checks arity, unifies instantiated parameters with value arguments,
+///   validates trait bounds, and applies the final substitution to the return
+///   type. This is used when a caller must freshen a larger synthetic callable,
+///   such as receiver-method dispatch where the receiver type and method
+///   parameters must share one type-variable mapping.
+pub(super) fn infer_instantiated_function_with_bounds(
+    scheme: &FunctionScheme,
+    function_name: Option<&str>,
+    args: &[Type],
+    ctx: &ExprInferContext<'_>,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<Type, String> {
+    if scheme.params.len() != args.len() {
         return Err(format!(
             "wrong arity for function call: expected {} args, found {}",
-            instantiated.params.len(),
+            scheme.params.len(),
             args.len()
         ));
     }
 
-    for (expected, actual) in instantiated.params.iter().zip(args.iter()) {
+    for (expected, actual) in scheme.params.iter().zip(args.iter()) {
+        let expected_substituted = apply_subst(expected, subst);
+        let actual_substituted = apply_subst(actual, subst);
+        if is_subtype_with_aliases(&actual_substituted, &expected_substituted, ctx.aliases) {
+            continue;
+        }
         if let Err(original_message) = unify(expected, actual, subst) {
-            let expected_expanded = expand_type_aliases(expected, ctx.aliases);
-            let actual_expanded = expand_type_aliases(actual, ctx.aliases);
+            let expected_expanded = expand_type_aliases(&expected_substituted, ctx.aliases);
+            let actual_expanded = expand_type_aliases(&actual_substituted, ctx.aliases);
+            if is_subtype_with_aliases(&actual_expanded, &expected_expanded, ctx.aliases) {
+                continue;
+            }
             if unify(&expected_expanded, &actual_expanded, subst).is_err() {
                 return Err(original_message);
             }
         }
     }
 
-    if let Err(message) = check_function_bounds(&instantiated, function_name, ctx, subst) {
+    if let Err(message) = check_function_bounds(scheme, function_name, ctx, subst) {
         return Err(message);
     }
 
-    Ok(instantiate_type(&instantiated.ret, subst))
+    Ok(instantiate_type(&scheme.ret, subst))
+}
+
+/// Binds explicit call type arguments to instantiated function type variables.
+///
+/// Inputs:
+/// - `scheme`: already instantiated function scheme.
+/// - `function_name`: optional diagnostic context.
+/// - `type_args`: explicit call-site type arguments.
+/// - `ctx` and `subst`: active inference context and substitutions.
+///
+/// Output:
+/// - `Ok(())` when explicit arguments match generic arity and parse.
+/// - `Err(message)` when a call supplies the wrong number of type args or an
+///   unparseable type argument.
+///
+/// Transformation:
+/// - Collects type variables from parameters, return type, and bounds in first
+///   occurrence order, parses explicit source type arguments with the current
+///   module type context, and unifies each variable with its supplied type.
+fn bind_explicit_call_type_args(
+    scheme: &FunctionScheme,
+    function_name: Option<&str>,
+    type_args: &[SyntaxTypeOutput],
+    ctx: &ExprInferContext<'_>,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    if type_args.is_empty() {
+        return Ok(());
+    }
+
+    let generic_vars = ordered_function_scheme_type_vars(scheme);
+    if generic_vars.len() != type_args.len() {
+        let name = function_name.unwrap_or("function");
+        return Err(format!(
+            "wrong type-argument arity for {}: expected {} type args, found {}",
+            name,
+            generic_vars.len(),
+            type_args.len()
+        ));
+    }
+
+    for (index, (var, type_arg)) in generic_vars.into_iter().zip(type_args.iter()).enumerate() {
+        let supplied = parse_explicit_call_type_arg(type_arg, ctx)?;
+        if let Some(generic_param) = scheme.generic_params.get(index) {
+            validate_explicit_hkt_type_arg_variance(generic_param, &supplied, type_arg, ctx)?;
+        }
+        if let Err(message) = unify(&Type::Var(var), &supplied, subst) {
+            return Err(message);
+        }
+    }
+
+    Ok(())
+}
+
+/// Validates explicit HKT constructor arguments against source slot variance.
+///
+/// Inputs:
+/// - `generic_param`: source generic parameter text such as `F[+_]`.
+/// - `supplied`: parsed explicit type argument.
+/// - `type_arg`: original syntax-output type argument for diagnostics.
+/// - `ctx`: expression context containing visible type aliases.
+///
+/// Output:
+/// - `Ok(())` when no variance requirement exists or the supplied constructor
+///   satisfies every required slot.
+/// - `Err(message)` when an explicit constructor argument violates an HKT slot
+///   variance requirement.
+///
+/// Transformation:
+/// - Reads `+_` and `-_` markers from the generic parameter, resolves the
+///   supplied bare constructor's declared variance, and rejects invariant or
+///   opposite-variance constructors before ordinary unification can hide the
+///   mismatch.
+fn validate_explicit_hkt_type_arg_variance(
+    generic_param: &str,
+    supplied: &Type,
+    type_arg: &SyntaxTypeOutput,
+    ctx: &ExprInferContext<'_>,
+) -> Result<(), String> {
+    let requirements = hkt_slot_variance_requirements(generic_param);
+    if requirements.iter().all(Option::is_none) {
+        return Ok(());
+    }
+
+    let Some((module, name)) = bare_constructor_type_arg(supplied) else {
+        return Err(format!(
+            "explicit type argument `{}` must be a bare type constructor for `{}`",
+            type_arg.text, generic_param
+        ));
+    };
+    let actual = explicit_constructor_variance(module, name, ctx.aliases, requirements.len());
+    for (slot_index, requirement) in requirements.iter().enumerate() {
+        let Some(required) = requirement else {
+            continue;
+        };
+        let actual = actual
+            .get(slot_index)
+            .copied()
+            .unwrap_or(Variance::Invariant);
+        if actual != *required {
+            return Err(format!(
+                "explicit type argument `{}` for `{}` requires slot {} to be {}, found {} constructor",
+                type_arg.text,
+                generic_param,
+                slot_index + 1,
+                variance_display(*required),
+                variance_display(actual)
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Extracts HKT slot variance requirements from a generic parameter.
+///
+/// Inputs:
+/// - `generic_param`: source generic parameter text.
+///
+/// Output:
+/// - One optional variance requirement per HKT slot.
+///
+/// Transformation:
+/// - Treats `_` as unconstrained, `+_` as covariant, and `-_` as
+///   contravariant while ignoring outer type-parameter variance.
+fn hkt_slot_variance_requirements(generic_param: &str) -> Vec<Option<Variance>> {
+    let Some((_, slots)) = generic_param.split_once('[') else {
+        return Vec::new();
+    };
+    let Some((slots, _)) = slots.rsplit_once(']') else {
+        return Vec::new();
+    };
+    slots
+        .split(',')
+        .map(|slot| match compact_spaces(slot).as_str() {
+            "+_" => Some(Variance::Covariant),
+            "-_" => Some(Variance::Contravariant),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extracts a bare constructor from an explicit type argument.
+///
+/// Inputs:
+/// - `supplied`: parsed explicit type argument.
+///
+/// Output:
+/// - Module/name pair for bare named constructors, otherwise `None`.
+///
+/// Transformation:
+/// - Keeps HKT constructor arguments distinct from applied concrete types such
+///   as `Option[Int]`.
+fn bare_constructor_type_arg(supplied: &Type) -> Option<(Option<&str>, &str)> {
+    match supplied {
+        Type::Named { module, name, args } if args.is_empty() => {
+            Some((module.as_deref(), name.as_str()))
+        }
+        _ => None,
+    }
+}
+
+/// Resolves declared variance for an explicit constructor argument.
+///
+/// Inputs:
+/// - `module` and `name`: bare constructor identity.
+/// - `aliases`: visible alias metadata.
+/// - `fallback_len`: number of slots that need a conservative fallback.
+///
+/// Output:
+/// - Constructor parameter variances, or invariant fallbacks when the
+///   constructor has no visible metadata.
+///
+/// Transformation:
+/// - Uses the same conservative rule as named-type subtyping: unknown generic
+///   constructors are invariant, while selected built-in collection
+///   constructors expose known covariance.
+fn explicit_constructor_variance(
+    module: Option<&str>,
+    name: &str,
+    aliases: &HashMap<String, TypeAlias>,
+    fallback_len: usize,
+) -> Vec<Variance> {
+    if let Some(module) = module {
+        let qualified = format!("{}.{}", module, name);
+        if let Some(alias) = aliases.get(&qualified) {
+            return alias.param_variance.clone();
+        }
+    }
+    if let Some(alias) = aliases.get(name) {
+        return alias.param_variance.clone();
+    }
+    match name {
+        "List" => vec![Variance::Covariant],
+        "Map" => vec![Variance::Covariant, Variance::Covariant],
+        "FixedArray" => vec![Variance::Covariant],
+        _ => vec![Variance::Invariant; fallback_len],
+    }
+}
+
+/// Renders variance for call-site diagnostics.
+///
+/// Inputs:
+/// - `variance`: declared or inferred variance direction.
+///
+/// Output:
+/// - Stable lower-case diagnostic text.
+///
+/// Transformation:
+/// - Keeps user-facing diagnostics independent from Rust enum debug output.
+fn variance_display(variance: Variance) -> &'static str {
+    match variance {
+        Variance::Invariant => "invariant",
+        Variance::Covariant => "covariant",
+        Variance::Contravariant => "contravariant",
+    }
+}
+
+/// Parses one explicit call type argument into the typechecker model.
+///
+/// Inputs:
+/// - `type_arg`: syntax-output type argument text.
+/// - `ctx`: active expression context containing aliases and imported type
+///   names.
+///
+/// Output:
+/// - Parsed and qualified type.
+///
+/// Transformation:
+/// - Reuses normal type-expression parsing, preserves bare generic alias
+///   constructors for HKT arguments, expands local value-level aliases, and
+///   qualifies selected imported type names so call-site generics obey the same
+///   naming rules as annotations.
+fn parse_explicit_call_type_arg(
+    type_arg: &SyntaxTypeOutput,
+    ctx: &ExprInferContext<'_>,
+) -> Result<Type, String> {
+    let mut vars = HashMap::new();
+    let mut next_var: TypeVarId = 0;
+    let parsed = parse_type_expr(&type_arg.text, ctx.alias_names, &mut vars, &mut next_var)
+        .ok_or_else(|| format!("cannot parse call type argument `{}`", type_arg.text))?;
+    if is_bare_generic_alias_constructor(&parsed, ctx.aliases) {
+        return Ok(qualify_type_names(&parsed, ctx.imported_type_names));
+    }
+    let parsed = expand_type_aliases(&parsed, ctx.aliases);
+    Ok(qualify_type_names(&parsed, ctx.imported_type_names))
+}
+
+/// Returns whether an explicit type argument names a generic alias constructor.
+///
+/// Inputs:
+/// - `ty`: parsed explicit call type argument.
+/// - `aliases`: visible local/imported type aliases.
+///
+/// Output:
+/// - `true` when the argument is a bare `TypeName` whose alias has parameters.
+///
+/// Transformation:
+/// - Keeps higher-kinded explicit call arguments such as `identity[Option, Int]`
+///   as constructors instead of expanding `Option[T]` into its union body.
+fn is_bare_generic_alias_constructor(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> bool {
+    match ty {
+        Type::Named {
+            module: None,
+            name,
+            args,
+        } if args.is_empty() => aliases
+            .get(name)
+            .is_some_and(|alias| !alias.params.is_empty()),
+        Type::Named {
+            module: Some(module),
+            name,
+            args,
+        } if args.is_empty() => {
+            let qualified = format!("{}.{}", module, name);
+            aliases
+                .get(&qualified)
+                .is_some_and(|alias| !alias.params.is_empty())
+        }
+        _ => false,
+    }
+}
+
+/// Collects function-scheme type variables in deterministic first-use order.
+///
+/// Inputs:
+/// - `scheme`: instantiated function scheme.
+///
+/// Output:
+/// - Type variable identifiers in the order explicit call type arguments bind
+///   to them.
+///
+/// Transformation:
+/// - Traverses parameters, return type, and bounds recursively while preserving
+///   first occurrence order and removing duplicates.
+fn ordered_function_scheme_type_vars(scheme: &FunctionScheme) -> Vec<TypeVarId> {
+    let mut vars = Vec::new();
+    for param in &scheme.params {
+        collect_type_vars_in_order(param, &mut vars);
+    }
+    collect_type_vars_in_order(&scheme.ret, &mut vars);
+    for bound in &scheme.bounds {
+        for arg in &bound.trait_args {
+            collect_type_vars_in_order(arg, &mut vars);
+        }
+    }
+    vars
+}
+
+/// Collects type variables from one type in first-use order.
+///
+/// Inputs:
+/// - `ty`: type to inspect.
+/// - `vars`: accumulator preserving existing order.
+///
+/// Output:
+/// - No direct return value; `vars` is extended in place.
+///
+/// Transformation:
+/// - Recursively walks structural type forms and appends each unseen
+///   `Type::Var` identifier exactly once.
+fn collect_type_vars_in_order(ty: &Type, vars: &mut Vec<TypeVarId>) {
+    match ty {
+        Type::Var(id) => {
+            if !vars.contains(id) {
+                vars.push(*id);
+            }
+        }
+        Type::Apply { constructor, args } => {
+            if !vars.contains(constructor) {
+                vars.push(*constructor);
+            }
+            for arg in args {
+                collect_type_vars_in_order(arg, vars);
+            }
+        }
+        Type::Existential { params, body } => {
+            collect_type_vars_in_order_excluding(body, vars, params);
+        }
+        Type::List(inner) => collect_type_vars_in_order(inner, vars),
+        Type::Tuple(items) | Type::Union(items) => {
+            for item in items {
+                collect_type_vars_in_order(item, vars);
+            }
+        }
+        Type::Map(fields) => {
+            for field in fields {
+                collect_type_vars_in_order(&field.value, vars);
+            }
+        }
+        Type::FixedArray { elem, .. } => collect_type_vars_in_order(elem, vars),
+        Type::Named { args, .. } => {
+            for arg in args {
+                collect_type_vars_in_order(arg, vars);
+            }
+        }
+        Type::Function { params, ret } => {
+            for param in params {
+                collect_type_vars_in_order(param, vars);
+            }
+            collect_type_vars_in_order(ret, vars);
+        }
+        Type::Int
+        | Type::Float
+        | Type::Number
+        | Type::Binary
+        | Type::Atom
+        | Type::Bool
+        | Type::Term
+        | Type::Dynamic
+        | Type::Never
+        | Type::Placeholder
+        | Type::LiteralAtom(_)
+        | Type::LiteralInt(_) => {}
+    }
+}
+
+/// Collects free type variables while excluding existential binders.
+///
+/// Inputs:
+/// - `ty`: type tree to inspect.
+/// - `vars`: accumulator preserving first-use order.
+/// - `excluded`: locally bound type-variable ids to ignore.
+///
+/// Output:
+/// - No direct return value; free variables are appended to `vars`.
+///
+/// Transformation:
+/// - Walks the same structures as `collect_type_vars_in_order`, extending the
+///   exclusion set through nested existential scopes.
+fn collect_type_vars_in_order_excluding(
+    ty: &Type,
+    vars: &mut Vec<TypeVarId>,
+    excluded: &[TypeVarId],
+) {
+    match ty {
+        Type::Var(id) => {
+            if !excluded.contains(id) && !vars.contains(id) {
+                vars.push(*id);
+            }
+        }
+        Type::Apply { constructor, args } => {
+            if !excluded.contains(constructor) && !vars.contains(constructor) {
+                vars.push(*constructor);
+            }
+            for arg in args {
+                collect_type_vars_in_order_excluding(arg, vars, excluded);
+            }
+        }
+        Type::Existential { params, body } => {
+            let mut nested_excluded = excluded.to_vec();
+            nested_excluded.extend(params);
+            collect_type_vars_in_order_excluding(body, vars, &nested_excluded);
+        }
+        Type::List(inner) => collect_type_vars_in_order_excluding(inner, vars, excluded),
+        Type::Tuple(items) | Type::Union(items) => {
+            for item in items {
+                collect_type_vars_in_order_excluding(item, vars, excluded);
+            }
+        }
+        Type::Map(fields) => {
+            for field in fields {
+                collect_type_vars_in_order_excluding(&field.value, vars, excluded);
+            }
+        }
+        Type::FixedArray { elem, .. } => {
+            collect_type_vars_in_order_excluding(elem, vars, excluded);
+        }
+        Type::Named { args, .. } => {
+            for arg in args {
+                collect_type_vars_in_order_excluding(arg, vars, excluded);
+            }
+        }
+        Type::Function { params, ret } => {
+            for param in params {
+                collect_type_vars_in_order_excluding(param, vars, excluded);
+            }
+            collect_type_vars_in_order_excluding(ret, vars, excluded);
+        }
+        Type::Int
+        | Type::Float
+        | Type::Number
+        | Type::Binary
+        | Type::Atom
+        | Type::Bool
+        | Type::Term
+        | Type::Dynamic
+        | Type::Never
+        | Type::Placeholder
+        | Type::LiteralAtom(_)
+        | Type::LiteralInt(_) => {}
+    }
 }
 
 /// Checks instantiated function trait bounds.
@@ -1138,7 +1213,7 @@ fn infer_trait_method_call_from_current_bounds(
         let mut method_vars = HashMap::new();
         let mut next_method_var = 0usize;
         for name in &trait_signature.type_params {
-            method_vars.insert(name.clone(), next_method_var);
+            method_vars.insert(normalize_type_param_name(name), next_method_var);
             next_method_var += 1;
         }
 
@@ -1163,7 +1238,7 @@ fn infer_trait_method_call_from_current_bounds(
 
         let mut trait_subst = HashMap::new();
         for (param_name, arg_type) in trait_signature.type_params.iter().zip(&bound.trait_args) {
-            let var_id = *method_vars.get(param_name)?;
+            let var_id = *method_vars.get(&normalize_type_param_name(param_name))?;
             trait_subst.insert(var_id, arg_type.clone());
         }
 
@@ -1185,6 +1260,7 @@ fn infer_trait_method_call_from_current_bounds(
                 .map(|param| substitute_type_vars(&param, &trait_subst))
                 .collect(),
             ret: substitute_type_vars(&parsed_return, &trait_subst),
+            generic_params: Vec::new(),
             bounds,
         };
 
@@ -1453,74 +1529,6 @@ fn refine_by_syntax_guard(
                 *value = narrowed;
             }
         }
-    }
-}
-
-/// Binary operators recognized by expression type inference.
-///
-/// Inputs:
-/// - Constructed from syntax-output operator text by `syntax_binary_op`.
-///
-/// Output:
-/// - Internal operator category used to select type inference rules.
-///
-/// Transformation:
-/// - Groups spelling variants such as `!=` and `/=` into one semantic branch
-///   while preserving compatibility branches that still need diagnostics.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SyntaxBinaryOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Eq,
-    EqEq,
-    EqEqEq,
-    NotEq,
-    NotEqEq,
-    GtEq,
-    Lt,
-    Gt,
-    LtEq,
-    DivRem,
-    And,
-    Or,
-    PipeForward,
-}
-
-/// Converts syntax-output operator text into an internal operator category.
-///
-/// Inputs:
-/// - `operator`: optional operator spelling from a syntax-output binary
-///   expression.
-///
-/// Output:
-/// - Internal binary operator category.
-///
-/// Transformation:
-/// - Maps supported arithmetic, comparison, boolean, and pipe spellings to the
-///   inference enum, defaulting to assignment-style equality for missing or
-///   unknown spellings to preserve existing recovery behavior.
-fn syntax_binary_op(operator: Option<&str>) -> SyntaxBinaryOp {
-    match operator.unwrap_or("=") {
-        "+" => SyntaxBinaryOp::Add,
-        "-" => SyntaxBinaryOp::Sub,
-        "*" => SyntaxBinaryOp::Mul,
-        "/" => SyntaxBinaryOp::Div,
-        "=" => SyntaxBinaryOp::Eq,
-        "==" => SyntaxBinaryOp::EqEq,
-        "=:=" => SyntaxBinaryOp::EqEqEq,
-        "!=" | "/=" => SyntaxBinaryOp::NotEq,
-        "=/=" => SyntaxBinaryOp::NotEqEq,
-        ">=" => SyntaxBinaryOp::GtEq,
-        "<" => SyntaxBinaryOp::Lt,
-        ">" => SyntaxBinaryOp::Gt,
-        "<=" => SyntaxBinaryOp::LtEq,
-        "div" | "rem" => SyntaxBinaryOp::DivRem,
-        "and" | "&&" => SyntaxBinaryOp::And,
-        "or" | "||" => SyntaxBinaryOp::Or,
-        "|>" => SyntaxBinaryOp::PipeForward,
-        _ => SyntaxBinaryOp::Eq,
     }
 }
 

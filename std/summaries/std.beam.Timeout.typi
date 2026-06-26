@@ -1,0 +1,33 @@
+//! BEAM timeout contract.
+//!
+//! `std.beam.Timeout` gives BEAM-targeted tests and runtime adapters a typed
+//! duration value for receive, socket, and port operations.
+
+module std.beam.Timeout.
+
+/// Timeout represents a millisecond timeout value.
+///
+/// Input: no runtime input.
+/// Output: an opaque BEAM timeout value.
+/// Transformation: hides the target representation for finite timeouts and
+/// infinity-like waits behind a typed value.
+
+pub opaque type Timeout.
+
+/// Builds an infinite timeout.
+///
+/// Input: no runtime input.
+/// Output: a `Timeout` that waits until the target operation completes.
+/// Transformation: maps to the BEAM runtime's unbounded wait representation.
+
+pub forever(): Timeout.
+
+/// Builds a finite timeout in milliseconds.
+///
+/// Input: non-negative millisecond count.
+/// Output: a finite `Timeout`.
+/// Transformation: asks the BEAM runtime to validate and store the millisecond
+/// value in the form expected by receive and socket operations.
+
+pub milliseconds(value: Int): Timeout.
+

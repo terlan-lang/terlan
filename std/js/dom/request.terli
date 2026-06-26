@@ -1,0 +1,121 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Request
+ */
+
+module std.js.Dom.Request.
+
+/**
+ * The **`Request`** interface of the Fetch API represents a resource request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request)
+ */
+pub opaque type Request.
+
+/**
+ * The **`cache`** read-only property of the Request interface contains the cache mode of the request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/cache)
+ */
+pub (value: Request) cache(): RequestCache.
+
+/**
+ * The **`credentials`** read-only property of the Request interface reflects the value given to the Request.Request() constructor in the `credentials` option.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/credentials)
+ */
+pub (value: Request) credentials(): RequestCredentials.
+
+/**
+ * The **`destination`** read-only property of the **Request** interface returns a string describing the type of content being requested.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/destination)
+ */
+pub (value: Request) destination(): RequestDestination.
+
+/**
+ * The **`headers`** read-only property of the with the request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/headers)
+ */
+pub (value: Request) headers(): Headers.
+
+/**
+ * The **`integrity`** read-only property of the Request interface contains the subresource integrity value of the request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/integrity)
+ */
+pub (value: Request) integrity(): std.js.String.JsString.
+
+/**
+ * The **`keepalive`** read-only property of the Request interface contains the request's `keepalive` setting (`true` or `false`), which indicates whether the browser will keep the associated request alive if the page that initiated it is unloaded before the request is complete.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/keepalive)
+ */
+pub (value: Request) keepalive(): std.core.Bool.
+
+/**
+ * The **`method`** read-only property of the `POST`, etc.) A String indicating the method of the request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)
+ */
+pub (value: Request) method(): std.js.String.JsString.
+
+/**
+ * The **`mode`** read-only property of the Request interface contains the mode of the request (e.g., `cors`, `no-cors`, `same-origin`, or `navigate`.) This is used to determine if cross-origin requests lead to valid responses, and which properties of the response are readable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/mode)
+ */
+pub (value: Request) mode(): RequestMode.
+
+/**
+ * The **`redirect`** read-only property of the Request interface contains the mode for how redirects are handled.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/redirect)
+ */
+pub (value: Request) redirect(): RequestRedirect.
+
+/**
+ * The **`referrer`** read-only property of the Request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/referrer)
+ */
+pub (value: Request) referrer(): std.js.String.JsString.
+
+/**
+ * The **`referrerPolicy`** read-only property of the referrer information, sent in the Referer header, should be included with the request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/referrerPolicy)
+ */
+pub (value: Request) referrer_policy(): ReferrerPolicy.
+
+/**
+ * The read-only **`signal`** property of the Request interface returns the AbortSignal associated with the request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/signal)
+ */
+pub (value: Request) signal(): AbortSignal.
+
+/**
+ * The **`url`** read-only property of the Request interface contains the URL of the request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/url)
+ */
+pub (value: Request) url(): std.js.String.JsString.
+
+/**
+ * The **`clone()`** method of the Request interface creates a copy of the current `Request` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/clone)
+ */
+pub (value: Request) clone(): Request.

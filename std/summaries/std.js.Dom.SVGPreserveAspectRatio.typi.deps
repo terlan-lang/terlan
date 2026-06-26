@@ -1,0 +1,8 @@
+module=std.js.Dom.SVGPreserveAspectRatio
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=12841807836211152885
+interface_hash=1228387982924519816
+interface_doc_hash=1228387982924519816
+deps=0

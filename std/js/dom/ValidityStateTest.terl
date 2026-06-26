@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface ValidityState
+ */
+
+module std.js.Dom.ValidityStateTest.
+
+import type std.js.Dom.ValidityState.ValidityState.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub bad_input_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.bad_input().
+
+pub custom_error_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.custom_error().
+
+pub pattern_mismatch_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.pattern_mismatch().
+
+pub range_overflow_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.range_overflow().
+
+pub range_underflow_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.range_underflow().
+
+pub step_mismatch_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.step_mismatch().
+
+pub too_long_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.too_long().
+
+pub too_short_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.too_short().
+
+pub type_mismatch_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.type_mismatch().
+
+pub valid_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.valid().
+
+pub value_missing_typechecks(receiver: ValidityState): std.core.Bool ->
+    receiver.value_missing().

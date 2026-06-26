@@ -1,0 +1,358 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLElementTagNameMap
+ */
+
+module std.js.Dom.HTMLElementTagNameMapTest.
+
+import type std.js.Dom.HTMLElementTagNameMap.HTMLElementTagNameMap.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub a_typechecks(receiver: HTMLElementTagNameMap): HTMLAnchorElement ->
+    receiver.a().
+
+pub abbr_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.abbr().
+
+pub address_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.address().
+
+pub area_typechecks(receiver: HTMLElementTagNameMap): HTMLAreaElement ->
+    receiver.area().
+
+pub article_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.article().
+
+pub aside_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.aside().
+
+pub audio_typechecks(receiver: HTMLElementTagNameMap): HTMLAudioElement ->
+    receiver.audio().
+
+pub b_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.b().
+
+pub base_typechecks(receiver: HTMLElementTagNameMap): HTMLBaseElement ->
+    receiver.base().
+
+pub bdi_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.bdi().
+
+pub bdo_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.bdo().
+
+pub blockquote_typechecks(receiver: HTMLElementTagNameMap): HTMLQuoteElement ->
+    receiver.blockquote().
+
+pub body_typechecks(receiver: HTMLElementTagNameMap): HTMLBodyElement ->
+    receiver.body().
+
+pub br_typechecks(receiver: HTMLElementTagNameMap): HTMLBRElement ->
+    receiver.br().
+
+pub button_typechecks(receiver: HTMLElementTagNameMap): HTMLButtonElement ->
+    receiver.button().
+
+pub canvas_typechecks(receiver: HTMLElementTagNameMap): HTMLCanvasElement ->
+    receiver.canvas().
+
+pub caption_typechecks(receiver: HTMLElementTagNameMap): HTMLTableCaptionElement ->
+    receiver.caption().
+
+pub cite_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.cite().
+
+pub code_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.code().
+
+pub col_typechecks(receiver: HTMLElementTagNameMap): HTMLTableColElement ->
+    receiver.col().
+
+pub colgroup_typechecks(receiver: HTMLElementTagNameMap): HTMLTableColElement ->
+    receiver.colgroup().
+
+pub data_typechecks(receiver: HTMLElementTagNameMap): HTMLDataElement ->
+    receiver.data().
+
+pub datalist_typechecks(receiver: HTMLElementTagNameMap): HTMLDataListElement ->
+    receiver.datalist().
+
+pub dd_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.dd().
+
+pub del_typechecks(receiver: HTMLElementTagNameMap): HTMLModElement ->
+    receiver.del().
+
+pub details_typechecks(receiver: HTMLElementTagNameMap): HTMLDetailsElement ->
+    receiver.details().
+
+pub dfn_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.dfn().
+
+pub dialog_typechecks(receiver: HTMLElementTagNameMap): HTMLDialogElement ->
+    receiver.dialog().
+
+pub div__typechecks(receiver: HTMLElementTagNameMap): HTMLDivElement ->
+    receiver.div_().
+
+pub dl_typechecks(receiver: HTMLElementTagNameMap): HTMLDListElement ->
+    receiver.dl().
+
+pub dt_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.dt().
+
+pub em_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.em().
+
+pub embed_typechecks(receiver: HTMLElementTagNameMap): HTMLEmbedElement ->
+    receiver.embed().
+
+pub fieldset_typechecks(receiver: HTMLElementTagNameMap): HTMLFieldSetElement ->
+    receiver.fieldset().
+
+pub figcaption_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.figcaption().
+
+pub figure_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.figure().
+
+pub footer_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.footer().
+
+pub form_typechecks(receiver: HTMLElementTagNameMap): HTMLFormElement ->
+    receiver.form().
+
+pub h1_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
+    receiver.h1().
+
+pub h2_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
+    receiver.h2().
+
+pub h3_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
+    receiver.h3().
+
+pub h4_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
+    receiver.h4().
+
+pub h5_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
+    receiver.h5().
+
+pub h6_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
+    receiver.h6().
+
+pub head_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadElement ->
+    receiver.head().
+
+pub header_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.header().
+
+pub hgroup_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.hgroup().
+
+pub hr_typechecks(receiver: HTMLElementTagNameMap): HTMLHRElement ->
+    receiver.hr().
+
+pub html__typechecks(receiver: HTMLElementTagNameMap): HTMLHtmlElement ->
+    receiver.html_().
+
+pub i_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.i().
+
+pub iframe_typechecks(receiver: HTMLElementTagNameMap): HTMLIFrameElement ->
+    receiver.iframe().
+
+pub img_typechecks(receiver: HTMLElementTagNameMap): HTMLImageElement ->
+    receiver.img().
+
+pub input_typechecks(receiver: HTMLElementTagNameMap): HTMLInputElement ->
+    receiver.input().
+
+pub ins_typechecks(receiver: HTMLElementTagNameMap): HTMLModElement ->
+    receiver.ins().
+
+pub kbd_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.kbd().
+
+pub label_typechecks(receiver: HTMLElementTagNameMap): HTMLLabelElement ->
+    receiver.label().
+
+pub legend_typechecks(receiver: HTMLElementTagNameMap): HTMLLegendElement ->
+    receiver.legend().
+
+pub li_typechecks(receiver: HTMLElementTagNameMap): HTMLLIElement ->
+    receiver.li().
+
+pub link_typechecks(receiver: HTMLElementTagNameMap): HTMLLinkElement ->
+    receiver.link().
+
+pub main_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.main().
+
+pub map_typechecks(receiver: HTMLElementTagNameMap): HTMLMapElement ->
+    receiver.map().
+
+pub mark_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.mark().
+
+pub menu_typechecks(receiver: HTMLElementTagNameMap): HTMLMenuElement ->
+    receiver.menu().
+
+pub meta_typechecks(receiver: HTMLElementTagNameMap): HTMLMetaElement ->
+    receiver.meta().
+
+pub meter_typechecks(receiver: HTMLElementTagNameMap): HTMLMeterElement ->
+    receiver.meter().
+
+pub nav_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.nav().
+
+pub noscript_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.noscript().
+
+pub object_typechecks(receiver: HTMLElementTagNameMap): HTMLObjectElement ->
+    receiver.object().
+
+pub ol_typechecks(receiver: HTMLElementTagNameMap): HTMLOListElement ->
+    receiver.ol().
+
+pub optgroup_typechecks(receiver: HTMLElementTagNameMap): HTMLOptGroupElement ->
+    receiver.optgroup().
+
+pub option_typechecks(receiver: HTMLElementTagNameMap): HTMLOptionElement ->
+    receiver.option().
+
+pub output_typechecks(receiver: HTMLElementTagNameMap): HTMLOutputElement ->
+    receiver.output().
+
+pub p_typechecks(receiver: HTMLElementTagNameMap): HTMLParagraphElement ->
+    receiver.p().
+
+pub picture_typechecks(receiver: HTMLElementTagNameMap): HTMLPictureElement ->
+    receiver.picture().
+
+pub pre_typechecks(receiver: HTMLElementTagNameMap): HTMLPreElement ->
+    receiver.pre().
+
+pub progress_typechecks(receiver: HTMLElementTagNameMap): HTMLProgressElement ->
+    receiver.progress().
+
+pub q_typechecks(receiver: HTMLElementTagNameMap): HTMLQuoteElement ->
+    receiver.q().
+
+pub rp_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.rp().
+
+pub rt_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.rt().
+
+pub ruby_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.ruby().
+
+pub s_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.s().
+
+pub samp_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.samp().
+
+pub script_typechecks(receiver: HTMLElementTagNameMap): HTMLScriptElement ->
+    receiver.script().
+
+pub search_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.search().
+
+pub section_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.section().
+
+pub select_typechecks(receiver: HTMLElementTagNameMap): HTMLSelectElement ->
+    receiver.select().
+
+pub slot_typechecks(receiver: HTMLElementTagNameMap): HTMLSlotElement ->
+    receiver.slot().
+
+pub small_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.small().
+
+pub source_typechecks(receiver: HTMLElementTagNameMap): HTMLSourceElement ->
+    receiver.source().
+
+pub span_typechecks(receiver: HTMLElementTagNameMap): HTMLSpanElement ->
+    receiver.span().
+
+pub strong_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.strong().
+
+pub style_typechecks(receiver: HTMLElementTagNameMap): HTMLStyleElement ->
+    receiver.style().
+
+pub sub_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.sub().
+
+pub summary_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.summary().
+
+pub sup_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.sup().
+
+pub table_typechecks(receiver: HTMLElementTagNameMap): HTMLTableElement ->
+    receiver.table().
+
+pub tbody_typechecks(receiver: HTMLElementTagNameMap): HTMLTableSectionElement ->
+    receiver.tbody().
+
+pub td_typechecks(receiver: HTMLElementTagNameMap): HTMLTableCellElement ->
+    receiver.td().
+
+pub template__typechecks(receiver: HTMLElementTagNameMap): HTMLTemplateElement ->
+    receiver.template_().
+
+pub textarea_typechecks(receiver: HTMLElementTagNameMap): HTMLTextAreaElement ->
+    receiver.textarea().
+
+pub tfoot_typechecks(receiver: HTMLElementTagNameMap): HTMLTableSectionElement ->
+    receiver.tfoot().
+
+pub th_typechecks(receiver: HTMLElementTagNameMap): HTMLTableCellElement ->
+    receiver.th().
+
+pub thead_typechecks(receiver: HTMLElementTagNameMap): HTMLTableSectionElement ->
+    receiver.thead().
+
+pub time_typechecks(receiver: HTMLElementTagNameMap): HTMLTimeElement ->
+    receiver.time().
+
+pub title_typechecks(receiver: HTMLElementTagNameMap): HTMLTitleElement ->
+    receiver.title().
+
+pub tr_typechecks(receiver: HTMLElementTagNameMap): HTMLTableRowElement ->
+    receiver.tr().
+
+pub track_typechecks(receiver: HTMLElementTagNameMap): HTMLTrackElement ->
+    receiver.track().
+
+pub u_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.u().
+
+pub ul_typechecks(receiver: HTMLElementTagNameMap): HTMLUListElement ->
+    receiver.ul().
+
+pub var_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.var().
+
+pub video_typechecks(receiver: HTMLElementTagNameMap): HTMLVideoElement ->
+    receiver.video().
+
+pub wbr_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
+    receiver.wbr().

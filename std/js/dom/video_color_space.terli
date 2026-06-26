@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface VideoColorSpace
+ */
+
+module std.js.Dom.VideoColorSpace.
+
+/**
+ * The **`VideoColorSpace`** interface of the WebCodecs API represents the color space of a video.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace)
+ */
+pub opaque type VideoColorSpace.
+
+/**
+ * The **`fullRange`** read-only property of the VideoColorSpace interface returns `true` if full-range color values are used.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/fullRange)
+ */
+pub (value: VideoColorSpace) full_range(): Option[std.core.Bool].
+
+/**
+ * The **`matrix`** read-only property of the VideoColorSpace interface returns the matrix coefficient of the video.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/matrix)
+ */
+pub (value: VideoColorSpace) matrix(): Option[VideoMatrixCoefficients].
+
+/**
+ * The **`primaries`** read-only property of the VideoColorSpace interface returns the color gamut of the video.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/primaries)
+ */
+pub (value: VideoColorSpace) primaries(): Option[VideoColorPrimaries].
+
+/**
+ * The **`transfer`** read-only property of the VideoColorSpace interface returns the opto-electronic transfer characteristics of the video.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/transfer)
+ */
+pub (value: VideoColorSpace) transfer(): Option[VideoTransferCharacteristics].
+
+/**
+ * The **`toJSON()`** method of the VideoColorSpace interface is a _serializer_ that returns a JSON representation of the `VideoColorSpace` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/toJSON)
+ */
+pub (value: VideoColorSpace) to_json(): VideoColorSpaceInit.

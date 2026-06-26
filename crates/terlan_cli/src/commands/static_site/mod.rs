@@ -1,4 +1,4 @@
-use std::collections::hash_map::DefaultHasher;
+use std::collections::{hash_map::DefaultHasher, BTreeMap};
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
@@ -6,10 +6,11 @@ use std::process::ExitCode;
 use std::thread;
 use std::time::{Duration, UNIX_EPOCH};
 
-use terlan_syntax::{SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput};
+use terlan_syntax::{SyntaxImportKind, SyntaxModuleOutput};
 
 use crate::commands::artifacts::{
-    collect_syntax_markdown_inputs, collect_syntax_template_inputs, resolve_import_path,
+    collect_syntax_asset_imports_matching, collect_syntax_markdown_frontend_inputs,
+    collect_syntax_template_inputs,
 };
 use crate::validation::static_output::{
     validate_static_css_output_files, validate_static_html_output,
@@ -17,61 +18,25 @@ use crate::validation::static_output::{
 use crate::validation::target_profile::TargetProfileCheckOptions;
 use crate::{CliCommand, CliState};
 
+mod command;
+mod filters;
 mod html_usage;
 mod render;
+mod render_lookup;
+mod render_markdown;
+mod render_values;
 mod routes;
+pub(crate) use command::run;
+pub(crate) use filters::AssetFilters;
 pub(crate) use html_usage::*;
 pub(crate) use render::{render_syntax_static_entrypoint, StaticSyntaxRenderError};
+pub(crate) use render_markdown::render_syntax_static_markdown_layout;
 pub(crate) use routes::*;
 
 /// Reserved template prop name used for component children.
 pub(crate) const TEMPLATE_CHILDREN_SLOT: &str = "children";
 
-/// Asset include/exclude filters for static output copying.
-///
-/// Inputs:
-/// - `includes`: optional wildcard patterns that allow matching assets.
-/// - `excludes`: wildcard patterns that reject matching assets.
-///
-/// Output:
-/// - Filter state consumed by static asset copying.
-///
-/// Transformation:
-/// - A path is allowed when it matches at least one include, or no includes are
-///   configured, and does not match any exclude.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct AssetFilters {
-    pub(crate) includes: Vec<String>,
-    pub(crate) excludes: Vec<String>,
-}
-
-impl AssetFilters {
-    /// Returns whether a static asset path should be copied.
-    ///
-    /// Inputs:
-    /// - `path`: resolved asset source path.
-    ///
-    /// Output:
-    /// - `true` when include/exclude rules allow the path.
-    ///
-    /// Transformation:
-    /// - Matches patterns against both normalized full paths and file names.
-    pub(crate) fn allows(&self, path: &Path) -> bool {
-        let included = self.includes.is_empty()
-            || self
-                .includes
-                .iter()
-                .any(|pattern| asset_pattern_matches(pattern, path));
-        let excluded = self
-            .excludes
-            .iter()
-            .any(|pattern| asset_pattern_matches(pattern, path));
-
-        included && !excluded
-    }
-}
-
-/// Parsed command-local arguments for `emit-static`.
+/// Parsed command-local arguments for `terlc static emit`.
 ///
 /// Inputs:
 /// - Produced by `parse_emit_static_args`.
@@ -86,16 +51,17 @@ pub(crate) struct EmitStaticArgs {
     pub(crate) file: String,
     pub(crate) validate_output: bool,
     pub(crate) asset_filters: AssetFilters,
+    pub(crate) base_path: Option<String>,
 }
 
-/// Parsed command-local arguments for `serve-static`.
+/// Parsed command-local arguments for `terlc static serve`.
 ///
 /// Inputs:
 /// - Produced by `parse_serve_static_args`.
 ///
 /// Output:
 /// - Static source, bind address, polling interval, source directory override,
-///   and embedded emit-static settings.
+///   check-only mode, and embedded static emit settings.
 ///
 /// Transformation:
 /// - Combines dev-server flags with reusable static emit settings.
@@ -106,25 +72,27 @@ pub(crate) struct ServeStaticArgs {
     pub(crate) port: u16,
     pub(crate) poll_ms: u64,
     pub(crate) source_dir: Option<PathBuf>,
+    pub(crate) check_only: bool,
     pub(crate) emit_args: EmitStaticArgs,
 }
 
-/// Parses command-local arguments for `emit-static`.
+/// Parses command-local arguments for `terlc static emit`.
 ///
 /// Inputs:
-/// - `args`: arguments after the `emit-static` verb.
+/// - `args`: arguments after the `static emit` subcommand.
 ///
 /// Output:
-/// - Parsed emit-static settings or an error message.
+/// - Parsed static emit settings or an error message.
 ///
 /// Transformation:
-/// - Scans one file argument plus `--validate-output`, `--asset-include`, and
-///   `--asset-exclude` flags.
+/// - Scans one file argument plus `--validate-output`, `--base-path`,
+///   `--asset-include`, and `--asset-exclude` flags.
 pub(crate) fn parse_emit_static_args(args: &[String]) -> Result<EmitStaticArgs, String> {
     let mut file = None;
     let mut validate_output = false;
     let mut includes = Vec::new();
     let mut excludes = Vec::new();
+    let mut base_path = None;
     let mut index = 0;
 
     while index < args.len() {
@@ -132,6 +100,13 @@ pub(crate) fn parse_emit_static_args(args: &[String]) -> Result<EmitStaticArgs, 
             "--validate-output" => {
                 validate_output = true;
                 index += 1;
+            }
+            "--base-path" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--base-path requires a path".to_string());
+                };
+                base_path = Some(normalize_static_base_path(value)?);
+                index += 2;
             }
             "--asset-include" => {
                 let Some(pattern) = args.get(index + 1) else {
@@ -148,11 +123,11 @@ pub(crate) fn parse_emit_static_args(args: &[String]) -> Result<EmitStaticArgs, 
                 index += 2;
             }
             option if option.starts_with("--") => {
-                return Err(format!("unsupported emit-static option: {}", option));
+                return Err(format!("unsupported static emit option: {}", option));
             }
             path => {
                 if file.replace(path.to_string()).is_some() {
-                    return Err("emit-static expects exactly one file argument".to_string());
+                    return Err("static emit expects exactly one file argument".to_string());
                 }
                 index += 1;
             }
@@ -160,90 +135,60 @@ pub(crate) fn parse_emit_static_args(args: &[String]) -> Result<EmitStaticArgs, 
     }
 
     let Some(file) = file else {
-        return Err("emit-static expects exactly one file argument".to_string());
+        return Err("static emit expects exactly one file argument".to_string());
     };
 
     Ok(EmitStaticArgs {
         file,
         validate_output,
         asset_filters: AssetFilters { includes, excludes },
+        base_path,
     })
 }
 
-/// Returns whether an asset pattern matches a path.
+/// Normalizes a static-site base path for generated HTML.
 ///
 /// Inputs:
-/// - `pattern`: wildcard pattern.
-/// - `path`: resolved path to test.
+/// - `value`: CLI-provided URL path prefix such as `/terlan`.
 ///
 /// Output:
-/// - `true` when the pattern matches the normalized path or filename.
+/// - Normalized path ending in `/`, or an error message.
 ///
 /// Transformation:
-/// - Normalizes separators to `/` before wildcard matching.
-fn asset_pattern_matches(pattern: &str, path: &Path) -> bool {
-    let normalized_path = path.to_string_lossy().replace('\\', "/");
-    if wildcard_match(pattern, &normalized_path) {
-        return true;
+/// - Requires an absolute URL path, rejects traversal and unsafe HTML
+///   attribute characters, and normalizes `/docs` to `/docs/` for use in an
+///   HTML `<base href>` tag.
+fn normalize_static_base_path(value: &str) -> Result<String, String> {
+    if value.is_empty() {
+        return Err("--base-path cannot be empty".to_string());
     }
-
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| wildcard_match(pattern, name))
-}
-
-/// Matches a simple `*` wildcard pattern.
-///
-/// Inputs:
-/// - `pattern`: wildcard pattern with zero or more `*` wildcards.
-/// - `value`: candidate text.
-///
-/// Output:
-/// - `true` when `value` satisfies `pattern`.
-///
-/// Transformation:
-/// - Performs ordered substring matching with anchored edges when the pattern
-///   does not start or end with `*`.
-fn wildcard_match(pattern: &str, value: &str) -> bool {
-    if pattern == "*" {
-        return true;
+    if !value.starts_with('/') {
+        return Err(format!("--base-path must start with `/`: `{value}`"));
     }
-    if !pattern.contains('*') {
-        return pattern == value;
+    if value
+        .chars()
+        .any(|ch| ch.is_whitespace() || matches!(ch, '"' | '\'' | '<' | '>'))
+    {
+        return Err(format!("--base-path contains unsafe characters: `{value}`"));
     }
-
-    let starts_with_wildcard = pattern.starts_with('*');
-    let ends_with_wildcard = pattern.ends_with('*');
-    let mut rest = value;
-    let mut parts = pattern
-        .split('*')
-        .filter(|part| !part.is_empty())
-        .peekable();
-
-    if !starts_with_wildcard {
-        let Some(first) = parts.next() else {
-            return true;
-        };
-        let Some(stripped) = rest.strip_prefix(first) else {
-            return false;
-        };
-        rest = stripped;
+    if value.contains('?') || value.contains('#') {
+        return Err(format!(
+            "--base-path must be a path, not a URL query or fragment: `{value}`"
+        ));
     }
-
-    while let Some(part) = parts.next() {
-        if parts.peek().is_none() && !ends_with_wildcard {
-            return rest.ends_with(part);
+    if value == "/" {
+        return Ok("/".to_string());
+    }
+    for segment in value.trim_matches('/').split('/') {
+        if segment.is_empty() || segment == "." || segment == ".." {
+            return Err(format!("invalid --base-path segment in `{value}`"));
         }
-        let Some(position) = rest.find(part) else {
-            return false;
-        };
-        rest = &rest[position + part.len()..];
     }
 
-    true
+    Ok(format!("{}/", value.trim_end_matches('/')))
 }
 
-/// Executes the `emit-static` CLI command.
+/// Executes the static emit command runner.
 ///
 /// Inputs:
 /// - `cmd`: parsed command containing one source path and static flags.
@@ -287,6 +232,8 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
             state.target_profile,
             TargetProfileCheckOptions {
                 allow_asset_imports: true,
+                allow_rust_backed_std_modules: state.native_policy
+                    != crate::validation::native_policy::NativePolicy::Pure,
             },
         ) {
             Ok(compiled) => compiled,
@@ -312,13 +259,29 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    let markdown_imports = match collect_syntax_markdown_inputs(&syntax_output, Path::new(path)) {
-        Ok(markdown_imports) => markdown_imports,
+    let markdown_inputs =
+        match collect_syntax_markdown_frontend_inputs(&syntax_output, Path::new(path)) {
+            Ok(markdown_inputs) => markdown_inputs,
+            Err(message) => {
+                eprintln!("{}", message);
+                return ExitCode::from(1);
+            }
+        };
+    let markdown_routes = match discover_markdown_static_routes(&markdown_inputs) {
+        Ok(markdown_routes) => markdown_routes,
         Err(message) => {
             eprintln!("{}", message);
             return ExitCode::from(1);
         }
     };
+    if let Err(message) = reject_static_route_path_collisions(&routes, &markdown_routes) {
+        eprintln!("{}", message);
+        return ExitCode::from(1);
+    }
+    let markdown_imports = markdown_inputs
+        .iter()
+        .map(|input| (input.alias.clone(), input.document.clone()))
+        .collect::<BTreeMap<_, _>>();
 
     if let Err(err) = fs::create_dir_all(&state.out_dir) {
         eprintln!(
@@ -342,7 +305,7 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
         }
     };
     for entrypoint in entrypoints {
-        let html = match render_syntax_static_entrypoint(
+        let mut html = match render_syntax_static_entrypoint(
             &syntax_output,
             &templates,
             &markdown_imports,
@@ -354,6 +317,9 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
                 return ExitCode::from(1);
             }
         };
+        if let Some(base_path) = &args.base_path {
+            html = terlan_html::inject_html_base_path(&html, base_path);
+        }
         let target = state.out_dir.join(format!("{}.html", entrypoint));
         if args.validate_output {
             if let Err(message) = validate_static_html_output(&html, &target) {
@@ -372,7 +338,7 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
     }
 
     for route in routes {
-        let html = match render_syntax_static_entrypoint(
+        let mut html = match render_syntax_static_entrypoint(
             &syntax_output,
             &templates,
             &markdown_imports,
@@ -384,6 +350,9 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
                 return ExitCode::from(1);
             }
         };
+        if let Some(base_path) = &args.base_path {
+            html = terlan_html::inject_html_base_path(&html, base_path);
+        }
         let relative_target = match static_route_output_path(&route.path) {
             Ok(path) => path,
             Err(message) => {
@@ -418,6 +387,68 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
         }
     }
 
+    for route in markdown_routes {
+        let Some(document) = markdown_imports.get(&route.alias) else {
+            eprintln!(
+                "static Markdown route `{}` references unknown Markdown import `{}`",
+                route.path, route.alias
+            );
+            return ExitCode::from(1);
+        };
+        let mut html = if let Some(layout) = &route.layout {
+            match render_syntax_static_markdown_layout(
+                &syntax_output,
+                &templates,
+                layout,
+                route.title.as_deref(),
+                document,
+            ) {
+                Ok(html) => html,
+                Err(StaticSyntaxRenderError::Invalid(message)) => {
+                    eprintln!("{}", message);
+                    return ExitCode::from(1);
+                }
+            }
+        } else {
+            document.rendered_html.clone()
+        };
+        if let Some(base_path) = &args.base_path {
+            html = terlan_html::inject_html_base_path(&html, base_path);
+        }
+        let relative_target = match static_route_output_path(&route.path) {
+            Ok(path) => path,
+            Err(message) => {
+                eprintln!("{}", message);
+                return ExitCode::from(1);
+            }
+        };
+        let target = state.out_dir.join(relative_target);
+        if let Some(parent) = target.parent() {
+            if let Err(err) = fs::create_dir_all(parent) {
+                eprintln!(
+                    "failed to create static Markdown route output directory `{}`: {}",
+                    parent.display(),
+                    err
+                );
+                return ExitCode::from(1);
+            }
+        }
+        if args.validate_output {
+            if let Err(message) = validate_static_html_output(&html, &target) {
+                eprintln!("{}", message);
+                return ExitCode::from(1);
+            }
+        }
+        if let Err(err) = fs::write(&target, html.as_bytes()) {
+            eprintln!(
+                "failed to write static Markdown route output `{}`: {}",
+                target.display(),
+                err
+            );
+            return ExitCode::from(1);
+        }
+    }
+
     if args.validate_output {
         if let Err(message) = validate_static_css_output_files(&copied_css_outputs) {
             eprintln!("{}", message);
@@ -428,26 +459,28 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Parses command-local arguments for `serve-static`.
+/// Parses command-local arguments for `terlc static serve`.
 ///
 /// Inputs:
-/// - `args`: arguments after the `serve-static` verb.
+/// - `args`: arguments after the `static serve` subcommand.
 ///
 /// Output:
 /// - Parsed dev-server settings or an error message.
 ///
 /// Transformation:
-/// - Scans bind, polling, source-dir, validation, asset-filter, and single file
-///   arguments.
+/// - Scans bind, polling, source-dir, check-only, validation, base-path,
+///   asset-filter, and single file arguments.
 pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs, String> {
     let mut file = None;
     let mut host = "127.0.0.1".to_string();
     let mut port = 8080;
     let mut poll_ms = 500;
     let mut source_dir = None;
+    let mut check_only = false;
     let mut validate_output = false;
     let mut includes = Vec::new();
     let mut excludes = Vec::new();
+    let mut base_path = None;
     let mut index = 0;
 
     while index < args.len() {
@@ -491,6 +524,17 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
                 validate_output = true;
                 index += 1;
             }
+            "--base-path" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--base-path requires a path".to_string());
+                };
+                base_path = Some(normalize_static_base_path(value)?);
+                index += 2;
+            }
+            "--check" => {
+                check_only = true;
+                index += 1;
+            }
             "--asset-include" => {
                 let Some(pattern) = args.get(index + 1) else {
                     return Err("--asset-include requires a pattern".to_string());
@@ -506,11 +550,11 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
                 index += 2;
             }
             option if option.starts_with("--") => {
-                return Err(format!("unsupported serve-static option: {}", option));
+                return Err(format!("unsupported static serve option: {}", option));
             }
             path => {
                 if file.replace(path.to_string()).is_some() {
-                    return Err("serve-static expects exactly one file argument".to_string());
+                    return Err("static serve expects exactly one file argument".to_string());
                 }
                 index += 1;
             }
@@ -518,7 +562,7 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
     }
 
     let Some(file) = file else {
-        return Err("serve-static expects exactly one file argument".to_string());
+        return Err("static serve expects exactly one file argument".to_string());
     };
 
     let asset_filters = AssetFilters { includes, excludes };
@@ -526,6 +570,7 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
         file: file.clone(),
         validate_output,
         asset_filters,
+        base_path,
     };
 
     Ok(ServeStaticArgs {
@@ -534,11 +579,12 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
         port,
         poll_ms,
         source_dir,
+        check_only,
         emit_args,
     })
 }
 
-/// Executes the `serve-static` CLI command.
+/// Executes the static serve command runner.
 ///
 /// Inputs:
 /// - `cmd`: parsed command containing source path and dev-server flags.
@@ -550,8 +596,9 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
 /// - Otherwise this command runs until the process exits.
 ///
 /// Transformation:
-/// - Performs an initial static emit, starts an HTTP server, polls source/output
-///   directories, recompiles on source changes, and broadcasts reload events.
+/// - Performs an initial static emit, returns early for check-only mode, starts
+///   an HTTP server, polls source/output directories, recompiles on source
+///   changes, and broadcasts reload events.
 pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
     let args = match parse_serve_static_args(&cmd.args) {
         Ok(args) => args,
@@ -571,12 +618,15 @@ pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
     let exclude_dir = canonicalize_optional(&out_dir);
 
     eprintln!(
-        "terlc serve-static: compiling {} -> {}",
+        "terlc static: compiling {} -> {}",
         args.file,
         out_dir.display()
     );
     if run_emit_static_with_args(&args.emit_args, state.clone()) != ExitCode::SUCCESS {
         return ExitCode::from(1);
+    }
+    if args.check_only {
+        return ExitCode::SUCCESS;
     }
 
     let server = match crate::commands::serve::spawn_directory_server(
@@ -584,7 +634,7 @@ pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
         args.host.clone(),
         args.port,
         args.poll_ms,
-        "terlc serve-static",
+        "terlc static",
     ) {
         Ok(server) => server,
         Err(message) => {
@@ -592,7 +642,7 @@ pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    eprintln!("terlc serve-static: shared server {}", server.local_addr);
+    eprintln!("terlc static: shared server {}", server.local_addr);
 
     let poll_interval = Duration::from_millis(args.poll_ms);
     let mut source_hash = directory_fingerprint(&source_dir, exclude_dir.as_deref());
@@ -602,17 +652,17 @@ pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
 
         let next_source_hash = directory_fingerprint(&source_dir, exclude_dir.as_deref());
         if next_source_hash != source_hash {
-            eprintln!("terlc serve-static: source changed; recompiling");
+            eprintln!("terlc static: source changed; recompiling");
             source_hash = next_source_hash;
             if run_emit_static_with_args(&args.emit_args, state.clone()) != ExitCode::SUCCESS {
-                eprintln!("terlc serve-static: compile failed; keeping previous output");
+                eprintln!("terlc static: compile failed; keeping previous output");
                 continue;
             }
         }
     }
 }
 
-/// Replays parsed emit-static arguments through the command runner.
+/// Replays parsed static emit arguments through the command runner.
 ///
 /// Inputs:
 /// - `args`: parsed static emit arguments.
@@ -622,12 +672,16 @@ pub(crate) fn run_serve_static(cmd: CliCommand, state: CliState) -> ExitCode {
 /// - Same exit-code contract as `run_emit_static`.
 ///
 /// Transformation:
-/// - Reconstructs command-local strings so serve-static can reuse the exact
-///   emit-static command path.
+/// - Reconstructs command-local strings so static serve can reuse the exact
+///   static emit command path.
 fn run_emit_static_with_args(args: &EmitStaticArgs, state: CliState) -> ExitCode {
     let mut cmd_args = vec![args.file.clone()];
     if args.validate_output {
         cmd_args.push("--validate-output".to_string());
+    }
+    if let Some(base_path) = &args.base_path {
+        cmd_args.push("--base-path".to_string());
+        cmd_args.push(base_path.clone());
     }
     for include in &args.asset_filters.includes {
         cmd_args.push("--asset-include".to_string());
@@ -742,7 +796,7 @@ fn collect_directory_files(root: &Path, exclude: Option<&Path>, files: &mut Vec<
 /// - Copied CSS output paths or an error message.
 ///
 /// Transformation:
-/// - Resolves file/CSS imports relative to source, filters assets, copies them
+/// - Loads and validates shared syntax asset imports, filters them, copies them
 ///   into the output directory, and tracks copied CSS files for validation.
 fn copy_syntax_static_asset_imports(
     module: &SyntaxModuleOutput,
@@ -750,44 +804,28 @@ fn copy_syntax_static_asset_imports(
     out_dir: &Path,
     filters: &AssetFilters,
 ) -> Result<Vec<PathBuf>, String> {
-    let base_dir = source_path.parent().unwrap_or_else(|| Path::new("."));
     let mut copied_css_outputs = Vec::new();
+    let imports = collect_syntax_asset_imports_matching(module, source_path, |kind, path| {
+        matches!(kind, SyntaxImportKind::File | SyntaxImportKind::Css) && filters.allows(path)
+    })?;
 
-    for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Import {
-            import_kind,
-            source_path,
-            ..
-        } = &declaration.payload
-        else {
-            continue;
-        };
-        if !matches!(import_kind, SyntaxImportKind::File | SyntaxImportKind::Css) {
-            continue;
-        }
-        let Some(source) = source_path.as_deref() else {
-            continue;
-        };
-        let resolved_path = resolve_import_path(base_dir, source);
-        if !filters.allows(&resolved_path) {
-            continue;
-        }
-        let Some(file_name) = resolved_path.file_name() else {
+    for import in imports {
+        let Some(file_name) = import.resolved_path.file_name() else {
             return Err(format!(
                 "static asset import `{}` has no filename",
-                resolved_path.display()
+                import.resolved_path.display()
             ));
         };
         let target = out_dir.join(file_name);
-        fs::copy(&resolved_path, &target).map_err(|err| {
+        fs::copy(&import.resolved_path, &target).map_err(|err| {
             format!(
                 "failed to copy static asset `{}` to `{}`: {}",
-                resolved_path.display(),
+                import.resolved_path.display(),
                 target.display(),
                 err
             )
         })?;
-        if *import_kind == SyntaxImportKind::Css {
+        if import.kind == SyntaxImportKind::Css {
             copied_css_outputs.push(target);
         }
     }
@@ -795,3 +833,7 @@ fn copy_syntax_static_asset_imports(
     copied_css_outputs.sort();
     Ok(copied_css_outputs)
 }
+
+#[cfg(test)]
+#[path = "mod_test.rs"]
+mod mod_test;

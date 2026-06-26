@@ -1,0 +1,222 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLTableElement
+ */
+
+module std.js.Dom.HTMLTableElement.
+
+/**
+ * The **`HTMLTableElement`** interface provides special properties and methods (beyond the regular HTMLElement object interface it also has available to it by inheritance) for manipulating the layout and presentation of tables in an HTML document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement)
+ */
+pub opaque type HTMLTableElement.
+
+/**
+ * The **`HTMLTableElement.align`** property represents the alignment of the table.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/align)
+ */
+pub (value: HTMLTableElement) align(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`bgcolor`** property of the HTMLTableElement represents the background color of the table.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/bgColor)
+ */
+pub (value: HTMLTableElement) bg_color(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLTableElement.border`** property represents the border width of the table element.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/border)
+ */
+pub (value: HTMLTableElement) border(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLTableElement.caption`** property represents the table caption.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/caption)
+ */
+pub (value: HTMLTableElement) caption(): Option[HTMLTableCaptionElement] ->
+    native.
+
+/**
+ * The **`HTMLTableElement.cellPadding`** property represents the padding around the individual cells of the table.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/cellPadding)
+ */
+pub (value: HTMLTableElement) cell_padding(): std.js.String.JsString ->
+    native.
+
+/**
+ * While you should instead use the CSS interface's **`cellSpacing`** property represents the spacing around the individual th and td elements representing a table's cells.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/cellSpacing)
+ */
+pub (value: HTMLTableElement) cell_spacing(): std.js.String.JsString ->
+    native.
+
+/**
+ * The HTMLTableElement interface's **`frame`** property is a string that indicates which of the table's exterior borders should be drawn.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/frame)
+ */
+pub (value: HTMLTableElement) frame(): std.js.String.JsString ->
+    native.
+
+/**
+ * The read-only HTMLTableElement property **`rows`** returns a live contained within any thead, tfoot, and Although the property itself is read-only, the returned object is live and allows the modification of its content.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/rows)
+ */
+pub (value: HTMLTableElement) rows(): HTMLCollectionOf[HTMLTableRowElement] ->
+    native.
+
+/**
+ * The **`HTMLTableElement.rules`** property indicates which cell borders to render in the table.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/rules)
+ */
+pub (value: HTMLTableElement) rules(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLTableElement.summary`** property represents the table description.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/summary)
+ */
+pub (value: HTMLTableElement) summary(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLTableElement.tBodies`** read-only property returns a live HTMLCollection of the bodies in a table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tBodies)
+ */
+pub (value: HTMLTableElement) t_bodies(): HTMLCollectionOf[HTMLTableSectionElement] ->
+    native.
+
+/**
+ * The **`HTMLTableElement.tFoot`** property represents the `null` if there is no such element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tFoot)
+ */
+pub (value: HTMLTableElement) t_foot(): Option[HTMLTableSectionElement] ->
+    native.
+
+/**
+ * The **`HTMLTableElement.tHead`** represents the `null` if there is no such element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tHead)
+ */
+pub (value: HTMLTableElement) t_head(): Option[HTMLTableSectionElement] ->
+    native.
+
+/**
+ * The **`HTMLTableElement.width`** property represents the desired width of the table.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/width)
+ */
+pub (value: HTMLTableElement) width(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLTableElement.createCaption()`** method returns the If no `<caption>` element exists on the table, this method creates it, and then returns it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createCaption)
+ */
+pub (value: HTMLTableElement) create_caption(): HTMLTableCaptionElement ->
+    native.
+
+/**
+ * The **`createTBody()`** method of ```js-nolint createTBody() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTBody)
+ */
+pub (value: HTMLTableElement) create_t_body(): HTMLTableSectionElement ->
+    native.
+
+/**
+ * The **`createTFoot()`** method of associated with a given table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTFoot)
+ */
+pub (value: HTMLTableElement) create_t_foot(): HTMLTableSectionElement ->
+    native.
+
+/**
+ * The **`createTHead()`** method of associated with a given table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTHead)
+ */
+pub (value: HTMLTableElement) create_t_head(): HTMLTableSectionElement ->
+    native.
+
+/**
+ * The **`HTMLTableElement.deleteCaption()`** method removes the `<caption>` element associated with the table, this method does nothing.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteCaption)
+ */
+pub (value: HTMLTableElement) delete_caption(): std.core.Unit ->
+    native.
+
+/**
+ * The **`HTMLTableElement.deleteRow()`** method removes a specific row (tr) from a given table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteRow)
+ */
+pub (value: HTMLTableElement) delete_row(index: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+/**
+ * The **`HTMLTableElement.deleteTFoot()`** method removes the ```js-nolint deleteTFoot() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteTFoot)
+ */
+pub (value: HTMLTableElement) delete_t_foot(): std.core.Unit ->
+    native.
+
+/**
+ * The **`HTMLTableElement.deleteTHead()`** removes the ```js-nolint deleteTHead() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteTHead)
+ */
+pub (value: HTMLTableElement) delete_t_head(): std.core.Unit ->
+    native.
+
+/**
+ * The **`insertRow()`** method of the HTMLTableElement interface inserts a new row (tr) in a given table, and returns a reference to the new row.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/insertRow)
+ */
+pub (value: HTMLTableElement) insert_row(index: std.js.Number.JsNumber): HTMLTableRowElement ->
+    native.
+
+pub (value: HTMLTableElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLTableElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

@@ -1,0 +1,477 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface Window
+ */
+
+module std.js.Dom.Window.
+
+/**
+ * The **`Window`** interface represents a window containing a DOM document; the `document` property points to the DOM document loaded in that window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window)
+ */
+pub opaque type Window.
+
+/**
+ * @deprecated This is a legacy alias of `navigator`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
+ */
+pub (value: Window) client_information(): Navigator.
+
+/**
+ * The **`Window.closed`** read-only property indicates whether the referenced window is closed or not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/closed)
+ */
+pub (value: Window) closed(): std.core.Bool.
+
+/**
+ * The **`cookieStore`** read-only property of the Window interface returns a reference to the CookieStore object for the current document context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/cookieStore)
+ */
+pub (value: Window) cookie_store(): CookieStore.
+
+/**
+ * The **`customElements`** read-only property of the Window interface returns a reference to the CustomElementRegistry object, which can be used to register new custom elements and get information about previously registered custom elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/customElements)
+ */
+pub (value: Window) custom_elements(): CustomElementRegistry.
+
+/**
+ * The **`devicePixelRatio`** of Window interface returns the ratio of the resolution in _physical pixels_ to the resolution in _CSS pixels_ for the current display device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/devicePixelRatio)
+ */
+pub (value: Window) device_pixel_ratio(): std.js.Number.JsNumber.
+
+/**
+ * **`window.document`** returns a reference to the document contained in the window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/document)
+ */
+pub (value: Window) document(): Document.
+
+/**
+ * The read-only Window property **`event`** returns the Event which is currently being handled by the site's code.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/event)
+ */
+pub (value: Window) event(): Option[Event].
+
+/**
+ * The `external` property of the Window API returns an instance of the `External` interface, which was intended to contain functions related to adding external search providers to the browser.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/external)
+ */
+pub (value: Window) external(): External.
+
+/**
+ * The **`Window.frameElement`** property returns the element (such as iframe or object) in which the window is embedded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/frameElement)
+ */
+pub (value: Window) frame_element(): Option[Element].
+
+/**
+ * Returns the window itself, which is an array-like object, listing the direct sub-frames of the current window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/frames)
+ */
+pub (value: Window) frames(): WindowProxy.
+
+/**
+ * The `Window.history` read-only property returns a reference to the History object, which provides an interface for manipulating the browser _session history_ (pages visited in the tab or frame that the current page is loaded in).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/history)
+ */
+pub (value: Window) history(): History.
+
+/**
+ * The read-only **`innerHeight`** property of the including the height of the horizontal scroll bar, if present.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/innerHeight)
+ */
+pub (value: Window) inner_height(): std.js.Number.JsNumber.
+
+/**
+ * The read-only Window property **`innerWidth`** returns the interior width of the window in pixels (that is, the width of the window's layout viewport).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/innerWidth)
+ */
+pub (value: Window) inner_width(): std.js.Number.JsNumber.
+
+/**
+ * Returns the number of frames (either frame or A number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/length)
+ */
+pub (value: Window) length(): std.js.Number.JsNumber.
+
+/**
+ * The **`Window.location`** read-only property returns a Location object with information about the current location of the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/location)
+ */
+pub (value: Window) location(): Location.
+
+/**
+ * Returns the `locationbar` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/locationbar)
+ */
+pub (value: Window) locationbar(): BarProp.
+
+/**
+ * Returns the `menubar` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/menubar)
+ */
+pub (value: Window) menubar(): BarProp.
+
+/**
+ * The `Window.name` property gets/sets the name of the window's browsing context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/name)
+ */
+pub (value: Window) name(): std.js.String.JsString.
+
+/**
+ * The **`Window.navigator`** read-only property returns a reference to the Navigator object, which has methods and properties about the application running the script.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
+ */
+pub (value: Window) navigator(): Navigator.
+
+/**
+ * Returns the orientation in degrees (in 90-degree increments) of the viewport relative to the device's natural orientation.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/orientation)
+ */
+pub (value: Window) orientation(): std.js.Number.JsNumber.
+
+/**
+ * The **`originAgentCluster`** read-only property of the Window interface returns `true` if this window belongs to an _origin-keyed agent cluster_: this means that the operating system has provided dedicated resources (for example an operating system process) to this window's origin that are not shared with windows from other origins.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/originAgentCluster)
+ */
+pub (value: Window) origin_agent_cluster(): std.core.Bool.
+
+/**
+ * The **`Window.outerHeight`** read-only property returns the height in pixels of the whole browser window, including any sidebar, window chrome, and window-resizing borders/handles.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/outerHeight)
+ */
+pub (value: Window) outer_height(): std.js.Number.JsNumber.
+
+/**
+ * **`Window.outerWidth`** read-only property returns the width of the outside of the browser window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/outerWidth)
+ */
+pub (value: Window) outer_width(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollX)
+ */
+pub (value: Window) page_x_offset(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollY)
+ */
+pub (value: Window) page_y_offset(): std.js.Number.JsNumber.
+
+/**
+ * The **`Window.parent`** property is a reference to the parent of the current window or subframe.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/parent)
+ */
+pub (value: Window) parent(): WindowProxy.
+
+/**
+ * Returns the `personalbar` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/personalbar)
+ */
+pub (value: Window) personalbar(): BarProp.
+
+/**
+ * The Window property **`screen`** returns a reference to the screen object associated with the window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screen)
+ */
+pub (value: Window) screen(): Screen.
+
+/**
+ * The **`Window.screenLeft`** read-only property returns the horizontal distance, in CSS pixels, from the left border of the user's browser viewport to the left side of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenLeft)
+ */
+pub (value: Window) screen_left(): std.js.Number.JsNumber.
+
+/**
+ * The **`Window.screenTop`** read-only property returns the vertical distance, in CSS pixels, from the top border of the user's browser viewport to the top side of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenTop)
+ */
+pub (value: Window) screen_top(): std.js.Number.JsNumber.
+
+/**
+ * The **`Window.screenX`** read-only property returns the horizontal distance, in CSS pixels, of the left border of the user's browser viewport to the left side of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenX)
+ */
+pub (value: Window) screen_x(): std.js.Number.JsNumber.
+
+/**
+ * The **`Window.screenY`** read-only property returns the vertical distance, in CSS pixels, of the top border of the user's browser viewport to the top edge of the screen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenY)
+ */
+pub (value: Window) screen_y(): std.js.Number.JsNumber.
+
+/**
+ * The read-only **`scrollX`** property of the Window interface returns the number of pixels by which the document is currently scrolled horizontally.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollX)
+ */
+pub (value: Window) scroll_x(): std.js.Number.JsNumber.
+
+/**
+ * The read-only **`scrollY`** property of the Window interface returns the number of pixels by which the document is currently scrolled vertically.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollY)
+ */
+pub (value: Window) scroll_y(): std.js.Number.JsNumber.
+
+/**
+ * Returns the `scrollbars` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollbars)
+ */
+pub (value: Window) scrollbars(): BarProp.
+
+/**
+ * The `speechSynthesis` read-only property of the Window object returns a SpeechSynthesis object, which is the entry point into using Web Speech API speech synthesis functionality.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/speechSynthesis)
+ */
+pub (value: Window) speech_synthesis(): SpeechSynthesis.
+
+/**
+ * The **`status`** property of the bar at the bottom of the browser window.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/status)
+ */
+pub (value: Window) status(): std.js.String.JsString.
+
+/**
+ * Returns the `statusbar` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/statusbar)
+ */
+pub (value: Window) statusbar(): BarProp.
+
+/**
+ * Returns the `toolbar` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/toolbar)
+ */
+pub (value: Window) toolbar(): BarProp.
+
+/**
+ * Returns a reference to the topmost window in the window hierarchy.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/top)
+ */
+pub (value: Window) top(): Option[WindowProxy].
+
+/**
+ * The **`visualViewport`** read-only property of the Window interface returns a VisualViewport object representing the visual viewport for a given window, or `null` if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/visualViewport)
+ */
+pub (value: Window) visual_viewport(): Option[VisualViewport].
+
+/**
+ * The **`Window.blur()`** method does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/blur)
+ */
+pub (value: Window) blur(): std.core.Unit.
+
+/**
+ * The **`window.cancelIdleCallback()`** method cancels a callback previously scheduled with window.requestIdleCallback().
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/cancelIdleCallback)
+ */
+pub (value: Window) cancel_idle_callback(handle: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`Window.captureEvents()`** method does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/captureEvents)
+ */
+pub (value: Window) capture_events(): std.core.Unit.
+
+/**
+ * The **`Window.close()`** method closes the current window, or the window on which it was called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/close)
+ */
+pub (value: Window) close(): std.core.Unit.
+
+/**
+ * `window.confirm()` instructs the browser to display a dialog with an optional message, and to wait until the user either confirms or cancels the dialog.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/confirm)
+ */
+pub (value: Window) confirm(message: std.js.String.JsString): std.core.Bool.
+
+/**
+ * Makes a request to bring the window to the front.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/focus)
+ */
+pub (value: Window) focus(): std.core.Unit.
+
+/**
+ * The **`Window.getComputedStyle()`** method returns an object containing the values of all CSS properties of an element, after applying active stylesheets and resolving any basic computation those values may contain.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/getComputedStyle)
+ */
+pub (value: Window) get_computed_style(elt: Element, pseudo_elt: Option[std.js.String.JsString]): CSSStyleDeclaration.
+
+/**
+ * The **`getSelection()`** method of the Window interface returns the Selection object associated with the window's document, representing the range of text selected by the user or the current position of the caret.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/getSelection)
+ */
+pub (value: Window) get_selection(): Option[Selection].
+
+/**
+ * The Window interface's **`matchMedia()`** method returns a new MediaQueryList object that can then be used to determine if the document matches the media query string, as well as to monitor the document to detect when it matches (or stops matching) that media query.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/matchMedia)
+ */
+pub (value: Window) match_media(query: std.js.String.JsString): MediaQueryList.
+
+/**
+ * The **`moveBy()`** method of the Window interface moves the current window by a specified amount.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/moveBy)
+ */
+pub (value: Window) move_by(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`moveTo()`** method of the Window interface moves the current window to the specified coordinates.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/moveTo)
+ */
+pub (value: Window) move_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`open()`** method of the `Window` interface loads a specified resource into a new or existing browsing context (that is, a tab, a window, or an iframe) under a specified name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/open)
+ */
+pub (value: Window) open(url: URL | std.js.String.JsString, target_: std.js.String.JsString, features: std.js.String.JsString): Option[WindowProxy].
+
+/**
+ * Opens the print dialog to print the current document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/print)
+ */
+pub (value: Window) print(): std.core.Unit.
+
+/**
+ * `window.prompt()` instructs the browser to display a dialog with an optional message prompting the user to input some text, and to wait until the user either submits the text or cancels the dialog.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/prompt)
+ */
+pub (value: Window) prompt(message: std.js.String.JsString, value__default: std.js.String.JsString): Option[std.js.String.JsString].
+
+/**
+ * Releases the window from trapping events of a specific type.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/releaseEvents)
+ */
+pub (value: Window) release_events(): std.core.Unit.
+
+/**
+ * The **`window.requestIdleCallback()`** method queues a function to be called during a browser's idle periods.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/requestIdleCallback)
+ */
+pub (value: Window) request_idle_callback(callback: IdleRequestCallback, options: IdleRequestOptions): std.js.Number.JsNumber.
+
+/**
+ * The **`Window.resizeBy()`** method resizes the current window by a specified amount.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/resizeBy)
+ */
+pub (value: Window) resize_by(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`Window.resizeTo()`** method dynamically resizes the window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/resizeTo)
+ */
+pub (value: Window) resize_to(width: std.js.Number.JsNumber, height: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`Window.scroll()`** method scrolls the window to a particular place in the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scroll)
+ */
+pub (value: Window) scroll(options: ScrollToOptions): std.core.Unit.
+
+pub (value: Window) scroll(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`Window.scrollBy()`** method scrolls the document in the window by the given amount.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollBy)
+ */
+pub (value: Window) scroll_by(options: ScrollToOptions): std.core.Unit.
+
+pub (value: Window) scroll_by(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * **`Window.scrollTo()`** scrolls to a particular set of coordinates in the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollTo)
+ */
+pub (value: Window) scroll_to(options: ScrollToOptions): std.core.Unit.
+
+pub (value: Window) scroll_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+
+/**
+ * The **`window.stop()`** stops further resource loading in the current browsing context, equivalent to the stop button in the browser.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/stop)
+ */
+pub (value: Window) stop(): std.core.Unit.
+
+pub (value: Window) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+
+pub (value: Window) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.

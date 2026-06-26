@@ -1,0 +1,8 @@
+module=std.js.Dom.XPathExpression
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=3029817366912658369
+interface_hash=10779861739427928168
+interface_doc_hash=10779861739427928168
+deps=0

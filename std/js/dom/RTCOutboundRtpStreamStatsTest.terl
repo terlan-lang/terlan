@@ -1,0 +1,106 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface RTCOutboundRtpStreamStats
+ */
+
+module std.js.Dom.RTCOutboundRtpStreamStatsTest.
+
+import type std.js.Dom.RTCOutboundRtpStreamStats.RTCOutboundRtpStreamStats.
+
+@test
+pub generated_binding_surface_exists(): Bool ->
+    true.
+
+pub active_typechecks(receiver: RTCOutboundRtpStreamStats): std.core.Bool ->
+    receiver.active().
+
+pub fir_count_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.fir_count().
+
+pub frame_height_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frame_height().
+
+pub frame_width_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frame_width().
+
+pub frames_encoded_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_encoded().
+
+pub frames_per_second_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_per_second().
+
+pub frames_sent_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.frames_sent().
+
+pub header_bytes_sent_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.header_bytes_sent().
+
+pub huge_frames_sent_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.huge_frames_sent().
+
+pub key_frames_encoded_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.key_frames_encoded().
+
+pub media_source_id_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.String.JsString ->
+    receiver.media_source_id().
+
+pub mid_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.String.JsString ->
+    receiver.mid().
+
+pub nack_count_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.nack_count().
+
+pub pli_count_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.pli_count().
+
+pub qp_sum_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.qp_sum().
+
+pub quality_limitation_durations_typechecks(receiver: RTCOutboundRtpStreamStats): Record[std.js.String.JsString, std.js.Number.JsNumber] ->
+    receiver.quality_limitation_durations().
+
+pub quality_limitation_reason_typechecks(receiver: RTCOutboundRtpStreamStats): RTCQualityLimitationReason ->
+    receiver.quality_limitation_reason().
+
+pub quality_limitation_resolution_changes_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.quality_limitation_resolution_changes().
+
+pub remote_id_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.String.JsString ->
+    receiver.remote_id().
+
+pub retransmitted_bytes_sent_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.retransmitted_bytes_sent().
+
+pub retransmitted_packets_sent_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.retransmitted_packets_sent().
+
+pub rid_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.String.JsString ->
+    receiver.rid().
+
+pub rtx_ssrc_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.rtx_ssrc().
+
+pub scalability_mode_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.String.JsString ->
+    receiver.scalability_mode().
+
+pub target_bitrate_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.target_bitrate().
+
+pub total_encode_time_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_encode_time().
+
+pub total_encoded_bytes_target_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_encoded_bytes_target().
+
+pub total_packet_send_delay_typechecks(receiver: RTCOutboundRtpStreamStats): std.js.Number.JsNumber ->
+    receiver.total_packet_send_delay().

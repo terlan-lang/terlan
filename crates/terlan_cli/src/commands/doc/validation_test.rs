@@ -1,4 +1,6 @@
-use super::{extract_repl_doc_examples, validate_repl_doc_examples, ReplDocExampleMode};
+use super::repl_examples::{
+    extract_repl_doc_examples, validate_repl_doc_examples, ReplDocExampleMode,
+};
 use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::TargetProfile;
 

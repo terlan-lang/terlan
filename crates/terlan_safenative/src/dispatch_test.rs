@@ -85,7 +85,7 @@ fn bridge_dispatch_ok(
 #[test]
 fn operation_arities_cover_rust_backed_std_manifest() {
     let operations = rust_backed_manifest_operations();
-    assert_eq!(operations.len(), 42);
+    assert_eq!(operations.len(), 79);
 
     for (operation, arity) in operations {
         assert_eq!(operation_arity(operation), Some(arity), "{operation}");
@@ -246,6 +246,78 @@ fn bridge_dispatch_json_array_length_and_at_use_handles() {
     );
 }
 
+/// Validates native vector bridge operations allocate and mutate resources.
+///
+/// Inputs:
+/// - A bridge list of text values and one resource store.
+///
+/// Output:
+/// - Test passes when vector operations return stable handles and indexed
+///   reads observe mutations.
+///
+/// Transformation:
+/// - Exercises the SafeNative resource dispatch path used by
+///   `std.native.collections.Vector` without exposing Rust vectors across the
+///   bridge boundary.
+#[test]
+fn bridge_dispatch_native_vector_allocates_and_mutates_handle() {
+    let mut store = ResourceStore::new();
+    let Some(SafeNativeBridgeValue::Handle(vector)) = bridge_dispatch_ok(
+        &mut store,
+        "std.native.collections.vector.from_list",
+        &[SafeNativeBridgeValue::List(vec![
+            SafeNativeBridgeValue::Text(String::from("Ada")),
+            SafeNativeBridgeValue::Text(String::from("Grace")),
+        ])],
+    ) else {
+        return;
+    };
+
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.native.collections.vector.length",
+            &[SafeNativeBridgeValue::Handle(vector)]
+        ),
+        Ok(SafeNativeBridgeValue::Int(2))
+    );
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.native.collections.vector.get_at",
+            &[
+                SafeNativeBridgeValue::Handle(vector),
+                SafeNativeBridgeValue::Int(1)
+            ]
+        ),
+        Ok(SafeNativeBridgeValue::Text(String::from("Grace")))
+    );
+
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.native.collections.vector.set_at",
+            &[
+                SafeNativeBridgeValue::Handle(vector),
+                SafeNativeBridgeValue::Int(1),
+                SafeNativeBridgeValue::Text(String::from("Carol"))
+            ]
+        ),
+        Ok(SafeNativeBridgeValue::Handle(vector))
+    );
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.native.collections.vector.get_at",
+            &[
+                SafeNativeBridgeValue::Handle(vector),
+                SafeNativeBridgeValue::Int(1)
+            ]
+        ),
+        Ok(SafeNativeBridgeValue::Text(String::from("Carol")))
+    );
+}
+
 /// Validates direct HTTP dispatch over request and response operations.
 ///
 /// Inputs:
@@ -260,7 +332,14 @@ fn bridge_dispatch_json_array_length_and_at_use_handles() {
 ///   resource-handle bridge.
 #[test]
 fn dispatch_http_request_and_response_operations_return_native_values() {
-    let request = http::Request::new(r#"{"name":"Ada"}"#);
+    let request = http::Request::from_parts_with_metadata(
+        "GET",
+        "/users/42",
+        r#"{"name":"Ada"}"#,
+        vec![("id".to_string(), "42".to_string())],
+        vec![("tab".to_string(), "profile".to_string())],
+        vec![("theme".to_string(), "dark".to_string())],
+    );
     let Some(SafeNativeValue::Json(parsed)) = dispatch_ok(
         "std.http.request.body_json",
         &[SafeNativeValue::HttpRequest(request)],
@@ -273,9 +352,165 @@ fn dispatch_http_request_and_response_operations_return_native_values() {
 
     assert_eq!(name, "Ada");
 
+    let request = http::Request::from_parts_with_raw_query_metadata(
+        "GET",
+        "/users/42",
+        "raw body",
+        vec![("id".to_string(), "42".to_string())],
+        "tab=profile",
+        vec![("tab".to_string(), "profile".to_string())],
+        vec![("Accept".to_string(), "application/json".to_string())],
+        vec![("theme".to_string(), "dark".to_string())],
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.body_text",
+            &[SafeNativeValue::HttpRequest(request.clone())],
+        ),
+        Some(SafeNativeValue::Text("raw body".to_string()))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.method",
+            &[SafeNativeValue::HttpRequest(request.clone())],
+        ),
+        Some(SafeNativeValue::Text("GET".to_string()))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.path",
+            &[SafeNativeValue::HttpRequest(request.clone())],
+        ),
+        Some(SafeNativeValue::Text("/users/42".to_string()))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.param",
+            &[
+                SafeNativeValue::HttpRequest(request.clone()),
+                SafeNativeValue::Text("id".to_string()),
+            ],
+        ),
+        Some(SafeNativeValue::OptionalText(Some("42".to_string())))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.query",
+            &[
+                SafeNativeValue::HttpRequest(request.clone()),
+                SafeNativeValue::Text("tab".to_string()),
+            ],
+        ),
+        Some(SafeNativeValue::OptionalText(Some("profile".to_string())))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.query_string",
+            &[SafeNativeValue::HttpRequest(request.clone())],
+        ),
+        Some(SafeNativeValue::Text("tab=profile".to_string()))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.header",
+            &[
+                SafeNativeValue::HttpRequest(request.clone()),
+                SafeNativeValue::Text("accept".to_string()),
+            ],
+        ),
+        Some(SafeNativeValue::OptionalText(Some(
+            "application/json".to_string()
+        )))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.request.cookie",
+            &[
+                SafeNativeValue::HttpRequest(request),
+                SafeNativeValue::Text("theme".to_string()),
+            ],
+        ),
+        Some(SafeNativeValue::OptionalText(Some("dark".to_string())))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.cookies.set_header",
+            &[
+                SafeNativeValue::Text("session".to_string()),
+                SafeNativeValue::Text("abc123".to_string()),
+                SafeNativeValue::Text("/".to_string()),
+                SafeNativeValue::Bool(true),
+                SafeNativeValue::Bool(false),
+            ],
+        ),
+        Some(SafeNativeValue::Text(
+            "session=abc123; HttpOnly; Path=/".to_string()
+        ))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.cookies.set_header_with_options",
+            &[
+                SafeNativeValue::Text("session".to_string()),
+                SafeNativeValue::Text("abc123".to_string()),
+                SafeNativeValue::Text("/account".to_string()),
+                SafeNativeValue::Text("example.com".to_string()),
+                SafeNativeValue::Int(3600),
+                SafeNativeValue::Bool(true),
+                SafeNativeValue::Text("Wed, 21 Oct 2015 07:28:00 GMT".to_string()),
+                SafeNativeValue::Bool(true),
+                SafeNativeValue::Bool(true),
+                SafeNativeValue::Text("strict".to_string()),
+            ],
+        ),
+        Some(SafeNativeValue::Text(
+            "session=abc123; HttpOnly; SameSite=Strict; Secure; Path=/account; Domain=example.com; Max-Age=3600; Expires=Wed, 21 Oct 2015 07:28:00 GMT".to_string()
+        ))
+    );
+    assert_eq!(
+        dispatch_ok(
+            "std.http.cookies.delete_header",
+            &[
+                SafeNativeValue::Text("session".to_string()),
+                SafeNativeValue::Text("/".to_string()),
+            ],
+        ),
+        Some(SafeNativeValue::Text(
+            "session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT".to_string()
+        ))
+    );
+
+    let request = http::Request::from_parts_with_metadata(
+        "GET",
+        "/profile",
+        "",
+        Vec::new(),
+        Vec::new(),
+        vec![("theme".to_string(), "dark".to_string())],
+    );
+    let Some(SafeNativeValue::HttpCookieJar(jar)) = dispatch_ok(
+        "std.http.request.cookies",
+        &[SafeNativeValue::HttpRequest(request)],
+    ) else {
+        return;
+    };
+    assert_eq!(
+        dispatch_ok(
+            "std.http.cookies.get",
+            &[
+                SafeNativeValue::HttpCookieJar(jar),
+                SafeNativeValue::Text("theme".to_string()),
+            ],
+        ),
+        Some(SafeNativeValue::OptionalText(Some("dark".to_string())))
+    );
+
     let Some(SafeNativeValue::HttpResponse(response)) = dispatch_ok(
         "std.http.response.json",
-        &[SafeNativeValue::Json(json::r#bool(true))],
+        &[
+            SafeNativeValue::Json(json::r#bool(true)),
+            SafeNativeValue::Int(200),
+        ],
     ) else {
         return;
     };
@@ -284,13 +519,73 @@ fn dispatch_http_request_and_response_operations_return_native_values() {
     assert_eq!(response.body(), "true");
 
     let Some(SafeNativeValue::HttpResponse(response)) = dispatch_ok(
-        "std.http.response.text",
-        &[SafeNativeValue::Text(String::from("ok"))],
+        "std.http.response.json_text",
+        &[
+            SafeNativeValue::Text(String::from("{\"ok\":true}")),
+            SafeNativeValue::Int(200),
+        ],
     ) else {
         return;
     };
+    assert_eq!(response.status_code(), 200);
+    assert_eq!(response.content_type(), "application/json; charset=utf-8");
+    assert_eq!(response.body(), "{\"ok\":true}");
+
+    let Some(SafeNativeValue::HttpResponse(response)) = dispatch_ok(
+        "std.http.response.text",
+        &[
+            SafeNativeValue::Text(String::from("ok")),
+            SafeNativeValue::Int(201),
+        ],
+    ) else {
+        return;
+    };
+    assert_eq!(response.status_code(), 201);
     assert_eq!(response.content_type(), "text/plain; charset=utf-8");
     assert_eq!(response.body(), "ok");
+
+    let Some(SafeNativeValue::HttpResponse(response)) = dispatch_ok(
+        "std.http.response.html",
+        &[
+            SafeNativeValue::Text(String::from("<main>ok</main>")),
+            SafeNativeValue::Int(202),
+        ],
+    ) else {
+        return;
+    };
+    assert_eq!(response.status_code(), 202);
+    assert_eq!(response.content_type(), "text/html; charset=utf-8");
+    assert_eq!(response.body(), "<main>ok</main>");
+
+    let Some(SafeNativeValue::HttpResponse(response)) = dispatch_ok(
+        "std.http.response.file",
+        &[
+            SafeNativeValue::Text(String::from("downloads/report.txt")),
+            SafeNativeValue::Int(206),
+            SafeNativeValue::Text(String::from("text/plain; charset=utf-8")),
+        ],
+    ) else {
+        return;
+    };
+    assert_eq!(response.status_code(), 206);
+    assert_eq!(response.content_type(), "text/plain; charset=utf-8");
+    assert_eq!(response.file_path(), Some("downloads/report.txt"));
+    assert_eq!(response.body(), "");
+
+    let Some(SafeNativeValue::HttpResponse(response)) = dispatch_ok(
+        "std.http.response.redirect",
+        &[
+            SafeNativeValue::Text(String::from("/login")),
+            SafeNativeValue::Int(301),
+        ],
+    ) else {
+        return;
+    };
+    assert_eq!(response.status_code(), 301);
+    assert_eq!(
+        response.headers(),
+        &[("Location".to_string(), "/login".to_string())]
+    );
 }
 
 /// Validates bridge HTTP dispatch stores request and response handles.
@@ -309,13 +604,184 @@ fn dispatch_http_request_and_response_operations_return_native_values() {
 fn bridge_dispatch_http_request_and_response_operations_use_handles() {
     let mut store = ResourceStore::new();
     let request = store
-        .insert(ResourceValue::HttpRequest(http::Request::new(
-            r#"{"name":"Ada"}"#,
-        )))
+        .insert(ResourceValue::HttpRequest(
+            http::Request::from_parts_with_raw_query_metadata(
+                "GET",
+                "/users/42",
+                r#"{"name":"Ada"}"#,
+                vec![("id".to_string(), "42".to_string())],
+                "tab=profile",
+                vec![("tab".to_string(), "profile".to_string())],
+                vec![("Accept".to_string(), "application/json".to_string())],
+                vec![("theme".to_string(), "dark".to_string())],
+            ),
+        ))
         .ok();
     let Some(request) = request else {
         return;
     };
+
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.request.body_text",
+            &[SafeNativeBridgeValue::Handle(request)],
+        ),
+        Some(SafeNativeBridgeValue::Text(r#"{"name":"Ada"}"#.to_string()))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.request.param",
+            &[
+                SafeNativeBridgeValue::Handle(request),
+                SafeNativeBridgeValue::Text("id".to_string()),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::OptionalText(Some("42".to_string())))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.request.query",
+            &[
+                SafeNativeBridgeValue::Handle(request),
+                SafeNativeBridgeValue::Text("tab".to_string()),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::OptionalText(Some(
+            "profile".to_string()
+        )))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.request.query_string",
+            &[SafeNativeBridgeValue::Handle(request)],
+        ),
+        Some(SafeNativeBridgeValue::Text("tab=profile".to_string()))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.request.header",
+            &[
+                SafeNativeBridgeValue::Handle(request),
+                SafeNativeBridgeValue::Text("ACCEPT".to_string()),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::OptionalText(Some(
+            "application/json".to_string()
+        )))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.request.cookie",
+            &[
+                SafeNativeBridgeValue::Handle(request),
+                SafeNativeBridgeValue::Text("theme".to_string()),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::OptionalText(Some(
+            "dark".to_string()
+        )))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.cookies.set_header",
+            &[
+                SafeNativeBridgeValue::Text("session".to_string()),
+                SafeNativeBridgeValue::Text("abc123".to_string()),
+                SafeNativeBridgeValue::Text("/".to_string()),
+                SafeNativeBridgeValue::Bool(true),
+                SafeNativeBridgeValue::Bool(true),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::Text(
+            "session=abc123; HttpOnly; Secure; Path=/".to_string()
+        ))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.cookies.set_header_with_options",
+            &[
+                SafeNativeBridgeValue::Text("session".to_string()),
+                SafeNativeBridgeValue::Text("abc123".to_string()),
+                SafeNativeBridgeValue::Text("/account".to_string()),
+                SafeNativeBridgeValue::Text("example.com".to_string()),
+                SafeNativeBridgeValue::Int(3600),
+                SafeNativeBridgeValue::Bool(true),
+                SafeNativeBridgeValue::Text("Wed, 21 Oct 2015 07:28:00 GMT".to_string()),
+                SafeNativeBridgeValue::Bool(true),
+                SafeNativeBridgeValue::Bool(true),
+                SafeNativeBridgeValue::Text("lax".to_string()),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::Text(
+            "session=abc123; HttpOnly; SameSite=Lax; Secure; Path=/account; Domain=example.com; Max-Age=3600; Expires=Wed, 21 Oct 2015 07:28:00 GMT".to_string()
+        ))
+    );
+
+    let Some(SafeNativeBridgeValue::Handle(jar)) = bridge_dispatch_ok(
+        &mut store,
+        "std.http.request.cookies",
+        &[SafeNativeBridgeValue::Handle(request)],
+    ) else {
+        return;
+    };
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.cookies.get",
+            &[
+                SafeNativeBridgeValue::Handle(jar),
+                SafeNativeBridgeValue::Text("theme".to_string()),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::OptionalText(Some(
+            "dark".to_string()
+        )))
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.cookies.set",
+            &[
+                SafeNativeBridgeValue::Handle(jar),
+                SafeNativeBridgeValue::Text("session".to_string()),
+                SafeNativeBridgeValue::Text("abc123".to_string()),
+                SafeNativeBridgeValue::Text("/".to_string()),
+                SafeNativeBridgeValue::Bool(true),
+                SafeNativeBridgeValue::Bool(false),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::Unit)
+    );
+    assert_eq!(
+        bridge_dispatch_ok(
+            &mut store,
+            "std.http.cookies.delete",
+            &[
+                SafeNativeBridgeValue::Handle(jar),
+                SafeNativeBridgeValue::Text("theme".to_string()),
+                SafeNativeBridgeValue::Text("/".to_string()),
+            ],
+        ),
+        Some(SafeNativeBridgeValue::Unit)
+    );
+    let Some(cookie_jar) = store.http_cookie_jar(jar).ok() else {
+        return;
+    };
+    assert_eq!(
+        cookie_jar.mutations(),
+        &[
+            "session=abc123; HttpOnly; Path=/".to_string(),
+            "theme=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT".to_string(),
+        ]
+    );
 
     let Some(SafeNativeBridgeValue::Handle(parsed)) = bridge_dispatch_ok(
         &mut store,
@@ -327,7 +793,10 @@ fn bridge_dispatch_http_request_and_response_operations_use_handles() {
     let Some(SafeNativeBridgeValue::Handle(response)) = bridge_dispatch_ok(
         &mut store,
         "std.http.response.json",
-        &[SafeNativeBridgeValue::Handle(parsed)],
+        &[
+            SafeNativeBridgeValue::Handle(parsed),
+            SafeNativeBridgeValue::Int(200),
+        ],
     ) else {
         return;
     };
@@ -338,6 +807,41 @@ fn bridge_dispatch_http_request_and_response_operations_use_handles() {
     };
     assert_eq!(response.content_type(), "application/json; charset=utf-8");
     assert_eq!(response.body(), r#"{"name":"Ada"}"#);
+
+    let Some(SafeNativeBridgeValue::Handle(response)) = bridge_dispatch_ok(
+        &mut store,
+        "std.http.response.html",
+        &[
+            SafeNativeBridgeValue::Text("<main>ok</main>".to_string()),
+            SafeNativeBridgeValue::Int(200),
+        ],
+    ) else {
+        return;
+    };
+    let Some(response) = store.http_response(response).ok() else {
+        return;
+    };
+    assert_eq!(response.content_type(), "text/html; charset=utf-8");
+    assert_eq!(response.body(), "<main>ok</main>");
+
+    let Some(SafeNativeBridgeValue::Handle(response)) = bridge_dispatch_ok(
+        &mut store,
+        "std.http.response.redirect",
+        &[
+            SafeNativeBridgeValue::Text("/login".to_string()),
+            SafeNativeBridgeValue::Int(302),
+        ],
+    ) else {
+        return;
+    };
+    let Some(response) = store.http_response(response).ok() else {
+        return;
+    };
+    assert_eq!(response.status_code(), 302);
+    assert_eq!(
+        response.headers(),
+        &[("Location".to_string(), "/login".to_string())]
+    );
 }
 
 /// Validates bridge path operations use opaque handles.
@@ -418,6 +922,103 @@ fn bridge_dispatch_uri_returns_and_accepts_handles() {
             "example.com"
         ))))
     );
+}
+
+/// Validates bridge dispatch stores and reuses Postgres row handles.
+///
+/// Inputs:
+/// - A Postgres row fixture inserted as an opaque runtime resource.
+///
+/// Output:
+/// - Test passes when row accessors decode through a bridge handle and return
+///   stable primitive values.
+///
+/// Transformation:
+/// - Exercises the non-live Postgres resource path used after live query
+///   operations return rows to handler code.
+#[test]
+fn bridge_dispatch_postgres_row_handles_decode_values() {
+    let mut store = ResourceStore::new();
+    let mut row = postgres::Row::new();
+    row.put_string("status", "postgres-ok");
+    row.put_int("count", 1);
+    row.put_bool("healthy", true);
+    let Some(row) = store.insert(ResourceValue::PostgresRow(row)).ok() else {
+        return;
+    };
+
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.db.postgres.string",
+            &[
+                SafeNativeBridgeValue::Handle(row),
+                SafeNativeBridgeValue::Text(String::from("status")),
+            ],
+        ),
+        Ok(SafeNativeBridgeValue::Text(String::from("postgres-ok")))
+    );
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.db.postgres.int",
+            &[
+                SafeNativeBridgeValue::Handle(row),
+                SafeNativeBridgeValue::Text(String::from("count")),
+            ],
+        ),
+        Ok(SafeNativeBridgeValue::Int(1))
+    );
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.db.postgres.bool",
+            &[
+                SafeNativeBridgeValue::Handle(row),
+                SafeNativeBridgeValue::Text(String::from("healthy")),
+            ],
+        ),
+        Ok(SafeNativeBridgeValue::Bool(true))
+    );
+}
+
+/// Validates bridge dispatch stores Postgres query rows as handles.
+///
+/// Inputs:
+/// - A disconnected Postgres pool fixture and query arguments.
+///
+/// Output:
+/// - Test passes when pool handles are accepted by query operations and reach
+///   the stable adapter error instead of failing as resource type errors.
+///
+/// Transformation:
+/// - Exercises the non-live pool handle path used by handler code before the
+///   maintained client reports that no database connection is available.
+#[test]
+fn bridge_dispatch_postgres_pool_handles_reach_query_adapter() {
+    let mut store = ResourceStore::new();
+    let Some(pool) = store
+        .insert(ResourceValue::PostgresPool(postgres::Pool::disconnected(
+            "postgres://127.0.0.1:1/terlan",
+        )))
+        .ok()
+    else {
+        return;
+    };
+
+    let error = dispatch_with_resources(
+        &mut store,
+        "std.db.postgres.query_one",
+        &[
+            SafeNativeBridgeValue::Handle(pool),
+            SafeNativeBridgeValue::Text(String::from("SELECT 1::BIGINT AS value")),
+            SafeNativeBridgeValue::List(Vec::new()),
+        ],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+
+    assert_eq!(error.code(), "postgres.connect");
 }
 
 /// Validates bridge dispatch rejects stale resource handles.
@@ -582,6 +1183,191 @@ fn dispatches_uri_components() {
             "example.com"
         ))))
     );
+}
+
+/// Validates Postgres config dispatch reaches stable adapter errors.
+///
+/// Inputs:
+/// - Valid and invalid Postgres config values.
+///
+/// Output:
+/// - Test passes when invalid URLs preserve `postgres.invalid_url` and valid
+///   but unreachable configs reach the stable maintained-driver boundary.
+///
+/// Transformation:
+/// - Exercises the Postgres operation dispatch path without requiring a live
+///   database.
+#[test]
+fn dispatch_postgres_connect_preserves_adapter_error_codes() {
+    let invalid = postgres::Config::new("mysql://localhost/terlan");
+    let error = dispatch(
+        "std.db.postgres.connect",
+        &[SafeNativeValue::PostgresConfig(invalid)],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+    assert_eq!(error.code(), "postgres.invalid_url");
+
+    let valid = postgres::Config::new("postgres://127.0.0.1:1/terlan");
+    let error = dispatch(
+        "std.db.postgres.connect",
+        &[SafeNativeValue::PostgresConfig(valid)],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+    assert_eq!(error.code(), "postgres.connect");
+}
+
+/// Validates Postgres query dispatch uses known operation errors.
+///
+/// Inputs:
+/// - Disconnected pool placeholder, SQL text, and empty JSON parameters.
+///
+/// Output:
+/// - Test passes when query operations return stable maintained-driver
+///   connection errors rather than falling through as unknown operations.
+///
+/// Transformation:
+/// - Locks the dispatch contract against the maintained Rust/Tokio adapter
+///   without requiring a live database in ordinary unit tests.
+#[test]
+fn dispatch_postgres_query_operations_are_known_driver_operations() {
+    let pool = postgres::Pool::disconnected("postgres://127.0.0.1:1/terlan");
+    let params = SafeNativeValue::JsonList(Vec::new());
+
+    let error = dispatch(
+        "std.db.postgres.query",
+        &[
+            SafeNativeValue::PostgresPool(pool.clone()),
+            SafeNativeValue::Text(String::from("SELECT 1")),
+            params.clone(),
+        ],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+    assert_eq!(error.code(), "postgres.connect");
+
+    let error = dispatch(
+        "std.db.postgres.query_one",
+        &[
+            SafeNativeValue::PostgresPool(pool.clone()),
+            SafeNativeValue::Text(String::from("SELECT 1 LIMIT 1")),
+            params.clone(),
+        ],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+    assert_eq!(error.code(), "postgres.connect");
+
+    let error = dispatch(
+        "std.db.postgres.execute",
+        &[
+            SafeNativeValue::PostgresPool(pool),
+            SafeNativeValue::Text(String::from("CREATE TABLE users(id BIGINT)")),
+            params,
+        ],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+    assert_eq!(error.code(), "postgres.connect");
+}
+
+/// Validates Postgres transaction dispatch is runtime-bridge gated.
+///
+/// Inputs:
+/// - Disconnected pool placeholder and a stand-in callback argument.
+///
+/// Output:
+/// - Test passes when transaction dispatch reports the required runtime bridge.
+///
+/// Transformation:
+/// - Keeps callback-shaped transaction execution out of pure dispatch until
+///   the worker protocol can represent callbacks explicitly.
+#[test]
+fn dispatch_postgres_transaction_requires_runtime_bridge() {
+    let pool = postgres::Pool::disconnected("postgres://localhost/terlan");
+
+    let error = dispatch(
+        "std.db.postgres.transaction",
+        &[SafeNativeValue::PostgresPool(pool), SafeNativeValue::Unit],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+
+    assert_eq!(error.code(), "dispatch.callback_requires_runtime_bridge");
+}
+
+/// Validates Postgres row accessors through pure dispatch.
+///
+/// Inputs:
+/// - Row fixture with string, integer, boolean, and JSON columns.
+///
+/// Output:
+/// - Test passes when row accessors decode expected values through operation
+///   ids and preserve row errors for bad lookups.
+///
+/// Transformation:
+/// - Exercises the row-decoding dispatch layer independently from a live
+///   database client.
+#[test]
+fn dispatch_postgres_row_accessors_decode_values() {
+    let mut row = postgres::Row::new();
+    row.put_string("name", "Ada");
+    row.put_int("age", 42);
+    row.put_bool("active", true);
+    row.put_json("meta", json::string("ok"));
+
+    assert_eq!(
+        dispatch(
+            "std.db.postgres.string",
+            &[
+                SafeNativeValue::PostgresRow(row.clone()),
+                SafeNativeValue::Text(String::from("name")),
+            ],
+        ),
+        Ok(SafeNativeValue::Text(String::from("Ada")))
+    );
+    assert_eq!(
+        dispatch(
+            "std.db.postgres.int",
+            &[
+                SafeNativeValue::PostgresRow(row.clone()),
+                SafeNativeValue::Text(String::from("age")),
+            ],
+        ),
+        Ok(SafeNativeValue::Int(42))
+    );
+    assert_eq!(
+        dispatch(
+            "std.db.postgres.bool",
+            &[
+                SafeNativeValue::PostgresRow(row.clone()),
+                SafeNativeValue::Text(String::from("active")),
+            ],
+        ),
+        Ok(SafeNativeValue::Bool(true))
+    );
+    assert_eq!(
+        dispatch(
+            "std.db.postgres.json",
+            &[
+                SafeNativeValue::PostgresRow(row.clone()),
+                SafeNativeValue::Text(String::from("meta")),
+            ],
+        ),
+        Ok(SafeNativeValue::Json(json::string("ok")))
+    );
+
+    let error = dispatch(
+        "std.db.postgres.string",
+        &[
+            SafeNativeValue::PostgresRow(row),
+            SafeNativeValue::Text(String::from("missing")),
+        ],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+    assert_eq!(error.code(), "postgres.row.missing_column");
 }
 
 /// Validates stable wrong-arity errors.

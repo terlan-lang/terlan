@@ -1,0 +1,161 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface HTMLIFrameElement
+ */
+
+module std.js.Dom.HTMLIFrameElement.
+
+/**
+ * The **`HTMLIFrameElement`** interface provides special properties and methods (beyond those of the HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of inline frame elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement)
+ */
+pub opaque type HTMLIFrameElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLIFrameElement) align(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`allow`** property of the HTMLIFrameElement interface indicates the Permissions Policy specified for this `<iframe>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/allow)
+ */
+pub (value: HTMLIFrameElement) allow(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`allowFullscreen`** property of the HTMLIFrameElement interface is a boolean value that reflects the `allowfullscreen` attribute of the iframe element, indicating whether to allow the iframe's contents to use Element.requestFullscreen.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/allowFullscreen)
+ */
+pub (value: HTMLIFrameElement) allow_fullscreen(): std.core.Bool ->
+    native.
+
+/**
+ * If the iframe and the iframe's parent document are Same Origin, returns a `Document` (that is, the active document in the inline frame's nested browsing context), else returns `null`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/contentDocument)
+ */
+pub (value: HTMLIFrameElement) content_document(): Option[Document] ->
+    native.
+
+/**
+ * The **`contentWindow`** property returns the Window object of an HTMLIFrameElement.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/contentWindow)
+ */
+pub (value: HTMLIFrameElement) content_window(): Option[WindowProxy] ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLIFrameElement) frame_border(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`height`** property of the HTMLIFrameElement interface returns a string that reflects the `height` attribute of the iframe element, indicating the height of the frame in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/height)
+ */
+pub (value: HTMLIFrameElement) height(): std.js.String.JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLIFrameElement) long_desc(): std.js.String.JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLIFrameElement) margin_height(): std.js.String.JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLIFrameElement) margin_width(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`name`** property of the HTMLIFrameElement interface is a string value that reflects the `name` attribute of the iframe element, indicating the specific name of the `<iframe>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/name)
+ */
+pub (value: HTMLIFrameElement) name(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLIFrameElement.referrerPolicy`** property reflects the HTML `referrerpolicy` attribute of the resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/referrerPolicy)
+ */
+pub (value: HTMLIFrameElement) referrer_policy(): ReferrerPolicy ->
+    native.
+
+/**
+ * The **`sandbox`** read-only property of the HTMLIFrameElement interface returns a DOMTokenList indicating extra restrictions on the behavior of the nested content.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/sandbox)
+ */
+pub (value: HTMLIFrameElement) sandbox(): DOMTokenList ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLIFrameElement) scrolling(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`HTMLIFrameElement.src`** A string that reflects the `src` HTML attribute, containing the address of the content to be embedded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/src)
+ */
+pub (value: HTMLIFrameElement) src(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`srcdoc`** property of the HTMLIFrameElement specifies the content of the page.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/srcdoc)
+ */
+pub (value: HTMLIFrameElement) srcdoc(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`width`** property of the HTMLIFrameElement interface returns a string that reflects the `width` attribute of the iframe element, indicating the width of the frame in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/width)
+ */
+pub (value: HTMLIFrameElement) width(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`getSVGDocument()`** method of the HTMLIFrameElement interface returns the Document object of the embedded SVG.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/getSVGDocument)
+ */
+pub (value: HTMLIFrameElement) get_svg_document(): Option[Document] ->
+    native.
+
+pub (value: HTMLIFrameElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: HTMLIFrameElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

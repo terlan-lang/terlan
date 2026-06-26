@@ -126,6 +126,21 @@ fn http_request_std_source() -> &'static str {
     include_str!("../../../../../std/http/request.terl")
 }
 
+/// Returns the Rust-backed HTTP cookies std source contract.
+///
+/// Inputs:
+/// - None.
+///
+/// Output:
+/// - Static source text for `std.http.Cookies`.
+///
+/// Transformation:
+/// - Embeds the real std module so SafeNative metadata extraction is checked
+///   against the release-owned cookie helper source.
+fn http_cookies_std_source() -> &'static str {
+    include_str!("../../../../../std/http/cookies.terl")
+}
+
 /// Returns the Rust-backed HTTP response std source contract.
 ///
 /// Inputs:
@@ -139,6 +154,21 @@ fn http_request_std_source() -> &'static str {
 ///   against the release-owned response helper source.
 fn http_response_std_source() -> &'static str {
     include_str!("../../../../../std/http/response.terl")
+}
+
+/// Returns the Rust-backed Postgres std source contract.
+///
+/// Inputs:
+/// - None.
+///
+/// Output:
+/// - Static source text for `std.db.Postgres`.
+///
+/// Transformation:
+/// - Embeds the real std module so SafeNative metadata extraction is checked
+///   against the release-owned database helper source.
+fn postgres_std_source() -> &'static str {
+    include_str!("../../../../../std/db/postgres.terl")
 }
 
 /// Asserts that metadata contains one native operation signature.
@@ -241,6 +271,44 @@ fn compiler_native_metadata_extracts_std_json_operations() {
     }));
 }
 
+/// Verifies source overloads sharing one backend operation emit one native row.
+///
+/// Inputs:
+/// - A tiny module with two same-name same-arity native overload declarations
+///   mapped to the same operation id.
+///
+/// Output:
+/// - Extracted metadata with one deduplicated operation signature.
+///
+/// Transformation:
+/// - Exercises SafeNative metadata extraction before JSON/Rust rendering so
+///   overloaded source APIs do not produce duplicate backend dispatch arms.
+#[test]
+fn compiler_native_metadata_deduplicates_identical_overload_operations() {
+    let source = "\
+module native.Dedupe.\n\
+\n\
+@compiler.native {native.dedupe.html}\n\
+pub html(value: String, status: Int = 200): Response ->\n\
+    native.\n\
+\n\
+@compiler.native {native.dedupe.html}\n\
+pub html(value: Html, status: Int = 200): Response ->\n\
+    native.\n\
+";
+
+    let metadata = extract_native_metadata(source, NativePolicy::Pure).expect("metadata");
+
+    assert_eq!(
+        metadata.functions,
+        vec![NativeFunctionSignature {
+            name: "html".to_string(),
+            arity: 2,
+            operation: Some("native.dedupe.html".to_string()),
+        }]
+    );
+}
+
 /// Verifies every Rust-backed std module enters SafeNative metadata.
 ///
 /// Inputs:
@@ -254,7 +322,7 @@ fn compiler_native_metadata_extracts_std_json_operations() {
 ///   operation inventory expected by `std/RUST_BACKED_MANIFEST.tsv`.
 #[test]
 fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
-    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 6] = [
+    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 8] = [
         (
             "std.data.Json",
             json_std_source(),
@@ -328,19 +396,74 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.http.Request",
             http_request_std_source(),
             "std_http_request_safe_native",
-            1,
-            &[("body_json", 1, "std.http.request.body_json")],
+            10,
+            &[
+                ("method", 1, "std.http.request.method"),
+                ("path", 1, "std.http.request.path"),
+                ("param", 2, "std.http.request.param"),
+                ("query", 2, "std.http.request.query"),
+                ("query_string", 1, "std.http.request.query_string"),
+                ("header", 2, "std.http.request.header"),
+                ("cookie", 2, "std.http.request.cookie"),
+                ("cookies", 1, "std.http.request.cookies"),
+                ("body_text", 1, "std.http.request.body_text"),
+                ("body_json", 1, "std.http.request.body_json"),
+            ],
+        ),
+        (
+            "std.http.Cookies",
+            http_cookies_std_source(),
+            "std_http_cookies_safe_native",
+            6,
+            &[
+                ("get", 2, "std.http.cookies.get"),
+                ("set", 6, "std.http.cookies.set"),
+                ("delete", 3, "std.http.cookies.delete"),
+                ("set_header", 5, "std.http.cookies.set_header"),
+                (
+                    "set_header_with_options",
+                    10,
+                    "std.http.cookies.set_header_with_options",
+                ),
+                ("delete_header", 2, "std.http.cookies.delete_header"),
+            ],
         ),
         (
             "std.http.Response",
             http_response_std_source(),
             "std_http_response_safe_native",
-            4,
+            9,
             &[
-                ("json", 1, "std.http.response.json"),
-                ("text", 1, "std.http.response.text"),
+                ("json", 2, "std.http.response.json"),
+                ("json_text", 2, "std.http.response.json_text"),
+                ("text", 2, "std.http.response.text"),
+                ("html", 2, "std.http.response.html"),
+                ("file", 3, "std.http.response.file"),
+                ("redirect", 2, "std.http.response.redirect"),
                 ("status", 2, "std.http.response.status"),
                 ("header", 3, "std.http.response.header"),
+                (
+                    "set_cookie_header",
+                    2,
+                    "std.http.response.set_cookie_header",
+                ),
+            ],
+        ),
+        (
+            "std.db.Postgres",
+            postgres_std_source(),
+            "std_db_postgres_safe_native",
+            9,
+            &[
+                ("connect", 1, "std.db.postgres.connect"),
+                ("query", 3, "std.db.postgres.query"),
+                ("query_one", 3, "std.db.postgres.query_one"),
+                ("execute", 3, "std.db.postgres.execute"),
+                ("transaction", 2, "std.db.postgres.transaction"),
+                ("string", 2, "std.db.postgres.string"),
+                ("int", 2, "std.db.postgres.int"),
+                ("bool", 2, "std.db.postgres.bool"),
+                ("json", 2, "std.db.postgres.json"),
             ],
         ),
     ];
@@ -394,6 +517,45 @@ fn emit_native_artifacts_writes_compiler_native_std_files() {
     assert!(rust_stub.contains("(\"get\", \"std.data.json.get\", 2)"));
 
     fs::remove_dir_all(out_dir).expect("remove emitted artifacts");
+}
+
+/// Serializes native metadata through serde-backed JSON generation.
+///
+/// Inputs:
+/// - Native metadata containing string content with JSON-sensitive characters.
+///
+/// Output:
+/// - Test passes when the emitted metadata parses as JSON and preserves the
+///   original string values.
+///
+/// Transformation:
+/// - Guards against regressions to hand-built JSON string interpolation in
+///   SafeNative metadata.
+#[test]
+fn native_metadata_to_json_round_trips_escaped_strings() {
+    let metadata = NativeMetadata {
+        source_module: "std.data.Json\nSource".to_string(),
+        native_module: "std.data.Json\"Native".to_string(),
+        scheduler: "safe\\native".to_string(),
+        native_policy: NativePolicy::SafeNativeOptional,
+        functions: vec![NativeFunctionSignature {
+            name: "parse\tvalue".to_string(),
+            arity: 1,
+            operation: Some("std.data.json.parse\u{0008}".to_string()),
+        }],
+    };
+
+    let parsed: serde_json::Value =
+        serde_json::from_str(&metadata.to_json()).expect("metadata json parses");
+
+    assert_eq!(parsed["source_module"], "std.data.Json\nSource");
+    assert_eq!(parsed["module"], "std.data.Json\"Native");
+    assert_eq!(parsed["scheduler"], "safe\\native");
+    assert_eq!(parsed["functions"][0]["name"], "parse\tvalue");
+    assert_eq!(
+        parsed["functions"][0]["operation"],
+        "std.data.json.parse\u{0008}"
+    );
 }
 
 /// Verifies the generated Rust SafeNative stub carries the bridge contract.
@@ -544,16 +706,16 @@ fn safe_native_erl_stub_contains_worker_transport_contract() {
     assert!(stub.contains("native_module => <<\"app_native_safe_native\">>"));
     assert!(stub.contains("operations() ->"));
     assert!(stub.contains("{<<\"work\">>, <<\"work\">>, 1}"));
-    assert!(stub.contains("start_worker(_Options) ->"));
+    assert!(stub.contains("start_worker(Options) ->"));
     assert!(stub.contains("call_worker(RequestId, Operation, Args)"));
     assert!(stub.contains("dispose_worker(RequestId, _Handle)"));
     assert!(stub.contains("stop_worker(_Bridge) ->"));
     assert!(stub.contains("safe_native_not_loaded_error() ->"));
     assert!(stub.contains("safe_native.not_loaded"));
-    assert!(stub.contains("work(A1) ->\n    {error, safe_native_not_loaded_error()}."));
-    assert!(
-        stub.contains("{safe_native_reply, RequestId, {error, safe_native_not_loaded_error()}, 0}")
-    );
+    assert!(stub.contains("work(A1) ->\n    call_operation(<<\"work\">>, [A1])."));
+    assert!(stub.contains("{safe_native_reply, RequestId, {error, Error}, 0}"));
+    assert!(stub.contains("[<<\"result_ok_string\">>, Value]"));
+    assert!(stub.contains("[<<\"result_ok_int\">>, Value]"));
 }
 
 /// Verifies the generated Erlang SafeNative loader compiles.
@@ -654,7 +816,7 @@ fn safe_native_erl_stub_metadata_runs_without_native_library() {
     assert!(stdout.contains("native_module => <<\"app_native_safe_native\">>"));
     assert!(stdout.contains("{<<\"work\">>,<<\"work\">>,1}"));
     assert!(stdout.contains("{safe_native_reply,7"));
-    assert!(stdout.contains("safe_native.not_loaded"));
+    assert!(stdout.contains("safe_native_not_loaded"));
 
     fs::remove_dir_all(out_dir).expect("remove generated erl runtime test directory");
 }

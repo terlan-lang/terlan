@@ -1,0 +1,115 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGTextContentElement
+ */
+
+module std.js.Dom.SVGTextContentElement.
+
+/**
+ * The **`SVGTextContentElement`** interface is implemented by elements that support rendering child text content.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement)
+ */
+pub opaque type SVGTextContentElement.
+
+/**
+ * The **`lengthAdjust`** read-only property of the SVGTextContentElement interface reflects the lengthAdjust attribute of the given element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/lengthAdjust)
+ */
+pub (value: SVGTextContentElement) length_adjust(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`textLength`** read-only property of the SVGTextContentElement interface reflects the textLength attribute of the given element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/textLength)
+ */
+pub (value: SVGTextContentElement) text_length(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The `getCharNumAtPosition()` method of the SVGTextContentElement interface represents the character which caused a text glyph to be rendered at a given position in the coordinate system.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getCharNumAtPosition)
+ */
+pub (value: SVGTextContentElement) get_char_num_at_position(point: DOMPointInit): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The `getComputedTextLength()` method of the SVGTextContentElement interface represents the computed length for the text within the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getComputedTextLength)
+ */
+pub (value: SVGTextContentElement) get_computed_text_length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The `getEndPositionOfChar()` method of the SVGTextContentElement interface returns the trailing position of a typographic character after text layout has been performed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getEndPositionOfChar)
+ */
+pub (value: SVGTextContentElement) get_end_position_of_char(charnum: std.js.Number.JsNumber): DOMPoint ->
+    native.
+
+/**
+ * The `getExtentOfChar()` method of the SVGTextContentElement interface the represents computed tight bounding box of the glyph cell that corresponds to a given typographic character.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getExtentOfChar)
+ */
+pub (value: SVGTextContentElement) get_extent_of_char(charnum: std.js.Number.JsNumber): DOMRect ->
+    native.
+
+/**
+ * The `getNumberOfChars()` method of the SVGTextContentElement interface represents the total number of addressable characters available for rendering within the current element, regardless of whether they will be rendered.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getNumberOfChars)
+ */
+pub (value: SVGTextContentElement) get_number_of_chars(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The `getRotationOfChar()` method of the SVGTextContentElement interface the represents the rotation of a typographic character.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getRotationOfChar)
+ */
+pub (value: SVGTextContentElement) get_rotation_of_char(charnum: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The `getStartPositionOfChar()` method of the SVGTextContentElement interface returns the position of a typographic character after text layout has been performed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getStartPositionOfChar)
+ */
+pub (value: SVGTextContentElement) get_start_position_of_char(charnum: std.js.Number.JsNumber): DOMPoint ->
+    native.
+
+/**
+ * The `getSubStringLength()` method of the SVGTextContentElement interface represents the computed length of the formatted text advance distance for a substring of text within the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getSubStringLength)
+ */
+pub (value: SVGTextContentElement) get_sub_string_length(charnum: std.js.Number.JsNumber, nchars: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: SVGTextContentElement) select_sub_string(charnum: std.js.Number.JsNumber, nchars: std.js.Number.JsNumber): std.core.Unit ->
+    native.
+
+pub (value: SVGTextContentElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.
+
+pub (value: SVGTextContentElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+    native.

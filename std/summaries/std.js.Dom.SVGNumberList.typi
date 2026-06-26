@@ -1,0 +1,86 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.4
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
+ * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
+ * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
+ * @source-interface SVGNumberList
+ */
+
+module std.js.Dom.SVGNumberList.
+
+/**
+ * The **`SVGNumberList`** interface defines a list of numbers.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList)
+ */
+pub opaque type SVGNumberList.
+
+/**
+ * The **`length`** property of the SVGNumberList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/length)
+ */
+pub (value: SVGNumberList) length(): std.js.Number.JsNumber.
+
+/**
+ * The **`numberOfItems`** property of the SVGNumberList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/numberOfItems)
+ */
+pub (value: SVGNumberList) number_of_items(): std.js.Number.JsNumber.
+
+/**
+ * The **`appendItem()`** method of the SVGNumberList interface inserts a new item at the end of the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/appendItem)
+ */
+pub (value: SVGNumberList) append_item(new_item: SVGNumber): SVGNumber.
+
+/**
+ * The **`clear()`** method of the SVGNumberList interface clears all existing items from the list, with the result being an empty list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/clear)
+ */
+pub (value: SVGNumberList) clear(): std.core.Unit.
+
+/**
+ * The **`getItem()`** method of the SVGNumberList interface returns the specified item from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/getItem)
+ */
+pub (value: SVGNumberList) get_item(index: std.js.Number.JsNumber): SVGNumber.
+
+/**
+ * The **`initialize()`** method of the SVGNumberList interface clears all existing items from the list and re-initializes the list to hold the single item specified by the parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/initialize)
+ */
+pub (value: SVGNumberList) initialize(new_item: SVGNumber): SVGNumber.
+
+/**
+ * The **`insertItemBefore()`** method of the SVGNumberList interface inserts a new item into the list at the specified position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/insertItemBefore)
+ */
+pub (value: SVGNumberList) insert_item_before(new_item: SVGNumber, index: std.js.Number.JsNumber): SVGNumber.
+
+/**
+ * The **`removeItem()`** method of the SVGNumberList interface removes an existing item at the given index from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/removeItem)
+ */
+pub (value: SVGNumberList) remove_item(index: std.js.Number.JsNumber): SVGNumber.
+
+/**
+ * The **`replaceItem()`** method of the SVGNumberList interface replaces an existing item in the list with a new item.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/replaceItem)
+ */
+pub (value: SVGNumberList) replace_item(new_item: SVGNumber, index: std.js.Number.JsNumber): SVGNumber.

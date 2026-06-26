@@ -1,0 +1,8 @@
+module=std.js.Dom.RTCPeerConnectionErrorCallback
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+source_hash=338699181184453289
+interface_hash=6585953142768152363
+interface_doc_hash=6585953142768152363
+deps=0
