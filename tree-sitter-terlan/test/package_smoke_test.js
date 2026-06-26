@@ -95,7 +95,7 @@ function selectedPackageFileSet() {
  */
 function testTreeSitterScripts() {
   const manifest = readJson("package.json");
-  assert.strictEqual(manifest.scripts.generate, "tree-sitter generate");
+  assert.strictEqual(manifest.scripts.generate, "tree-sitter generate --no-bindings");
   assert.strictEqual(manifest.scripts.test, "tree-sitter test");
   assert.strictEqual(manifest.scripts["check:cli"], "npm run generate && npm test");
   assert.strictEqual(

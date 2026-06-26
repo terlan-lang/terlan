@@ -34,7 +34,7 @@
   "scripts": {
     "check": "node -c grammar.js && node -c test/pack_dry_run_test.js && node test/package_smoke_test.js",
     "check:cli": "npm run generate && npm test",
-    "generate": "tree-sitter generate",
+    "generate": "tree-sitter generate --no-bindings",
     "pack:dry-run": "npm pack --dry-run --json",
     "test": "tree-sitter test"
   }

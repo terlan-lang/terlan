@@ -19,6 +19,12 @@ module.exports = grammar({
 
   word: ($) => $.identifier,
 
+  conflicts: ($) => [
+    [$._top_level_item, $.function_declaration],
+    [$.expression, $.qualified_identifier],
+    [$.expression, $.raw_macro_expression]
+  ],
+
   rules: {
     source_file: ($) => repeat($._top_level_item),
 
@@ -96,7 +102,8 @@ module.exports = grammar({
         "."
       ),
 
-    implements_clause: ($) => seq("implements", commaSep1($.type_expression)),
+    implements_clause: ($) =>
+      prec.right(seq("implements", commaSepNoTrailing($.type_expression))),
 
     trait_declaration: ($) =>
       seq(
@@ -191,7 +198,6 @@ module.exports = grammar({
 
     type_expression: ($) =>
       choice(
-        $.type_identifier,
         $.qualified_identifier,
         $.generic_type,
         $.tuple_type,
@@ -241,7 +247,7 @@ module.exports = grammar({
 
     call_expression: ($) => seq($.qualified_identifier, $.arguments),
 
-    field_expression: ($) => seq($.expression, ".", $._field_identifier),
+    field_expression: ($) => prec.left(3, seq($.expression, ".", $._field_identifier)),
 
     binary_expression: ($) =>
       prec.left(1, seq($.expression, choice("+", "-", "*", "/", "==", "!=", "|>"), $.expression)),
@@ -260,7 +266,7 @@ module.exports = grammar({
     atom_literal: ($) => seq("Atom", "[", $.string, "]"),
 
     qualified_identifier: ($) =>
-      seq(choice($.identifier, $.type_identifier), repeat(seq(".", choice($.identifier, $.type_identifier)))),
+      prec.right(seq(choice($.identifier, $.type_identifier), repeat(seq(token.immediate("."), choice($.identifier, $.type_identifier))))),
 
     _field_identifier: ($) => choice($.identifier, $.private_field_identifier),
 
@@ -294,4 +300,21 @@ module.exports = grammar({
  */
 function commaSep1(rule) {
   return seq(rule, repeat(seq(",", rule)), optional(","));
+}
+
+/**
+ * Builds a comma-separated production without a trailing comma.
+ *
+ * Inputs:
+ * - `rule`: grammar rule accepted at each comma-separated position.
+ *
+ * Outputs:
+ * - Tree-sitter rule matching one or more comma-separated values.
+ *
+ * Transformation:
+ * - Keeps clauses followed by `{` unambiguous when a comma would otherwise
+ *   make the parser expect another item.
+ */
+function commaSepNoTrailing(rule) {
+  return seq(rule, repeat(seq(",", rule)));
 }
