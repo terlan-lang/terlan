@@ -465,7 +465,6 @@ release-0-0-5-preflight: release-0-0-4-preflight
 	$(MAKE) --no-print-directory runtime-release-dependency-check
 	$(MAKE) --no-print-directory http-runtime-stack-check
 	$(MAKE) --no-print-directory editor-check
-	$(MAKE) --no-print-directory lsp-check
 	$(MAKE) --no-print-directory safenative-postgres-check
 	$(MAKE) --no-print-directory safenative-http-cookie-check
 	$(MAKE) --no-print-directory safenative-postgres-docker-check

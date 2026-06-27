@@ -1,5 +1,6 @@
 use super::*;
 
+/// Removes Terlan single-quoted atom delimiters and simple escapes.
 pub(super) fn unquote_single_quoted_atom(text: &str) -> Option<String> {
     let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
     let mut output = String::new();

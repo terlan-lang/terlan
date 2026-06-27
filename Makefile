@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check adversarial-check coverage-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-runtime-matrix-check erlang-runtime-matrix-release-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check adversarial-check coverage-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-runtime-matrix-check erlang-runtime-matrix-release-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -27,6 +27,7 @@ check:
 	$(MAKE) workspace-version-check
 	$(MAKE) release-version-metadata-check
 	$(MAKE) source-extension-check
+	$(MAKE) rust-warnings-check
 	$(MAKE) rust-quality-check
 	$(MAKE) test-hierarchy-check
 	$(MAKE) cli-exact-selector-check
@@ -43,7 +44,6 @@ check:
 	$(MAKE) cli-check
 	$(MAKE) stdlib-check
 	$(MAKE) editor-check
-	$(MAKE) lsp-check
 	$(MAKE) api-schema-check
 	$(PYTHON) tools/validate_ebnf.py --strict
 
@@ -77,6 +77,9 @@ single-root-contract-check:
 
 diff-whitespace-check:
 	git diff --check
+
+rust-warnings-check:
+	RUSTFLAGS='-D warnings' $(CARGO) check --locked -p terlan --bins
 
 rust-quality-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- rust-quality

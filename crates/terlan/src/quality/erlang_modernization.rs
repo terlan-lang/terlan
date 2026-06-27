@@ -234,12 +234,14 @@ pub fn run_erlang_runtime_matrix(root: &Path) -> QualityResult<ErlangRuntimeMatr
     })
 }
 
+/// One Erlang runtime lane exercised by the runtime matrix gate.
 struct RuntimeLane {
     name: &'static str,
     bin_dir: PathBuf,
     expected_otp_release: Option<&'static str>,
 }
 
+/// Runs the selected Terlan command under one Erlang runtime lane.
 fn run_runtime_lane(root: &Path, lane: &RuntimeLane, command: &str) -> QualityResult<()> {
     ensure_runtime_binary(lane, "erl")?;
     ensure_runtime_binary(lane, "erlc")?;
@@ -285,6 +287,7 @@ fn run_runtime_lane(root: &Path, lane: &RuntimeLane, command: &str) -> QualityRe
     }
 }
 
+/// Verifies that a runtime lane exposes one required binary.
 fn ensure_runtime_binary(lane: &RuntimeLane, name: &str) -> QualityResult<()> {
     let path = lane.bin_dir.join(name);
     if path.is_file() {
@@ -298,6 +301,7 @@ fn ensure_runtime_binary(lane: &RuntimeLane, name: &str) -> QualityResult<()> {
     }
 }
 
+/// Reads the OTP release reported by a runtime lane.
 fn runtime_otp_release(lane: &RuntimeLane) -> QualityResult<String> {
     let output = Command::new(lane.bin_dir.join("erl"))
         .arg("-noshell")
@@ -319,6 +323,7 @@ fn runtime_otp_release(lane: &RuntimeLane) -> QualityResult<String> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
+/// Lists OTP applications present under an OTP `lib` directory.
 fn otp_applications(lib_dir: &Path) -> QualityResult<BTreeSet<String>> {
     let mut apps = BTreeSet::new();
     for entry in fs::read_dir(lib_dir).map_err(|err| {
@@ -340,6 +345,7 @@ fn otp_applications(lib_dir: &Path) -> QualityResult<BTreeSet<String>> {
     Ok(apps)
 }
 
+/// Returns expected inventory entries that are absent from an actual set.
 fn missing_entries(expected: &[&str], actual: &BTreeSet<String>) -> Vec<String> {
     expected
         .iter()
@@ -348,6 +354,7 @@ fn missing_entries(expected: &[&str], actual: &BTreeSet<String>) -> Vec<String> 
         .collect()
 }
 
+/// Returns entries that should be absent but are present in an actual set.
 fn present_entries(expected_absent: &[&str], actual: &BTreeSet<String>) -> Vec<String> {
     expected_absent
         .iter()
@@ -356,6 +363,7 @@ fn present_entries(expected_absent: &[&str], actual: &BTreeSet<String>) -> Vec<S
         .collect()
 }
 
+/// Verifies release manifests do not depend on the experimental runtime.
 fn assert_no_experimental_runtime_dependency(root: &Path) -> QualityResult<()> {
     let manifests = [
         root.join("Cargo.toml"),
@@ -384,6 +392,7 @@ fn assert_no_experimental_runtime_dependency(root: &Path) -> QualityResult<()> {
     }
 }
 
+/// Builds all Erlang modernization inventory artifacts.
 fn artifacts(root: &Path, vm_root: &Path, apps: &BTreeSet<String>) -> Vec<(&'static str, Value)> {
     vec![
         (
@@ -400,6 +409,7 @@ fn artifacts(root: &Path, vm_root: &Path, apps: &BTreeSet<String>) -> Vec<(&'sta
     ]
 }
 
+/// Builds the reference OTP baseline inventory artifact.
 fn reference_otp_baseline(vm_root: &Path, apps: &BTreeSet<String>) -> Value {
     json!({
         "schema": "terlan-erlang-modernization-reference-otp-baseline-v1",
@@ -420,6 +430,7 @@ fn reference_otp_baseline(vm_root: &Path, apps: &BTreeSet<String>) -> Value {
     })
 }
 
+/// Builds the Terlan smoke-test inventory artifact.
 fn terlan_reference_smokes() -> Value {
     json!({
         "schema": "terlan-erlang-modernization-reference-smokes-v1",
@@ -444,6 +455,7 @@ fn terlan_reference_smokes() -> Value {
     })
 }
 
+/// Builds the generated Erlang runtime-surface inventory artifact.
 fn runtime_surface(root: &Path) -> Value {
     json!({
         "schema": "terlan-erlang-modernization-runtime-surface-v1",
@@ -468,6 +480,7 @@ fn runtime_surface(root: &Path) -> Value {
     })
 }
 
+/// Builds the runtime modernization test-inventory artifact.
 fn test_inventory(root: &Path) -> Value {
     json!({
         "schema": "terlan-erlang-modernization-test-inventory-v1",
@@ -492,6 +505,7 @@ fn test_inventory(root: &Path) -> Value {
     })
 }
 
+/// Builds the compatibility-probe inventory artifact.
 fn compatibility_probes() -> Value {
     json!({
         "schema": "terlan-erlang-modernization-compatibility-probes-v1",
@@ -510,6 +524,7 @@ fn compatibility_probes() -> Value {
     })
 }
 
+/// Builds the OTP application strip-candidate artifact.
 fn strip_candidates(apps: &BTreeSet<String>) -> Value {
     let candidates = REMOVED_APP_BASELINE
         .iter()
@@ -527,6 +542,7 @@ fn strip_candidates(apps: &BTreeSet<String>) -> Value {
     })
 }
 
+/// Builds the replacement-candidate inventory artifact.
 fn replacement_candidates() -> Value {
     json!({
         "schema": "terlan-erlang-modernization-replacement-candidates-v1",
@@ -540,6 +556,7 @@ fn replacement_candidates() -> Value {
     })
 }
 
+/// Builds the reduced OTP profile inventory artifact.
 fn reduced_otp_profile(apps: &BTreeSet<String>) -> Value {
     json!({
         "schema": "terlan-erlang-modernization-reduced-otp-profile-v1",
@@ -549,6 +566,7 @@ fn reduced_otp_profile(apps: &BTreeSet<String>) -> Value {
     })
 }
 
+/// Counts files with one extension below several repository-relative roots.
 fn count_files(root: &Path, directories: &[&str], extension: &str) -> usize {
     directories
         .iter()
@@ -556,6 +574,7 @@ fn count_files(root: &Path, directories: &[&str], extension: &str) -> usize {
         .sum()
 }
 
+/// Recursively counts files with one extension under one directory.
 fn count_files_in_dir(directory: &Path, extension: &str) -> usize {
     let Ok(entries) = fs::read_dir(directory) else {
         return 0;
@@ -575,6 +594,7 @@ fn count_files_in_dir(directory: &Path, extension: &str) -> usize {
         .sum()
 }
 
+/// Writes matching JSON and Markdown artifacts for one inventory value.
 fn write_artifact_pair(output_dir: &Path, name: &str, value: &Value) -> QualityResult<()> {
     let json_path = output_dir.join(format!("{name}.json"));
     let json_text = serde_json::to_string_pretty(value)
@@ -596,6 +616,7 @@ fn write_artifact_pair(output_dir: &Path, name: &str, value: &Value) -> QualityR
     Ok(())
 }
 
+/// Renders one inventory value as a compact Markdown artifact.
 fn markdown_artifact(name: &str, value: &Value) -> String {
     let title = name
         .split('-')
@@ -612,6 +633,7 @@ fn markdown_artifact(name: &str, value: &Value) -> String {
     format!("# {title}\n\n```json\n{json_text}\n```\n")
 }
 
+/// Verifies that every required inventory artifact was emitted.
 fn ensure_required_artifacts(output_dir: &Path) -> QualityResult<()> {
     let mut missing = Vec::new();
     for artifact in REQUIRED_ARTIFACTS {
@@ -632,6 +654,7 @@ fn ensure_required_artifacts(output_dir: &Path) -> QualityResult<()> {
     }
 }
 
+/// Formats a path for stable inventory diagnostics.
 fn relative_display(path: &Path) -> String {
     path.components()
         .collect::<PathBuf>()

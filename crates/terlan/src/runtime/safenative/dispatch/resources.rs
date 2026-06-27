@@ -6,7 +6,9 @@ use super::args::{
     expect_bridge_handle, expect_bridge_int, expect_bridge_list, expect_bridge_text, type_error,
     unknown_operation,
 };
-use super::{dispatch, operation_arity, DispatchError, SafeNativeBridgeValue, SafeNativeValue};
+use super::{
+    dispatch, validate_operation_arity, DispatchError, SafeNativeBridgeValue, SafeNativeValue,
+};
 
 /// Dispatches an operation through handle-backed resource ownership.
 ///
@@ -235,18 +237,7 @@ fn validate_bridge_arity(
     operation: &str,
     args: &[SafeNativeBridgeValue],
 ) -> Result<(), DispatchError> {
-    match operation_arity(operation) {
-        Some(expected) if expected == args.len() => Ok(()),
-        Some(expected) => Err(DispatchError::new(
-            "dispatch.arity",
-            format!(
-                "Operation `{operation}` expects {expected} argument(s), got {}.",
-                args.len()
-            ),
-            0,
-        )),
-        None => Err(unknown_operation(operation)),
-    }
+    validate_operation_arity(operation, args.len(), unknown_operation)
 }
 
 /// Decodes bridge-facing arguments into pure dispatch values.

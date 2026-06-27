@@ -15,6 +15,18 @@ use super::{
     TERLAN_PROJECT_MANIFEST_FILE,
 };
 
+/// Runs an Erlang build for a plain source-root directory.
+///
+/// Inputs:
+/// - `dir`: source root or single directory selected by `terlc build`.
+/// - `state`: global CLI state carrying output and target configuration.
+///
+/// Output:
+/// - CLI exit code for the source-root build.
+///
+/// Transformation:
+/// - Adapts the single-root command path into the shared multi-root Erlang
+///   source build pipeline without project manifest metadata.
 pub(super) fn run_erlang_source_root_build(dir: &Path, state: &CliState) -> ExitCode {
     run_erlang_plain_source_roots_build(&[dir.to_path_buf()], state, None, None)
 }

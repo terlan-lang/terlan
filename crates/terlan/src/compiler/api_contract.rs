@@ -7,6 +7,8 @@ use crate::terlan_syntax::{
     SyntaxImportKind, SyntaxModuleOutput,
 };
 
+use super::router::router_receiver_method_name;
+
 /// Compiler-owned API contract schema emitted before OpenAPI conversion.
 pub const API_CONTRACT_SCHEMA: &str = "terlan-api-contract-v1";
 
@@ -454,29 +456,6 @@ fn router_group_body_expr(expr: &SyntaxExprOutput) -> Option<(String, &SyntaxExp
         return None;
     }
     Some((prefix, configure.clauses[0].body.as_ref()))
-}
-
-/// Extracts a router receiver-method name from a call callee.
-fn router_receiver_method_name(callee: &SyntaxExprOutput) -> Option<&str> {
-    if callee.kind != SyntaxExprKind::FieldAccess {
-        return None;
-    }
-    let method = callee.text.as_deref()?;
-    matches!(
-        method,
-        "get"
-            | "post"
-            | "put"
-            | "patch"
-            | "delete"
-            | "head"
-            | "options"
-            | "use"
-            | "fallback"
-            | "error"
-            | "group"
-    )
-    .then_some(method)
 }
 
 /// Returns whether a receiver expression is router-builder shaped.

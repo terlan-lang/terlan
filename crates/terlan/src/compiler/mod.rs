@@ -11,5 +11,6 @@
 
 pub mod api_contract;
 pub mod hir;
+pub(crate) mod router;
 pub mod syntax;
 pub mod typeck;

@@ -6,6 +6,7 @@ use regex::Regex;
 
 mod cli_exact_selectors;
 mod erlang_modernization;
+mod inline_tests;
 mod internal_docs;
 mod module_readmes;
 mod oxc_boundary;
@@ -16,6 +17,7 @@ pub use erlang_modernization::{
     run_erlang_modernization_inventory, run_erlang_runtime_matrix, ErlangModernizationSummary,
     ErlangRuntimeMatrixSummary,
 };
+pub(crate) use inline_tests::has_inline_test_marker;
 pub use internal_docs::{run_internal_docs, InternalDocFinding, InternalDocsSummary};
 pub use module_readmes::{run_module_readmes, ModuleReadmeSummary};
 pub use oxc_boundary::{run_oxc_boundary, OxcBoundaryFinding, OxcBoundarySummary};
@@ -747,41 +749,6 @@ fn read_inline_test_baseline(root: &Path) -> QualityResult<(BTreeSet<PathBuf>, V
         baseline.insert(PathBuf::from(line));
     }
     Ok((baseline, diagnostics))
-}
-
-/// Returns whether source text contains non-adjacent inline test config.
-///
-/// Inputs:
-/// - `text`: Rust implementation source.
-///
-/// Output:
-/// - `true` when the file contains an inline `#[cfg(test)]` marker.
-/// - `false` when every marker belongs to an adjacent `#[path = "*_test.rs"]`
-///   module declaration.
-///
-/// Transformation:
-/// - Scans source lines and treats `#[cfg(test)]` followed by optional blank
-///   lines and a `#[path = "..._test.rs"]` attribute as the approved adjacent
-///   test-module pattern.
-fn has_inline_test_marker(text: &str) -> bool {
-    let lines = text.lines().collect::<Vec<_>>();
-    for (index, line) in lines.iter().enumerate() {
-        if line.trim() != "#[cfg(test)]" {
-            continue;
-        }
-        let mut next_index = index + 1;
-        while next_index < lines.len() && lines[next_index].trim().is_empty() {
-            next_index += 1;
-        }
-        if next_index < lines.len() {
-            let next_line = lines[next_index].trim();
-            if next_line.starts_with("#[path = ") && next_line.contains("_test.rs") {
-                continue;
-            }
-        }
-        return true;
-    }
-    false
 }
 
 /// Returns implementation files that contain inline Rust test configuration.

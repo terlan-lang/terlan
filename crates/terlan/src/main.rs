@@ -1,12 +1,11 @@
-mod backends;
-mod compiler;
-mod formal_pipeline;
-mod html;
-mod lsp;
-mod quality;
-mod runtime;
-mod support;
-mod validation;
+pub mod backends;
+pub mod compiler;
+pub mod formal_pipeline;
+pub mod html;
+pub mod lsp;
+pub mod runtime;
+pub mod support;
+pub mod validation;
 
 pub(crate) use backends::erlang as terlan_erlang;
 pub(crate) use compiler::hir as terlan_hir;
@@ -14,7 +13,6 @@ pub(crate) use compiler::syntax as terlan_syntax;
 pub(crate) use compiler::typeck as terlan_typeck;
 pub(crate) use html as terlan_html;
 pub(crate) use lsp as terlan_lsp;
-pub(crate) use quality as terlan_quality;
 pub(crate) use runtime::native as terlan_native;
 pub(crate) use runtime::safenative as terlan_safenative;
 

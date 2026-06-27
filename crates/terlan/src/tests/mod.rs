@@ -11,10 +11,12 @@ use std::path::Path;
 
 use crate::validation::template_contract::type_check_syntax_module_output_with_templates;
 
+/// Creates a command-test temporary directory.
 fn make_temp_dir(name: &str) -> PathBuf {
     test_fs::temp_dir("tests", name)
 }
 
+/// Writes one Terlan fixture file and returns its path string.
 fn fixture(path: &Path, contents: &str) -> String {
     let file = path.join("fixture.terl");
     test_fs::write_file(&file, contents);
@@ -38,11 +40,13 @@ mod interface_test;
 mod static_site_test;
 mod target_profile_test;
 
+/// Phase-contract fixture descriptor used by compiler pipeline tests.
 struct PhaseContractFixture {
     module_name: &'static str,
     source_path: &'static str,
 }
 
+/// Returns all phase-contract fixtures in stable execution order.
 fn phase_contract_fixtures() -> Vec<PhaseContractFixture> {
     vec![
         PhaseContractFixture {
@@ -160,10 +164,12 @@ fn phase_contract_fixtures() -> Vec<PhaseContractFixture> {
     ]
 }
 
+/// Returns the repository fixture root for phase-contract tests.
 fn phase_contract_fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/phase_contract")
 }
 
+/// Reads one expected phase-contract golden snapshot.
 fn read_phase_contract_golden(name: &str, stage: &str) -> String {
     let path = phase_contract_fixture_root().join(format!("{name}.{stage}.golden"));
     fs::read_to_string(&path).unwrap_or_else(|err| {
@@ -245,6 +251,7 @@ fn phase_contract_check_manifest_json(fixture: &PhaseContractFixture) -> serde_j
     serde_json::from_str(&manifest_text).expect("parse phase manifest")
 }
 
+/// Normalizes golden snapshot text for stable comparisons.
 fn normalize_golden_text(text: &str) -> String {
     text.lines()
         .map(|line| line.trim_end())
@@ -254,6 +261,7 @@ fn normalize_golden_text(text: &str) -> String {
         + "\n"
 }
 
+/// Extracts the public source function surface from syntax output.
 fn syntax_public_function_surface_snapshot(module: &SyntaxModuleOutput) -> Vec<String> {
     let mut entries = module
         .declarations
@@ -396,6 +404,7 @@ fn phase_contract_erlang_type_name(name: &str) -> String {
     out
 }
 
+/// Renders a deterministic resolver-stage snapshot.
 fn resolve_stage_snapshot(resolved: &crate::terlan_hir::ResolvedModule) -> String {
     let mut out = Vec::new();
     out.push(format!("module={}", resolved.name));
@@ -474,6 +483,7 @@ fn resolve_stage_snapshot(resolved: &crate::terlan_hir::ResolvedModule) -> Strin
     normalize_golden_text(&out.join("\n"))
 }
 
+/// Renders a deterministic typecheck diagnostic snapshot.
 fn typed_stage_snapshot(diagnostics: &[crate::terlan_typeck::Diagnostic]) -> String {
     if diagnostics.is_empty() {
         return "diagnostics=ok\n".to_string();
@@ -495,10 +505,12 @@ fn typed_stage_snapshot(diagnostics: &[crate::terlan_typeck::Diagnostic]) -> Str
     normalize_golden_text(&entries.join("\n"))
 }
 
+/// Renders a deterministic CoreIR stage snapshot.
 fn core_stage_snapshot(core: &crate::terlan_typeck::CoreModule) -> String {
     normalize_golden_text(&core.contract_text())
 }
 
+/// Extracts a deterministic backend emission surface snapshot.
 fn emit_stage_snapshot(path: &Path) -> String {
     let source = fs::read_to_string(path).unwrap_or_else(|err| {
         panic!("failed to read emitted file {path:?}: {err}");
@@ -519,6 +531,7 @@ fn emit_stage_snapshot(path: &Path) -> String {
     normalize_golden_text(&out.join("\n"))
 }
 
+/// Parses exported Erlang function names from emitted source.
 fn parse_erlang_exported_function_surface(path: &Path) -> Vec<String> {
     let source = fs::read_to_string(path).unwrap_or_else(|err| {
         panic!("failed to read emitted erlang file {path:?}: {err}");
@@ -551,6 +564,7 @@ fn parse_erlang_exported_function_surface(path: &Path) -> Vec<String> {
     exports
 }
 
+/// Parses exported JavaScript function names from emitted source.
 fn parse_js_exported_function_surface(path: &Path) -> Vec<String> {
     let source = fs::read_to_string(path).unwrap_or_else(|err| {
         panic!("failed to read emitted js file {path:?}: {err}");
@@ -610,6 +624,7 @@ fn public_function_names_from_surface(surface: &[String]) -> Vec<String> {
     names
 }
 
+/// Asserts one fixture matches every phase-contract golden snapshot.
 fn assert_phase_contract_golden(fixture: PhaseContractFixture) {
     let root = phase_contract_fixture_root();
     let update_goldens = std::env::var_os("TERLAN_UPDATE_PHASE_GOLDEN").is_some();
@@ -685,6 +700,7 @@ fn assert_phase_contract_golden(fixture: PhaseContractFixture) {
     }
 }
 
+/// Verifies all phase-contract fixtures match checked-in golden snapshots.
 #[test]
 fn run_phase_contract_fixtures_match_golden() {
     for fixture in phase_contract_fixtures() {
@@ -828,6 +844,7 @@ fn run_check_phase_contract_next_lean_model_candidates_emit_manifest_evidence() 
     }
 }
 
+/// Verifies backend export surfaces remain aligned across supported backends.
 #[test]
 fn run_phase_contract_fixtures_backend_parity() {
     for fixture in phase_contract_fixtures() {

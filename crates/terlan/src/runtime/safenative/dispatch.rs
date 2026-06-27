@@ -19,7 +19,7 @@ use args::{
     expect_path, expect_postgres_config, expect_postgres_pool, expect_postgres_row, expect_text,
     expect_uri, unknown_operation,
 };
-pub use arity::operation_arity;
+pub use arity::{operation_arity, validate_operation_arity};
 pub use resources::dispatch_with_resources;
 
 /// Neutral value shape accepted and returned by SafeNative adapter dispatch.
@@ -569,18 +569,7 @@ pub fn dispatch(
 /// Transformation:
 /// - Compares supplied argument count with `operation_arity`.
 fn validate_arity(operation: &str, args: &[SafeNativeValue]) -> Result<(), DispatchError> {
-    match operation_arity(operation) {
-        Some(expected) if expected == args.len() => Ok(()),
-        Some(expected) => Err(DispatchError::new(
-            "dispatch.arity",
-            format!(
-                "Operation `{operation}` expects {expected} argument(s), got {}.",
-                args.len()
-            ),
-            0,
-        )),
-        None => Err(unknown_operation(operation)),
-    }
+    validate_operation_arity(operation, args.len(), unknown_operation)
 }
 
 #[cfg(test)]

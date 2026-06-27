@@ -528,8 +528,7 @@ version = "0.0.0"
     assert "Cargo.lock" in missing[0].missing_lockfile_message()
 
     partial_manifest_names = {
-        CLI_MANIFEST: {"tokio-postgres"},
-        CLI_MANIFEST: {"rustls"},
+        CLI_MANIFEST: {"tokio-postgres", "rustls"},
     }
     manifest_missing = missing_manifest_dependencies(partial_manifest_names)
     manifest_missing_names = [dependency.name for dependency in manifest_missing]
@@ -559,8 +558,7 @@ version = "0.0.0"
         [REQUIRED_DEPENDENCIES[1], REQUIRED_DEPENDENCIES[2]],
     )
     assert next_actions == [
-        "runtime-release-dependency-check next action: add refinery directly to crates/terlan/Cargo.toml.",
-        "runtime-release-dependency-check next action: add deadpool-postgres directly to crates/terlan/Cargo.toml.",
+        "runtime-release-dependency-check next action: add deadpool-postgres, refinery directly to crates/terlan/Cargo.toml.",
         "runtime-release-dependency-check next action: resolve rustls, tokio-postgres into Cargo.lock with the selected crate versions.",
     ]
 

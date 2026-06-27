@@ -1,5 +1,6 @@
 use std::path::{Component, Path};
 
+pub(super) use crate::compiler::router::router_receiver_method_name;
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 
 use super::super::manifest::WebSourceSpanArtifact;
@@ -186,39 +187,6 @@ pub(super) fn router_middleware_from_expr(expr: &SyntaxExprOutput) -> Option<&st
         return None;
     }
     router_handler_name(expr.children.get(middleware_index)?)
-}
-
-/// Extracts a router receiver-method name from a call callee.
-///
-/// Inputs:
-/// - `callee`: first child of a syntax call expression.
-///
-/// Output:
-/// - Router builder method name when the callee is a field access.
-///
-/// Transformation:
-/// - Reads `router.get(...)` and `Router.new().get(...)` as source-level
-///   receiver calls without requiring the full typechecker.
-pub(super) fn router_receiver_method_name(callee: &SyntaxExprOutput) -> Option<&str> {
-    if callee.kind != SyntaxExprKind::FieldAccess {
-        return None;
-    }
-    let method = callee.text.as_deref()?;
-    matches!(
-        method,
-        "get"
-            | "post"
-            | "put"
-            | "patch"
-            | "delete"
-            | "head"
-            | "options"
-            | "use"
-            | "fallback"
-            | "error"
-            | "group"
-    )
-    .then_some(method)
 }
 
 /// Returns whether a receiver expression is router-builder shaped.

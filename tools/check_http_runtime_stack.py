@@ -32,9 +32,9 @@ SERVE_ROOT = ROOT / "crates" / "terlan" / "src" / "commands" / "serve"
 SERVE_MAIN = SERVE_ROOT / "mod.rs"
 SERVE_BEAM_EVAL = SERVE_ROOT / "handler" / "beam_eval.rs"
 SERVE_WATCH = SERVE_ROOT / "watch.rs"
-SAFENATIVE_HTTP = ROOT / "crates" / "terlan" / "src" / "runtime" / "safenative" / "http.rs"
-SAFENATIVE_HTTP_COOKIES = (
-    ROOT / "crates" / "terlan" / "src" / "runtime" / "safenative" / "http" / "cookies.rs"
+NATIVE_HTTP = ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http.rs"
+NATIVE_HTTP_COOKIES = (
+    ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http" / "cookies.rs"
 )
 REQUIRED_DEPENDENCIES = ("http", "http-body-util", "hyper", "hyper-util", "tokio")
 REQUIRED_SERVE_MARKERS = (
@@ -55,7 +55,7 @@ REQUIRED_COOKIE_BOUNDARY_MARKERS = (
         "native_http::parse_request_cookie_header(cookie_header)",
     ),
     (
-        SAFENATIVE_HTTP_COOKIES,
+        NATIVE_HTTP_COOKIES,
         "Cookie::parse(pair.trim().to_string())",
     ),
 )
@@ -261,15 +261,15 @@ def forbidden_pattern_findings() -> list[Finding]:
     return findings
 
 
-def safenative_http_boundary_findings() -> list[Finding]:
-    """Return SafeNative HTTP boundary findings.
+def native_http_boundary_findings() -> list[Finding]:
+    """Return native HTTP boundary findings.
 
     Inputs:
-    - `crates/terlan/src/runtime/safenative/http.rs`.
+    - `crates/terlan/src/runtime/native/http.rs`.
 
     Outputs:
     - Finding records when the temporary MIME boundary is not centralized in
-      SafeNative HTTP.
+      the native HTTP adapter.
 
     Transformation:
     - Requires the single adapter-owned `content_type_for_path` helper and its
@@ -277,15 +277,15 @@ def safenative_http_boundary_findings() -> list[Finding]:
       serve` while the release waits for a maintained `mime_guess` dependency.
     """
 
-    text = read_text(SAFENATIVE_HTTP)
+    text = read_text(NATIVE_HTTP)
     findings: list[Finding] = []
     for marker in REQUIRED_SAFENATIVE_HTTP_MARKERS:
         if marker not in text:
             findings.append(
                 Finding(
-                    path=relative(SAFENATIVE_HTTP),
+                    path=relative(NATIVE_HTTP),
                     line=None,
-                    message=f"missing SafeNative HTTP boundary marker `{marker}`",
+                    message=f"missing native HTTP boundary marker `{marker}`",
                 )
             )
     return findings
@@ -296,15 +296,15 @@ def cookie_boundary_findings() -> list[Finding]:
 
     Inputs:
     - `crates/terlan/src/commands/serve/handler/beam_eval.rs`.
-    - `crates/terlan/src/runtime/safenative/http/cookies.rs`.
+    - `crates/terlan/src/runtime/native/http/cookies.rs`.
 
     Outputs:
     - Finding records when request-cookie parsing is not routed through the
       SafeNative HTTP boundary.
 
     Transformation:
-    - Requires the BEAM handler bridge to call the SafeNative cookie parser and
-      requires the SafeNative parser to retain its maintained-crate replacement
+    - Requires the BEAM handler bridge to call the native cookie parser and
+      requires the native parser to retain its maintained-crate replacement
       note. Non-test serve files are also covered by the general forbidden
       pattern scan, which rejects local semicolon splitting.
     """
@@ -386,7 +386,7 @@ def check_http_runtime_stack() -> list[Finding]:
         dependency_findings()
         + serve_marker_findings()
         + forbidden_pattern_findings()
-        + safenative_http_boundary_findings()
+        + native_http_boundary_findings()
         + cookie_boundary_findings()
         + reload_watch_boundary_findings()
     )

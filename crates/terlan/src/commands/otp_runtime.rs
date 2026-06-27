@@ -38,6 +38,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     }
 }
 
+/// Parsed hidden OTP runtime command arguments.
 enum OtpRuntimeArgs {
     Help,
     Version,
@@ -48,6 +49,7 @@ enum OtpRuntimeArgs {
     Error(String),
 }
 
+/// Parses hidden OTP runtime subcommand arguments.
 fn parse_otp_runtime_args(args: &[String]) -> OtpRuntimeArgs {
     match args {
         [] => OtpRuntimeArgs::Error(
@@ -69,6 +71,7 @@ fn parse_otp_runtime_args(args: &[String]) -> OtpRuntimeArgs {
     }
 }
 
+/// Removes an optional `--` separator before forwarded runtime arguments.
 fn strip_separator(args: &[String]) -> Vec<String> {
     match args {
         [separator, rest @ ..] if separator == "--" => rest.to_vec(),
@@ -76,6 +79,7 @@ fn strip_separator(args: &[String]) -> Vec<String> {
     }
 }
 
+/// Prints the experimental runtime's Erlang system version.
 fn run_otp_runtime_version() -> ExitCode {
     run_otp_runtime_binary(
         "erl",
@@ -87,6 +91,7 @@ fn run_otp_runtime_version() -> ExitCode {
     )
 }
 
+/// Runs one binary from the experimental OTP runtime payload.
 fn run_otp_runtime_binary(binary: &str, args: Vec<String>) -> ExitCode {
     let runtime = match runtime_dir() {
         Ok(runtime) => runtime,
@@ -119,6 +124,7 @@ fn run_otp_runtime_binary(binary: &str, args: Vec<String>) -> ExitCode {
     }
 }
 
+/// Returns the configured experimental OTP runtime directory.
 fn runtime_dir() -> Result<PathBuf, String> {
     std::env::var_os("TERLAN_OTP_RUNTIME_DIR")
         .map(PathBuf::from)
@@ -127,6 +133,7 @@ fn runtime_dir() -> Result<PathBuf, String> {
         })
 }
 
+/// Prints hidden OTP runtime command usage.
 fn print_otp_runtime_usage() {
     println!("terlc --experimental otp-runtime version");
     println!("terlc --experimental otp-runtime erl -- <erl-args>");

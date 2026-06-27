@@ -3,6 +3,8 @@
 //! The dispatcher owns execution, while this module owns the compact arity
 //! contract used before execution and by manifest coverage tests.
 
+use super::DispatchError;
+
 /// Rust-backed operation arities accepted by SafeNative dispatch.
 ///
 /// Inputs:
@@ -112,4 +114,34 @@ pub fn operation_arity(operation: &str) -> Option<usize> {
     OPERATION_ARITIES
         .iter()
         .find_map(|(candidate, arity)| (*candidate == operation).then_some(*arity))
+}
+
+/// Validates the supplied argument count for one operation.
+///
+/// Inputs:
+/// - `operation`: compiler-native operation id.
+/// - `actual`: supplied argument count.
+/// - `unknown`: operation-specific unknown-operation diagnostic builder.
+///
+/// Output:
+/// - `Ok(())` when arity matches.
+/// - `Err(DispatchError)` for unknown operations or wrong arity.
+///
+/// Transformation:
+/// - Compares the supplied count with `operation_arity` while allowing each
+///   dispatch surface to keep its own unknown-operation error context.
+pub fn validate_operation_arity(
+    operation: &str,
+    actual: usize,
+    unknown: impl FnOnce(&str) -> DispatchError,
+) -> Result<(), DispatchError> {
+    match operation_arity(operation) {
+        Some(expected) if expected == actual => Ok(()),
+        Some(expected) => Err(DispatchError::new(
+            "dispatch.arity",
+            format!("Operation `{operation}` expects {expected} argument(s), got {actual}."),
+            0,
+        )),
+        None => Err(unknown(operation)),
+    }
 }

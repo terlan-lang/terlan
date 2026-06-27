@@ -1,7 +1,7 @@
 # Repository-relative Rust files currently over the 0.0.4 size limit.
 # Format: path<TAB>current_line_count
 crates/terlan/src/commands/bind/mod.rs	1682
-crates/terlan/src/commands/bind/polars_probe.rs	1305
+crates/terlan/src/commands/bind/polars_probe_files.rs	1305
 crates/terlan/src/commands/build/mod.rs	2008
 crates/terlan/src/commands/build/project_manifest.rs	1680
 crates/terlan/src/commands/doc/render.rs	1843
@@ -25,14 +25,13 @@ crates/terlan/src/validation/target_profile/profile.rs	1230
 crates/terlan/src/backends/erlang/emit/erl.rs	1293
 crates/terlan/src/backends/erlang/emit/syntax.rs	1727
 crates/terlan/src/backends/erlang/emit/syntax/calls.rs	1134
-crates/terlan/src/backends/erlang/emit/syntax_emit_test.rs	2132
+crates/terlan/src/backends/erlang/emit/syntax_emit_test.rs	2134
 crates/terlan/src/backends/erlang/emit/syntax/intrinsics/http.rs	1357
 crates/terlan/src/backends/erlang/emit/util.rs	1182
 crates/terlan/src/compiler/hir/mod.rs	2629
 crates/terlan/src/html/mod.rs	1049
 crates/terlan/src/lsp/mod.rs	1267
 crates/terlan/src/runtime/safenative/dispatch.rs	1194
-crates/terlan/src/runtime/safenative/postgres.rs	1229
 crates/terlan/src/compiler/syntax/formatter.rs	1383
 crates/terlan/src/compiler/syntax/ebnf.rs	1333
 crates/terlan/src/compiler/syntax/parser.rs	1237
@@ -46,7 +45,7 @@ crates/terlan/src/compiler/typeck/core_proof.rs	2167
 crates/terlan/src/compiler/typeck/expression.rs	3628
 crates/terlan/src/compiler/typeck/expression/calls.rs	1633
 crates/terlan/src/compiler/typeck/expression_test.rs	2204
-crates/terlan/src/compiler/typeck/import_test.rs	2100
+crates/terlan/src/compiler/typeck/import_test.rs	2102
 crates/terlan/src/compiler/typeck/trait_conformance.rs	1435
 crates/terlan/src/compiler/typeck/trait_conformance/syntax.rs	1015
 crates/terlan/src/compiler/typeck/trait_model.rs	1064

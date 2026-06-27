@@ -138,6 +138,80 @@ mod value_test;
     assert!(!has_inline_test_marker(source));
 }
 
+/// Verifies test-only imports are not treated as inline-test debt.
+///
+/// Inputs:
+/// - Source text containing `#[cfg(test)]` on a `use` item.
+///
+/// Output:
+/// - Test passes when the marker is accepted.
+///
+/// Transformation:
+/// - Allows implementation modules to import adjacent test helpers without
+///   embedding test bodies.
+#[test]
+fn inline_test_marker_allows_test_only_imports() {
+    let source = r#"
+#[cfg(test)]
+use event::render_repl_json_event;
+
+pub fn value() -> i32 { 1 }
+"#;
+
+    assert!(!has_inline_test_marker(source));
+}
+
+/// Verifies test helper module exports are not treated as inline-test debt.
+///
+/// Inputs:
+/// - Source text containing a `#[cfg(test)] pub(crate) mod` helper.
+///
+/// Output:
+/// - Test passes when the helper module hook is accepted.
+///
+/// Transformation:
+/// - Keeps shared test helpers available without forcing them into production
+///   module trees.
+#[test]
+fn inline_test_marker_allows_test_helper_modules() {
+    let source = r#"
+#[cfg(test)]
+pub(crate) mod test_fs;
+
+pub fn value() -> i32 { 1 }
+"#;
+
+    assert!(!has_inline_test_marker(source));
+}
+
+/// Verifies generated Rust stored in raw strings is ignored.
+///
+/// Inputs:
+/// - Source text containing a raw string with an embedded `#[cfg(test)]`.
+///
+/// Output:
+/// - Test passes when only the host Rust source is scanned.
+///
+/// Transformation:
+/// - Prevents generated source templates from being misclassified as inline
+///   tests in the generator file.
+#[test]
+fn inline_test_marker_ignores_raw_string_contents() {
+    let source = r##"
+pub const GENERATED: &str = r#"
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn generated_test() {}
+}
+"#;
+
+pub fn value() -> i32 { 1 }
+"##;
+
+    assert!(!has_inline_test_marker(source));
+}
+
 /// Verifies ordinary inline test modules are rejected.
 ///
 /// Inputs:
