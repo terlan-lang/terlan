@@ -963,6 +963,10 @@ mod parser_decl_surface_test;
 mod parser_expr_test;
 
 #[cfg(test)]
+#[path = "parser_adversarial_test.rs"]
+mod parser_adversarial_test;
+
+#[cfg(test)]
 #[path = "parser_html_test.rs"]
 mod parser_html_test;
 

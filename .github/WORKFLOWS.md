@@ -44,9 +44,9 @@ gate:
 make check
 make test          # fast workspace library tests plus CLI smoke tests
 make test-release  # full workspace tests plus ignored release-scale sweeps
-make test-release
 make editor-check
 make tree-sitter-cli-check
+make erlang-runtime-matrix-check  # when TERLAN_OTP_RUNTIME_BIN is configured
 make release-0-0-5-preflight
 ```
 
@@ -72,9 +72,9 @@ split:
 make check
 make test
 make test-release
-make test-release
 make editor-check
 make tree-sitter-cli-check
+make erlang-runtime-matrix-check  # when TERLAN_OTP_RUNTIME_BIN is configured
 make release-0-0-5-preflight
 ```
 

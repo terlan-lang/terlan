@@ -1,6 +1,7 @@
 # Rust build outputs
 /target/
 /dist/
+/_build/
 *.rlib
 
 # BEAM build outputs and crash dumps

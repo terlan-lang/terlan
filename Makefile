@@ -3,11 +3,13 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check adversarial-check coverage-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-runtime-matrix-check erlang-runtime-matrix-release-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
 include editors/editor.mk
+
+COVERAGE_MIN ?= 80.78
 
 ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
 ifndef VERSION
@@ -30,6 +32,7 @@ check:
 	$(MAKE) cli-exact-selector-check
 	$(MAKE) shared-helper-check
 	$(MAKE) oxc-boundary-check
+	$(MAKE) adversarial-check
 	$(MAKE) http-tls-check
 	$(MAKE) http-runtime-stack-check
 	$(MAKE) runtime-release-dependency-self-test
@@ -89,6 +92,23 @@ shared-helper-check:
 
 oxc-boundary-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- oxc-boundary
+
+adversarial-check:
+	$(CARGO) test --locked -p terlan adversarial -- --nocapture
+
+coverage-check:
+	$(CARGO) llvm-cov --locked --workspace --all-targets --fail-under-lines $(COVERAGE_MIN)
+
+erlang-modernization-inventory-check:
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- erlang-modernization-inventory
+
+erlang-modernization-em0-hard-gate: erlang-modernization-inventory-check
+
+erlang-runtime-matrix-check:
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- erlang-runtime-matrix
+
+erlang-runtime-matrix-release-check:
+	TERLAN_RUNTIME_MATRIX_COMMAND='$(MAKE) test-release' $(MAKE) erlang-runtime-matrix-check
 
 http-runtime-stack-check:
 	$(PYTHON) tools/check_http_runtime_stack.py

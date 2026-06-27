@@ -58,6 +58,9 @@ jobs:
         with:
           otp-version: "29"
 
+      - name: Export OTP 29 path
+        run: echo "TERLAN_OTP29_BIN=$(dirname "$(command -v erl)")" >> "$GITHUB_ENV"
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -77,6 +80,14 @@ jobs:
 
       - name: Tree-sitter CLI grammar check
         run: make tree-sitter-cli-check
+
+      - name: Erlang runtime matrix
+        run: |
+          if [ -n "${TERLAN_OTP_RUNTIME_BIN:-}" ] && [ -x "$TERLAN_OTP_RUNTIME_BIN/erl" ] && [ -x "$TERLAN_OTP_RUNTIME_BIN/erlc" ]; then
+            make erlang-runtime-matrix-check
+          else
+            echo "Skipping runtime matrix: TERLAN_OTP_RUNTIME_BIN is not configured in this CI workspace."
+          fi
 
       - name: 0.0.5 release gate
         run: make release-0-0-5-preflight

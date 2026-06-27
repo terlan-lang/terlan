@@ -151,6 +151,8 @@ fn top_level_usage_hides_internal_scratch_commands() {
         "bind rust",
         "--experimental",
         "deploy",
+        "vm",
+        "otp-runtime",
         "emit <file.terl>",
         "emit-static",
         "serve-static",
@@ -459,6 +461,18 @@ fn run_cli_rejects_help_command_for_unknown_command() {
 fn run_cli_keeps_experimental_deploy_hidden_from_command_help() {
     assert_eq!(
         run_cli(vec!["help".to_string(), "deploy".to_string()]),
+        ExitCode::from(2)
+    );
+}
+
+#[test]
+fn run_cli_keeps_experimental_vm_hidden_from_command_help() {
+    assert_eq!(
+        run_cli(vec!["help".to_string(), "vm".to_string()]),
+        ExitCode::from(2)
+    );
+    assert_eq!(
+        run_cli(vec!["help".to_string(), "otp-runtime".to_string()]),
         ExitCode::from(2)
     );
 }

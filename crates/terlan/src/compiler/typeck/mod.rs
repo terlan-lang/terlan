@@ -784,6 +784,8 @@ mod core_intrinsic_test;
 mod constructor_test;
 
 #[cfg(test)]
+mod adversarial_test;
+#[cfg(test)]
 mod diagnostic_test;
 #[cfg(test)]
 mod macro_test;

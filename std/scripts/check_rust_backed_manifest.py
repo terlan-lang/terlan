@@ -382,8 +382,9 @@ def rust_public_functions(path: Path) -> tuple[set[str], list[str]]:
     - Human-readable validation errors.
 
     Transformation:
-    - Reads the Rust file and extracts stable `pub fn name(...)` declarations.
-      This intentionally checks only adapter symbol presence; Rust's own type
+    - Reads the Rust file and extracts stable `pub fn name(...)` declarations
+      plus explicit `pub use module::{name, ...}` re-exports. This
+      intentionally checks only adapter symbol presence; Rust's own type
       checker remains responsible for function signatures.
     """
 
@@ -397,6 +398,17 @@ def rust_public_functions(path: Path) -> tuple[set[str], list[str]]:
         source,
     ):
         functions.add(match.group(1))
+    for match in re.finditer(r"(?m)^\s*pub\s+use\s+[A-Za-z_][A-Za-z0-9_]*::\{([^}]+)\};", source):
+        for item in match.group(1).split(","):
+            name = item.strip()
+            if not name:
+                continue
+            if " as " in name:
+                name = name.rsplit(" as ", 1)[1].strip()
+            if name.startswith("r#"):
+                name = name[2:]
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+                functions.add(name)
     return functions, []
 
 

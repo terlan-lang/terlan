@@ -1,4 +1,6 @@
-use super::beam_runner::{add_test_exports_to_erlang_source, render_eunit_wrapper_source};
+use super::beam_runner::{
+    add_test_exports_to_erlang_source, render_eunit_wrapper_eval, render_eunit_wrapper_source,
+};
 use super::command_runner::quote_erlang_atom;
 use super::command_runner::run_command_with_timeout;
 use super::manifest::{TestRunReport, TestRunResult, TestRunStatus};
@@ -1027,6 +1029,28 @@ fn render_eunit_wrapper_source_delegates_to_target_tests() {
     assert!(
         source.contains("Other -> erlang:error({unexpected_test_result, Other})"),
         "{source}"
+    );
+}
+
+/// Verifies EUnit wrapper validation tolerates minimal Erlang runtimes.
+///
+/// Inputs:
+/// - Synthetic wrapper module atom.
+///
+/// Output:
+/// - Assertions over the generated runtime eval guard.
+///
+/// Transformation:
+/// - Renders the eval expression without spawning Erlang.
+#[test]
+fn render_eunit_wrapper_eval_skips_when_eunit_is_unavailable() {
+    let eval = render_eunit_wrapper_eval("sample_eunit_tests");
+
+    assert!(eval.contains("case code:which(eunit) of"), "{eval}");
+    assert!(eval.contains("non_existing -> halt(3)"), "{eval}");
+    assert!(
+        eval.contains("eunit:test('sample_eunit_tests', [no_tty])"),
+        "{eval}"
     );
 }
 

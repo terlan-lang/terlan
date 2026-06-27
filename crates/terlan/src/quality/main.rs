@@ -6,8 +6,9 @@ use std::process::ExitCode;
 pub mod terlan_quality;
 
 use crate::terlan_quality::{
-    run_cli_exact_selectors, run_internal_docs, run_module_readmes, run_oxc_boundary,
-    run_rust_quality, run_rustdoc, run_test_hierarchy, write_rustdoc_baseline,
+    run_cli_exact_selectors, run_erlang_modernization_inventory, run_erlang_runtime_matrix,
+    run_internal_docs, run_module_readmes, run_oxc_boundary, run_rust_quality, run_rustdoc,
+    run_test_hierarchy, write_rustdoc_baseline,
 };
 
 /// Runs repository quality checks from the command line.
@@ -130,13 +131,43 @@ fn main() -> ExitCode {
                 ExitCode::from(1)
             }
         },
+        Some("erlang-modernization-inventory") => {
+            match run_erlang_modernization_inventory(Path::new(".")) {
+                Ok(summary) => {
+                    println!(
+                        "[erlang-modernization] emitted {} EM0 artifacts for {} kept apps; {} removed apps absent.",
+                        summary.artifact_count,
+                        summary.kept_app_count,
+                        summary.removed_app_count
+                    );
+                    ExitCode::SUCCESS
+                }
+                Err(message) => {
+                    eprintln!("{message}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        Some("erlang-runtime-matrix") => match run_erlang_runtime_matrix(Path::new(".")) {
+            Ok(summary) => {
+                println!(
+                    "[erlang-runtime-matrix] {} runtime lanes passed `{}`.",
+                    summary.lane_count, summary.command
+                );
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                eprintln!("{message}");
+                ExitCode::from(1)
+            }
+        },
         Some(command) => {
             eprintln!("unsupported terlan-quality command: {command}");
             ExitCode::from(2)
         }
         None => {
             eprintln!(
-                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|internal-docs|oxc-boundary>"
+                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|internal-docs|oxc-boundary|erlang-modernization-inventory|erlang-runtime-matrix>"
             );
             ExitCode::from(2)
         }

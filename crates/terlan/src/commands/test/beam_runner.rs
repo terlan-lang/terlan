@@ -363,13 +363,11 @@ pub(super) fn render_eunit_wrapper_source(
 ///   spawned.
 ///
 /// Transformation:
-/// - Invokes `eunit:test/2` with `no_tty`, captures output, and converts the
-///   EUnit result into a Terlan CLI backend-validation diagnostic.
+/// - Checks whether the selected Erlang runtime includes EUnit, invokes
+///   `eunit:test/2` with `no_tty` when available, captures output, and converts
+///   the EUnit result into a Terlan CLI backend-validation diagnostic.
 pub(super) fn run_eunit_wrapper(workspace: &Path, wrapper_module_atom: &str) -> Result<(), String> {
-    let eval = format!(
-        "Result = eunit:test({}, [no_tty]), case Result of ok -> halt(0); Other -> io:format(\"eunit wrapper result: ~p~n\", [Other]), halt(1) end.",
-        quote_erlang_atom(wrapper_module_atom)
-    );
+    let eval = render_eunit_wrapper_eval(wrapper_module_atom);
     let erl_crash_dump = workspace.join("erl_crash.dump");
     let safe_native_helper = ensure_safe_native_helper_wrapper(workspace)?;
     let mut command = Command::new("erl");
@@ -389,12 +387,33 @@ pub(super) fn run_eunit_wrapper(workspace: &Path, wrapper_module_atom: &str) -> 
     if output.status.success() {
         return Ok(());
     }
+    if output.status.code() == Some(3) {
+        return Ok(());
+    }
     Err(format!(
         "EUnit wrapper validation failed for {}\n{}{}",
         wrapper_module_atom,
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     ))
+}
+
+/// Renders the Erlang expression used to validate the generated EUnit wrapper.
+///
+/// Inputs:
+/// - `wrapper_module_atom`: Erlang module atom for the generated wrapper.
+///
+/// Output:
+/// - Erlang `-eval` expression text.
+///
+/// Transformation:
+/// - Guards the optional EUnit call behind `code:which/1` so minimal Erlang
+///   runtimes can run Terlan tests without bundling the EUnit application.
+pub(super) fn render_eunit_wrapper_eval(wrapper_module_atom: &str) -> String {
+    format!(
+        "case code:which(eunit) of non_existing -> halt(3); _ -> Result = eunit:test({}, [no_tty]), case Result of ok -> halt(0); Other -> io:format(\"eunit wrapper result: ~p~n\", [Other]), halt(1) end end.",
+        quote_erlang_atom(wrapper_module_atom)
+    )
 }
 
 /// Executes all discovered tests against the compiled BEAM module.
