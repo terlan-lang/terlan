@@ -1735,6 +1735,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "openapiv3"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c8d427828b22ae1fff2833a03d8486c2c881367f1c336349f307f321e7f4d05"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "openssl-probe"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2937,6 +2948,7 @@ dependencies = [
  "instant-acme",
  "mime_guess",
  "notify",
+ "openapiv3",
  "oxc_allocator",
  "oxc_ast",
  "oxc_codegen",

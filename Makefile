@@ -41,6 +41,7 @@ check:
 	$(MAKE) stdlib-check
 	$(MAKE) editor-check
 	$(MAKE) lsp-check
+	$(MAKE) api-schema-check
 	$(PYTHON) tools/validate_ebnf.py --strict
 
 test:

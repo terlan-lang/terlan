@@ -167,6 +167,7 @@ fn public_usage_lines() -> &'static [&'static str] {
         "terlc static <emit|serve|check> <file.terl>",
         "terlc test [file.terl|dir] [--target erlang|js] [--name <test_function>]",
         "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
+        "terlc api <emit|check|import>",
         "terlc db <init|new|validate|status|migrate|rebuild|reset>",
         "terlc repl [--help] [<file.terl|project-dir>]",
         "terlc fmt <file.terl>",
@@ -270,6 +271,7 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "test" => commands::test::run(cmd, state),
         "interface" => commands::interface::run(&cmd.args, &state),
         "doc" => commands::doc::run(cmd, state),
+        "api" => commands::api::run(cmd, state),
         "deploy" => commands::deploy::run(cmd, state),
         "db" => commands::db::run(cmd),
         "doctest" => commands::doc::run_doctest(cmd, state),
@@ -466,6 +468,15 @@ fn print_command_usage(command: &str) -> bool {
         "doc" => println!(
             "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>] [--check] [--missing-docs]"
         ),
+        "api" => {
+            println!(
+                "terlc api emit [--source <file.terl>] [--service-name <name>] [--service-version <version>] [--out-dir <dir>]"
+            );
+            println!("terlc api check [--api-dir <dir>]");
+            println!(
+                "terlc api import <openapi.yaml|openapi.json> --module <Module.Name> --out <dir>"
+            );
+        }
         "db" => {
             println!("terlc db init [migrations-dir]");
             println!("terlc db new <name> [migrations-dir]");
@@ -526,6 +537,7 @@ fn command_has_usage(command: &str) -> bool {
             | "test"
             | "interface"
             | "doc"
+            | "api"
             | "db"
             | "doctest"
             | "emit-native-metadata"

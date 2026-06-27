@@ -42,6 +42,7 @@ hyper = { version = "1.10.1", features = ["http1", "server"] }
 hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"] }
 instant-acme = "0.7"
 notify = "8"
+openapiv3 = "2.2.0"
 percent-encoding = "2.3.2"
 rcgen = "0.13"
 refinery = "0.8"

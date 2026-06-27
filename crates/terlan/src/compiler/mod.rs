@@ -9,6 +9,7 @@
 //! Transformation:
 //! - Groups compiler phases by responsibility inside one shipped crate.
 
+pub mod api_contract;
 pub mod hir;
 pub mod syntax;
 pub mod typeck;

@@ -11,7 +11,7 @@ STATIC_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_static_preflight
 STATIC_DOCS_PREFLIGHT_DIR ?= /tmp/terlan_static_docs_preflight
 WEB_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_web_profile_preflight
 
-.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-linux cli-clean typecheck-fixture emit-fixture smoke browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check web-compose-check template-contract-check private-field-check db-command-check repl-check sql-form-check sql-runtime-check runtime-release-dependency-check release-0-0-4-preflight release-0-0-5-preflight formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
+.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-linux cli-clean typecheck-fixture emit-fixture smoke browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check web-compose-check template-contract-check private-field-check db-command-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check release-0-0-4-preflight release-0-0-5-preflight formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
 cli-help:
 	@echo "  make typecheck-fixture - terlan check fixture"
@@ -35,6 +35,7 @@ cli-help:
 	@echo "  make repl-check - run REPL evaluator regressions"
 	@echo "  make sql-form-check - run typed SQL form parser/typechecker regressions"
 	@echo "  make sql-runtime-check - run typed SQL runtime emission regressions"
+	@echo "  make api-schema-check - run API contract, OpenAPI emit, and client import regressions"
 	@echo "  make runtime-release-dependency-check - require committed live Postgres/TLS runtime dependencies"
 	@echo "  make release-0-0-4-preflight - run current 0.0.4 JS target release gate"
 	@echo "  make release-0-0-5-preflight - run current 0.0.5 web/editor release gate"
@@ -378,6 +379,13 @@ sql-form-check:
 sql-runtime-check:
 	$(TERLC_EXACT_TEST) commands::emit::emit_test::run_emit_writes_sql_runtime_for_typed_sql_forms -- --exact
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::sql_runtime_test::build_command_emits_sql_runtime_for_typed_sql_forms -- --exact
+
+api-schema-check:
+	$(TERLC_EXACT_TEST) compiler::api_contract::api_contract_test::router_source_contract_extracts_routes -- --exact
+	$(TERLC_EXACT_TEST) compiler::api_contract::api_contract_test::router_source_contract_projects_to_openapi_paths -- --exact
+	$(TERLC_EXACT_TEST) commands::api::mod_test::api_emit_from_source_writes_route_openapi_paths -- --exact
+	$(TERLC_EXACT_TEST) commands::api::mod_test::api_import_generates_client_module_and_skip_manifest -- --exact
+	$(TERLC_EXACT_TEST) commands::api::mod_test::api_import_records_unsupported_operation_skips -- --exact
 
 runtime-release-dependency-check:
 	$(PYTHON) tools/check_runtime_release_dependencies.py
