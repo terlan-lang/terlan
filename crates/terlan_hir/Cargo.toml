@@ -1,7 +1,0 @@
-[package]
-name = "terlan_hir"
-version.workspace = true
-edition.workspace = true
-
-[dependencies]
-terlan_syntax = { path = "../terlan_syntax" }

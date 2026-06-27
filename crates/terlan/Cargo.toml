@@ -1,0 +1,68 @@
+[package]
+name = "terlan"
+version.workspace = true
+edition.workspace = true
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
+
+[[bin]]
+name = "terlc"
+path = "src/main.rs"
+
+[[bin]]
+name = "terlan-lsp"
+path = "src/lsp/main.rs"
+
+[[bin]]
+name = "terlan-quality"
+path = "src/quality/main.rs"
+
+[dependencies]
+ammonia = "4.1.2"
+base64 = "0.22.1"
+basic-toml = "0.1.10"
+comrak = "0.52"
+cookie = "0.18"
+cssparser = "0.35.0"
+deadpool-postgres = "0.14"
+html5ever = "0.35.0"
+mime_guess = "2"
+oxc_allocator = "0.134.0"
+oxc_ast = "0.134.0"
+oxc_codegen = "0.134.0"
+oxc_parser = "0.134.0"
+oxc_span = "0.134.0"
+oxc_syntax = "0.134.0"
+bytes = "1"
+futures-util = "0.3"
+http = "1.3.1"
+http-body-util = { version = "0.1.3", features = ["channel", "full"] }
+hyper = { version = "1.10.1", features = ["http1", "server"] }
+hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"] }
+instant-acme = "0.7"
+notify = "8"
+percent-encoding = "2.3.2"
+rcgen = "0.13"
+refinery = "0.8"
+regex = "1"
+rustls = "0.23"
+rustls-pemfile = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9.34"
+shell-words = "1.1.1"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+tokio = { version = "1", features = ["io-std", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-postgres = { version = "0.7", features = ["with-serde_json-1"] }
+tokio-rustls = "0.26"
+tokio-tungstenite = "0.28"
+tower-lsp = "0.20"
+url = "2.5.8"
+docker-compose-types = "0.24.0"
+wasm-encoder = "0.252.0"
+wasmparser = "0.252.0"
+yaml-rust = "0.4.5"
+
+[dev-dependencies]
+wat = "1.252.0"

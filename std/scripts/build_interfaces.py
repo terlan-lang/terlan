@@ -62,7 +62,7 @@ def ensure_compiler() -> str | None:
     if os.environ.get("TERLC"):
         return None
     result = subprocess.run(
-        ["cargo", "build", "-q", "-p", "terlan_cli"],
+        ["cargo", "build", "-q", "-p", "terlan"],
         cwd=ROOT,
         text=True,
         stdout=subprocess.PIPE,
@@ -86,8 +86,8 @@ def run_emit(source: Path, out_dir: Path) -> str | None:
     - A diagnostic string when the emit command fails.
 
     Transformation:
-    - Runs `cargo run -p terlan_cli -- emit` with the std summary output
-      directory so std interfaces can be regenerated from source.
+    - Runs the local `terlc emit` command with the std summary output directory
+      so std interfaces can be regenerated from source.
     """
 
     result = subprocess.run(

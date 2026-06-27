@@ -2,8 +2,8 @@
 """Check that static route parsing stays behind the formal syntax boundary.
 
 Inputs:
-- `crates/terlan_cli/src/commands/static_site/README.md`.
-- `crates/terlan_cli/src/commands/static_site/routes.rs`.
+- `crates/terlan/src/commands/static_site/README.md`.
+- `crates/terlan/src/commands/static_site/routes.rs`.
 
 Outputs:
 - Exit status 0 when static route discovery is documented and implemented as
@@ -27,7 +27,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STATIC_SITE_ROOT = ROOT / "crates" / "terlan_cli" / "src" / "commands" / "static_site"
+STATIC_SITE_ROOT = ROOT / "crates" / "terlan" / "src" / "commands" / "static_site"
 README = STATIC_SITE_ROOT / "README.md"
 ROUTES = STATIC_SITE_ROOT / "routes.rs"
 

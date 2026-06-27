@@ -6,7 +6,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-if [[ ! -f Cargo.toml || ! -d crates/terlan_cli ]]; then
+if [[ ! -f Cargo.toml || ! -d crates/terlan ]]; then
   echo "release boundary check must run from the published repository root"
   exit 1
 fi
@@ -41,7 +41,7 @@ stale_release_surface="$(
           fi
         done \
       || true
-    grep -En 'release-0-0-[0-3]' Makefile crates/terlan_cli/cli.mk .github/workflows/*.yml 2>/dev/null || true
+    grep -En 'release-0-0-[0-3]' Makefile crates/terlan/cli.mk .github/workflows/*.yml 2>/dev/null || true
   } | sed '/^$/d'
 )"
 

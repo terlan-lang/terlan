@@ -24,32 +24,32 @@ pub generated_binding_surface_exists(): Bool ->
 pub prototype_typechecks(receiver: RegExpConstructor): RegExp ->
     receiver.prototype().
 
-pub value__1_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__1().
+pub value_1_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_1().
 
-pub value__2_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__2().
+pub value_2_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_2().
 
-pub value__3_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__3().
+pub value_3_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_3().
 
-pub value__4_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__4().
+pub value_4_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_4().
 
-pub value__5_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__5().
+pub value_5_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_5().
 
-pub value__6_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__6().
+pub value_6_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_6().
 
-pub value__7_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__7().
+pub value_7_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_7().
 
-pub value__8_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__8().
+pub value_8_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_8().
 
-pub value__9_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
-    receiver.value__9().
+pub value_9_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
+    receiver.value_9().
 
 pub input_typechecks(receiver: RegExpConstructor): std.js.String.JsString ->
     receiver.input().

@@ -2,9 +2,9 @@
 """Check that SQL form analysis stays a conservative compiler boundary.
 
 Inputs:
-- `crates/terlan_typeck/src/sql_forms/README.md`.
-- `crates/terlan_typeck/src/sql_forms/scanner.rs`.
-- `crates/terlan_typeck/src/sql_forms/projection.rs`.
+- `crates/terlan/src/compiler/typeck/sql_forms/README.md`.
+- `crates/terlan/src/compiler/typeck/sql_forms/scanner.rs`.
+- `crates/terlan/src/compiler/typeck/sql_forms/projection.rs`.
 
 Outputs:
 - Exit status 0 when SQL scanner/projection code remains documented as
@@ -30,7 +30,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SQL_FORMS_ROOT = ROOT / "crates" / "terlan_typeck" / "src" / "sql_forms"
+SQL_FORMS_ROOT = ROOT / "crates" / "terlan" / "src" / "compiler" / "typeck" / "sql_forms"
 README = SQL_FORMS_ROOT / "README.md"
 SCANNER = SQL_FORMS_ROOT / "scanner.rs"
 PROJECTION = SQL_FORMS_ROOT / "projection.rs"

@@ -2,8 +2,8 @@
 """Check that DB command execution stays behind maintained adapter boundaries.
 
 Inputs:
-- `crates/terlan_cli/src/commands/db/README.md`.
-- Rust source files under `crates/terlan_cli/src/commands/db`.
+- `crates/terlan/src/commands/db/README.md`.
+- Rust source files under `crates/terlan/src/commands/db`.
 
 Outputs:
 - Exit status 0 when DB command code has no direct process-backed Postgres path.
@@ -25,7 +25,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DB_ROOT = ROOT / "crates" / "terlan_cli" / "src" / "commands" / "db"
+DB_ROOT = ROOT / "crates" / "terlan" / "src" / "commands" / "db"
 DB_README = DB_ROOT / "README.md"
 DB_PSQL = DB_ROOT / "psql.rs"
 
@@ -116,7 +116,7 @@ def db_source_files() -> list[Path]:
     """Return production DB command Rust source files.
 
     Inputs:
-    - `crates/terlan_cli/src/commands/db`.
+    - `crates/terlan/src/commands/db`.
 
     Outputs:
     - Sorted Rust implementation files excluding tests.

@@ -2916,18 +2916,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "terlan_cli"
+name = "terlan"
 version = "0.0.5"
 dependencies = [
+ "ammonia",
  "base64",
+ "basic-toml",
  "bytes",
+ "comrak",
+ "cookie",
+ "cssparser",
+ "deadpool-postgres",
  "docker-compose-types",
  "futures-util",
+ "html5ever",
  "http",
  "http-body-util",
  "hyper",
  "hyper-util",
  "instant-acme",
+ "mime_guess",
  "notify",
  "oxc_allocator",
  "oxc_ast",
@@ -2938,114 +2946,24 @@ dependencies = [
  "percent-encoding",
  "rcgen",
  "refinery",
+ "regex",
  "rustls",
  "rustls-pemfile",
  "serde",
  "serde_json",
  "serde_yaml",
- "terlan_erlang",
- "terlan_hir",
- "terlan_html",
- "terlan_lsp",
- "terlan_safenative",
- "terlan_syntax",
- "terlan_typeck",
- "time",
- "tokio",
- "tokio-rustls",
- "tokio-tungstenite",
- "url",
-]
-
-[[package]]
-name = "terlan_erlang"
-version = "0.0.5"
-dependencies = [
- "terlan_hir",
- "terlan_html",
- "terlan_syntax",
- "terlan_typeck",
-]
-
-[[package]]
-name = "terlan_hir"
-version = "0.0.5"
-dependencies = [
- "terlan_syntax",
-]
-
-[[package]]
-name = "terlan_html"
-version = "0.0.5"
-dependencies = [
- "ammonia",
- "basic-toml",
- "comrak",
- "cssparser",
- "html5ever",
- "serde_json",
- "yaml-rust",
-]
-
-[[package]]
-name = "terlan_lsp"
-version = "0.0.5"
-dependencies = [
- "terlan_hir",
- "terlan_html",
- "terlan_syntax",
- "terlan_typeck",
- "tokio",
- "tower-lsp",
-]
-
-[[package]]
-name = "terlan_quality"
-version = "0.0.5"
-dependencies = [
- "regex",
  "shell-words",
-]
-
-[[package]]
-name = "terlan_safenative"
-version = "0.0.5"
-dependencies = [
- "base64",
- "cookie",
- "deadpool-postgres",
- "http",
- "mime_guess",
- "serde_json",
  "time",
  "tokio",
  "tokio-postgres",
+ "tokio-rustls",
+ "tokio-tungstenite",
+ "tower-lsp",
  "url",
-]
-
-[[package]]
-name = "terlan_syntax"
-version = "0.0.5"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "terlan_typeck"
-version = "0.0.5"
-dependencies = [
- "terlan_hir",
- "terlan_syntax",
-]
-
-[[package]]
-name = "terlan_wasm"
-version = "0.0.5"
-dependencies = [
  "wasm-encoder",
  "wasmparser",
  "wat",
+ "yaml-rust",
 ]
 
 [[package]]

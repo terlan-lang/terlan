@@ -32,8 +32,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LOCKFILE = ROOT / "Cargo.lock"
-SAFENATIVE_MANIFEST = ROOT / "crates" / "terlan_safenative" / "Cargo.toml"
-CLI_MANIFEST = ROOT / "crates" / "terlan_cli" / "Cargo.toml"
+CLI_MANIFEST = ROOT / "crates" / "terlan" / "Cargo.toml"
 
 
 @dataclass(frozen=True)
@@ -104,13 +103,13 @@ REQUIRED_DEPENDENCIES = (
         name="tokio-postgres",
         feature="postgres",
         reason="live std.db.Postgres client I/O",
-        manifest=SAFENATIVE_MANIFEST,
+        manifest=CLI_MANIFEST,
     ),
     RequiredRuntimeDependency(
         name="deadpool-postgres",
         feature="postgres",
         reason="live std.db.Postgres pooling",
-        manifest=SAFENATIVE_MANIFEST,
+        manifest=CLI_MANIFEST,
     ),
     RequiredRuntimeDependency(
         name="refinery",
@@ -146,13 +145,13 @@ REQUIRED_DEPENDENCIES = (
         name="cookie",
         feature="http-runtime-hardening",
         reason="std.http.Cookies parsing and Set-Cookie serialization",
-        manifest=SAFENATIVE_MANIFEST,
+        manifest=CLI_MANIFEST,
     ),
     RequiredRuntimeDependency(
         name="mime_guess",
         feature="http-runtime-hardening",
         reason="static asset content-type detection",
-        manifest=SAFENATIVE_MANIFEST,
+        manifest=CLI_MANIFEST,
     ),
     RequiredRuntimeDependency(
         name="notify",
@@ -487,7 +486,7 @@ def run_self_test() -> None:
     )
     manifest_names = parse_manifest_dependency_names(complete_manifest)
     assert missing_manifest_dependencies(
-        {SAFENATIVE_MANIFEST: manifest_names, CLI_MANIFEST: manifest_names}
+        {CLI_MANIFEST: manifest_names}
     ) == []
     aliased_manifest = """
 [dependencies]
@@ -529,7 +528,7 @@ version = "0.0.0"
     assert "Cargo.lock" in missing[0].missing_lockfile_message()
 
     partial_manifest_names = {
-        SAFENATIVE_MANIFEST: {"tokio-postgres"},
+        CLI_MANIFEST: {"tokio-postgres"},
         CLI_MANIFEST: {"rustls"},
     }
     manifest_missing = missing_manifest_dependencies(partial_manifest_names)
@@ -560,8 +559,8 @@ version = "0.0.0"
         [REQUIRED_DEPENDENCIES[1], REQUIRED_DEPENDENCIES[2]],
     )
     assert next_actions == [
-        "runtime-release-dependency-check next action: add refinery directly to crates/terlan_cli/Cargo.toml.",
-        "runtime-release-dependency-check next action: add deadpool-postgres directly to crates/terlan_safenative/Cargo.toml.",
+        "runtime-release-dependency-check next action: add refinery directly to crates/terlan/Cargo.toml.",
+        "runtime-release-dependency-check next action: add deadpool-postgres directly to crates/terlan/Cargo.toml.",
         "runtime-release-dependency-check next action: resolve rustls, tokio-postgres into Cargo.lock with the selected crate versions.",
     ]
 

@@ -23,55 +23,55 @@ pub (value: RegExpConstructor) prototype(): RegExp ->
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__1(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_1(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__2(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_2(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__3(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_3(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__4(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_4(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__5(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_5(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__6(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_6(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__7(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_7(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__8(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_8(): std.js.String.JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value__9(): std.js.String.JsString ->
+pub (value: RegExpConstructor) value_9(): std.js.String.JsString ->
     native.
 
 /**

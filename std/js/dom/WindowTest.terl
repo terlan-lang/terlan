@@ -183,8 +183,8 @@ pub open_typechecks(receiver: Window, url: URL | std.js.String.JsString, target_
 pub print_typechecks(receiver: Window): std.core.Unit ->
     receiver.print().
 
-pub prompt_typechecks(receiver: Window, message: std.js.String.JsString, value__default: std.js.String.JsString): Option[std.js.String.JsString] ->
-    receiver.prompt(message, value__default).
+pub prompt_typechecks(receiver: Window, message: std.js.String.JsString, default: std.js.String.JsString): Option[std.js.String.JsString] ->
+    receiver.prompt(message, default).
 
 pub release_events_typechecks(receiver: Window): std.core.Unit ->
     receiver.release_events().

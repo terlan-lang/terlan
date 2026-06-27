@@ -90,14 +90,14 @@ stdlib-http-check:
 
 stdlib-log-check:
 	@$(TERLC) test std/log/LogTest.terl
-	@$(EXACT_CARGO_TEST) -p terlan_typeck core_intrinsic_test::syntax_output_lowering_to_core_maps_all_std_log_levels_to_runtime_capability -- --exact
-	@$(EXACT_CARGO_TEST) -p terlan_erlang emit::syntax_emit_test::formal_syntax_output_direct_emit_lowers_all_std_log_levels_to_runtime_capability -- --exact
+	@$(EXACT_CARGO_TEST) -p terlan terlan_typeck::core_intrinsic_test::syntax_output_lowering_to_core_maps_all_std_log_levels_to_runtime_capability -- --exact
+	@$(EXACT_CARGO_TEST) -p terlan terlan_erlang::emit::syntax_emit_test::formal_syntax_output_direct_emit_lowers_all_std_log_levels_to_runtime_capability -- --exact
 
 stdlib-sync-check:
 	@$(TERLC) test std/sync
 
 stdlib-release-contracts-check:
-	@$(EXACT_CARGO_TEST) -p terlan_typeck std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
+	@$(EXACT_CARGO_TEST) -p terlan terlan_typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
 
 stdlib-release-tests:
 	@bash std/scripts/run_release_tests.sh

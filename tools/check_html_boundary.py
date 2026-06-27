@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Check that generated HTML mutation and escaping stay in `terlan_html`.
+"""Check that generated HTML mutation and escaping stay in the HTML feature.
 
 Inputs:
-- `crates/terlan_html/src/README.md`.
-- `crates/terlan_html/src/escaping.rs`.
+- `crates/terlan/src/html/README.md`.
+- `crates/terlan/src/html/escaping.rs`.
 - CLI static-site and documentation renderer source files.
 
 Outputs:
@@ -13,7 +13,7 @@ Outputs:
   mutation or entity-escaping implementation.
 
 Transformation:
-- Requires the shared HTML crate to document and expose the base-path and
+- Requires the shared HTML feature to document and expose the base-path and
   escaping boundaries.
 - Requires static-site and documentation renderers to call the shared helpers.
 - Rejects obvious inline `<base href>` construction and raw HTML entity
@@ -29,14 +29,14 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HTML_ROOT = ROOT / "crates" / "terlan_html" / "src"
+HTML_ROOT = ROOT / "crates" / "terlan" / "src" / "html"
 HTML_README = HTML_ROOT / "README.md"
 HTML_ESCAPING = HTML_ROOT / "escaping.rs"
-STATIC_SITE_ROOT = ROOT / "crates" / "terlan_cli" / "src" / "commands" / "static_site"
+STATIC_SITE_ROOT = ROOT / "crates" / "terlan" / "src" / "commands" / "static_site"
 STATIC_SITE_MOD = STATIC_SITE_ROOT / "mod.rs"
 STATIC_SITE_RENDER = STATIC_SITE_ROOT / "render.rs"
-DOC_COMMAND = ROOT / "crates" / "terlan_cli" / "src" / "commands" / "doc" / "mod.rs"
-DOC_RENDER = ROOT / "crates" / "terlan_cli" / "src" / "commands" / "doc" / "render.rs"
+DOC_COMMAND = ROOT / "crates" / "terlan" / "src" / "commands" / "doc" / "mod.rs"
+DOC_RENDER = ROOT / "crates" / "terlan" / "src" / "commands" / "doc" / "render.rs"
 
 REQUIRED_BOUNDARY_MARKERS = (
     (
@@ -53,19 +53,19 @@ REQUIRED_BOUNDARY_MARKERS = (
     ),
     (
         STATIC_SITE_MOD,
-        "terlan_html::inject_html_base_path",
+        "crate::terlan_html::inject_html_base_path",
     ),
     (
         STATIC_SITE_RENDER,
-        "use terlan_html::{escape_html_attr, escape_html_text};",
+        "use crate::terlan_html::{escape_html_attr, escape_html_text};",
     ),
     (
         DOC_COMMAND,
-        "use terlan_html::escape_html_text;",
+        "use crate::terlan_html::escape_html_text;",
     ),
     (
         DOC_RENDER,
-        "use terlan_html::escape_html_text;",
+        "use crate::terlan_html::escape_html_text;",
     ),
 )
 

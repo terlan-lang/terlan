@@ -57,8 +57,8 @@ Important invariants:
 
 ## Integration Points
 
-- `terlan_cli::commands::bind`: generates JS binding seed files.
-- `terlan_cli::commands::emit_js`: emits Oxc-backed JavaScript modules.
+- `terlan::commands::bind`: generates JS binding seed files.
+- `terlan::commands::emit_js`: emits Oxc-backed JavaScript modules.
 - `terlan_typeck`: validates target-profile import compatibility.
 - `std/js/manifests`: records generation inputs, outputs, and skipped shapes.
 

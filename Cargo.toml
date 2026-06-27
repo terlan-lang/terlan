@@ -1,16 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/terlan_syntax",
-  "crates/terlan_html",
-  "crates/terlan_hir",
-  "crates/terlan_typeck",
-  "crates/terlan_erlang",
-  "crates/terlan_safenative",
-  "crates/terlan_wasm",
-  "crates/terlan_cli",
-  "crates/terlan_lsp",
-  "crates/terlan_quality",
+  "crates/terlan",
 ]
 
 [workspace.package]

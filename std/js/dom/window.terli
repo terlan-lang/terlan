@@ -407,7 +407,7 @@ pub (value: Window) print(): std.core.Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/prompt)
  */
-pub (value: Window) prompt(message: std.js.String.JsString, value__default: std.js.String.JsString): Option[std.js.String.JsString].
+pub (value: Window) prompt(message: std.js.String.JsString, default: std.js.String.JsString): Option[std.js.String.JsString].
 
 /**
  * Releases the window from trapping events of a specific type.

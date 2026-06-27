@@ -5,10 +5,7 @@ SHELL := bash
 
 .PHONY: check test test-release build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
-include crates/terlan_cli/cli.mk
-include crates/terlan_html/html.mk
-include crates/terlan_lsp/lsp.mk
-include crates/terlan_safenative/safenative.mk
+include crates/terlan/cli.mk
 include std/stdlib.mk
 include editors/editor.mk
 
@@ -78,19 +75,19 @@ diff-whitespace-check:
 	git diff --check
 
 rust-quality-check:
-	$(CARGO) run -p terlan_quality --quiet -- rust-quality
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- rust-quality
 
 test-hierarchy-check:
-	$(CARGO) run -p terlan_quality --quiet -- test-hierarchy
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- test-hierarchy
 
 cli-exact-selector-check:
-	$(CARGO) run -p terlan_quality --quiet -- cli-exact-selectors
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- cli-exact-selectors
 
 shared-helper-check:
 	$(PYTHON) tools/check_shared_helpers.py
 
 oxc-boundary-check:
-	$(CARGO) run -p terlan_quality --quiet -- oxc-boundary
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- oxc-boundary
 
 http-runtime-stack-check:
 	$(PYTHON) tools/check_http_runtime_stack.py
@@ -109,13 +106,13 @@ changelog-public-scope-check:
 	$(PYTHON) tools/check_changelog_public_scope.py
 
 internal-docs-check:
-	$(CARGO) run -p terlan_quality --quiet -- internal-docs
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- internal-docs
 
 module-readme-check:
-	$(CARGO) run -p terlan_quality --quiet -- module-readmes
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- module-readmes
 
 rustdoc-check:
-	$(CARGO) run -p terlan_quality --quiet -- rust-docs
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- rust-docs
 
 release-artifact-linux:
 	$(MAKE) release-boundary-check

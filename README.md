@@ -64,7 +64,7 @@ curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh 
 Or install from a release checkout with Rust:
 
 ```sh
-cargo install --path crates/terlan_cli --bin terlc --force
+cargo install --path crates/terlan --bin terlc --force
 terlc version
 ```
 

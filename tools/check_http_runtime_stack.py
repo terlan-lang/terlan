@@ -2,8 +2,8 @@
 """Check that `terlc serve` stays on the approved HTTP runtime stack.
 
 Inputs:
-- `crates/terlan_cli/Cargo.toml`.
-- Rust source files under `crates/terlan_cli/src/commands/serve`.
+- `crates/terlan/Cargo.toml`.
+- Rust source files under `crates/terlan/src/commands/serve`.
 
 Outputs:
 - Exit status 0 when the serve command depends on and uses Hyper/Tokio/http.
@@ -27,14 +27,14 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI_MANIFEST = ROOT / "crates" / "terlan_cli" / "Cargo.toml"
-SERVE_ROOT = ROOT / "crates" / "terlan_cli" / "src" / "commands" / "serve"
+CLI_MANIFEST = ROOT / "crates" / "terlan" / "Cargo.toml"
+SERVE_ROOT = ROOT / "crates" / "terlan" / "src" / "commands" / "serve"
 SERVE_MAIN = SERVE_ROOT / "mod.rs"
 SERVE_BEAM_EVAL = SERVE_ROOT / "handler" / "beam_eval.rs"
 SERVE_WATCH = SERVE_ROOT / "watch.rs"
-SAFENATIVE_HTTP = ROOT / "crates" / "terlan_safenative" / "src" / "http.rs"
+SAFENATIVE_HTTP = ROOT / "crates" / "terlan" / "src" / "runtime" / "safenative" / "http.rs"
 SAFENATIVE_HTTP_COOKIES = (
-    ROOT / "crates" / "terlan_safenative" / "src" / "http" / "cookies.rs"
+    ROOT / "crates" / "terlan" / "src" / "runtime" / "safenative" / "http" / "cookies.rs"
 )
 REQUIRED_DEPENDENCIES = ("http", "http-body-util", "hyper", "hyper-util", "tokio")
 REQUIRED_SERVE_MARKERS = (
@@ -158,7 +158,7 @@ def dependency_findings() -> list[Finding]:
     """Return missing approved HTTP dependency findings.
 
     Inputs:
-    - `crates/terlan_cli/Cargo.toml`.
+    - `crates/terlan/Cargo.toml`.
 
     Outputs:
     - Finding records for missing dependency declarations.
@@ -215,7 +215,7 @@ def serve_source_files() -> list[Path]:
     """Return serve implementation Rust files.
 
     Inputs:
-    - `crates/terlan_cli/src/commands/serve`.
+    - `crates/terlan/src/commands/serve`.
 
     Outputs:
     - Sorted Rust implementation paths excluding tests.
@@ -265,7 +265,7 @@ def safenative_http_boundary_findings() -> list[Finding]:
     """Return SafeNative HTTP boundary findings.
 
     Inputs:
-    - `crates/terlan_safenative/src/http.rs`.
+    - `crates/terlan/src/runtime/safenative/http.rs`.
 
     Outputs:
     - Finding records when the temporary MIME boundary is not centralized in
@@ -295,8 +295,8 @@ def cookie_boundary_findings() -> list[Finding]:
     """Return cookie parsing boundary findings.
 
     Inputs:
-    - `crates/terlan_cli/src/commands/serve/handler/beam_eval.rs`.
-    - `crates/terlan_safenative/src/http/cookies.rs`.
+    - `crates/terlan/src/commands/serve/handler/beam_eval.rs`.
+    - `crates/terlan/src/runtime/safenative/http/cookies.rs`.
 
     Outputs:
     - Finding records when request-cookie parsing is not routed through the
@@ -327,7 +327,7 @@ def reload_watch_boundary_findings() -> list[Finding]:
     """Return live-reload watcher boundary findings.
 
     Inputs:
-    - `crates/terlan_cli/src/commands/serve/watch.rs`.
+    - `crates/terlan/src/commands/serve/watch.rs`.
     - Non-test serve implementation Rust files.
 
     Outputs:

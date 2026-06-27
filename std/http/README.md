@@ -127,6 +127,6 @@ Important invariants:
 
 - Positive HTTP std tests live beside the modules as `std/http/*Test.terl`.
 - Server and handler bridge tests live under
-  `crates/terlan_cli/src/commands/serve/*_test.rs`.
+  `crates/terlan/src/commands/serve/*_test.rs`.
 - Release preflight includes exact HTTP handler and installed-runner support
   checks.

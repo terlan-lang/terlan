@@ -4,7 +4,7 @@ set -euo pipefail
 # Inputs:
 # - tests/std/NEGATIVE_API_TESTS.tsv, which identifies constrained
 #   public stdlib APIs, invalid fixtures, and expected diagnostics.
-# - The `terlan_cli` Cargo package providing `terlc test`.
+# - The `terlan` Cargo package providing `terlc test`.
 #
 # Output:
 # - Exit status 0 when every invalid stdlib fixture fails with its expected
@@ -50,7 +50,7 @@ while IFS=$'\t' read -r api_id fixture expected extra; do
 
   printf '[stdlib-negative-api-test] %s\n' "$fixture"
   output_file="$(mktemp -t terlan-std-negative-api.XXXXXX)"
-  if cargo run -q -p terlan_cli -- test "$fixture" --target erlang >"$output_file" 2>&1; then
+  if cargo run -q -p terlan --bin terlc -- test "$fixture" --target erlang >"$output_file" 2>&1; then
     printf '%s: expected terlc test to fail for API `%s`\n' "$fixture" "$api_id" >&2
     cat "$output_file" >&2
     failures=1

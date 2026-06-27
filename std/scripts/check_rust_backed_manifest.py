@@ -22,32 +22,41 @@ ALLOWED_CRATES = {
     "std::vec",
 }
 ADAPTERS = {
-    "std.data.Json": ("serde_json", ROOT / "crates" / "terlan_safenative" / "src" / "json.rs"),
+    "std.data.Json": (
+        "serde_json",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "json.rs",
+    ),
     "std.encoding.Base64": (
         "base64",
-        ROOT / "crates" / "terlan_safenative" / "src" / "base64.rs",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "base64.rs",
     ),
-    "std.io.Path": ("std::path", ROOT / "crates" / "terlan_safenative" / "src" / "path.rs"),
-    "std.net.Uri": ("url", ROOT / "crates" / "terlan_safenative" / "src" / "uri.rs"),
+    "std.io.Path": (
+        "std::path",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "path.rs",
+    ),
+    "std.net.Uri": (
+        "url",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "uri.rs",
+    ),
     "std.http.Request": (
         "std::http",
-        ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http.rs",
     ),
     "std.http.Cookies": (
         "std::http",
-        ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http.rs",
     ),
     "std.http.Response": (
         "std::http",
-        ROOT / "crates" / "terlan_safenative" / "src" / "http.rs",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http.rs",
     ),
     "std.db.Postgres": (
         "tokio-postgres",
-        ROOT / "crates" / "terlan_safenative" / "src" / "postgres.rs",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "postgres.rs",
     ),
     "std.native.collections.Vector": (
         "std::vec",
-        ROOT / "crates" / "terlan_safenative" / "src" / "vector.rs",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "vector.rs",
     ),
 }
 

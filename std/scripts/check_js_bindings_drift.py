@@ -72,7 +72,8 @@ def run_generator(out_dir: Path) -> subprocess.CompletedProcess[str]:
     - `out_dir`: empty temporary destination directory.
 
     Output:
-    - Completed `cargo run -p terlan_cli -- bind js-dom ...` process.
+    - Completed `cargo run -p terlan --bin terlc -- bind js-dom ...`
+      process.
 
     Transformation:
     - Invokes the public compiler command so drift validation covers the same
@@ -85,7 +86,9 @@ def run_generator(out_dir: Path) -> subprocess.CompletedProcess[str]:
             "run",
             "-q",
             "-p",
-            "terlan_cli",
+            "terlan",
+            "--bin",
+            "terlc",
             "--",
             "bind",
             "js-dom",
