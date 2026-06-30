@@ -10,7 +10,8 @@ use crate::commands::artifacts::{
 };
 use crate::formal_pipeline::CheckedSyntaxModuleArtifacts;
 use crate::terlan_erlang::{
-    emit_html_runtime_to_erlang, emit_native_vector_runtime_to_erlang, emit_sql_runtime_to_erlang,
+    emit_html_runtime_to_erlang, emit_native_bridge_runtime_to_erlang,
+    emit_native_vector_runtime_to_erlang, emit_sql_runtime_to_erlang,
     try_emit_core_module_to_erlang_with_syntax_bridge, try_emit_syntax_struct_headers_to_hrl,
 };
 use crate::validation::native_policy::{source_uses_native, NativePolicy};
@@ -550,6 +551,16 @@ fn write_and_compile_erlang_build(
         compile_erlang_source(&source_dir, &ebin_dir, &runtime_path, state.incremental)?;
     }
 
+    if compiled_module_uses_beam_native_bridge(compiled) {
+        let runtime_path = source_dir.join("terlan_native_bridge_runtime.erl");
+        write_build_file(
+            &runtime_path,
+            emit_native_bridge_runtime_to_erlang().as_bytes(),
+            state.incremental,
+        )?;
+        compile_erlang_source(&source_dir, &ebin_dir, &runtime_path, state.incremental)?;
+    }
+
     emit_and_compile_safe_native_stubs(source_path, &source_dir, &ebin_dir, state)?;
 
     compile_erlang_source(&source_dir, &ebin_dir, &erl_path, state.incremental)?;
@@ -646,6 +657,26 @@ fn compiled_module_uses_native_vector(compiled: &CheckedSyntaxModuleArtifacts) -
         .imports
         .iter()
         .any(|import| import.module == "std.native.collections.Vector")
+}
+
+/// Returns whether compiled artifacts need the NativeBridge runtime boundary.
+///
+/// Inputs:
+/// - `compiled`: checked compiler artifacts for one source module.
+///
+/// Output:
+/// - `true` when the module imports `std.beam.NativeBridge`.
+///
+/// Transformation:
+/// - Uses resolved CoreIR imports so helper emission follows the same
+///   compiler-owned target-profile and backend lowering decisions as the
+///   generated module.
+fn compiled_module_uses_beam_native_bridge(compiled: &CheckedSyntaxModuleArtifacts) -> bool {
+    compiled
+        .core
+        .imports
+        .iter()
+        .any(|import| import.module == "std.beam.NativeBridge")
 }
 
 /// Writes the build debug map into the build output directory.

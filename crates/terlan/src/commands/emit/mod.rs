@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use crate::terlan_erlang::{
-    emit_html_runtime_to_erlang, emit_sql_runtime_to_erlang,
+    emit_html_runtime_to_erlang, emit_native_bridge_runtime_to_erlang, emit_sql_runtime_to_erlang,
     try_emit_core_module_to_erlang_with_syntax_bridge, try_emit_syntax_struct_headers_to_hrl,
 };
 
@@ -203,6 +203,23 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             state.incremental,
         ) {
             eprintln!("failed to write sql runtime: {}", err);
+            return ExitCode::from(1);
+        }
+    }
+
+    if compiled
+        .core
+        .imports
+        .iter()
+        .any(|import| import.module == "std.beam.NativeBridge")
+    {
+        let runtime_target = state.out_dir.join("terlan_native_bridge_runtime.erl");
+        if let Err(err) = crate::support::write_if_changed_or_forced(
+            &runtime_target,
+            emit_native_bridge_runtime_to_erlang().as_bytes(),
+            state.incremental,
+        ) {
+            eprintln!("failed to write NativeBridge runtime: {}", err);
             return ExitCode::from(1);
         }
     }
