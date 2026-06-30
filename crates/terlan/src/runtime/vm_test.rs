@@ -1,10 +1,14 @@
-use super::vm::{
-    evaluate_repl_function, evaluate_repl_function_with_output, type_of_value, ReplValue,
-};
+use super::vm::{evaluate_repl_function_with_output, type_of_value, ReplValue};
 use crate::terlan_typeck::CoreModule;
 use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::TargetProfile;
 use crate::{ColorChoice, DiagnosticFormat};
+
+/// Evaluates a CoreIR function while printing captured output in tests.
+fn evaluate_repl_function(core: &CoreModule, function_name: &str) -> Result<ReplValue, String> {
+    let mut output = |value: &str| println!("{value}");
+    evaluate_repl_function_with_output(core, function_name, &mut output)
+}
 
 /// Verifies simple arithmetic source evaluates without backend execution.
 ///

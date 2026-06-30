@@ -89,28 +89,6 @@ impl TerlanVm {
     }
 }
 
-/// Evaluates one public zero-arity function from a compiled CoreIR module.
-///
-/// Inputs:
-/// - `core`: compiled module produced by the formal compiler pipeline.
-/// - `function_name`: generated REPL entry function to evaluate.
-///
-/// Output:
-/// - Renderable REPL value on success.
-/// - Stable evaluator error text when the selected CoreIR form is unsupported.
-///
-/// Transformation:
-/// - Finds the selected CoreIR function, evaluates the first clause body in an
-///   empty environment, and dispatches local calls through the same module.
-#[allow(dead_code)]
-pub(crate) fn evaluate_repl_function(
-    core: &CoreModule,
-    function_name: &str,
-) -> Result<ReplValue, String> {
-    let mut output = |value: &str| println!("{value}");
-    evaluate_repl_function_with_output(core, function_name, &mut output)
-}
-
 /// Evaluates one public zero-arity function with an explicit output sink.
 ///
 /// Inputs:
