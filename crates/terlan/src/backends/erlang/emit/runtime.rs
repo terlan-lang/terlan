@@ -55,6 +55,23 @@ pub fn emit_native_vector_runtime_to_erlang() -> &'static str {
     TERLAN_NATIVE_VECTOR_RUNTIME
 }
 
+/// Returns the embedded Erlang NativeBridge boundary module.
+///
+/// Inputs:
+/// - No runtime input.
+///
+/// Output:
+/// - Static Erlang source for the `std.beam.NativeBridge` helper module.
+///
+/// Transformation:
+/// - Exposes a small OTP reference boundary whose functions are mirrored by
+///   the Rust VM host/native registry. The helper intentionally returns plain
+///   bridge values; source-level `Result` wrapping stays in compiler-emitted
+///   module code so the Rust VM host function does not need atom-table access.
+pub fn emit_native_bridge_runtime_to_erlang() -> &'static str {
+    TERLAN_NATIVE_BRIDGE_RUNTIME
+}
+
 const TYPER_HTML_RUNTIME: &str = r#"-module(typer_html).
 -export([escape/1]).
 
@@ -88,6 +105,22 @@ escape_binary(<<"'", Rest/binary>>, Acc) ->
     escape_binary(Rest, [<<"&#39;">> | Acc]);
 escape_binary(<<Char, Rest/binary>>, Acc) ->
     escape_binary(Rest, [<<Char>> | Acc]).
+"#;
+
+const TERLAN_NATIVE_BRIDGE_RUNTIME: &str = r#"-module(terlan_native_bridge_runtime).
+-export([start/1, call/2, dispose/1, stop/1]).
+
+start(Resource) ->
+    Resource.
+
+call(_Bridge, Command) ->
+    Command.
+
+dispose(Bridge) ->
+    Bridge.
+
+stop(Bridge) ->
+    Bridge.
 "#;
 
 const TERLAN_SQL_RUNTIME: &str = r#"-module(terlan_sql_runtime).

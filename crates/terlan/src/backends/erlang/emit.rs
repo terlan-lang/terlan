@@ -23,7 +23,8 @@ use core::*;
 pub(crate) use erl::quote_erlang_atom_literal;
 use erl::*;
 pub use runtime::{
-    emit_html_runtime_to_erlang, emit_native_vector_runtime_to_erlang, emit_sql_runtime_to_erlang,
+    emit_html_runtime_to_erlang, emit_native_bridge_runtime_to_erlang,
+    emit_native_vector_runtime_to_erlang, emit_sql_runtime_to_erlang,
 };
 use syntax::{lower_syntax_module_output, lower_syntax_struct_headers_to_hrl};
 use util::*;

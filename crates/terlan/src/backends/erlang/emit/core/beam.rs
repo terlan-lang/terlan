@@ -267,46 +267,52 @@ pub(super) fn lower_beam_gen_server_stop(args: Vec<ErlExpr>) -> Option<ErlExpr> 
     Some(beam_process::send_and_return_process(&server_ref, "stop"))
 }
 
-/// Lowers `beam.native_bridge.start` to a shared BEAM bridge process proof.
+/// Lowers `beam.native_bridge.start` to the NativeBridge runtime boundary.
 ///
 /// Inputs:
 /// - `args`: one native resource descriptor expression.
 ///
 /// Output:
-/// - `Ok(Pid)` where `Pid` is the opaque NativeBridge handle.
+/// - `Ok(Bridge)` where `Bridge` is the opaque NativeBridge handle.
 ///
 /// Transformation:
-/// - Starts a backend-owned process through the shared BEAM process helper.
-///   The current proof loop owns the resource descriptor and returns stable
-///   not-loaded replies until real SafeNative transport attachment exists.
+/// - Calls the compiler-owned `terlan_native_bridge_runtime:start/1` helper
+///   and wraps the returned handle in the source-level `Result` shape. The
+///   Rust VM handles the same imported MFA through its host/native boundary.
 pub(super) fn lower_beam_native_bridge_start(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     let [resource] = exact_array_args(args)?;
-    Some(beam_process::state_process_start(
-        &resource,
-        "            {call, _Command, From, Ref} ->\n                From ! {Ref, {error, {native_bridge_not_loaded, \"native bridge runtime not loaded\"}}},\n                Loop(State);\n            dispose ->\n                Loop(disposed);\n            stop ->\n                ok",
-    ))
+    Some(ErlExpr::Tuple(vec![
+        ErlExpr::Atom("ok".to_string()),
+        ErlExpr::Call {
+            module: Some("terlan_native_bridge_runtime".to_string()),
+            function: "start".to_string(),
+            args: vec![resource],
+        },
+    ]))
 }
 
-/// Lowers `beam.native_bridge.call` to the stable not-loaded bridge result.
+/// Lowers `beam.native_bridge.call` to the NativeBridge runtime boundary.
 ///
 /// Inputs:
 /// - `args`: one bridge handle and one command value.
 ///
 /// Output:
-/// - The bridge process reply, currently the stable not-loaded result.
+/// - `Ok(Reply)` for the runtime boundary reply.
 ///
 /// Transformation:
-/// - Sends a reference-tagged call request through the shared BEAM process
-///   helper. The current proof loop answers with a stable not-loaded result
-///   without pretending that SafeNative transport is attached.
+/// - Calls the compiler-owned `terlan_native_bridge_runtime:call/2` helper
+///   and wraps the returned reply in the source-level `Result` shape. The Rust
+///   VM host/native boundary mirrors this helper MFA.
 pub(super) fn lower_beam_native_bridge_call(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     let [bridge, command] = exact_array_args(args)?;
-    Some(beam_process::sync_request(
-        &bridge,
-        &format!("{{call, {}, self(), Ref}}", command.render()),
-        "{Ref, Result}",
-        "Result",
-    ))
+    Some(ErlExpr::Tuple(vec![
+        ErlExpr::Atom("ok".to_string()),
+        ErlExpr::Call {
+            module: Some("terlan_native_bridge_runtime".to_string()),
+            function: "call".to_string(),
+            args: vec![bridge, command],
+        },
+    ]))
 }
 
 /// Lowers `beam.native_bridge.dispose` to a stable mutable receiver value.
@@ -318,12 +324,16 @@ pub(super) fn lower_beam_native_bridge_call(args: Vec<ErlExpr>) -> Option<ErlExp
 /// - The bridge handle, preserving mutable receiver rebinding semantics.
 ///
 /// Transformation:
-/// - Sends the backend-private dispose message through the shared BEAM process
-///   helper and preserves the stable receiver handle while real resource
-///   disposal remains owned by SafeNative transport.
+/// - Calls the compiler-owned runtime helper. The first implementation keeps
+///   the handle stable while Rust VM SafeNative lifecycle wiring is widened
+///   behind the same imported MFA.
 pub(super) fn lower_beam_native_bridge_dispose(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     let [bridge] = exact_array_args(args)?;
-    Some(beam_process::send_and_return_process(&bridge, "dispose"))
+    Some(ErlExpr::Call {
+        module: Some("terlan_native_bridge_runtime".to_string()),
+        function: "dispose".to_string(),
+        args: vec![bridge],
+    })
 }
 
 /// Lowers `beam.native_bridge.stop` to a stable mutable receiver value.
@@ -335,12 +345,16 @@ pub(super) fn lower_beam_native_bridge_dispose(args: Vec<ErlExpr>) -> Option<Erl
 /// - The bridge handle, preserving mutable receiver rebinding semantics.
 ///
 /// Transformation:
-/// - Sends the backend-private stop message through the shared BEAM process
-///   helper while final shutdown policy remains owned by the later
-///   BEAM/SafeNative runtime.
+/// - Calls the compiler-owned runtime helper. The first implementation keeps
+///   the handle stable while final worker shutdown is widened behind the same
+///   imported MFA.
 pub(super) fn lower_beam_native_bridge_stop(args: Vec<ErlExpr>) -> Option<ErlExpr> {
     let [bridge] = exact_array_args(args)?;
-    Some(beam_process::send_and_return_process(&bridge, "stop"))
+    Some(ErlExpr::Call {
+        module: Some("terlan_native_bridge_runtime".to_string()),
+        function: "stop".to_string(),
+        args: vec![bridge],
+    })
 }
 
 /// Lowers `beam.bytes.from_list` to an Erlang binary conversion.
