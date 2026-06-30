@@ -608,14 +608,13 @@ println(\"supervisor proof\").\n",
 ///
 /// Output:
 /// - Test passes when `terlc build <project> --target erlang` compiles and
-///   emits the shared BEAM process proof shape plus stable not-loaded call
-///   result.
+///   emits the compiler-owned NativeBridge runtime helper boundary.
 ///
 /// Transformation:
 /// - Resolves NativeBridge calls through summaries, lowers them to
-///   compiler-owned CoreIR intrinsics, emits Erlang through the shared
-///   BEAM process helper, and keeps real SafeNative transport attachment
-///   out of this compiler-plumbing slice.
+///   compiler-owned CoreIR intrinsics, emits Erlang through the runtime
+///   helper, and keeps real SafeNative transport attachment out of this
+///   compiler-plumbing slice.
 #[test]
 fn build_command_compiles_imported_beam_native_bridge_start_call_dispose_stop() {
     let dir =
@@ -679,15 +678,24 @@ println(\"native bridge proof\").\n",
     let erl_source =
         fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
     assert!(
-        erl_source.contains("Loop = fun Loop(State) ->")
-            && erl_source.contains("spawn(fun() -> Loop("),
-        "NativeBridge.start should lower to the shared BEAM process proof: {}",
+        erl_source.contains("terlan_native_bridge_runtime:start(Resource)")
+            && erl_source.contains("terlan_native_bridge_runtime:call(Bridge, Command)")
+            && erl_source.contains("terlan_native_bridge_runtime:dispose(Bridge)")
+            && erl_source.contains("terlan_native_bridge_runtime:stop(Bridge)"),
+        "NativeBridge operations should lower through the compiler-owned runtime helper: {}",
         erl_source
     );
+    let runtime_source = fs::read_to_string(out_dir.join("src/terlan_native_bridge_runtime.erl"))
+        .expect("read emitted NativeBridge runtime helper");
     assert!(
-        erl_source.contains("native_bridge_not_loaded"),
-        "NativeBridge.call should lower to the stable not-loaded result: {}",
-        erl_source
+        runtime_source.contains("-module(terlan_native_bridge_runtime).")
+            && runtime_source.contains("-export([start/1, call/2, dispose/1, stop/1]).")
+            && runtime_source.contains("start(Resource) ->")
+            && runtime_source.contains("call(_Bridge, Command) ->")
+            && runtime_source.contains("dispose(Bridge) ->")
+            && runtime_source.contains("stop(Bridge) ->"),
+        "NativeBridge runtime helper should expose the compiler-owned bridge boundary: {}",
+        runtime_source
     );
     assert!(
         !erl_source.contains("std_beam_native_bridge:start")
