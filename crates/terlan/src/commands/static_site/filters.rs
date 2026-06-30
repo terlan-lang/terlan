@@ -116,3 +116,7 @@ fn wildcard_match(pattern: &str, value: &str) -> bool {
 
     true
 }
+
+#[cfg(test)]
+#[path = "filters_test.rs"]
+mod filters_test;

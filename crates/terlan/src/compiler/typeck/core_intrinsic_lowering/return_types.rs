@@ -34,3 +34,7 @@ pub(super) fn core_runtime_capability_return_type(capability: &CoreRuntimeCapabi
         },
     }
 }
+
+#[cfg(test)]
+#[path = "return_types_test.rs"]
+mod return_types_test;

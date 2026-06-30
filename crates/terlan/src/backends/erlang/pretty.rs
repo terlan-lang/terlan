@@ -12,3 +12,7 @@
 pub fn pretty_print(input: &str) -> String {
     input.to_string()
 }
+
+#[cfg(test)]
+#[path = "pretty_test.rs"]
+mod pretty_test;

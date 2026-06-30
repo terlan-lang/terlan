@@ -23,6 +23,8 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tarfile
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,6 +33,14 @@ ROOT = Path(__file__).resolve().parents[1]
 INSTALL_SH = ROOT / "install.sh"
 INSTALL_PS1 = ROOT / "install.ps1"
 PACKAGE_HELPER = ROOT / "tools" / "package_release_artifact.py"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+REQUIRED_RELEASE_ARTIFACTS = {
+    "terlc-linux-x86_64.tar.gz",
+    "terlc-linux-aarch64.tar.gz",
+    "terlc-macos-x86_64.tar.gz",
+    "terlc-macos-aarch64.tar.gz",
+    "terlc-windows-x86_64.zip",
+}
 
 
 @dataclass(frozen=True)
@@ -125,6 +135,88 @@ def run_install_sh_dry_run(os_name: str, arch: str) -> tuple[dict[str, str], str
     return parse_key_values(result.stdout), None
 
 
+def write_fake_unix_artifact(release_dir: Path, artifact: str) -> None:
+    """Write a fake Unix release artifact for installer smoke tests.
+
+    Inputs:
+    - `release_dir`: directory representing one release tag.
+    - `artifact`: artifact filename expected by `install.sh`.
+
+    Outputs:
+    - A `.tar.gz` artifact containing executable `terlc` and `terlan-vm`
+      stubs.
+
+    Transformation:
+    - Builds a local file-backed release so the installer uses its normal
+      download, extraction, move, and version-check path without network.
+    """
+
+    release_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="terlan-installer-artifact.") as tmp:
+        stage = Path(tmp)
+        compiler = stage / "terlc"
+        vm = stage / "terlan-vm"
+        compiler.write_text("#!/usr/bin/env sh\nprintf 'terlc fake 9.9.9\\n'\n", encoding="utf-8")
+        vm.write_text("#!/usr/bin/env sh\nprintf 'terlan-vm fake 9.9.9\\n'\n", encoding="utf-8")
+        compiler.chmod(0o755)
+        vm.chmod(0o755)
+        with tarfile.open(release_dir / artifact, "w:gz") as archive:
+            archive.add(compiler, arcname="terlc")
+            archive.add(vm, arcname="terlan-vm")
+
+
+def run_install_sh_download_smoke(os_name: str, arch: str, artifact: str) -> str | None:
+    """Run a local download/install smoke for `install.sh`.
+
+    Inputs:
+    - `os_name`: installer OS override.
+    - `arch`: installer architecture override.
+    - `artifact`: expected artifact filename.
+
+    Outputs:
+    - Optional diagnostic text when the installer fails.
+
+    Transformation:
+    - Publishes a fake local release under a `file://` base URL, runs the
+      installer without dry-run mode, and verifies installed binaries exist.
+    """
+
+    with tempfile.TemporaryDirectory(prefix="terlan-installer-smoke.") as tmp:
+        root = Path(tmp)
+        version = "v9.9.9"
+        release_dir = root / "releases" / version
+        install_dir = root / "bin"
+        write_fake_unix_artifact(release_dir, artifact)
+        env = os.environ.copy()
+        env.update(
+            {
+                "TERLAN_INSTALL_OS": os_name,
+                "TERLAN_INSTALL_ARCH": arch,
+                "TERLAN_VERSION": version,
+                "TERLAN_INSTALL_DIR": str(install_dir),
+                "TERLAN_RELEASE_BASE_URL": f"file://{root / 'releases'}",
+            }
+        )
+        result = subprocess.run(
+            ["sh", str(INSTALL_SH)],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if result.returncode != 0:
+            return result.stdout + result.stderr
+        for binary in ("terlc", "terlan-vm"):
+            installed = install_dir / binary
+            if not installed.is_file():
+                return f"installer did not install {binary} from {artifact}"
+            if not os.access(installed, os.X_OK):
+                return f"installer did not preserve executable bit for {binary}"
+        return None
+
+
 def run_package_helper_describe(os_name: str, arch: str) -> tuple[dict[str, str], str | None]:
     """Run the release artifact helper in describe mode for one platform.
 
@@ -199,7 +291,6 @@ def check_install_sh() -> list[InstallerDiagnostic]:
             "artifact": expected_artifact,
             "url": f"https://example.invalid/releases/v9.9.9/{expected_artifact}",
             "install_dir": "/tmp/terlan-bin",
-            "lib_dir": "/tmp/lib/terlan",
         }
         for key, expected_value in expected.items():
             actual = values.get(key)
@@ -210,6 +301,14 @@ def check_install_sh() -> list[InstallerDiagnostic]:
                         f"{label} expected {key}={expected_value}, found {actual!r}",
                     )
                 )
+        smoke_error = run_install_sh_download_smoke(os_name, arch, expected_artifact)
+        if smoke_error is not None:
+            diagnostics.append(
+                InstallerDiagnostic(
+                    INSTALL_SH,
+                    f"{label} local artifact install smoke failed: {smoke_error.strip()}",
+                )
+            )
     return diagnostics
 
 
@@ -230,14 +329,23 @@ def check_package_helper_mapping() -> list[InstallerDiagnostic]:
     if not PACKAGE_HELPER.is_file():
         return [InstallerDiagnostic(PACKAGE_HELPER, "release artifact helper is missing")]
     diagnostics: list[InstallerDiagnostic] = []
+    described_artifacts: set[str] = set()
     cases = [
-        ("Linux", "x86_64", "linux", "x86_64", "terlc-linux-x86_64.tar.gz", "terlc"),
-        ("Linux", "aarch64", "linux", "aarch64", "terlc-linux-aarch64.tar.gz", "terlc"),
-        ("Darwin", "x86_64", "macos", "x86_64", "terlc-macos-x86_64.tar.gz", "terlc"),
-        ("Darwin", "arm64", "macos", "aarch64", "terlc-macos-aarch64.tar.gz", "terlc"),
-        ("Windows", "AMD64", "windows", "x86_64", "terlc-windows-x86_64.zip", "terlc.exe"),
+        ("Linux", "x86_64", "linux", "x86_64", "terlc-linux-x86_64.tar.gz", "terlc", "terlan-vm"),
+        ("Linux", "aarch64", "linux", "aarch64", "terlc-linux-aarch64.tar.gz", "terlc", "terlan-vm"),
+        ("Darwin", "x86_64", "macos", "x86_64", "terlc-macos-x86_64.tar.gz", "terlc", "terlan-vm"),
+        ("Darwin", "arm64", "macos", "aarch64", "terlc-macos-aarch64.tar.gz", "terlc", "terlan-vm"),
+        ("Windows", "AMD64", "windows", "x86_64", "terlc-windows-x86_64.zip", "terlc.exe", "terlan-vm.exe"),
     ]
-    for os_name, arch, expected_os, expected_arch, expected_artifact, expected_binary in cases:
+    for (
+        os_name,
+        arch,
+        expected_os,
+        expected_arch,
+        expected_artifact,
+        expected_binary,
+        expected_vm_binary,
+    ) in cases:
         values, error = run_package_helper_describe(os_name, arch)
         label = f"{os_name}/{arch}"
         if error is not None:
@@ -250,8 +358,9 @@ def check_package_helper_mapping() -> list[InstallerDiagnostic]:
             "arch": expected_arch,
             "artifact": expected_artifact,
             "binary": expected_binary,
-            "experimental_vm": "true",
+            "vm_binary": expected_vm_binary,
         }
+        described_artifacts.add(values.get("artifact", ""))
         for key, expected_value in expected.items():
             actual = values.get(key)
             if actual != expected_value:
@@ -261,6 +370,43 @@ def check_package_helper_mapping() -> list[InstallerDiagnostic]:
                         f"{label} expected {key}={expected_value}, found {actual!r}",
                     )
                 )
+    if described_artifacts != REQUIRED_RELEASE_ARTIFACTS:
+        diagnostics.append(
+            InstallerDiagnostic(
+                PACKAGE_HELPER,
+                "release helper artifact set drifted; "
+                f"expected {sorted(REQUIRED_RELEASE_ARTIFACTS)}, found {sorted(described_artifacts)}",
+            )
+        )
+    return diagnostics
+
+
+def check_release_workflow_artifacts() -> list[InstallerDiagnostic]:
+    """Validate that the release workflow ships every required artifact.
+
+    Inputs:
+    - `.github/workflows/release.yml`.
+
+    Outputs:
+    - Diagnostics when the workflow omits a supported platform artifact.
+
+    Transformation:
+    - Treats the workflow as the shipping contract and verifies the artifact
+      names used by installer and packaging checks are present in the matrix.
+    """
+
+    if not RELEASE_WORKFLOW.is_file():
+        return [InstallerDiagnostic(RELEASE_WORKFLOW, "release workflow is missing")]
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    diagnostics: list[InstallerDiagnostic] = []
+    for artifact in sorted(REQUIRED_RELEASE_ARTIFACTS):
+        if artifact not in text:
+            diagnostics.append(
+                InstallerDiagnostic(
+                    RELEASE_WORKFLOW,
+                    f"release workflow does not ship required artifact `{artifact}`",
+                )
+            )
     return diagnostics
 
 
@@ -286,11 +432,8 @@ def check_install_ps1() -> list[InstallerDiagnostic]:
         "Invoke-WebRequest",
         "Expand-Archive",
         "TERLAN_INSTALL_DRY_RUN",
-        "TERLAN_INSTALL_LIB_DIR",
-        "experimental\\terlan-vm",
-        "--experimental",
-        "otp-runtime",
         "terlc.exe",
+        "terlan-vm.exe",
         "--version",
     ]
     return [
@@ -305,6 +448,7 @@ def main() -> int:
 
     diagnostics = check_install_sh()
     diagnostics.extend(check_package_helper_mapping())
+    diagnostics.extend(check_release_workflow_artifacts())
     diagnostics.extend(check_install_ps1())
     if diagnostics:
         for diagnostic in diagnostics:

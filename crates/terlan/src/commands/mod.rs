@@ -20,7 +20,6 @@ pub(crate) mod interface;
 pub(crate) mod json;
 pub(crate) mod lsp;
 pub(crate) mod native_vector_runtime;
-pub(crate) mod otp_runtime;
 pub(crate) mod repl;
 pub(crate) mod run;
 pub(crate) mod safe_native_runtime;

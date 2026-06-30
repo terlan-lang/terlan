@@ -24,6 +24,7 @@ manifest="tests/std/RELEASE_API_TESTS.tsv"
 test_timeout_seconds="${TERLAN_STD_TEST_TIMEOUT_SECONDS:-120}"
 terlc_bin="${TERLC_BIN:-${CARGO_TARGET_DIR:-target}/debug/terlc}"
 failures=0
+release_cache_home=""
 
 # Inputs:
 # - Cargo workspace metadata from the current checkout.
@@ -89,7 +90,11 @@ if [[ ! -x "$terlc_bin" ]]; then
 fi
 
 test_files="$(mktemp -t terlan-std-tests.XXXXXX)"
-trap 'rm -f "$test_files"' EXIT
+if [[ -z "${XDG_CACHE_HOME:-}" ]]; then
+  release_cache_home="$(mktemp -d /tmp/terlan-std-release-cache.XXXXXX)"
+  export XDG_CACHE_HOME="$release_cache_home"
+fi
+trap 'rm -f "$test_files"; if [[ -n "$release_cache_home" ]]; then rm -rf "$release_cache_home"; fi' EXIT
 
 awk -F '\t' '
   /^[[:space:]]*#/ || /^[[:space:]]*$/ {

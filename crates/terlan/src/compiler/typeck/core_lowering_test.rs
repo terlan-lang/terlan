@@ -187,6 +187,50 @@ pub run(map: Map): Unit ->\n\
         .contains("MutableReceiverCall(Var(map).put;args=;effects=Effects(receiver_mutation))"));
 }
 
+/// Verifies std collection receiver calls keep executable CoreIR in sequences.
+///
+/// Inputs:
+/// - A source module that constructs a `std.collections.List`, mutates it with
+///   receiver calls, and reads its length in the final expression.
+///
+/// Output:
+/// - Test passes when the full function body carries executable CoreIR instead
+///   of becoming summary-only at the `values.length()` receiver call.
+///
+/// Transformation:
+/// - Parses, resolves, and lowers through the formal syntax-output path so the
+///   VM can execute the same CoreIR shape used by release REPL tests.
+#[test]
+fn syntax_output_lowering_to_core_records_collection_receiver_call_in_sequence() {
+    let module = parse_module_as_syntax_output(
+        "\
+module core_collection_receiver_sequence.\n\
+\n\
+import std.collections.List.\n\
+\n\
+pub run(): Bool ->\n\
+    let values = List.new();\n\
+    values.push(1);\n\
+    values.push(2);\n\
+    values.length() == 2.\n\
+",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse collection receiver fixture: {:?}", err));
+    let resolved = resolve_syntax_module_output(&module).module;
+    let core = lower_syntax_module_output_to_core(&module, &resolved);
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "run")
+        .unwrap_or_else(|| panic!("missing run function in core: {:?}", core.functions));
+
+    assert!(
+        function.clauses[0].body.core_expr.is_some(),
+        "missing executable body:\n{}",
+        core.contract_text()
+    );
+}
+
 /// Verifies ready SQL forms survive the formal lowering boundary as CoreIR.
 ///
 /// Inputs:

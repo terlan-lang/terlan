@@ -1685,6 +1685,44 @@ fn track_open_documents() {
     assert!(!type_error.type_diagnostics.is_empty());
 }
 
+/// Verifies hostile Unicode syntax errors stay isolated to parser diagnostics.
+///
+/// Inputs:
+/// - A source document with multibyte identifiers/text and an unterminated
+///   expression.
+///
+/// Output:
+/// - Test passes when LSP document state records a parser diagnostic without
+///   resolver, typechecker, or template diagnostics.
+///
+/// Transformation:
+/// - Exercises adversarial LSP document opening without JSON-RPC transport so
+///   malformed Unicode-heavy source cannot cascade into later compiler stages.
+#[test]
+fn adversarial_lsp_diagnostics_isolate_unicode_parse_failures() {
+    let store = OpenDocuments::default();
+    let uri = Url::parse("file:///tmp/adversarial_unicode.terl").expect("uri");
+    let source = "\
+module adversarial_unicode.
+
+pub broken(): String ->
+    \"λ🔥";
+
+    let parse_error = store
+        .open(uri.clone(), source.to_string(), 7, "terlan".to_string())
+        .expect("malformed source should return parser diagnostic");
+    let document = store.snapshot(&uri).expect("cached adversarial document");
+
+    assert_eq!(document.version, 7);
+    assert!(!document.parse_ok);
+    assert!(!parse_error.message.trim().is_empty());
+    assert!(parse_error.span.start <= source.len());
+    assert!(parse_error.span.end <= source.len());
+    assert!(document.resolve_diagnostics.is_empty());
+    assert!(document.type_diagnostics.is_empty());
+    assert!(document.template_diagnostics.is_empty());
+}
+
 /// Verifies template documents are not parsed as Terlan source modules.
 ///
 /// Inputs:

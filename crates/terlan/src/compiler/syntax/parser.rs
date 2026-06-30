@@ -26,6 +26,7 @@ mod helpers;
 mod html;
 mod imports;
 mod modules;
+mod nesting;
 mod patterns;
 mod type_decls;
 mod types;
@@ -33,6 +34,7 @@ mod types;
 use helpers::*;
 use html::parse_html_nodes;
 pub(crate) use html::parse_terlan_expr;
+use nesting::ensure_token_nesting_within_limit;
 
 /// Parser diagnostic with message and source span.
 #[derive(Debug)]
@@ -74,6 +76,8 @@ pub(crate) fn parse_module(input: &str) -> ParseResult<Module> {
         }
     };
 
+    ensure_token_nesting_within_limit(&tokens)?;
+
     let mut parser = Parser::new(tokens);
     parser.parse_module()
 }
@@ -105,6 +109,8 @@ pub(crate) fn parse_interface_module(input: &str) -> ParseResult<Module> {
             });
         }
     };
+
+    ensure_token_nesting_within_limit(&tokens)?;
 
     let mut parser = Parser::new(tokens);
     parser.parse_interface_module()

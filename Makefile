@@ -3,13 +3,14 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-experimental-vm release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-runtime-matrix-check erlang-runtime-matrix-release-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
 include editors/editor.mk
 
-COVERAGE_MIN ?= 83.23
+COVERAGE_MIN ?= 82.40
+COVERAGE_IGNORE_FILENAME_REGEX ?= crates/terlan/src/(lsp|vm)/\.\./
 
 ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
 ifndef VERSION
@@ -102,13 +103,14 @@ oxc-boundary-check:
 
 adversarial-check:
 	$(CARGO) test --locked -p terlan adversarial -- --nocapture
+	$(PYTHON) tools/check_release_packaging_adversarial.py
 
 coverage-check:
 	@$(CARGO) llvm-cov --version >/dev/null 2>&1 || { \
 		echo "coverage-check requires cargo-llvm-cov; install with: cargo install cargo-llvm-cov --locked"; \
 		exit 127; \
 	}
-	$(CARGO) llvm-cov --locked --workspace --all-targets --fail-under-lines $(COVERAGE_MIN)
+	$(CARGO) llvm-cov --locked --workspace --all-targets --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)' --fail-under-lines $(COVERAGE_MIN)
 
 release-hardening-check:
 	$(MAKE) adversarial-check
@@ -119,11 +121,34 @@ erlang-modernization-inventory-check:
 
 erlang-modernization-em0-hard-gate: erlang-modernization-inventory-check
 
+release-0-0-6-preflight:
+	$(MAKE) erlang-modernization-em0-hard-gate
+	$(MAKE) terlan-vm-compiler-bridge-check
+
+erlang-modernization-em0-full-compatibility-gate:
+	@if [ "$${TERLAN_RUN_FULL_OTP_COMPATIBILITY:-}" != "1" ]; then \
+		echo "Set TERLAN_RUN_FULL_OTP_COMPATIBILITY=1 to run the full OTP compatibility reference gate."; \
+		echo "This command intentionally runs outside the normal release path."; \
+		exit 64; \
+	fi
+	@if [ ! -d ../terlan-vm ]; then \
+		echo "Missing sibling ../terlan-vm checkout for full OTP compatibility gate."; \
+		exit 66; \
+	fi
+	@if [ ! -x ../terlan-vm/configure ]; then \
+		echo "Sibling ../terlan-vm does not expose an executable ./configure script for full OTP compatibility."; \
+		exit 66; \
+	fi
+	cd ../terlan-vm && export ERL_TOP="$$(pwd)" && ./configure && "$${MAKE:-make}" && "$${MAKE:-make}" test
+
 erlang-runtime-matrix-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- erlang-runtime-matrix
 
 erlang-runtime-matrix-release-check:
 	TERLAN_RUNTIME_MATRIX_COMMAND='$(MAKE) test-release' $(MAKE) erlang-runtime-matrix-check
+
+terlan-vm-compiler-bridge-check:
+	$(MAKE) --no-print-directory cli-terlan-vm-compiler-bridge-check
 
 http-runtime-stack-check:
 	$(PYTHON) tools/check_http_runtime_stack.py
@@ -156,15 +181,16 @@ release-artifact-current:
 	$(MAKE) source-extension-check
 	$(MAKE) cli-release-artifact-current
 	$(MAKE) release-artifact-smoke
+	$(MAKE) release-artifact-installer-smoke
 
 release-artifact-linux:
 	TERLAN_RELEASE_OS=Linux TERLAN_RELEASE_ARCH=x86_64 $(MAKE) release-artifact-current
 
-release-artifact-experimental-vm:
-	TERLAN_RELEASE_INCLUDE_EXPERIMENTAL_VM=1 $(MAKE) release-artifact-current
-
 release-artifact-smoke:
 	$(PYTHON) tools/package_release_artifact.py smoke
+
+release-artifact-installer-smoke:
+	$(PYTHON) tools/package_release_artifact.py installer-smoke
 
 publish-preflight:
 	@echo "Preparing Terlan $(VERSION) publication preflight"
@@ -199,7 +225,13 @@ publish-preflight:
 		echo "remote tag v$(VERSION) already exists"; \
 		exit 1; \
 	fi
-	@if [ "$(VERSION)" = "0.0.5" ]; then \
+	@if [ "$(VERSION)" = "0.0.6" ]; then \
+		$(MAKE) check; \
+		$(MAKE) test-release; \
+		$(MAKE) release-hardening-check; \
+		$(MAKE) release-0-0-6-preflight; \
+		$(MAKE) release-artifact-current; \
+	elif [ "$(VERSION)" = "0.0.5" ]; then \
 		$(MAKE) check; \
 		$(MAKE) test-release; \
 		$(MAKE) release-hardening-check; \

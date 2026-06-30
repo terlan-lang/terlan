@@ -11,6 +11,10 @@ name = "terlc"
 path = "src/main.rs"
 
 [[bin]]
+name = "terlan-vm"
+path = "src/vm/main.rs"
+
+[[bin]]
 name = "terlan-lsp"
 path = "src/lsp/main.rs"
 

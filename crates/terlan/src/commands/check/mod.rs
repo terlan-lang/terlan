@@ -943,3 +943,7 @@ fn check_dir_phase_manifest_path(root: &Path, module: &str) -> PathBuf {
         root.with_file_name(format!("{stem}.{module}.phase-manifest.json"))
     }
 }
+
+#[cfg(test)]
+#[path = "mod_test.rs"]
+mod mod_test;

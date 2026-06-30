@@ -13,6 +13,8 @@ mod oxc_boundary;
 mod test_hierarchy;
 
 pub use cli_exact_selectors::{run_cli_exact_selectors, CliExactSelectorSummary};
+#[cfg(test)]
+pub(crate) use erlang_modernization::validate_em0_artifact_evidence;
 pub use erlang_modernization::{
     run_erlang_modernization_inventory, run_erlang_runtime_matrix, ErlangModernizationSummary,
     ErlangRuntimeMatrixSummary,

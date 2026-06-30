@@ -246,3 +246,7 @@ fn encode_text(value: &str) -> String {
 fn error_response(code: &str, message: &str) -> String {
     format!("err {} {}", encode_text(code), encode_text(message))
 }
+
+#[cfg(test)]
+#[path = "safe_native_runtime_test.rs"]
+mod safe_native_runtime_test;

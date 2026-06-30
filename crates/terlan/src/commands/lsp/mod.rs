@@ -40,3 +40,7 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
         ExitCode::from(2)
     }
 }
+
+#[cfg(test)]
+#[path = "mod_test.rs"]
+mod mod_test;

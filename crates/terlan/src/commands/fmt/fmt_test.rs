@@ -1,4 +1,7 @@
-use super::parse_source;
+use std::process::ExitCode;
+
+use super::{parse_source, run};
+use crate::support::test_fs::{temp_dir, write_file};
 
 /// Verifies that `terlc fmt` keeps canonical source modules on `pub`
 /// visibility instead of normalizing removed export-list syntax.
@@ -150,4 +153,114 @@ pub value(error: CoreError): CoreError -> error.
     .expect("aliased default type import should format");
 
     assert!(formatted.contains("import type std.core.Error. Error as CoreError."));
+}
+
+/// Verifies the command wrapper rejects malformed argument counts.
+///
+/// Inputs:
+/// - Empty and overfull command-local argument lists.
+///
+/// Output:
+/// - Usage exit code `2`.
+///
+/// Transformation:
+/// - Exercises the public `fmt` command boundary before any filesystem or
+///   parser work is attempted.
+#[test]
+fn fmt_command_rejects_missing_or_extra_path_argument() {
+    assert_eq!(run(&[]), ExitCode::from(2));
+    assert_eq!(
+        run(&["one.terl".to_owned(), "two.terl".to_owned()]),
+        ExitCode::from(2)
+    );
+}
+
+/// Verifies the command wrapper reports file-read failures.
+///
+/// Inputs:
+/// - A unique path that was not created.
+///
+/// Output:
+/// - Failure exit code `1`.
+///
+/// Transformation:
+/// - Routes through `support::read_file` and stops before syntax parsing.
+#[test]
+fn fmt_command_rejects_missing_input_file() {
+    let dir = temp_dir("fmt", "missing_input_file");
+    let missing = dir.join("missing.terl");
+
+    assert_eq!(run(&[missing.display().to_string()]), ExitCode::from(1));
+}
+
+/// Verifies the command wrapper accepts source-module files.
+///
+/// Inputs:
+/// - A temporary `.terl` file containing canonical source text.
+///
+/// Output:
+/// - Success exit code.
+///
+/// Transformation:
+/// - Reads from disk, selects source-module parsing by extension, and prints
+///   the formatter result.
+#[test]
+fn fmt_command_formats_source_module_file() {
+    let dir = temp_dir("fmt", "source_module_file");
+    let path = dir.join("Sample.terl");
+    write_file(
+        &path,
+        r#"
+module sample.
+
+pub value(input: Int): Int -> input.
+"#,
+    );
+
+    assert_eq!(run(&[path.display().to_string()]), ExitCode::SUCCESS);
+}
+
+/// Verifies the command wrapper accepts interface summary files.
+///
+/// Inputs:
+/// - A temporary `.terli` file containing an export summary.
+///
+/// Output:
+/// - Success exit code.
+///
+/// Transformation:
+/// - Reads from disk, selects interface parsing by extension, and prints the
+///   formatter result.
+#[test]
+fn fmt_command_formats_interface_file() {
+    let dir = temp_dir("fmt", "interface_file");
+    let path = dir.join("Sample.terli");
+    write_file(
+        &path,
+        r#"
+module sample.
+export value/1.
+"#,
+    );
+
+    assert_eq!(run(&[path.display().to_string()]), ExitCode::SUCCESS);
+}
+
+/// Verifies parse diagnostics become command failures.
+///
+/// Inputs:
+/// - A temporary `.terl` file with malformed source.
+///
+/// Output:
+/// - Failure exit code `1`.
+///
+/// Transformation:
+/// - Reads the file successfully and fails through the formal parser route.
+#[test]
+fn fmt_command_rejects_malformed_source_file() {
+    let dir = temp_dir("fmt", "malformed_source_file");
+    let path = dir.join("Broken.terl");
+    write_file(&path, "module broken.\npub value(: Int): Int -> 1.\n");
+
+    assert_eq!(run(&[path.display().to_string()]), ExitCode::from(1));
 }

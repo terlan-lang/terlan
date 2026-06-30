@@ -36,6 +36,7 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::IndexAssign => core_index_assign_expr_from_syntax(expr),
         SyntaxExprKind::ListComprehension => core_list_comprehension_expr_from_syntax(expr),
         SyntaxExprKind::Let => core_let_expr_from_syntax(expr),
+        SyntaxExprKind::Sequence => core_sequence_expr_from_syntax(expr),
         SyntaxExprKind::Map => core_map_expr_fields_from_syntax(expr).map(CoreExpr::Map),
         SyntaxExprKind::RecordConstruct => core_record_construct_expr_from_syntax(expr),
         SyntaxExprKind::FieldAccess => core_field_access_expr_from_syntax(expr),
@@ -48,8 +49,12 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::UnaryOp => core_unary_op_expr_from_syntax(expr),
         SyntaxExprKind::Call if expr.remote.is_some() => core_intrinsic_call_expr_from_syntax(expr)
             .or_else(|| core_remote_call_expr_from_syntax(expr)),
-        SyntaxExprKind::Call if expr.remote.is_none() => core_intrinsic_call_expr_from_syntax(expr)
-            .or_else(|| core_named_call_expr_from_syntax(expr)),
+        SyntaxExprKind::Call if expr.remote.is_none() => {
+            core_syntax_mutable_receiver_call_expr_from_syntax(expr)
+                .or_else(|| core_intrinsic_call_expr_from_syntax(expr))
+                .or_else(|| core_syntax_receiver_call_expr_from_syntax(expr))
+                .or_else(|| core_named_call_expr_from_syntax(expr))
+        }
         SyntaxExprKind::FunctionCall => core_function_call_expr_from_syntax(expr),
         SyntaxExprKind::Case if expr.children.len() == 1 => {
             let scrutinee = Box::new(core_expr_from_syntax(&expr.children[0])?);
@@ -80,7 +85,6 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
             })
         }
         SyntaxExprKind::Fun
-        | SyntaxExprKind::Sequence
         | SyntaxExprKind::Call
         | SyntaxExprKind::Case
         | SyntaxExprKind::Macro
@@ -88,6 +92,96 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         | SyntaxExprKind::Quote
         | SyntaxExprKind::Unquote => None,
     }
+}
+
+/// Converts a syntax-output sequence into a CoreIR let chain.
+///
+/// Inputs:
+/// - `expr`: syntax-output sequence expression.
+///
+/// Output:
+/// - `Some(CoreExpr)` that evaluates every sequence item in order and returns
+///   the final item's value.
+///
+/// Transformation:
+/// - Models sequence items before the final expression as discard bindings.
+///   This gives the evaluator a single existing CoreIR form for ordered
+///   execution without adding a second sequencing node.
+fn core_sequence_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+    if !matches!(expr.kind, SyntaxExprKind::Sequence) {
+        return None;
+    }
+    let (last, prefix) = expr.children.split_last()?;
+    if prefix.is_empty() {
+        return core_expr_from_syntax(last);
+    }
+    let bindings = prefix
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            Some(CoreLetBinding {
+                pattern: CorePattern::Var(format!("_seq{index}")),
+                value: core_expr_from_syntax(item)?,
+            })
+        })
+        .collect::<Option<Vec<_>>>()?;
+    Some(CoreExpr::Let {
+        bindings,
+        body: Box::new(core_expr_from_syntax(last)?),
+    })
+}
+
+/// Converts known collection mutator receiver calls into CoreIR mutation calls.
+fn core_syntax_mutable_receiver_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+    if !matches!(expr.kind, SyntaxExprKind::Call) || expr.remote.is_some() {
+        return None;
+    }
+    let (callee, args) = expr.children.split_first()?;
+    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+        return None;
+    }
+    let method = callee.text.as_deref()?;
+    if !matches!(method, "push" | "clear" | "put" | "remove" | "add") {
+        return None;
+    }
+    let receiver = callee.children.first()?;
+    Some(CoreExpr::MutableReceiverCall {
+        receiver: Box::new(core_expr_from_syntax(receiver)?),
+        method: method.to_string(),
+        args: args
+            .iter()
+            .map(core_expr_from_syntax)
+            .collect::<Option<Vec<_>>>()?,
+        effects: super::core_intrinsic_lowering::core_receiver_mutation_effect_set(),
+    })
+}
+
+/// Converts receiver calls that have no typed intrinsic owner into VM calls.
+fn core_syntax_receiver_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+    if !matches!(expr.kind, SyntaxExprKind::Call) || expr.remote.is_some() {
+        return None;
+    }
+    let (callee, args) = expr.children.split_first()?;
+    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+        return None;
+    }
+    let method = callee.text.as_deref()?;
+    if matches!(method, "push" | "clear" | "put" | "remove" | "add") {
+        return None;
+    }
+    let receiver = callee.children.first()?;
+    let mut lowered_args = Vec::with_capacity(args.len() + 1);
+    lowered_args.push(core_expr_from_syntax(receiver)?);
+    lowered_args.extend(
+        args.iter()
+            .map(core_expr_from_syntax)
+            .collect::<Option<Vec<_>>>()?,
+    );
+    Some(CoreExpr::RemoteCall {
+        module: "__receiver__".to_string(),
+        function: method.to_string(),
+        args: lowered_args,
+    })
 }
 
 /// Converts a ready syntax-output SQL raw macro into a CoreIR query payload.

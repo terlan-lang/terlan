@@ -993,6 +993,31 @@ fn rejects_invalid_interpolation_syntax() {
         .contains("template interpolation slot cannot be empty")));
 }
 
+/// Verifies oversized unterminated template slots fail deterministically.
+///
+/// Inputs:
+/// - HTML source containing a large `${...` interpolation without a closing
+///   brace.
+///
+/// Output:
+/// - Test passes when the template parser returns the slot diagnostic instead
+///   of treating the remainder as valid static text.
+///
+/// Transformation:
+/// - Exercises the template-slot scanner against hostile generated input while
+///   keeping the fixture deterministic.
+#[test]
+fn adversarial_template_slot_rejects_oversized_unterminated_interpolation() {
+    let slot_body = "user.profile.".repeat(1024);
+    let source = ["<p>${", &slot_body, "</p>"].concat();
+
+    let diagnostics = parse_html_template(source, "templates/bad_slot.terl.html").unwrap_err();
+
+    assert!(diagnostics.iter().any(|diagnostic| diagnostic
+        .message
+        .contains("unterminated template interpolation slot")));
+}
+
 #[test]
 fn does_not_parse_interpolation_inside_script_or_style_text() {
     let template = parse_html_template(

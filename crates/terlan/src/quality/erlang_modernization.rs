@@ -155,6 +155,7 @@ pub fn run_erlang_modernization_inventory(
 
     let artifacts = artifacts(&root, &vm_root, &apps);
     for (name, value) in artifacts {
+        validate_em0_artifact_evidence(name, &value)?;
         write_artifact_pair(&output_dir, name, &value)?;
     }
     ensure_required_artifacts(&output_dir)?;
@@ -370,7 +371,7 @@ fn assert_no_experimental_runtime_dependency(root: &Path) -> QualityResult<()> {
         root.join("crates/terlan/Cargo.toml"),
         root.join("Cargo.lock"),
     ];
-    let forbidden = ["terlan-vm", "experimental-runtime", "reduced-otp-runtime"];
+    let forbidden = ["experimental-runtime", "reduced-otp-runtime"];
     let mut diagnostics = Vec::new();
     for manifest in manifests {
         let Ok(text) = fs::read_to_string(&manifest) else {
@@ -407,6 +408,82 @@ fn artifacts(root: &Path, vm_root: &Path, apps: &BTreeSet<String>) -> Vec<(&'sta
         ("replacement-candidates", replacement_candidates()),
         ("reduced-otp-profile", reduced_otp_profile(apps)),
     ]
+}
+
+/// Validates that one EM0 artifact contains the evidence required by its role.
+///
+/// Inputs:
+/// - `name`: artifact stem without extension.
+/// - `value`: generated JSON artifact body.
+///
+/// Output:
+/// - `Ok(())` when mandatory evidence fields are present and non-empty.
+/// - Error text naming the missing evidence path otherwise.
+///
+/// Transformation:
+/// - Applies a compact schema/evidence contract to generated artifacts before
+///   they are written, so the inventory gate fails missing evidence rather
+///   than only checking that placeholder files exist.
+pub(crate) fn validate_em0_artifact_evidence(name: &str, value: &Value) -> QualityResult<()> {
+    let schema = value
+        .get("schema")
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("EM0 artifact `{name}` is missing /schema"))?;
+    if !schema.starts_with("terlan-erlang-modernization-") {
+        return Err(format!(
+            "EM0 artifact `{name}` has unsupported schema `{schema}`"
+        ));
+    }
+
+    let required = match name {
+        "reference-otp-baseline" => &[
+            "/reference_vm",
+            "/full_test_command",
+            "/applications",
+            "/required_core_applications",
+            "/removed_applications_absent",
+        ][..],
+        "terlan-reference-smokes" => &["/reference_runtime", "/smokes"][..],
+        "runtime-surface" => &[
+            "/generated_erlang_surface/source_roots",
+            "/generated_erlang_surface/known_runtime_modules",
+            "/generated_erlang_surface/safe_native_boundary",
+        ][..],
+        "test-inventory" => &["/classes"][..],
+        "compatibility-probes" => &["/probes", "/status"][..],
+        "strip-candidates" => &["/candidates"][..],
+        "replacement-candidates" => &["/first_candidates", "/constraint"][..],
+        "reduced-otp-profile" => &["/kept_applications", "/removed_applications", "/decision"][..],
+        other => {
+            return Err(format!(
+                "EM0 artifact `{other}` is not part of the required inventory contract"
+            ));
+        }
+    };
+
+    for pointer in required {
+        validate_evidence_pointer(name, value, pointer)?;
+    }
+    Ok(())
+}
+
+/// Validates that one JSON pointer resolves to useful evidence.
+fn validate_evidence_pointer(name: &str, value: &Value, pointer: &str) -> QualityResult<()> {
+    let Some(evidence) = value.pointer(pointer) else {
+        return Err(format!("EM0 artifact `{name}` is missing {pointer}"));
+    };
+    match evidence {
+        Value::Array(values) if values.is_empty() => Err(format!(
+            "EM0 artifact `{name}` has empty evidence at {pointer}"
+        )),
+        Value::String(text) if text.trim().is_empty() => Err(format!(
+            "EM0 artifact `{name}` has empty evidence at {pointer}"
+        )),
+        Value::Null => Err(format!(
+            "EM0 artifact `{name}` has null evidence at {pointer}"
+        )),
+        _ => Ok(()),
+    }
 }
 
 /// Builds the reference OTP baseline inventory artifact.

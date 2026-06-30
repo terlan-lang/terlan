@@ -157,6 +157,54 @@ fn evaluator_applies_lambda_function_value_call() {
     assert_eq!(value, ReplValue::Int(20));
 }
 
+/// Verifies CoreIR remote calls dispatch through VM-owned std helpers.
+#[test]
+fn evaluator_supports_remote_std_assertion_call() {
+    let core = compile_core(
+        "module repl_test.\n\npub run(): Bool ->\n    std.test.Test.assert_equal(3, 1 + 2).\n",
+    );
+
+    let value = evaluate_repl_function(&core, "run").expect("evaluate");
+
+    assert_eq!(value, ReplValue::Bool(true));
+}
+
+/// Verifies CoreIR case expressions match structural constructor patterns.
+#[test]
+fn evaluator_supports_case_constructor_pattern() {
+    let core = compile_core(
+        "module repl_test.\n\nimport std.core.Option.{None, Some}.\n\npub run(): Int ->\n    case Some(42) {\n        Some(value) -> value;\n        None -> 0\n    }.\n",
+    );
+
+    let value = evaluate_repl_function(&core, "run").expect("evaluate");
+
+    assert_eq!(value, ReplValue::Int(42));
+}
+
+/// Verifies collection intrinsics and mutable receiver rebinding execute.
+#[test]
+fn evaluator_supports_list_mutation_intrinsics() {
+    let core = compile_core(
+        "module repl_test.\n\nimport std.collections.List.\n\npub run(): Bool ->\n    let values = List.new();\n    values.push(1);\n    values.push(2);\n    values.length() == 2.\n",
+    );
+
+    let value = evaluate_repl_function(&core, "run").expect("evaluate");
+
+    assert_eq!(value, ReplValue::Bool(true));
+}
+
+/// Verifies runtime file intrinsics return portable Result values.
+#[test]
+fn evaluator_supports_runtime_file_exists_intrinsic() {
+    let core = compile_core(
+        "module repl_test.\n\npub run(): Bool ->\n    std.io.File.exists(\"/definitely/missing/terlan-vm-test-file\").\n",
+    );
+
+    let value = evaluate_repl_function(&core, "run").expect("evaluate");
+
+    assert_eq!(value, ReplValue::Bool(false));
+}
+
 /// Compiles a test module into CoreIR for evaluator assertions.
 ///
 /// Inputs:

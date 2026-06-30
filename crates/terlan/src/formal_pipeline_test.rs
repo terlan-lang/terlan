@@ -59,6 +59,61 @@ pub type Imposter = Atom[\"imposter\"].\n",
     assert!(!bool_interface.public_types.contains("Imposter"));
 }
 
+/// Verifies hostile generated std summaries cannot poison embedded std loading.
+///
+/// Inputs:
+/// - Temporary project root containing an invalid generated
+///   `std/summaries/std.core.Bool.typi` file.
+/// - A source file outside that generated summaries directory.
+///
+/// Output:
+/// - Test passes when `load_external_interfaces` still returns the embedded
+///   release `std.core.Bool` interface.
+///
+/// Transformation:
+/// - Exercises the formal interface loader against an adversarial generated
+///   std inventory. The compiler must not recursively scan generated summary
+///   files from a project tree when release std summaries are embedded.
+#[test]
+fn adversarial_std_summary_loading_ignores_malformed_generated_inventory() {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system clock before unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "terlan_formal_adversarial_std_summary_{}_{}",
+        std::process::id(),
+        nanos
+    ));
+    let source_dir = root.join("src/app");
+    let summaries = root.join("std/summaries");
+    std::fs::create_dir_all(&source_dir).expect("create source fixture");
+    std::fs::create_dir_all(&summaries).expect("create generated summaries fixture");
+    let source_path = source_dir.join("Main.terl");
+    std::fs::write(&source_path, "module app.Main.\n").expect("write source fixture");
+    std::fs::write(
+        summaries.join("std.core.Bool.typi"),
+        "module std.core.Bool.\npub type Broken = \n",
+    )
+    .expect("write malformed generated std summary fixture");
+
+    let interfaces = load_external_interfaces(
+        source_path
+            .to_str()
+            .expect("temporary source path should be utf-8"),
+        None,
+    );
+    let _ = std::fs::remove_dir_all(&root);
+
+    let bool_interface = interfaces
+        .get("std.core.Bool")
+        .expect("embedded Bool interface");
+    assert!(bool_interface
+        .functions
+        .contains_key(&("compare".into(), 2)));
+    assert!(!bool_interface.public_types.contains("Broken"));
+}
+
 /// Verifies source discovery does not cross nested project boundaries.
 ///
 /// Inputs:
@@ -659,6 +714,57 @@ pub accepts(value: Document): Document ->
     assert_eq!(result.exit_code, ExitCode::SUCCESS);
     assert!(result.artifacts.is_some());
     assert!(result.core_diagnostics.is_empty());
+}
+
+/// Verifies generated DOM summaries stay gated from shared JS compilation.
+///
+/// Inputs:
+/// - A source module importing generated `std.js.Dom.Document.Document`.
+///
+/// Output:
+/// - Test passes when full formal compilation rejects the module under
+///   `js.shared` with a target-profile diagnostic.
+///
+/// Transformation:
+/// - Exercises generated `std.js` binding metadata through parse, embedded
+///   summary loading, typechecking, CoreIR, and target-profile validation.
+#[test]
+fn adversarial_compile_with_shared_js_profile_rejects_generated_dom_summary() {
+    let source = "\
+module js_dom_summary_reject_shared.
+
+import type std.js.Dom.Document.Document.
+
+pub accepts(value: Document): Document ->
+  value.
+";
+
+    let result = compile_syntax_module_through_phases_with_diagnostics_for_profile(
+        "src/js_dom_summary_reject_shared.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    );
+
+    assert_ne!(result.exit_code, ExitCode::SUCCESS);
+    assert!(result.artifacts.is_none());
+    let diagnostic_text = result
+        .core_diagnostics
+        .iter()
+        .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        result.core_diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "target_profile_unsupported"
+                && diagnostic
+                    .message
+                    .contains("JavaScript std module std.js.Dom.Document")
+        }),
+        "expected generated DOM target-profile diagnostic, got {diagnostic_text}"
+    );
 }
 
 /// Verifies embedded std summaries include the BEAM bridge contracts.

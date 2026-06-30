@@ -271,7 +271,6 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "doc" => commands::doc::run(cmd, state),
         "api" => commands::api::run(cmd, state),
         "deploy" => commands::deploy::run(cmd, state),
-        "otp-runtime" => commands::otp_runtime::run(cmd, state),
         "vm" => commands::vm::run(cmd, state),
         "db" => commands::db::run(cmd),
         "doctest" => commands::doc::run_doctest(cmd, state),

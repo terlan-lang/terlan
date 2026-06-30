@@ -328,16 +328,7 @@ pub(crate) fn html_start_tag_at(source: &str, offset: usize) -> Option<(String, 
         return None;
     }
 
-    let mut cursor = offset;
-    while cursor > 0 {
-        cursor -= 1;
-        match bytes[cursor] {
-            b'<' => break,
-            b'>' => return None,
-            _ => {}
-        }
-    }
-
+    let cursor = find_html_start_tag_start(source, offset)?;
     if bytes.get(cursor).copied() != Some(b'<')
         || matches!(bytes.get(cursor + 1).copied(), Some(b'/') | Some(b'!'))
     {
@@ -354,6 +345,48 @@ pub(crate) fn html_start_tag_at(source: &str, offset: usize) -> Option<(String, 
         tag_name,
         html_attr_names_in_start_tag(source, tag_end, tag_close),
     ))
+}
+
+/// Finds the start of an HTML start tag containing an offset.
+///
+/// Inputs:
+/// - `source`: source text containing inline HTML.
+/// - `offset`: byte offset expected to be inside a start tag.
+///
+/// Output:
+/// - Byte offset of the containing `<`, or `None`.
+///
+/// Transformation:
+/// - Scans forward to the hover offset while tracking quotes and braced
+///   expressions so `>` inside attribute values does not terminate the tag.
+fn find_html_start_tag_start(source: &str, offset: usize) -> Option<usize> {
+    let bytes = source.as_bytes();
+    let mut cursor = 0usize;
+    let mut tag_start = None;
+    let mut quote = None;
+    let mut brace_depth = 0usize;
+
+    while cursor < offset {
+        let byte = bytes[cursor];
+        match (tag_start, quote, byte) {
+            (None, _, b'<') => {
+                tag_start = Some(cursor);
+                quote = None;
+                brace_depth = 0;
+            }
+            (None, _, _) => {}
+            (Some(_), Some(q), b) if b == q => quote = None,
+            (Some(_), Some(_), _) => {}
+            (Some(_), None, b'"' | b'\'') => quote = Some(byte),
+            (Some(_), None, b'{') => brace_depth += 1,
+            (Some(_), None, b'}') if brace_depth > 0 => brace_depth -= 1,
+            (Some(_), None, b'>') if brace_depth == 0 => tag_start = None,
+            _ => {}
+        }
+        cursor += 1;
+    }
+
+    tag_start
 }
 
 /// Finds the closing `>` for an HTML start tag.
@@ -981,3 +1014,7 @@ fn read_ident_at(source: &str, start: usize) -> Option<(String, usize)> {
         Some((source[start..end].to_string(), end))
     }
 }
+
+#[cfg(test)]
+#[path = "hover_test.rs"]
+mod hover_test;

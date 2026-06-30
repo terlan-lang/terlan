@@ -78,18 +78,23 @@ make erlang-runtime-matrix-check  # when TERLAN_OTP_RUNTIME_BIN is configured
 make release-0-0-5-preflight
 ```
 
-Then it builds the current runner's `terlc` artifact with:
+Then the release workflow builds platform artifacts through the release matrix:
 
 ```sh
-make release-artifact-current
+terlc-linux-x86_64.tar.gz
+terlc-linux-aarch64.tar.gz
+terlc-macos-x86_64.tar.gz
+terlc-macos-aarch64.tar.gz
+terlc-windows-x86_64.zip
 ```
 
-That target also smoke-tests the packaged artifact by extracting `terlc`,
-checking its version, initializing a web-profile project, building the project
-for Erlang and `js.browser`, and validating the generated web artifact with
-`terlc serve --check`. The Linux x86_64 compatibility alias remains available
-as `make release-artifact-linux`.
+Each matrix lane runs the current-platform package helper, smoke-tests the
+packaged artifact by extracting `terlc` and `terlan-vm`, checking their
+versions, initializing a web-profile project, building the project for Erlang
+and `js.browser`, validating the generated web artifact with
+`terlc serve --check`, running the packaged `terlan-vm`, and running the public
+installer against the artifact through a local file-backed release mirror.
 
-Tagged runs upload `terlc-linux-x86_64.tar.gz` to the matching GitHub release.
-The release body is generated from the matching `CHANGELOG.md` section, such as
+Tagged runs upload every matrix artifact to the matching GitHub release. The
+release body is generated from the matching `CHANGELOG.md` section, such as
 `## 0.0.4` for tag `v0.0.4`.

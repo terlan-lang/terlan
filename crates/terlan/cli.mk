@@ -11,7 +11,7 @@ STATIC_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_static_preflight
 STATIC_DOCS_PREFLIGHT_DIR ?= /tmp/terlan_static_docs_preflight
 WEB_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_web_profile_preflight
 
-.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean typecheck-fixture emit-fixture smoke browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check web-compose-check template-contract-check private-field-check db-command-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check release-0-0-4-preflight release-0-0-5-preflight formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
+.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlan-vm-compiler-bridge-check typecheck-fixture emit-fixture smoke browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check web-compose-check template-contract-check private-field-check db-command-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check release-0-0-4-preflight release-0-0-5-preflight formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
 cli-help:
 	@echo "  make typecheck-fixture - terlan check fixture"
@@ -40,6 +40,8 @@ cli-help:
 	@echo "  make release-0-0-4-preflight - run current 0.0.4 JS target release gate"
 	@echo "  make release-0-0-5-preflight - run current 0.0.5 web/editor release gate"
 	@echo "  make release-artifact-current - build and smoke-test the current platform artifact"
+	@echo "  make vm-artifact-check - build and smoke-test the standalone terlan-vm artifact"
+	@echo "  make terlan-vm-compiler-bridge-check - compare OTP and experimental VM source execution"
 	@echo "  make formal-cli-phase-contract-gate - run CLI phase-contract golden/parity regressions"
 	@echo "  make formal-cli-build-gate - run CLI build artifact/debug-map regressions"
 	@echo "  make formal-cli-js-gate - run CLI JavaScript/Oxc output regressions"
@@ -63,13 +65,14 @@ cli-check:
 	$(CARGO) check --locked --workspace
 
 cli-build:
-	$(CARGO) build --locked --bin terlc
+	$(CARGO) build --locked --bin terlc --bin terlan-vm
 
 cli-test:
 	$(MAKE) --no-print-directory cli-test-fast
 
 cli-test-fast:
 	$(CARGO) test --locked --workspace --bins --no-run
+	$(MAKE) --no-print-directory vm-artifact-check
 	$(TERLC_EXACT_TEST) tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::build_command_emits_erlang_source_and_beam_for_single_file -- --exact
 
@@ -80,7 +83,7 @@ cli-test-full:
 cli-test-release: cli-test-full
 
 cli-release-artifact-current:
-	$(CARGO) build --release --locked --bin terlc
+	$(CARGO) build --release --locked --bin terlc --bin terlan-vm
 	mkdir -p dist
 	$(PYTHON) tools/package_release_artifact.py package
 
@@ -90,6 +93,33 @@ cli-release-artifact-linux:
 cli-clean:
 	$(CARGO) clean
 	rm -rf dist
+
+vm-artifact-check:
+	$(CARGO) build --locked --bin terlan-vm
+	rm -rf /tmp/terlan_vm_artifact_check
+	mkdir -p /tmp/terlan_vm_artifact_check
+	printf '%s\n' 'module vm_artifact.Main.' '' 'import std.io.Console.{println}.' '' 'pub main(): Unit ->' '    println("hello from terlan-vm").' > /tmp/terlan_vm_artifact_check/Main.terl
+	test "$$(target/debug/terlan-vm run /tmp/terlan_vm_artifact_check/Main.terl)" = "hello from terlan-vm"
+
+cli-terlan-vm-compiler-bridge-check:
+	$(CARGO) build --locked --bin terlc --bin terlan-vm
+	rm -rf /tmp/terlan_vm_compiler_bridge_check
+	mkdir -p /tmp/terlan_vm_compiler_bridge_check/src/app
+	printf '%s\n' '[package]' 'name = "app"' 'version = "0.0.1"' '' '[build]' 'source_roots = ["src"]' 'artifact = "beam-thin"' > /tmp/terlan_vm_compiler_bridge_check/terlan.toml
+	printf '%s\n' 'module app.Main.' '' 'import std.io.Console.{println}.' '' 'pub main(): Unit ->' '    println("hello from Terlan VM bridge").' > /tmp/terlan_vm_compiler_bridge_check/src/app/Main.terl
+	otp_output="$$(target/debug/terlc --out-dir /tmp/terlan_vm_compiler_bridge_check/_build run /tmp/terlan_vm_compiler_bridge_check)"; \
+	if [ "$$otp_output" != "hello from Terlan VM bridge" ]; then \
+		printf '%s\n' "terlan-vm compiler bridge check failed in OTP lane"; \
+		printf '%s\n' "$$otp_output"; \
+		exit 1; \
+	fi; \
+	vm_output="$$(target/debug/terlan-vm run /tmp/terlan_vm_compiler_bridge_check/src/app/Main.terl)"; \
+	if [ "$$vm_output" != "$$otp_output" ]; then \
+		printf '%s\n' "terlan-vm compiler bridge check failed in experimental VM lane"; \
+		printf '%s\n' "otp: $$otp_output"; \
+		printf '%s\n' "vm:  $$vm_output"; \
+		exit 1; \
+	fi
 
 typecheck-fixture:
 	$(TERLC) check $(FIXTURE)

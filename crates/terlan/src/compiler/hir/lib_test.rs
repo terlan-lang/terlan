@@ -133,6 +133,66 @@ pub identity(user: User): User ->\n\
     );
 }
 
+/// Verifies pathological duplicate type imports diagnose deterministically.
+///
+/// Inputs:
+/// - Two provider interfaces exporting the same public type name.
+/// - A consumer importing both surfaces through wildcard imports.
+///
+/// Output:
+/// - Test passes when HIR records a duplicate imported type diagnostic.
+///
+/// Transformation:
+/// - Exercises adversarial import expansion where multiple providers attempt
+///   to bind the same local type name.
+#[test]
+fn adversarial_hir_rejects_pathological_duplicate_wildcard_imports() {
+    let primary = parse_interface_module_as_syntax_output(
+        "\
+module provider.Primary.\n\
+\n\
+pub type User = Int.\n",
+    )
+    .expect("parse primary provider interface");
+    let secondary = parse_interface_module_as_syntax_output(
+        "\
+module provider.Secondary.\n\
+\n\
+pub type User = String.\n",
+    )
+    .expect("parse secondary provider interface");
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "provider.Primary".to_string(),
+        syntax_module_output_to_interface(&primary),
+    );
+    interfaces.insert(
+        "provider.Secondary".to_string(),
+        syntax_module_output_to_interface(&secondary),
+    );
+    let consumer = parse_module_as_syntax_output(
+        "\
+module adversarial_duplicate_imports.\n\
+\n\
+import provider.Primary.{*}.\n\
+import provider.Secondary.{*}.\n\
+\n\
+pub identity(user: User): User ->\n\
+    user.\n",
+    )
+    .expect("parse duplicate import consumer");
+
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+
+    assert!(
+        resolved.diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("duplicate imported type name 'User'")),
+        "expected duplicate imported type diagnostic, got {:?}",
+        resolved.diagnostics
+    );
+}
+
 /// Verifies test-layout `std` directories do not shadow root std summaries.
 ///
 /// Inputs:

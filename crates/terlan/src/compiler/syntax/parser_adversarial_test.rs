@@ -31,6 +31,107 @@ mod tests {
         }
     }
 
+    /// Verifies large but bounded nested expressions remain supported.
+    ///
+    /// Inputs:
+    /// - A parenthesized expression fixture inside the parser depth budget.
+    ///
+    /// Output:
+    /// - Test passes when parsing succeeds without stack overflow or cursor
+    ///   corruption.
+    ///
+    /// Transformation:
+    /// - Builds a generated nesting fixture large enough to exercise repeated
+    ///   recursive descent while keeping the test deterministic and fast.
+    #[test]
+    fn adversarial_expr_accepts_guarded_balanced_parentheses_without_panic() {
+        let depth = 8;
+        let source = format!("{}1{}", "(".repeat(depth), ")".repeat(depth));
+
+        parse_terlan_expr(&source).expect("guarded balanced expression should parse");
+    }
+
+    /// Verifies excessive nesting is rejected before recursive descent.
+    ///
+    /// Inputs:
+    /// - A parenthesized expression fixture beyond the parser depth budget.
+    ///
+    /// Output:
+    /// - Test passes when parsing returns a diagnostic instead of overflowing
+    ///   the process stack.
+    ///
+    /// Transformation:
+    /// - Guards the release parser against generated or malicious source that
+    ///   attempts to exhaust recursive descent.
+    #[test]
+    fn adversarial_expr_rejects_excessive_parentheses_without_stack_overflow() {
+        let depth = 256;
+        let source = format!("{}1{}", "(".repeat(depth), ")".repeat(depth));
+
+        let error = parse_terlan_expr(&source).expect_err("excessive nesting should fail");
+        assert!(
+            error.message.contains("nesting depth"),
+            "unexpected nesting error: {}",
+            error.message
+        );
+    }
+
+    /// Verifies SQL interpolation expressions inherit parser depth guards.
+    ///
+    /// Inputs:
+    /// - A typed SQL form containing a deeply nested Terlan interpolation.
+    ///
+    /// Output:
+    /// - Test passes when the SQL form returns the same parser nesting
+    ///   diagnostic instead of recursing through the interpolation parser.
+    ///
+    /// Transformation:
+    /// - Exercises the raw SQL scanner boundary where SQL text hands `${...}`
+    ///   source back to normal Terlan expression parsing.
+    #[test]
+    fn adversarial_sql_interpolation_rejects_excessive_nested_expression() {
+        let depth = 256;
+        let interpolation = format!("{}1{}", "(".repeat(depth), ")".repeat(depth));
+        let source = format!("sql[UserRow] {{select ${{{interpolation}}}}}");
+
+        let error = parse_terlan_expr(&source).expect_err("excessive SQL nesting should fail");
+        assert!(
+            error.message.contains("nesting depth"),
+            "unexpected SQL nesting error: {}",
+            error.message
+        );
+    }
+
+    /// Verifies Unicode text does not turn into Unicode identifiers.
+    ///
+    /// Inputs:
+    /// - A module declaration containing non-ASCII identifier characters.
+    /// - A valid source string containing Unicode text.
+    ///
+    /// Output:
+    /// - Test passes when the identifier is rejected and the string payload is
+    ///   still accepted.
+    ///
+    /// Transformation:
+    /// - Guards the language boundary where Unicode is data, while identifiers
+    ///   remain predictable ASCII source names.
+    #[test]
+    fn adversarial_module_rejects_unicode_identifiers_but_accepts_unicode_strings() {
+        let error = parse_module("module café.Main.\n")
+            .expect_err("Unicode module identifiers must not parse");
+        assert!(!error.message.trim().is_empty());
+
+        parse_module(
+            r#"
+module unicode_string_accept.
+
+pub hello(): String ->
+    "λ🔥".
+"#,
+        )
+        .expect("Unicode string payload should parse");
+    }
+
     /// Verifies removed Erlang source syntax remains rejected.
     ///
     /// Inputs:

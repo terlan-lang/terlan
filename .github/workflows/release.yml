@@ -10,8 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  linux-x86_64:
-    name: terlc linux x86_64
+  validate:
+    name: validate release
     runs-on: ubuntu-latest
 
     steps:
@@ -71,17 +71,79 @@ jobs:
       - name: Current release preflight
         run: make release-0-0-5-preflight
 
+  artifacts:
+    name: ${{ matrix.artifact }}
+    needs: validate
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            release_os: Linux
+            release_arch: x86_64
+            artifact: terlc-linux-x86_64.tar.gz
+          - runner: ubuntu-24.04-arm
+            release_os: Linux
+            release_arch: aarch64
+            artifact: terlc-linux-aarch64.tar.gz
+          - runner: macos-13
+            release_os: Darwin
+            release_arch: x86_64
+            artifact: terlc-macos-x86_64.tar.gz
+          - runner: macos-14
+            release_os: Darwin
+            release_arch: arm64
+            artifact: terlc-macos-aarch64.tar.gz
+          - runner: windows-latest
+            release_os: Windows
+            release_arch: AMD64
+            artifact: terlc-windows-x86_64.zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Install Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "29"
+
       - name: Build artifact
-        run: make release-artifact-current
+        env:
+          TERLAN_RELEASE_OS: ${{ matrix.release_os }}
+          TERLAN_RELEASE_ARCH: ${{ matrix.release_arch }}
+        run: |
+          cargo build --release --locked --bin terlc --bin terlan-vm
+          python -B tools/package_release_artifact.py package
+          python -B tools/package_release_artifact.py smoke
+          python -B tools/package_release_artifact.py installer-smoke
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: terlc-linux-x86_64
-          path: dist/terlc-linux-x86_64.tar.gz
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+
+  release:
+    name: publish GitHub release
+    needs: artifacts
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
 
       - name: Prepare release notes
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           version="${GITHUB_REF_NAME#v}"
           awk -v version="$version" '
@@ -95,7 +157,6 @@ jobs:
           fi
 
       - name: Upload release asset
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -104,4 +165,6 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md
           fi
-          gh release upload "$GITHUB_REF_NAME" dist/terlc-linux-x86_64.tar.gz --clobber
+          while IFS= read -r -d '' artifact; do
+            gh release upload "$GITHUB_REF_NAME" "$artifact" --clobber
+          done < <(find release-artifacts -type f -name 'terlc-*' -print0)

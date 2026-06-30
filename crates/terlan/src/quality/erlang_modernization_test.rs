@@ -3,7 +3,11 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::{run_erlang_modernization_inventory, run_erlang_runtime_matrix};
+use serde_json::json;
+
+use super::{
+    run_erlang_modernization_inventory, run_erlang_runtime_matrix, validate_em0_artifact_evidence,
+};
 
 static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
@@ -34,6 +38,31 @@ fn erlang_modernization_inventory_emits_required_artifacts() {
         .repo
         .join("_build/erlang-modernization/reduced-otp-profile.md")
         .is_file());
+}
+
+#[test]
+fn erlang_modernization_inventory_validates_artifact_evidence() {
+    let artifact = json!({
+        "schema": "terlan-erlang-modernization-compatibility-probes-v1",
+        "probes": ["message_ordering"],
+        "status": "defined_not_yet_executed"
+    });
+
+    validate_em0_artifact_evidence("compatibility-probes", &artifact).unwrap();
+}
+
+#[test]
+fn erlang_modernization_inventory_rejects_placeholder_artifacts() {
+    let artifact = json!({
+        "schema": "terlan-erlang-modernization-compatibility-probes-v1",
+        "probes": [],
+        "status": "defined_not_yet_executed"
+    });
+
+    let error = validate_em0_artifact_evidence("compatibility-probes", &artifact).unwrap_err();
+
+    assert!(error.contains("empty evidence"));
+    assert!(error.contains("/probes"));
 }
 
 #[test]
@@ -72,14 +101,14 @@ fn erlang_modernization_inventory_rejects_experimental_runtime_dependency() {
     ]);
     fs::write(
         sandbox.repo.join("Cargo.toml"),
-        "[dependencies]\nterlan-vm = { path = \"../terlan-vm\" }\n",
+        "[dependencies]\nexperimental-runtime = { path = \"../terlan-vm\" }\n",
     )
     .unwrap();
 
     let error = run_erlang_modernization_inventory(&sandbox.repo).unwrap_err();
 
     assert!(error.contains("experimental runtime dependency"));
-    assert!(error.contains("terlan-vm"));
+    assert!(error.contains("experimental-runtime"));
 }
 
 #[test]

@@ -933,6 +933,14 @@ fn reset_compose_dependencies(
 }
 
 fn normalize_database_host_port(app_env: &mut BTreeMap<String, String>) -> Result<(), String> {
+    normalize_database_host_port_with(app_env, port_is_available, free_local_port)
+}
+
+fn normalize_database_host_port_with(
+    app_env: &mut BTreeMap<String, String>,
+    port_is_available: impl Fn(u16) -> bool,
+    free_local_port: impl Fn() -> Result<u16, String>,
+) -> Result<(), String> {
     let configured = env_value(app_env, "POSTGRES_PORT", DEFAULT_DB_PORT);
     let Ok(configured_port) = configured.parse::<u16>() else {
         return Ok(());
@@ -1600,23 +1608,25 @@ traits = ["websocket-checks"]
 
     #[test]
     fn normalize_database_host_port_preserves_available_port() {
-        let listener = TcpListener::bind(("127.0.0.1", 0)).expect("listener");
-        let port = listener.local_addr().expect("address").port();
-        drop(listener);
-
+        let port = 55_432;
         let mut env = BTreeMap::from([("POSTGRES_PORT".to_string(), port.to_string())]);
-        normalize_database_host_port(&mut env).expect("normalize");
+        normalize_database_host_port_with(
+            &mut env,
+            |candidate| candidate == port,
+            || Err("replacement should not be allocated".to_string()),
+        )
+        .expect("normalize");
         assert_eq!(env.get("POSTGRES_PORT"), Some(&port.to_string()));
     }
 
     #[test]
     fn normalize_database_host_port_replaces_busy_port() {
-        let listener = TcpListener::bind(("127.0.0.1", 0)).expect("listener");
-        let port = listener.local_addr().expect("address").port();
-
+        let port = 55_432;
+        let replacement = 55_433;
         let mut env = BTreeMap::from([("POSTGRES_PORT".to_string(), port.to_string())]);
-        normalize_database_host_port(&mut env).expect("normalize");
-        assert_ne!(env.get("POSTGRES_PORT"), Some(&port.to_string()));
+        normalize_database_host_port_with(&mut env, |_| false, || Ok(replacement))
+            .expect("normalize");
+        assert_eq!(env.get("POSTGRES_PORT"), Some(&replacement.to_string()));
     }
 
     #[test]

@@ -1263,7 +1263,9 @@ module profile_test_a0_19_qualified_calls.\n\npub value(): Int ->\n    1.\n\npub
         a0_19.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation.message.contains("target `a0.19-erlang`")
-                && violation.message.contains("missing typed payload")
+                && violation
+                    .message
+                    .contains("typed expression shape RemoteCall")
         }),
         "A0.19 Erlang profile should reject A0.20 qualified/scoped calls: {:?}",
         a0_19

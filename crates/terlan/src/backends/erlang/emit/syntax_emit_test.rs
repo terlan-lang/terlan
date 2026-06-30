@@ -2040,6 +2040,44 @@ Missing(value).
     );
 }
 
+/// Verifies backend emission fails closed for unresolved constructor-like calls.
+///
+/// Inputs:
+/// - Syntax-output source with an uppercase call head that was not resolved by
+///   constructor/type analysis.
+///
+/// Output:
+/// - Test passes when Erlang lowering returns `None`.
+///
+/// Transformation:
+/// - Exercises the backend adversarial path directly so unresolved source
+///   shapes cannot leak into generated Erlang as plain function calls.
+#[test]
+fn adversarial_backend_emit_rejects_unresolved_uppercase_call_heads() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module adversarial_unknown_constructor_emit.
+
+pub make(value: Dynamic): Dynamic ->
+    UnknownConstructor(value).
+"#,
+    )
+    .expect("parse adversarial unresolved constructor emit fixture");
+
+    let output = super::lower_syntax_module_output(
+        &module,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    );
+
+    assert!(
+        output.is_none(),
+        "unresolved uppercase call heads must fail before Erlang rendering"
+    );
+}
+
 /// Verifies primitive receiver named arguments lower in intrinsic ABI order.
 ///
 /// Inputs:

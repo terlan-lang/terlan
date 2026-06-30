@@ -1,7 +1,6 @@
 param(
     [string]$Version = $env:TERLAN_VERSION,
     [string]$InstallDir = $env:TERLAN_INSTALL_DIR,
-    [string]$LibDir = $env:TERLAN_INSTALL_LIB_DIR,
     [switch]$DryRun
 )
 
@@ -13,11 +12,6 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\Terlan\bin"
-}
-
-if ([string]::IsNullOrWhiteSpace($LibDir)) {
-    $installPrefix = Split-Path -Parent $InstallDir
-    $LibDir = Join-Path $installPrefix "lib\terlan"
 }
 
 $releaseBaseUrl = $env:TERLAN_RELEASE_BASE_URL
@@ -49,7 +43,6 @@ if ($DryRun -or $env:TERLAN_INSTALL_DRY_RUN -eq "1") {
     "artifact=$artifact"
     "url=$url"
     "install_dir=$InstallDir"
-    "lib_dir=$LibDir"
     exit 0
 }
 
@@ -58,31 +51,30 @@ New-Item -ItemType Directory -Path $tmpDir | Out-Null
 
 try {
     $archive = Join-Path $tmpDir $artifact
-    Invoke-WebRequest -Uri $url -OutFile $archive
+    if ($url.StartsWith("file://")) {
+        $localArtifact = ([System.Uri]$url).LocalPath
+        Copy-Item -Path $localArtifact -Destination $archive -Force
+    }
+    else {
+        Invoke-WebRequest -Uri $url -OutFile $archive
+    }
     Expand-Archive -Path $archive -DestinationPath $tmpDir -Force
 
     $source = Join-Path $tmpDir "terlc.exe"
     if (-not (Test-Path $source)) {
         throw "release artifact $artifact did not contain terlc.exe"
     }
-    $runtimeSource = Join-Path $tmpDir "experimental\terlan-vm"
-    if (-not (Test-Path $runtimeSource)) {
-        throw "release artifact $artifact did not contain experimental\terlan-vm"
+    $vmSource = Join-Path $tmpDir "terlan-vm.exe"
+    if (-not (Test-Path $vmSource)) {
+        throw "release artifact $artifact did not contain terlan-vm.exe"
     }
 
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     Move-Item -Path $source -Destination (Join-Path $InstallDir "terlc.exe") -Force
-
-    $runtimeDestRoot = Join-Path $LibDir "experimental"
-    $runtimeDest = Join-Path $runtimeDestRoot "terlan-vm"
-    New-Item -ItemType Directory -Path $runtimeDestRoot -Force | Out-Null
-    if (Test-Path $runtimeDest) {
-        Remove-Item -Path $runtimeDest -Recurse -Force
-    }
-    Copy-Item -Path $runtimeSource -Destination $runtimeDest -Recurse -Force
+    Move-Item -Path $vmSource -Destination (Join-Path $InstallDir "terlan-vm.exe") -Force
 
     & (Join-Path $InstallDir "terlc.exe") --version
-    & (Join-Path $InstallDir "terlc.exe") --experimental otp-runtime version
+    & (Join-Path $InstallDir "terlan-vm.exe") --version
 }
 finally {
     Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue

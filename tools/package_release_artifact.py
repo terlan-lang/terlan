@@ -2,10 +2,9 @@
 """Package and smoke-test Terlan release artifacts.
 
 Inputs:
-- A compiled `terlc` binary under the Cargo release target directory.
+- Compiled `terlc` and `terlan-vm` binaries under the Cargo release target
+  directory.
 - Optional `TERLAN_RELEASE_OS` and `TERLAN_RELEASE_ARCH` overrides.
-- Optional `TERLAN_RELEASE_INCLUDE_EXPERIMENTAL_VM=0` to suppress the staged
-  OTP compatibility runtime payload for local diagnostics only.
 
 Outputs:
 - `dist/terlc-<os>-<arch>.tar.gz` for Linux and macOS.
@@ -14,9 +13,8 @@ Outputs:
 
 Transformation:
 - Detects the host platform, maps it to the installer artifact naming contract,
-  and writes a single release archive containing the compiler binary.
-- Includes the experimental OTP compatibility runtime in normal release
-  artifacts so the hidden runtime flow can be exercised from installed builds.
+  and writes a single release archive containing the compiler and standalone VM
+  binaries.
 """
 
 from __future__ import annotations
@@ -37,8 +35,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DIST_DIR = ROOT / "dist"
 RELEASE_TARGET_DIR = ROOT / "target" / "release"
-EXPERIMENTAL_VM_SOURCE = DIST_DIR / "experimental" / "terlan-vm"
-EXPERIMENTAL_VM_ARCHIVE_NAME = "experimental/terlan-vm"
 
 
 @dataclass(frozen=True)
@@ -60,12 +56,20 @@ class ReleasePlatform:
     arch: str
 
     @property
-    def binary_name(self) -> str:
-        """Return the executable filename used inside the artifact."""
+    def compiler_binary_name(self) -> str:
+        """Return the compiler executable filename used inside the artifact."""
 
         if self.os_name == "windows":
             return "terlc.exe"
         return "terlc"
+
+    @property
+    def vm_binary_name(self) -> str:
+        """Return the standalone VM executable filename used inside the artifact."""
+
+        if self.os_name == "windows":
+            return "terlan-vm.exe"
+        return "terlan-vm"
 
     @property
     def artifact_name(self) -> str:
@@ -125,87 +129,57 @@ def detect_release_platform() -> ReleasePlatform:
     return ReleasePlatform(normalize_os(raw_os), normalize_arch(raw_arch))
 
 
-def release_binary_path(release_platform: ReleasePlatform) -> Path:
-    """Return the compiled release binary expected for the platform."""
+def release_binary_paths(release_platform: ReleasePlatform) -> list[Path]:
+    """Return compiled release binaries expected for the platform."""
 
-    return RELEASE_TARGET_DIR / release_platform.binary_name
+    return [
+        RELEASE_TARGET_DIR / release_platform.compiler_binary_name,
+        RELEASE_TARGET_DIR / release_platform.vm_binary_name,
+    ]
 
 
-def copy_binary_to_dist(release_platform: ReleasePlatform) -> Path:
-    """Copy the compiled release binary into `dist/`.
+def copy_release_binaries_to_dist(release_platform: ReleasePlatform) -> list[Path]:
+    """Copy the compiled release binaries into `dist/`.
 
     Inputs:
     - Normalized release platform.
 
     Outputs:
-    - Path to the copied binary under `dist/`.
+    - Paths to copied binaries under `dist/`.
 
     Transformation:
     - Keeps artifact construction independent from Cargo's target directory.
     """
 
-    source = release_binary_path(release_platform)
-    if not source.is_file():
-        raise FileNotFoundError(f"release binary is missing: {source}")
     DIST_DIR.mkdir(parents=True, exist_ok=True)
-    destination = DIST_DIR / release_platform.binary_name
-    shutil.copy2(source, destination)
-    destination.chmod(destination.stat().st_mode | 0o755)
-    return destination
+    copied: list[Path] = []
+    for source in release_binary_paths(release_platform):
+        if not source.is_file():
+            raise FileNotFoundError(f"release binary is missing: {source}")
+        destination = DIST_DIR / source.name
+        shutil.copy2(source, destination)
+        destination.chmod(destination.stat().st_mode | 0o755)
+        copied.append(destination)
+    return copied
 
 
-def include_experimental_vm() -> bool:
-    """Return whether the experimental OTP runtime payload should be packaged."""
-
-    return os.environ.get("TERLAN_RELEASE_INCLUDE_EXPERIMENTAL_VM") != "0"
-
-
-def validate_experimental_vm_source() -> Path:
-    """Return the staged experimental OTP runtime payload path.
-
-    Inputs:
-    - `dist/experimental/terlan-vm` staged by local runtime tooling.
-
-    Outputs:
-    - Payload directory path.
-
-    Transformation:
-    - Validates the minimum executable surface needed by
-      `terlc --experimental otp-runtime`.
-    """
-
-    source = EXPERIMENTAL_VM_SOURCE
-    if not source.is_dir():
-        raise FileNotFoundError(f"experimental OTP runtime payload is missing: {source}")
-    for binary in ["erl", "erlc"]:
-        path = source / "bin" / binary
-        if not path.is_file():
-            raise FileNotFoundError(f"experimental OTP runtime payload is missing {path}")
-    return source
-
-
-def write_tar_artifact(release_platform: ReleasePlatform, binary: Path) -> Path:
+def write_tar_artifact(release_platform: ReleasePlatform, binaries: list[Path]) -> Path:
     """Write a `.tar.gz` release artifact."""
 
     artifact = release_platform.artifact_path
     with tarfile.open(artifact, "w:gz") as archive:
-        archive.add(binary, arcname=release_platform.binary_name)
-        if include_experimental_vm():
-            archive.add(validate_experimental_vm_source(), arcname=EXPERIMENTAL_VM_ARCHIVE_NAME)
+        for binary in binaries:
+            archive.add(binary, arcname=binary.name)
     return artifact
 
 
-def write_zip_artifact(release_platform: ReleasePlatform, binary: Path) -> Path:
+def write_zip_artifact(release_platform: ReleasePlatform, binaries: list[Path]) -> Path:
     """Write a `.zip` release artifact."""
 
     artifact = release_platform.artifact_path
     with zipfile.ZipFile(artifact, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.write(binary, arcname=release_platform.binary_name)
-        if include_experimental_vm():
-            source = validate_experimental_vm_source()
-            for path in source.rglob("*"):
-                if path.is_file():
-                    archive.write(path, arcname=Path(EXPERIMENTAL_VM_ARCHIVE_NAME) / path.relative_to(source))
+        for binary in binaries:
+            archive.write(binary, arcname=binary.name)
     return artifact
 
 
@@ -213,11 +187,11 @@ def package_artifact() -> Path:
     """Package the current release artifact and print its path."""
 
     release_platform = detect_release_platform()
-    binary = copy_binary_to_dist(release_platform)
+    binaries = copy_release_binaries_to_dist(release_platform)
     if release_platform.os_name == "windows":
-        artifact = write_zip_artifact(release_platform, binary)
+        artifact = write_zip_artifact(release_platform, binaries)
     else:
-        artifact = write_tar_artifact(release_platform, binary)
+        artifact = write_tar_artifact(release_platform, binaries)
     print(artifact.relative_to(ROOT))
     return artifact
 
@@ -240,8 +214,8 @@ def describe_artifact() -> None:
     print(f"os={release_platform.os_name}")
     print(f"arch={release_platform.arch}")
     print(f"artifact={release_platform.artifact_name}")
-    print(f"binary={release_platform.binary_name}")
-    print(f"experimental_vm={str(include_experimental_vm()).lower()}")
+    print(f"binary={release_platform.compiler_binary_name}")
+    print(f"vm_binary={release_platform.vm_binary_name}")
 
 
 def extract_artifact(artifact: Path, destination: Path) -> None:
@@ -284,14 +258,22 @@ def smoke_artifact() -> None:
     with tempfile.TemporaryDirectory(prefix="terlan-release-artifact-smoke.") as tmp:
         tmpdir = Path(tmp)
         extract_artifact(artifact, tmpdir)
-        binary = tmpdir / release_platform.binary_name
+        binary = tmpdir / release_platform.compiler_binary_name
+        vm_binary = tmpdir / release_platform.vm_binary_name
         if not binary.is_file():
-            raise FileNotFoundError(f"artifact did not contain {release_platform.binary_name}")
+            raise FileNotFoundError(f"artifact did not contain {release_platform.compiler_binary_name}")
+        if not vm_binary.is_file():
+            raise FileNotFoundError(f"artifact did not contain {release_platform.vm_binary_name}")
         binary.chmod(binary.stat().st_mode | 0o755)
+        vm_binary.chmod(vm_binary.stat().st_mode | 0o755)
         version_output = subprocess.check_output([str(binary), "--version"], text=True).strip()
         expected = f"terlc {cargo_version()}"
         if version_output != expected:
             raise AssertionError(f"expected `{expected}`, got `{version_output}`")
+        vm_version_output = subprocess.check_output([str(vm_binary), "--version"], text=True).strip()
+        expected_vm = f"terlan-vm {cargo_version()}"
+        if vm_version_output != expected_vm:
+            raise AssertionError(f"expected `{expected_vm}`, got `{vm_version_output}`")
 
         hello = tmpdir / "hello"
         run_smoke_command([str(binary), "init", str(hello), "--profile", "web"])
@@ -325,18 +307,103 @@ def smoke_artifact() -> None:
         if not web_asset.is_file():
             raise FileNotFoundError(f"web asset was not packaged: {web_asset}")
         run_smoke_command([str(binary), "serve", str(hello / "_build" / "web"), "--check"])
-        if include_experimental_vm():
-            bundled_runtime = tmpdir / EXPERIMENTAL_VM_ARCHIVE_NAME
-            if not (bundled_runtime / "bin" / "erl").is_file():
-                raise FileNotFoundError(f"bundled experimental VM missing erl: {bundled_runtime}")
-            run_smoke_command([str(binary), "--experimental", "otp-runtime", "version"])
+        vm_source = tmpdir / "vm_hello.terl"
+        vm_source.write_text(
+            "\n".join(
+                [
+                    "module vm_release.Main.",
+                    "",
+                    "import std.io.Console.{println}.",
+                    "",
+                    "pub main(): Unit ->",
+                    '    println("hello from release terlan-vm").',
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        vm_output = subprocess.check_output([str(vm_binary), "run", str(vm_source)], text=True).strip()
+        if vm_output != "hello from release terlan-vm":
+            raise AssertionError(f"expected release VM hello output, got `{vm_output}`")
+
+
+def run_installer_smoke_command(command: list[str], env: dict[str, str]) -> None:
+    """Run one installer smoke command with stable diagnostics."""
+
+    subprocess.run(command, cwd=ROOT, env=env, text=True, check=True)
+
+
+def smoke_installer_from_artifact() -> None:
+    """Smoke-test the public installer against a local release download.
+
+    Inputs:
+    - Packaged current-platform artifact under `dist/`.
+
+    Outputs:
+    - Exit status 0 when the installer downloads, extracts, installs, and runs
+      `terlc` plus `terlan-vm`.
+
+    Transformation:
+    - Serves the already-packaged artifact from a local file-backed release
+      mirror and runs the same installer entrypoint users run for the current
+      platform.
+    """
+
+    release_platform = detect_release_platform()
+    artifact = release_platform.artifact_path
+    if not artifact.is_file():
+        raise FileNotFoundError(f"release artifact is missing: {artifact}")
+    version = f"v{cargo_version()}"
+    with tempfile.TemporaryDirectory(prefix="terlan-installer-artifact-smoke.") as tmp:
+        tmpdir = Path(tmp)
+        release_dir = tmpdir / "releases" / version
+        release_dir.mkdir(parents=True)
+        shutil.copy2(artifact, release_dir / artifact.name)
+        install_dir = tmpdir / "install" / "bin"
+        release_base_url = (tmpdir / "releases").as_uri()
+        env = os.environ.copy()
+        env.update(
+            {
+                "TERLAN_VERSION": version,
+                "TERLAN_INSTALL_DIR": str(install_dir),
+                "TERLAN_RELEASE_BASE_URL": release_base_url,
+            }
+        )
+        if release_platform.os_name == "windows":
+            run_installer_smoke_command(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(ROOT / "install.ps1"),
+                ],
+                env,
+            )
+        else:
+            run_installer_smoke_command(["sh", str(ROOT / "install.sh")], env)
+        compiler = install_dir / release_platform.compiler_binary_name
+        vm = install_dir / release_platform.vm_binary_name
+        if not compiler.is_file():
+            raise FileNotFoundError(f"installer did not install {compiler.name}")
+        if not vm.is_file():
+            raise FileNotFoundError(f"installer did not install {vm.name}")
+        expected = f"terlc {cargo_version()}"
+        actual = subprocess.check_output([str(compiler), "--version"], text=True).strip()
+        if actual != expected:
+            raise AssertionError(f"expected `{expected}`, got `{actual}`")
+        expected_vm = f"terlan-vm {cargo_version()}"
+        actual_vm = subprocess.check_output([str(vm), "--version"], text=True).strip()
+        if actual_vm != expected_vm:
+            raise AssertionError(f"expected `{expected_vm}`, got `{actual_vm}`")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse release artifact helper arguments."""
 
     parser = argparse.ArgumentParser(description="Package or smoke-test terlc release artifacts.")
-    parser.add_argument("command", choices=["describe", "package", "smoke"])
+    parser.add_argument("command", choices=["describe", "package", "smoke", "installer-smoke"])
     return parser.parse_args(argv)
 
 
@@ -349,8 +416,10 @@ def main(argv: list[str]) -> int:
             describe_artifact()
         elif args.command == "package":
             package_artifact()
-        else:
+        elif args.command == "smoke":
             smoke_artifact()
+        else:
+            smoke_installer_from_artifact()
     except Exception as exc:  # noqa: BLE001 - stable CLI diagnostics for release gates.
         print(f"release artifact helper failed: {exc}", file=sys.stderr)
         return 1

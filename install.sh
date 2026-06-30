@@ -3,8 +3,6 @@ set -eu
 
 VERSION="${TERLAN_VERSION:-v0.0.5}"
 INSTALL_DIR="${TERLAN_INSTALL_DIR:-/usr/local/bin}"
-INSTALL_PREFIX="$(dirname "$INSTALL_DIR")"
-LIB_DIR="${TERLAN_INSTALL_LIB_DIR:-${INSTALL_PREFIX}/lib/terlan}"
 RELEASE_BASE_URL="${TERLAN_RELEASE_BASE_URL:-https://github.com/terlan-lang/terlan/releases/download}"
 DETECTED_OS="${TERLAN_INSTALL_OS:-$(uname -s)}"
 DETECTED_ARCH="${TERLAN_INSTALL_ARCH:-$(uname -m)}"
@@ -46,7 +44,6 @@ if [ "${TERLAN_INSTALL_DRY_RUN:-0}" = "1" ]; then
   printf 'artifact=%s\n' "$ARTIFACT"
   printf 'url=%s\n' "$URL"
   printf 'install_dir=%s\n' "$INSTALL_DIR"
-  printf 'lib_dir=%s\n' "$LIB_DIR"
   exit 0
 fi
 
@@ -60,30 +57,20 @@ cd "$TMP_DIR"
 curl -fL "$URL" -o terlc.tar.gz
 tar -xzf terlc.tar.gz
 chmod +x terlc
-if [ ! -d experimental/terlan-vm ]; then
-  echo "release artifact $ARTIFACT did not contain experimental/terlan-vm" >&2
+if [ ! -f terlan-vm ]; then
+  echo "release artifact $ARTIFACT did not contain terlan-vm" >&2
   exit 1
 fi
+chmod +x terlan-vm
 mkdir -p "$INSTALL_DIR"
 
 if [ -w "$INSTALL_DIR" ]; then
   mv terlc "$INSTALL_DIR/terlc"
+  mv terlan-vm "$INSTALL_DIR/terlan-vm"
 else
   sudo mv terlc "$INSTALL_DIR/terlc"
-fi
-
-if [ -d "$LIB_DIR" ] && [ -w "$LIB_DIR" ]; then
-  rm -rf "$LIB_DIR/experimental/terlan-vm"
-  mkdir -p "$LIB_DIR/experimental"
-  cp -R experimental/terlan-vm "$LIB_DIR/experimental/terlan-vm"
-elif [ ! -e "$LIB_DIR" ] && mkdir -p "$LIB_DIR" 2>/dev/null; then
-  mkdir -p "$LIB_DIR/experimental"
-  cp -R experimental/terlan-vm "$LIB_DIR/experimental/terlan-vm"
-else
-  sudo rm -rf "$LIB_DIR/experimental/terlan-vm"
-  sudo mkdir -p "$LIB_DIR/experimental"
-  sudo cp -R experimental/terlan-vm "$LIB_DIR/experimental/terlan-vm"
+  sudo mv terlan-vm "$INSTALL_DIR/terlan-vm"
 fi
 
 "$INSTALL_DIR/terlc" --version
-"$INSTALL_DIR/terlc" --experimental otp-runtime version
+"$INSTALL_DIR/terlan-vm" --version

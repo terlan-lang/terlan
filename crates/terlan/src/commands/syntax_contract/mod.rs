@@ -277,3 +277,7 @@ pub(crate) fn syntax_contract_command_output(
 fn syntax_contract_load_error(message: String) -> String {
     format!("failed to load syntax contract artifact: {message}")
 }
+
+#[cfg(test)]
+#[path = "mod_test.rs"]
+mod mod_test;

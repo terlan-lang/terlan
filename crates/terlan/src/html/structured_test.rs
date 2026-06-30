@@ -126,6 +126,49 @@ fn validate_artifact_template_structure_rejects_unknown_suffix() {
     );
 }
 
+/// Verifies oversized empty structured-template interpolations fail early.
+///
+/// Inputs:
+/// - JSON, YAML, and TOML artifact templates containing large whitespace-only
+///   interpolation islands.
+///
+/// Output:
+/// - Test passes when each target returns its interpolation diagnostic instead
+///   of delegating malformed masked content to the backend parser.
+///
+/// Transformation:
+/// - Exercises the hostile asset-template boundary where a generated fixture
+///   can be large while still semantically empty.
+#[test]
+fn adversarial_structured_templates_reject_oversized_empty_interpolations() {
+    let whitespace = " ".repeat(8192);
+    let json_source = ["{\"value\": ${", &whitespace, "}}"].concat();
+    let yaml_source = ["value: ${", &whitespace, "}\n"].concat();
+    let toml_source = ["value = ${", &whitespace, "}\n"].concat();
+
+    for (source, path, expected) in [
+        (
+            json_source.as_str(),
+            "templates/data.terl.json",
+            "empty JSON template interpolation",
+        ),
+        (
+            yaml_source.as_str(),
+            "templates/data.terl.yaml",
+            "empty YAML template interpolation",
+        ),
+        (
+            toml_source.as_str(),
+            "templates/data.terl.toml",
+            "empty TOML template interpolation",
+        ),
+    ] {
+        let diagnostics = validate_artifact_template_structure(source, path)
+            .expect_err("oversized empty interpolation should fail");
+        assert_eq!(diagnostics[0].message, expected);
+    }
+}
+
 /// Dispatches TOML templates to the TOML structure validator.
 ///
 /// Inputs:

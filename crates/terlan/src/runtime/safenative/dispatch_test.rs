@@ -319,6 +319,42 @@ fn bridge_dispatch_native_vector_allocates_and_mutates_handle() {
     );
 }
 
+/// Verifies SafeNative bridge dispatch rejects cross-resource handle confusion.
+///
+/// Inputs:
+/// - A Vector resource handle passed to a JSON bridge accessor.
+///
+/// Output:
+/// - Test passes when dispatch returns the stable `resource.kind` error code.
+///
+/// Transformation:
+/// - Exercises an adversarial bridge call where the handle is live and valid
+///   but points at the wrong resource domain.
+#[test]
+fn adversarial_safenative_dispatch_rejects_cross_resource_handle_confusion() {
+    let mut store = ResourceStore::new();
+    let Some(SafeNativeBridgeValue::Handle(vector)) = bridge_dispatch_ok(
+        &mut store,
+        "std.native.collections.vector.from_list",
+        &[SafeNativeBridgeValue::List(vec![
+            SafeNativeBridgeValue::Int(1),
+            SafeNativeBridgeValue::Int(2),
+        ])],
+    ) else {
+        return;
+    };
+
+    let error = dispatch_with_resources(
+        &mut store,
+        "std.data.json.as_string",
+        &[SafeNativeBridgeValue::Handle(vector)],
+    )
+    .err()
+    .unwrap_or_else(|| DispatchError::new("missing", "", 0));
+
+    assert_eq!(error.code(), "resource.kind");
+}
+
 /// Validates direct HTTP dispatch over request and response operations.
 ///
 /// Inputs:

@@ -457,6 +457,28 @@ fn project_manifest_rejects_unsupported_artifact_kind() {
     assert!(err.contains("unsupported [build] artifact `beam-standalone`"));
 }
 
+/// Verifies manifest parsing rejects empty source-root entries.
+///
+/// Inputs:
+/// - A manifest with `source_roots = ["src", ""]`.
+///
+/// Output:
+/// - Test passes when parsing returns a source-root diagnostic.
+///
+/// Transformation:
+/// - Exercises an adversarial project layout shape that could otherwise create
+///   accidental repository-root traversal during build discovery.
+#[test]
+fn adversarial_project_manifest_rejects_empty_source_root_entries() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\", \"\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject empty source root entries");
+
+    assert!(err.contains("source_roots cannot contain empty entries"));
+}
+
 #[test]
 fn project_manifest_accepts_reserved_empty_dependency_sections() {
     let parsed = parse_project_manifest(
@@ -624,6 +646,28 @@ fn project_manifest_rejects_wrong_target_dependency_source() {
         .expect_err("manifest should reject wrong target dependency source");
 
     assert!(err.contains("{ hex = \"...\", version = \"...\" }"));
+}
+
+/// Verifies target dependency entries cannot mix multiple package managers.
+///
+/// Inputs:
+/// - A Rust-target dependency declaring both Cargo and npm source keys.
+///
+/// Output:
+/// - Test passes when parsing returns the exact-source-shape diagnostic.
+///
+/// Transformation:
+/// - Guards dependency resolution from accepting ambiguous cross-ecosystem
+///   source metadata in one dependency entry.
+#[test]
+fn adversarial_project_manifest_rejects_mixed_dependency_sources() {
+    let err = parse_project_manifest(
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", npm = \"serde\", version = \"1.0.0\" }\n",
+            &manifest_path(),
+        )
+        .expect_err("manifest should reject mixed dependency source keys");
+
+    assert!(err.contains("{ cargo = \"...\", version = \"...\" }"));
 }
 
 #[test]
