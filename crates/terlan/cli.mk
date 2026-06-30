@@ -388,7 +388,7 @@ db-command-check:
 	$(TERLC_EXACT_TEST) commands::db::history::history_test::applied_migration_from_postgres_row_rejects_invalid_row_content -- --exact
 
 repl-check:
-	$(TERLC_EXACT_TEST) commands::repl::evaluator::evaluator_test::evaluator_applies_lambda_function_value_call -- --exact
+	$(TERLC_EXACT_TEST) runtime::vm_test::evaluator_applies_lambda_function_value_call -- --exact
 	$(TERLC_EXACT_TEST) commands::repl::repl_test::repl_expression_with_bindings_parenthesizes_lambda_binding_values -- --exact
 
 sql-form-check:

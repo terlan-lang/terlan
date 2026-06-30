@@ -427,7 +427,7 @@ def check_install_ps1() -> list[InstallerDiagnostic]:
         return [InstallerDiagnostic(INSTALL_PS1, "install.ps1 is missing")]
     text = INSTALL_PS1.read_text(encoding="utf-8")
     required = [
-        'Version = "v0.0.5"',
+        'Version = "v0.0.6"',
         'terlc-windows-$terlanArch.zip',
         "Invoke-WebRequest",
         "Expand-Archive",
