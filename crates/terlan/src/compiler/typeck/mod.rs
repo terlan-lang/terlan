@@ -80,6 +80,8 @@ mod core_ir;
 pub use core_ir::*;
 pub(crate) use core_ir::{core_type_from_body_variants, core_type_from_text};
 
+mod core_sql_lowering;
+
 /// Callable function type scheme used by expression inference.
 ///
 /// Inputs:
@@ -469,9 +471,9 @@ mod core_lowering;
 mod core_pattern_lowering;
 mod core_proof;
 
-pub use core_expr_lowering::sql_query_core_expr_from_syntax;
 pub use core_intrinsic_lowering::core_primitive_intrinsic_return_type;
 pub use core_lowering::{lower_resolved_module_to_core, lower_syntax_module_output_to_core};
+pub use core_sql_lowering::sql_query_core_expr_from_syntax;
 
 #[cfg(test)]
 pub(crate) use core_expr_lowering::core_expr_from_syntax;

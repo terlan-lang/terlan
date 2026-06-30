@@ -443,6 +443,9 @@ fn core_intrinsic_id_from_key(key: &str) -> Option<CoreIntrinsicId> {
         "beam.supervisor.child_spec" => Some(CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::BeamSupervisorChildSpec,
         )),
+        "beam.supervisor.start_root" => Some(CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::BeamSupervisorStartRoot,
+        )),
         "beam.supervisor.start" => Some(CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::BeamSupervisorStart,
         )),

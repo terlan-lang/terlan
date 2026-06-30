@@ -1,4 +1,7 @@
-use super::*;
+use super::vm::{
+    evaluate_repl_function, evaluate_repl_function_with_output, type_of_value, ReplValue,
+};
+use crate::terlan_typeck::CoreModule;
 use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::TargetProfile;
 use crate::{ColorChoice, DiagnosticFormat};

@@ -645,6 +645,28 @@ pub(super) fn lower_beam_supervisor_child_spec(args: Vec<ErlExpr>) -> Option<Erl
     )))
 }
 
+/// Lowers `beam.supervisor.start_root` to a supervisor process loop.
+///
+/// Inputs:
+/// - `args`: no arguments.
+///
+/// Output:
+/// - `Ok(Pid)` where `Pid` is the opaque Supervisor handle.
+///
+/// Transformation:
+/// - Starts a backend-owned process that accepts the same private
+///   `start_child` and `stop_child` messages used by receiver-method
+///   Supervisor operations. The current proof supervisor returns the child
+///   value as the started result while restart strategy remains a later
+///   runtime-owned capability.
+pub(super) fn lower_beam_supervisor_start_root(args: Vec<ErlExpr>) -> Option<ErlExpr> {
+    let [] = exact_array_args(args)?;
+    Some(beam_process::state_process_start(
+        &ErlExpr::Atom("running".to_string()),
+        "            {start_child, Child, From, Ref} ->\n                From ! {Ref, {ok, Child}},\n                Loop(State);\n            {stop_child, _Value} ->\n                Loop(State);\n            stop ->\n                ok",
+    ))
+}
+
 /// Lowers `beam.supervisor.start` to the current Supervisor process protocol.
 ///
 /// Inputs:

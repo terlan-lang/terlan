@@ -2,7 +2,6 @@
 crates/terlan/src/commands/build/mod.rs
 crates/terlan/src/commands/emit_js/direct_ast.rs
 crates/terlan/src/commands/emit_js/oxc_backend.rs
-crates/terlan/src/commands/repl/evaluator.rs
 crates/terlan/src/main.rs
 crates/terlan/src/validation/target_profile/mod.rs
 crates/terlan/src/backends/erlang/emit.rs

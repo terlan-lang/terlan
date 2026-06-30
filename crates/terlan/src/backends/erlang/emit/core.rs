@@ -180,6 +180,7 @@ pub(super) fn lower_core_primitive_intrinsic_to_erlang(
         CorePrimitiveIntrinsic::BeamPortWrite => lower_beam_port_write(args),
         CorePrimitiveIntrinsic::BeamPortRead => lower_beam_port_read(args),
         CorePrimitiveIntrinsic::BeamPortClose => lower_beam_port_close(args),
+        CorePrimitiveIntrinsic::BeamSupervisorStartRoot => lower_beam_supervisor_start_root(args),
         CorePrimitiveIntrinsic::BeamSupervisorChildSpec => lower_beam_supervisor_child_spec(args),
         CorePrimitiveIntrinsic::BeamSupervisorStart => lower_beam_supervisor_start(args),
         CorePrimitiveIntrinsic::BeamSupervisorStop => lower_beam_supervisor_stop(args),

@@ -3,10 +3,11 @@ use std::collections::{HashMap, HashSet};
 use crate::terlan_hir::{FunctionSignature, ModuleInterface, ParamSignature, TraitSignature};
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
+use super::html::html_start_tag_at;
 use super::{
     hover_component_prop_type, hover_imported_docs, hover_local_docs, hover_record_field_type,
-    html_start_tag_at, interface_item_docs, line_column_to_offset, parse_hover_args,
-    qualified_import_member, record_access_at,
+    interface_item_docs, line_column_to_offset, parse_hover_args, qualified_import_member,
+    record_access_at,
 };
 
 fn parse(source: &str) -> crate::terlan_syntax::SyntaxModuleOutput {

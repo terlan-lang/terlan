@@ -586,6 +586,13 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             ],
         },
         CorePrimitiveIntrinsic::BeamPortClose => CoreType::Named("Unit".to_string()),
+        CorePrimitiveIntrinsic::BeamSupervisorStartRoot => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Named("Supervisor".to_string()),
+                CoreType::Named("Error".to_string()),
+            ],
+        },
         CorePrimitiveIntrinsic::BeamSupervisorChildSpec => CoreType::Apply {
             constructor: "ChildSpec".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],

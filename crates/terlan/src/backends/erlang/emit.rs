@@ -293,5 +293,8 @@ mod syntax_constructor_emit_test;
 #[path = "emit/syntax_emit_test.rs"]
 mod syntax_emit_test;
 #[cfg(test)]
+#[path = "emit/syntax_string_emit_test.rs"]
+mod syntax_string_emit_test;
+#[cfg(test)]
 #[path = "emit/test_support.rs"]
 mod test_support;

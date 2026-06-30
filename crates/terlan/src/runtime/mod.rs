@@ -13,3 +13,7 @@
 pub mod native;
 pub mod safenative;
 pub mod vm;
+
+#[cfg(test)]
+#[path = "vm_test.rs"]
+mod vm_test;

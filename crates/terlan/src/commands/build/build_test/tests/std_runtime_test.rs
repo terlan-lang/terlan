@@ -516,6 +516,9 @@ import type std.core.Result.Result.\n\
 import type std.core.Error.Error.\n\
 import std.core.Unit.{Unit}.\n\
 \n\
+pub start_supervisor(): Result[Supervisor, Error] ->\n\
+Supervisor.start().\n\
+\n\
 pub spec(value: Int): ChildSpec[Int] ->\n\
 Supervisor.child_spec(value).\n\
 \n\
@@ -549,6 +552,12 @@ println(\"supervisor proof\").\n",
     assert_eq!(status, ExitCode::SUCCESS);
     let erl_source =
         fs::read_to_string(out_dir.join("src/app_main.erl")).expect("read emitted Erlang");
+    assert!(
+        erl_source.contains("Loop = fun Loop(State) ->")
+            && erl_source.contains("{start_child, Child, From, Ref}"),
+        "Supervisor.start should lower to a BEAM supervisor process loop: {}",
+        erl_source
+    );
     assert!(
         erl_source.contains("{terlan_child_spec,"),
         "Supervisor.child_spec should lower to the local child spec proof: {}",

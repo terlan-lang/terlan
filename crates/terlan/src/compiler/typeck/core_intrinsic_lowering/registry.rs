@@ -601,6 +601,7 @@ fn core_beam_supervisor_primitive_intrinsic(
     arity: usize,
 ) -> Option<CorePrimitiveIntrinsic> {
     match (function, arity) {
+        ("start", 0) => Some(CorePrimitiveIntrinsic::BeamSupervisorStartRoot),
         ("child_spec", 1) => Some(CorePrimitiveIntrinsic::BeamSupervisorChildSpec),
         ("start", 2) => Some(CorePrimitiveIntrinsic::BeamSupervisorStart),
         ("stop", 2) => Some(CorePrimitiveIntrinsic::BeamSupervisorStop),

@@ -291,6 +291,9 @@ pub(super) fn primitive_function_intrinsic(
         ("std.beam.Supervisor", "child_spec", 1) => {
             Some(CorePrimitiveIntrinsic::BeamSupervisorChildSpec)
         }
+        ("std.beam.Supervisor", "start", 0) => {
+            Some(CorePrimitiveIntrinsic::BeamSupervisorStartRoot)
+        }
         ("std.beam.Supervisor", "start", 2) => Some(CorePrimitiveIntrinsic::BeamSupervisorStart),
         ("std.beam.Supervisor", "stop", 2) => Some(CorePrimitiveIntrinsic::BeamSupervisorStop),
         ("std.beam.Task", "start", 1) => Some(CorePrimitiveIntrinsic::BeamTaskStart),

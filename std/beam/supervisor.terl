@@ -50,6 +50,18 @@ pub trait Supervised[P] {
 }.
 
 /**
+ * Starts a supervisor process.
+ *
+ * Input: no arguments.
+ * Output: `Result[Supervisor, Error]`.
+ * Transformation: asks the BEAM runtime adapter to create a supervisor owner
+ * before child specifications are started through the receiver-method surface.
+ */
+@target.erlang {process_mailbox: true}
+pub start(): Result[Supervisor, Error] ->
+    native.
+
+/**
  * Builds a child specification for a supervised value.
  *
  * Input: one process or resource value of type `P`.
