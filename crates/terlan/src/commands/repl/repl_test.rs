@@ -1,10 +1,12 @@
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use std::time::UNIX_EPOCH;
 
 use super::{
-    evaluate_repl_prompt_inputs, is_repl_help_args, parse_repl_value_binding,
-    render_repl_json_event, repl_expression_with_bindings, repl_json_field, repl_load_sources,
+    evaluate_repl_prompt_inputs, is_repl_help_args, parse_repl_command_args,
+    parse_repl_value_binding, render_repl_json_event, repl_expression_with_bindings,
+    repl_json_field, repl_load_sources, run_repl_expression_with_output, ReplRuntime,
     ReplValueBinding,
 };
 use crate::validation::native_policy::NativePolicy;
@@ -26,6 +28,54 @@ use crate::{ColorChoice, DiagnosticFormat};
 fn repl_help_args_accept_long_and_short_help() {
     assert!(is_repl_help_args(&["--help".to_string()]));
     assert!(is_repl_help_args(&["-h".to_string()]));
+}
+
+/// Verifies REPL runtime selection parses stable and experimental modes.
+///
+/// Inputs:
+/// - Command-local REPL arguments containing `--runtime beam` or
+///   `--runtime vm`.
+///
+/// Output:
+/// - Parsed runtime enum and seed path assertions.
+///
+/// Transformation:
+/// - Keeps runtime choice explicit at the command parser boundary before the
+///   interactive loop starts.
+#[test]
+fn repl_command_args_parse_runtime_selection() {
+    let beam = parse_repl_command_args(&["--runtime".into(), "beam".into()], false)
+        .expect("parse beam runtime");
+    assert_eq!(beam.runtime, ReplRuntime::Beam);
+    assert_eq!(beam.seed_path, None);
+
+    let vm = parse_repl_command_args(
+        &["--runtime".into(), "vm".into(), "src/Main.terl".into()],
+        true,
+    )
+    .expect("parse vm runtime");
+    assert_eq!(vm.runtime, ReplRuntime::Vm);
+    assert_eq!(vm.seed_path.as_deref(), Some("src/Main.terl"));
+}
+
+/// Verifies experimental VM selection is gated.
+///
+/// Inputs:
+/// - Command-local REPL arguments selecting `--runtime vm`.
+/// - Experimental flag disabled.
+///
+/// Output:
+/// - Usage error text.
+///
+/// Transformation:
+/// - Prevents the hidden Rust VM path from becoming the default public REPL
+///   runtime before the VM coverage is complete.
+#[test]
+fn repl_command_args_reject_vm_runtime_without_experimental_flag() {
+    let error = parse_repl_command_args(&["--runtime".into(), "vm".into()], false)
+        .expect_err("vm requires experimental flag");
+
+    assert!(error.contains("experimental"));
 }
 
 /// Verifies REPL help detection does not consume seed paths.
@@ -256,6 +306,49 @@ fn repl_prompt_inputs_render_standalone_lambda_value() {
     .expect("evaluate repl prompt");
 
     assert_eq!(outputs, vec![vec!["<function>".to_string()]]);
+}
+
+/// Verifies REPL expressions can execute through the BEAM runtime path.
+///
+/// Inputs:
+/// - One generated expression that prints text and returns `Unit`.
+///
+/// Output:
+/// - Captured stdout line and rendered return value.
+///
+/// Transformation:
+/// - Exercises the selectable regular runtime path by lowering the generated
+///   prompt module to Erlang and running it through `erl`. The test skips when
+///   Erlang tooling is not installed in the local environment.
+#[test]
+fn repl_expression_can_run_through_beam_runtime_when_tooling_exists() {
+    if Command::new("erlc").arg("-version").output().is_err()
+        || Command::new("erl").arg("-version").output().is_err()
+    {
+        return;
+    }
+    let root = make_repl_test_dir("beam_runtime");
+    let mut output = Vec::new();
+    let value = run_repl_expression_with_output(
+        "std.io.Console.println(\"hello from BEAM\")",
+        &[],
+        &[],
+        "repl_beam_test",
+        "repl_eval_1",
+        &root,
+        DiagnosticFormat::Text {
+            color: ColorChoice::Never,
+        },
+        NativePolicy::SafeNativeOptional,
+        TargetProfile::Erlang,
+        ReplRuntime::Beam,
+        &mut |line| output.push(line.to_string()),
+    )
+    .expect("run beam repl expression");
+
+    assert_eq!(output, vec!["hello from BEAM".to_string()]);
+    assert_eq!(value, "Unit");
+    fs::remove_dir_all(root).expect("remove temp dir");
 }
 
 /// Verifies JSON REPL events are valid without optional fields.

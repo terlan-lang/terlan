@@ -12,3 +12,4 @@
 
 pub mod native;
 pub mod safenative;
+pub mod vm;

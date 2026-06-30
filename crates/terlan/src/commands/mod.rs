@@ -30,4 +30,5 @@ pub(crate) mod sql_runtime;
 pub(crate) mod static_site;
 pub(crate) mod syntax_contract;
 pub(crate) mod test;
+pub(crate) mod vm;
 pub(crate) mod web_route;

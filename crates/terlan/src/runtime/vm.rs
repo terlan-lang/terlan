@@ -5,7 +5,81 @@ use crate::terlan_typeck::{
     CoreRuntimeCapability,
 };
 
-/// Runtime value produced by the compiler-owned REPL evaluator.
+/// In-process Rust VM for checked Terlan CoreIR modules.
+///
+/// Inputs:
+/// - CoreIR modules produced by the formal compiler pipeline.
+///
+/// Output:
+/// - Executed Terlan values and routed runtime effects.
+///
+/// Transformation:
+/// - Stores loaded modules by Terlan module name and executes supported CoreIR
+///   directly in Rust without invoking BEAM, Erlang source generation, or a
+///   target-specific runtime process.
+#[derive(Debug, Default)]
+pub(crate) struct TerlanVm {
+    modules: HashMap<String, CoreModule>,
+}
+
+impl TerlanVm {
+    /// Creates an empty Rust VM instance.
+    ///
+    /// Inputs:
+    /// - None.
+    ///
+    /// Output:
+    /// - Empty VM ready to receive checked modules.
+    ///
+    /// Transformation:
+    /// - Initializes the module table used by later execution calls.
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    /// Loads one checked CoreIR module into the VM.
+    ///
+    /// Inputs:
+    /// - `module`: CoreIR module produced by the compiler frontend.
+    ///
+    /// Output:
+    /// - Replaces any module with the same Terlan module name.
+    ///
+    /// Transformation:
+    /// - Indexes the module by its source-facing module path so execution can
+    ///   remain independent from backend artifact names.
+    pub(crate) fn load_module(&mut self, module: CoreModule) {
+        self.modules.insert(module.module.clone(), module);
+    }
+
+    /// Executes one public zero-arity function from a loaded module.
+    ///
+    /// Inputs:
+    /// - `module_name`: Terlan module name to execute from.
+    /// - `function_name`: zero-arity function entrypoint.
+    /// - `output`: callback for console output effects.
+    ///
+    /// Output:
+    /// - Evaluated VM value, or a stable VM error.
+    ///
+    /// Transformation:
+    /// - Resolves the loaded module and delegates expression execution to the
+    ///   CoreIR interpreter owned by this runtime module.
+    pub(crate) fn execute_zero_arity(
+        &self,
+        module_name: &str,
+        function_name: &str,
+        output: &mut dyn FnMut(&str),
+    ) -> Result<ReplValue, String> {
+        let module = self
+            .modules
+            .get(module_name)
+            .ok_or_else(|| format!("Terlan VM has not loaded module `{module_name}`"))?;
+        evaluate_repl_function_with_output(module, function_name, output)
+    }
+}
+
+/// Runtime value produced by the compiler-owned Rust VM evaluator.
 ///
 /// Inputs:
 /// - Constructed from supported CoreIR expressions.
@@ -14,7 +88,7 @@ use crate::terlan_typeck::{
 /// - A backend-neutral value that can be rendered for the public REPL.
 ///
 /// Transformation:
-/// - Keeps REPL execution independent from BEAM/Erlang runtime values while the
+/// - Keeps VM execution independent from BEAM/Erlang runtime values while the
 ///   evaluator grows toward full CoreIR coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum ReplValue {
@@ -30,7 +104,7 @@ pub(crate) enum ReplValue {
     Closure(ReplClosure),
 }
 
-/// Captured anonymous function value for the compiler-owned REPL evaluator.
+/// Captured anonymous function value for the compiler-owned Rust VM evaluator.
 ///
 /// Inputs:
 /// - `params`: CoreIR lambda parameter patterns.
@@ -51,7 +125,7 @@ pub(crate) struct ReplClosure {
 }
 
 impl ReplValue {
-    /// Renders a REPL value with Terlan source-facing spelling.
+/// Renders a VM value with Terlan source-facing spelling.
     ///
     /// Inputs:
     /// - `self`: evaluated backend-neutral value.
@@ -965,5 +1039,5 @@ fn core_pattern_kind(pattern: &CorePattern) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "evaluator_test.rs"]
-mod evaluator_test;
+#[path = "vm_test.rs"]
+mod vm_test;

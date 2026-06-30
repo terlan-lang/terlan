@@ -167,7 +167,7 @@ fn public_usage_lines() -> &'static [&'static str] {
         "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
         "terlc api <emit|check|import>",
         "terlc db <init|new|validate|status|migrate|rebuild|reset>",
-        "terlc repl [--help] [<file.terl|project-dir>]",
+        "terlc repl [--help] [--runtime beam|vm] [<file.terl|project-dir>]",
         "terlc fmt <file.terl>",
         "terlc version | terlc --version | terlc -V",
         "Global options: --diagnostic-format text|json --color auto|always|never --target-profile erlang|js.shared|js.browser|js.worker --timings",
@@ -272,6 +272,7 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "api" => commands::api::run(cmd, state),
         "deploy" => commands::deploy::run(cmd, state),
         "otp-runtime" => commands::otp_runtime::run(cmd, state),
+        "vm" => commands::vm::run(cmd, state),
         "db" => commands::db::run(cmd),
         "doctest" => commands::doc::run_doctest(cmd, state),
         "emit-native-metadata" => commands::emit_native_metadata::run(cmd, state),
@@ -490,7 +491,7 @@ fn print_command_usage(command: &str) -> bool {
             println!("terlc emit-native-metadata <file.terl> [--out-dir <dir>]")
         }
         "repl" => {
-            println!("terlc repl [--help|-h] [<file.terl|project-dir>]");
+            println!("terlc repl [--help|-h] [--runtime beam|vm] [<file.terl|project-dir>]");
             println!("Interactive mode accepts normal Terlan entries terminated with '.'.");
             println!("Available commands: :help, :quit, :reset, :load <file.terl|project-dir>");
         }

@@ -35,34 +35,35 @@ fn emit_command_uses_core_ir_gated_erlang_lowering() {
 ///
 /// Inputs:
 /// - The local `commands/repl/mod.rs` source file.
-/// - The local `commands/repl/evaluator.rs` source file.
+/// - The local Rust VM source file.
 ///
 /// Output:
-/// - Test success when REPL expression execution uses the compiler-owned
-///   CoreIR evaluator and does not invoke Erlang compiler/runtime commands.
+/// - Test success when REPL expression execution loads CoreIR into the
+///   compiler-owned Rust VM and does not invoke Erlang compiler/runtime
+///   commands.
 ///
 /// Transformation:
-/// - Reads the REPL command/evaluator sources as text and checks the
+/// - Reads the REPL command/VM sources as text and checks the
 ///   interactive execution invariant.
 #[test]
 fn repl_expression_execution_uses_core_ir_evaluator() {
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands/repl/mod.rs"))
             .expect("read repl command source");
-    let evaluator = fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands/repl/evaluator.rs"),
-    )
-    .expect("read repl evaluator source");
+    let vm = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/runtime/vm.rs"))
+        .expect("read vm source");
 
     assert!(
-        source.contains("evaluator::evaluate_repl_function"),
-        "REPL expression execution must use the compiler-owned CoreIR evaluator"
+        source.contains("run_compiled_repl_expression_in_vm")
+            && source.contains("run_compiled_repl_expression_on_beam"),
+        "REPL expression execution must load compiler CoreIR into TerlanVm"
     );
     assert!(
-        !source.contains("Command::new(\"erlc\")")
-            && !source.contains("Command::new(\"erl\")")
-            && !evaluator.contains("Command::new(\"erlc\")")
-            && !evaluator.contains("Command::new(\"erl\")"),
-        "REPL expression execution must not invoke Erlang target runtime commands"
+        !vm.contains("Command::new(\"erlc\")") && !vm.contains("Command::new(\"erl\")"),
+        "Rust VM execution must not invoke Erlang target runtime commands"
+    );
+    assert!(
+        source.contains("ReplRuntime::Beam") && source.contains("ReplRuntime::Vm"),
+        "REPL expression execution must keep both BEAM and Rust VM branches explicit"
     );
 }

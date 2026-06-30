@@ -25,7 +25,8 @@ pub(super) fn is_repl_help_args(args: &[String]) -> bool {
 /// Transformation:
 /// - Emits user-facing help text without mutating REPL session state.
 pub(super) fn print_repl_help() {
-    println!("terlc repl [--help|-h] [<file.terl|project-dir>]");
+    println!("terlc repl [--help|-h] [--runtime beam|vm] [<file.terl|project-dir>]");
     println!("Interactive mode accepts normal Terlan entries terminated with '.'.");
+    println!("Default runtime: beam. Experimental Rust VM: --experimental repl --runtime vm.");
     println!("Available commands: :help, :quit, :reset, :load <file.terl|project-dir>");
 }

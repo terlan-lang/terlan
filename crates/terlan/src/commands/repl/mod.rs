@@ -1,13 +1,12 @@
-mod evaluator;
 mod event;
 mod help;
 
-use std::collections::hash_map::DefaultHasher;
+use std::collections::{hash_map::DefaultHasher, BTreeMap};
 use std::fs;
 use std::hash::Hasher;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
+use std::process::{Command, ExitCode};
 use std::time::UNIX_EPOCH;
 
 use serde_json::json;
@@ -24,6 +23,88 @@ use crate::{CliCommand, CliState, DiagnosticFormat};
 use event::render_repl_json_event;
 use event::{emit_repl_event, emit_repl_result, repl_json_field};
 use help::{is_repl_help_args, print_repl_help};
+
+/// Runtime selected for REPL expression execution.
+///
+/// Inputs:
+/// - Parsed from `terlc repl --runtime beam|vm`.
+///
+/// Output:
+/// - Execution mode for generated REPL functions.
+///
+/// Transformation:
+/// - Keeps the stable BEAM-compatible runtime path and the experimental
+///   in-process Rust VM path explicit at the command boundary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ReplRuntime {
+    Beam,
+    Vm,
+}
+
+/// Parsed REPL command options.
+#[derive(Debug)]
+struct ReplCommandArgs {
+    seed_path: Option<String>,
+    runtime: ReplRuntime,
+}
+
+/// Parses command-local REPL options.
+///
+/// Inputs:
+/// - `args`: command-local arguments after `repl`.
+/// - `experimental`: whether hidden experimental features are enabled.
+///
+/// Output:
+/// - Parsed seed path and runtime selection, or usage error text.
+///
+/// Transformation:
+/// - Accepts one optional seed path and `--runtime beam|vm`; defaults to the
+///   stable BEAM-compatible path unless the experimental VM is selected.
+fn parse_repl_command_args(
+    args: &[String],
+    experimental: bool,
+) -> Result<ReplCommandArgs, String> {
+    let mut seed_path = None;
+    let mut runtime = ReplRuntime::Beam;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--runtime" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("missing value for --runtime".to_string());
+                };
+                runtime = match value.as_str() {
+                    "beam" => ReplRuntime::Beam,
+                    "vm" => ReplRuntime::Vm,
+                    other => {
+                        return Err(format!(
+                            "unsupported REPL runtime `{other}`; expected beam or vm"
+                        ));
+                    }
+                };
+                index += 2;
+            }
+            arg if arg.starts_with('-') => {
+                return Err(format!("unknown repl option: {arg}"));
+            }
+            path => {
+                if seed_path.is_some() {
+                    return Err(
+                        "repl accepts at most one <file.terl|project-dir> seed path".to_string(),
+                    );
+                }
+                seed_path = Some(path.to_string());
+                index += 1;
+            }
+        }
+    }
+
+    if runtime == ReplRuntime::Vm && !experimental {
+        return Err("terlc repl --runtime vm is experimental; rerun with --experimental.".to_string());
+    }
+
+    Ok(ReplCommandArgs { seed_path, runtime })
+}
 
 /// Executes the `repl` CLI command.
 ///
@@ -48,12 +129,20 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             ExitCode::SUCCESS
         }
         args => {
-            if args.len() > 1 {
-                eprintln!("repl accepts only --help, -h, and optional <file.terl|project-dir>");
+            let parsed = match parse_repl_command_args(args, state.experimental) {
+                Ok(parsed) => parsed,
+                Err(message) => {
+                    eprintln!("{message}");
+                    print_repl_help();
+                    return ExitCode::from(2);
+                }
+            };
+            if parsed.runtime == ReplRuntime::Vm && !state.experimental {
+                eprintln!("terlc repl --runtime vm is experimental; rerun with --experimental.");
                 return ExitCode::from(2);
             }
 
-            let seed_path = args.first().cloned();
+            let seed_path = parsed.seed_path;
             let mut hasher = DefaultHasher::new();
             hasher.write_usize(std::process::id() as usize);
             hasher.write(
@@ -226,6 +315,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                                     state.diagnostic_format,
                                     state.native_policy,
                                     state.target_profile,
+                                    parsed.runtime,
                                 ) {
                                     Ok(_value) => {
                                         value_bindings.push(binding);
@@ -255,6 +345,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                                         state.diagnostic_format,
                                         state.native_policy,
                                         state.target_profile,
+                                        parsed.runtime,
                                     ) {
                                         Ok(value) => {
                                             emit_repl_result(state.diagnostic_format, &value)
@@ -732,6 +823,7 @@ pub(crate) fn evaluate_repl_prompt_inputs(
                     diagnostic_format,
                     native_policy,
                     target_profile,
+                    ReplRuntime::Vm,
                     &mut |value| output_lines.push(value.to_string()),
                 )?;
                 value_bindings.push(binding);
@@ -754,6 +846,7 @@ pub(crate) fn evaluate_repl_prompt_inputs(
                         diagnostic_format,
                         native_policy,
                         target_profile,
+                        ReplRuntime::Vm,
                         &mut |value| output_lines.push(value.to_string()),
                     )?;
                     output_lines.push(value);
@@ -839,6 +932,7 @@ fn run_repl_expression(
     diagnostic_format: DiagnosticFormat,
     native_policy: NativePolicy,
     target_profile: crate::validation::target_profile::TargetProfile,
+    runtime: ReplRuntime,
 ) -> Result<String, String> {
     let mut output = |value: &str| match diagnostic_format {
         DiagnosticFormat::Text { .. } => println!("{value}"),
@@ -862,6 +956,7 @@ fn run_repl_expression(
         diagnostic_format,
         native_policy,
         target_profile,
+        runtime,
         &mut output,
     )
 }
@@ -884,8 +979,9 @@ fn run_repl_expression(
 /// - Rendered Terlan value text or an error message.
 ///
 /// Transformation:
-/// - Builds a synthetic module, compiles it through formal phases, and executes
-///   selected CoreIR directly while routing console effects through `output`.
+/// - Builds a synthetic module, compiles it through formal phases, loads the
+///   resulting CoreIR into the Rust VM, and executes the generated entrypoint
+///   while routing console effects through `output`.
 fn run_repl_expression_with_output(
     expression: &str,
     declarations: &[String],
@@ -896,6 +992,7 @@ fn run_repl_expression_with_output(
     diagnostic_format: DiagnosticFormat,
     native_policy: NativePolicy,
     target_profile: crate::validation::target_profile::TargetProfile,
+    runtime: ReplRuntime,
     output: &mut dyn FnMut(&str),
 ) -> Result<String, String> {
     let mut source = repl_declarations_to_source(module_name, declarations);
@@ -924,8 +1021,154 @@ fn run_repl_expression_with_output(
         .artifacts
         .expect("compile artifacts checked immediately above");
 
-    evaluator::evaluate_repl_function_with_output(&compiled.core, run_name, output)
+    match runtime {
+        ReplRuntime::Vm => run_compiled_repl_expression_in_vm(compiled.core, run_name, output),
+        ReplRuntime::Beam => run_compiled_repl_expression_on_beam(
+            &source_path_text,
+            temp_dir,
+            &compiled,
+            run_name,
+            output,
+        ),
+    }
+}
+
+/// Executes a compiled REPL expression through the in-process Rust VM.
+///
+/// Inputs:
+/// - `core`: checked CoreIR module.
+/// - `run_name`: generated zero-arity function to execute.
+/// - `output`: callback for console output effects.
+///
+/// Output:
+/// - Rendered result text or VM error.
+///
+/// Transformation:
+/// - Loads the module into `TerlanVm` and executes the generated entrypoint.
+fn run_compiled_repl_expression_in_vm(
+    core: crate::terlan_typeck::CoreModule,
+    run_name: &str,
+    output: &mut dyn FnMut(&str),
+) -> Result<String, String> {
+    let module_name = core.module.clone();
+    let mut vm = crate::runtime::vm::TerlanVm::new();
+    vm.load_module(core);
+    vm.execute_zero_arity(&module_name, run_name, output)
         .map(|value| value.render())
+}
+
+/// Executes a compiled REPL expression through the regular BEAM path.
+///
+/// Inputs:
+/// - `source_path_text`: generated REPL source path.
+/// - `temp_dir`: workspace receiving Erlang/BEAM artifacts.
+/// - `compiled`: checked compiler artifacts.
+/// - `run_name`: generated zero-arity function to execute.
+/// - `output`: callback for console output lines.
+///
+/// Output:
+/// - Rendered return value text or BEAM compile/run error.
+///
+/// Transformation:
+/// - Emits Erlang source from CoreIR, compiles it with `erlc`, runs the selected
+///   function with `erl`, captures stdout, and splits user output from the
+///   sentinel-delimited return value.
+fn run_compiled_repl_expression_on_beam(
+    source_path_text: &str,
+    temp_dir: &Path,
+    compiled: &crate::formal_pipeline::CheckedSyntaxModuleArtifacts,
+    run_name: &str,
+    output: &mut dyn FnMut(&str),
+) -> Result<String, String> {
+    let code = emit_repl_erlang_source(source_path_text, compiled)?;
+    let module_atom = crate::support::erlang_output_stem(&compiled.syntax_output.module_name);
+    let erl_path = temp_dir.join(format!("{module_atom}.erl"));
+    fs::write(&erl_path, code)
+        .map_err(|err| format!("failed to write REPL Erlang source: {err}"))?;
+    let erlc_output = Command::new("erlc")
+        .arg("-o")
+        .arg(temp_dir)
+        .arg(&erl_path)
+        .output()
+        .map_err(|err| format!("failed to run erlc for REPL BEAM runtime: {err}"))?;
+    if !erlc_output.status.success() {
+        return Err(format!(
+            "erlc failed for REPL BEAM runtime: {}",
+            String::from_utf8_lossy(&erlc_output.stderr).trim()
+        ));
+    }
+
+    let marker = "__TERLAN_REPL_RESULT__";
+    let eval = format!(
+        "Render = fun(unit) -> \"Unit\"; (true) -> \"true\"; (false) -> \"false\"; (Value) when is_integer(Value) -> integer_to_list(Value); (Value) when is_binary(Value) -> binary_to_list(Value); (Value) -> lists:flatten(io_lib:format(\"~tp\", [Value])) end, Result = '{}':'{}'(), io:format(\"~n{}~ts~n\", [Render(Result)]), halt(0).",
+        module_atom, run_name, marker
+    );
+    let beam_output = Command::new("erl")
+        .arg("-noshell")
+        .arg("-pa")
+        .arg(temp_dir)
+        .arg("-eval")
+        .arg(eval)
+        .output()
+        .map_err(|err| format!("failed to run erl for REPL BEAM runtime: {err}"))?;
+    if !beam_output.status.success() {
+        return Err(format!(
+            "erl failed for REPL BEAM runtime: {}",
+            String::from_utf8_lossy(&beam_output.stderr).trim()
+        ));
+    }
+    split_beam_repl_output(&String::from_utf8_lossy(&beam_output.stdout), marker, output)
+}
+
+/// Emits Erlang source for a generated REPL module.
+fn emit_repl_erlang_source(
+    source_path_text: &str,
+    compiled: &crate::formal_pipeline::CheckedSyntaxModuleArtifacts,
+) -> Result<String, String> {
+    let file_imports = crate::commands::artifacts::collect_syntax_file_import_bytes(
+        &compiled.syntax_output,
+        Path::new(source_path_text),
+    )?;
+    let templates = crate::commands::artifacts::collect_syntax_template_inputs(
+        &compiled.syntax_output,
+        Path::new(source_path_text),
+    )?;
+    let markdown_imports = crate::commands::artifacts::collect_syntax_markdown_inputs(
+        &compiled.syntax_output,
+        Path::new(source_path_text),
+    )?;
+    let code = crate::terlan_erlang::try_emit_core_module_to_erlang_with_syntax_bridge(
+        &compiled.core,
+        &compiled.syntax_output,
+        &compiled
+            .interfaces
+            .iter()
+            .map(|(name, interface)| (name.clone(), interface.clone()))
+            .collect::<BTreeMap<_, _>>(),
+        &file_imports,
+        &templates,
+        &markdown_imports,
+    )?;
+    Ok(code)
+}
+
+/// Splits BEAM REPL stdout into user output lines and return value text.
+fn split_beam_repl_output(
+    stdout: &str,
+    marker: &str,
+    output: &mut dyn FnMut(&str),
+) -> Result<String, String> {
+    let Some((before, after)) = stdout.split_once(marker) else {
+        return Err("REPL BEAM runtime did not emit result marker".to_string());
+    };
+    for line in before.lines().filter(|line| !line.is_empty()) {
+        output(line);
+    }
+    let result = after
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .ok_or_else(|| "REPL BEAM runtime did not emit a result value".to_string())?;
+    Ok(result.trim().to_string())
 }
 
 /// Formats the first compiler diagnostic from a failed REPL compile.
