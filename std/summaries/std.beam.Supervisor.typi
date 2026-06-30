@@ -72,3 +72,4 @@ pub trait Supervised[P] {
     start(supervisor: Supervisor, spec: ChildSpec[P]): Result[P, Error].
     stop(supervisor: Supervisor, value: P): Unit.
 }.
+
