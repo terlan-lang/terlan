@@ -209,4 +209,3 @@ pub string(value: String): Json.
 /// capability while preserving the portable `String` output contract.
 
 pub stringify(json: Json): Result[String, JsonError].
-

@@ -66,4 +66,3 @@ pub trait NativeBridgeRuntime[Resource, Command, Reply] extends Supervised[Nativ
     start(resource: Resource): Result[NativeBridge[Resource], Error].
     stop(bridge: NativeBridge[Resource]): Unit.
 }.
-

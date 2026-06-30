@@ -92,4 +92,3 @@ pub spawn[T](work: () -> T): Task[T].
 /// nested callback chains into the user-facing source.
 
 pub (task: Task[T]) then[U](next: (T ) -> Task[U]): Task[U].
-

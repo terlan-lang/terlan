@@ -101,4 +101,3 @@ pub constructor List[T] {
     (...items: T): List[T] ->
         items
 }.
-

@@ -213,4 +213,3 @@ pub map(value: Option[A], f: (A ) -> B): Option[B].
 /// ```
 
 pub with_default(value: Option[A], default: A): A.
-

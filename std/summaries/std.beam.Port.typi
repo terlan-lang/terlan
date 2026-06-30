@@ -91,4 +91,3 @@ pub (port: Port) read(max_bytes: Int, timeout: Timeout): Result[Bytes, Error].
 /// backend stream messages.
 
 pub (port: Port) write(bytes: Bytes): Result[Unit, Error].
-

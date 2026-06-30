@@ -23,4 +23,3 @@ pub impl Iterable[std.collections.Map.Map[K, V], {K, V}] for std.collections.Map
 
 pub impl Iterable[std.collections.Set.Set[T], T] for std.collections.Set.Set[T] {
 }.
-

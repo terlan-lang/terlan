@@ -64,4 +64,3 @@ pub new(code: Atom, message: String): Error.
 /// same public representation.
 
 pub (error: Error) to_string(): String.
-

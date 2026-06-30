@@ -42,4 +42,3 @@ pub join(fragments: List[Html]): Html.
 /// an explicit escape hatch and should be rare in ordinary application code.
 
 pub trusted(value: String): Html.
-

@@ -26,4 +26,3 @@ pub trait ProcessLike[P, T] {
     send(process: P, message: Message[T]): Unit.
     stop(process: P): Unit.
 }.
-

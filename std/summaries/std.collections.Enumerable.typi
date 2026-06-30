@@ -28,4 +28,3 @@ pub impl Enumerable[std.collections.Map.Map[K, V], {K, V}] for std.collections.M
 
 pub impl Enumerable[std.collections.Set.Set[T], T] for std.collections.Set.Set[T] {
 }.
-

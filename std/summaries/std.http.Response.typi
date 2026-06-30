@@ -204,4 +204,3 @@ pub (mut response: Response) with_header(name: String, value: String): Response.
 /// target-owned mutation path.
 
 pub (mut response: Response) with_status(code: Int): Response.
-

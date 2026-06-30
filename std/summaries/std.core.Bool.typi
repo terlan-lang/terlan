@@ -113,4 +113,3 @@ pub is_true(value: Bool): Bool.
 /// ```
 
 pub to_string(value: Bool): String.
-

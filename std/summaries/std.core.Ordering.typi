@@ -158,4 +158,3 @@ pub impl Ordering[String] for String {
 
 pub impl Ordering[Unit] for Unit {
 }.
-

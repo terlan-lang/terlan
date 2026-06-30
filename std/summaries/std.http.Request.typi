@@ -113,4 +113,3 @@ pub (request: Request) query(name: String): Option[String].
 /// needed.
 
 pub (request: Request) query_string(): String.
-

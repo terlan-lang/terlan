@@ -108,4 +108,3 @@ pub constructor Vector[T] {
     (...items: T): Vector[T] ->
         from_list(items)
 }.
-

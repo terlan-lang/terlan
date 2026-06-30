@@ -63,4 +63,3 @@ pub assert_true(condition: Bool): Assertion.
 /// Transformation: returns the portable failing assertion value directly.
 
 pub fail(): Assertion.
-

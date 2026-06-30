@@ -33,4 +33,3 @@ pub from_task[T](task: Task[T]): Promise[T].
 /// through Terlan's portable task contract.
 
 pub (promise: Promise[T]) to_task(): Task[T].
-

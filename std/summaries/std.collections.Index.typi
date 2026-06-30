@@ -27,4 +27,3 @@ pub trait IndexGet[C, I, T] {
 pub trait IndexSet[C, I, T] {
     set_at(mut collection: C, index: I, value: T): Unit.
 }.
-

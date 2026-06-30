@@ -42,4 +42,3 @@ pub info(message: String): Unit.
 /// the source dependency on the logging API rather than on a backend framework.
 
 pub warn(message: String): Unit.
-

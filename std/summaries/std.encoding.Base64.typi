@@ -59,4 +59,3 @@ pub encode(text: String): String.
 /// capability.
 
 pub encode_url(text: String): String.
-

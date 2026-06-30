@@ -42,4 +42,3 @@ pub (value: JsNumber) to_float(): Float.
 /// target-native number according to JavaScript number semantics.
 
 pub (value: JsNumber) to_string(): String.
-

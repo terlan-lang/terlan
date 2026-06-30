@@ -93,4 +93,3 @@ pub (uri: Uri) scheme(): String.
 /// Transformation: delegates rendering to the selected target URI capability.
 
 pub (uri: Uri) to_string(): String.
-

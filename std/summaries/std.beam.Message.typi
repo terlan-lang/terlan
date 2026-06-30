@@ -26,4 +26,3 @@ pub trait MessageCodec[T] {
     unwrap(message: Message[T]): T.
     wrap(value: T): Message[T].
 }.
-

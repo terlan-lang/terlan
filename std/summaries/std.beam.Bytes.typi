@@ -61,4 +61,3 @@ pub (bytes: Bytes) length(): Int.
 /// Terlan list without exposing Erlang bit syntax.
 
 pub (bytes: Bytes) to_list(): List[Byte].
-

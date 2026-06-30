@@ -125,4 +125,3 @@ pub min(left: Int, right: Int): Int.
 /// ```
 
 pub to_string(value: Int): String.
-

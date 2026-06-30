@@ -25,4 +25,3 @@ pub impl Add[Int, Int, Int] for Int {
 
 pub impl Add[String, String, String] for String {
 }.
-

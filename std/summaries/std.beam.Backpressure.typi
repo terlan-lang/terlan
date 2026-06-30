@@ -28,4 +28,3 @@ pub trait Backpressure[P] {
     release(process: P, credits: Credit): Unit.
     request(process: P, credits: Credit): Unit.
 }.
-

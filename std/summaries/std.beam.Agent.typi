@@ -70,4 +70,3 @@ pub (mut agent: Agent[T]) stop(): Unit.
 /// preserving BEAM process ownership behind the target runtime.
 
 pub (mut agent: Agent[T]) update(writer: (T ) -> T): Unit.
-

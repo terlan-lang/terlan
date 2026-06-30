@@ -344,7 +344,28 @@ impl ModuleInterface {
             out.push_str(".\n\n");
         }
 
+        normalize_final_newline(&mut out);
         out
+    }
+}
+
+/// Normalizes generated interface EOF whitespace.
+///
+/// Inputs:
+/// - `out`: rendered interface text.
+///
+/// Output:
+/// - `out` ends with exactly one newline.
+///
+/// Transformation:
+/// - Removes declaration-separator blank lines at EOF while preserving the
+///   conventional final newline expected by text tools and release checks.
+fn normalize_final_newline(out: &mut String) {
+    while out.ends_with("\n\n") {
+        out.pop();
+    }
+    if !out.ends_with('\n') {
+        out.push('\n');
     }
 }
 

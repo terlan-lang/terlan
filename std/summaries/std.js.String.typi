@@ -41,4 +41,3 @@ pub (value: JsString) to_core(): String.
 /// explicit and target-owned.
 
 pub (value: JsString) to_string(): String.
-

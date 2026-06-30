@@ -78,4 +78,3 @@ pub trait GenServer[Server, State, Request, Reply, Event] {
     terminate(server: Server, state: State): Unit ->
         terlan_interface_default.
 }.
-

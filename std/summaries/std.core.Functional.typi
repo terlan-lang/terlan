@@ -89,4 +89,3 @@ pub impl ResultFunctor[std.core.Result.Result] for std.core.Result.Result {
 
 pub impl ResultMonad[std.core.Result.Result] for std.core.Result.Result {
 }.
-

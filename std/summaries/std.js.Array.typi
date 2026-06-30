@@ -66,4 +66,3 @@ pub impl std.collections.Index.IndexGet[Array[T], Int, T] for Array[T] {
 
 pub impl std.collections.Iterable.Iterable[Array[T], T] for Array[T] {
 }.
-

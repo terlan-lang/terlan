@@ -30,4 +30,3 @@ pub forever(): Timeout.
 /// value in the form expected by receive and socket operations.
 
 pub milliseconds(value: Int): Timeout.
-

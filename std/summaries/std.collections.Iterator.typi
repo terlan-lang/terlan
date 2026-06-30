@@ -62,4 +62,3 @@ pub each(iterator: Iterator[T], cb: (T ) -> Unit): Unit.
 /// than mutating the current value.
 
 pub next(iterator: Iterator[T]): Option[Step[T]].
-

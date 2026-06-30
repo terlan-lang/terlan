@@ -49,4 +49,3 @@ pub (socket: TcpSocket) receive(max_bytes: Int, timeout: Timeout): Result[Bytes,
 /// target socket failures through the standard error channel.
 
 pub (socket: TcpSocket) send(bytes: Bytes): Result[Unit, Error].
-

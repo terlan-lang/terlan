@@ -47,4 +47,3 @@ pub equal[T](left: T, right: T): Bool.
 /// ```
 
 pub to_string(value: Atom): String.
-

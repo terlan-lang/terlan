@@ -89,4 +89,3 @@ pub from_string(value: String): Option[Unit].
 /// ```
 
 pub to_string(value: Unit): String.
-

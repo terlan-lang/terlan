@@ -125,4 +125,3 @@ pub (row: Row) string(name: String): Result[String, Error].
 /// adapter owns begin, commit, rollback, and connection lifecycle details.
 
 pub transaction[T](pool: Pool, body: (Connection ) -> Result[T, Error]): Result[T, Error].
-

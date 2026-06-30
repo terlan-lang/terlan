@@ -109,4 +109,3 @@ pub constructor Set[T] {
     (...items: T): Set[T] ->
         from_list(items)
 }.
-

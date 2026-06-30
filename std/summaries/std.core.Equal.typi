@@ -42,4 +42,3 @@ pub impl Equal[std.core.Ordering.Comparison.Comparison] for std.core.Ordering.Co
 
 pub impl Equal[std.core.Unit.Unit] for std.core.Unit.Unit {
 }.
-

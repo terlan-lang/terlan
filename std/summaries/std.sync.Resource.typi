@@ -130,4 +130,3 @@ pub updated(value: T): Change[T].
 /// typed value field.
 
 pub value(change: Change[T]): T.
-

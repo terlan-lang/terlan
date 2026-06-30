@@ -22,4 +22,3 @@ module std.io.Console.
 /// ```
 
 pub println(value: String): Unit.
-

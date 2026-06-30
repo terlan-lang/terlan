@@ -119,4 +119,3 @@ pub internal(server_name: String): Config.
 /// local trust settings empty.
 
 pub manual(cert: String, key: String): Config.
-

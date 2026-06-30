@@ -104,4 +104,3 @@ pub constructor Object[V] {
     (...entries: {String, V}): Object[V] ->
         Map.from_entries(entries)
 }.
-
