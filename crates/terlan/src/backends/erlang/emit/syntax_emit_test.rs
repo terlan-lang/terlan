@@ -1060,8 +1060,10 @@ pub raw_query(request: Request): String ->
         output
     );
     assert!(
-        output.contains("{ok, Value} -> {'some', Value}; error -> 'none'"),
-        "output:\n{}",
+        output.contains(
+            "case erlang:is_map_key(Key, Values) of true -> {'some', erlang:map_get(Key, Values)}; false -> 'none' end"
+        ),
+        "optional HTTP request accessors should use stable map presence checks:\n{}",
         output
     );
     assert!(

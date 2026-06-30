@@ -131,12 +131,13 @@ fn lower_http_request_required_field(
 /// - `ctx`, `env`: active syntax lowering context and local type environment.
 ///
 /// Output:
-/// - Erlang `case maps:find(...)` expression returning Terlan `Option`.
+/// - Erlang expression returning Terlan `Option` using only map presence and
+///   direct lookup.
 ///
 /// Transformation:
 /// - Orders named `name = ...` calls, lowers the key expression, converts the
-///   key to a binary to match the handler bridge map representation, and wraps
-///   found values in `{'some', Value}`.
+///   key to a binary to match the handler bridge map representation, checks
+///   the nested map for that key, and wraps found values in `{'some', Value}`.
 fn lower_http_request_optional_map_field(
     receiver: &SyntaxExprOutput,
     field: &str,
@@ -149,6 +150,6 @@ fn lower_http_request_optional_map_field(
     let key = lower_syntax_expr_with_env(ordered_args.first()?, ctx, env)?.render();
     let request = lower_syntax_expr_with_env(receiver, ctx, env)?.render();
     Some(ErlExpr::Raw(format!(
-        "case maps:find(unicode:characters_to_binary({key}), maps:get({field}, {request}, #{{}})) of {{ok, Value}} -> {{'some', Value}}; error -> 'none' end"
+        "(fun(Key, Values) -> case erlang:is_map_key(Key, Values) of true -> {{'some', erlang:map_get(Key, Values)}}; false -> 'none' end end)(unicode:characters_to_binary({key}), maps:get({field}, {request}, #{{}}))"
     )))
 }
