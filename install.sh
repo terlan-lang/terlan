@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-VERSION="${TERLAN_VERSION:-v0.0.5}"
+VERSION="${TERLAN_VERSION:-v0.0.6}"
 INSTALL_DIR="${TERLAN_INSTALL_DIR:-/usr/local/bin}"
 RELEASE_BASE_URL="${TERLAN_RELEASE_BASE_URL:-https://github.com/terlan-lang/terlan/releases/download}"
 DETECTED_OS="${TERLAN_INSTALL_OS:-$(uname -s)}"

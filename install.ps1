@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
-    $Version = "v0.0.5"
+    $Version = "v0.0.6"
 }
 
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {

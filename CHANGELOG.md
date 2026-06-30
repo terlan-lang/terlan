@@ -4,6 +4,18 @@ All notable release-facing changes to Terlan are tracked here.
 
 ## Unreleased
 
+## 0.0.6
+
+- Add experimental `terlan-vm` packaging and validation paths so VM execution
+  can be tested beside the OTP 29 reference runtime without replacing it yet.
+- Harden release checks around installer contracts, package artifacts,
+  stdlib release tests, generated standard-library surfaces, and editor/LSP
+  packaging.
+- Expand VM and SafeNative coverage for CoreIR evaluation, std receiver calls,
+  native vector handling, HTTP/Postgres bridge behavior, and runtime errors.
+- Continue codebase consolidation by extracting tests beside their modules and
+  removing obsolete OTP-runtime staging code from the release path.
+
 ## 0.0.5
 
 - Add static-site project scaffolding and `terlc static` commands for emitting,
