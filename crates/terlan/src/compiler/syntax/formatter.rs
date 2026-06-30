@@ -1,7 +1,8 @@
 use crate::terlan_syntax::parse_tree::{
-    BinaryOp, CaseClause, Decl, Expr, MapExprField, MapField, Module, Pattern, TypeExpr, UnaryOp,
+    CaseClause, Decl, Expr, MapExprField, MapField, Module, Pattern, TypeExpr, UnaryOp,
 };
 use crate::terlan_syntax::parser::{parse_interface_module, parse_module, ParseError};
+use crate::terlan_syntax::syntax_output::binary_op_text;
 
 mod declarations;
 mod html;
@@ -341,10 +342,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Int(value) => value.to_string(),
         Expr::Float(value) => value.to_string(),
         Expr::Atom(value) => value.clone(),
-        Expr::AtomLiteral(value) => format!(
-            "Atom[\"{}\"]",
-            value.replace('\\', "\\\\").replace('"', "\\\"")
-        ),
+        Expr::AtomLiteral(value) => format!("Atom[{}]", super::quoted_string_literal(value)),
         Expr::Binary(value) => value.clone(),
         Expr::Var(name) => name.clone(),
         Expr::Tuple(items) => {
@@ -641,7 +639,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
             format!(
                 "{} {} {}",
                 format_expr(left, 0),
-                op_text(op),
+                binary_op_text(op),
                 format_expr(right, 0)
             )
         }
@@ -656,30 +654,6 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Quote(expr) => format!("quote {}", format_expr(expr, 0)),
         Expr::Unquote(expr) => format!("unquote({})", format_expr(expr, 0)),
         Expr::HtmlBlock(block) => format_html_block(block.macro_kind.name(), &block.nodes, indent),
-    }
-}
-
-/// Returns canonical source text for a binary operator.
-///
-/// Inputs: parser binary operator. Output: operator spelling. Transformation:
-/// maps the closed operator enum to the formatter spelling.
-fn op_text(op: &BinaryOp) -> &'static str {
-    match op {
-        BinaryOp::Add => "+",
-        BinaryOp::Sub => "-",
-        BinaryOp::Mul => "*",
-        BinaryOp::Div => "/",
-        BinaryOp::EqEq => "==",
-        BinaryOp::NotEq => "!=",
-        BinaryOp::Lt => "<",
-        BinaryOp::Gt => ">",
-        BinaryOp::LtEq => "<=",
-        BinaryOp::GtEq => ">=",
-        BinaryOp::DivRem => "div",
-        BinaryOp::Rem => "rem",
-        BinaryOp::And => "and",
-        BinaryOp::Or => "or",
-        BinaryOp::PipeForward => "|>",
     }
 }
 

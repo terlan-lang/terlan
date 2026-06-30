@@ -49,7 +49,7 @@ If you want to support the project, please star the repository.
 
 ## Install
 
-Install the Linux x86_64 release artifact:
+Install the latest platform-specific release artifact:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/v0.0.5/install.sh | sh
@@ -59,6 +59,12 @@ To install a specific release through the latest installer:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.5 sh
+```
+
+On Windows, use PowerShell:
+
+```powershell
+iwr https://raw.githubusercontent.com/terlan-lang/terlan/main/install.ps1 -UseBasicParsing | iex
 ```
 
 Or install from a release checkout with Rust:

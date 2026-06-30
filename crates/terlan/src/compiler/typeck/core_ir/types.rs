@@ -616,7 +616,14 @@ fn parse_atom_string_literal(text: &str) -> Option<String> {
     while let Some(ch) = chars.next() {
         if ch == '\\' {
             if let Some(escaped) = chars.next() {
-                output.push(escaped);
+                match escaped {
+                    '"' => output.push('"'),
+                    '\\' => output.push('\\'),
+                    'n' => output.push('\n'),
+                    'r' => output.push('\r'),
+                    't' => output.push('\t'),
+                    other => output.push(other),
+                }
             }
         } else {
             output.push(ch);

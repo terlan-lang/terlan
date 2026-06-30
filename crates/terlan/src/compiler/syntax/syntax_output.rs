@@ -36,7 +36,8 @@ pub use model::{
 pub use modules::{SyntaxModuleOutput, SyntaxSourceKind, SYNTAX_MODULE_OUTPUT_SCHEMA};
 use patterns::pattern_output;
 pub use patterns::{SyntaxPatternFieldOutput, SyntaxPatternKind, SyntaxPatternOutput};
-use text::{binary_op_text, expr_to_output_text, type_expr_output, unary_op_text};
+pub(crate) use text::binary_op_text;
+use text::{expr_to_output_text, type_expr_output, unary_op_text};
 pub use types::{SyntaxParamOutput, SyntaxTypeOutput};
 
 use crate::terlan_syntax::{

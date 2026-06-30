@@ -64,6 +64,26 @@ mod tests {
             .contains("wildcard '_' is only valid in pattern position"));
     }
 
+    /// Verifies expression atom literals unquote escaped single-quoted payloads.
+    ///
+    /// Inputs:
+    /// - A colon-prefixed single-quoted atom expression containing an escaped
+    ///   quote.
+    ///
+    /// Output:
+    /// - Parsed `Expr::Atom` payload without Terlan source delimiters or escape
+    ///   marker.
+    ///
+    /// Transformation:
+    /// - Exercises the shared single-quoted atom unquote helper from the
+    ///   expression parser path.
+    #[test]
+    fn expr_parser_unquotes_escaped_single_quoted_atom_literals() {
+        let expr = parse_terlan_expr(":'it\\'s-ready'").expect("parse escaped atom literal");
+
+        assert!(matches!(expr, Expr::Atom(value) if value == "it's-ready"));
+    }
+
     /// Verifies module function bodies accept `_ ->` fallback clauses in nested
     /// `if` expressions.
     ///
@@ -366,22 +386,54 @@ pub binary_search_range(items: Vector<Int>, target: Int, low: Int, high: Int): O
     /// Transformation:
     /// - Confirms the parser treats the language-neutral atom form as a value
     ///   expression instead of as a generic type-argument call head.
-
-    /// Verifies canonical atom literals are expression syntax.
-    ///
-    /// Inputs:
-    /// - A standalone `Atom["ready"]` expression.
-    ///
-    /// Output:
-    /// - Parsed `Expr::AtomLiteral` with the unescaped payload.
-    ///
-    /// Transformation:
-    /// - Confirms the parser treats the language-neutral atom form as a value
-    ///   expression instead of as a generic type-argument call head.
     #[test]
     fn formal_atom_literal_expr_syntax_parses_canonical_atom_values() {
         let expr = parse_terlan_expr(r#"Atom["ready"]"#).expect("parse atom literal expression");
         assert!(matches!(expr, Expr::AtomLiteral(value) if value == "ready"));
+    }
+
+    /// Verifies canonical atom literal expressions decode string escapes.
+    ///
+    /// Inputs:
+    /// - A standalone `Atom["..."]` expression containing quote, backslash,
+    ///   newline, carriage return, and tab escapes.
+    ///
+    /// Output:
+    /// - Parsed `Expr::AtomLiteral` with the decoded payload.
+    ///
+    /// Transformation:
+    /// - Exercises the same atom string payload decoder used by canonical atom
+    ///   value expressions before type checking or backend lowering.
+    #[test]
+    fn formal_atom_literal_expr_syntax_decodes_escaped_atom_values() {
+        let expr = parse_terlan_expr(r#"Atom["quote \" slash \\ newline \n carriage \r tab \t"]"#)
+            .expect("parse escaped atom literal expression");
+
+        assert!(matches!(
+            expr,
+            Expr::AtomLiteral(value)
+                if value == "quote \" slash \\ newline \n carriage \r tab \t"
+        ));
+    }
+
+    /// Verifies canonical atom literal expressions reject empty payloads.
+    ///
+    /// Inputs:
+    /// - A standalone `Atom[""]` expression.
+    ///
+    /// Output:
+    /// - Stable parser diagnostic requiring a non-empty atom payload.
+    ///
+    /// Transformation:
+    /// - Keeps the parser from constructing empty singleton atom values that
+    ///   later phases cannot meaningfully type or emit.
+    #[test]
+    fn formal_atom_literal_expr_syntax_rejects_empty_atom_values() {
+        let error = parse_terlan_expr(r#"Atom[""]"#).expect_err("empty atom literal should fail");
+
+        assert!(error
+            .message
+            .contains("expected non-empty atom string literal"));
     }
 
     #[test]

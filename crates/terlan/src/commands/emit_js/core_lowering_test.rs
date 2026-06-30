@@ -250,3 +250,42 @@ pub classify(flag: Bool): Int ->
     assert!(js.contains("export function classify(flag)"));
     assert!(js.contains("return (flag === true ? 1 : 0);"), "{js}");
 }
+
+/// Verifies bootstrap JS emission escapes binary string literals portably.
+///
+/// Inputs:
+/// - A checked Terlan module returning a string containing quote, backslash,
+///   newline, carriage return, and tab escapes.
+///
+/// Output:
+/// - JavaScript source containing the escaped literal in one return statement.
+///
+/// Transformation:
+/// - Compiles source through CoreIR and emits JS, proving the shared
+///   `quoted_string_literal` helper preserves all escape-sensitive characters.
+#[test]
+fn emit_core_module_to_js_escapes_binary_literals_portably() {
+    let source = "\
+module js_core_surface_string_escape.
+
+pub escaped(): String ->
+    \"quote \\\" slash \\\\ newline \\n carriage \\r tab \\t\".
+";
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_core_surface_string_escape.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::default(),
+    )
+    .expect("compile source to CoreIR");
+
+    let js = core_lowering::emit_core_module_to_js(&artifacts.core);
+
+    assert!(js.contains("export function escaped()"));
+    assert!(
+        js.contains(r#"return "quote \" slash \\ newline \n carriage \r tab \t";"#),
+        "{js}"
+    );
+}

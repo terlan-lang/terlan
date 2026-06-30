@@ -3,6 +3,10 @@
 //! `std.core.Atom` documents and supports Terlan's language-neutral singleton
 //! symbol primitive. Source code should define named aliases with
 //! `Atom["name"]` and use those aliases in expressions and patterns.
+//!
+//! Atom names are finite source-level symbols. Runtime text must not create
+//! new atoms. Dynamic input should remain `String` or be matched through an
+//! explicit finite table that returns `Result` for unknown values.
 
 module std.core.Atom.
 

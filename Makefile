@@ -3,13 +3,13 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-linux release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check oxc-boundary-check adversarial-check coverage-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-runtime-matrix-check erlang-runtime-matrix-release-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-experimental-vm release-artifact-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-runtime-matrix-check erlang-runtime-matrix-release-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
 include editors/editor.mk
 
-COVERAGE_MIN ?= 80.78
+COVERAGE_MIN ?= 83.23
 
 ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
 ifndef VERSION
@@ -32,6 +32,7 @@ check:
 	$(MAKE) test-hierarchy-check
 	$(MAKE) cli-exact-selector-check
 	$(MAKE) shared-helper-check
+	$(MAKE) installer-contract-check
 	$(MAKE) oxc-boundary-check
 	$(MAKE) adversarial-check
 	$(MAKE) http-tls-check
@@ -93,6 +94,9 @@ cli-exact-selector-check:
 shared-helper-check:
 	$(PYTHON) tools/check_shared_helpers.py
 
+installer-contract-check:
+	$(PYTHON) tools/check_installer_contract.py
+
 oxc-boundary-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- oxc-boundary
 
@@ -100,7 +104,15 @@ adversarial-check:
 	$(CARGO) test --locked -p terlan adversarial -- --nocapture
 
 coverage-check:
+	@$(CARGO) llvm-cov --version >/dev/null 2>&1 || { \
+		echo "coverage-check requires cargo-llvm-cov; install with: cargo install cargo-llvm-cov --locked"; \
+		exit 127; \
+	}
 	$(CARGO) llvm-cov --locked --workspace --all-targets --fail-under-lines $(COVERAGE_MIN)
+
+release-hardening-check:
+	$(MAKE) adversarial-check
+	$(MAKE) coverage-check
 
 erlang-modernization-inventory-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- erlang-modernization-inventory
@@ -138,27 +150,21 @@ module-readme-check:
 rustdoc-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- rust-docs
 
-release-artifact-linux:
+release-artifact-current:
 	$(MAKE) release-boundary-check
 	$(MAKE) release-version-metadata-check
 	$(MAKE) source-extension-check
-	$(MAKE) cli-release-artifact-linux
+	$(MAKE) cli-release-artifact-current
 	$(MAKE) release-artifact-smoke
 
+release-artifact-linux:
+	TERLAN_RELEASE_OS=Linux TERLAN_RELEASE_ARCH=x86_64 $(MAKE) release-artifact-current
+
+release-artifact-experimental-vm:
+	TERLAN_RELEASE_INCLUDE_EXPERIMENTAL_VM=1 $(MAKE) release-artifact-current
+
 release-artifact-smoke:
-	test -x dist/terlc
-	test -f dist/terlc-linux-x86_64.tar.gz
-	tmpdir=$$(mktemp -d /tmp/terlan-release-artifact-smoke.XXXXXX); \
-	trap 'rm -rf "$$tmpdir"' EXIT; \
-	expected_version=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1); \
-	tar -xzf dist/terlc-linux-x86_64.tar.gz -C "$$tmpdir"; \
-	"$$tmpdir/terlc" --version | grep -Fx "terlc $$expected_version"; \
-	"$$tmpdir/terlc" init "$$tmpdir/hello" --profile web; \
-	printf '%s\n' 'hello asset' > "$$tmpdir/hello/assets/hello.txt"; \
-	"$$tmpdir/terlc" --out-dir "$$tmpdir/hello/_build" build "$$tmpdir/hello" --target erlang; \
-	"$$tmpdir/terlc" --target-profile js.browser --out-dir "$$tmpdir/hello/_build" build "$$tmpdir/hello" --target js.browser; \
-	test -f "$$tmpdir/hello/_build/web/assets/hello.txt"; \
-	"$$tmpdir/terlc" serve "$$tmpdir/hello/_build/web" --check
+	$(PYTHON) tools/package_release_artifact.py smoke
 
 publish-preflight:
 	@echo "Preparing Terlan $(VERSION) publication preflight"
@@ -196,16 +202,20 @@ publish-preflight:
 	@if [ "$(VERSION)" = "0.0.5" ]; then \
 		$(MAKE) check; \
 		$(MAKE) test-release; \
+		$(MAKE) release-hardening-check; \
 		$(MAKE) release-0-0-5-preflight; \
-		$(MAKE) release-artifact-linux; \
+		$(MAKE) release-artifact-current; \
 	elif [ "$(VERSION)" = "0.0.4" ]; then \
 		$(MAKE) check; \
 		$(MAKE) test-release; \
+		$(MAKE) release-hardening-check; \
 		$(MAKE) release-0-0-4-preflight; \
-		$(MAKE) release-artifact-linux; \
+		$(MAKE) release-artifact-current; \
 	else \
 		$(MAKE) check; \
 		$(MAKE) test-release; \
+		$(MAKE) release-hardening-check; \
+		$(MAKE) release-artifact-current; \
 	fi
 
 publish: publish-preflight

@@ -222,19 +222,7 @@ fn type_body_text_to_typescript(body: &[String]) -> String {
 /// Transformation:
 /// - Escapes backslashes, double quotes, and common control characters.
 fn typescript_string_literal(value: &str) -> String {
-    let mut out = String::from("\"");
-    for ch in value.chars() {
-        match ch {
-            '\\' => out.push_str("\\\\"),
-            '"' => out.push_str("\\\""),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            other => out.push(other),
-        }
-    }
-    out.push('"');
-    out
+    crate::terlan_syntax::quoted_string_literal(value)
 }
 
 /// Maps a Terlan type annotation to a TypeScript type string.
@@ -275,7 +263,7 @@ pub(crate) fn typer_type_to_typescript(input: &str) -> String {
         "Term" | "Dynamic" => "unknown".to_string(),
         "ok" => "\"ok\"".to_string(),
         atom if atom.chars().next().is_some_and(|ch| ch.is_lowercase()) => {
-            format!("\"{}\"", atom)
+            typescript_string_literal(atom)
         }
         other => other.to_string(),
     }

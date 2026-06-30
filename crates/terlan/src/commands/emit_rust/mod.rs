@@ -440,19 +440,7 @@ fn rust_string_expr(value: &str) -> String {
 /// Transformation:
 /// - Escapes backslash, quote, newline, carriage return, and tab characters.
 fn rust_string_literal(value: &str) -> String {
-    let mut out = String::from("\"");
-    for ch in value.chars() {
-        match ch {
-            '\\' => out.push_str("\\\\"),
-            '"' => out.push_str("\\\""),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            other => out.push(other),
-        }
-    }
-    out.push('"');
-    out
+    crate::terlan_syntax::quoted_string_literal(value)
 }
 
 /// Returns a Rust-safe identifier for known-safe Terlan names.

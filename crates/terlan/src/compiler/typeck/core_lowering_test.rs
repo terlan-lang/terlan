@@ -1003,6 +1003,13 @@ fn syntax_output_lowering_to_core_records_compound_core_type_payloads() {
         Some(CoreType::AtomLiteral("Elixir.Module".to_string()))
     );
     assert_eq!(
+        core_type_from_text(r#"Atom["quote \" slash \\ newline \n carriage \r tab \t"]"#),
+        Some(CoreType::AtomLiteral(
+            "quote \" slash \\ newline \n carriage \r tab \t".to_string()
+        ))
+    );
+    assert_eq!(core_type_from_text("Atom[\"\"]"), None);
+    assert_eq!(
         core_type_from_text(": none"),
         Some(CoreType::AtomLiteral("none".to_string()))
     );

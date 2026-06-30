@@ -6,7 +6,8 @@ set -euo pipefail
 # Inputs:
 # - Optional first argument: expected semantic version without a leading `v`.
 # - `Cargo.toml`: workspace package version source of truth.
-# - `install.sh`: default installer tag.
+# - `install.sh`: default Unix installer tag.
+# - `install.ps1`: default Windows installer tag.
 # - `CHANGELOG.md`: user-facing release section.
 # - `README.md`: current published version text.
 #
@@ -44,6 +45,11 @@ version="${expected_version:-$workspace_version}"
 
 if ! grep -q 'VERSION="${TERLAN_VERSION:-v'"$version"'}"' install.sh; then
   echo "release version metadata check failed: install.sh default version is not v$version"
+  exit 1
+fi
+
+if ! grep -q '\$Version = "v'"$version"'"' install.ps1; then
+  echo "release version metadata check failed: install.ps1 default version is not v$version"
   exit 1
 fi
 

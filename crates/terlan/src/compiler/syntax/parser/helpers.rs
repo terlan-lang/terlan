@@ -1,21 +1,5 @@
 use super::*;
-
-/// Removes Terlan single-quoted atom delimiters and simple escapes.
-pub(super) fn unquote_single_quoted_atom(text: &str) -> Option<String> {
-    let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
-    let mut output = String::new();
-    let mut chars = inner.chars();
-    while let Some(ch) = chars.next() {
-        if ch == '\\' {
-            if let Some(escaped) = chars.next() {
-                output.push(escaped);
-            }
-        } else {
-            output.push(ch);
-        }
-    }
-    Some(output)
-}
+pub(crate) use crate::terlan_syntax::unquote_single_quoted_atom;
 
 /// Reports whether a token kind can carry an identifier-like spelling.
 ///

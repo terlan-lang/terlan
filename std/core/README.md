@@ -50,6 +50,8 @@ Important invariants:
 
 - `Unit` is both a type and value, not a nullary constructor call.
 - Atoms are language-level symbolic values, not Erlang-specific syntax.
+- Atom aliases use `Atom["name"]`; runtime text must not create new atoms.
+  Dynamic input should stay as `String` or map through a finite checked table.
 - Core string behavior is UTF-8 source behavior, even when targets represent
   strings differently.
 

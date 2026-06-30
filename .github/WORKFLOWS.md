@@ -78,16 +78,17 @@ make erlang-runtime-matrix-check  # when TERLAN_OTP_RUNTIME_BIN is configured
 make release-0-0-5-preflight
 ```
 
-Then it builds the Linux x86_64 `terlc` artifact with:
+Then it builds the current runner's `terlc` artifact with:
 
 ```sh
-make release-artifact-linux
+make release-artifact-current
 ```
 
-That target also smoke-tests the packaged tarball by extracting `terlc`,
+That target also smoke-tests the packaged artifact by extracting `terlc`,
 checking its version, initializing a web-profile project, building the project
 for Erlang and `js.browser`, and validating the generated web artifact with
-`terlc serve --check`.
+`terlc serve --check`. The Linux x86_64 compatibility alias remains available
+as `make release-artifact-linux`.
 
 Tagged runs upload `terlc-linux-x86_64.tar.gz` to the matching GitHub release.
 The release body is generated from the matching `CHANGELOG.md` section, such as

@@ -832,21 +832,8 @@ mod tests {
     /// Verifies canonical atom literal expressions preserve their source form.
     ///
     /// Inputs:
-    /// - A module function returning `Atom["ready"]`.
-    ///
-    /// Output:
-    /// - A syntax-output atom node with normalized text and canonical raw
-    ///   source spelling.
-    ///
-    /// Transformation:
-    /// - Crosses the parse-tree-to-syntax-output boundary while preserving enough
-    ///   source context for later validation to distinguish explicit atom
-    ///   values from bare identifiers.
-
-    /// Verifies canonical atom literal expressions preserve their source form.
-    ///
-    /// Inputs:
-    /// - A module function returning `Atom["ready"]`.
+    /// - A module function returning `Atom["..."]` with escaped quote,
+    ///   backslash, newline, carriage return, and tab payloads.
     ///
     /// Output:
     /// - A syntax-output atom node with normalized text and canonical raw
@@ -863,7 +850,7 @@ mod tests {
             module atom_literal_expr_tree.
 
             ready(): Atom ->
-                Atom["ready"].
+                Atom["quote \" slash \\ newline \n carriage \r tab \t"].
             "#,
         )
         .expect("syntax output atom literal expression");
@@ -874,8 +861,14 @@ mod tests {
         };
         let body = &clauses[0].body;
         assert_eq!(body.kind, SyntaxExprKind::Atom);
-        assert_eq!(body.text.as_deref(), Some("ready"));
-        assert_eq!(body.raw.as_deref(), Some(r#"Atom["ready"]"#));
+        assert_eq!(
+            body.text.as_deref(),
+            Some("quote \" slash \\ newline \n carriage \r tab \t")
+        );
+        assert_eq!(
+            body.raw.as_deref(),
+            Some(r#"Atom["quote \" slash \\ newline \n carriage \r tab \t"]"#)
+        );
     }
 
     /// Verifies prefixed integer literals cross the formal syntax-output

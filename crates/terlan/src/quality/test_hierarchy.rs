@@ -221,6 +221,7 @@ pub(crate) fn script_from_command(command: &str) -> Option<PathBuf> {
 ///   release-owned script roots.
 pub(crate) fn is_allowed_script(script: &Path) -> bool {
     let allowed_exact = [
+        Path::new("tools/package_release_artifact.py"),
         Path::new("tools/validate_ebnf.py"),
         Path::new("std/scripts/build_interfaces.py"),
         Path::new("std/scripts/run_release_tests.sh"),

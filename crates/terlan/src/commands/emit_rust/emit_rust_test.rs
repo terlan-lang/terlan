@@ -178,6 +178,51 @@ fn emit_core_module_to_rust_handles_function_value_call() {
     assert_rust_probe_compiles(&rust);
 }
 
+/// Verifies Rust probe emission escapes binary string literals portably.
+///
+/// Inputs:
+/// - A focused CoreIR module returning a binary literal with quote, backslash,
+///   newline, carriage return, and tab characters.
+///
+/// Output:
+/// - Rust source containing a valid escaped string literal.
+///
+/// Transformation:
+/// - Emits Rust from direct CoreIR and invokes `rustc --crate-type lib`, proving
+///   the shared literal escaping helper produces compiler-accepted Rust source.
+#[test]
+fn emit_core_module_to_rust_escapes_binary_literals_portably() {
+    let module = core_module_with_functions(
+        "rust_core_surface_string_escape",
+        vec![CoreFunction {
+            name: "escaped".to_string(),
+            arity: 0,
+            public: true,
+            params: Vec::new(),
+            return_type: "Binary".to_string(),
+            core_return_type: Some(CoreType::Binary),
+            clauses: vec![CoreFunctionClause {
+                patterns: Vec::new(),
+                core_patterns: Vec::new(),
+                pattern_proof_coverage: Vec::new(),
+                pattern_checked_preservation_evidence: Vec::new(),
+                guard: None,
+                body: direct_expr_summary(CoreExpr::Binary(
+                    "quote \" slash \\ newline \n carriage \r tab \t".to_string(),
+                )),
+            }],
+        }],
+    );
+
+    let rust = emit_core_module_to_rust(&module);
+
+    assert!(
+        rust.contains(r#"String::from("quote \" slash \\ newline \n carriage \r tab \t")"#),
+        "{rust}"
+    );
+    assert_rust_probe_compiles(&rust);
+}
+
 /// Verifies Rust probe emission handles selected primitive CoreIR intrinsics.
 ///
 /// Inputs:

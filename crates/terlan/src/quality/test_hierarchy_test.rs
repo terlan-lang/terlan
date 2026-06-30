@@ -92,6 +92,9 @@ check:\n\
 #[test]
 fn is_allowed_script_accepts_release_owned_policy_scripts() {
     assert!(is_allowed_script(Path::new("tools/check_policy.py")));
+    assert!(is_allowed_script(Path::new(
+        "tools/package_release_artifact.py"
+    )));
     assert!(is_allowed_script(Path::new("std/scripts/check_summary.py")));
     assert!(is_allowed_script(Path::new(
         "std/scripts/build_interfaces.py"

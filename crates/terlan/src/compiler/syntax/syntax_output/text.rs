@@ -290,7 +290,7 @@ pub(super) fn unary_op_text(op: &UnaryOp) -> &'static str {
 ///
 /// Inputs: parser binary operator. Output: canonical operator text.
 /// Transformation: maps the closed operator enum to its syntax spelling.
-pub(super) fn binary_op_text(op: &BinaryOp) -> &'static str {
+pub(crate) fn binary_op_text(op: &BinaryOp) -> &'static str {
     match op {
         BinaryOp::Add => "+",
         BinaryOp::Sub => "-",

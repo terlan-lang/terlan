@@ -46,3 +46,57 @@ pub use syntax_output::{
     SyntaxTraitMethodOutput, SyntaxTypeOutput, SYNTAX_MODULE_OUTPUT_SCHEMA,
 };
 pub use token::{Token, TokenKind};
+
+/// Removes Terlan single-quoted atom delimiters and simple escapes.
+///
+/// Inputs:
+/// - `text`: quoted atom text including leading and trailing single quotes.
+///
+/// Output:
+/// - Unescaped atom payload, or `None` when delimiters are missing.
+///
+/// Transformation:
+/// - Copies escaped characters literally after dropping the escape marker.
+pub(crate) fn unquote_single_quoted_atom(text: &str) -> Option<String> {
+    let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
+    let mut output = String::new();
+    let mut chars = inner.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            if let Some(escaped) = chars.next() {
+                output.push(escaped);
+            }
+        } else {
+            output.push(ch);
+        }
+    }
+    Some(output)
+}
+
+/// Escapes text as a double-quoted Terlan source string literal.
+///
+/// Inputs:
+/// - `value`: unescaped string payload.
+///
+/// Output:
+/// - Double-quoted literal text.
+///
+/// Transformation:
+/// - Escapes backslash, double quote, newline, carriage return, and tab
+///   characters using the portable escaping accepted by Terlan source and the
+///   backend literal contexts used by Rust, JavaScript, and TypeScript emitters.
+pub(crate) fn quoted_string_literal(value: &str) -> String {
+    let mut out = String::from("\"");
+    for ch in value.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            other => out.push(other),
+        }
+    }
+    out.push('"');
+    out
+}

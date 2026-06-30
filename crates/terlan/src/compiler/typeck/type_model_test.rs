@@ -33,6 +33,63 @@ fn type_parser_preserves_multi_segment_module_type_references() {
     assert_eq!(pretty_type(&ty), "people.Provider.ExternalUser");
 }
 
+/// Verifies singleton atom types unquote escaped single-quoted atom payloads.
+///
+/// Inputs:
+/// - A type expression using `Atom['it\\'s-ready']`.
+///
+/// Output:
+/// - Internal literal atom type containing `it's-ready`.
+///
+/// Transformation:
+/// - Exercises the shared single-quoted atom unquote helper from the type
+///   parser path, matching the value parser's atom literal handling.
+#[test]
+fn type_parser_unquotes_escaped_single_quoted_atom_types() {
+    let mut vars = HashMap::new();
+    let mut next_var = 0usize;
+    let ty = parse_type_expr(
+        "Atom['it\\'s-ready']",
+        &HashSet::new(),
+        &mut vars,
+        &mut next_var,
+    )
+    .expect("parse escaped singleton atom type");
+
+    assert_eq!(ty, Type::LiteralAtom("it's-ready".to_string()));
+    assert_eq!(pretty_type(&ty), "it's-ready");
+}
+
+/// Verifies singleton atom types decode canonical string-literal escapes.
+///
+/// Inputs:
+/// - A type expression using `Atom["..."]` with quote, backslash, newline,
+///   carriage return, and tab escapes.
+///
+/// Output:
+/// - Internal literal atom type containing the decoded payload.
+///
+/// Transformation:
+/// - Exercises the canonical atom type parser path independently from CoreIR
+///   lowering and expression parsing.
+#[test]
+fn type_parser_decodes_canonical_atom_string_literal_escapes() {
+    let mut vars = HashMap::new();
+    let mut next_var = 0usize;
+    let ty = parse_type_expr(
+        r#"Atom["quote \" slash \\ newline \n carriage \r tab \t"]"#,
+        &HashSet::new(),
+        &mut vars,
+        &mut next_var,
+    )
+    .expect("parse escaped canonical singleton atom type");
+
+    assert_eq!(
+        ty,
+        Type::LiteralAtom("quote \" slash \\ newline \n carriage \r tab \t".to_string())
+    );
+}
+
 /// Verifies `_` parses as a type placeholder in higher-kinded slots.
 ///
 /// Inputs:

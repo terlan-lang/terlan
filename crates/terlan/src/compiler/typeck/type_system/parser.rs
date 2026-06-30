@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::terlan_syntax::unquote_single_quoted_atom;
 use crate::terlan_typeck::{atom_type_literal_payload, MapFieldType, Type, TypeAlias, TypeVarId};
 
 use super::text::{
@@ -384,6 +385,16 @@ pub(crate) fn parse_type_atom_literal(input: &str) -> Option<String> {
         return Some(atom);
     }
 
+    if let Some(inner) = input
+        .trim()
+        .strip_prefix("Atom[")
+        .and_then(|text| text.strip_suffix(']'))
+        .map(str::trim)
+        .filter(|text| text.starts_with('\'') && text.ends_with('\''))
+    {
+        return unquote_single_quoted_atom(inner);
+    }
+
     let atom = input.strip_prefix(':')?;
     if atom.is_empty() {
         return None;
@@ -392,35 +403,9 @@ pub(crate) fn parse_type_atom_literal(input: &str) -> Option<String> {
         return Some(atom.to_string());
     }
     if atom.len() >= 2 && atom.starts_with('\'') && atom.ends_with('\'') {
-        return unquote_type_atom(atom);
+        return unquote_single_quoted_atom(atom);
     }
     None
-}
-
-/// Removes quote delimiters from a quoted atom payload.
-///
-/// Inputs:
-/// - `text`: quoted atom text including leading and trailing single quotes.
-///
-/// Output:
-/// - Unescaped atom payload, or `None` when delimiters are missing.
-///
-/// Transformation:
-/// - Copies escaped characters literally after dropping the escape marker.
-pub(crate) fn unquote_type_atom(text: &str) -> Option<String> {
-    let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
-    let mut output = String::new();
-    let mut chars = inner.chars();
-    while let Some(ch) = chars.next() {
-        if ch == '\\' {
-            if let Some(escaped) = chars.next() {
-                output.push(escaped);
-            }
-        } else {
-            output.push(ch);
-        }
-    }
-    Some(output)
 }
 
 /// Parses a map type expression.

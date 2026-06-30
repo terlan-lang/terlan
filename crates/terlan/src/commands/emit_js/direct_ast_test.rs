@@ -157,8 +157,14 @@ module js_core_direct_strings.
 pub message(): Binary ->
     \"hello\".
 
+pub escaped(): Binary ->
+    \"quote \\\" slash \\\\ newline \\n carriage \\r tab \\t\".
+
 pub status(): Atom ->
     :ok.
+
+pub quoted_status(): Atom ->
+    :'it\\'s-ready'.
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         "js_core_direct_strings.terl",
@@ -175,9 +181,19 @@ pub status(): Atom ->
 
     assert!(js.contains("export function message()"));
     assert!(js.contains(r#"return "hello";"#), "{js}");
+    assert!(js.contains("export function escaped()"));
+    assert!(
+        js.contains("return \"quote \\\" slash \\\\ newline \\n carriage \\r tab \t\";"),
+        "{js}"
+    );
     assert!(js.contains("export function status()"));
     assert!(
         js.contains("return \"ok\";") || js.contains("return 'ok';"),
+        "{js}"
+    );
+    assert!(js.contains("export function quoted_status()"));
+    assert!(
+        js.contains(r#"return "it's-ready";"#) || js.contains(r#"return 'it\'s-ready';"#),
         "{js}"
     );
 }

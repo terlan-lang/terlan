@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
 use crate::{CliCommand, CliState};
@@ -126,11 +126,39 @@ fn run_otp_runtime_binary(binary: &str, args: Vec<String>) -> ExitCode {
 
 /// Returns the configured experimental OTP runtime directory.
 fn runtime_dir() -> Result<PathBuf, String> {
-    std::env::var_os("TERLAN_OTP_RUNTIME_DIR")
-        .map(PathBuf::from)
-        .ok_or_else(|| {
-            "terlc otp-runtime requires TERLAN_OTP_RUNTIME_DIR pointing to a local OTP compatibility runtime".to_string()
-        })
+    if let Some(runtime) = std::env::var_os("TERLAN_OTP_RUNTIME_DIR").map(PathBuf::from) {
+        return Ok(runtime);
+    }
+    let exe = std::env::current_exe()
+        .map_err(|err| format!("terlc otp-runtime could not locate current executable: {err}"))?;
+    bundled_runtime_dir_from_exe(&exe).ok_or_else(|| {
+        "terlc otp-runtime requires TERLAN_OTP_RUNTIME_DIR, a bundled experimental/terlan-vm payload next to terlc, or an installed ../lib/terlan/experimental/terlan-vm payload".to_string()
+    })
+}
+
+/// Returns the bundled runtime path next to a compiler executable.
+fn bundled_runtime_dir_from_exe(exe: &Path) -> Option<PathBuf> {
+    let bin_dir = exe.parent()?;
+    let candidates = [
+        bin_dir.join("experimental").join("terlan-vm"),
+        bin_dir
+            .parent()?
+            .join("lib")
+            .join("terlan")
+            .join("experimental")
+            .join("terlan-vm"),
+    ];
+    for candidate in candidates {
+        if runtime_payload_exists(&candidate) {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+/// Returns whether a path has the minimum OTP runtime executable surface.
+fn runtime_payload_exists(candidate: &Path) -> bool {
+    candidate.join("bin").join("erl").is_file() && candidate.join("bin").join("erlc").is_file()
 }
 
 /// Prints hidden OTP runtime command usage.
@@ -139,3 +167,7 @@ fn print_otp_runtime_usage() {
     println!("terlc --experimental otp-runtime erl -- <erl-args>");
     println!("terlc --experimental otp-runtime erlc -- <erlc-args>");
 }
+
+#[cfg(test)]
+#[path = "otp_runtime_test.rs"]
+mod otp_runtime_test;

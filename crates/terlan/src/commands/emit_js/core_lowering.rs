@@ -767,19 +767,7 @@ fn is_js_identifier(name: &str) -> bool {
 ///   then escapes backslashes, double quotes, and common control characters.
 fn js_string_literal(value: &str) -> String {
     let value = core_string_runtime_value(value);
-    let mut out = String::from("\"");
-    for ch in value.chars() {
-        match ch {
-            '\\' => out.push_str("\\\\"),
-            '"' => out.push_str("\\\""),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            other => out.push(other),
-        }
-    }
-    out.push('"');
-    out
+    crate::terlan_syntax::quoted_string_literal(&value)
 }
 
 /// Normalizes a CoreIR string-like payload into a runtime string value.

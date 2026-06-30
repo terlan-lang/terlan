@@ -161,8 +161,10 @@ def check_makefile() -> list[ContractDiagnostic]:
                 "check:",
                 "test:",
                 "publish-preflight:",
+                "release-artifact-current:",
                 "release-artifact-linux:",
                 "release-boundary-check:",
+                "installer-contract-check:",
             ],
         )
     )
@@ -190,7 +192,7 @@ def check_workflows() -> list[ContractDiagnostic]:
             "run: make check",
             "run: make test",
             "run: make test-release",
-            "run: make release-artifact-linux",
+            "run: make release-artifact-current",
         ],
     }
     forbidden = ["cd terlan", "../", "working-directory: .."]

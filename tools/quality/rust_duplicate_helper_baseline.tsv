@@ -1,6 +1,3 @@
 # Reviewed cross-file duplicate Rust helper bodies.
 # Format: body_hash<TAB>logical_lines<TAB>occurrences<TAB>sample_locations
 # Existing rows are migration debt; new or grown groups must be extracted into shared modules.
-1e5083246f82f395	17	2	crates/terlan/src/compiler/syntax/formatter.rs:1172:op_text;crates/terlan/src/compiler/syntax/syntax_output.rs:1177:binary_op_text
-4837548287ee8b56	13	2	crates/terlan/src/commands/emit_js/declarations.rs:224:typescript_string_literal;crates/terlan/src/commands/emit_rust/mod.rs:442:rust_string_literal
-e53dfbf2e5ec3e48	13	3	crates/terlan/src/backends/erlang/emit/util.rs:829:unquote_type_atom;crates/terlan/src/compiler/syntax/parser.rs:685:unquote_single_quoted_atom;crates/terlan/src/compiler/typeck/type_system.rs:205:unquote_type_atom

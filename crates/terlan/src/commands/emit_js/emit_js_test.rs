@@ -1897,3 +1897,21 @@ hidden(A: Int): Int ->
     assert!(declarations.contains("export function add(A: number, B: number): number;"));
     assert!(!declarations.contains("hidden"));
 }
+
+/// Verifies fallback TypeScript type text atom mapping escapes string payloads.
+///
+/// Inputs:
+/// - A lowercase atom-like type text containing a quote and backslash.
+///
+/// Output:
+/// - TypeScript string-literal union member text with escaped payload.
+///
+/// Transformation:
+/// - Exercises the fallback declaration mapper path that receives rendered
+///   type-body text rather than structured CoreType atoms.
+#[test]
+fn typescript_declaration_type_text_escapes_lowercase_atom_literals() {
+    let mapped = declarations::typer_type_to_typescript("it\"s\\ready");
+
+    assert_eq!(mapped, r#""it\"s\\ready""#);
+}

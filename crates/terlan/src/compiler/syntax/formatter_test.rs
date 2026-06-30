@@ -109,6 +109,37 @@ pub main(): Int -> 1.
     );
 }
 
+/// Verifies canonical atom literals format with portable escapes.
+///
+/// Inputs:
+/// - A source module returning `Atom["..."]` with escaped quote, backslash,
+///   newline, carriage return, and tab payloads.
+///
+/// Output:
+/// - Formatted source preserving the atom as a single-line canonical literal
+///   with escaped control characters.
+///
+/// Transformation:
+/// - Parses escaped atom payloads into their semantic value and renders them
+///   back through the formatter's shared string literal escaping path.
+#[test]
+fn formatter_escapes_canonical_atom_literals_portably() {
+    let output = format_source_module(
+        r#"
+module atom_literal_format.
+
+ready(): Atom ->
+    Atom["quote \" slash \\ newline \n carriage \r tab \t"].
+"#,
+    )
+    .expect("format escaped canonical atom");
+
+    assert!(output.contains(r#"Atom["quote \" slash \\ newline \n carriage \r tab \t"]."#));
+    assert!(!output.contains("newline \n carriage"));
+    assert!(!output.contains("carriage \r tab"));
+    assert!(!output.contains("tab \t\""));
+}
+
 /// Verifies source modules cannot reach formatter export-list normalization.
 ///
 /// Inputs:
