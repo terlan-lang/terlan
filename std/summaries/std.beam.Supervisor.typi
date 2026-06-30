@@ -24,15 +24,6 @@ pub opaque type ChildSpec[P].
 
 pub opaque type Supervisor.
 
-/// Starts a supervisor process.
-///
-/// Input: no arguments.
-/// Output: `Result[Supervisor, Error]`.
-/// Transformation: asks the BEAM runtime adapter to create a supervisor owner
-/// before child specifications are started through the receiver-method surface.
-
-pub start(): Result[Supervisor, Error].
-
 /// Builds a child specification for a supervised value.
 ///
 /// Input: one process or resource value of type `P`.
@@ -41,6 +32,15 @@ pub start(): Result[Supervisor, Error].
 /// should enter supervision without exposing backend tuple formats.
 
 pub child_spec[P](value: P): ChildSpec[P].
+
+/// Starts a supervisor process.
+///
+/// Input: no arguments.
+/// Output: `Result[Supervisor, Error]`.
+/// Transformation: asks the BEAM runtime adapter to create a supervisor owner
+/// before child specifications are started through the receiver-method surface.
+
+pub start(): Result[Supervisor, Error].
 
 /// Starts a child under a supervisor.
 ///
@@ -72,3 +72,4 @@ pub trait Supervised[P] {
     start(supervisor: Supervisor, spec: ChildSpec[P]): Result[P, Error].
     stop(supervisor: Supervisor, value: P): Unit.
 }.
+

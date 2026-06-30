@@ -50,6 +50,7 @@ pub(crate) enum DiagnosticFormat {
 }
 
 impl Default for DiagnosticFormat {
+    /// Returns text diagnostics with automatic terminal color selection.
     fn default() -> Self {
         Self::Text {
             color: ColorChoice::Auto,
