@@ -4,6 +4,7 @@
 //! maintained `tokio-postgres` client, and deterministic row decoding helpers
 //! for Terlan-facing values exposed through the SafeNative bridge.
 
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use crate::terlan_native::json as json_adapter;
@@ -14,7 +15,12 @@ use deadpool_postgres::{
 use tokio_postgres::types::ToSql;
 use tokio_postgres::NoTls;
 
+/// Process-long Tokio runtime used by the current synchronous Postgres adapter.
+static POSTGRES_RUNTIME: OnceLock<Result<tokio::runtime::Runtime, String>> = OnceLock::new();
+
+#[path = "postgres/config.rs"]
 mod config;
+#[path = "postgres/row.rs"]
 mod row;
 
 pub use config::{validate_config, Config};
@@ -450,25 +456,28 @@ async fn pool_client(pool: &Pool) -> Result<DeadpoolClient, PostgresError> {
     inner.get().await.map_err(pool_error("postgres.connect"))
 }
 
-/// Builds a Tokio runtime for one blocking SafeNative call.
+/// Returns the process-long Tokio runtime for blocking SafeNative calls.
 ///
 /// Inputs:
 /// - No external input.
 ///
 /// Output:
-/// - Tokio runtime for executing maintained async Postgres client calls.
+/// - Shared Tokio runtime for executing maintained async Postgres client calls.
 /// - Stable runtime error if the runtime cannot be constructed.
 ///
 /// Transformation:
 /// - Keeps the public SafeNative adapter API synchronous while isolating the
-///   async runtime detail inside the Rust/Tokio adapter boundary.
-fn runtime() -> Result<tokio::runtime::Runtime, PostgresError> {
-    tokio::runtime::Runtime::new().map_err(|error| {
-        PostgresError::new(
-            "postgres.runtime",
-            format!("Could not start the Postgres Tokio runtime: {error}."),
-        )
-    })
+///   async runtime detail inside the Rust/Tokio adapter boundary. The runtime
+///   is initialized once so individual Postgres operations do not pay runtime
+///   startup and teardown costs.
+fn runtime() -> Result<&'static tokio::runtime::Runtime, PostgresError> {
+    POSTGRES_RUNTIME
+        .get_or_init(|| {
+            tokio::runtime::Runtime::new()
+                .map_err(|error| format!("Could not start the Postgres Tokio runtime: {error}."))
+        })
+        .as_ref()
+        .map_err(|message| PostgresError::new("postgres.runtime", message.clone()))
 }
 
 /// Converts JSON parameters into Postgres driver parameters.

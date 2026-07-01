@@ -125,6 +125,25 @@ fn config_builders_set_pool_limits_and_timeouts() {
     assert_eq!(config.connect_timeout_ms(), 750);
 }
 
+/// Verifies Postgres adapter operations reuse one Tokio runtime.
+///
+/// Inputs:
+/// - Two runtime requests through the private adapter helper.
+///
+/// Output:
+/// - Test passes when both requests return the same runtime instance.
+///
+/// Transformation:
+/// - Locks the 0.0.7 baseline fix that prevents every synchronous Postgres
+///   operation from creating and dropping its own Tokio runtime.
+#[test]
+fn runtime_is_shared_across_postgres_adapter_calls() {
+    let first = runtime().expect("runtime should initialize");
+    let second = runtime().expect("runtime should be reused");
+
+    assert!(std::ptr::eq(first, second));
+}
+
 /// Verifies config validation is available without opening an adapter.
 ///
 /// Inputs:
