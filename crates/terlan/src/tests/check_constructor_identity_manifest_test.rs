@@ -918,7 +918,7 @@ fn run_check_single_file_accepts_declared_constructor_chain_in_core_phase() {
     let source = dir.join("constructor_chain.terl");
     fs::write(
             &source,
-            "module constructor_chain.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+            "module constructor_chain.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         )
         .expect("write declared constructor chain source");
     let manifest = dir.join("constructor_chain.phase-manifest.json");
@@ -988,7 +988,7 @@ fn run_check_single_file_accepts_alias_constructor_chain_in_core_phase() {
     let source = dir.join("alias_constructor_chain.terl");
     fs::write(
             &source,
-            "module alias_constructor_chain.\n\npub type User = {:user, id: Int, name: Binary}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+            "module alias_constructor_chain.\n\npub type User = {:user, id: Int, name: Binary}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         )
         .expect("write alias constructor chain source");
     let manifest = dir.join("alias_constructor_chain.phase-manifest.json");
@@ -1066,7 +1066,7 @@ fn run_check_single_file_accepts_imported_constructor_chain_in_core_phase() {
     let source = dir.join("imported_constructor_chain.terl");
     fs::write(
             &source,
-            "module imported_constructor_chain.\n\nimport provider.{User}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+            "module imported_constructor_chain.\n\nimport provider.{User}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         )
         .expect("write imported constructor chain source");
     let manifest = dir.join("imported_constructor_chain.phase-manifest.json");
@@ -1146,7 +1146,7 @@ fn run_check_single_file_accepts_aliased_imported_constructor_chain_in_core_phas
     let source = dir.join("aliased_imported_constructor_chain.terl");
     fs::write(
             &source,
-            "module aliased_imported_constructor_chain.\n\nimport provider.{User as Member}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    Member(id, name) with Admin { id = id, name = name }.\n",
+            "module aliased_imported_constructor_chain.\n\nimport provider.{User as Member}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    Member(id, name) with Admin { id: id, name: name }.\n",
         )
         .expect("write aliased imported constructor chain source");
     let manifest = dir.join("aliased_imported_constructor_chain.phase-manifest.json");
@@ -1225,7 +1225,7 @@ fn run_check_single_file_accepts_direct_imported_alias_constructor_chain_in_core
     let source = dir.join("direct_imported_alias_constructor_chain.terl");
     fs::write(
             &source,
-            "module direct_imported_alias_constructor_chain.\n\nimport provider.{User}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+            "module direct_imported_alias_constructor_chain.\n\nimport provider.{User}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         )
         .expect("write direct imported alias constructor chain source");
     let manifest = dir.join("direct_imported_alias_constructor_chain.phase-manifest.json");
@@ -1304,7 +1304,7 @@ fn run_check_single_file_accepts_aliased_imported_alias_constructor_chain_in_cor
     let source = dir.join("aliased_imported_alias_constructor_chain.terl");
     fs::write(
             &source,
-            "module aliased_imported_alias_constructor_chain.\n\nimport provider.{User as Member}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    Member(id, name) with Admin { id = id, name = name }.\n",
+            "module aliased_imported_alias_constructor_chain.\n\nimport provider.{User as Member}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    Member(id, name) with Admin { id: id, name: name }.\n",
         )
         .expect("write aliased imported alias constructor chain source");
     let manifest = dir.join("aliased_imported_alias_constructor_chain.phase-manifest.json");

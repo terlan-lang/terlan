@@ -82,7 +82,7 @@ fn formal_syntax_output_direct_emit_rejects_imported_map_alias_constructor_fallb
 module props.
 
 pub type Props =
-#{name := Binary}.
+{name: Binary}.
 "#,
     )
     .expect("parse map alias provider");
@@ -99,7 +99,7 @@ module imported_map_alias_constructor_emit.
 import props.{Props}.
 
 pub make(name: Binary): Props ->
-Props(#{name = name}).
+Props({name: name}).
 "#,
     )
     .expect("parse imported map alias constructor consumer");
@@ -335,7 +335,7 @@ fn formal_syntax_output_direct_emit_rejects_map_alias_constructor_pattern_fallba
 module map_alias_pattern_emit.
 
 pub type Props =
-#{name := Binary}.
+{name: Binary}.
 
 pub name(input: Props): Binary ->
 case input {

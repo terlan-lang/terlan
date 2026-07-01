@@ -88,14 +88,14 @@ pub struct Options {
  */
 pub constructor Options {
     (path: Option[String], domain: Option[String], max_age: Option[Int], expires: Option[String], http_only: Bool, secure: Bool, same_site: Option[SameSite]): Options ->
-        #Options {
-            path = path,
-            domain = domain,
-            max_age = max_age,
-            expires = expires,
-            http_only = http_only,
-            secure = secure,
-            same_site = same_site
+        Options {
+            path: path,
+            domain: domain,
+            max_age: max_age,
+            expires: expires,
+            http_only: http_only,
+            secure: secure,
+            same_site: same_site
         }
 }.
 

@@ -72,7 +72,7 @@ module core_case_record_pattern_boundary.\n\
 \n\
 pub read(value: Dynamic): Int ->\n\
     case value {\n\
-        #Point { x = 1 } -> 1\n\
+        Point{x: 1} -> 1\n\
     }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));

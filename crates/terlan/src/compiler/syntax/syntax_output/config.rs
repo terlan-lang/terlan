@@ -325,7 +325,7 @@ impl ConfigEntryParser<'_> {
                 Some(SyntaxConfigValueOutput::String { value: text })
             }
             TokenKind::LBracket => self.parse_list(),
-            TokenKind::Hash => self.parse_map(),
+            TokenKind::LBrace => self.parse_map(),
             _ => None,
         }
     }
@@ -364,16 +364,15 @@ impl ConfigEntryParser<'_> {
     /// Parses a config map value.
     ///
     /// Inputs:
-    /// - Cursor positioned at `#`.
+    /// - Cursor positioned at `{`.
     ///
     /// Output:
     /// - Structured map value.
     ///
     /// Transformation:
-    /// - Consumes `#{ ... }` and parses comma-separated config map entries
+    /// - Consumes `{ ... }` and parses comma-separated config map entries
     ///   using the same entry shape as top-level metadata blocks.
     fn parse_map(&mut self) -> Option<SyntaxConfigValueOutput> {
-        self.expect(TokenKind::Hash)?;
         self.expect(TokenKind::LBrace)?;
         let entries = self.parse_entry_list(TokenKind::RBrace, TokenKind::Comma)?;
         Some(SyntaxConfigValueOutput::Map { entries })

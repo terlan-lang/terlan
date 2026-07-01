@@ -116,11 +116,7 @@ body: Html[:none]
 }.
 
 pub page(): Html[:none] ->
-Page{
-    title = "Hi & Bye",
-    url = "/posts?tag=a&b=1",
-    body = Html.raw("<strong>ok</strong>")
-}.
+Page(title = "Hi & Bye", url = "/posts?tag=a&b=1", body = Html.raw("<strong>ok</strong>")).
 "#,
     )
     .expect("parse syntax output template fixture");
@@ -289,7 +285,7 @@ title: Binary = "Untitled"
 }.
 
 pub page(): Html[:none] ->
-Page{}.
+Page().
 "#,
     )
     .expect("parse syntax output template default fixture");
@@ -330,9 +326,7 @@ title: Text
 }.
 
 pub page(user: User): Html[:none] ->
-Page{
-    title = user.name
-}.
+Page(title = user.name).
 "#,
     )
     .expect("parse syntax output template field fixture");

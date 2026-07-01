@@ -696,7 +696,7 @@ pub constructor User {
 }.
 
 pub make(id: Int, name: Binary): Dynamic ->
-    User(id, name) with Admin { id = id, name = name }.
+    User(id, name) with Admin { id: id, name: name }.
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         "js_core_constructor_chain_fallback.terl",
@@ -1089,7 +1089,7 @@ fn emit_core_module_with_direct_oxc_ast_handles_map_literal() {
 module js_core_direct_map.
 
 pub point(): Term ->
-    #{x => 1, y => 2}.
+    {x: 1, y: 2}.
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         "js_core_direct_map.terl",
@@ -1175,7 +1175,7 @@ pub struct Point {
 }.
 
 pub make(): Point ->
-    #Point { x = 1 }.
+    Point { x: 1 }.
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         "js_core_direct_record_construct.terl",
@@ -1263,7 +1263,7 @@ pub struct Point {
 }.
 
 pub set_x(point: Point): Point ->
-    point#Point { x = 1, y = point.y }.
+    point#Point { x: 1, y: point.y }.
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         "js_core_direct_record_update.terl",
@@ -1324,7 +1324,7 @@ template Page from \"./templates/page.terl.html\" {
 }.
 
 pub view(title: Binary): Html ->
-    Page{ title = title }.
+    Page(title = title).
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         &source_path,

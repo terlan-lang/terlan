@@ -340,7 +340,7 @@ flat_map_list[A, B](value: List[A], f: (A) -> List[B]): List[B] ->
  */
 map_iterator[A, B](iterator: Iterator[A], f: (A) -> B): List[B] ->
     case Iterator.next(iterator) {
-        Some({value, next}) ->
+        Some({value: value, next: next}) ->
             [f.(value) | map_iterator(next, f)];
 
         None ->
@@ -357,7 +357,7 @@ map_iterator[A, B](iterator: Iterator[A], f: (A) -> B): List[B] ->
  */
 flat_map_iterator[A, B](iterator: Iterator[A], f: (A) -> List[B]): List[B] ->
     case Iterator.next(iterator) {
-        Some({value, next}) ->
+        Some({value: value, next: next}) ->
             append_list(f.(value), flat_map_iterator(next, f));
 
         None ->
@@ -386,7 +386,7 @@ append_list[A](left: List[A], right: List[A]): List[A] ->
  */
 append_iterator[A](iterator: Iterator[A], tail: List[A]): List[A] ->
     case Iterator.next(iterator) {
-        Some({value, next}) ->
+        Some({value: value, next: next}) ->
             [value | append_iterator(next, tail)];
 
         None ->

@@ -85,7 +85,7 @@ import type provider.User.User.\n\
 \n\
 pub read(user: User): Int ->\n\
     case user {\n\
-        User { #id = id } -> id\n\
+        User { #id: id } -> id\n\
     }.\n\
 ",
         "\

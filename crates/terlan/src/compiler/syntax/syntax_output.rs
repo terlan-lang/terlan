@@ -527,20 +527,6 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::TemplateInstantiate { name, fields } => expr_node(
-            SyntaxExprKind::TemplateInstantiate,
-            Some(name.clone()),
-            None,
-            None,
-            Vec::new(),
-            Vec::new(),
-            fields
-                .iter()
-                .map(|field| expr_field_output_with_span(field, span))
-                .collect(),
-            Vec::new(),
-            span,
-        ),
         Expr::ConstructorChain { base, record } => expr_node(
             SyntaxExprKind::ConstructorChain,
             None,

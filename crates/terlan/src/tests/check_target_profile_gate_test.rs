@@ -59,7 +59,7 @@ fn run_check_single_file_rejects_map_for_core_v0_target_profile() {
     let path = fixture(
         &dir,
         "\
-module core_v0_rejects_map.\n\npub value(): Map ->\n    #{a := 1}.\n",
+module core_v0_rejects_map.\n\npub value(): Map ->\n    {a: 1}.\n",
     );
 
     let exit = commands::check::run(
@@ -96,7 +96,7 @@ fn run_check_single_file_rejects_map_pattern_for_core_v0_target_profile() {
     let path = fixture(
             &dir,
             "\
-module core_v0_rejects_map_pattern.\n\npub value(input: Dynamic): Dynamic ->\n    case input {\n        #{a = x} -> x;\n        _ -> input\n    }.\n",
+module core_v0_rejects_map_pattern.\n\npub value(input: Dynamic): Dynamic ->\n    case input {\n        {a: x} -> x;\n        _ -> input\n    }.\n",
         );
 
     let exit = commands::check::run(
@@ -170,7 +170,7 @@ fn run_check_single_file_rejects_record_pattern_for_core_v0_target_profile() {
     let path = fixture(
             &dir,
             "\
-module core_v0_rejects_record_pattern.\n\npub struct Point {\n    x: Int\n}.\n\npub value(input: Dynamic): Dynamic ->\n    case input {\n        #Point { x = x } -> x;\n        _ -> input\n    }.\n",
+module core_v0_rejects_record_pattern.\n\npub struct Point {\n    x: Int\n}.\n\npub value(input: Dynamic): Dynamic ->\n    case input {\n        Point { x: x } -> x;\n        _ -> input\n    }.\n",
         );
 
     let exit = commands::check::run(
@@ -615,7 +615,7 @@ fn run_check_single_file_rejects_constructor_chain_for_core_v0_target_profile() 
     let path = fixture(
             &dir,
             "\
-module core_v0_rejects_constructor_chain.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module core_v0_rejects_constructor_chain.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         );
 
     let exit = commands::check::run(
@@ -654,7 +654,7 @@ fn run_check_single_file_rejects_alias_constructor_chain_for_core_v0_target_prof
     let path = fixture(
             &dir,
             "\
-module core_v0_rejects_alias_constructor_chain.\n\npub type User = {:user, id: Int, name: Binary}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module core_v0_rejects_alias_constructor_chain.\n\npub type User = {:user, id: Int, name: Binary}.\n\npub value(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         );
 
     let exit = commands::check::run(
@@ -765,7 +765,7 @@ fn run_check_single_file_rejects_record_construct_for_core_v0_target_profile() {
     let path = fixture(
         &dir,
         "\
-module core_v0_rejects_record_construct.\n\npub value(): Dynamic ->\n    #Point { x = 1 }.\n",
+module core_v0_rejects_record_construct.\n\npub value(): Dynamic ->\n    Point { x: 1 }.\n",
     );
 
     let exit = commands::check::run(
@@ -839,7 +839,7 @@ fn run_check_single_file_rejects_record_update_for_core_v0_target_profile() {
     let path = fixture(
             &dir,
             "\
-module core_v0_rejects_record_update.\n\npub struct Point {\n    x: Int\n}.\n\npub value(point: Point): Dynamic ->\n    point#Point { x = 1 }.\n",
+module core_v0_rejects_record_update.\n\npub struct Point {\n    x: Int\n}.\n\npub value(point: Point): Dynamic ->\n    point#Point { x: 1 }.\n",
         );
 
     let exit = commands::check::run(
@@ -880,7 +880,7 @@ fn run_check_single_file_rejects_template_instantiate_for_core_v0_target_profile
     let path = fixture(
             &dir,
             "\
-module core_v0_rejects_template_instantiate.\n\ntemplate UserCard from \"./templates/user_card.terl.html\" {\n    name: Text\n}.\n\npub value(): Dynamic ->\n    UserCard{ name = \"Ada\" }.\n",
+module core_v0_rejects_template_instantiate.\n\ntemplate UserCard from \"./templates/user_card.terl.html\" {\n    name: Text\n}.\n\npub value(): Dynamic ->\n    UserCard(name = \"Ada\").\n",
         );
 
     let exit = commands::check::run(

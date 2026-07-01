@@ -570,7 +570,7 @@ module profile_test_lambda.\n\npub f(): Dynamic ->\n    (x) -> x.\n",
 fn target_profile_allows_map_expr_for_erlang_profile() {
     let module = lower(
         "\
-module profile_test_map_expr.\n\npub f(): Map ->\n    #{a := 1, b => 2}.\n",
+module profile_test_map_expr.\n\npub f(): Map ->\n    {a: 1, b: 2}.\n",
         "src/profile_test_map_expr.terl",
     );
 
@@ -791,7 +791,7 @@ pub values(items: IntCollection): List[Int] ->\n     [value | value <- items, va
 fn target_profile_allows_record_construct_expr_for_erlang_profile() {
     let module = lower(
         "\
-module profile_test_record_construct_expr.\n\npub f(): Dynamic ->\n    #Point { x = 1 }.\n",
+module profile_test_record_construct_expr.\n\npub f(): Dynamic ->\n    Point { x: 1 }.\n",
         "src/profile_test_record_construct_expr.terl",
     );
 
@@ -819,7 +819,7 @@ module profile_test_record_construct_expr.\n\npub f(): Dynamic ->\n    #Point { 
 fn target_profile_rejects_record_construct_expr_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_record_construct_expr_core_v0.\n\npub f(): Dynamic ->\n    #Point { x = 1 }.\n",
+module profile_test_record_construct_expr_core_v0.\n\npub f(): Dynamic ->\n    Point { x: 1 }.\n",
         "src/profile_test_record_construct_expr_core_v0.terl",
     );
 
@@ -903,7 +903,7 @@ module profile_test_record_access_expr_core_v0.\n\npub f(point: Point): Dynamic 
 fn target_profile_allows_record_update_expr_for_erlang_profile() {
     let module = lower(
         "\
-module profile_test_record_update_expr.\n\npub f(point: Point): Dynamic ->\n    point#Point { x = 1 }.\n",
+module profile_test_record_update_expr.\n\npub f(point: Point): Dynamic ->\n    point#Point { x: 1 }.\n",
         "src/profile_test_record_update_expr.terl",
     );
 
@@ -931,7 +931,7 @@ module profile_test_record_update_expr.\n\npub f(point: Point): Dynamic ->\n    
 fn target_profile_rejects_record_update_expr_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_record_update_expr_core_v0.\n\npub f(point: Point): Dynamic ->\n    point#Point { x = 1 }.\n",
+module profile_test_record_update_expr_core_v0.\n\npub f(point: Point): Dynamic ->\n    point#Point { x: 1 }.\n",
         "src/profile_test_record_update_expr_core_v0.terl",
     );
 
@@ -951,7 +951,7 @@ module profile_test_record_update_expr_core_v0.\n\npub f(point: Point): Dynamic 
 fn target_profile_allows_template_instantiate_expr_for_erlang_profile() {
     let module = lower(
         "\
-module profile_test_template_instantiate_expr.\n\npub f(): Dynamic ->\n    UserCard{ name = \"Ada\" }.\n",
+module profile_test_template_instantiate_expr.\n\ntemplate UserCard from \"./user_card.terl.html\" {\n    name: Text\n}.\n\npub f(): Dynamic ->\n    UserCard(name = \"Ada\").\n",
         "src/profile_test_template_instantiate_expr.terl",
     );
 
@@ -979,7 +979,7 @@ module profile_test_template_instantiate_expr.\n\npub f(): Dynamic ->\n    UserC
 fn target_profile_rejects_template_instantiate_expr_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_template_instantiate_expr_core_v0.\n\npub f(): Dynamic ->\n    UserCard{ name = \"Ada\" }.\n",
+module profile_test_template_instantiate_expr_core_v0.\n\ntemplate UserCard from \"./user_card.terl.html\" {\n    name: Text\n}.\n\npub f(): Dynamic ->\n    UserCard(name = \"Ada\").\n",
         "src/profile_test_template_instantiate_expr_core_v0.terl",
     );
 
@@ -999,7 +999,7 @@ module profile_test_template_instantiate_expr_core_v0.\n\npub f(): Dynamic ->\n 
 fn target_profile_allows_constructor_chain_expr_for_erlang_profile() {
     let module = lower(
         "\
-module profile_test_constructor_chain_expr.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub f(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module profile_test_constructor_chain_expr.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub f(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         "src/profile_test_constructor_chain_expr.terl",
     );
 
@@ -1028,7 +1028,7 @@ module profile_test_constructor_chain_expr.\n\npub constructor User {\n    (id: 
 fn target_profile_rejects_constructor_chain_expr_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_constructor_chain_expr_core_v0.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub f(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module profile_test_constructor_chain_expr_core_v0.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub f(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         "src/profile_test_constructor_chain_expr_core_v0.terl",
     );
 
@@ -1320,7 +1320,7 @@ module profile_test_unary_op_expr.\n\npub f(value: Int): Int ->\n    -value.\n",
 fn target_profile_allows_map_pattern_for_erlang_profile() {
     let module = lower(
         "\
-module profile_test_map_pattern.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        #{a = x} -> x;\n        _ -> value\n    }.\n",
+module profile_test_map_pattern.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        {a: x} -> x;\n        _ -> value\n    }.\n",
         "src/profile_test_map_pattern.terl",
     );
 
@@ -1409,7 +1409,7 @@ module profile_test_float_pattern_core_v0.\n\npub f(value: Dynamic): Dynamic ->\
 fn target_profile_rejects_map_pattern_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_map_pattern_core_v0.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        #{a = x} -> x;\n        _ -> value\n    }.\n",
+module profile_test_map_pattern_core_v0.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        {a: x} -> x;\n        _ -> value\n    }.\n",
         "src/profile_test_map_pattern_core_v0.terl",
     );
 
@@ -1477,7 +1477,7 @@ module profile_test_list_cons_pattern_core_v0.\n\npub f(value: List[Int]): Dynam
 fn target_profile_allows_record_pattern_for_erlang_profile() {
     let module = lower(
         "\
-module profile_test_record_pattern.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        #Point { x = x } -> x;\n        _ -> value\n    }.\n",
+module profile_test_record_pattern.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        Point { x: x } -> x;\n        _ -> value\n    }.\n",
         "src/profile_test_record_pattern.terl",
     );
 
@@ -1505,7 +1505,7 @@ module profile_test_record_pattern.\n\npub f(value: Dynamic): Dynamic ->\n    ca
 fn target_profile_rejects_record_pattern_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_record_pattern_core_v0.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        #Point { x = x } -> x;\n        _ -> value\n    }.\n",
+module profile_test_record_pattern_core_v0.\n\npub f(value: Dynamic): Dynamic ->\n    case value {\n        Point { x: x } -> x;\n        _ -> value\n    }.\n",
         "src/profile_test_record_pattern_core_v0.terl",
     );
 
@@ -1567,7 +1567,7 @@ module profile_test_core_v0_sub.\n\npub f(x: Int, y: Int): Int ->\n    x - y.\n"
 fn target_profile_rejects_map_expr_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_core_v0_map.\n\npub f(): Map ->\n    #{a := 1}.\n",
+module profile_test_core_v0_map.\n\npub f(): Map ->\n    {a: 1}.\n",
         "src/profile_test_core_v0_map.terl",
     );
 

@@ -53,8 +53,8 @@ mod tests {
 
             map_pattern(value: Map): Int ->
               case value {
-                #{kind := :ok, count => n} when n > 0 -> n;
-                #{} -> 0
+                {kind: :ok, count: n} when n > 0 -> n;
+                {} -> 0
               }.
 
             list_cons_pattern(values: List[Int]): Int ->
@@ -159,6 +159,24 @@ mod tests {
         assert_eq!(
             err.message,
             "constructor patterns require at least one argument"
+        );
+    }
+
+    #[test]
+    fn rejects_hash_prefixed_struct_patterns() {
+        let err = parse_module(
+            r#"
+            module bad_struct_pattern.
+
+            read(#Point{x: x}): Int ->
+                x.
+            "#,
+        )
+        .expect_err("reject hash-prefixed struct pattern");
+
+        assert_eq!(
+            err.message,
+            "struct patterns must use Type { field: pattern } syntax"
         );
     }
 

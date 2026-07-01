@@ -66,15 +66,19 @@ impl Parser {
             }
 
             if self.check(TokenKind::LBrace)
-                && matches!(expr, Expr::Var(_))
                 && matches!(
-                    self.tokens.get(self.pos.saturating_sub(1)),
-                    Some(previous) if previous.end == self.current().start
+                    &expr,
+                    Expr::Var(name)
+                        if name
+                            .chars()
+                            .next()
+                            .is_some_and(|ch| ch.is_ascii_uppercase())
                 )
+                && self.nominal_keyed_constructor_body_starts()
             {
                 self.bump();
                 let Expr::Var(name) = expr else {
-                    unreachable!("template instantiation receiver was checked above");
+                    unreachable!("nominal keyed constructor receiver was checked above");
                 };
                 let mut fields = Vec::new();
                 if !self.consume_if(TokenKind::RBrace) {
@@ -86,7 +90,7 @@ impl Parser {
                     }
                     self.expect(TokenKind::RBrace)?;
                 }
-                expr = Expr::TemplateInstantiate { name, fields };
+                expr = Expr::RecordConstruct { name, fields };
                 continue;
             }
 
@@ -199,6 +203,25 @@ impl Parser {
         Ok(expr)
     }
 
+    /// Reports whether the following brace body can be nominal keyed construction.
+    ///
+    /// Inputs: parser cursor positioned at `{` after an uppercase expression
+    /// receiver.
+    /// Output: true for empty bodies or `field:` body starts.
+    /// Transformation: prevents `case Option { ... }` blocks from being
+    /// consumed as `Option { ... }` constructors.
+    fn nominal_keyed_constructor_body_starts(&self) -> bool {
+        match (self.tokens.get(self.pos + 1), self.tokens.get(self.pos + 2)) {
+            (Some(close), _) if close.kind == TokenKind::RBrace => true,
+            (Some(key), Some(colon))
+                if key.kind == TokenKind::Atom && colon.kind == TokenKind::Colon =>
+            {
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// Parses Terlan record construction.
     ///
     /// Inputs:
@@ -208,7 +231,7 @@ impl Parser {
     /// - Record construction expression with parsed field assignments.
     ///
     /// Transformation:
-    /// - Consumes `TypeName { field = expr }` syntax and reuses expression
+    /// - Consumes `TypeName { field: expr }` syntax and reuses expression
     ///   field parsing so record construction follows the same field rules as
     ///   template instantiation.
     fn parse_record_expr(&mut self) -> ParseResult<Expr> {
@@ -248,7 +271,7 @@ impl Parser {
         let key_token = self.current().clone();
         let valid_key = match kind {
             ExprFieldKind::Map => {
-                key_token.kind == TokenKind::Atom || key_token.kind == TokenKind::Var
+                key_token.kind == TokenKind::Atom || key_token.kind == TokenKind::String
             }
             ExprFieldKind::TerlanRecord => true,
         };
@@ -256,7 +279,7 @@ impl Parser {
             return Err(ParseError {
                 message: match kind {
                     ExprFieldKind::TerlanRecord => "expected lower-case field name".to_string(),
-                    ExprFieldKind::Map => "expected map field key atom".to_string(),
+                    ExprFieldKind::Map => "expected keyed field name".to_string(),
                 },
                 span: key_token.span(),
             });
@@ -265,15 +288,16 @@ impl Parser {
         if parsed_key.is_none() {
             self.bump();
         }
-        let required = if self.consume_if(TokenKind::Equals) {
+        let required = if kind == ExprFieldKind::Map {
+            self.expect(TokenKind::Colon)?;
             true
-        } else if self.consume_if(TokenKind::FatArrow) && kind == ExprFieldKind::Map {
-            false
+        } else if self.consume_if(TokenKind::Colon) {
+            true
         } else {
             return Err(ParseError {
                 message: match kind {
-                    ExprFieldKind::Map => "expected := or => in map expression".to_string(),
-                    ExprFieldKind::TerlanRecord => "expected = in struct field".to_string(),
+                    ExprFieldKind::Map => "expected : in map expression".to_string(),
+                    ExprFieldKind::TerlanRecord => "expected : in struct field".to_string(),
                 },
                 span: self.current().span(),
             });

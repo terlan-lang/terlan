@@ -42,21 +42,21 @@ pub value(value: Bool): Bool ->
 /// Verifies wildcard imports use the braced selector form after formatting.
 ///
 /// Inputs:
-/// - Path-style wildcard import syntax.
+/// - Canonical braced wildcard import syntax.
 ///
 /// Output:
 /// - Canonical import source using `.{*}.`.
 ///
 /// Transformation:
-/// - Parses the compatibility import spelling and renders the stable wildcard
-///   import selector form so the declaration terminator stays visually clear.
+/// - Renders the stable wildcard import selector form so the declaration
+///   terminator stays visually clear.
 #[test]
-fn formatter_canonicalizes_wildcard_imports() {
+fn formatter_preserves_braced_wildcard_imports() {
     let output = format_source_module(
         r#"
 module wildcard_import_fmt.
 
-import test.Other.*.
+import test.Other.{*}.
 
 pub main(): Int -> 1.
 "#,
@@ -330,10 +330,10 @@ template Page from "./templates/page.terl.html" {
     ));
 }
 
-/// Verifies template instantiation expressions round-trip through formatter output.
+/// Verifies nominal keyed construction expressions round-trip through formatter output.
 ///
 /// Inputs:
-/// - A module containing a fielded template instantiation expression.
+/// - A module containing a fielded nominal construction expression.
 ///
 /// Output:
 /// - Formatted template expression with stable field text.
@@ -341,17 +341,17 @@ template Page from "./templates/page.terl.html" {
 /// Transformation:
 /// - Parses the module and formats the parse tree.
 #[test]
-fn formats_template_instantiation_exprs() {
+fn formats_nominal_keyed_construction_exprs() {
     let module = parse_module(
         r#"
 module template_instantiation_fmt.
 
 pub view(Title: Text, User: User): Html[none] ->
-    Page{ title = Title, user = User }.
+    Page { title: Title, user: User }.
 "#,
     )
     .expect("parse module");
 
     let output = format_module(&module);
-    assert!(output.contains("Page {title = Title, user = User}."));
+    assert!(output.contains("Page {title: Title, user: User}."));
 }

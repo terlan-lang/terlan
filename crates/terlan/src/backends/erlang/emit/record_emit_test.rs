@@ -123,7 +123,7 @@ name: Text
 }.
 
 pub rename(user: User, name: Text): User ->
-user#User{name = name}.
+user#User {name: name}.
 "#,
     )
     .expect("parse syntax output record update fixture");
@@ -158,7 +158,7 @@ name: Text
 
 pub username(user: User): Text ->
 case user {
-    #User{name = name} -> name
+    User {name: name} -> name
 }.
 "#,
     )

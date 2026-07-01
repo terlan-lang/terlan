@@ -113,7 +113,7 @@ pub impl Enumerable[Set[T], T] for Set[T] {
  */
 map_iterator[T, U](iterator: Iterator[T], cb: (T) -> U): List[U] ->
     case Iterator.next(iterator) {
-        Some({value, next}) ->
+        Some({value: value, next: next}) ->
             [cb.(value) | map_iterator(next, cb)];
         None ->
             []
@@ -129,7 +129,7 @@ map_iterator[T, U](iterator: Iterator[T], cb: (T) -> U): List[U] ->
  */
 filter_iterator[T](iterator: Iterator[T], predicate: (T) -> Bool): List[T] ->
     case Iterator.next(iterator) {
-        Some({value, next}) ->
+        Some({value: value, next: next}) ->
             case predicate.(value) {
                 true ->
                     [value | filter_iterator(next, predicate)];
@@ -151,7 +151,7 @@ filter_iterator[T](iterator: Iterator[T], predicate: (T) -> Bool): List[T] ->
  */
 fold_iterator[T, U](iterator: Iterator[T], acc: U, reducer: (U, T) -> U): U ->
     case Iterator.next(iterator) {
-        Some({value, next}) ->
+        Some({value: value, next: next}) ->
             fold_iterator(next, reducer.(acc, value), reducer);
         None ->
             acc

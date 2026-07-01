@@ -98,18 +98,9 @@ impl Parser {
                 Some(token) if token.kind == TokenKind::Star
             )
         {
-            self.bump();
-            let star = self.expect(TokenKind::Star)?.clone();
-            validate_module_path_segments(&path_segments)?;
-            module_name = path_segments
-                .iter()
-                .map(|(segment, _)| segment.as_str())
-                .collect::<Vec<_>>()
-                .join(".");
-            items.push(ImportItem {
-                name: "*".to_string(),
-                as_alias: None,
-                span: star.span(),
+            return Err(ParseError {
+                message: "wildcard imports must use braced selector syntax `.{*}`".to_string(),
+                span: self.current().span(),
             });
         } else if brace_import && self.consume_if(TokenKind::LBrace) {
             validate_module_path_segments(&path_segments)?;

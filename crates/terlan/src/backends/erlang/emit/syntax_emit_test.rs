@@ -115,7 +115,7 @@ pub demo(values: List): Option ->
     assert!(output.contains("demo(Values) ->"));
     assert!(output.contains("case Values of"));
     assert!(output.contains(
-        "[_TerlanIteratorValue|_TerlanNextIterator] -> {'some', {_TerlanIteratorValue, _TerlanNextIterator}}"
+        "[_TerlanIteratorValue|_TerlanNextIterator] -> {'some', #{value=>_TerlanIteratorValue, next=>_TerlanNextIterator}}"
     ));
     assert!(output.contains("[] -> 'none'"));
     assert!(

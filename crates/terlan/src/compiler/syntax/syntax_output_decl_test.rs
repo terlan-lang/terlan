@@ -1253,7 +1253,7 @@ mod tests {
               otp_application: true;
               adapter: postgres;
               features: [sockets, ssl];
-              options: #{ssl: false, retries: 3}
+              options: {ssl: false, retries: 3}
             }.
             "#,
         )

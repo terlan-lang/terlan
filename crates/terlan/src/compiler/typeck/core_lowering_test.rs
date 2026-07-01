@@ -580,7 +580,7 @@ fn syntax_output_lowering_to_core_records_record_pattern_payload() {
         "\
 module core_expr_pattern_gap.\n\
 \n\
-pub bad(#Point { x = 1 }): Int ->\n\
+pub bad(Point{x: 1}): Int ->\n\
     1.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
@@ -1090,26 +1090,19 @@ fn syntax_output_lowering_to_core_records_compound_core_type_payloads() {
         ]))
     );
     assert_eq!(
-        core_type_from_text("#{name := Binary}"),
+        core_type_from_text("{name: Binary}"),
         Some(CoreType::Map(vec![CoreMapTypeField {
             key: "name".to_string(),
-            operator: ":=".to_string(),
+            operator: ":".to_string(),
             value: CoreType::Binary,
         }]))
     );
+    assert_eq!(core_type_from_text("#{name: Binary}"), None,);
     assert_eq!(
-        core_type_from_text("# {name := Binary}"),
+        core_type_from_text("{ok: {:ok, value: T}}"),
         Some(CoreType::Map(vec![CoreMapTypeField {
-            key: "name".to_string(),
-            operator: ":=".to_string(),
-            value: CoreType::Binary,
-        }]))
-    );
-    assert_eq!(
-        core_type_from_text("#{:ok => {:ok, value: T}}"),
-        Some(CoreType::Map(vec![CoreMapTypeField {
-            key: ":ok".to_string(),
-            operator: "=>".to_string(),
+            key: "ok".to_string(),
+            operator: ":".to_string(),
             value: CoreType::Tuple(vec![
                 CoreTupleTypeElem::Type(CoreType::AtomLiteral("ok".to_string())),
                 CoreTupleTypeElem::Field {
@@ -1223,7 +1216,7 @@ pub type MaybeInt = Int | Never.\n\
 pub type Items[T] = List[T].\n\
 pub type None = :none.\n\
 pub type Ok[T] = {:ok, value: T}.\n\
-pub type Props = #{name := Binary}.\n",
+pub type Props = {name: Binary}.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -1291,7 +1284,7 @@ pub type Props = #{name := Binary}.\n",
         props.core_body,
         Some(CoreType::Map(vec![CoreMapTypeField {
             key: "name".to_string(),
-            operator: ":=".to_string(),
+            operator: ":".to_string(),
             value: CoreType::Binary,
         }]))
     );

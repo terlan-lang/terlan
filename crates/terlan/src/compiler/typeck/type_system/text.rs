@@ -282,7 +282,7 @@ pub(crate) fn is_list_type(input: &str) -> bool {
 /// Transformation:
 /// - Performs a delimiter-shape check before full tuple parsing.
 pub(crate) fn is_tuple_type(input: &str) -> bool {
-    input.starts_with('{') && input.ends_with('}')
+    input.starts_with('{') && input.ends_with('}') && !is_map_type_expr(input)
 }
 
 /// Reports whether compacted text has map type syntax.
@@ -291,10 +291,44 @@ pub(crate) fn is_tuple_type(input: &str) -> bool {
 /// - `input`: compacted type-expression text.
 ///
 /// Output:
-/// - `true` for `#{...}` map type expressions.
+/// - `true` for `{...}` keyed type expressions.
 ///
 /// Transformation:
 /// - Performs a delimiter-shape check before full map-field parsing.
 pub(crate) fn is_map_type_expr(input: &str) -> bool {
-    input.starts_with("#{") && input.ends_with('}') && input.len() >= 3
+    if !(input.starts_with('{') && input.ends_with('}')) || input.len() < 2 {
+        return false;
+    }
+    let inner = &input[1..input.len() - 1];
+    inner.trim().is_empty() || first_top_level_item_has_colon(inner)
+}
+
+/// Reports whether the first top-level item contains a `:` separator.
+///
+/// Inputs: text inside a brace-delimited type expression.
+/// Output: true when the first top-level item is shaped like `key: Type`.
+/// Transformation: performs the same delimiter-depth scan used by the type
+/// splitters, and stops at the first top-level comma so tagged tuples like
+/// `{:ok, value: T}` remain tuple types.
+fn first_top_level_item_has_colon(input: &str) -> bool {
+    let bytes = input.as_bytes();
+    let mut p_depth = 0usize;
+    let mut b_depth = 0usize;
+    let mut t_depth = 0usize;
+
+    for (index, byte) in bytes.iter().enumerate() {
+        match *byte {
+            b'(' => p_depth += 1,
+            b')' => p_depth = p_depth.saturating_sub(1),
+            b'[' => b_depth += 1,
+            b']' => b_depth = b_depth.saturating_sub(1),
+            b'{' => t_depth += 1,
+            b'}' => t_depth = t_depth.saturating_sub(1),
+            b',' if p_depth == 0 && b_depth == 0 && t_depth == 0 => return false,
+            b':' if index > 0 && p_depth == 0 && b_depth == 0 && t_depth == 0 => return true,
+            _ => {}
+        }
+    }
+
+    false
 }

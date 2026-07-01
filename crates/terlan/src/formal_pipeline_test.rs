@@ -263,7 +263,7 @@ fn compile_syntax_module_with_core_v0_profile_rejects_broad_coreir() {
 module target_profile_core_v0_reject.
 
 pub f(): Map ->
-  #{a := 1}.
+  {a: 1}.
 ";
 
     let result = compile_syntax_module_through_phases_with_diagnostics_for_profile(

@@ -411,7 +411,7 @@ pub(crate) fn parse_type_atom_literal(input: &str) -> Option<String> {
 /// Parses a map type expression.
 ///
 /// Inputs:
-/// - `input`: candidate `#{...}` map type text.
+/// - `input`: candidate `{...}` map type text.
 /// - `aliases`: visible alias names.
 /// - `vars`: mutable type-variable mapping.
 /// - `next_var`: next available type-variable id.
@@ -421,7 +421,7 @@ pub(crate) fn parse_type_atom_literal(input: &str) -> Option<String> {
 /// - `None` for non-map input or malformed fields.
 ///
 /// Transformation:
-/// - Splits top-level fields and parses each required or optional field type.
+/// - Splits top-level fields and parses each field type.
 pub(crate) fn parse_map_type_expression(
     input: &str,
     aliases: &HashSet<String>,
@@ -433,7 +433,7 @@ pub(crate) fn parse_map_type_expression(
         return None;
     }
 
-    let inner = &src[2..src.len() - 1];
+    let inner = &src[1..src.len() - 1];
     if inner.trim().is_empty() {
         return Some(Type::Map(Vec::new()));
     }
@@ -449,7 +449,7 @@ pub(crate) fn parse_map_type_expression(
 /// Parses one map type field.
 ///
 /// Inputs:
-/// - `input`: field text using `:=` for required or `=>` for optional.
+/// - `input`: field text using `:` as the map field separator.
 /// - `aliases`: visible alias names.
 /// - `vars`: mutable type-variable mapping.
 /// - `next_var`: next available type-variable id.
@@ -481,8 +481,7 @@ pub(crate) fn parse_map_type_field(
 /// - `input`: map field text.
 ///
 /// Output:
-/// - `Some((key, value, true))` for top-level `:=`.
-/// - `Some((key, value, false))` for top-level `=>`.
+/// - `Some((key, value, true))` for top-level `:`.
 /// - `None` when no top-level map-field separator exists.
 ///
 /// Transformation:
@@ -501,21 +500,8 @@ pub(crate) fn split_map_field(input: &str) -> Option<(&str, &str, bool)> {
             b']' => depth_b = depth_b.saturating_sub(1),
             b'{' => depth_br += 1,
             b'}' => depth_br = depth_br.saturating_sub(1),
-            b':' if i + 1 < bytes.len()
-                && bytes[i + 1] == b'='
-                && depth_p == 0
-                && depth_b == 0
-                && depth_br == 0 =>
-            {
-                return Some((&input[..i], &input[i + 2..], true));
-            }
-            b'=' if i + 1 < bytes.len()
-                && bytes[i + 1] == b'>'
-                && depth_p == 0
-                && depth_b == 0
-                && depth_br == 0 =>
-            {
-                return Some((&input[..i], &input[i + 2..], false));
+            b':' if depth_p == 0 && depth_b == 0 && depth_br == 0 => {
+                return Some((&input[..i], &input[i + 1..], true));
             }
             _ => {}
         }

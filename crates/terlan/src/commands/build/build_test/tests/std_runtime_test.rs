@@ -150,7 +150,7 @@ agent.stop().\n\
 pub read_updated(agent: Agent[Int]): Int ->\n\
 agent.cast((value: Int) -> value + 1);\n\
 agent.update((value: Int) -> value + 1);\n\
-agent.get_and_update((value: Int) -> {value, value}).\n\
+agent.get_and_update((value: Int) -> {state: value, value: value}).\n\
 \n\
 pub run(result: Result[Agent[Int], Error]): Int ->\n\
 case result {\n\
@@ -392,7 +392,7 @@ pub (server: CounterServer) init(): Result[Int, Error] ->\n\
 Ok(server.seed).\n\
 \n\
 pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-Ok({state + request, state + request}).\n\
+Ok({state: state + request, reply: state + request}).\n\
 \n\
 pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
 Ok(state + event).\n\

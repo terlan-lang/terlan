@@ -614,7 +614,7 @@ fn formal_static_emit_renders_external_template_from_syntax_output() {
     .expect("write template");
     let path = fixture(
             &dir,
-            "module site.\n\nimport std.template.Template.\n\npub struct User {\n    id: Int,\n    name: Text\n}.\n\ntemplate Card from \"./templates/card.terl.html\" {\n    title: Text,\n    user: User\n}.\n\npub page(): Template.Html ->\n    Card{ title = \"Hi & Bye\", user = User(id = 7, name = \"Ada <A>\") }.\n",
+            "module site.\n\nimport std.template.Template.\n\npub struct User {\n    id: Int,\n    name: Text\n}.\n\ntemplate Card from \"./templates/card.terl.html\" {\n    title: Text,\n    user: User\n}.\n\npub page(): Template.Html ->\n    Card(title = \"Hi & Bye\", user = User(id = 7, name = \"Ada <A>\")).\n",
         );
     let out_dir = dir.join("public");
 
@@ -650,7 +650,7 @@ fn formal_static_emit_renders_external_template_components_from_syntax_output() 
         "<page-shell shell_class=\"shell\"><h1>${title}</h1><p>Wrapped</p></page-shell>",
     )
     .expect("write page template");
-    let source = "module site.\n\ntemplate PageShell from \"./templates/page_shell.terl.html\" {\n    shell_class: Text\n}.\n\ntemplate Page from \"./templates/page.terl.html\" {\n    title: Text\n}.\n\npub home(): Html ->\n    Page{ title = \"Home\" }.\n";
+    let source = "module site.\n\ntemplate PageShell from \"./templates/page_shell.terl.html\" {\n    shell_class: Text\n}.\n\ntemplate Page from \"./templates/page.terl.html\" {\n    title: Text\n}.\n\npub home(): Html ->\n    Page(title = \"Home\").\n";
     let path = fixture(&dir, source);
     let module = parse_module_as_syntax_output(source).expect("parse syntax-output module");
     let templates = commands::artifacts::collect_syntax_template_inputs(&module, Path::new(&path))

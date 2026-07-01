@@ -512,7 +512,7 @@ import type std.core.Error.Error.\n\
 import type std.core.Result.Result.\n\
 \n\
 pub queue_update(agent: Agent[Int]): Int ->\n\
-Agent.get_and_update(agent, (value: Int) -> {value, value}).\n",
+Agent.get_and_update(agent, (value: Int) -> {state: value, value: value}).\n",
         "src/profile_beam_agent_operation.terl",
     );
 
@@ -563,7 +563,7 @@ pub (server: CounterServer) init(): Result[Int, Error] ->\n\
 Ok(server.seed).\n\
 \n\
 pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-Ok({state, request}).\n\
+Ok({state: state, reply: request}).\n\
 \n\
 pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
 Ok(state + event).\n\

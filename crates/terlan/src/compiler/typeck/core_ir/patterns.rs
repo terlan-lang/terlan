@@ -158,8 +158,7 @@ impl CoreMapPatternField {
     /// - Serializes the source key, required/optional map-match operator, and
     ///   recursively rendered value pattern without backend-specific syntax.
     fn contract_text(&self) -> String {
-        let operator = if self.required { ":=" } else { "=>" };
-        format!("{}{}{}", self.key, operator, self.value.contract_text())
+        format!("{}:{}", self.key, self.value.contract_text())
     }
 }
 

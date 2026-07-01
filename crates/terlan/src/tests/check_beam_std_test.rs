@@ -79,7 +79,7 @@ module beam_agent_operation.\n\
 import std.beam.Agent.\n\
 \n\
 pub queue_update(agent: Agent[Int]): Int ->\n\
-    Agent.get_and_update(agent, (value: Int) -> {value, value}).\n",
+    Agent.get_and_update(agent, (value: Int) -> {state: value, value: value}).\n",
     )
     .expect("write BEAM Agent operation source");
     let manifest = dir.join("beam_agent_operation.phase-manifest.json");
@@ -140,7 +140,7 @@ pub (server: CounterServer) init(): Result[Int, Error] ->\n\
     Ok(server.seed).\n\
 \n\
 pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-    Ok({state, request}).\n\
+    Ok({state: state, reply: request}).\n\
 \n\
 pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
     Ok(state + event).\n",
@@ -205,7 +205,7 @@ pub (server: CounterServer) init(): Result[Int, Error] ->\n\
     Ok(server.seed).\n\
 \n\
 pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-    Ok({state, request}).\n\
+    Ok({state: state, reply: request}).\n\
 \n\
 pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
     Ok(state + event).\n\

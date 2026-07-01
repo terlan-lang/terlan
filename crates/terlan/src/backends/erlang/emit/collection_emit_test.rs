@@ -9,11 +9,11 @@ fn formal_syntax_output_direct_emit_lowers_maps_and_funs() {
 module syntax_output_container_emit.
 
 pub make(value: Int): Dynamic ->
-#{count => value, ok = :ok}.
+{count: value, ok: :ok}.
 
 pub pick(input: Dynamic): Dynamic ->
 case input {
-    #{count = value} -> value
+    {count: value} -> value
 }.
 
 pub mapper(): Dynamic ->
@@ -48,11 +48,11 @@ fn formal_syntax_output_direct_emit_lowers_map_exprs_and_patterns() {
 module syntax_output_map_emit.
 
 pub make(value: Int): Dynamic ->
-#{count => value, ok = :ok}.
+{count: value, ok: :ok}.
 
 pub pick(input: Dynamic): Dynamic ->
 case input {
-    #{count = value} -> value
+    {count: value} -> value
 }.
 "#,
     )

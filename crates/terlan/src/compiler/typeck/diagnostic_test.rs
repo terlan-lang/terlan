@@ -575,7 +575,7 @@ fn syntax_output_single_shape_alias_constructor_chains_report_arity_mismatch_on_
 module alias_constructor_chain_arity.\n\
 pub type User = {:user, id: Int, name: Binary}.\n\
 pub make(id: Int): Dynamic ->\n\
-    User(id) with Wrapped { id = id }.\n\
+    User(id) with Wrapped { id: id }.\n\
 ",
     );
     assert!(
@@ -674,9 +674,9 @@ fn syntax_output_map_aliases_do_not_generate_constructor_calls_on_formal_path() 
     let diagnostics = check_syntax_output(
         "\
 module map_alias_constructor_calls.\n\
-pub type Props = #{name := Binary}.\n\
+pub type Props = {name: Binary}.\n\
 pub make(name: Binary): Props ->\n\
-    Props(#{name = name}).\n\
+    Props({name: name}).\n\
 ",
     );
     assert!(
@@ -693,7 +693,7 @@ fn syntax_output_map_aliases_do_not_generate_constructor_patterns_on_formal_path
     let diagnostics = check_syntax_output(
         "\
 module map_alias_constructor_patterns.\n\
-pub type Props = #{name := Binary}.\n\
+pub type Props = {name: Binary}.\n\
 pub name(input: Props): Binary ->\n\
     case input {\n\
         Props(values) -> values\n\

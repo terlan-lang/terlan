@@ -396,10 +396,6 @@ pub enum Expr {
         name: String,
         fields: Vec<MapExprField>,
     },
-    TemplateInstantiate {
-        name: String,
-        fields: Vec<MapExprField>,
-    },
     ConstructorChain {
         base: Box<Expr>,
         record: Box<Expr>,

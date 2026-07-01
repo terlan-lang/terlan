@@ -423,7 +423,7 @@ fn run_check_single_file_rejects_unresolved_template_body_before_core_phase() {
     let source = dir.join("template_body.terl");
     fs::write(
             &source,
-            "module template_body.\n\ntemplate Page from \"./templates/missing.terl.html\" {\n  title: Text\n}.\n\npub home(): Html[Never] ->\n  Page{ title = \"Home\" }.\n",
+            "module template_body.\n\ntemplate Page from \"./templates/missing.terl.html\" {\n  title: Text\n}.\n\npub home(): Html[Never] ->\n  Page(title = \"Home\").\n",
         )
         .expect("write unresolved template source");
     let manifest = dir.join("template_body.phase-manifest.json");

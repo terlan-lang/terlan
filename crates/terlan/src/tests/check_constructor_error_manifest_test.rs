@@ -80,7 +80,7 @@ fn run_check_single_file_rejects_imported_raw_struct_construction_before_core_ph
     let source = dir.join("imported_raw_struct_construction.terl");
     fs::write(
             &source,
-            "module imported_raw_struct_construction.\n\nimport type provider.Point.\n\npub value(): Dynamic ->\n    #Point { x = 1 }.\n",
+            "module imported_raw_struct_construction.\n\nimport type provider.Point.\n\npub value(): Dynamic ->\n    Point { x: 1 }.\n",
         )
         .expect("write imported raw struct construction source");
     let manifest = dir.join("imported_raw_struct_construction.phase-manifest.json");
@@ -540,7 +540,7 @@ fn run_check_single_file_rejects_alias_constructor_chain_wrong_arity_before_core
     let source = dir.join("alias_constructor_chain_wrong_arity.terl");
     fs::write(
             &source,
-            "module alias_constructor_chain_wrong_arity.\n\npub type User = {:user, id: Int, name: Binary}.\n\npub value(id: Int): Dynamic ->\n    User(id) with Wrapped { id = id }.\n",
+            "module alias_constructor_chain_wrong_arity.\n\npub type User = {:user, id: Int, name: Binary}.\n\npub value(id: Int): Dynamic ->\n    User(id) with Wrapped { id: id }.\n",
         )
         .expect("write alias constructor chain wrong-arity source");
     let manifest = dir.join("alias_constructor_chain_wrong_arity.phase-manifest.json");
@@ -603,7 +603,7 @@ fn run_check_single_file_rejects_imported_alias_constructor_chain_wrong_arity_be
     let source = dir.join("imported_alias_constructor_chain_wrong_arity.terl");
     fs::write(
             &source,
-            "module imported_alias_constructor_chain_wrong_arity.\n\nimport result.{User}.\n\npub value(id: Int): Dynamic ->\n    User(id) with Wrapped { id = id }.\n",
+            "module imported_alias_constructor_chain_wrong_arity.\n\nimport result.{User}.\n\npub value(id: Int): Dynamic ->\n    User(id) with Wrapped { id: id }.\n",
         )
         .expect("write imported alias constructor chain wrong-arity source");
     let manifest = dir.join("imported_alias_constructor_chain_wrong_arity.phase-manifest.json");
@@ -668,7 +668,7 @@ fn run_check_single_file_rejects_aliased_imported_alias_constructor_chain_wrong_
     let source = dir.join("aliased_imported_alias_constructor_chain_wrong_arity.terl");
     fs::write(
             &source,
-            "module aliased_imported_alias_constructor_chain_wrong_arity.\n\nimport result.{User as Member}.\n\npub value(id: Int): Dynamic ->\n    Member(id) with Wrapped { id = id }.\n",
+            "module aliased_imported_alias_constructor_chain_wrong_arity.\n\nimport result.{User as Member}.\n\npub value(id: Int): Dynamic ->\n    Member(id) with Wrapped { id: id }.\n",
         )
         .expect("write aliased imported alias constructor chain wrong-arity source");
     let manifest =
@@ -726,7 +726,7 @@ fn run_check_single_file_rejects_imported_list_alias_constructor_chain_before_co
     let source = dir.join("imported_list_alias_constructor_chain.terl");
     fs::write(
             &source,
-            "module imported_list_alias_constructor_chain.\n\nimport items.{Items}.\n\npub value(values: List[Int]): Dynamic ->\n    Items(values) with Wrapped { values = values }.\n",
+            "module imported_list_alias_constructor_chain.\n\nimport items.{Items}.\n\npub value(values: List[Int]): Dynamic ->\n    Items(values) with Wrapped { values: values }.\n",
         )
         .expect("write imported list alias constructor-chain source");
     let manifest = dir.join("imported_list_alias_constructor_chain.phase-manifest.json");
@@ -840,7 +840,7 @@ fn run_check_single_file_rejects_aliased_imported_list_alias_constructor_chain_b
     let source = dir.join("aliased_imported_list_alias_constructor_chain.terl");
     fs::write(
             &source,
-            "module aliased_imported_list_alias_constructor_chain.\n\nimport items.{Items as Bag}.\n\npub value(values: List[Int]): Dynamic ->\n    Bag(values) with Wrapped { values = values }.\n",
+            "module aliased_imported_list_alias_constructor_chain.\n\nimport items.{Items as Bag}.\n\npub value(values: List[Int]): Dynamic ->\n    Bag(values) with Wrapped { values: values }.\n",
         )
         .expect("write aliased imported list alias constructor-chain source");
     let manifest = dir.join("aliased_imported_list_alias_constructor_chain.phase-manifest.json");

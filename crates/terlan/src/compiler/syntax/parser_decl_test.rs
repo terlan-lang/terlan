@@ -40,9 +40,9 @@ mod tests {
             }.
 
             pub constructor User {
-              (id: Int, name: String): User -> #{
-                id := id,
-                name := name
+              (id: Int, name: String): User -> {
+                id: id,
+                name: name
               }
             }.
 
@@ -164,10 +164,9 @@ mod tests {
     ///
     /// Inputs:
     /// - Canonical braced wildcard import syntax.
-    /// - Compatibility path-style wildcard import syntax.
     ///
     /// Output:
-    /// - Test passes when both imports preserve `*` as the selected import item.
+    /// - Test passes when the import preserves `*` as the selected import item.
     ///
     /// Transformation:
     /// - Exercises wildcard import parsing without expanding symbols; semantic
@@ -179,7 +178,6 @@ mod tests {
             module app.Wildcard.
 
             import test.Other.{*}.
-            import test.Legacy.*.
 
             pub main(): Int -> 1.
             "#,
@@ -191,12 +189,34 @@ mod tests {
         };
         assert_eq!(braced_import.module_name, "test.Other");
         assert_eq!(braced_import.items[0].name, "*");
+    }
 
-        let Decl::Import(path_import) = &module.declarations[1] else {
-            panic!("expected path wildcard import");
-        };
-        assert_eq!(path_import.module_name, "test.Legacy");
-        assert_eq!(path_import.items[0].name, "*");
+    /// Verifies path-style wildcard imports are rejected.
+    ///
+    /// Inputs:
+    /// - Legacy path-style wildcard import syntax.
+    ///
+    /// Output:
+    /// - Test passes when the parser reports the braced-selector requirement.
+    ///
+    /// Transformation:
+    /// - Keeps wildcard syntax visually distinct from declaration terminators.
+    #[test]
+    fn rejects_path_style_wildcard_imports() {
+        let err = parse_module(
+            r#"
+            module app.Wildcard.
+
+            import test.Legacy.*.
+
+            pub main(): Int -> 1.
+            "#,
+        )
+        .expect_err("path-style wildcard imports must be rejected");
+
+        assert!(err
+            .message
+            .contains("wildcard imports must use braced selector syntax"));
     }
 
     /// Verifies annotation schema declarations parse as structured parse tree.
@@ -356,13 +376,13 @@ mod tests {
             pub type Maybe[T] = :none | {:some, value: T}.
             type Pair = {left: Int, right: String}.
             type IgnoredField = {_: Int, value: String}.
-            type Lookup[K, V] = #{key := K, value => V}.
+            type Lookup[K, V] = {key: K, value: V}.
             type Mapper[A, B] = (A) -> B.
             type Nested = std.core.Option[String].
             type Names = [String].
             type LiteralUnion = :empty | :'Interop.Empty' | 0 | 1.5 | "ready".
 
-            pub opaque type Secret[T] = #{value := T}.
+            pub opaque type Secret[T] = {value: T}.
             pub opaque type Handle.
             "#,
         )

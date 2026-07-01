@@ -298,7 +298,7 @@ pub first(values: List[Int]): Int ->\n\
 case Iterator.next(Iterable.iterator(values)) {\n\
     None ->\n\
         0;\n\
-    Some({value, _}) ->\n\
+    Some({value: value, next: _}) ->\n\
         value\n\
 }.\n\
 \n\

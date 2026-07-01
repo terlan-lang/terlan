@@ -135,7 +135,7 @@ fn build_command_compiles_directory_with_aliased_imported_alias_constructor_chai
     fs::create_dir_all(&source_dir).expect("failed to create source dir");
     fs::write(
         source_dir.join("a_user.terl"),
-        "module a_user.\n\nimport z_user.{User as Member}.\n\npub make_admin(id: Int, name: Binary): Dynamic ->\n    Member(id, name) with Admin { id = id, name = name }.\n",
+        "module a_user.\n\nimport z_user.{User as Member}.\n\npub make_admin(id: Int, name: Binary): Dynamic ->\n    Member(id, name) with Admin { id: id, name: name }.\n",
     )
     .expect("failed to write aliased alias constructor-chain user source fixture");
     fs::write(

@@ -984,7 +984,7 @@ mod tests {
             module constructor_chain_expr_tree.
 
             demo(id: Int, name: Binary): Dynamic ->
-                User(id, name) with Admin { id = id, name = name }.
+                User(id, name) with Admin { id: id, name: name }.
             "#,
         )
         .expect("syntax output constructor chain expr");
@@ -1150,7 +1150,7 @@ mod tests {
                 user#foo.bar.
 
             update(user: Dynamic): Dynamic ->
-                user#foo{bar = 2}.
+                user#foo{bar: 2}.
             "#,
         )
         .expect("syntax output record suffix trees");
@@ -1294,13 +1294,13 @@ mod tests {
             module field_payload_trees.
 
             map(): Map ->
-                #{a := 1, b => 2}.
+                {a: 1, b: 2}.
 
             chain(id: Int): Dynamic ->
-                User(id) with Admin{name = "Ada"}.
+                User(id) with Admin {name: "Ada"}.
 
             render_template(): Dynamic ->
-                Page{title = "hello"}.
+                Page {title: "hello"}.
             "#,
         )
         .expect("syntax output field payload trees");
@@ -1320,7 +1320,7 @@ mod tests {
         assert_eq!(map.fields[0].value.kind, SyntaxExprKind::Int);
         assert_eq!(map.fields[0].value.text.as_deref(), Some("1"));
         assert_eq!(map.fields[1].key, "b");
-        assert!(!map.fields[1].required);
+        assert!(map.fields[1].required);
         assert_eq!(map.fields[1].value.kind, SyntaxExprKind::Int);
         assert_eq!(map.fields[1].value.text.as_deref(), Some("2"));
 
@@ -1351,7 +1351,7 @@ mod tests {
             panic!("expected template function declaration");
         };
         let template = &template_clauses[0].body;
-        assert_eq!(template.kind, SyntaxExprKind::TemplateInstantiate);
+        assert_eq!(template.kind, SyntaxExprKind::RecordConstruct);
         assert_eq!(template.text.as_deref(), Some("Page"));
         assert_eq!(template.fields.len(), 1);
         assert_eq!(template.fields[0].key, "title");

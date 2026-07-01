@@ -6,4 +6,4 @@ pub constructor User {
 }.
 
 pub build(id: Int, name: Binary): Dynamic ->
-    User(id, name) with Admin { id = id, name = name }.
+    User(id, name) with Admin { id: id, name: name }.

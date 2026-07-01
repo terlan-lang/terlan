@@ -1090,7 +1090,7 @@ pub constructor User {\n\
 }.\n\
 \n\
 pub make(id: Int, name: Binary): Dynamic ->\n\
-    User(id, name) with Admin { id = id, name = name }.\n",
+    User(id, name) with Admin { id: id, name: name }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -1202,7 +1202,7 @@ module core_alias_constructor_chain_identity_boundary.\n\
 pub type User = {:user, id: Int, name: Binary}.\n\
 \n\
 pub make(id: Int, name: Binary): Dynamic ->\n\
-    User(id, name) with Admin { id = id, name = name }.\n",
+    User(id, name) with Admin { id: id, name: name }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -1289,7 +1289,7 @@ module direct_imported_alias_constructor_chain_identity_boundary.\n\
 import provider.{User}.\n\
 \n\
 pub make(id: Int, name: Binary): Dynamic ->\n\
-    User(id, name) with Admin { id = id, name = name }.\n",
+    User(id, name) with Admin { id: id, name: name }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
@@ -1377,7 +1377,7 @@ module imported_constructor_chain_identity_boundary.\n\
 import provider.{User}.\n\
 \n\
 pub make(id: Int, name: Binary): Dynamic ->\n\
-    User(id, name) with Admin { id = id, name = name }.\n",
+    User(id, name) with Admin { id: id, name: name }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
@@ -1465,7 +1465,7 @@ module aliased_imported_constructor_chain_identity_boundary.\n\
 import provider.{User as Member}.\n\
 \n\
 pub make(id: Int, name: Binary): Dynamic ->\n\
-    Member(id, name) with Admin { id = id, name = name }.\n",
+    Member(id, name) with Admin { id: id, name: name }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
@@ -1552,7 +1552,7 @@ module imported_alias_constructor_chain_identity_boundary.\n\
 import provider.{User as Member}.\n\
 \n\
 pub make(id: Int, name: Binary): Dynamic ->\n\
-    Member(id, name) with Admin { id = id, name = name }.\n",
+    Member(id, name) with Admin { id: id, name: name }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
@@ -1856,7 +1856,7 @@ pub constructor User {\n\
         id\n\
 }.\n\
 pub demo(id: Int, name: Binary): Dynamic ->\n\
-    User(id, name) with Admin { id = id, name = name }.\n\
+    User(id, name) with Admin { id: id, name: name }.\n\
 ",
     );
 

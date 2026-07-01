@@ -263,14 +263,14 @@ pub(super) fn format_pattern(pattern: &Pattern) -> String {
         }
         Pattern::Map(fields) => {
             if fields.is_empty() {
-                "#{}".to_string()
+                "{}".to_string()
             } else {
                 let body = fields
                     .iter()
                     .map(format_map_field)
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("#{{{}}}", body)
+                format!("{{{}}}", body)
             }
         }
         Pattern::Record { name, fields } => {
@@ -279,44 +279,41 @@ pub(super) fn format_pattern(pattern: &Pattern) -> String {
                 .map(format_record_pattern_field)
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("#{}{{{}}}", name, body)
+            format!("{} {{{}}}", name, body)
         }
     }
 }
 
 /// Formats a record pattern field.
 ///
-/// Inputs: parsed pattern field. Output: `key = pattern` text. Transformation:
+/// Inputs: parsed pattern field. Output: `key: pattern` text. Transformation:
 /// recursively formats the field pattern value.
 fn format_record_pattern_field(field: &MapField) -> String {
-    format!("{} = {}", field.key, format_pattern(&field.value))
+    format!("{}: {}", field.key, format_pattern(&field.value))
 }
 
 /// Formats a map pattern field.
 ///
-/// Inputs: parsed map pattern field. Output: key/operator/value text.
-/// Transformation: chooses `:=` for required fields and `=>` otherwise.
+/// Inputs: parsed map pattern field. Output: `key: pattern` text.
+/// Transformation: recursively formats the field pattern value.
 fn format_map_field(field: &MapField) -> String {
-    let sep = if field.required { ":=" } else { "=>" };
-    format!("{}{}{}", field.key, sep, format_pattern(&field.value))
+    format!("{}: {}", field.key, format_pattern(&field.value))
 }
 
 /// Formats a map expression field.
 ///
-/// Inputs: parsed map expression field. Output: key/operator/value text.
-/// Transformation: chooses `:=` for required fields and recursively formats the
-/// value expression.
+/// Inputs: parsed map expression field. Output: `key: expr` text.
+/// Transformation: recursively formats the value expression.
 fn format_map_expr_field(field: &MapExprField) -> String {
-    let sep = if field.required { ":=" } else { "=>" };
-    format!("{}{}{}", field.key, sep, format_expr(&field.value, 0))
+    format!("{}: {}", field.key, format_expr(&field.value, 0))
 }
 
 /// Formats a template or record construction field.
 ///
-/// Inputs: parsed expression field. Output: `key = expr` text. Transformation:
+/// Inputs: parsed expression field. Output: `key: expr` text. Transformation:
 /// recursively formats the value expression.
 fn format_template_expr_field(field: &MapExprField) -> String {
-    format!("{} = {}", field.key, format_expr(&field.value, 0))
+    format!("{}: {}", field.key, format_expr(&field.value, 0))
 }
 
 /// Formats a type expression.
@@ -387,14 +384,14 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         ),
         Expr::Map(fields) => {
             if fields.is_empty() {
-                "#{}".to_string()
+                "{}".to_string()
             } else {
                 let body = fields
                     .iter()
                     .map(format_map_expr_field)
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("#{{{}}}", body)
+                format!("{{{}}}", body)
             }
         }
         Expr::RecordAccess { value, name, field } => {
@@ -410,20 +407,12 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         } => {
             let body = fields
                 .iter()
-                .map(format_map_expr_field)
+                .map(format_template_expr_field)
                 .collect::<Vec<_>>()
                 .join(", ");
             format!("{}#{}{{{}}}", format_expr(value, 0), name, body)
         }
         Expr::RecordConstruct { name, fields } => {
-            let body = fields
-                .iter()
-                .map(format_map_expr_field)
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("#{}{{{}}}", name, body)
-        }
-        Expr::TemplateInstantiate { name, fields } => {
             let body = fields
                 .iter()
                 .map(format_template_expr_field)

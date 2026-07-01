@@ -13,7 +13,7 @@
 //!   shapes while preserving Terlan option, result, and mutable-receiver
 //!   contracts at the source boundary.
 
-use super::super::erl::{ErlCaseClause, ErlExpr, ErlPattern};
+use super::super::erl::{ErlCaseClause, ErlExpr, ErlMapField, ErlPattern};
 use super::{
     erl_exact_eq, erl_none, erl_remote_call, erl_result_ok, erl_some, exact_args, exact_array_args,
 };
@@ -121,8 +121,8 @@ pub(super) fn lower_core_list_iterator(args: Vec<ErlExpr>) -> Option<ErlExpr> {
 ///
 /// Output:
 /// - Terlan option runtime shape: `none` for exhausted traversal, or
-///   `{some, {CompilerValue, CompilerNextIterator}}` for one yielded value and
-///   the next state.
+///   `{some, #{value => CompilerValue, next => CompilerNextIterator}}` for one
+///   yielded value and the next state.
 ///
 /// Transformation:
 /// - Pattern matches the backend iterator representation and returns the next
@@ -138,9 +138,17 @@ pub(super) fn lower_core_iterator_next(args: Vec<ErlExpr>) -> Option<ErlExpr> {
                     Box::new(ErlPattern::Var("_TerlanNextIterator".to_string())),
                 ),
                 guard: None,
-                body: erl_some(ErlExpr::Tuple(vec![
-                    ErlExpr::Var("_TerlanIteratorValue".to_string()),
-                    ErlExpr::Var("_TerlanNextIterator".to_string()),
+                body: erl_some(ErlExpr::Map(vec![
+                    ErlMapField {
+                        key: "value".to_string(),
+                        value: ErlExpr::Var("_TerlanIteratorValue".to_string()),
+                        required: false,
+                    },
+                    ErlMapField {
+                        key: "next".to_string(),
+                        value: ErlExpr::Var("_TerlanNextIterator".to_string()),
+                        required: false,
+                    },
                 ])),
             },
             ErlCaseClause {

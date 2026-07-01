@@ -831,7 +831,7 @@ fn syntax_output_imported_list_aliases_do_not_generate_constructor_chains_on_for
 module imported_list_alias_constructor_chains.\n\
 import items.{Items}.\n\
 pub make(values: List[Int]): Dynamic ->\n\
-    Items(values) with Wrapped { values = values }.\n\
+    Items(values) with Wrapped { values: values }.\n\
 ",
         "\
 module items.\n\
@@ -870,7 +870,7 @@ fn syntax_output_aliased_imported_list_aliases_do_not_generate_constructor_chain
 module aliased_imported_list_alias_constructor_chains.\n\
 import items.{Items as Bag}.\n\
 pub make(values: List[Int]): Dynamic ->\n\
-    Bag(values) with Wrapped { values = values }.\n\
+    Bag(values) with Wrapped { values: values }.\n\
 ",
         "\
 module items.\n\
@@ -909,7 +909,7 @@ fn syntax_output_imported_alias_constructor_chains_report_arity_mismatch_on_form
 module imported_alias_constructor_chain_arity.\n\
 import result.{User}.\n\
 pub make(id: Int): Dynamic ->\n\
-    User(id) with Wrapped { id = id }.\n\
+    User(id) with Wrapped { id: id }.\n\
 ",
         "\
 module result.\n\
@@ -948,7 +948,7 @@ fn syntax_output_aliased_imported_alias_constructor_chains_report_arity_mismatch
 module aliased_imported_alias_constructor_chain_arity.\n\
 import result.{User as Member}.\n\
 pub make(id: Int): Dynamic ->\n\
-    Member(id) with Wrapped { id = id }.\n\
+    Member(id) with Wrapped { id: id }.\n\
 ",
         "\
 module result.\n\
@@ -1021,11 +1021,11 @@ fn syntax_output_imported_map_aliases_do_not_generate_constructor_calls_on_forma
 module imported_map_alias_constructor_calls.\n\
 import props.{Props}.\n\
 pub make(name: Binary): Props ->\n\
-    Props(#{name = name}).\n\
+    Props({name: name}).\n\
 ",
         "\
 module props.\n\
-pub type Props = #{name := Binary}.\n\
+pub type Props = {name: Binary}.\n\
 ",
     );
     assert!(
@@ -1050,7 +1050,7 @@ pub name(input: Props): Binary ->\n\
 ",
         "\
 module props.\n\
-pub type Props = #{name := Binary}.\n\
+pub type Props = {name: Binary}.\n\
 ",
     );
     assert!(
@@ -1569,7 +1569,7 @@ module raw_imported_struct_construction_boundary.\n\
 import type provider.Point.\n\
 \n\
 pub make(): Dynamic ->\n\
-    #Point { x = 1 }.\n",
+    Point { x: 1 }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
@@ -1671,7 +1671,7 @@ module private_import_update_boundary.\n\
 import type provider.User.\n\
 \n\
 pub update(user: User): User ->\n\
-    user#User { #email = \"next@example.com\" }.\n",
+    user#User { #email: \"next@example.com\" }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;
@@ -1722,7 +1722,7 @@ import type provider.User.\n\
 \n\
 pub read(user: User): String ->\n\
     case user {\n\
-      User { #email = email } -> email\n\
+      User { #email: email } -> email\n\
     }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
@@ -2092,7 +2092,7 @@ pub struct Actions {\n\
 }.\n\
 \n\
 pub actions(): Actions ->\n\
-    #Actions { list = Users.index }.\n",
+    Actions { list: Users.index }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse consumer syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output_with_interfaces(&module, &interfaces).module;

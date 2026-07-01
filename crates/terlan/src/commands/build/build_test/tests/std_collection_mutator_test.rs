@@ -532,7 +532,7 @@ println(Int.to_string(setcount(Set.new()))).\n",
 /// - A manifest-backed project importing release `std.collections.List`,
 ///   `std.collections.Iterator`, and `std.core.Option`.
 /// - A function that calls `Iterator.next(values.iterator())` and pattern
-///   matches `None` plus `Some({value, _})`.
+///   matches `None` plus `Some({value: value, next: _})`.
 ///
 /// Output:
 /// - Test passes when `terlc build --target erlang` emits Erlang source,
@@ -573,7 +573,7 @@ import type std.core.Option.{Option}.\n\
 case Iterator.next(values.iterator()) {\n\
     None ->\n\
         0;\n\
-    Some({value, _}) ->\n\
+    Some({value: value, next: _}) ->\n\
         value\n\
 }.\n\
 \
@@ -648,7 +648,7 @@ pub first(values: List[Int]): Int ->\n\
 case Iterator.next(List.iterator(values)) {\n\
     None ->\n\
         0;\n\
-    Some({value, _}) ->\n\
+    Some({value: value, next: _}) ->\n\
         value\n\
 }.\n\
 \

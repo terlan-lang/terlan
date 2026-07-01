@@ -172,7 +172,7 @@ pub email(user: User): String ->\n\
 ///
 /// Inputs:
 /// - A module declaring `User.#email`.
-/// - A local function updating `user#User { #email = ... }`.
+/// - A local function updating `user#User { #email: ... }`.
 ///
 /// Output:
 /// - Test passes when typechecking accepts the private field update inside the
@@ -192,7 +192,7 @@ pub struct User {\n\
 }.\n\
 \n\
 pub update(user: User): User ->\n\
-    user#User { #email = \"next@example.com\" }.\n\
+    user#User { #email: \"next@example.com\" }.\n\
 ",
     );
 
@@ -207,7 +207,7 @@ pub update(user: User): User ->\n\
 ///
 /// Inputs:
 /// - A module declaring `User.#email`.
-/// - A local function updating `user#User { email = ... }`.
+/// - A local function updating `user#User { email: ... }`.
 ///
 /// Output:
 /// - Test passes when typechecking reports that the field must be written as
@@ -226,7 +226,7 @@ pub struct User {\n\
 }.\n\
 \n\
 pub update(user: User): User ->\n\
-    user#User { email = \"next@example.com\" }.\n\
+    user#User { email: \"next@example.com\" }.\n\
 ",
     );
 
@@ -243,7 +243,7 @@ pub update(user: User): User ->\n\
 ///
 /// Inputs:
 /// - A module declaring `User.#email`.
-/// - A local case expression matching `User { #email = email }`.
+/// - A local case expression matching `User { #email: email }`.
 ///
 /// Output:
 /// - Test passes when typechecking accepts the private field pattern inside the
@@ -263,7 +263,7 @@ pub struct User {\n\
 \n\
 pub read(user: User): String ->\n\
     case user {\n\
-      User { #email = email } -> email\n\
+      User { #email: email } -> email\n\
     }.\n\
 ",
     );
@@ -279,7 +279,7 @@ pub read(user: User): String ->\n\
 ///
 /// Inputs:
 /// - A module declaring `User.#email`.
-/// - A local case expression matching `User { email = email }`.
+/// - A local case expression matching `User { email: email }`.
 ///
 /// Output:
 /// - Test passes when typechecking reports that the field must be written as
@@ -299,7 +299,7 @@ pub struct User {\n\
 \n\
 pub read(user: User): String ->\n\
     case user {\n\
-      User { email = email } -> email\n\
+      User { email: email } -> email\n\
     }.\n\
 ",
     );
@@ -1806,7 +1806,7 @@ template Page from \"./templates/page.terl.html\" {\n\
     title: Binary\n\
 }.\n\
 pub view(title: Binary): Html[Dynamic] ->\n\
-    Page{ title = title }.\n\
+    Page(title = title).\n\
 ",
     );
 
@@ -2047,7 +2047,7 @@ template Page from \"./templates/page.terl.html\" {\n\
     title: String = \"Untitled\"\n\
 }.\n\
 pub view(): Html[Dynamic] ->\n\
-    Page{}.\n\
+    Page().\n\
 ",
     );
 
@@ -2079,7 +2079,7 @@ template Page from \"./templates/page.terl.html\" {\n\
     count: Int = \"bad\"\n\
 }.\n\
 pub view(): Html[Dynamic] ->\n\
-    Page{}.\n\
+    Page().\n\
 ",
     );
 

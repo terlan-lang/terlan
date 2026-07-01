@@ -532,13 +532,13 @@ pub binary_search_range(items: Vector<Int>, target: Int, low: Int, high: Int): O
         let fixed = parse_terlan_expr("#[255, 128, 0]").expect("parse fixed array");
         assert!(matches!(fixed, Expr::FixedArray(items) if items.len() == 3));
 
-        let map = parse_terlan_expr("#{name := \"Ada\", age => 42}").expect("parse map");
+        let map = parse_terlan_expr("{name: \"Ada\", age: 42}").expect("parse map");
         let Expr::Map(fields) = map else {
             panic!("expected map expression");
         };
         assert_eq!(fields.len(), 2);
         assert!(fields[0].required);
-        assert!(!fields[1].required);
+        assert!(fields[1].required);
     }
 
     /// Verifies Erlang binary segment syntax is rejected by the syntax parser.
@@ -1176,7 +1176,7 @@ pub binary_search_range(items: Vector<Int>, target: Int, low: Int, high: Int): O
 
     #[test]
     fn formal_constructor_chain_expr_parses_with_record_expr() {
-        let expr = parse_terlan_expr("User(id, name) with Admin { id = id, name = name }")
+        let expr = parse_terlan_expr("User(id, name) with Admin { id: id, name: name }")
             .expect("parse constructor chain expr");
 
         let Expr::ConstructorChain { base, record } = expr else {
@@ -1376,7 +1376,7 @@ pub email(user: User): String ->
 module template_instantiation.
 
 pub view(Title: Text, User: User): Html[none] ->
-    Page{ title = Title, user = User }.
+    Page { title: Title, user: User }.
 "#;
 
         let module = parse_module(source).expect("parse");
@@ -1385,7 +1385,7 @@ pub view(Title: Text, User: User): Html[none] ->
             _ => panic!("expected function"),
         };
         match &function.clauses[0].body {
-            Expr::TemplateInstantiate { name, fields } => {
+            Expr::RecordConstruct { name, fields } => {
                 assert_eq!(name, "Page");
                 assert_eq!(fields.len(), 2);
                 assert_eq!(fields[0].key, "title");
@@ -1393,7 +1393,7 @@ pub view(Title: Text, User: User): Html[none] ->
                 assert_eq!(fields[1].key, "user");
                 assert!(matches!(fields[1].value.as_ref(), Expr::Var(name) if name == "User"));
             }
-            _ => panic!("expected template instantiation"),
+            _ => panic!("expected nominal keyed construction"),
         }
     }
 

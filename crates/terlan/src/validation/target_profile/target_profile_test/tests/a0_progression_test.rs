@@ -941,7 +941,7 @@ module profile_test_a0_13_lambda.\n\npub id_fun(): Term ->\n    (x) -> x.\n",
 fn target_profile_accepts_constructor_extension_for_a0_15_erlang_profile() {
     let module = lower(
         "\
-module profile_test_a0_15_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module profile_test_a0_15_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         "src/profile_test_a0_15_constructor_extension.terl",
     );
 
@@ -972,7 +972,7 @@ module profile_test_a0_15_constructor_extension.\n\npub constructor User {\n    
 fn target_profile_keeps_constructor_extension_out_of_a0_14_erlang_profile() {
     let module = lower(
         "\
-module profile_test_a0_14_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module profile_test_a0_14_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         "src/profile_test_a0_14_constructor_extension.terl",
     );
 

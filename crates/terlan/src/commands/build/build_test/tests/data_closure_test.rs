@@ -130,14 +130,14 @@ module app.Main.\n\
 \n\
 import std.io.Console.{println}.\n\
 \n\
-pub display_name(user: #{name := String, age := Int}): String ->\n\
+pub display_name(user: {name: String, age: Int}): String ->\n\
 case user {\n\
-    #{name := name, age := _age} ->\n\
+    {name: name, age: _age} ->\n\
         name\n\
 }.\n\
 \n\
 pub main(): Unit ->\n\
-println(display_name(#{name := \"Alice\", age := 30})).\n",
+println(display_name({name: \"Alice\", age: 30})).\n",
     )
     .expect("failed to write map pattern closure module");
 
@@ -187,7 +187,7 @@ println(display_name(#{name := \"Alice\", age := 30})).\n",
 /// Inputs:
 /// - A manifest-backed project declaring a source-level `User` struct.
 /// - Functions that construct `User`, read `user.name`, update a record
-///   field, and pattern match `#User{name = name}`.
+///   field, and pattern match `User {name: name}`.
 ///
 /// Output:
 /// - Test passes when `terlc build --target erlang` emits a runnable BEAM
@@ -228,11 +228,11 @@ pub display_name(user: User): String ->\n\
 user.name.\n\
 \n\
 pub rename(user: User, name: String): User ->\n\
-user#User{name = name}.\n\
+user#User {name: name}.\n\
 \n\
 pub matched_name(user: User): String ->\n\
 case user {\n\
-    #User{name = name} ->\n\
+    User {name: name} ->\n\
         name\n\
 }.\n\
 \n\
@@ -486,7 +486,7 @@ println(Int.to_string(sum_first_two(selected(IntCollection(values = [0, 2, 4, 7]
     assert!(
         erl_source.contains("case TerlanIter")
             && erl_source.contains("'none' -> lists:reverse")
-            && erl_source.contains("{'some', {Value, TerlanNext"),
+            && erl_source.contains("{'some', #{value := Value, next := TerlanNext"),
         "iterable comprehension should lower to explicit next-state traversal: {}",
         erl_source
     );

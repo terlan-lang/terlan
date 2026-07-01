@@ -165,7 +165,7 @@ fn lower_syntax_iterable_comprehension_loop(
     );
 
     ErlExpr::Raw(format!(
-        "begin\n    {iterator_var} = {iterator},\n    {loop_var} = fun {loop_var}({iter_var}, {acc_var}) ->\n        case (case {iter_var} of\n            [{raw_value_var}|{raw_next_var}] -> {{'some', {{{raw_value_var}, {raw_next_var}}}}};\n            [] -> 'none'\n        end) of\n            'none' -> lists:reverse({acc_var});\n            {{'some', {{{pattern}, {next_var}}}}}{guard} -> {body};\n            {{'some', {{{skipped_var}, {next_var}}}}} -> {loop_var}({next_var}, {acc_var})\n        end\n    end,\n    {loop_var}({iterator_var}, [])\nend",
+        "begin\n    {iterator_var} = {iterator},\n    {loop_var} = fun {loop_var}({iter_var}, {acc_var}) ->\n        case (case {iter_var} of\n            [{raw_value_var}|{raw_next_var}] -> {{'some', #{{value => {raw_value_var}, next => {raw_next_var}}}}};\n            [] -> 'none'\n        end) of\n            'none' -> lists:reverse({acc_var});\n            {{'some', #{{value := {pattern}, next := {next_var}}}}}{guard} -> {body};\n            {{'some', #{{value := {skipped_var}, next := {next_var}}}}} -> {loop_var}({next_var}, {acc_var})\n        end\n    end,\n    {loop_var}({iterator_var}, [])\nend",
         iterator_var = iterator_var,
         iterator = iterator.render(),
         loop_var = loop_var,

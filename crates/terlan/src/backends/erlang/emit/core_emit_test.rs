@@ -554,7 +554,7 @@ fn core_iterator_next_intrinsic_lowers_to_erlang_option_step() {
 
     assert!(rendered.contains("case Iterator of"));
     assert!(rendered.contains(
-        "[_TerlanIteratorValue|_TerlanNextIterator] -> {'some', {_TerlanIteratorValue, _TerlanNextIterator}}"
+        "[_TerlanIteratorValue|_TerlanNextIterator] -> {'some', #{value=>_TerlanIteratorValue, next=>_TerlanNextIterator}}"
     ));
     assert!(rendered.contains("[] -> 'none'"));
 }

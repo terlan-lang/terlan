@@ -493,7 +493,7 @@ pub (server: CounterServer) init(): Result[Int, Error] ->\n\
     Ok(server.seed).\n\
 \n\
 pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-    Ok({state, request}).\n\
+    Ok({state: state, reply: request}).\n\
 \n\
 pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
     Ok(state + event).\n\

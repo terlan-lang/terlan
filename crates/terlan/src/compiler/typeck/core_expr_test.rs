@@ -273,7 +273,7 @@ fn syntax_output_lowering_to_core_map_expr() {
 module core_map_expr_boundary.\n\
 \n\
 pub props(): Map ->\n\
-    #{a := 1, b => 2}.\n",
+    {a: 1, b: 2}.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -295,7 +295,7 @@ pub props(): Map ->\n\
             },
             CoreMapExprField {
                 key: "b".to_string(),
-                required: false,
+                required: true,
                 value: CoreExpr::Int(2),
             },
         ]))
@@ -306,7 +306,7 @@ pub props(): Map ->\n\
     );
     assert!(
             core.contract_text()
-                .contains("Map:core=Map(a:=Int(1),b=>Int(2)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Map(a:=Int(1),b=>Int(2))):proof=proof-model-required"),
+                .contains("Map:core=Map(a:Int(1),b:Int(2)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Map(a:Int(1),b:Int(2))):proof=proof-model-required"),
             "contract text: {}",
             core.contract_text()
         );
@@ -516,7 +516,7 @@ fn syntax_output_lowering_to_core_record_construct_expr() {
 module core_record_construct_expr_boundary.\n\
 \n\
 pub make(): Dynamic ->\n\
-    #Point { x = 1, y = 2 }.\n",
+    Point { x: 1, y: 2 }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -733,7 +733,7 @@ fn syntax_output_lowering_to_core_record_update_expr() {
 module core_record_update_expr_boundary.\n\
 \n\
 pub update(point: Point): Dynamic ->\n\
-    point#Point { x = 1, y = point.y }.\n",
+    point#Point { x: 1, y: point.y }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -786,7 +786,7 @@ fn syntax_output_lowering_to_core_template_instantiate_expr() {
 module core_template_instantiate_expr_boundary.\n\
 \n\
 pub make(): Dynamic ->\n\
-    UserCard{ name = \"Ada\" }.\n",
+    UserCard { name: \"Ada\" }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -798,10 +798,10 @@ pub make(): Dynamic ->\n\
         .find(|function| function.name == "make")
         .expect("core make function");
     assert_eq!(function.clauses.len(), 1);
-    let Some(CoreExpr::TemplateInstantiate { name, fields }) = &function.clauses[0].body.core_expr
+    let Some(CoreExpr::RecordConstruct { name, fields }) = &function.clauses[0].body.core_expr
     else {
         panic!(
-            "expected template instantiation core expr: {:?}",
+            "expected nominal keyed construction core expr: {:?}",
             function.clauses[0].body.core_expr
         );
     };
@@ -815,7 +815,7 @@ pub make(): Dynamic ->\n\
     );
     assert!(
         core.contract_text()
-            .contains("TemplateInstantiate(UserCard;name=Binary("),
+            .contains("RecordConstruct(UserCard;name=Binary("),
         "contract text: {}",
         core.contract_text()
     );

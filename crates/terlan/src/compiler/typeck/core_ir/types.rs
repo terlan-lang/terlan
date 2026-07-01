@@ -345,17 +345,22 @@ pub(crate) fn core_type_from_text(text: &str) -> Option<CoreType> {
 /// - `text`: normalized type annotation text.
 ///
 /// Output:
-/// - `Some(&str)` for source-like `#{...}` and parser-normalized `# {...}`
-///   map type text.
+/// - `Some(&str)` for source-like `{...}` keyed type text.
 /// - `None` when the text is not a supported map type wrapper.
 ///
 /// Transformation:
 /// - Removes only the outer map delimiters and leaves field text untouched for
 ///   map-field splitting.
 fn core_map_type_inner(text: &str) -> Option<&str> {
-    text.strip_prefix("#{")
-        .or_else(|| text.strip_prefix("# {"))?
-        .strip_suffix('}')
+    let inner = text.strip_prefix('{')?.strip_suffix('}')?;
+    let first_item_is_keyed = split_top_level_type_items(inner)?
+        .first()
+        .is_some_and(|item| find_top_level_map_type_operator(item).is_some());
+    if inner.trim().is_empty() || first_item_is_keyed {
+        Some(inner)
+    } else {
+        None
+    }
 }
 
 /// Converts one tuple type element into a typed Core tuple element.
@@ -385,7 +390,7 @@ fn core_tuple_type_elem_from_text(text: &str) -> Option<CoreTupleTypeElem> {
 /// Converts map type field text into typed Core map fields.
 ///
 /// Inputs:
-/// - `text`: map body text without the surrounding `#{` and `}` delimiters.
+/// - `text`: map body text without the surrounding `{` and `}` delimiters.
 ///
 /// Output:
 /// - `Some(Vec<CoreMapTypeField>)` when every field has a supported value
@@ -412,13 +417,12 @@ fn core_map_type_fields_from_text(text: &str) -> Option<Vec<CoreMapTypeField>> {
 /// - `text`: one map field text without surrounding map delimiters.
 ///
 /// Output:
-/// - `Some(CoreMapTypeField)` for `key => Type` or `key := Type` fields with
-///   supported value types.
+/// - `Some(CoreMapTypeField)` for `key: Type` fields with supported value types.
 /// - `None` for malformed fields or unsupported value types.
 ///
 /// Transformation:
-/// - Finds the first top-level map field operator, preserves the key and
-///   operator, and lowers the value text through CoreType.
+/// - Finds the first top-level map field separator, preserves the key, records
+///   the canonical `:` operator, and lowers the value text through CoreType.
 fn core_map_type_field_from_text(text: &str) -> Option<CoreMapTypeField> {
     let (operator_index, operator) = find_top_level_map_type_operator(text)?;
     let key = text[..operator_index].trim();
@@ -439,7 +443,7 @@ fn core_map_type_field_from_text(text: &str) -> Option<CoreMapTypeField> {
 /// - `text`: one map field text.
 ///
 /// Output:
-/// - `Some((byte_index, operator))` for top-level `=>` or `:=`.
+/// - `Some((byte_index, operator))` for top-level `:`.
 /// - `None` when no operator exists or delimiters are unbalanced.
 ///
 /// Transformation:
@@ -452,12 +456,7 @@ fn find_top_level_map_type_operator(text: &str) -> Option<(usize, &'static str)>
         match ch {
             '[' | '{' | '(' => depth = depth.checked_add(1)?,
             ']' | '}' | ')' => depth = depth.checked_sub(1)?,
-            '=' if depth == 0 && chars.peek().is_some_and(|(_, next)| *next == '>') => {
-                return Some((index, "=>"));
-            }
-            ':' if depth == 0 && chars.peek().is_some_and(|(_, next)| *next == '=') => {
-                return Some((index, ":="));
-            }
+            ':' if index > 0 && depth == 0 => return Some((index, ":")),
             _ => {}
         }
     }

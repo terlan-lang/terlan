@@ -110,13 +110,33 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
         Expr::FieldAccess { value, field } => {
             format!("{}.{}", expr_to_output_text(value), field)
         }
-        Expr::TemplateInstantiate { name, fields } => {
+        Expr::Map(fields) => {
             let body = fields
                 .iter()
-                .map(|field| format!("{} = {}", field.key, expr_to_output_text(&field.value)))
+                .map(|field| format!("{}: {}", field.key, expr_to_output_text(&field.value)))
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("{} {{{}}}", name, body)
+            format!("{{{body}}}")
+        }
+        Expr::RecordConstruct { name, fields } => {
+            let body = fields
+                .iter()
+                .map(|field| format!("{}: {}", field.key, expr_to_output_text(&field.value)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{name} {{{body}}}")
+        }
+        Expr::RecordUpdate {
+            value,
+            name,
+            fields,
+        } => {
+            let body = fields
+                .iter()
+                .map(|field| format!("{}: {}", field.key, expr_to_output_text(&field.value)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{}#{name}{{{body}}}", expr_to_output_text(value))
         }
         Expr::ConstructorChain { base, record } => {
             format!(
@@ -203,25 +223,18 @@ fn pattern_to_output_text(pattern: &Pattern) -> String {
         Pattern::Map(fields) => {
             let parts = fields
                 .iter()
-                .map(|field| {
-                    format!(
-                        "{} {} {}",
-                        field.key,
-                        if field.required { ":=" } else { "=>" },
-                        pattern_to_output_text(&field.value)
-                    )
-                })
+                .map(|field| format!("{}: {}", field.key, pattern_to_output_text(&field.value)))
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("#{{{parts}}}")
+            format!("{{{parts}}}")
         }
         Pattern::Record { name, fields } => {
             let parts = fields
                 .iter()
-                .map(|field| format!("{} = {}", field.key, pattern_to_output_text(&field.value)))
+                .map(|field| format!("{}: {}", field.key, pattern_to_output_text(&field.value)))
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("#{name}{{{parts}}}")
+            format!("{name} {{{parts}}}")
         }
     }
 }

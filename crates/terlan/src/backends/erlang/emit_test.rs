@@ -161,7 +161,7 @@ pub constructor User {
 }.
 
 pub demo(id: Int, name: Binary): Dynamic ->
-User(id, name) with Admin { id = id, name = name }.
+User(id, name) with Admin { id: id, name: name }.
 "#,
     )
     .expect("parse syntax output constructor chain fixture");

@@ -195,10 +195,7 @@ pub fn pretty_type(ty: &Type) -> String {
             "#{{{}}}",
             fields
                 .iter()
-                .map(|field| {
-                    let sep = if field.required { ":=" } else { "=>" };
-                    format!("{}{}{}", field.key, sep, pretty_type(&field.value))
-                })
+                .map(|field| { format!("{}: {}", field.key, pretty_type(&field.value)) })
                 .collect::<Vec<_>>()
                 .join(", ")
         ),

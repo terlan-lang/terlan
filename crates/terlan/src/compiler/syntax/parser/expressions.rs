@@ -579,9 +579,22 @@ impl Parser {
                 self.bump();
                 if self.check(TokenKind::RBrace) {
                     self.bump();
-                    Expr::Tuple(Vec::new())
+                    Expr::Map(Vec::new())
+                } else if self.keyed_expr_field_starts() {
+                    let fields = self.parse_keyed_expr_fields()?;
+                    self.expect(TokenKind::RBrace)?;
+                    Expr::Map(fields)
                 } else {
-                    let mut items = Vec::new();
+                    let first = self.parse_expr()?;
+                    if !self.consume_if(TokenKind::Comma) {
+                        return Err(ParseError {
+                            message: "tuple expressions require at least two positional values"
+                                .to_string(),
+                            span: self.current().span(),
+                        });
+                    }
+
+                    let mut items = vec![first];
                     loop {
                         items.push(self.parse_expr()?);
                         if !self.consume_if(TokenKind::Comma) {
@@ -610,33 +623,17 @@ impl Parser {
                         Expr::FixedArray(elements)
                     }
                 } else if self.consume_if(TokenKind::LBrace) {
-                    if self.consume_if(TokenKind::RBrace) {
-                        Expr::Map(Vec::new())
-                    } else {
-                        let mut fields = Vec::new();
-                        loop {
-                            fields.push(self.parse_record_expr_field(ExprFieldKind::Map)?);
-                            if !self.consume_if(TokenKind::Comma) {
-                                break;
-                            }
-                        }
-                        self.expect(TokenKind::RBrace)?;
-                        Expr::Map(fields)
-                    }
+                    return Err(ParseError {
+                        message: "anonymous keyed containers use `{field: value}` syntax"
+                            .to_string(),
+                        span: token.span(),
+                    });
                 } else {
-                    let name = self.expect_ident()?;
-                    self.expect(TokenKind::LBrace)?;
-                    let mut fields = Vec::new();
-                    if !self.consume_if(TokenKind::RBrace) {
-                        loop {
-                            fields.push(self.parse_record_expr_field(ExprFieldKind::TerlanRecord)?);
-                            if !self.consume_if(TokenKind::Comma) {
-                                break;
-                            }
-                        }
-                        self.expect(TokenKind::RBrace)?;
-                    }
-                    Expr::RecordConstruct { name, fields }
+                    return Err(ParseError {
+                        message: "nominal keyed containers use `Type { field: value }` syntax"
+                            .to_string(),
+                        span: token.span(),
+                    });
                 }
             }
             TokenKind::Case => {
@@ -867,6 +864,40 @@ impl Parser {
             }
             _ => false,
         }
+    }
+
+    /// Reports whether the current token starts a keyed field in `{ ... }`.
+    ///
+    /// Inputs: parser cursor inside a brace-delimited expression container.
+    /// Output: true for `name:` and `"name":` field starts.
+    /// Transformation: uses local lookahead only, leaving full key validation to
+    /// field parsing.
+    pub(super) fn keyed_expr_field_starts(&self) -> bool {
+        matches!(self.current().kind, TokenKind::Atom | TokenKind::String)
+            && self
+                .tokens
+                .get(self.pos + 1)
+                .is_some_and(|token| token.kind == TokenKind::Colon)
+    }
+
+    /// Parses comma-separated keyed expression fields inside `{ ... }`.
+    ///
+    /// Inputs: cursor at the first field key.
+    /// Output: map/keyed-container expression fields.
+    /// Transformation: delegates field syntax to the shared expression-field
+    /// parser and permits a trailing comma before the closing brace.
+    pub(super) fn parse_keyed_expr_fields(&mut self) -> ParseResult<Vec<MapExprField>> {
+        let mut fields = Vec::new();
+        loop {
+            fields.push(self.parse_record_expr_field(ExprFieldKind::Map)?);
+            if !self.consume_if(TokenKind::Comma) {
+                break;
+            }
+            if self.check(TokenKind::RBrace) {
+                break;
+            }
+        }
+        Ok(fields)
     }
 
     /// Parses either a parenthesized expression or the canonical lambda syntax.

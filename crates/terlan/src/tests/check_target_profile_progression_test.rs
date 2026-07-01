@@ -1135,7 +1135,7 @@ fn run_check_single_file_accepts_constructor_extension_for_a0_15_erlang_target_p
     let path = fixture(
             &dir,
             "\
-module a0_15_erlang_accepts_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module a0_15_erlang_accepts_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         );
 
     let exit = commands::check::run(
@@ -1172,7 +1172,7 @@ fn run_check_single_file_keeps_constructor_extension_out_of_a0_14_erlang_target_
     let path = fixture(
             &dir,
             "\
-module a0_14_erlang_rejects_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id = id, name = name }.\n",
+module a0_14_erlang_rejects_constructor_extension.\n\npub constructor User {\n    (id: Int, name: Binary): Dynamic -> id\n}.\n\npub build(id: Int, name: Binary): Dynamic ->\n    User(id, name) with Admin { id: id, name: name }.\n",
         );
 
     let exit = commands::check::run(

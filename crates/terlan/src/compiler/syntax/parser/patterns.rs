@@ -29,7 +29,7 @@ impl Parser {
     ///
     /// Output:
     /// - A parse tree pattern for wildcard, binding, atom, constructor-like,
-    ///   literal, list, map, record, tuple, or parenthesized pattern forms.
+    ///   literal, list, map, struct, tuple, or parenthesized pattern forms.
     ///
     /// Transformation:
     /// - Consumes exactly one pattern form, recursively consuming nested
@@ -154,46 +154,44 @@ impl Parser {
             TokenKind::Hash => {
                 self.bump();
                 if self.consume_if(TokenKind::LBrace) {
-                    if self.consume_if(TokenKind::RBrace) {
-                        return Ok(Pattern::Map(Vec::new()));
-                    }
-
-                    let mut fields = Vec::new();
-                    loop {
-                        fields.push(self.parse_pattern_map_field()?);
-                        if !self.consume_if(TokenKind::Comma) {
-                            break;
-                        }
-                    }
-
-                    self.expect(TokenKind::RBrace)?;
-                    return Ok(Pattern::Map(fields));
+                    return Err(ParseError {
+                        message: "anonymous keyed patterns use `{field: pattern}` syntax"
+                            .to_string(),
+                        span: token.span(),
+                    });
                 }
 
-                let name = self.expect_ident()?;
-                self.expect(TokenKind::LBrace)?;
-                let mut fields = Vec::new();
-                if !self.consume_if(TokenKind::RBrace) {
-                    loop {
-                        fields.push(self.parse_record_pattern_field()?);
-                        if !self.consume_if(TokenKind::Comma) {
-                            break;
-                        }
-                    }
-
-                    self.expect(TokenKind::RBrace)?;
-                }
-
-                Ok(Pattern::Record { name, fields })
+                Err(ParseError {
+                    message: "struct patterns must use Type { field: pattern } syntax".to_string(),
+                    span: token.span(),
+                })
             }
             TokenKind::LBrace => {
                 self.bump();
                 if self.check(TokenKind::RBrace) {
                     self.bump();
-                    return Ok(Pattern::Tuple(Vec::new()));
+                    return Ok(Pattern::Map(Vec::new()));
                 }
-                let mut items = Vec::new();
+                if self.keyed_pattern_field_starts() {
+                    let fields = self.parse_keyed_pattern_fields()?;
+                    self.expect(TokenKind::RBrace)?;
+                    return Ok(Pattern::Map(fields));
+                }
+
+                let first = self.parse_pattern()?;
+                if !self.consume_if(TokenKind::Comma) {
+                    return Err(ParseError {
+                        message: "tuple patterns require at least two positional values"
+                            .to_string(),
+                        span: self.current().span(),
+                    });
+                }
+
+                let mut items = vec![first];
                 loop {
+                    if self.check(TokenKind::RBrace) {
+                        break;
+                    }
                     items.push(self.parse_pattern()?);
                     if !self.consume_if(TokenKind::Comma) {
                         break;
@@ -229,69 +227,85 @@ impl Parser {
     /// - Parser cursor positioned at a map-pattern key inside `#{ ... }`.
     ///
     /// Output:
-    /// - A `MapField` with required/exact-match metadata and nested pattern.
+    /// - A `MapField` with typed-map destructuring metadata and nested pattern.
     ///
     /// Transformation:
-    /// - Converts `key = pattern` and `key => pattern` pattern fields into the
-    ///   shared map-field representation used by downstream phases.
+    /// - Converts `key: pattern` pattern fields into the shared map-field
+    ///   representation used by downstream phases.
     fn parse_pattern_map_field(&mut self) -> ParseResult<MapField> {
         let key_token = self.current().clone();
-        if key_token.kind != TokenKind::Atom && key_token.kind != TokenKind::Var {
+        if key_token.kind != TokenKind::Atom && key_token.kind != TokenKind::String {
             return Err(ParseError {
-                message: "expected map field key atom".to_string(),
+                message: "expected keyed field name".to_string(),
                 span: key_token.span(),
             });
         }
 
         self.bump();
-        let required = if self.consume_if(TokenKind::Equals) {
-            true
-        } else if self.consume_if(TokenKind::FatArrow) {
-            false
-        } else {
-            return Err(ParseError {
-                message: "expected := or => in map pattern".to_string(),
-                span: self.current().span(),
-            });
-        };
+        self.expect(TokenKind::Colon)?;
 
         let value = self.parse_pattern()?;
         Ok(MapField {
             key: key_token.text,
             value: Box::new(value),
-            required,
+            required: true,
         })
     }
 
-    /// Parses one record pattern field.
+    /// Parses one struct pattern field.
     ///
     /// Inputs:
-    /// - Parser cursor positioned at a record-pattern key inside `Type { ... }`.
+    /// - Parser cursor positioned at a struct-pattern key inside `Type { ... }`.
     ///
     /// Output:
     /// - A `MapField` preserving field name, nested pattern, and required flag.
     ///
     /// Transformation:
-    /// - Consumes record pattern field syntax and reuses the map-field payload
-    ///   shape so record and map matching can share later lowering code.
+    /// - Consumes struct destructuring syntax and reuses the map-field payload
+    ///   shape so struct and map matching can share later lowering code.
     fn parse_record_pattern_field(&mut self) -> ParseResult<MapField> {
-        let key = self.parse_record_field_key("expected record field key atom")?;
-        let required = if self.consume_if(TokenKind::Equals) {
-            true
-        } else if self.consume_if(TokenKind::FatArrow) {
-            false
-        } else {
-            return Err(ParseError {
-                message: "expected = in record pattern".to_string(),
-                span: self.current().span(),
-            });
-        };
+        let key = self.parse_record_field_key("expected struct field key")?;
+        self.expect(TokenKind::Colon)?;
 
         let value = self.parse_pattern()?;
         Ok(MapField {
             key: Self::field_key_text(&key),
             value: Box::new(value),
-            required,
+            required: true,
         })
+    }
+
+    /// Reports whether the current token starts a keyed pattern field.
+    ///
+    /// Inputs: parser cursor inside a brace-delimited pattern.
+    /// Output: true for `name:` and `"name":` field starts.
+    /// Transformation: uses local lookahead only; full key validation happens
+    /// in `parse_pattern_map_field`.
+    fn keyed_pattern_field_starts(&self) -> bool {
+        matches!(self.current().kind, TokenKind::Atom | TokenKind::String)
+            && self
+                .tokens
+                .get(self.pos + 1)
+                .is_some_and(|token| token.kind == TokenKind::Colon)
+    }
+
+    /// Parses comma-separated keyed pattern fields inside `{ ... }`.
+    ///
+    /// Inputs: cursor at the first field key.
+    /// Output: map/keyed-container pattern fields.
+    /// Transformation: delegates field syntax to `parse_pattern_map_field` and
+    /// permits a trailing comma before the closing brace.
+    fn parse_keyed_pattern_fields(&mut self) -> ParseResult<Vec<MapField>> {
+        let mut fields = Vec::new();
+        loop {
+            fields.push(self.parse_pattern_map_field()?);
+            if !self.consume_if(TokenKind::Comma) {
+                break;
+            }
+            if self.check(TokenKind::RBrace) {
+                break;
+            }
+        }
+        Ok(fields)
     }
 }

@@ -706,11 +706,10 @@ impl CoreMapExprField {
     /// - Stable compact text for CoreIR contracts and phase goldens.
     ///
     /// Transformation:
-    /// - Serializes the field key, source insert/update operator, and
-    ///   recursively rendered value expression without backend-specific syntax.
+    /// - Serializes the field key and recursively rendered value expression
+    ///   without backend-specific syntax.
     fn contract_text(&self) -> String {
-        let operator = if self.required { ":=" } else { "=>" };
-        format!("{}{}{}", self.key, operator, self.value.contract_text())
+        format!("{}:{}", self.key, self.value.contract_text())
     }
 }
 
