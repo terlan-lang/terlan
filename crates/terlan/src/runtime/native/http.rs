@@ -4,6 +4,7 @@ use std::path::Path;
 
 use crate::terlan_native::json::{self, Json};
 
+#[path = "http/cookies.rs"]
 mod cookies;
 pub use cookies::{parse_request_cookie_header, CookieJar, CookieOptions, CookieSameSite};
 
@@ -79,6 +80,7 @@ impl HttpError {
     }
 }
 
+#[path = "http/request.rs"]
 mod request;
 pub use request::Request;
 

@@ -11,5 +11,8 @@
 #[path = "../runtime/native/json.rs"]
 pub mod json;
 
+#[path = "../runtime/native/http.rs"]
+pub mod http;
+
 #[path = "../runtime/native/postgres.rs"]
 pub mod postgres;
