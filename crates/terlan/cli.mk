@@ -3,7 +3,7 @@
 # This file is included by the root Makefile. Target names remain public from the
 # repository root, but CLI-specific recipes live with the CLI crate.
 
-TERLC := $(CARGO) run -p terlan --
+TERLC := $(CARGO) run -p terlan --bin terlc --
 EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
 TERLC_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan
 BROWSER_PACKAGE_PREFLIGHT_DIR ?= /tmp/terlan-0-0-5-browser-preflight
