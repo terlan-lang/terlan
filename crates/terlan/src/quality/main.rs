@@ -8,7 +8,7 @@ pub mod terlan_quality;
 use crate::terlan_quality::{
     run_cli_exact_selectors, run_erlang_modernization_inventory, run_erlang_runtime_matrix,
     run_internal_docs, run_module_readmes, run_oxc_boundary, run_rust_quality, run_rustdoc,
-    run_test_hierarchy, write_rustdoc_baseline,
+    run_test_hierarchy, run_vm_artifact_format, write_rustdoc_baseline,
 };
 
 /// Runs repository quality checks from the command line.
@@ -161,13 +161,26 @@ fn main() -> ExitCode {
                 ExitCode::from(1)
             }
         },
+        Some("vm-artifact-format") => match run_vm_artifact_format(Path::new(".")) {
+            Ok(summary) => {
+                println!(
+                    "[vm-artifact-format] {} artifact contract groups enforced.",
+                    summary.required_group_count
+                );
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                eprintln!("{message}");
+                ExitCode::from(1)
+            }
+        },
         Some(command) => {
             eprintln!("unsupported terlan-quality command: {command}");
             ExitCode::from(2)
         }
         None => {
             eprintln!(
-                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|internal-docs|oxc-boundary|erlang-modernization-inventory|erlang-runtime-matrix>"
+                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|internal-docs|oxc-boundary|erlang-modernization-inventory|erlang-runtime-matrix|vm-artifact-format>"
             );
             ExitCode::from(2)
         }

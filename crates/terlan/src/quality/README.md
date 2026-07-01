@@ -26,6 +26,8 @@ and tested in Rust.
   scratch roadmap or research packets.
 - `terlan-quality oxc-boundary`: validates that Oxc usage stays behind
   JavaScript backend and binding-generator ownership boundaries.
+- `terlan-quality vm-artifact-format`: validates that the 0.0.7 VM artifact
+  contract is compiler-owned and does not drift back to BEAM/Erlang defaults.
 
 ## Testing Notes
 

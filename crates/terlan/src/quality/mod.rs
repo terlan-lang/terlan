@@ -11,6 +11,7 @@ mod internal_docs;
 mod module_readmes;
 mod oxc_boundary;
 mod test_hierarchy;
+mod vm_artifact_format;
 
 pub use cli_exact_selectors::{run_cli_exact_selectors, CliExactSelectorSummary};
 #[cfg(test)]
@@ -24,6 +25,7 @@ pub use internal_docs::{run_internal_docs, InternalDocFinding, InternalDocsSumma
 pub use module_readmes::{run_module_readmes, ModuleReadmeSummary};
 pub use oxc_boundary::{run_oxc_boundary, OxcBoundaryFinding, OxcBoundarySummary};
 pub use test_hierarchy::{run_test_hierarchy, ScriptInvocation, TestHierarchySummary};
+pub use vm_artifact_format::{run_vm_artifact_format, VmArtifactFormatSummary};
 
 /// Maximum lines allowed in Rust implementation files without a baseline row.
 pub const IMPL_LINE_LIMIT: usize = 1000;
