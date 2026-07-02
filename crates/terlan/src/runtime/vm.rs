@@ -5,6 +5,7 @@ use crate::terlan_typeck::{CoreCaseClause, CoreExpr, CoreFunction, CoreModule, C
 mod intrinsics;
 mod kind;
 mod patterns;
+pub(crate) mod process;
 mod std_remote;
 mod value;
 
@@ -25,7 +26,7 @@ pub(crate) use value::{type_of_value, ReplClosure, ReplValue};
 ///
 /// Transformation:
 /// - Stores loaded modules by Terlan module name and executes supported CoreIR
-///   directly in Rust without invoking BEAM, Erlang source generation, or a
+///   directly in Rust without invoking VM, Vm source generation, or a
 ///   target-specific runtime process.
 #[derive(Debug, Default)]
 pub(crate) struct TerlanVm {
