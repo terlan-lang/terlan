@@ -324,6 +324,7 @@ executable-docs-vm-check:
 	$(CARGO) test -p terlan --bin terlan-quality executable_docs_vm_test
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- executable-docs-vm
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc tests::doc_test::readme_hello_world_terlan_block_compiles -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc tests::doc_test::public_terlan_module_doc_blocks_compile -- --exact
 
 terlan-vm-compiler-bridge-check:
 	$(MAKE) --no-print-directory cli-terlan-vm-compiler-bridge-check
