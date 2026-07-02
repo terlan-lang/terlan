@@ -377,12 +377,16 @@ pub(crate) enum ProjectTarget {
 /// - Source-specific dependency metadata.
 ///
 /// Transformation:
-/// - Preserves `path`, `hex`, `npm`, and `cargo` dependency source kinds
-///   without performing dependency resolution.
+/// - Preserves `path`, `git`, `hex`, `npm`, and `cargo` dependency source
+///   kinds without performing dependency resolution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ProjectDependencySource {
     Path {
         path: String,
+    },
+    Git {
+        url: String,
+        rev: String,
     },
     Hex {
         package: String,

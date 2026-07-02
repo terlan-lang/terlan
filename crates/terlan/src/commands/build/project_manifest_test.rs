@@ -496,12 +496,12 @@ fn project_manifest_accepts_reserved_empty_dependency_sections() {
 #[test]
 fn project_manifest_parses_dependency_source_metadata() {
     let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\n\n[target.erlang.dependencies]\ncowboy = { hex = \"cowboy\", version = \"2.12.0\" }\n\n[target.js.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\" }\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", version = \"1.0.0\" }\n",
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\nsyntax_tools = { git = \"https://example.test/terlan/syntax-tools.git\", rev = \"0123456789abcdef\" }\n\n[target.erlang.dependencies]\ncowboy = { hex = \"cowboy\", version = \"2.12.0\" }\n\n[target.js.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\" }\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", version = \"1.0.0\" }\n",
             &manifest_path(),
         )
         .expect("manifest should parse dependency metadata");
 
-    assert_eq!(parsed.dependencies.len(), 4);
+    assert_eq!(parsed.dependencies.len(), 5);
     assert_eq!(
         parsed.dependencies[0],
         ProjectDependency {
@@ -515,6 +515,17 @@ fn project_manifest_parses_dependency_source_metadata() {
     assert_eq!(
         parsed.dependencies[1],
         ProjectDependency {
+            alias: "syntax_tools".to_string(),
+            scope: ProjectDependencyScope::Local,
+            source: ProjectDependencySource::Git {
+                url: "https://example.test/terlan/syntax-tools.git".to_string(),
+                rev: "0123456789abcdef".to_string(),
+            },
+        }
+    );
+    assert_eq!(
+        parsed.dependencies[2],
+        ProjectDependency {
             alias: "cowboy".to_string(),
             scope: ProjectDependencyScope::Target(ProjectTarget::Erlang),
             source: ProjectDependencySource::Hex {
@@ -524,7 +535,7 @@ fn project_manifest_parses_dependency_source_metadata() {
         }
     );
     assert_eq!(
-        parsed.dependencies[2],
+        parsed.dependencies[3],
         ProjectDependency {
             alias: "zod".to_string(),
             scope: ProjectDependencyScope::Target(ProjectTarget::Js),
@@ -535,7 +546,7 @@ fn project_manifest_parses_dependency_source_metadata() {
         }
     );
     assert_eq!(
-        parsed.dependencies[3],
+        parsed.dependencies[4],
         ProjectDependency {
             alias: "serde".to_string(),
             scope: ProjectDependencyScope::Target(ProjectTarget::Rust),
@@ -635,6 +646,17 @@ fn project_manifest_rejects_registry_dependency_in_local_scope() {
         .expect_err("manifest should reject registry dependency in local scope");
 
     assert!(err.contains("[dependencies] entries must use exactly"));
+}
+
+#[test]
+fn project_manifest_rejects_git_dependency_without_rev() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nsyntax_tools = { git = \"https://example.test/terlan/syntax-tools.git\" }\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject Git dependency without immutable rev");
+
+    assert!(err.contains("{ git = \"...\", rev = \"...\" }"));
 }
 
 #[test]

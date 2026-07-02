@@ -748,7 +748,8 @@ fn parse_dependency_entry(
 ///
 /// Transformation:
 /// - Enforces the scope/source pairing:
-///   - `[dependencies]` accepts only `{ path = "..." }`.
+///   - `[dependencies]` accepts `{ path = "..." }` or
+///     `{ git = "...", rev = "..." }`.
 ///   - `[target.erlang.dependencies]` accepts `{ hex = "...", version = "..." }`.
 ///   - `[target.js.dependencies]` accepts `{ npm = "...", version = "..." }`.
 ///   - `[target.rust.dependencies]` accepts `{ cargo = "...", version = "...",
@@ -760,7 +761,7 @@ fn parse_dependency_source(
     line_no: usize,
 ) -> Result<ProjectDependencySource, String> {
     match scope {
-        ProjectDependencyScope::Local => parse_path_dependency_source(fields, path, line_no),
+        ProjectDependencyScope::Local => parse_local_dependency_source(fields, path, line_no),
         ProjectDependencyScope::Target(ProjectTarget::Erlang) => {
             parse_registry_dependency_source("hex", fields, path, line_no)
                 .map(|(package, version)| ProjectDependencySource::Hex { package, version })
@@ -775,7 +776,7 @@ fn parse_dependency_source(
     }
 }
 
-/// Parses local path dependency source fields.
+/// Parses local package dependency source fields.
 ///
 /// Inputs:
 /// - `fields`: parsed dependency inline-table fields.
@@ -783,22 +784,44 @@ fn parse_dependency_source(
 /// - `line_no`: 1-based line number used in diagnostics.
 ///
 /// Output:
-/// - Local path dependency source.
+/// - Local path or immutable Git dependency source.
 ///
 /// Transformation:
-/// - Requires exactly one `path` field and rejects version/source registry
-///   metadata in portable local dependency sections.
-fn parse_path_dependency_source(
+/// - Requires either exactly one `path` field or exactly `git` plus `rev`, and
+///   rejects version/source registry metadata in portable local dependency
+///   sections.
+fn parse_local_dependency_source(
     fields: &BTreeMap<String, ProjectManifestInlineValue>,
     path: &Path,
     line_no: usize,
 ) -> Result<ProjectDependencySource, String> {
-    if fields.len() != 1 || !fields.contains_key("path") {
+    let is_path = fields.len() == 1 && fields.contains_key("path");
+    let is_git = fields.len() == 2 && fields.contains_key("git") && fields.contains_key("rev");
+    if !is_path && !is_git {
         return Err(format!(
-            "{}:{}: [dependencies] entries must use exactly {{ path = \"...\" }}",
+            "{}:{}: [dependencies] entries must use exactly {{ path = \"...\" }} or {{ git = \"...\", rev = \"...\" }}",
             path.display(),
             line_no
         ));
+    }
+    if is_git {
+        let url = expect_inline_string_field(fields, "git", path, line_no)?;
+        let rev = expect_inline_string_field(fields, "rev", path, line_no)?;
+        if url.trim().is_empty() {
+            return Err(format!(
+                "{}:{}: Git dependency URL cannot be empty",
+                path.display(),
+                line_no
+            ));
+        }
+        if rev.trim().is_empty() {
+            return Err(format!(
+                "{}:{}: Git dependency rev cannot be empty",
+                path.display(),
+                line_no
+            ));
+        }
+        return Ok(ProjectDependencySource::Git { url, rev });
     }
     let dependency_path = expect_inline_string_field(fields, "path", path, line_no)?;
     if dependency_path.trim().is_empty() {

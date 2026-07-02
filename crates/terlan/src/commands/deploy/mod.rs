@@ -328,6 +328,10 @@ fn plan_dependency(dependency: &ProjectDependency) -> DeployPlanDependency {
             ProjectDependencySource::Path { path } => {
                 DeployPlanDependencySource::Path { path: path.clone() }
             }
+            ProjectDependencySource::Git { url, rev } => DeployPlanDependencySource::Git {
+                url: url.clone(),
+                rev: rev.clone(),
+            },
             ProjectDependencySource::Hex { package, version } => DeployPlanDependencySource::Hex {
                 package: package.clone(),
                 version: version.clone(),
@@ -504,13 +508,15 @@ struct DeployPlanDependency {
 ///
 /// Inputs: typed dependency source from project manifest parsing.
 /// Output: tagged JSON source payload.
-/// Transformation: preserves path, Hex, npm, and Cargo-specific fields behind
-/// stable `kind` tags.
+/// Transformation: preserves path, Git, Hex, npm, and Cargo-specific fields
+/// behind stable `kind` tags.
 #[derive(Serialize)]
 #[serde(tag = "kind")]
 enum DeployPlanDependencySource {
     #[serde(rename = "path")]
     Path { path: String },
+    #[serde(rename = "git")]
+    Git { url: String, rev: String },
     #[serde(rename = "hex")]
     Hex { package: String, version: String },
     #[serde(rename = "npm")]

@@ -157,6 +157,10 @@ pub(super) struct BuildPackageDependency {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) rev: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) package: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) version: Option<String>,
@@ -646,6 +650,19 @@ fn build_package_dependency_metadata(
             scope: package_dependency_scope(&dependency.scope).to_string(),
             source: "path".to_string(),
             path: Some(path.clone()),
+            url: None,
+            rev: None,
+            package: None,
+            version: None,
+            features: None,
+        },
+        project_manifest::ProjectDependencySource::Git { url, rev } => BuildPackageDependency {
+            alias: dependency.alias.clone(),
+            scope: package_dependency_scope(&dependency.scope).to_string(),
+            source: "git".to_string(),
+            path: None,
+            url: Some(url.clone()),
+            rev: Some(rev.clone()),
             package: None,
             version: None,
             features: None,
@@ -656,6 +673,8 @@ fn build_package_dependency_metadata(
                 scope: package_dependency_scope(&dependency.scope).to_string(),
                 source: "hex".to_string(),
                 path: None,
+                url: None,
+                rev: None,
                 package: Some(package.clone()),
                 version: Some(version.clone()),
                 features: None,
@@ -667,6 +686,8 @@ fn build_package_dependency_metadata(
                 scope: package_dependency_scope(&dependency.scope).to_string(),
                 source: "npm".to_string(),
                 path: None,
+                url: None,
+                rev: None,
                 package: Some(package.clone()),
                 version: Some(version.clone()),
                 features: None,
@@ -681,6 +702,8 @@ fn build_package_dependency_metadata(
             scope: package_dependency_scope(&dependency.scope).to_string(),
             source: "cargo".to_string(),
             path: None,
+            url: None,
+            rev: None,
             package: Some(package.clone()),
             version: Some(version.clone()),
             features: (!features.is_empty()).then(|| features.clone()),

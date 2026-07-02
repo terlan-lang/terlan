@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -40,6 +40,7 @@ check:
 	$(MAKE) native-binding-generator-contract-check
 	$(MAKE) no-default-tokio-runtime-check
 	$(MAKE) vm-process-model-check
+	$(MAKE) terlan-package-git-source-check
 	$(MAKE) terlan-package-lockfile-check
 	$(MAKE) adversarial-check
 	$(MAKE) http-tls-check
@@ -179,6 +180,12 @@ vm-process-model-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::process::process_test::process_selective_receive_preserves_skipped_messages -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::process::process_test::process_exit_clears_mailbox_and_returns_resource_handles -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::process::process_test::process_table_rejects_missing_recipient -- --exact
+
+terlan-package-git-source-check:
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::build::project_manifest::project_manifest_test::project_manifest_parses_dependency_source_metadata -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::build::project_manifest::project_manifest_test::project_manifest_rejects_git_dependency_without_rev -- --exact
+	$(CARGO) test -p terlan --bin terlan-quality package_git_source_test
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- package-git-source
 
 terlan-package-lockfile-check:
 	$(CARGO) test -p terlan --bin terlan-quality package_lockfile_contract_test
