@@ -170,7 +170,9 @@ impl VmSupervisionSystem {
             processes.get(old_pid).map(|process| &process.state),
             Some(VmProcessState::Exited(_))
         ) {
-            processes.exit_process(old_pid, reason)?;
+            processes
+                .exit_process(old_pid, reason)
+                .expect("supervised child must remain exitable before restart");
         }
         if child.restart_count >= child.spec.restart_limit {
             return Ok(VmSupervisionRestart::LimitReached {

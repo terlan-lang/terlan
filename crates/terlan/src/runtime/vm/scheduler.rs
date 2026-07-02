@@ -256,7 +256,9 @@ impl VmScheduler {
         pid: VmProcessId,
     ) -> Result<VmSchedulerRun, String> {
         self.tick = self.tick.saturating_add(1);
-        let cleanup = processes.exit_process(pid, VmExitReason::Killed)?;
+        let cleanup = processes
+            .exit_process(pid, VmExitReason::Killed)
+            .expect("cancelled runnable process must be exitable");
         Ok(VmSchedulerRun {
             pid: Some(pid),
             tick: self.tick,
@@ -288,9 +290,10 @@ impl VmScheduler {
                 }
             }
             VmSchedulerDecision::Block { .. } => {
-                if let Some(process) = processes.get_mut(pid) {
-                    process.block();
-                }
+                processes
+                    .get_mut(pid)
+                    .expect("scheduled process must remain inspectable")
+                    .block();
                 VmSchedulerRun {
                     pid: Some(pid),
                     tick: self.tick,

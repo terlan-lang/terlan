@@ -44,6 +44,46 @@ fn scheduler_runs_runnable_process_and_requeues_yielded_slice() {
 }
 
 #[test]
+fn scheduler_yield_does_not_requeue_process_made_non_runnable_by_slice() {
+    let mut table = VmProcessTable::default();
+    let pid = table.spawn_root(source("main"));
+    let mut scheduler = VmScheduler::default();
+    scheduler
+        .enqueue_runnable(&table, pid)
+        .expect("runnable process should enqueue");
+
+    let run = scheduler
+        .run_next(&mut table, |process, _slice| {
+            process.block();
+            VmSchedulerDecision::Yield { reductions: 1 }
+        })
+        .expect("slice should run");
+
+    assert_eq!(run.outcome, VmSchedulerOutcome::Ran);
+    assert_eq!(scheduler.queued_len(), 0);
+    assert_eq!(
+        table.get(pid).expect("process should exist").state,
+        VmProcessState::Blocked
+    );
+}
+
+#[test]
+fn scheduler_does_not_duplicate_runnable_queue_entries() {
+    let mut table = VmProcessTable::default();
+    let pid = table.spawn_root(source("main"));
+    let mut scheduler = VmScheduler::default();
+
+    scheduler
+        .enqueue_runnable(&table, pid)
+        .expect("first enqueue should succeed");
+    scheduler
+        .enqueue_runnable(&table, pid)
+        .expect("second enqueue should be idempotent");
+
+    assert_eq!(scheduler.queued_len(), 1);
+}
+
+#[test]
 fn scheduler_blocks_and_wakes_processes() {
     let mut table = VmProcessTable::default();
     let pid = table.spawn_root(source("worker"));
@@ -77,6 +117,53 @@ fn scheduler_blocks_and_wakes_processes() {
 }
 
 #[test]
+fn scheduler_block_decision_tolerates_process_already_exited_by_slice() {
+    let mut table = VmProcessTable::default();
+    let pid = table.spawn_root(source("worker"));
+    let mut scheduler = VmScheduler::default();
+    scheduler
+        .enqueue_runnable(&table, pid)
+        .expect("runnable process should enqueue");
+
+    let blocked = scheduler
+        .run_next(&mut table, |process, _slice| {
+            process.exit(VmExitReason::Killed);
+            VmSchedulerDecision::Block { reductions: 2 }
+        })
+        .expect("block slice should run");
+
+    assert_eq!(blocked.outcome, VmSchedulerOutcome::Blocked);
+    assert_eq!(
+        table.get(pid).expect("process should exist").state,
+        VmProcessState::Exited(VmExitReason::Killed)
+    );
+}
+
+#[test]
+fn scheduler_rejects_missing_and_exited_wake() {
+    let mut table = VmProcessTable::default();
+    let exited = table.spawn_root(source("exited"));
+    table
+        .exit_process(exited, VmExitReason::Normal)
+        .expect("exit should succeed");
+    let mut scheduler = VmScheduler::default();
+    let missing = VmProcessId::from_raw_for_test(99);
+
+    assert_eq!(
+        scheduler
+            .wake_process(&mut table, missing)
+            .expect_err("missing wake should fail"),
+        "cannot wake missing process 99"
+    );
+    assert_eq!(
+        scheduler
+            .wake_process(&mut table, exited)
+            .expect_err("exited wake should fail"),
+        "cannot wake exited process 1"
+    );
+}
+
+#[test]
 fn scheduler_exits_processes_and_returns_cleanup_handles() {
     let mut table = VmProcessTable::default();
     let pid = table.spawn_root(source("worker"));
@@ -105,6 +192,30 @@ fn scheduler_exits_processes_and_returns_cleanup_handles() {
     assert_eq!(
         process.state,
         VmProcessState::Exited(VmExitReason::Error("boom".to_string()))
+    );
+}
+
+#[test]
+fn scheduler_rejects_missing_and_exited_cancellation() {
+    let mut table = VmProcessTable::default();
+    let exited = table.spawn_root(source("exited"));
+    table
+        .exit_process(exited, VmExitReason::Normal)
+        .expect("exit should succeed");
+    let mut scheduler = VmScheduler::default();
+    let missing = VmProcessId::from_raw_for_test(99);
+
+    assert_eq!(
+        scheduler
+            .request_cancellation(&mut table, missing)
+            .expect_err("missing cancellation should fail"),
+        "cannot cancel missing process 99"
+    );
+    assert_eq!(
+        scheduler
+            .request_cancellation(&mut table, exited)
+            .expect_err("exited cancellation should fail"),
+        "cannot cancel exited process 1"
     );
 }
 
@@ -211,6 +322,27 @@ fn scheduler_reports_missing_stale_queue_entry() {
         .expect_err("missing queued process should fail");
 
     assert_eq!(error, "scheduled process 99 is missing");
+}
+
+#[test]
+fn scheduler_reports_idle_after_stale_entries_exhaust_empty_poll_budget() {
+    let mut table = VmProcessTable::default();
+    let blocked = table.spawn_root(source("blocked"));
+    table
+        .get_mut(blocked)
+        .expect("blocked should exist")
+        .block();
+    let mut scheduler = VmScheduler::new(VmSchedulerConfig::new(10, 1));
+    scheduler.enqueue_for_test(blocked);
+
+    let idle = scheduler
+        .run_next(&mut table, |_process, _slice| {
+            panic!("blocked stale entry must not run")
+        })
+        .expect("stale queue exhaustion should be idle");
+
+    assert_eq!(idle.outcome, VmSchedulerOutcome::Idle);
+    assert_eq!(idle.tick, 0);
 }
 
 #[test]

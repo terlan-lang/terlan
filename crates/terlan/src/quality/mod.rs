@@ -17,6 +17,7 @@ mod package_git_source;
 mod package_lockfile_contract;
 mod test_hierarchy;
 mod vm_artifact_format;
+mod vm_coverage_100;
 
 pub use cli_exact_selectors::{run_cli_exact_selectors, CliExactSelectorSummary};
 #[cfg(test)]
@@ -40,6 +41,7 @@ pub use package_lockfile_contract::{
 };
 pub use test_hierarchy::{run_test_hierarchy, ScriptInvocation, TestHierarchySummary};
 pub use vm_artifact_format::{run_vm_artifact_format, VmArtifactFormatSummary};
+pub use vm_coverage_100::{run_vm_coverage_100, VmCoverage100Summary};
 
 /// Maximum lines allowed in Rust implementation files without a baseline row.
 pub const IMPL_LINE_LIMIT: usize = 1000;

@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-runtime-semantics-check vm-performance-baseline-check executable-docs-vm-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-resource-ownership-check vm-map-layout-check vm-table-primitives-check vm-code-server-check vm-distribution-envelope-check vm-coordination-docker-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check vm-coverage-100-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-runtime-semantics-check vm-performance-baseline-check executable-docs-vm-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-resource-ownership-check vm-map-layout-check vm-table-primitives-check vm-code-server-check vm-distribution-envelope-check vm-coordination-docker-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -40,6 +40,7 @@ check:
 	$(MAKE) native-binding-generator-contract-check
 	$(MAKE) no-default-tokio-runtime-check
 	$(MAKE) vm-runtime-semantics-check
+	$(MAKE) vm-coverage-100-check
 	$(MAKE) vm-performance-baseline-check
 	$(MAKE) executable-docs-vm-check
 	$(MAKE) terlan-package-git-source-check
@@ -120,6 +121,15 @@ coverage-check:
 		exit 127; \
 	}
 	$(CARGO) llvm-cov --locked --workspace --all-targets --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)' --fail-under-lines $(COVERAGE_MIN)
+
+vm-coverage-100-check:
+	@$(CARGO) llvm-cov --version >/dev/null 2>&1 || { \
+		echo "vm-coverage-100-check requires cargo-llvm-cov; install with: cargo install cargo-llvm-cov --locked"; \
+		exit 127; \
+	}
+	$(CARGO) test -p terlan --bin terlan-quality vm_coverage_100_test
+	$(CARGO) llvm-cov --locked -p terlan --bin terlan-vm --json --output-path /tmp/terlan-vm-coverage-100.json -- runtime::vm:: --quiet
+	TERLAN_VM_COVERAGE_JSON=/tmp/terlan-vm-coverage-100.json $(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-coverage-100
 
 release-hardening-check:
 	$(MAKE) adversarial-check

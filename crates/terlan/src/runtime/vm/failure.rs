@@ -130,7 +130,9 @@ impl VmFailureRuntime {
             return Ok(VmFailureReport::default());
         }
 
-        let cleanup_handles = processes.exit_process(pid, reason.clone())?;
+        let cleanup_handles = processes
+            .exit_process(pid, reason.clone())
+            .expect("live process checked before failure-layer exit");
         self.trap_exits.remove(&pid);
         let mut report = VmFailureReport {
             exited: vec![pid],
@@ -150,16 +152,16 @@ impl VmFailureRuntime {
                 continue;
             }
             if self.trap_exits.contains(&linked) {
-                if processes
+                processes
                     .send(pid, linked, exit_signal_message(pid, &reason))
-                    .is_ok()
-                {
-                    report.delivered_exit_signals += 1;
-                }
+                    .expect("live linked trap-exit process must accept exit signal");
+                report.delivered_exit_signals += 1;
                 continue;
             }
             if reason != VmExitReason::Normal {
-                let child_report = self.exit_process_inner(processes, linked, reason.clone())?;
+                let child_report = self
+                    .exit_process_inner(processes, linked, reason.clone())
+                    .expect("live linked process checked before propagated exit");
                 report.exited.extend(child_report.exited);
                 report.cleanup_handles.extend(child_report.cleanup_handles);
                 report.delivered_exit_signals += child_report.delivered_exit_signals;

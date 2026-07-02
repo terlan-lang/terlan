@@ -59,6 +59,31 @@ fn actor_runtime_send_named_wakes_and_schedules_recipient() {
 }
 
 #[test]
+fn actor_runtime_spawns_children_and_rejects_missing_parent() {
+    let mut runtime = VmActorRuntime::default();
+    let parent = runtime.spawn_root(source("parent"));
+    let child = runtime
+        .spawn_child(parent, source("child"))
+        .expect("child process should spawn");
+    let missing_parent = VmProcessId::from_raw_for_test(99);
+
+    assert_eq!(
+        runtime
+            .processes()
+            .get(child)
+            .expect("child should exist")
+            .parent,
+        Some(parent)
+    );
+    assert_eq!(
+        runtime
+            .spawn_child(missing_parent, source("orphan"))
+            .expect_err("missing parent should fail"),
+        "missing parent process 99"
+    );
+}
+
+#[test]
 fn actor_runtime_receive_next_returns_message_or_blocks() {
     let mut runtime = VmActorRuntime::default();
     let sender = runtime.spawn_root(source("sender"));
@@ -90,6 +115,37 @@ fn actor_runtime_receive_next_returns_message_or_blocks() {
 }
 
 #[test]
+fn actor_runtime_receive_with_timeout_returns_message_or_blocks() {
+    let mut runtime = VmActorRuntime::default();
+    let sender = runtime.spawn_root(source("sender"));
+    let recipient = runtime.spawn_root(source("recipient"));
+    runtime
+        .send(sender, recipient, ReplValue::Int(7))
+        .expect("send should succeed");
+
+    let received = runtime
+        .receive_with_timeout(recipient, 5)
+        .expect("message receive should succeed");
+    let blocked = runtime
+        .receive_with_timeout(recipient, 5)
+        .expect("nonzero timeout receive should block");
+
+    assert!(matches!(
+        received,
+        VmActorReceive::Message(message) if message.payload == ReplValue::Int(7)
+    ));
+    assert_eq!(blocked, VmActorReceive::Blocked);
+    assert_eq!(
+        runtime
+            .processes()
+            .get(recipient)
+            .expect("recipient should exist")
+            .state,
+        VmProcessState::Blocked
+    );
+}
+
+#[test]
 fn actor_runtime_receive_with_zero_timeout_does_not_block() {
     let mut runtime = VmActorRuntime::default();
     let pid = runtime.spawn_root(source("worker"));
@@ -107,6 +163,27 @@ fn actor_runtime_receive_with_zero_timeout_does_not_block() {
             .state,
         VmProcessState::Runnable
     );
+}
+
+#[test]
+fn actor_runtime_rejects_empty_name_and_cleans_names_on_exit() {
+    let mut runtime = VmActorRuntime::default();
+    let pid = runtime.spawn_root(source("worker"));
+
+    assert_eq!(
+        runtime
+            .register_name("   ", pid)
+            .expect_err("empty name should fail"),
+        "actor name cannot be empty"
+    );
+    runtime
+        .register_name("worker", pid)
+        .expect("name should register");
+    runtime
+        .exit_actor(pid, VmExitReason::Normal)
+        .expect("exit should succeed");
+
+    assert_eq!(runtime.lookup_name("worker"), None);
 }
 
 #[test]
@@ -141,9 +218,36 @@ fn actor_runtime_selective_receive_preserves_skipped_messages() {
 }
 
 #[test]
+fn actor_runtime_selective_receive_blocks_when_no_message_matches() {
+    let mut runtime = VmActorRuntime::default();
+    let sender = runtime.spawn_root(source("sender"));
+    let recipient = runtime.spawn_root(source("recipient"));
+    runtime
+        .send(sender, recipient, ReplValue::String("skip".to_string()))
+        .expect("send should succeed");
+
+    let result = runtime
+        .selective_receive_or_block(recipient, |message| {
+            message.payload == ReplValue::Atom("take".to_string())
+        })
+        .expect("selective receive should succeed");
+
+    assert_eq!(result, VmActorReceive::Blocked);
+    assert_eq!(
+        runtime
+            .processes()
+            .get(recipient)
+            .expect("recipient should exist")
+            .state,
+        VmProcessState::Blocked
+    );
+}
+
+#[test]
 fn actor_runtime_reports_missing_and_exited_context_diagnostics() {
     let mut runtime = VmActorRuntime::default();
     let pid = runtime.spawn_root(source("worker"));
+    let live = runtime.spawn_root(source("live"));
     runtime
         .exit_actor(pid, VmExitReason::Normal)
         .expect("exit should succeed");
@@ -163,9 +267,39 @@ fn actor_runtime_reports_missing_and_exited_context_diagnostics() {
     );
     assert_eq!(
         runtime
+            .selective_receive_or_block(missing, |_| true)
+            .expect_err("missing selective receive should fail"),
+        "cannot receive missing process 99"
+    );
+    assert_eq!(
+        runtime
+            .receive_with_timeout(missing, 1)
+            .expect_err("missing timeout receive should fail"),
+        "cannot receive missing process 99"
+    );
+    assert_eq!(
+        runtime
             .send_named(pid, "missing", ReplValue::Unit)
             .expect_err("missing name should fail"),
         "actor name `missing` is not registered"
+    );
+    assert_eq!(
+        runtime
+            .send(missing, live, ReplValue::Unit)
+            .expect_err("missing sender should fail"),
+        "missing sender process 99"
+    );
+    assert_eq!(
+        runtime
+            .send(live, pid, ReplValue::Unit)
+            .expect_err("exited recipient should fail"),
+        "recipient process 1 has exited"
+    );
+    assert_eq!(
+        runtime
+            .exit_actor(missing, VmExitReason::Normal)
+            .expect_err("missing exit should fail"),
+        "missing process 99"
     );
 }
 

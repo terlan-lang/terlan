@@ -50,7 +50,9 @@ impl VmActorRuntime {
         source: VmProcessSource,
     ) -> Result<VmProcessId, String> {
         let pid = self.processes.spawn_child(parent, source)?;
-        self.scheduler.enqueue_runnable(&self.processes, pid)?;
+        self.scheduler
+            .enqueue_runnable(&self.processes, pid)
+            .expect("fresh child process must be runnable");
         Ok(pid)
     }
 
@@ -102,7 +104,8 @@ impl VmActorRuntime {
     ) -> Result<u64, String> {
         let message_id = self.processes.send(sender, recipient, payload)?;
         self.scheduler
-            .wake_process(&mut self.processes, recipient)?;
+            .wake_process(&mut self.processes, recipient)
+            .expect("message recipient must be wakeable after send");
         Ok(message_id)
     }
 

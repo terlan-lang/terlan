@@ -299,6 +299,34 @@ fn resource_table_reports_stale_handle_for_transfer() {
 }
 
 #[test]
+fn resource_table_reports_stale_handle_for_release() {
+    let mut processes = VmProcessTable::default();
+    let owner = processes.spawn_root(source("owner"));
+    let mut resources = VmResourceTable::default();
+    let VmResourceEvent::Registered { id, .. } = resources
+        .register(
+            &mut processes,
+            owner,
+            VmResourceDescriptor::new("socket", "control"),
+            VmResourceTransferPolicy::OwnerOnly,
+        )
+        .expect("resource registration should succeed")
+    else {
+        panic!("expected registration event");
+    };
+    resources
+        .release(&mut processes, owner, id)
+        .expect("resource should release");
+
+    assert_eq!(
+        resources
+            .release(&mut processes, owner, id)
+            .expect_err("stale release should fail"),
+        format!("stale native resource handle {}", id.as_u64())
+    );
+}
+
+#[test]
 fn resource_table_rejects_missing_process_roles() {
     let mut processes = VmProcessTable::default();
     let owner = processes.spawn_root(source("owner"));
