@@ -11,6 +11,7 @@ pub(crate) mod process;
 pub(crate) mod scheduler;
 mod std_remote;
 pub(crate) mod supervision;
+pub(crate) mod timer;
 mod value;
 
 use intrinsics::evaluate_intrinsic;
