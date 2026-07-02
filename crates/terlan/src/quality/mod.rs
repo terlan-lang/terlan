@@ -6,6 +6,7 @@ use regex::Regex;
 
 mod cli_exact_selectors;
 mod erlang_modernization;
+mod executable_docs_vm;
 mod inline_tests;
 mod internal_docs;
 mod module_readmes;
@@ -24,6 +25,7 @@ pub use erlang_modernization::{
     run_erlang_modernization_inventory, run_erlang_runtime_matrix, ErlangModernizationSummary,
     ErlangRuntimeMatrixSummary,
 };
+pub use executable_docs_vm::{run_executable_docs_vm, ExecutableDocsVmSummary};
 pub(crate) use inline_tests::has_inline_test_marker;
 pub use internal_docs::{run_internal_docs, InternalDocFinding, InternalDocsSummary};
 pub use module_readmes::{run_module_readmes, ModuleReadmeSummary};

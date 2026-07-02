@@ -97,3 +97,73 @@ fn formal_doctest_compiles_terlan_blocks_from_syntax_output() {
     commands::doc::compile_syntax_terlan_doctests(&syntax_output, source, "docs.terl")
         .expect("syntax-output doctest should compile");
 }
+
+/// Verifies the top-level README Terlan module example compiles.
+///
+/// Inputs:
+/// - The repository `README.md` file.
+///
+/// Output:
+/// - Test success when the first complete `terlan` fenced module example is
+///   accepted by `terlc check`.
+///
+/// Transformation:
+/// - Extracts a public documentation example, writes it as an isolated source
+///   file, and runs the normal check command so stale README snippets cannot
+///   drift away from the compiler.
+#[test]
+fn readme_hello_world_terlan_block_compiles() {
+    let readme_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../README.md");
+    let readme = fs::read_to_string(&readme_path).expect("read top-level README");
+    let source = first_complete_terlan_fence(&readme).expect("README Terlan module example");
+    let dir = make_temp_dir("readme_hello_world_terlan_block");
+    let source_path = dir.join("Main.terl");
+    fs::write(&source_path, source).expect("write README example source");
+
+    let exit = commands::check::run(
+        CliCommand {
+            verb: Some("check".into()),
+            args: vec![source_path.to_string_lossy().into()],
+        },
+        CliState::default(),
+    );
+
+    assert_eq!(exit, ExitCode::SUCCESS);
+}
+
+/// Returns the first complete Terlan fenced module from Markdown text.
+fn first_complete_terlan_fence(markdown: &str) -> Option<String> {
+    let mut active_language = None::<String>;
+    let mut body = Vec::<String>::new();
+    for line in markdown.lines() {
+        let trimmed = line.trim_start();
+        if let Some(language) = active_language.as_ref() {
+            if trimmed.starts_with("```") {
+                let source = body.join("\n");
+                if matches!(language.as_str(), "terlan" | "terl")
+                    && source.trim_start().starts_with("module ")
+                {
+                    return Some(source);
+                }
+                active_language = None;
+                body.clear();
+            } else {
+                body.push(line.to_string());
+            }
+            continue;
+        }
+
+        if let Some(language) = trimmed.strip_prefix("```") {
+            if !language.starts_with('`') {
+                active_language = Some(
+                    language
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or_default()
+                        .to_string(),
+                );
+            }
+        }
+    }
+    None
+}
