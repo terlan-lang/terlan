@@ -8,7 +8,7 @@ pub mod terlan_quality;
 use crate::terlan_quality::{
     run_cli_exact_selectors, run_erlang_modernization_inventory, run_erlang_runtime_matrix,
     run_internal_docs, run_module_readmes, run_native_binding_generator_contract,
-    run_no_default_tokio_runtime, run_oxc_boundary,
+    run_no_default_tokio_runtime, run_oxc_boundary, run_package_lockfile_contract,
     run_rust_quality, run_rustdoc, run_test_hierarchy, run_vm_artifact_format,
     write_rustdoc_baseline,
 };
@@ -204,13 +204,26 @@ fn main() -> ExitCode {
                 ExitCode::from(1)
             }
         },
+        Some("package-lockfile-contract") => match run_package_lockfile_contract(Path::new(".")) {
+            Ok(summary) => {
+                println!(
+                    "[package-lockfile-contract] {} lockfile contract terms enforced.",
+                    summary.required_term_count
+                );
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                eprintln!("{message}");
+                ExitCode::from(1)
+            }
+        },
         Some(command) => {
             eprintln!("unsupported terlan-quality command: {command}");
             ExitCode::from(2)
         }
         None => {
             eprintln!(
-                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|internal-docs|oxc-boundary|erlang-modernization-inventory|erlang-runtime-matrix|vm-artifact-format|native-binding-generator-contract|no-default-tokio-runtime>"
+                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|internal-docs|oxc-boundary|erlang-modernization-inventory|erlang-runtime-matrix|vm-artifact-format|native-binding-generator-contract|no-default-tokio-runtime|package-lockfile-contract>"
             );
             ExitCode::from(2)
         }
