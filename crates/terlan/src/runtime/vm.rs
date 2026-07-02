@@ -8,6 +8,7 @@ mod intrinsics;
 mod kind;
 mod patterns;
 pub(crate) mod process;
+pub(crate) mod resource;
 pub(crate) mod scheduler;
 mod std_remote;
 pub(crate) mod supervision;

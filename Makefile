@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-resource-ownership-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -45,6 +45,7 @@ check:
 	$(MAKE) vm-failure-primitives-check
 	$(MAKE) vm-supervision-primitives-check
 	$(MAKE) vm-timer-primitives-check
+	$(MAKE) vm-resource-ownership-check
 	$(MAKE) terlan-package-git-source-check
 	$(MAKE) terlan-package-lockfile-check
 	$(MAKE) adversarial-check
@@ -231,6 +232,17 @@ vm-timer-primitives-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::timer::timer_test::timer_table_receive_timeout_wakes_blocked_process -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::timer::timer_test::timer_table_rejects_exited_process_owner -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::timer::timer_test::timer_table_rejects_missing_process_owner -- --exact
+
+vm-resource-ownership-check:
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_registers_resource_and_exposes_inspection_snapshot -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_transfers_transferable_resource_between_live_processes -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_rejects_owner_only_transfer -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_reports_stale_handle_after_release -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_rejects_wrong_owner_access_transfer_and_release -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_reports_stale_handle_for_transfer -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_rejects_missing_process_roles -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_rejects_exited_process_roles -- --exact
 
 terlan-package-git-source-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::build::project_manifest::project_manifest_test::project_manifest_parses_dependency_source_metadata -- --exact
