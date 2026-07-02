@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -37,6 +37,7 @@ check:
 	$(MAKE) oxc-boundary-check
 	$(MAKE) terlan-vm-artifact-format-check
 	$(MAKE) terlc-doctor-vm-pivot-check
+	$(MAKE) native-binding-generator-contract-check
 	$(MAKE) adversarial-check
 	$(MAKE) http-tls-check
 	$(MAKE) http-runtime-stack-check
@@ -160,6 +161,10 @@ terlc-doctor-vm-pivot-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_reports_vm_execution_gap_for_checked_coreir -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_reports_summary_compiler_contract_mismatch -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_reports_battleship_manifest_migration_fix -- --exact
+
+native-binding-generator-contract-check:
+	$(CARGO) test -p terlan --bin terlan-quality native_binding_generator_contract_test
+	$(CARGO) run -p terlan --bin terlan-quality --quiet -- native-binding-generator-contract
 
 native-boundary-postgres-baseline-benchmark:
 	$(CARGO) run -p terlan --bin terlan-benchmark --quiet -- native-boundary-postgres-baseline

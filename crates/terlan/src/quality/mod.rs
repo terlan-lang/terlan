@@ -9,6 +9,7 @@ mod erlang_modernization;
 mod inline_tests;
 mod internal_docs;
 mod module_readmes;
+mod native_binding_generator_contract;
 mod oxc_boundary;
 mod test_hierarchy;
 mod vm_artifact_format;
@@ -23,6 +24,9 @@ pub use erlang_modernization::{
 pub(crate) use inline_tests::has_inline_test_marker;
 pub use internal_docs::{run_internal_docs, InternalDocFinding, InternalDocsSummary};
 pub use module_readmes::{run_module_readmes, ModuleReadmeSummary};
+pub use native_binding_generator_contract::{
+    run_native_binding_generator_contract, NativeBindingGeneratorContractSummary,
+};
 pub use oxc_boundary::{run_oxc_boundary, OxcBoundaryFinding, OxcBoundarySummary};
 pub use test_hierarchy::{run_test_hierarchy, ScriptInvocation, TestHierarchySummary};
 pub use vm_artifact_format::{run_vm_artifact_format, VmArtifactFormatSummary};
