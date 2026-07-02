@@ -6,6 +6,7 @@ mod intrinsics;
 mod kind;
 mod patterns;
 pub(crate) mod process;
+pub(crate) mod scheduler;
 mod std_remote;
 mod value;
 
