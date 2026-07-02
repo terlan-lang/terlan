@@ -4,6 +4,9 @@
 #[path = "native_modules.rs"]
 pub(crate) mod terlan_native;
 
+#[cfg(test)]
+mod http_runtime_lane;
+
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,11 +22,14 @@ use terlan_native::postgres::{self, Config, Pool, PostgresError};
 
 const POSTGRES_COMMAND: &str = "native-boundary-postgres-baseline";
 const HTTP_COMMAND: &str = "native-boundary-http-baseline";
+const VM_COMMAND: &str = "vm-performance-baseline";
 const DEFAULT_OUTPUT: &str = "../benchmarks/results/native-boundary-postgres-baseline.latest.json";
 const DEFAULT_HTTP_OUTPUT: &str = "../benchmarks/results/native-boundary-http-baseline.latest.json";
+const DEFAULT_VM_OUTPUT: &str = "../benchmarks/results/vm-performance-baseline.latest.json";
 const DEFAULT_ITERATIONS: usize = 100;
 const DEFAULT_HTTP_ITERATIONS: usize = 10_000;
 const DEFAULT_HTTP_CONCURRENT_ITERATIONS: usize = 100;
+const DEFAULT_VM_ITERATIONS: usize = 3;
 const DEFAULT_CONCURRENCY: usize = 8;
 const HTTP_CONCURRENCY_LEVELS: &[usize] = &[100, 1_000];
 
@@ -43,12 +49,13 @@ fn main() -> ExitCode {
     match env::args().nth(1).as_deref() {
         Some(POSTGRES_COMMAND) => run_postgres_baseline_cli(),
         Some(HTTP_COMMAND) => run_http_baseline_cli(),
+        Some(VM_COMMAND) => run_vm_performance_baseline_cli(),
         Some(command) => {
             eprintln!("unsupported terlan-benchmark command: {command}");
             ExitCode::from(2)
         }
         None => {
-            eprintln!("usage: terlan-benchmark <{POSTGRES_COMMAND}|{HTTP_COMMAND}>");
+            eprintln!("usage: terlan-benchmark <{POSTGRES_COMMAND}|{HTTP_COMMAND}|{VM_COMMAND}>");
             ExitCode::from(2)
         }
     }
@@ -159,6 +166,60 @@ fn run_http_baseline_cli() -> ExitCode {
     }
 }
 
+/// Runs the VM performance baseline benchmark command.
+///
+/// Inputs:
+/// - Process environment for output path, iteration count, and optional
+///   `terlan-vm`/`terlc` binary paths.
+///
+/// Output:
+/// - Exit status 0 when the VM baseline report is written.
+/// - Exit status 1 when a completed VM track fails or report writing fails.
+///
+/// Transformation:
+/// - Builds local binaries once, measures real VM command paths, and records
+///   unavailable future runtime tracks as typed skipped rows instead of
+///   pretending they were measured.
+fn run_vm_performance_baseline_cli() -> ExitCode {
+    let options = VmBenchmarkOptions::from_env();
+    let report = match run_vm_performance_baseline(&options) {
+        Ok(report) => report,
+        Err(error) => VmBenchmarkReport::failed(&options, error),
+    };
+    if let Err(error) = write_report(&options.output, &report) {
+        eprintln!("{error}");
+        return ExitCode::from(1);
+    }
+    match report.status {
+        BenchmarkStatus::Completed => {
+            println!(
+                "[vm-performance-baseline] completed; wrote {}",
+                options.output.display()
+            );
+            ExitCode::SUCCESS
+        }
+        BenchmarkStatus::Failed => {
+            eprintln!(
+                "[vm-performance-baseline] failed: {}; wrote {}",
+                report.error_reason.as_deref().unwrap_or("unknown error"),
+                options.output.display()
+            );
+            ExitCode::from(1)
+        }
+        BenchmarkStatus::Skipped => {
+            println!(
+                "[vm-performance-baseline] skipped: {}; wrote {}",
+                report
+                    .skip_reason
+                    .as_deref()
+                    .unwrap_or("unknown skip reason"),
+                options.output.display()
+            );
+            ExitCode::SUCCESS
+        }
+    }
+}
+
 /// Benchmark configuration derived from the environment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct BenchmarkOptions {
@@ -175,6 +236,42 @@ struct HttpBenchmarkOptions {
     output: PathBuf,
     iterations: usize,
     concurrent_iterations: usize,
+}
+
+/// VM benchmark configuration derived from the environment.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct VmBenchmarkOptions {
+    output: PathBuf,
+    iterations: usize,
+    vm_binary: Option<PathBuf>,
+    compiler_binary: Option<PathBuf>,
+}
+
+impl VmBenchmarkOptions {
+    /// Reads VM benchmark options from the process environment.
+    ///
+    /// Inputs:
+    /// - `TERLAN_BENCH_VM_OUTPUT`.
+    /// - `TERLAN_BENCH_VM_ITERATIONS`.
+    /// - `TERLAN_BENCH_VM_BIN`.
+    /// - `TERLAN_BENCH_TERLC_BIN`.
+    ///
+    /// Output:
+    /// - Complete VM benchmark options with conservative defaults.
+    ///
+    /// Transformation:
+    /// - Keeps the benchmark independent from installed `terlc` by allowing
+    ///   callers to pin explicit local binaries.
+    fn from_env() -> Self {
+        Self {
+            output: env::var_os("TERLAN_BENCH_VM_OUTPUT")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from(DEFAULT_VM_OUTPUT)),
+            iterations: read_usize_var("TERLAN_BENCH_VM_ITERATIONS", DEFAULT_VM_ITERATIONS),
+            vm_binary: env::var_os("TERLAN_BENCH_VM_BIN").map(PathBuf::from),
+            compiler_binary: env::var_os("TERLAN_BENCH_TERLC_BIN").map(PathBuf::from),
+        }
+    }
 }
 
 impl HttpBenchmarkOptions {
@@ -268,7 +365,7 @@ fn read_url_var(name: &str) -> Option<String> {
 ///
 /// Transformation:
 /// - Keeps the harness robust in CI by ignoring malformed tuning values.
-fn read_usize_var(name: &str, default: usize) -> usize {
+pub(crate) fn read_usize_var(name: &str, default: usize) -> usize {
     env::var(name)
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
@@ -310,6 +407,91 @@ struct HttpBenchmarkReport {
     assertions: Vec<AssertionResult>,
     skip_reason: Option<String>,
     error_reason: Option<String>,
+}
+
+/// VM performance baseline report serialized to JSON.
+#[derive(Debug, Clone, Serialize)]
+struct VmBenchmarkReport {
+    benchmark: &'static str,
+    status: BenchmarkStatus,
+    timestamp_unix_seconds: u64,
+    terlan_version: &'static str,
+    rustc_version: Option<String>,
+    runtime_stack: VmRuntimeStack,
+    iterations: usize,
+    measurements: Vec<Measurement>,
+    assertions: Vec<AssertionResult>,
+    skipped_tracks: Vec<SkippedTrack>,
+    skip_reason: Option<String>,
+    error_reason: Option<String>,
+}
+
+impl VmBenchmarkReport {
+    /// Builds a completed VM benchmark report.
+    ///
+    /// Inputs:
+    /// - `options`: benchmark options.
+    /// - `runtime_stack`: resolved binary/runtime metadata.
+    /// - `measurements`: completed timing tracks.
+    /// - `assertions`: correctness assertions for completed tracks.
+    /// - `skipped_tracks`: future tracks with stable skip reasons.
+    ///
+    /// Output:
+    /// - Serializable completed VM baseline report.
+    ///
+    /// Transformation:
+    /// - Records both measured tracks and explicit unimplemented VM-owned
+    ///   tracks so the report is useful as a migration baseline.
+    fn completed(
+        options: &VmBenchmarkOptions,
+        runtime_stack: VmRuntimeStack,
+        measurements: Vec<Measurement>,
+        assertions: Vec<AssertionResult>,
+        skipped_tracks: Vec<SkippedTrack>,
+    ) -> Self {
+        Self {
+            benchmark: VM_COMMAND,
+            status: BenchmarkStatus::Completed,
+            timestamp_unix_seconds: unix_timestamp_seconds(),
+            terlan_version: env!("CARGO_PKG_VERSION"),
+            rustc_version: rustc_version(),
+            runtime_stack,
+            iterations: options.iterations,
+            measurements,
+            assertions,
+            skipped_tracks,
+            skip_reason: None,
+            error_reason: None,
+        }
+    }
+
+    /// Builds a failed VM benchmark report.
+    ///
+    /// Inputs:
+    /// - `options`: benchmark options.
+    /// - `reason`: failure reason.
+    ///
+    /// Output:
+    /// - Serializable failed report.
+    ///
+    /// Transformation:
+    /// - Preserves metadata when a required completed VM track fails.
+    fn failed(options: &VmBenchmarkOptions, reason: impl Into<String>) -> Self {
+        Self {
+            benchmark: VM_COMMAND,
+            status: BenchmarkStatus::Failed,
+            timestamp_unix_seconds: unix_timestamp_seconds(),
+            terlan_version: env!("CARGO_PKG_VERSION"),
+            rustc_version: rustc_version(),
+            runtime_stack: VmRuntimeStack::unresolved(),
+            iterations: options.iterations,
+            measurements: Vec::new(),
+            assertions: Vec::new(),
+            skipped_tracks: Vec::new(),
+            skip_reason: None,
+            error_reason: Some(reason.into()),
+        }
+    }
 }
 
 impl HttpBenchmarkReport {
@@ -373,6 +555,50 @@ impl HttpBenchmarkReport {
             error_reason: Some(reason.into()),
         }
     }
+}
+
+/// VM runtime stack captured by the benchmark.
+#[derive(Debug, Clone, Serialize)]
+struct VmRuntimeStack {
+    vm_binary: String,
+    compiler_binary: String,
+    source_execution: &'static str,
+    artifact_execution: &'static str,
+    skipped_track_policy: &'static str,
+}
+
+impl VmRuntimeStack {
+    /// Builds resolved VM runtime metadata.
+    fn resolved(vm_binary: &Path, compiler_binary: &Path) -> Self {
+        Self {
+            vm_binary: vm_binary.display().to_string(),
+            compiler_binary: compiler_binary.display().to_string(),
+            source_execution: "terlan-vm run <source.terl> --test-eval",
+            artifact_execution:
+                "terlc build --target terlan-vm pending; terlan-vm artifact load pending",
+            skipped_track_policy: "stable skip rows for VM-owned tracks not executable yet",
+        }
+    }
+
+    /// Builds unresolved VM runtime metadata for failed reports.
+    fn unresolved() -> Self {
+        Self {
+            vm_binary: "<unresolved>".to_string(),
+            compiler_binary: "<unresolved>".to_string(),
+            source_execution: "terlan-vm run <source.terl> --test-eval",
+            artifact_execution:
+                "terlc build --target terlan-vm pending; terlan-vm artifact load pending",
+            skipped_track_policy: "stable skip rows for VM-owned tracks not executable yet",
+        }
+    }
+}
+
+/// VM benchmark track that is required but not executable yet.
+#[derive(Debug, Clone, Serialize)]
+struct SkippedTrack {
+    name: &'static str,
+    reason: &'static str,
+    detail: &'static str,
 }
 
 impl BenchmarkReport {
@@ -491,7 +717,7 @@ impl HttpAdapterStack {
 /// Benchmark execution status.
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum BenchmarkStatus {
+pub(crate) enum BenchmarkStatus {
     Completed,
     Skipped,
     Failed,
@@ -531,7 +757,7 @@ impl AdapterStack {
 
 /// One benchmark measurement summary.
 #[derive(Debug, Clone, Serialize)]
-struct Measurement {
+pub(crate) struct Measurement {
     name: &'static str,
     unit: &'static str,
     iterations: usize,
@@ -551,10 +777,10 @@ struct Measurement {
 
 /// Correctness assertion captured next to timing data.
 #[derive(Debug, Clone, Serialize)]
-struct AssertionResult {
-    name: &'static str,
-    passed: bool,
-    detail: String,
+pub(crate) struct AssertionResult {
+    pub(crate) name: &'static str,
+    pub(crate) passed: bool,
+    pub(crate) detail: String,
 }
 
 /// Runs the Postgres baseline benchmark.
@@ -667,6 +893,93 @@ fn run_postgres_baseline(options: &BenchmarkOptions) -> Result<BenchmarkReport, 
         BenchmarkStatus::Completed,
         measurements,
         assertions,
+    ))
+}
+
+/// Runs the VM performance baseline benchmark.
+///
+/// Inputs:
+/// - `options`: output, iteration, and optional local binary configuration.
+///
+/// Output:
+/// - Completed VM baseline report or a failure reason.
+///
+/// Transformation:
+/// - Resolves local `terlan-vm` and `terlc` binaries, creates deterministic
+///   temporary source programs, measures supported VM paths, and records
+///   explicit skipped rows for VM-owned tracks that are not executable yet.
+fn run_vm_performance_baseline(options: &VmBenchmarkOptions) -> Result<VmBenchmarkReport, String> {
+    let vm_binary = resolve_benchmark_binary("terlan-vm", options.vm_binary.as_deref())?;
+    let compiler_binary = resolve_benchmark_binary("terlc", options.compiler_binary.as_deref())?;
+    let workspace = create_vm_benchmark_workspace()?;
+    let single_source = write_vm_benchmark_source(
+        &workspace,
+        "Single.terl",
+        "module bench.Single.\n\npub main(): Bool ->\n    1 + 2 == 3.\n",
+    )?;
+    let project_source = write_vm_benchmark_source(
+        &workspace,
+        "Project.terl",
+        &synthetic_helper_source("bench.Project", 20),
+    )?;
+    let battleship_source = write_vm_benchmark_source(
+        &workspace,
+        "BattleshipSized.terl",
+        &synthetic_helper_source("bench.BattleshipSized", 80),
+    )?;
+
+    let mut measurements = Vec::new();
+    let mut assertions = Vec::new();
+
+    measurements.push(measure_repeated(
+        "vm_binary_version_startup",
+        options.iterations,
+        || {
+            let output = run_required_command(&vm_binary, &["--version"])?;
+            require_stdout_contains("vm_binary_version_startup", &output, "terlan-vm")
+        },
+    )?);
+    assertions.push(assertion(
+        "vm_binary_version_startup",
+        "terlan-vm --version completed and identified the VM binary",
+    ));
+
+    measurements.push(measure_repeated(
+        "vm_compile_run_single_file",
+        options.iterations,
+        || run_vm_source_test(&vm_binary, &single_source),
+    )?);
+    assertions.push(assertion(
+        "vm_compile_run_single_file",
+        "single-file Terlan source compiled and returned Bool true through VM test-eval",
+    ));
+
+    measurements.push(measure_repeated(
+        "vm_compile_run_project_sized_synthetic",
+        options.iterations,
+        || run_vm_source_test(&vm_binary, &project_source),
+    )?);
+    assertions.push(assertion(
+        "vm_compile_run_project_sized_synthetic",
+        "synthetic project-sized source compiled and returned Bool true",
+    ));
+
+    measurements.push(measure_repeated(
+        "vm_compile_run_battleship_sized_synthetic",
+        options.iterations,
+        || run_vm_source_test(&vm_binary, &battleship_source),
+    )?);
+    assertions.push(assertion(
+        "vm_compile_run_battleship_sized_synthetic",
+        "synthetic Battleship-sized source compiled and returned Bool true",
+    ));
+
+    Ok(VmBenchmarkReport::completed(
+        options,
+        VmRuntimeStack::resolved(&vm_binary, &compiler_binary),
+        measurements,
+        assertions,
+        vm_performance_skipped_tracks(),
     ))
 }
 
@@ -926,7 +1239,7 @@ fn concurrent_measurement_name(track: &'static str, concurrency: usize) -> &'sta
 ///
 /// Transformation:
 /// - Mimics the work a Terlan handler currently performs through typed request
-///   accessors and native response constructors without invoking BEAM.
+///   accessors and native response constructors without invoking VM.
 fn benchmark_http_handler(request: &http::Request) -> Result<http::Response, String> {
     let id = http::param(request, "id").ok_or_else(|| "missing id param".to_string())?;
     let format =
@@ -937,6 +1250,267 @@ fn benchmark_http_handler(request: &http::Request) -> Result<http::Response, Str
     json::put(&mut payload, "method", json::string(&http::method(request)))
         .map_err(format_json_error)?;
     Ok(http::json(&payload, 200))
+}
+
+/// Resolves a benchmark binary path.
+///
+/// Inputs:
+/// - `binary`: Cargo binary name.
+/// - `explicit`: optional caller-supplied path.
+///
+/// Output:
+/// - Path to an executable local binary.
+///
+/// Transformation:
+/// - Prefers explicit configuration, then a sibling of the current benchmark
+///   binary, and finally builds the requested binary once through Cargo.
+fn resolve_benchmark_binary(binary: &str, explicit: Option<&Path>) -> Result<PathBuf, String> {
+    if let Some(path) = explicit {
+        return require_existing_binary(path);
+    }
+    let current = env::current_exe()
+        .map_err(|error| format!("failed to resolve current benchmark binary: {error}"))?;
+    let parent = current.parent().ok_or_else(|| {
+        format!(
+            "failed to resolve parent directory for benchmark binary `{}`",
+            current.display()
+        )
+    })?;
+    let sibling = parent.join(platform_binary_name(binary));
+    if sibling.exists() {
+        return Ok(sibling);
+    }
+    build_cargo_binary(binary)?;
+    require_existing_binary(&sibling)
+}
+
+/// Returns the platform-specific binary filename.
+fn platform_binary_name(binary: &str) -> String {
+    if cfg!(windows) {
+        format!("{binary}.exe")
+    } else {
+        binary.to_string()
+    }
+}
+
+/// Ensures a configured binary path exists.
+fn require_existing_binary(path: &Path) -> Result<PathBuf, String> {
+    if path.exists() {
+        Ok(path.to_path_buf())
+    } else {
+        Err(format!(
+            "benchmark binary `{}` does not exist",
+            path.display()
+        ))
+    }
+}
+
+/// Builds one local Cargo binary needed by the benchmark.
+fn build_cargo_binary(binary: &str) -> Result<(), String> {
+    let output = Command::new("cargo")
+        .args(["build", "-p", "terlan", "--bin", binary, "--quiet"])
+        .output()
+        .map_err(|error| format!("failed to start cargo build for `{binary}`: {error}"))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format_command_failure("cargo build", &output))
+    }
+}
+
+/// Creates a unique temporary workspace for VM benchmark sources.
+fn create_vm_benchmark_workspace() -> Result<PathBuf, String> {
+    let path = env::temp_dir().join(format!(
+        "terlan-vm-performance-baseline-{}-{}",
+        std::process::id(),
+        unix_timestamp_nanos()
+    ));
+    fs::create_dir_all(&path)
+        .map_err(|error| format!("failed to create VM benchmark workspace: {error}"))?;
+    Ok(path)
+}
+
+/// Writes one Terlan benchmark source into the workspace.
+fn write_vm_benchmark_source(
+    workspace: &Path,
+    name: &str,
+    source: &str,
+) -> Result<PathBuf, String> {
+    let path = workspace.join(name);
+    fs::write(&path, source).map_err(|error| {
+        format!(
+            "failed to write VM benchmark source `{}`: {error}",
+            path.display()
+        )
+    })?;
+    Ok(path)
+}
+
+/// Builds a synthetic helper-heavy Terlan source file.
+///
+/// Inputs:
+/// - `module`: source module name.
+/// - `helper_count`: number of local helper functions.
+///
+/// Output:
+/// - Terlan source that returns `Bool true` when all helper calls execute.
+///
+/// Transformation:
+/// - Generates pure local calls to approximate larger source compile/run
+///   workloads without depending on an external Battleship checkout.
+fn synthetic_helper_source(module: &str, helper_count: usize) -> String {
+    let mut source = format!("module {module}.\n\n");
+    for index in 0..helper_count {
+        source.push_str(&format!(
+            "helper{index}(value: Int): Int ->\n    value + {index}.\n\n"
+        ));
+    }
+    let block_size = 10;
+    let block_count = helper_count.div_ceil(block_size);
+    for block in 0..block_count {
+        let start = block * block_size;
+        let end = ((block + 1) * block_size).min(helper_count);
+        let mut expression = if block == 0 {
+            "1".to_string()
+        } else {
+            format!("block{}()", block - 1)
+        };
+        for index in start..end {
+            expression = format!("helper{index}({expression})");
+        }
+        source.push_str(&format!("block{block}(): Int ->\n    {expression}.\n\n"));
+    }
+    let expected = 1 + helper_count.saturating_sub(1) * helper_count / 2;
+    let final_call = if block_count == 0 {
+        "1".to_string()
+    } else {
+        format!("block{}()", block_count - 1)
+    };
+    source.push_str(&format!(
+        "pub main(): Bool ->\n    {final_call} == {expected}.\n"
+    ));
+    source
+}
+
+/// Runs a VM source file through `--test-eval`.
+fn run_vm_source_test(vm_binary: &Path, source: &Path) -> Result<(), String> {
+    let source = source.to_string_lossy().to_string();
+    run_required_command(
+        vm_binary,
+        &["run", &source, "--entry", "main", "--test-eval"],
+    )?;
+    Ok(())
+}
+
+/// Captured command output for benchmark assertions.
+struct BenchmarkCommandOutput {
+    stdout: String,
+    stderr: String,
+}
+
+/// Runs a benchmark command and requires a successful exit status.
+fn run_required_command(program: &Path, args: &[&str]) -> Result<BenchmarkCommandOutput, String> {
+    let output = Command::new(program)
+        .args(args)
+        .output()
+        .map_err(|error| format!("failed to start `{}`: {error}", program.display()))?;
+    if !output.status.success() {
+        return Err(format_command_failure(
+            &program.display().to_string(),
+            &output,
+        ));
+    }
+    Ok(BenchmarkCommandOutput {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+    })
+}
+
+/// Requires command stdout to contain an expected string.
+fn require_stdout_contains(
+    track: &str,
+    output: &BenchmarkCommandOutput,
+    expected: &str,
+) -> Result<(), String> {
+    if output.stdout.contains(expected) {
+        Ok(())
+    } else {
+        Err(format!(
+            "{track} stdout did not contain `{expected}`; stdout=`{}` stderr=`{}`",
+            output.stdout.trim(),
+            output.stderr.trim()
+        ))
+    }
+}
+
+/// Formats an unsuccessful command result.
+fn format_command_failure(command: &str, output: &std::process::Output) -> String {
+    format!(
+        "`{command}` failed with status {}; stdout=`{}` stderr=`{}`",
+        output.status,
+        String::from_utf8_lossy(&output.stdout).trim(),
+        String::from_utf8_lossy(&output.stderr).trim()
+    )
+}
+
+/// Builds a passed assertion record.
+fn assertion(name: &'static str, detail: impl Into<String>) -> AssertionResult {
+    AssertionResult {
+        name,
+        passed: true,
+        detail: detail.into(),
+    }
+}
+
+/// Returns required VM performance tracks that are not executable yet.
+fn vm_performance_skipped_tracks() -> Vec<SkippedTrack> {
+    vec![
+        SkippedTrack {
+            name: "vm_inspect_processes_startup",
+            reason: "terlan_vm_inspect_command_pending",
+            detail: "the committed terlan-vm CLI does not expose process inspection yet",
+        },
+        SkippedTrack {
+            name: "vm_artifact_load_single_file",
+            reason: "terlan_vm_artifact_load_pending",
+            detail: "the committed terlan-vm CLI does not expose artifact load execution yet",
+        },
+        SkippedTrack {
+            name: "vm_artifact_build_single_file",
+            reason: "terlan_vm_build_target_pending",
+            detail: "the committed terlc build command does not expose --target terlan-vm yet",
+        },
+        SkippedTrack {
+            name: "vm_collection_operations",
+            reason: "vm_collection_execution_pending",
+            detail: "portable VM-owned collections are not executable through terlan-vm source run yet",
+        },
+        SkippedTrack {
+            name: "vm_actor_send_receive",
+            reason: "vm_actor_execution_pending",
+            detail: "actor send/receive primitives exist as runtime tables but are not wired to source execution yet",
+        },
+        SkippedTrack {
+            name: "vm_selective_receive",
+            reason: "vm_actor_execution_pending",
+            detail: "selective receive is not exposed through executable source syntax on the VM lane yet",
+        },
+        SkippedTrack {
+            name: "vm_timer_wakeup",
+            reason: "vm_timer_execution_pending",
+            detail: "timer tables exist but are not driven by executable source programs yet",
+        },
+        SkippedTrack {
+            name: "vm_native_boundary_request_lifecycle",
+            reason: "vm_native_boundary_execution_pending",
+            detail: "NativeBoundary lifecycle tests exist, but the VM source runner has no native call plan execution yet",
+        },
+        SkippedTrack {
+            name: "vm_http_static_json_handler",
+            reason: "vm_http_runtime_unavailable",
+            detail: "VM-owned HTTP static, JSON, and handler paths are tracked by terlan-vm-http-lane-check",
+        },
+    ]
 }
 
 /// Measures adapter connection setup.
@@ -1088,7 +1662,7 @@ impl Measurement {
     ///   nanosecond fields keep very small HTTP adapter operations visible;
     ///   the microsecond fields stay useful for slower database and worker
     ///   wall-time paths.
-    fn from_durations(name: &'static str, durations: &[Duration]) -> Self {
+    pub(crate) fn from_durations(name: &'static str, durations: &[Duration]) -> Self {
         let mut values_ns = durations.iter().map(Duration::as_nanos).collect::<Vec<_>>();
         values_ns.sort_unstable();
         let total_ns = values_ns.iter().sum::<u128>();
@@ -1201,7 +1775,7 @@ fn format_json_error(error: json::JsonError) -> String {
 /// Transformation:
 /// - Creates parent directories and serializes stable JSON for checked
 ///   baseline storage.
-fn write_report<T: Serialize>(path: &Path, report: &T) -> Result<(), String> {
+pub(crate) fn write_report<T: Serialize>(path: &Path, report: &T) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| {
             format!("{}: failed to create directory: {error}", parent.display())
@@ -1228,10 +1802,27 @@ fn write_report<T: Serialize>(path: &Path, report: &T) -> Result<(), String> {
 /// Transformation:
 /// - Keeps report timestamps machine-readable without adding date/time
 ///   dependencies.
-fn unix_timestamp_seconds() -> u64 {
+pub(crate) fn unix_timestamp_seconds() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
+        .unwrap_or(0)
+}
+
+/// Returns a Unix timestamp in nanoseconds.
+///
+/// Inputs:
+/// - Current system clock.
+///
+/// Output:
+/// - Nanoseconds since Unix epoch, or zero if the system clock is before epoch.
+///
+/// Transformation:
+/// - Provides a cheap unique suffix for temporary benchmark workspaces.
+fn unix_timestamp_nanos() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
         .unwrap_or(0)
 }
 
@@ -1245,7 +1836,7 @@ fn unix_timestamp_seconds() -> u64 {
 ///
 /// Transformation:
 /// - Shells out once for report metadata and tolerates missing toolchain text.
-fn rustc_version() -> Option<String> {
+pub(crate) fn rustc_version() -> Option<String> {
     let output = Command::new("rustc").arg("--version").output().ok()?;
     if !output.status.success() {
         return None;
@@ -1277,4 +1868,60 @@ fn redact_postgres_url(url: &str) -> String {
         let _ = parsed.set_password(Some("redacted"));
     }
     parsed.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verifies synthetic VM sources scale helper count and expected result.
+    ///
+    /// Inputs:
+    /// - Module name and helper count.
+    ///
+    /// Output:
+    /// - Test passes when generated source contains the requested helpers and
+    ///   stable assertion expression.
+    ///
+    /// Transformation:
+    /// - Protects the project/Battleship-sized benchmark source generator from
+    ///   silently shrinking to a tiny single-expression workload.
+    #[test]
+    fn synthetic_helper_source_contains_requested_workload() {
+        let source = synthetic_helper_source("bench.Sample", 5);
+
+        assert!(source.contains("module bench.Sample."));
+        assert!(source.contains("helper0(value: Int): Int"));
+        assert!(source.contains("helper4(value: Int): Int"));
+        assert!(source.contains("block0(): Int"));
+        assert!(source.contains("helper4(helper3(helper2(helper1(helper0(1)))))"));
+        assert!(source.contains("pub main(): Bool ->\n    block0() == 11."));
+    }
+
+    /// Verifies the VM performance baseline records all required pending lanes.
+    ///
+    /// Inputs:
+    /// - Static skipped-track list.
+    ///
+    /// Output:
+    /// - Test passes when the skipped tracks cover the roadmap-required
+    ///   runtime categories.
+    ///
+    /// Transformation:
+    /// - Keeps unimplemented VM tracks visible in the report instead of
+    ///   letting them disappear from the benchmark surface.
+    #[test]
+    fn vm_performance_skipped_tracks_cover_runtime_gaps() {
+        let tracks = vm_performance_skipped_tracks();
+        let names = tracks.iter().map(|track| track.name).collect::<Vec<_>>();
+
+        assert!(names.contains(&"vm_collection_operations"));
+        assert!(names.contains(&"vm_actor_send_receive"));
+        assert!(names.contains(&"vm_selective_receive"));
+        assert!(names.contains(&"vm_timer_wakeup"));
+        assert!(names.contains(&"vm_native_boundary_request_lifecycle"));
+        assert!(names.contains(&"vm_http_static_json_handler"));
+        assert!(tracks.iter().all(|track| !track.reason.is_empty()));
+        assert!(tracks.iter().all(|track| !track.detail.is_empty()));
+    }
 }
