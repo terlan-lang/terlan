@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -42,6 +42,7 @@ check:
 	$(MAKE) vm-process-model-check
 	$(MAKE) vm-scheduler-contract-check
 	$(MAKE) vm-actor-primitives-check
+	$(MAKE) vm-failure-primitives-check
 	$(MAKE) terlan-package-git-source-check
 	$(MAKE) terlan-package-lockfile-check
 	$(MAKE) adversarial-check
@@ -201,6 +202,15 @@ vm-actor-primitives-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::actor::actor_test::actor_runtime_selective_receive_preserves_skipped_messages -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::actor::actor_test::actor_runtime_reports_missing_and_exited_context_diagnostics -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::actor::actor_test::actor_runtime_run_next_delegates_to_scheduler -- --exact
+
+vm-failure-primitives-check:
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::failure::failure_test::failure_runtime_links_processes_idempotently_and_unlinks -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::failure::failure_test::failure_runtime_propagates_abnormal_linked_exit -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::failure::failure_test::failure_runtime_does_not_propagate_normal_linked_exit -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::failure::failure_test::failure_runtime_delivers_trapped_exit_message -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::failure::failure_test::failure_runtime_delivers_monitor_down_message_and_demonitor_suppresses_it -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::failure::failure_test::failure_runtime_reports_missing_exited_and_self_link_diagnostics -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::failure::failure_test::failure_runtime_duplicate_exit_is_noop -- --exact
 
 terlan-package-git-source-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::build::project_manifest::project_manifest_test::project_manifest_parses_dependency_source_metadata -- --exact

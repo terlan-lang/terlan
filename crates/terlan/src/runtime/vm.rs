@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::terlan_typeck::{CoreCaseClause, CoreExpr, CoreFunction, CoreModule, CorePattern};
 
 pub(crate) mod actor;
+pub(crate) mod failure;
 mod intrinsics;
 mod kind;
 mod patterns;
