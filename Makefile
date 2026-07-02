@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-resource-ownership-check vm-table-primitives-check vm-code-server-check vm-distribution-envelope-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-resource-ownership-check vm-map-layout-check vm-table-primitives-check vm-code-server-check vm-distribution-envelope-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -46,6 +46,7 @@ check:
 	$(MAKE) vm-supervision-primitives-check
 	$(MAKE) vm-timer-primitives-check
 	$(MAKE) vm-resource-ownership-check
+	$(MAKE) vm-map-layout-check
 	$(MAKE) vm-table-primitives-check
 	$(MAKE) vm-code-server-check
 	$(MAKE) vm-distribution-envelope-check
@@ -246,6 +247,15 @@ vm-resource-ownership-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_reports_stale_handle_for_transfer -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_rejects_missing_process_roles -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_rejects_exited_process_roles -- --exact
+
+vm-map-layout-check:
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::map_layout::map_layout_test::map_root_layout_keeps_small_maps_flat_through_boundary -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::map_layout::map_layout_test::map_root_layout_extends_flat_storage_for_shared_literal_shapes -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::map_layout::map_layout_test::map_root_layout_does_not_keep_dynamic_dictionaries_flat -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::map_layout::map_layout_test::achamp_node_layout_uses_leaf_blocks_for_small_subtrees -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::map_layout::map_layout_test::achamp_node_layout_prioritizes_true_hash_collisions -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::map_layout::map_layout_test::achamp_node_layout_compresses_long_shared_prefixes -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::map_layout::map_layout_test::achamp_node_layout_splits_sparse_and_dense_nodes -- --exact
 
 vm-table-primitives-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::table::table_test::table_store_creates_owner_table_and_exposes_snapshot -- --exact

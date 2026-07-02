@@ -8,6 +8,7 @@ pub(crate) mod coordination;
 pub(crate) mod failure;
 mod intrinsics;
 mod kind;
+pub(crate) mod map_layout;
 mod patterns;
 pub(crate) mod process;
 pub(crate) mod resource;
