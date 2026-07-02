@@ -10,6 +10,7 @@ mod patterns;
 pub(crate) mod process;
 pub(crate) mod scheduler;
 mod std_remote;
+pub(crate) mod supervision;
 mod value;
 
 use intrinsics::evaluate_intrinsic;
