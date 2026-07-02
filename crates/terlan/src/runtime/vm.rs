@@ -12,6 +12,7 @@ pub(crate) mod resource;
 pub(crate) mod scheduler;
 mod std_remote;
 pub(crate) mod supervision;
+pub(crate) mod table;
 pub(crate) mod timer;
 mod value;
 
