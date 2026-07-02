@@ -3,7 +3,7 @@ PYTHON := python3 -B
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-resource-ownership-check vm-map-layout-check vm-table-primitives-check vm-code-server-check vm-distribution-envelope-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
+.PHONY: check test test-release build release-artifact-current release-artifact-linux release-artifact-smoke release-artifact-installer-smoke publish-preflight publish validate-ebnf workspace-version-check release-version-metadata-check source-extension-check release-boundary-check single-root-contract-check diff-whitespace-check rust-warnings-check rust-quality-check test-hierarchy-check cli-exact-selector-check shared-helper-check installer-contract-check oxc-boundary-check adversarial-check coverage-check release-hardening-check erlang-modernization-inventory-check erlang-modernization-em0-hard-gate erlang-modernization-em0-full-compatibility-gate release-0-0-6-preflight erlang-runtime-matrix-check erlang-runtime-matrix-release-check terlan-vm-artifact-format-check native-binding-generator-contract-check no-default-tokio-runtime-check vm-process-model-check vm-scheduler-contract-check vm-actor-primitives-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-resource-ownership-check vm-map-layout-check vm-table-primitives-check vm-code-server-check vm-distribution-envelope-check vm-coordination-docker-check terlan-package-git-source-check terlan-package-lockfile-check native-boundary-postgres-baseline-benchmark native-boundary-http-baseline-benchmark terlan-vm-compiler-bridge-check http-runtime-stack-check runtime-release-dependency-self-test changelog-public-scope-check internal-docs-check module-readme-check rustdoc-check clean
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
@@ -50,6 +50,7 @@ check:
 	$(MAKE) vm-table-primitives-check
 	$(MAKE) vm-code-server-check
 	$(MAKE) vm-distribution-envelope-check
+	$(MAKE) vm-coordination-docker-check
 	$(MAKE) terlan-package-git-source-check
 	$(MAKE) terlan-package-lockfile-check
 	$(MAKE) adversarial-check
@@ -287,6 +288,9 @@ vm-distribution-envelope-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::coordination::coordination_test::vm_coordination_rejects_missing_capability -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::coordination::coordination_test::vm_coordination_message_ids_are_monotonic -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::coordination::coordination_test::vm_coordination_builds_tetf_distribution_envelope_with_refs -- --exact
+
+vm-coordination-docker-check:
+	$(PYTHON) tools/check_vm_coordination_docker.py
 
 terlan-package-git-source-check:
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::build::project_manifest::project_manifest_test::project_manifest_parses_dependency_source_metadata -- --exact
