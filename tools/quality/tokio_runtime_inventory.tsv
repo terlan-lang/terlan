@@ -1,0 +1,59 @@
+# Tokio runtime/dependency inventory for the VM-first 0.0.7 line.
+#
+# Inputs:
+# - Files under Cargo.lock, crates/terlan/Cargo.toml, crates/terlan/src, and std
+#   that mention Tokio or Tokio-backed crates.
+#
+# Output:
+# - A tab-separated classification consumed by `terlan-quality
+#   no-default-tokio-runtime`.
+#
+# Transformation:
+# - Ensures Tokio references stay explicit while the default Terlan runtime
+#   migrates to VM-owned scheduling, timers, cancellation, resource lifecycle,
+#   and NativeBoundary dispatch.
+#
+# Format:
+# path<TAB>classification<TAB>owner<TAB>notes
+path	classification	owner	notes
+Cargo.lock	lockfile-transitive	cargo	Dependency lockfile records Tokio-backed crates until migration removes them.
+crates/terlan/Cargo.toml	migration-debt	cargo	Tokio-backed dependencies are retained only for explicit tooling and adapter lanes.
+crates/terlan/src/benchmark/main.rs	test-harness	benchmarks	Benchmarks preserve current Tokio/Postgres evidence while VM lanes mature.
+crates/terlan/src/commands/bind/polars_probe_files.rs	reference-only	bindings	Probe text mentions Tokio as replaceable worker implementation detail.
+crates/terlan/src/backends/erlang/emit/syntax_emit_test.rs	test-harness	erlang-tests	Legacy Erlang syntax emitter tests mention Tokio only in fixture text.
+crates/terlan/src/commands/db/README.md	maintained-client-boundary	db	Database docs classify tokio-postgres as a maintained adapter dependency.
+crates/terlan/src/commands/db/execution.rs	maintained-client-boundary	db	Database command execution delegates to the maintained Postgres adapter.
+crates/terlan/src/commands/db/history.rs	maintained-client-boundary	db	Database migration history stays behind the Postgres adapter boundary.
+crates/terlan/src/commands/integration_test.rs	test-harness	tests	Integration tests use Tokio IO fixtures outside default runtime semantics.
+crates/terlan/src/commands/serve/README.md	migration-debt	http	Serve docs classify the current Tokio HTTP lane as migration debt.
+crates/terlan/src/commands/serve/mod.rs	migration-debt	http	Current dev server uses Tokio until VM-owned HTTP replaces it.
+crates/terlan/src/commands/serve/serve_test.rs	test-harness	http-tests	Serve tests exercise the current Tokio HTTP lane.
+crates/terlan/src/commands/serve/tls.rs	migration-debt	http	TLS helper waits through Tokio while serve remains migration debt.
+crates/terlan/src/commands/serve/tls_test.rs	test-harness	http-tests	TLS tests use Tokio fixtures for current serve behavior.
+crates/terlan/src/commands/serve/watch.rs	migration-debt	http	Live-reload watch task is Tokio-backed until VM-owned dev server work lands.
+crates/terlan/src/commands/serve/watch_test.rs	test-harness	http-tests	Watch tests use Tokio channels for current serve behavior.
+crates/terlan/src/commands/serve/websocket.rs	migration-debt	http	WebSocket handling is Tokio-backed until VM-owned socket handling lands.
+crates/terlan/src/commands/serve/websocket_test.rs	test-harness	http-tests	WebSocket tests use Tokio channels for current serve behavior.
+crates/terlan/src/compiler/syntax/syntax_output_decl_test.rs	test-harness	syntax-tests	Syntax fixture covers runtime annotation text and is not a runtime dependency.
+crates/terlan/src/lsp/lib_test.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/mod.rs	editor-tooling	lsp	LSP transport may use Tokio because it is editor tooling, not default runtime semantics.
+crates/terlan/src/quality/main.rs	quality-gate	quality	Quality command names the Tokio inventory gate.
+crates/terlan/src/quality/mod.rs	quality-gate	quality	Quality module registry names the Tokio inventory gate.
+crates/terlan/src/quality/no_default_tokio_runtime.rs	quality-gate	quality	The checker defines the Tokio inventory policy.
+crates/terlan/src/quality/no_default_tokio_runtime_test.rs	quality-gate	quality	The checker tests the Tokio inventory policy.
+crates/terlan/src/runtime/native/README.md	maintained-client-boundary	native-runtime	Native runtime docs classify the current Postgres adapter boundary.
+crates/terlan/src/runtime/native/postgres.rs	maintained-client-boundary	postgres	Postgres adapter owns Tokio until NativeBoundary workers become VM-owned.
+crates/terlan/src/runtime/native/postgres/row.rs	maintained-client-boundary	postgres	Row decoding delegates to tokio-postgres behind the adapter boundary.
+crates/terlan/src/runtime/native/postgres_test.rs	test-harness	postgres-tests	Postgres tests lock current adapter behavior.
+crates/terlan/src/runtime/safenative/dispatch_test.rs	test-harness	safenative-tests	Dispatch tests mention Rust/Tokio adapter behavior as test documentation.
+crates/terlan/src/runtime/safenative/metadata.rs	migration-debt	safenative	NativeBoundary metadata still models Tokio workers until VM workers replace them.
+crates/terlan/src/runtime/safenative/metadata_test.rs	test-harness	safenative-tests	Metadata tests lock the temporary Tokio worker classification.
+crates/terlan/src/validation/target_profile/target_profile_test/tests/std_bridge_test.rs	test-harness	validation-tests	Target-profile tests mention Rust/Tokio HTTP ownership as fixture docs.
+std/core/task.terl	migration-debt	std-core	Task docs mention Tokio as a cross-runtime mapping while VM task ownership matures.
+std/db/postgres.terl	maintained-client-boundary	std-db	Std Postgres declarations map to the maintained Rust/Tokio adapter boundary.
+std/RUST_BACKED_MANIFEST.tsv	maintained-client-boundary	std-manifest	Std Postgres operations are mapped to tokio-postgres behind NativeBoundary.
+std/db/README.md	maintained-client-boundary	std-docs	Std DB docs classify the current Rust/Tokio Postgres adapter.
+std/http/README.md	migration-debt	std-docs	Std HTTP docs classify the current Rust/Tokio server lane.
+std/scripts/check_rust_backed_manifest.py	quality-gate	std-quality	Std manifest checker allowlists tokio-postgres as a maintained crate.
+std/summaries/std.core.Task.typi	generated-summary	std-summary	Generated summary documents cross-runtime task mappings.
+std/summaries/std.db.Postgres.typi	generated-summary	std-summary	Generated summary documents the current Postgres adapter.
