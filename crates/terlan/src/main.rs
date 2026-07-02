@@ -160,6 +160,7 @@ fn public_usage_lines() -> &'static [&'static str] {
         "terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]",
         "terlc run [project-dir] [--target erlang]",
         "terlc clean [project-dir]",
+        "terlc doctor [project-dir]",
         "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]",
         "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]",
         "terlc static <emit|serve|check> <file.terl>",
@@ -258,6 +259,7 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "build" => commands::build::run(cmd, state),
         "run" => commands::run::run(cmd, state),
         "clean" => commands::clean::run(cmd),
+        "doctor" => commands::doctor::run(cmd),
         "serve" => commands::serve::run(cmd, state),
         "integration-test" => commands::integration_test::run(cmd, state),
         "static" => commands::static_site::run(cmd, state),
@@ -441,6 +443,7 @@ fn print_command_usage(command: &str) -> bool {
         "build" => println!("terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]"),
         "run" => println!("terlc run [project-dir] [--target erlang]"),
         "clean" => println!("terlc clean [project-dir]"),
+        "doctor" => println!("terlc doctor [project-dir]"),
         "serve" => println!(
             "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]"
         ),
@@ -528,6 +531,7 @@ fn command_has_usage(command: &str) -> bool {
             | "build"
             | "run"
             | "clean"
+            | "doctor"
             | "serve"
             | "integration-test"
             | "static"

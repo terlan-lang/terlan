@@ -8,6 +8,7 @@ pub(crate) mod db;
 pub(crate) mod deploy;
 pub(crate) mod doc;
 pub(crate) mod emit;
+pub(crate) mod doctor;
 pub(crate) mod emit_js;
 pub(crate) mod emit_native_metadata;
 #[cfg(test)]

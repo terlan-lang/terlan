@@ -36,6 +36,7 @@ check:
 	$(MAKE) installer-contract-check
 	$(MAKE) oxc-boundary-check
 	$(MAKE) terlan-vm-artifact-format-check
+	$(MAKE) terlc-doctor-vm-pivot-check
 	$(MAKE) adversarial-check
 	$(MAKE) http-tls-check
 	$(MAKE) http-runtime-stack-check
@@ -150,6 +151,15 @@ erlang-runtime-matrix-release-check:
 
 terlan-vm-artifact-format-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-artifact-format
+
+terlc-doctor-vm-pivot-check:
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::parse_doctor_args_defaults_to_current_directory -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::parse_doctor_args_rejects_unknown_option -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_accepts_clean_vm_project -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_reports_vm_pivot_hazards -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_reports_vm_execution_gap_for_checked_coreir -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_reports_summary_compiler_contract_mismatch -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::doctor::doctor_test::doctor_project_reports_battleship_manifest_migration_fix -- --exact
 
 native-boundary-postgres-baseline-benchmark:
 	$(CARGO) run -p terlan --bin terlan-benchmark --quiet -- native-boundary-postgres-baseline
