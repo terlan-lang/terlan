@@ -4,6 +4,7 @@ use crate::terlan_typeck::{CoreCaseClause, CoreExpr, CoreFunction, CoreModule, C
 
 pub(crate) mod actor;
 pub(crate) mod code_server;
+pub(crate) mod coordination;
 pub(crate) mod failure;
 mod intrinsics;
 mod kind;
@@ -14,6 +15,7 @@ pub(crate) mod scheduler;
 mod std_remote;
 pub(crate) mod supervision;
 pub(crate) mod table;
+pub(crate) mod term_format;
 pub(crate) mod timer;
 mod value;
 
