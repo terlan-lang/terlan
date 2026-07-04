@@ -1,7 +1,7 @@
 module=std.core.Equal
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
 source_hash=8092798199322558533
 interface_hash=6075626723012561971
 interface_doc_hash=11900073280897069753

@@ -1,0 +1,97 @@
+/**
+ * Terlan VM native bridge contract.
+ *
+ * `std.vm.NativeBridge` connects runtime supervision and message flow to
+ * Rust-backed native workers. It is a runtime target contract, not a portable
+ * runtime abstraction.
+ */
+
+module std.vm.NativeBridge.
+
+import std.vm.Backpressure.{Backpressure}.
+import std.vm.Message.{MessageCodec}.
+import std.vm.Supervisor.{Supervised}.
+import std.core.Result.{Result}.
+import std.core.Error.{Error}.
+import std.core.Unit.{Unit}.
+
+/**
+ * NativeBridge represents a supervised native worker handle.
+ *
+ * Input: native resource type `Resource`.
+ * Output: an opaque runtime-owned bridge handle.
+ * Transformation: separates runtime process ownership from native resource
+ * ownership while preserving a typed handle in Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type NativeBridge[Resource].
+
+/**
+ * NativeBridgeRuntime defines the required bridge operations.
+ *
+ * Input: resource type `Resource`, command type `Command`, and reply type
+ * `Reply`.
+ * Output: a trait requiring start, call, dispose, and stop operations.
+ * Transformation: gives native adapters a common runtime-side contract that can
+ * be checked together with supervision, message encoding, and backpressure
+ * traits.
+ */
+@target.vm {process_mailbox: true}
+pub trait NativeBridgeRuntime[Resource, Command, Reply]
+    extends Supervised[NativeBridge[Resource]],
+            Backpressure[NativeBridge[Resource]],
+            MessageCodec[Command],
+            MessageCodec[Reply] {
+    start(resource: Resource): Result[NativeBridge[Resource], Error].
+    call(bridge: NativeBridge[Resource], command: Command): Result[Reply, Error].
+    dispose(bridge: NativeBridge[Resource]): Unit.
+    stop(bridge: NativeBridge[Resource]): Unit.
+}.
+
+/**
+ * Starts a runtime-owned native bridge worker.
+ *
+ * Input: one native resource descriptor of type `Resource`.
+ * Output: `Result[NativeBridge[Resource], Error]`.
+ * Transformation: asks the selected VM runtime to attach a supervised native
+ * worker while keeping native ownership outside portable Terlan semantics.
+ */
+@target.vm {process_mailbox: true}
+pub start[Resource](resource: Resource): Result[NativeBridge[Resource], Error] ->
+    native.
+
+/**
+ * Sends a synchronous command to a native bridge worker.
+ *
+ * Input: one `NativeBridge[Resource]` receiver and one command value.
+ * Output: `Result[Reply, Error]`.
+ * Transformation: routes command execution through the VM native bridge
+ * and normalizes adapter failures into the standard typed error channel.
+ */
+@target.vm {process_mailbox: true}
+pub (bridge: NativeBridge[Resource]) call[Command, Reply](command: Command): Result[Reply, Error] ->
+    native.
+
+/**
+ * Disposes the native resource owned by a bridge worker.
+ *
+ * Input: one mutable `NativeBridge[Resource]` receiver.
+ * Output: `Unit`.
+ * Transformation: releases target-owned native resources deterministically
+ * without exposing handle generations or disposal messages to Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub (mut bridge: NativeBridge[Resource]) dispose(): Unit ->
+    native.
+
+/**
+ * Stops the runtime bridge process.
+ *
+ * Input: one mutable `NativeBridge[Resource]` receiver.
+ * Output: `Unit`.
+ * Transformation: asks the selected VM runtime to shut down the bridge process after
+ * any required native disposal policy has run.
+ */
+@target.vm {process_mailbox: true}
+pub (mut bridge: NativeBridge[Resource]) stop(): Unit ->
+    native.

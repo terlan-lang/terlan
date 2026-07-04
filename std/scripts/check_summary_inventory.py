@@ -116,10 +116,11 @@ def is_test_source_name(name: str) -> bool:
     - `True` when the file uses the canonical `*Test.terl` source suffix.
 
     Transformation:
-    - Keeps std summary inventory aligned with `terlc test` source discovery.
+    - Keeps std summary inventory aligned with `terlc test` source discovery
+      while preserving `Test.terl` as the public `std.test.Test` module.
     """
 
-    return name.endswith("Test.terl")
+    return name != "Test.terl" and name.endswith("Test.terl")
 
 
 def read_module(path: Path) -> SourceModule | str:

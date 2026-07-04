@@ -1,0 +1,135 @@
+/**
+ * Terlan VM TCP socket contract.
+ *
+ * `std.vm.Tcp` exposes the minimum active socket surface needed by
+ * runtime-targeted integration tests and protocol adapters. It is not a portable
+ * networking API.
+ */
+
+module std.vm.Tcp.
+
+import std.vm.Bytes.{Bytes}.
+import std.vm.Timeout.{Timeout}.
+import std.core.Error.{Error}.
+import std.core.Result.{Result}.
+import std.core.Unit.{Unit}.
+
+/**
+ * TcpSocket represents a connected TCP socket owned by the selected VM runtime.
+ *
+ * Input: no runtime input.
+ * Output: an opaque target-owned socket handle.
+ * Transformation: keeps runtime socket identity and lifecycle out of portable
+ * Terlan values while allowing typed send/receive operations.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type TcpSocket.
+
+/**
+ * TcpListener represents a VM-owned TCP listener.
+ *
+ * Input: no runtime input.
+ * Output: an opaque target-owned listener handle.
+ * Transformation: keeps listener identity and accept backlog ownership inside
+ * the VM while allowing typed accept and lifecycle operations.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type TcpListener.
+
+/**
+ * Starts listening on a TCP address.
+ *
+ * Input: a runtime address such as `127.0.0.1:8080`.
+ * Output: `Ok(TcpListener)` when the VM owns the listener, otherwise
+ * `Err(Error)`.
+ * Transformation: delegates address binding, listener ownership, and resource
+ * diagnostics to the selected VM runtime.
+ */
+@target.vm {process_mailbox: true}
+pub listen(address: String): Result<TcpListener, Error> ->
+    native.
+
+/**
+ * Starts listening on a TCP address with an explicit accept backlog.
+ *
+ * Input: a runtime address and positive backlog capacity.
+ * Output: `Ok(TcpListener)` when the VM owns the listener, otherwise
+ * `Err(Error)`.
+ * Transformation: delegates bounded accept queue setup to the VM runtime so
+ * overloaded listeners expose backpressure instead of hidden host queues.
+ */
+@target.vm {process_mailbox: true}
+pub listen_with_backlog(address: String, backlog: Int): Result<TcpListener, Error> ->
+    native.
+
+/**
+ * Accepts a connected socket from a listener.
+ *
+ * Input: a listener receiver and timeout.
+ * Output: `Ok(TcpSocket)` when a connection is accepted, otherwise
+ * `Err(Error)`.
+ * Transformation: parks or resumes through the VM scheduler while preserving
+ * listener ownership inside the VM runtime.
+ */
+@target.vm {process_mailbox: true}
+pub (listener: TcpListener) accept(timeout: Timeout): Result<TcpSocket, Error> ->
+    native.
+
+/**
+ * Connects to a TCP endpoint.
+ *
+ * Input: host name or address, port number, and timeout.
+ * Output: `Ok(TcpSocket)` on connection, otherwise `Err(Error)`.
+ * Transformation: delegates DNS, socket creation, and connection failure
+ * normalization to the selected VM runtime.
+ */
+@target.vm {process_mailbox: true}
+pub connect(host: String, port: Int, timeout: Timeout): Result[TcpSocket, Error] ->
+    native.
+
+/**
+ * Sends bytes on a connected socket.
+ *
+ * Input: a socket receiver and a byte buffer.
+ * Output: `Ok(Unit)` on successful write, otherwise `Err(Error)`.
+ * Transformation: asks the selected VM runtime to send the binary frame and
+ * report target socket failures through the standard error channel.
+ */
+@target.vm {process_mailbox: true}
+pub (socket: TcpSocket) send(bytes: Bytes): Result[Unit, Error] ->
+    native.
+
+/**
+ * Receives bytes from a connected socket.
+ *
+ * Input: a socket receiver, maximum byte count, and timeout.
+ * Output: `Ok(Bytes)` when bytes are read, otherwise `Err(Error)`.
+ * Transformation: delegates receive buffering and timeout behavior to the
+ * selected VM runtime while keeping the protocol frame typed as `Bytes`.
+ */
+@target.vm {process_mailbox: true}
+pub (socket: TcpSocket) receive(max_bytes: Int, timeout: Timeout): Result[Bytes, Error] ->
+    native.
+
+/**
+ * Closes a connected socket.
+ *
+ * Input: a mutable socket receiver.
+ * Output: `Unit`.
+ * Transformation: asks the selected VM runtime to close and release the socket handle.
+ */
+@target.vm {process_mailbox: true}
+pub (mut socket: TcpSocket) close(): Unit ->
+    native.
+
+/**
+ * Closes a TCP listener.
+ *
+ * Input: a mutable listener receiver.
+ * Output: `Unit`.
+ * Transformation: asks the selected VM runtime to close and release the
+ * listener handle.
+ */
+@target.vm {process_mailbox: true}
+pub (mut listener: TcpListener) close_listener(): Unit ->
+    native.

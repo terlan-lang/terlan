@@ -1,14 +1,14 @@
 # Std HTTP Internals
 
 This directory owns the portable source-level HTTP API used by Terlan handlers.
-The concrete server is Rust/Tokio-native compiler tooling; source code works
-with typed request, response, and error modules rather than backend server
-values.
+The concrete server is Rust-native compiler tooling; source code works with
+typed request, response, and error modules rather than backend server values.
 
 ## Responsibilities
 
 - Define stable HTTP request and response shapes for Terlan handlers.
-- Keep the local server implementation and BEAM handler bridge internal.
+- Keep the local server implementation and temporary Erlang migration handler
+  bridge internal.
 - Expose JSON-capable handler helpers without leaking host JSON values.
 - Provide portable errors for request body, response, and serialization
   failures.
@@ -17,6 +17,7 @@ values.
 
 - `std.http.Request.Request`: opaque request handle.
 - `std.http.Response.Response`: opaque response handle.
+- `std.http.Session.Session`: opaque VM-owned session actor handle.
 - `std.http.Router.Router`: opaque route builder contract.
 - `std.http.Router.Handler`: typed route handler function shape.
 - `std.http.Error.HttpError`: portable HTTP helper error.
@@ -40,6 +41,9 @@ values.
 - `std.http.Response.cookie`, `std.http.Response.cookie_with_options`, and
   `std.http.Response.delete_cookie`: validated response cookie helpers backed
   by `std.http.Cookies`.
+- `std.http.Session.current`, session receiver `get`, `set`, `delete`,
+  `rotate`, `expire`, and `with_response`: source-facing actor-backed session
+  helpers with explicit response cookie threading.
 - `std.http.Router.new`, method route builders, and `fallback`: typed route
   builder contract for generated web manifests.
 
@@ -47,8 +51,9 @@ values.
 
 The HTTP server owns concrete socket, request, and response state. Terlan
 source receives opaque handles and calls standard-library functions against
-those handles. The current bridge can dispatch BEAM-backed handlers through an
-internal ABI, but that ABI is not a public source contract.
+those handles. The current implementation can dispatch dynamic handlers through
+a temporary Erlang migration bridge, but that bridge ABI is not a public source
+contract.
 
 The main flow is:
 
@@ -58,7 +63,7 @@ The main flow is:
 
 Important invariants:
 
-- The internal BEAM response tuple is not a public API.
+- The internal migration handler response tuple is not a public API.
 - JSON responses accept `Json` explicitly.
 - Request metadata accessors return values captured by the generated route
   manifest and server bridge.
@@ -90,15 +95,15 @@ Important invariants:
 
 - `terlc serve`: owns local server startup, validation, and request routing.
 - `std.data.Json`: provides request JSON parsing and JSON response bodies.
-- `terlan_safenative`: owns Rust-native HTTP helper implementations.
+- NativeBoundary runtime helpers: own Rust-native HTTP helper implementations.
 - `_build/web/manifest.json`: declares static assets and handler routes.
 
 ## Edge Cases
 
 - Missing or malformed web manifests fail during `terlc serve --check`.
 - Unsafe route paths and asset paths are rejected before serving.
-- Handler dispatch must report missing BEAM artifacts before attempting to run
-  `erl`.
+- Handler dispatch reports missing VM handler artifacts and unavailable VM
+  handler runtime support before attempting dynamic execution.
 
 ## Types And Interfaces
 

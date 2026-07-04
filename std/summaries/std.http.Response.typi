@@ -175,6 +175,16 @@ pub (mut response: Response) with_cookie(name: String, value: String, path: Stri
 
 pub (mut response: Response) with_cookie_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): Response.
 
+/// Returns a response after applying recorded cookie jar mutations.
+///
+/// Input: one mutable `Response` receiver and one request-scoped cookie jar.
+/// Output: the same `Response` value after all jar mutations have been attached
+/// as `Set-Cookie` response metadata.
+/// Transformation: lets handlers mutate a `Request.cookies()` jar and then
+/// explicitly thread those validated mutations into the returned response.
+
+pub (mut response: Response) with_cookies(jar: Jar): Response.
+
 /// Returns a response after adding a validated cookie deletion header.
 ///
 /// Input: one mutable `Response` receiver, cookie name, and optional path.

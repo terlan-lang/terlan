@@ -2,9 +2,9 @@
 //!
 //! `std.core.Task` represents work that will eventually produce a value or a
 //! typed recoverable error. It is the portable source-level async surface for
-//! Terlan; target profiles decide whether the contract lowers to BEAM workers,
-//! Rust/Tokio futures, JavaScript promises, native worker commands, or an
-//! unsupported-target diagnostic.
+//! Terlan; target profiles decide whether the contract lowers to VM processes,
+//! JavaScript promises, native worker commands, or an unsupported-target
+//! diagnostic.
 
 module std.core.Task.
 
@@ -12,7 +12,7 @@ module std.core.Task.
 ///
 /// Input: type parameter `T`.
 /// Output: an opaque task handle whose runtime representation is target-owned.
-/// Transformation: hides BEAM, Rust, JavaScript, or native worker mechanics
+/// Transformation: hides VM, JavaScript, or native worker mechanics
 /// behind a typed value that can be composed without source-level `async`,
 /// `await`, `go`, send, or receive syntax.
 

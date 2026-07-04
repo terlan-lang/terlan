@@ -17,8 +17,6 @@ module std.http.Error.
 /// source-visible data shape without exposing server implementation details.
 
 pub struct HttpError {
-    code: Atom,
-    message: String,
     status: Int
 }.
 

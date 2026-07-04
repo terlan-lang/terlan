@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # Output:
 # - Exit status 0 when every unique release-test file passes through
-#   `terlc test --target erlang`.
+#   `terlc test` on the default VM lane.
 # - Exit status 1 with file-specific diagnostics when any release test fails
 #   or exceeds the timeout.
 #
@@ -55,20 +55,17 @@ raise SystemExit(1)
 # - $1: stdlib release-test file path.
 #
 # Output:
-# - Prints command arguments that select the target and target profile for that
+# - Populates `target_args` with any target/profile arguments required for the
 #   release-test file.
 #
 # Transformation:
 # - Treats generated JavaScript standard-library tests as JavaScript browser
-#   profile tests and keeps all other current stdlib tests on the Erlang
-#   profile.
-test_target_args() {
+#   profile tests and keeps all other stdlib tests on the default VM test lane.
+target_args_for_test() {
+  target_args=()
   case "$1" in
     std/js/*)
-      printf '%s\n' '--target js --target-profile js.browser'
-      ;;
-    *)
-      printf '%s\n' '--target erlang'
+      target_args=(--target js --target-profile js.browser)
       ;;
   esac
 }
@@ -115,7 +112,7 @@ while IFS= read -r test_file; do
 
   printf '[stdlib-release-test] %s\n' "$test_file"
   status=0
-  read -r -a target_args <<< "$(test_target_args "$test_file")"
+  target_args_for_test "$test_file"
   timeout "${test_timeout_seconds}s" "$terlc_bin" test "$test_file" "${target_args[@]}" || status="$?"
   if [[ "$status" -eq 0 ]]; then
     continue

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Inputs:
-# - std/core/string.terl, the canonical source module for the Terlan String
+# - std/core/String.terl, the canonical source module for the Terlan String
 #   primitive API.
 #
 # Output:
@@ -17,7 +17,7 @@ set -euo pipefail
 #   remains valid because it has no String receiver; receiver-shaped operations
 #   must use `pub (value: String) method(...)`.
 
-source_file="std/core/string.terl"
+source_file="std/core/String.terl"
 failures=0
 
 if [[ ! -f "$source_file" ]]; then

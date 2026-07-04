@@ -1,0 +1,31 @@
+module std.time.DurationTest.
+
+import std.time.Duration.{Duration}.
+
+@test
+pub constructor_stores_milliseconds(): Bool ->
+    std.test.Test.assert_equal(250.5, Duration(250.5).to_milliseconds()).
+
+@test
+pub zero_returns_zero_milliseconds(): Bool ->
+    std.test.Test.assert_equal(0.0, std.time.Duration.zero().to_milliseconds()).
+
+@test
+pub from_milliseconds_preserves_payload(): Bool ->
+    std.test.Test.assert_equal(125.25, std.time.Duration.from_milliseconds(125.25).to_milliseconds()).
+
+@test
+pub from_seconds_converts_to_milliseconds(): Bool ->
+    std.test.Test.assert_equal(1500.0, std.time.Duration.from_seconds(1.5).to_milliseconds()).
+
+@test
+pub to_seconds_converts_from_milliseconds(): Bool ->
+    std.test.Test.assert_equal(1.5, std.time.Duration.from_milliseconds(1500.0).to_seconds()).
+
+@test
+pub add_sums_millisecond_payloads(): Bool ->
+    let left = std.time.Duration.from_milliseconds(10.5); right = std.time.Duration.from_milliseconds(2.25); std.test.Test.assert_equal(12.75, std.time.Duration.add(left, right).to_milliseconds()).
+
+@test
+pub subtract_differences_millisecond_payloads(): Bool ->
+    let left = std.time.Duration.from_milliseconds(10.5); right = std.time.Duration.from_milliseconds(2.25); std.test.Test.assert_equal(8.25, std.time.Duration.subtract(left, right).to_milliseconds()).

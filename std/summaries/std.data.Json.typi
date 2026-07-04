@@ -27,8 +27,6 @@ pub opaque type Json.
 /// data shape without exposing target-specific exception values.
 
 pub struct JsonError {
-    code: Atom,
-    message: String,
     offset: Int
 }.
 

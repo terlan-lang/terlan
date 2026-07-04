@@ -20,6 +20,7 @@ ALLOWED_CRATES = {
     "std::http",
     "tokio-postgres",
     "std::vec",
+    "terlan-vm",
 }
 ADAPTERS = {
     "std.data.Json": (
@@ -49,6 +50,10 @@ ADAPTERS = {
     "std.http.Response": (
         "std::http",
         ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http.rs",
+    ),
+    "std.http.Session": (
+        "terlan-vm",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "vm" / "http_session.rs",
     ),
     "std.db.Postgres": (
         "tokio-postgres",

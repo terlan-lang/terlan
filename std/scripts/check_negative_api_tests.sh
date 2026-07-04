@@ -14,8 +14,8 @@ set -euo pipefail
 #
 # Transformation:
 # - Reads manifest rows, runs each invalid Terlan source file through
-#   `terlc test --target erlang`, captures combined compiler output, and checks
-#   that constrained API misuse remains rejected.
+#   the default `terlc test` VM lane, captures combined compiler output, and
+#   checks that constrained API misuse remains rejected.
 
 manifest="tests/std/NEGATIVE_API_TESTS.tsv"
 failures=0
@@ -50,7 +50,7 @@ while IFS=$'\t' read -r api_id fixture expected extra; do
 
   printf '[stdlib-negative-api-test] %s\n' "$fixture"
   output_file="$(mktemp -t terlan-std-negative-api.XXXXXX)"
-  if cargo run -q -p terlan --bin terlc -- test "$fixture" --target erlang >"$output_file" 2>&1; then
+  if cargo run -q -p terlan --bin terlc -- test "$fixture" >"$output_file" 2>&1; then
     printf '%s: expected terlc test to fail for API `%s`\n' "$fixture" "$api_id" >&2
     cat "$output_file" >&2
     failures=1

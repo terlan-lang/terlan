@@ -131,8 +131,8 @@ def comparable_artifacts(out_dir: Path) -> list[Path]:
     - Sorted generated `.safe_native.json` and `.safe_native.rs` files.
 
     Transformation:
-    - Filters out `.erl` loader stubs because those are backend intermediates,
-      not std summary artifacts.
+    - Returns only release-owned NativeBoundary artifacts. The generator no
+      longer emits Erlang loader intermediates.
     """
 
     return sorted(
@@ -143,25 +143,6 @@ def comparable_artifacts(out_dir: Path) -> list[Path]:
             or path.name.endswith(".safe_native.rs")
         ]
     )
-
-
-def erlang_loader_artifacts(out_dir: Path) -> list[Path]:
-    """Lists generated Erlang loader artifacts.
-
-    Inputs:
-    - `out_dir`: temporary output directory for one source module.
-
-    Outputs:
-    - Sorted generated `.erl` loader files.
-
-    Transformation:
-    - Separates backend loader syntax validation from committed summary
-      comparison because generated loader files are not release-owned summary
-      artifacts yet.
-    """
-
-    return sorted([path for path in out_dir.iterdir() if path.suffix == ".erl"])
-
 
 def compare_artifact(generated: Path) -> str | None:
     """Compare one generated artifact with its committed summary copy.
@@ -259,38 +240,6 @@ def compile_rust_artifact(generated: Path, out_dir: Path) -> str | None:
     return f"{generated.name}: rustc failed\n{output}"
 
 
-def compile_erlang_loader(generated: Path, out_dir: Path) -> str | None:
-    """Compile one generated Erlang SafeNative loader.
-
-    Inputs:
-    - `generated`: generated `.erl` loader path.
-    - `out_dir`: temporary directory for `.beam` output.
-
-    Outputs:
-    - `None` when `erlc` accepts the loader.
-    - Diagnostic text when the generated loader does not compile.
-
-    Transformation:
-    - Invokes OTP's `erlc` against every generated SafeNative loader so stdlib
-      native artifact validation catches backend stub syntax drift for all
-      Rust-backed std modules, not only a representative unit-test fixture.
-    """
-
-    erlc = os.environ.get("ERLC", "erlc")
-    result = subprocess.run(
-        [erlc, "-o", str(out_dir), str(generated)],
-        cwd=ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if result.returncode == 0:
-        return None
-    output = (result.stdout + result.stderr).rstrip()
-    return f"{generated.name}: erlc failed\n{output}"
-
-
 def check_source(source: SourceModule) -> list[str]:
     """Check generated artifacts for one Rust-backed source module.
 
@@ -302,9 +251,8 @@ def check_source(source: SourceModule) -> list[str]:
 
     Transformation:
     - Emits artifacts into a temporary directory and compares release-owned
-      SafeNative JSON/Rust artifacts against `std/summaries`. It also requires
-      and compiles generated Erlang SafeNative loaders so backend attachment
-      scaffolding cannot disappear without failing the release gate.
+      SafeNative JSON/Rust artifacts against `std/summaries`. No Erlang loader
+      stubs are generated or accepted in this default stdlib gate.
     """
 
     errors: list[str] = []
@@ -316,9 +264,6 @@ def check_source(source: SourceModule) -> list[str]:
         artifacts = comparable_artifacts(out_dir)
         if not artifacts:
             return [f"{source.source}: emitted no comparable SafeNative artifacts"]
-        loaders = erlang_loader_artifacts(out_dir)
-        if not loaders:
-            errors.append(f"{source.source}: emitted no Erlang SafeNative loader artifact")
         for artifact in artifacts:
             error = compare_artifact(artifact)
             if error:
@@ -326,10 +271,6 @@ def check_source(source: SourceModule) -> list[str]:
             rust_error = compile_rust_artifact(artifact, out_dir)
             if rust_error:
                 errors.append(rust_error)
-        for loader in loaders:
-            erlang_error = compile_erlang_loader(loader, out_dir)
-            if erlang_error:
-                errors.append(erlang_error)
     return errors
 
 

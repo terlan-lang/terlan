@@ -4,7 +4,7 @@
 # callable from the repository root while stdlib recipes live with stdlib
 # sources and policy documents.
 
-.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
+.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
 
 stdlib-help:
 	@echo "  make stdlib-check      - verify fast stdlib drift, manifest, and API coverage checks"
@@ -23,6 +23,7 @@ stdlib-help:
 	@echo "  make stdlib-negative-api-tests-check - verify constrained stdlib API diagnostics"
 	@echo "  make stdlib-core-backend-primitive-calls-check - verify reviewed std.core backend primitive call inventory"
 	@echo "  make stdlib-receiver-methods-check - verify receiver-shaped primitive APIs use receiver methods"
+	@echo "  make stdlib-release-tests-vm-default-check - verify stdlib release tests use bare terlc test on VM default lane"
 	@echo "  make stdlib-data-check - verify portable std.data API tests"
 	@echo "  make stdlib-db-check - verify portable std.db API tests"
 	@echo "  make stdlib-http-check - verify portable std.http API tests"
@@ -31,7 +32,7 @@ stdlib-help:
 	@echo "  make stdlib-release-contracts-check - run release-scale stdlib typecheck sweeps"
 	@echo "  make stdlib-release-tests - verify stdlib release tests"
 
-stdlib-check: stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-io-negative-api-tests-check
+stdlib-check: stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-io-negative-api-tests-check
 
 stdlib-release-check: stdlib-check stdlib-release-contracts-check stdlib-release-tests
 
@@ -79,6 +80,9 @@ stdlib-core-backend-primitive-calls-check:
 stdlib-receiver-methods-check:
 	@bash std/scripts/check_receiver_methods.sh
 
+stdlib-release-tests-vm-default-check:
+	@$(PYTHON) tools/check_stdlib_release_tests_vm_default.py
+
 stdlib-data-check:
 	@$(TERLC) test std/data
 
@@ -91,7 +95,6 @@ stdlib-http-check:
 stdlib-log-check:
 	@$(TERLC) test std/log/LogTest.terl
 	@$(EXACT_CARGO_TEST) -p terlan terlan_typeck::core_intrinsic_test::syntax_output_lowering_to_core_maps_all_std_log_levels_to_runtime_capability -- --exact
-	@$(EXACT_CARGO_TEST) -p terlan terlan_erlang::emit::syntax_emit_test::formal_syntax_output_direct_emit_lowers_all_std_log_levels_to_runtime_capability -- --exact
 
 stdlib-sync-check:
 	@$(TERLC) test std/sync

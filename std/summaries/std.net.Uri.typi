@@ -27,8 +27,6 @@ pub opaque type Uri.
 /// without exposing target-specific exception values.
 
 pub struct UriError {
-    code: Atom,
-    message: String,
     offset: Int
 }.
 

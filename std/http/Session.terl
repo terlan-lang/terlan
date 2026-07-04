@@ -1,0 +1,108 @@
+/**
+ * Portable HTTP session contract.
+ *
+ * `std.http.Session` exposes actor-backed session helpers used by Terlan HTTP
+ * handlers. The HTTP server binds request cookies to VM session actor
+ * identity; source code works with an opaque session handle and explicit
+ * response threading.
+ */
+
+module std.http.Session.
+
+import std.core.Unit.{Unit}.
+import type std.core.Option.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+
+/**
+ * Session represents one VM-owned HTTP session actor.
+ *
+ * Input: no type parameter.
+ * Output: an opaque session handle whose runtime representation is VM owned.
+ * Transformation: hides actor ids, VM table ids, sticky routing metadata, and
+ * recovery policy while preserving a stable handler-facing session value.
+ */
+pub opaque type Session.
+
+/**
+ * Returns the current request session.
+ *
+ * Input: one HTTP `Request`.
+ * Output: the VM-owned session actor bound to the request cookie, creating one
+ * when the request has no valid session cookie.
+ * Transformation: asks the HTTP runtime to bind request cookies to session
+ * actor identity without exposing cookie parsing or actor placement details.
+ */
+@compiler.native {std.http.session.current}
+pub current(request: Request): Session ->
+    native.
+
+/**
+ * Reads one session value.
+ *
+ * Input: one `Session` receiver and one string key.
+ * Output: `Some(value)` when the session contains `key`, otherwise `None`.
+ * Transformation: reads VM table state owned by the session actor without
+ * exposing the backing table handle.
+ */
+@compiler.native {std.http.session.get}
+pub (session: Session) get(key: String): Option[String] ->
+    native.
+
+/**
+ * Writes one session value.
+ *
+ * Input: one mutable `Session` receiver, one string key, and one string value.
+ * Output: `Unit`.
+ * Transformation: updates VM table state through the session actor boundary.
+ */
+@compiler.native {std.http.session.set}
+pub (mut session: Session) set(key: String, value: String): Unit ->
+    native.
+
+/**
+ * Deletes one session value.
+ *
+ * Input: one mutable `Session` receiver and one string key.
+ * Output: `Unit`.
+ * Transformation: removes VM table state through the session actor boundary.
+ */
+@compiler.native {std.http.session.delete}
+pub (mut session: Session) delete(key: String): Unit ->
+    native.
+
+/**
+ * Rotates the session id.
+ *
+ * Input: one mutable `Session` receiver.
+ * Output: the same VM session actor with a new public session id.
+ * Transformation: preserves actor-owned table state while requiring the HTTP
+ * runtime to thread a replacement session cookie into the response.
+ */
+@compiler.native {std.http.session.rotate}
+pub (mut session: Session) rotate(): Session ->
+    native.
+
+/**
+ * Expires the session.
+ *
+ * Input: one mutable `Session` receiver.
+ * Output: `Unit`.
+ * Transformation: requests cleanup of the VM session actor and its owned table
+ * state; future use of the stale handle must fail through runtime diagnostics.
+ */
+@compiler.native {std.http.session.expire}
+pub (mut session: Session) expire(): Unit ->
+    native.
+
+/**
+ * Threads session response metadata onto a response.
+ *
+ * Input: one `Response` and one `Session`.
+ * Output: a `Response` carrying any required session cookie mutation.
+ * Transformation: makes response cookie threading explicit so handler code does
+ * not depend on implicit global response state.
+ */
+@compiler.native {std.http.session.with_response}
+pub with_response(response: Response, session: Session): Response ->
+    native.

@@ -1,0 +1,14 @@
+module=std.vm.NativeBridge
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=3436364707962901682
+interface_hash=16791740612693610525
+interface_doc_hash=8968010344741354327
+deps=6
+std.core.Error=16335401487784876941
+std.core.Result=10647882371445179146
+std.core.Unit=2105912563953161831
+std.vm.Backpressure=17169680523632525332
+std.vm.Message=13994566272216927857
+std.vm.Supervisor=5158688963103890139

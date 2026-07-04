@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SUMMARIES = ROOT / "std" / "summaries"
 BUILD_INTERFACES = ROOT / "std" / "scripts" / "build_interfaces.py"
 SUMMARY_SUFFIXES = (".typi", ".typi.deps")
-PACKAGE_SUMMARIES = {"std.core.typi", "std.http.typi", "std.io.typi"}
+PACKAGE_SUMMARIES = {"std.core.typi", "std.http.typi", "std.io.typi", "std.time.typi"}
 
 
 @dataclass(frozen=True)

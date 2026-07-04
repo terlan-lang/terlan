@@ -17,8 +17,6 @@ module std.encoding.Base64.
 /// without exposing target-specific exception values.
 
 pub struct Base64Error {
-    code: Atom,
-    message: String,
     offset: Int
 }.
 

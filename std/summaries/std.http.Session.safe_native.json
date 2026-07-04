@@ -1,0 +1,43 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "current",
+      "operation": "std.http.session.current"
+    },
+    {
+      "arity": 2,
+      "name": "get",
+      "operation": "std.http.session.get"
+    },
+    {
+      "arity": 3,
+      "name": "set",
+      "operation": "std.http.session.set"
+    },
+    {
+      "arity": 2,
+      "name": "delete",
+      "operation": "std.http.session.delete"
+    },
+    {
+      "arity": 1,
+      "name": "rotate",
+      "operation": "std.http.session.rotate"
+    },
+    {
+      "arity": 1,
+      "name": "expire",
+      "operation": "std.http.session.expire"
+    },
+    {
+      "arity": 2,
+      "name": "with_response",
+      "operation": "std.http.session.with_response"
+    }
+  ],
+  "module": "std_http_session_safe_native",
+  "native_policy": "safe_native_optional",
+  "scheduler": "normal",
+  "source_module": "std.http.Session"
+}

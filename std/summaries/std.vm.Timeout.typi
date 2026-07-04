@@ -1,0 +1,43 @@
+//! Terlan VM timeout contract.
+//!
+//! `std.vm.Timeout` gives runtime-targeted tests and runtime adapters a typed
+//! duration value for receive, socket, and port operations.
+
+module std.vm.Timeout.
+
+/// Timeout represents a millisecond timeout value.
+///
+/// Input: no runtime input.
+/// Output: an opaque runtime timeout value.
+/// Transformation: hides the target representation for finite timeouts and
+/// infinity-like waits behind a typed value.
+
+pub opaque type Timeout.
+
+/// Builds an infinite timeout.
+///
+/// Input: no runtime input.
+/// Output: a `Timeout` that waits until the target operation completes.
+/// Transformation: maps to the selected VM runtime's unbounded wait
+/// representation.
+
+pub forever(): Timeout.
+
+/// Builds a finite timeout in milliseconds.
+///
+/// Input: non-negative millisecond count.
+/// Output: a finite `Timeout`.
+/// Transformation: asks the selected VM runtime to validate and store the
+/// millisecond value in the form expected by receive and socket operations.
+
+pub milliseconds(value: Int): Timeout.
+
+/// Checks whether a timeout would wake after elapsed milliseconds.
+///
+/// Input: one `Timeout` and a non-negative elapsed millisecond count.
+/// Output: `true` when a finite timeout is due; `false` for `forever` or an
+/// elapsed value before the finite deadline.
+/// Transformation: exposes deterministic timer wakeup behavior for source-level
+/// VM validation without sleeping or delegating to a host runtime.
+
+pub wakes_after(timeout: Timeout, elapsed_ms: Int): Bool.

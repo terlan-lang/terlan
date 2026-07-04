@@ -44,6 +44,11 @@
       "arity": 2,
       "name": "set_cookie_header",
       "operation": "std.http.response.set_cookie_header"
+    },
+    {
+      "arity": 2,
+      "name": "with_cookies",
+      "operation": "std.http.response.with_cookies"
     }
   ],
   "module": "std_http_response_safe_native",

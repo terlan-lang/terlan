@@ -1,8 +1,8 @@
 //! Portable Postgres capability contract.
 //!
 //! `std.db.Postgres` defines the source-level Postgres API for Terlan
-//! applications. Runtime execution is target-owned: the default BEAM path uses
-//! a SafeNative supervised worker backed by a Rust/Tokio Postgres adapter.
+//! applications. Runtime execution is target-owned: the VM path uses a typed
+//! NativeBoundary worker backed by the maintained Postgres adapter.
 
 module std.db.Postgres.
 

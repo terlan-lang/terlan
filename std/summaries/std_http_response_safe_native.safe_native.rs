@@ -20,6 +20,7 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
     ("status", 2),
     ("header", 3),
     ("set_cookie_header", 2),
+    ("with_cookies", 2),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
@@ -32,11 +33,12 @@ pub const OPERATIONS: &[(&str, &str, usize)] = &[
     ("status", "std.http.response.status", 2),
     ("header", "std.http.response.header", 3),
     ("set_cookie_header", "std.http.response.set_cookie_header", 2),
+    ("with_cookies", "std.http.response.with_cookies", 2),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
 
-// Rust owns native resources. BEAM/Terlan terms should hold only opaque handles.
+// Rust owns native resources. VM/Terlan terms should hold only opaque handles.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SafeNativeHandle {
     pub id: u64,
@@ -168,6 +170,7 @@ fn worker_loop(rx: Receiver<SafeNativeCommand>, credit_window: usize) {
                         "std.http.response.status" => native_unimplemented_operation(operation),
                         "std.http.response.header" => native_unimplemented_operation(operation),
                         "std.http.response.set_cookie_header" => native_unimplemented_operation(operation),
+                        "std.http.response.with_cookies" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

@@ -10,9 +10,10 @@ module std.core.Object.
 ///
 /// Input: one value type parameter `V`.
 /// Output: an `Object[V]` whose keys are always portable UTF-8 `String` values.
-/// Transformation: aliases the portable `Map[String, V]` contract so Erlang can
-/// lower to native maps and Rust can lower to deterministic map storage without
-/// introducing a separate target-specific object model.
+/// Transformation: aliases the portable `Map[String, V]` contract so the VM can
+/// use its owned map representation and native targets can lower to
+/// deterministic map storage without introducing a separate target-specific
+/// object model.
 
 pub type Object[V] =
     std.collections.Map.Map[String, V].

@@ -27,8 +27,6 @@ pub opaque type Path.
 /// shape without exposing target-specific exception values.
 
 pub struct PathError {
-    code: Atom,
-    message: String,
     offset: Int
 }.
 

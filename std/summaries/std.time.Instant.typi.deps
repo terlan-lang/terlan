@@ -1,0 +1,8 @@
+module=std.time.Instant
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=6512515803642821665
+interface_hash=8937916923220186508
+interface_doc_hash=17507351855219467595
+deps=0

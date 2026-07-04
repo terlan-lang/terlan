@@ -1,0 +1,66 @@
+//! Terlan VM process contract.
+//!
+//! `std.vm.Process` models a typed process handle for runtime-targeted runtime
+//! modules. It exists so supervision and native bridges can be expressed as
+//! ordinary annotated types and traits instead of source-level actor syntax.
+
+module std.vm.Process.
+
+/// Process represents a typed runtime process handle.
+///
+/// Input: type parameter `T` describing accepted message payloads.
+/// Output: an opaque runtime process handle.
+/// Transformation: keeps process identity target-owned while preserving a typed
+/// source contract for message routing and supervision.
+
+pub opaque type Process[T].
+
+/// Receives the oldest queued message.
+///
+/// Input: one process handle.
+/// Output: `Some(message)` when a message is queued or `None`.
+/// Transformation: exposes FIFO mailbox receive behavior without adding
+/// Terlan-specific receive syntax.
+
+pub receive[T](process: Process[T]): Option[Dynamic].
+
+/// Receives the first queued message accepted by a predicate.
+///
+/// Input: one process handle and one predicate that accepts a message payload.
+/// Output: `Some(message)` for the first matching message or `None`.
+/// Transformation: exposes selective receive as an ordinary higher-order
+/// function while keeping mailbox representation VM-owned.
+
+pub receive_where[T](process: Process[T], predicate: (T ) -> Bool): Option[Dynamic].
+
+/// Sends one typed message to a process descriptor.
+///
+/// Input: one process handle and one VM message descriptor.
+/// Output: an updated process handle with the message queued.
+/// Transformation: models source-level mailbox delivery as a value
+/// transformation so it remains explicit and testable before process handles
+/// become runtime references.
+
+pub send[T](process: Process[T], message: Dynamic): Process[T].
+
+/// Starts a local VM process descriptor.
+///
+/// Input: a stable debug name.
+/// Output: a local `Process[T]` handle.
+/// Transformation: creates a VM-owned process descriptor that can receive typed
+/// messages through ordinary function calls while the full scheduler-backed
+/// actor runtime continues to grow underneath.
+
+pub spawn[T](name: String): Process[T].
+
+/// ProcessLike defines the minimum typed process operations.
+///
+/// Input: process handle type `P` and message payload type `T`.
+/// Output: a trait requiring `send` and `stop` operations.
+/// Transformation: models runtime message delivery as receiver-style API surface
+/// instead of Terlan-specific process operators.
+
+pub trait ProcessLike[P, T] {
+    send(process: P, message: Dynamic): Unit.
+    stop(process: P): Unit.
+}.

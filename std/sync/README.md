@@ -49,7 +49,7 @@ Important invariants:
 
 - `std.db.Postgres`: future Postgres change resources can expose
   `Resource[T]`.
-- `std.beam.Agent`: BEAM process state can later publish typed changes through
+- `std.vm.Agent`: BEAM process state can later publish typed changes through
   the same contract.
 - Typed templates: future reactive rendering can bind to `Resource[T]` without
   changing static template semantics.

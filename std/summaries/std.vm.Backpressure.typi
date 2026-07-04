@@ -1,0 +1,30 @@
+//! Terlan VM backpressure contract.
+//!
+//! `std.vm.Backpressure` defines the credit accounting surface used by
+//! supervised native bridges. The implementation is target-owned; Terlan source
+//! only depends on the typed trait contract.
+
+module std.vm.Backpressure.
+
+/// Credit represents available work capacity.
+///
+/// Input: no type parameters.
+/// Output: an integer-backed credit count.
+/// Transformation: gives VM native bridge contracts a named type alias for
+/// capacity accounting without exposing scheduler internals.
+
+pub type Credit =
+    Int.
+
+/// Backpressure defines credit-based flow-control operations.
+///
+/// Input: resource or process type `P`.
+/// Output: a trait requiring observation, request, and release operations.
+/// Transformation: lets native bridges prove they own a flow-control contract
+/// before they are admitted as runtime-supervised adapters.
+
+pub trait Backpressure[P] {
+    available(process: P): Credit.
+    release(process: P, credits: Credit): Unit.
+    request(process: P, credits: Credit): Unit.
+}.

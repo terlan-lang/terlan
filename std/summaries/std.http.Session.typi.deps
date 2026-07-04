@@ -1,0 +1,11 @@
+module=std.http.Session
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=9491915025138273988
+interface_hash=1964479310767544129
+interface_doc_hash=11739093799175881107
+deps=3
+std.core.Unit=2105912563953161831
+std.http.Request=6835350305097175837
+std.http.Response=7883205360159445734

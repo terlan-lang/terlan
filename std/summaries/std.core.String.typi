@@ -8,8 +8,9 @@
 //! This module exposes conversion traits, receiver methods on the intrinsic
 //! `String` type, and module functions for operations that naturally consume
 //! collections. Public operations lower through compiler-owned intrinsics so
-//! portable Terlan source never depends on Erlang modules, JavaScript prototype
-//! methods, Rust crate APIs, or platform-specific encodings.
+//! portable Terlan source never depends on runtime-private modules,
+//! JavaScript prototype methods, Rust crate APIs, or platform-specific
+//! encodings.
 //!
 //! Target-specific string types, such as `std.js.String.JsString`, must not
 //! extend or redefine core `String`. They should expose their own platform API
@@ -17,10 +18,10 @@
 //! `String`.
 //!
 //! Documentation contract:
-//! - `//!` comments document the module and are intended to lower to BEAM
-//!  `-moduledoc` when targeting HexDocs-native output.
+//! - `//!` comments document the module and are intended to lower to generated
+//!  module documentation when targeting package documentation output.
 //! - `///` comments document public types, traits, functions, and receiver
-//!  methods and are intended to lower to BEAM `-doc`.
+//!  methods and are intended to lower to generated item documentation.
 //! - Every public API documents its inputs, outputs, and transformation.
 //! - Examples use canonical Terlan source syntax and should become executable
 //!  std tests as the documentation pipeline hardens.

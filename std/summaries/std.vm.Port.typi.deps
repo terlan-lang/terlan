@@ -1,0 +1,13 @@
+module=std.vm.Port
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=2422462855624700245
+interface_hash=7277425510993767852
+interface_doc_hash=7398620594069696850
+deps=5
+std.core.Error=16335401487784876941
+std.core.Result=10647882371445179146
+std.core.Unit=2105912563953161831
+std.vm.Bytes=5774148448977216413
+std.vm.Timeout=14658271368933278014

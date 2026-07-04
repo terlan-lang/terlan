@@ -1,0 +1,87 @@
+/**
+ * Portable instant value contract.
+ *
+ * `std.time.Instant` represents a timestamp as milliseconds from an external
+ * monotonic or epoch origin selected by the producer. The type intentionally
+ * stores only the numeric value so VM execution and JavaScript targets can
+ * exchange instants without exposing host clock handles.
+ */
+module std.time.Instant.
+
+import type std.time.Duration.
+
+/**
+ * Instant represents a millisecond timestamp from a producer-defined origin.
+ *
+ * Input: no type parameter.
+ * Output: a transparent value record with a `Float` millisecond payload.
+ * Transformation: keeps timestamp data portable and directly mappable to a
+ * JavaScript number timestamp.
+ */
+pub struct Instant {
+    milliseconds: Float
+}.
+
+/**
+ * Constructs an instant from milliseconds.
+ *
+ * Input: finite millisecond timestamp.
+ * Output: `Instant` carrying the supplied millisecond value.
+ * Transformation: stores the numeric payload without changing the origin.
+ */
+pub constructor Instant {
+    (milliseconds: Float): Instant ->
+        Instant {milliseconds: milliseconds}
+}.
+
+/**
+ * Creates an instant from milliseconds.
+ *
+ * Input: finite millisecond timestamp.
+ * Output: `Instant` carrying the supplied millisecond value.
+ * Transformation: stores milliseconds directly so the representation remains
+ * target-neutral.
+ */
+pub from_milliseconds(milliseconds: Float): Instant ->
+    Instant(milliseconds).
+
+/**
+ * Returns the millisecond timestamp payload.
+ *
+ * Input: one `Instant`.
+ * Output: finite millisecond timestamp.
+ * Transformation: reads the portable numeric representation unchanged.
+ */
+pub (instant: Instant) to_milliseconds(): Float ->
+    instant.milliseconds.
+
+/**
+ * Adds a duration to an instant.
+ *
+ * Input: one `Instant` and one `Duration`.
+ * Output: `Instant` advanced by the supplied duration.
+ * Transformation: adds both millisecond payloads.
+ */
+pub add_duration(instant: Instant, duration: Duration): Instant ->
+    Instant(instant.milliseconds + duration.to_milliseconds()).
+
+/**
+ * Subtracts a duration from an instant.
+ *
+ * Input: one `Instant` and one `Duration`.
+ * Output: `Instant` moved backward by the supplied duration.
+ * Transformation: subtracts the duration millisecond payload.
+ */
+pub subtract_duration(instant: Instant, duration: Duration): Instant ->
+    Instant(instant.milliseconds - duration.to_milliseconds()).
+
+/**
+ * Returns the duration from an earlier instant to a later instant.
+ *
+ * Input: two `Instant` values using the same origin.
+ * Output: `Duration` representing `later - earlier`.
+ * Transformation: subtracts timestamp payloads and stores the millisecond
+ * difference as a portable duration.
+ */
+pub duration_since(later: Instant, earlier: Instant): Duration ->
+    std.time.Duration.from_milliseconds(later.milliseconds - earlier.milliseconds).

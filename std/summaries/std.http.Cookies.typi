@@ -158,5 +158,5 @@ pub set_header_with_options(name: String, value: String, path: String = "/", dom
 
 pub constructor Options {
     (path: Option[String], domain: Option[String], max_age: Option[Int], expires: Option[String], http_only: Bool, secure: Bool, same_site: Option[SameSite]): Options ->
-        terlan_interface_constructor
+        Options {path: path, domain: domain, max_age: max_age, expires: expires, http_only: http_only, secure: secure, same_site: same_site}
 }.

@@ -30,7 +30,7 @@ def compiler_command() -> list[str]:
     - Repository-local `target/debug/terlc` binary.
 
     Outputs:
-    - Command vector that accepts `emit ...` arguments.
+    - Command vector that accepts std interface-generation arguments.
 
     Transformation:
     - Prefers an explicit compiler path from the environment and otherwise
@@ -74,6 +74,52 @@ def ensure_compiler() -> str | None:
     return None
 
 
+def source_contains_compiler_native(source: Path) -> bool:
+    """Return whether a source contains compiler-native declarations.
+
+    Inputs:
+    - `source`: stdlib source file.
+
+    Output:
+    - `True` when SafeNative metadata artifacts should be generated.
+
+    Transformation:
+    - Scans source text for `@compiler.native` annotations without parsing.
+    """
+
+    try:
+        return "@compiler.native" in source.read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
+def run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run one std generation subprocess.
+
+    Inputs:
+    - `command`: compiler command vector.
+
+    Output:
+    - Completed subprocess with captured output.
+
+    Transformation:
+    - Applies stable environment defaults shared by interface and SafeNative
+      metadata generation.
+    """
+
+    env = os.environ.copy()
+    env.setdefault("CARGO_TERM_COLOR", "never")
+    return subprocess.run(
+        command,
+        cwd=ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+
 def run_emit(source: Path, out_dir: Path) -> str | None:
     """Emit interface metadata for one stdlib source file.
 
@@ -82,33 +128,44 @@ def run_emit(source: Path, out_dir: Path) -> str | None:
     - `out_dir`: output directory for generated summary artifacts.
 
     Outputs:
-    - `None` when `terlc emit` succeeds.
-    - A diagnostic string when the emit command fails.
+    - `None` when `terlc interface` and optional SafeNative metadata emission
+      succeeds.
+    - A diagnostic string when generation fails.
 
     Transformation:
-    - Runs the local `terlc emit` command with the std summary output directory
-      so std interfaces can be regenerated from source.
+    - Runs the local `terlc interface` command with the std summary output
+      directory so std interfaces can be regenerated from source. Sources with
+      compiler-native annotations also emit checked SafeNative metadata.
     """
 
-    result = subprocess.run(
+    result = run_command(
         [
             *compiler_command(),
-            "emit",
+            "interface",
             str(source.relative_to(ROOT)),
             "--out-dir",
             str(out_dir),
-            "--native-policy",
-            "safe_native_optional",
-        ],
-        cwd=ROOT,
-        env=os.environ.copy(),
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
+        ]
     )
     if result.returncode != 0:
-        return f"{source}: emit failed\n{(result.stdout + result.stderr).rstrip()}"
+        return f"{source}: interface generation failed\n{(result.stdout + result.stderr).rstrip()}"
+    if source_contains_compiler_native(source):
+        result = run_command(
+            [
+                *compiler_command(),
+                "--native-policy",
+                "safe_native_optional",
+                "emit-native-metadata",
+                str(source.relative_to(ROOT)),
+                "--out-dir",
+                str(out_dir),
+            ]
+        )
+        if result.returncode != 0:
+            return (
+                f"{source}: SafeNative metadata generation failed\n"
+                f"{(result.stdout + result.stderr).rstrip()}"
+            )
     return None
 
 
@@ -136,7 +193,7 @@ def remove_non_summary_artifacts(out_dir: Path) -> list[Path]:
     """Remove backend artifacts generated beside std summaries.
 
     Inputs:
-    - `out_dir`: directory where `terlc emit` wrote summary and backend files.
+    - `out_dir`: directory where interface generation wrote summary files.
 
     Outputs:
     - Repository-relative or absolute paths removed from `out_dir`.
@@ -183,7 +240,7 @@ def parse_args() -> argparse.Namespace:
         "--jobs",
         type=int,
         default=max(1, min(8, os.cpu_count() or 1)),
-        help="maximum parallel compiler emit jobs per dependency pass",
+        help="maximum parallel compiler interface jobs per dependency pass",
     )
     return parser.parse_args()
 
@@ -223,10 +280,11 @@ def is_test_source_name(name: str) -> bool:
     - `True` when the file uses the canonical `*Test.terl` source suffix.
 
     Transformation:
-    - Encodes the release-wide test-file naming contract in one predicate.
+    - Encodes the release-wide test-file naming contract in one predicate while
+      keeping `Test.terl` available as the public `std.test.Test` module.
     """
 
-    return name.endswith("Test.terl")
+    return name != "Test.terl" and name.endswith("Test.terl")
 
 
 def is_generated_js_binding_source(path: Path) -> bool:
@@ -270,9 +328,10 @@ def emit_pass(sources: list[Path], out_dir: Path, jobs: int) -> tuple[int, list[
     - Source/error pairs for files that failed in this pass.
 
     Transformation:
-    - Executes independent `terlc emit` jobs concurrently. Dependency-order
-      failures are returned to the caller so the existing retry loop can run a
-      later pass after more summaries have been materialized.
+    - Executes independent `terlc interface` jobs concurrently.
+      Dependency-order failures are returned to the caller so the existing
+      retry loop can run a later pass after more summaries have been
+      materialized.
     """
 
     emitted_count = 0
@@ -307,7 +366,7 @@ def main() -> int:
     Transformation:
     - Scans release stdlib sources and emits interface artifacts into
       the selected output directory.
-    - Removes backend scratch artifacts that `terlc emit` writes beside the
+    - Removes scratch artifacts that generators may write beside the
       release-owned summary files.
     """
 
@@ -346,6 +405,10 @@ def main() -> int:
             break
 
         pending = [source for source, _output in next_pending]
+
+    if not failures:
+        _emitted_count, final_pending = emit_pass(sorted(sources), out_dir, args.jobs)
+        failures = [output for _source, output in final_pending]
 
     if failures:
         print("[build-stdlib-interfaces] failures:", file=sys.stderr)

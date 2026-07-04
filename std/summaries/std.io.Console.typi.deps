@@ -1,9 +1,9 @@
 module=std.io.Console
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=1333996157418152846
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=13241747265586901257
 interface_hash=7711218174196776816
-interface_doc_hash=16497394979925715230
+interface_doc_hash=758590794424576172
 deps=1
 std.core.Unit=2105912563953161831

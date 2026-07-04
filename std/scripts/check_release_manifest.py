@@ -256,10 +256,11 @@ def is_test_source_name(name: str) -> bool:
     - `True` when the file uses the canonical `*Test.terl` source suffix.
 
     Transformation:
-    - Keeps release-manifest module inventory aligned with `terlc test`.
+    - Keeps release-manifest module inventory aligned with `terlc test` while
+      preserving `Test.terl` as the public `std.test.Test` module.
     """
 
-    return name.endswith("Test.terl")
+    return name != "Test.terl" and name.endswith("Test.terl")
 
 
 def is_generated_typescript_binding_source(path: Path) -> bool:

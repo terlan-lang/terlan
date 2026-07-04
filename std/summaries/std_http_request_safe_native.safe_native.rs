@@ -38,7 +38,7 @@ pub const OPERATIONS: &[(&str, &str, usize)] = &[
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
 
-// Rust owns native resources. BEAM/Terlan terms should hold only opaque handles.
+// Rust owns native resources. VM/Terlan terms should hold only opaque handles.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SafeNativeHandle {
     pub id: u64,

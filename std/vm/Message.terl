@@ -1,0 +1,60 @@
+/**
+ * Terlan VM message contract.
+ *
+ * `std.vm.Message` models typed payloads that can cross runtime process
+ * boundaries. It is a target-gated runtime contract and is not part of
+ * portable `std.core`.
+ */
+
+module std.vm.Message.
+
+import type std.core.Unit.{Unit}.
+
+/**
+ * Message represents one typed runtime process message.
+ *
+ * Input: type parameter `T`.
+ * Output: an opaque message wrapper owned by the selected VM runtime.
+ * Transformation: keeps source-level message payloads typed while leaving the
+ * concrete mailbox representation to the VM backend.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Message[T].
+
+/**
+ * Wraps a source value as a typed VM message.
+ *
+ * Input: one payload value.
+ * Output: a `Message[T]` carrying that payload.
+ * Transformation: records the payload in a runtime-owned message wrapper
+ * without exposing mailbox internals in source code.
+ */
+@target.vm {process_mailbox: true}
+pub wrap[T](value: T): Message[T] ->
+    native.
+
+/**
+ * Reads a typed payload from a VM message.
+ *
+ * Input: one `Message[T]`.
+ * Output: the original payload value.
+ * Transformation: unwraps the runtime message descriptor after VM-owned
+ * receive logic has selected it.
+ */
+@target.vm {process_mailbox: true}
+pub unwrap[T](message: Message[T]): T ->
+    native.
+
+/**
+ * MessageCodec defines conversion between source values and runtime messages.
+ *
+ * Input: source payload type `T`.
+ * Output: a trait requiring wrapping and unwrapping operations for `Message[T]`.
+ * Transformation: gives VM adapters an ordinary trait surface for message
+ * encoding without adding send/receive grammar to Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub trait MessageCodec[T] {
+    wrap(value: T): Message[T].
+    unwrap(message: Message[T]): T.
+}.

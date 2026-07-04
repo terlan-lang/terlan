@@ -1,0 +1,103 @@
+/**
+ * Portable duration value contract.
+ *
+ * `std.time.Duration` represents elapsed time as a finite millisecond count.
+ * The value is stored as `Float` so VM execution and JavaScript targets share
+ * the same predictable numeric shape for sub-millisecond precision.
+ */
+module std.time.Duration.
+
+/**
+ * Duration represents elapsed time in milliseconds.
+ *
+ * Input: no type parameter.
+ * Output: a transparent value record with a `Float` millisecond payload.
+ * Transformation: keeps duration data portable and directly mappable to a
+ * JavaScript number-based millisecond duration.
+ */
+pub struct Duration {
+    milliseconds: Float
+}.
+
+/**
+ * Constructs a duration from milliseconds.
+ *
+ * Input: finite millisecond count.
+ * Output: `Duration` carrying the supplied millisecond value.
+ * Transformation: stores the numeric payload without unit conversion.
+ */
+pub constructor Duration {
+    (milliseconds: Float): Duration ->
+        Duration {milliseconds: milliseconds}
+}.
+
+/**
+ * Returns a zero duration.
+ *
+ * Input: no value input.
+ * Output: `Duration` with a `0.0` millisecond payload.
+ * Transformation: constructs the neutral duration value.
+ */
+pub zero(): Duration ->
+    Duration(0.0).
+
+/**
+ * Creates a duration from milliseconds.
+ *
+ * Input: finite millisecond count.
+ * Output: `Duration` carrying the supplied millisecond value.
+ * Transformation: stores milliseconds directly so the representation remains
+ * target-neutral.
+ */
+pub from_milliseconds(milliseconds: Float): Duration ->
+    Duration(milliseconds).
+
+/**
+ * Creates a duration from seconds.
+ *
+ * Input: finite second count.
+ * Output: `Duration` with the equivalent millisecond payload.
+ * Transformation: multiplies by `1000.0`.
+ */
+pub from_seconds(seconds: Float): Duration ->
+    Duration(seconds * 1000.0).
+
+/**
+ * Returns the millisecond payload.
+ *
+ * Input: one `Duration`.
+ * Output: finite millisecond count.
+ * Transformation: reads the portable numeric representation unchanged.
+ */
+pub (duration: Duration) to_milliseconds(): Float ->
+    duration.milliseconds.
+
+/**
+ * Returns the second value.
+ *
+ * Input: one `Duration`.
+ * Output: finite second count.
+ * Transformation: divides the millisecond payload by `1000.0`.
+ */
+pub (duration: Duration) to_seconds(): Float ->
+    duration.milliseconds / 1000.0.
+
+/**
+ * Adds two durations.
+ *
+ * Input: two `Duration` values.
+ * Output: `Duration` whose milliseconds are the sum of both inputs.
+ * Transformation: adds the portable numeric payloads.
+ */
+pub add(left: Duration, right: Duration): Duration ->
+    Duration(left.milliseconds + right.milliseconds).
+
+/**
+ * Subtracts one duration from another.
+ *
+ * Input: two `Duration` values.
+ * Output: `Duration` whose milliseconds are `left - right`.
+ * Transformation: subtracts the portable numeric payloads without clamping.
+ */
+pub subtract(left: Duration, right: Duration): Duration ->
+    Duration(left.milliseconds - right.milliseconds).

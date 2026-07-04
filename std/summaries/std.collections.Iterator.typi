@@ -44,7 +44,7 @@ pub type Step[T] =
 ///        None ->
 ///            Unit;
 ///
-///        Some({value, rest}) ->
+///        Some({value: value, next: rest}) ->
 ///            let _done = cb.(value);
 ///            each(rest, cb)
 ///    }.
@@ -55,7 +55,7 @@ pub each(iterator: Iterator[T], cb: (T ) -> Unit): Unit.
 /// Returns the next value and iterator state, or `None` when exhausted.
 ///
 /// Input: one iterator state.
-/// Output: `Some({value, next})` for the next item, or `None` when traversal
+/// Output: `Some({value: value, next: next})` for the next item, or `None` when traversal
 /// is complete.
 /// Transformation: lowers through the compiler-owned `core.iterator.next`
 /// intrinsic and advances traversal by returning a new iterator state rather

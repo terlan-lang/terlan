@@ -1,0 +1,11 @@
+module=std.vm.GenServer
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=9329645290010202624
+interface_hash=11651127201035644569
+interface_doc_hash=10219096542422461888
+deps=3
+std.core.Error=16335401487784876941
+std.core.Result=10647882371445179146
+std.core.Unit=2105912563953161831

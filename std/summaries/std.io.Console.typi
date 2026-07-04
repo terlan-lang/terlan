@@ -10,9 +10,9 @@ module std.io.Console.
 /// Input: one UTF-8 `String` value.
 /// Output: `Unit`.
 /// Transformation: lowers through the compiler-owned
-/// `runtime.console.println` capability for each selected target backend. The
-/// BEAM target may use Erlang `io:format("~ts~n", [Text])` internally, but
-/// portable Terlan source must call this function instead of backend modules.
+/// `runtime.console.println` capability for each selected target. Portable
+/// Terlan source must call this function instead of runtime-private console
+/// modules.
 ///
 /// ```terlan
 /// module console_println_example.

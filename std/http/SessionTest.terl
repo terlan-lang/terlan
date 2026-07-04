@@ -1,0 +1,39 @@
+module std.http.SessionTest.
+
+import type std.core.Option.Option.
+import std.http.Session.{current, with_response}.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+import type std.http.Session.Session.
+
+pub accepts_session(value: Session): Session ->
+    value.
+
+pub sample_current(request: Request): Session ->
+    current(request).
+
+pub sample_get(session: Session): Option[String] ->
+    session.get("user_id").
+
+pub sample_set(session: Session): Unit ->
+    session.set("user_id", "ada").
+
+pub sample_delete(session: Session): Unit ->
+    session.delete("user_id").
+
+pub sample_rotate(session: Session): Session ->
+    session.rotate().
+
+pub sample_expire(session: Session): Unit ->
+    session.expire().
+
+pub sample_with_response(response: Response, session: Session): Response ->
+    with_response(response, session).
+
+@test
+pub session_surface_is_declared(): Bool ->
+    true.
+
+@test
+pub session_response_threading_is_declared(): Bool ->
+    true.

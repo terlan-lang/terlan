@@ -1,0 +1,9 @@
+module=std.vm.Message
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=12889068846502822894
+interface_hash=13994566272216927857
+interface_doc_hash=4186539579987366448
+deps=1
+std.core.Unit=2105912563953161831
