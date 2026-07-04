@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsLargeBlobInputs.
+
+pub opaque type AuthenticationExtensionsLargeBlobInputs.
+
+pub (value: AuthenticationExtensionsLargeBlobInputs) read(): std.core.Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsLargeBlobInputs) support(): std.js.String.JsString ->
+    native.
+
+pub (value: AuthenticationExtensionsLargeBlobInputs) write(): BufferSource ->
+    native.

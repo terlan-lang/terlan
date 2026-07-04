@@ -1,8 +1,8 @@
 module=std.js.Dom.VisualViewportEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=14085236528937484597
-interface_hash=992027055602135190
-interface_doc_hash=992027055602135190
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=3534270731065095044
+interface_hash=10102355253490346765
+interface_doc_hash=10102355253490346765
 deps=0

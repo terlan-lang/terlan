@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigationHistoryEntryEventMap.
+
+pub opaque type NavigationHistoryEntryEventMap.
+
+pub (value: NavigationHistoryEntryEventMap) dispose(): Event ->
+    native.

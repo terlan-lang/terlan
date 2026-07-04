@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.StorageEvent.
+
+import type std.core.{Bool}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`StorageEvent`** interface is implemented by the Window/storage_event event, which is sent to a window when a storage area the window has access to is changed within the context of another document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent)
+ */
+pub opaque type StorageEvent.
+
+/**
+ * The **`key`** property of the StorageEvent interface returns the key for the storage item that was changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/key)
+ */
+pub (value: StorageEvent) key(): Option[JsString] ->
+    native.
+
+/**
+ * The **`newValue`** property of the StorageEvent interface returns the new value of the storage item whose value was changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/newValue)
+ */
+pub (value: StorageEvent) new_value(): Option[JsString] ->
+    native.
+
+/**
+ * The **`oldValue`** property of the StorageEvent interface returns the original value of the storage item whose value changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/oldValue)
+ */
+pub (value: StorageEvent) old_value(): Option[JsString] ->
+    native.
+
+/**
+ * The **`storageArea`** property of the StorageEvent interface returns the storage object that was affected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/storageArea)
+ */
+pub (value: StorageEvent) storage_area(): Option[Storage] ->
+    native.
+
+/**
+ * The **`url`** property of the StorageEvent interface returns the URL of the document whose storage changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/url)
+ */
+pub (value: StorageEvent) url(): JsString ->
+    native.
+
+/**
+ * The **`StorageEvent.initStorageEvent()`** method is used to initialize the value of a StorageEvent.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/initStorageEvent)
+ */
+pub (value: StorageEvent) init_storage_event(type_: JsString, bubbles: Bool, cancelable: Bool, key: Option[JsString], old_value: Option[JsString], new_value: Option[JsString], url: URL | JsString, storage_area: Option[Storage]): std.core.Unit ->
+    native.

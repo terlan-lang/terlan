@@ -1,21 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
- * @generator terlc
- * @generator-version 0.0.4
- * @generator-profile typescript-standard-js-dom
- * @artifact-kind test
- * @input-manifest std/js/manifests/std_js_dom_inputs.json
- * @source-package typescript@5.9.3
- * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
- * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
- * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
- * @source-interface Navigator
  */
-
 module std.js.Dom.NavigatorTest.
 
-import type std.js.Dom.Navigator.Navigator.
+import type std.core.{Bool}.
+
+import type std.js.Dom.Navigator.{Navigator}.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Array}.
+
+import type std.js.{Promise}.
 
 @test
 pub generated_binding_surface_exists(): Bool ->
@@ -27,7 +24,7 @@ pub clipboard_typechecks(receiver: Navigator): Clipboard ->
 pub credentials_typechecks(receiver: Navigator): CredentialsContainer ->
     receiver.credentials().
 
-pub do_not_track_typechecks(receiver: Navigator): Option[std.js.String.JsString] ->
+pub do_not_track_typechecks(receiver: Navigator): Option[JsString] ->
     receiver.do_not_track().
 
 pub geolocation_typechecks(receiver: Navigator): Geolocation ->
@@ -60,23 +57,23 @@ pub user_activation_typechecks(receiver: Navigator): UserActivation ->
 pub wake_lock_typechecks(receiver: Navigator): WakeLock ->
     receiver.wake_lock().
 
-pub can_share_typechecks(receiver: Navigator, data: ShareData): std.core.Bool ->
+pub can_share_typechecks(receiver: Navigator, data: ShareData): Bool ->
     receiver.can_share(data).
 
-pub get_gamepads_typechecks(receiver: Navigator): std.js.Array[Option[Gamepad]] ->
+pub get_gamepads_typechecks(receiver: Navigator): Array[Option[Gamepad]] ->
     receiver.get_gamepads().
 
-pub request_midi_access_typechecks(receiver: Navigator, options: MIDIOptions): std.js.Promise[MIDIAccess] ->
+pub request_midi_access_typechecks(receiver: Navigator, options: MIDIOptions): Promise[MIDIAccess] ->
     receiver.request_midi_access(options).
 
-pub request_media_key_system_access_typechecks(receiver: Navigator, key_system: std.js.String.JsString, supported_configurations: std.js.Array[MediaKeySystemConfiguration]): std.js.Promise[MediaKeySystemAccess] ->
+pub request_media_key_system_access_typechecks(receiver: Navigator, key_system: JsString, supported_configurations: Array[MediaKeySystemConfiguration]): Promise[MediaKeySystemAccess] ->
     receiver.request_media_key_system_access(key_system, supported_configurations).
 
-pub send_beacon_typechecks(receiver: Navigator, url: URL | std.js.String.JsString, data: Option[BodyInit]): std.core.Bool ->
+pub send_beacon_typechecks(receiver: Navigator, url: URL | JsString, data: Option[BodyInit]): Bool ->
     receiver.send_beacon(url, data).
 
-pub share_typechecks(receiver: Navigator, data: ShareData): std.js.Promise[std.core.Unit] ->
+pub share_typechecks(receiver: Navigator, data: ShareData): Promise[std.core.Unit] ->
     receiver.share(data).
 
-pub vibrate_typechecks(receiver: Navigator, pattern: VibratePattern): std.core.Bool ->
+pub vibrate_typechecks(receiver: Navigator, pattern: VibratePattern): Bool ->
     receiver.vibrate(pattern).

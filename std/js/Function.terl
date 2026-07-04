@@ -1,0 +1,22 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Function.
+
+/**
+ * Creates a new function.
+ */
+pub opaque type Function.
+
+/**
+ * Returns a string representation of a function.
+ */
+pub (value: Function) to_string(): std.js.String.JsString ->
+    native.
+
+pub (value: Function) length(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: Function) caller(): Function ->
+    native.

@@ -1,0 +1,46 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PerformanceEntry.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`PerformanceEntry`** object encapsulates a single performance metric that is part of the browser's performance timeline.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry)
+ */
+pub opaque type PerformanceEntry.
+
+/**
+ * The read-only **`duration`** property returns a DOMHighResTimeStamp that is the duration of the PerformanceEntry.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/duration)
+ */
+pub (value: PerformanceEntry) duration(): DOMHighResTimeStamp ->
+    native.
+
+/**
+ * The read-only **`entryType`** property returns a string representing the type of performance metric that this entry represents.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/entryType)
+ */
+pub (value: PerformanceEntry) entry_type(): JsString ->
+    native.
+
+/**
+ * The read-only **`name`** property of the PerformanceEntry interface is a string representing the name for a performance entry.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/name)
+ */
+pub (value: PerformanceEntry) name(): JsString ->
+    native.
+
+/**
+ * The read-only **`startTime`** property returns the first DOMHighResTimeStamp recorded for this PerformanceEntry.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/startTime)
+ */
+pub (value: PerformanceEntry) start_time(): DOMHighResTimeStamp ->
+    native.

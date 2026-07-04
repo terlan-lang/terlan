@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HmacImportParams.
+
+pub opaque type HmacImportParams.
+
+pub (value: HmacImportParams) hash(): HashAlgorithmIdentifier ->
+    native.
+
+pub (value: HmacImportParams) length(): std.js.Number.JsNumber ->
+    native.

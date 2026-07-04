@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.BooleanConstructor.
+
+pub opaque type BooleanConstructor.
+
+pub (value: BooleanConstructor) prototype(): Boolean ->
+    native.

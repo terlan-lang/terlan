@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ScriptProcessorNodeEventMap.
+
+pub opaque type ScriptProcessorNodeEventMap.
+
+pub (value: ScriptProcessorNodeEventMap) audioprocess(): AudioProcessingEvent ->
+    native.

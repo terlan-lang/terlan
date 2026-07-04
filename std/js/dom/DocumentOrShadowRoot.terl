@@ -1,0 +1,67 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DocumentOrShadowRoot.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.{Array}.
+
+pub opaque type DocumentOrShadowRoot.
+
+/**
+ * Returns the deepest element in the document through which or to which key events are being routed. This is, roughly speaking, the focused element in the document.
+ *
+ * For the purposes of this API, when a child browsing context is focused, its container is focused in the parent browsing context. For example, if the user moves the focus to a text control in an iframe, the iframe is the element returned by the activeElement API in the iframe's node document.
+ *
+ * Similarly, when the focused element is in a different node tree than documentOrShadowRoot, the element returned will be the host that's located in the same node tree as documentOrShadowRoot if documentOrShadowRoot is a shadow-including inclusive ancestor of the focused element, and null if not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/activeElement)
+ */
+pub (value: DocumentOrShadowRoot) active_element(): Option[Element] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/adoptedStyleSheets)
+ */
+pub (value: DocumentOrShadowRoot) adopted_style_sheets(): Array[CSSStyleSheet] ->
+    native.
+
+/**
+ * Returns document's fullscreen element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreenElement)
+ */
+pub (value: DocumentOrShadowRoot) fullscreen_element(): Option[Element] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pictureInPictureElement)
+ */
+pub (value: DocumentOrShadowRoot) picture_in_picture_element(): Option[Element] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pointerLockElement)
+ */
+pub (value: DocumentOrShadowRoot) pointer_lock_element(): Option[Element] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/styleSheets)
+ */
+pub (value: DocumentOrShadowRoot) style_sheets(): StyleSheetList ->
+    native.
+
+pub (value: DocumentOrShadowRoot) element_from_point(x: JsNumber, y: JsNumber): Option[Element] ->
+    native.
+
+pub (value: DocumentOrShadowRoot) elements_from_point(x: JsNumber, y: JsNumber): Array[Element] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getAnimations)
+ */
+pub (value: DocumentOrShadowRoot) get_animations(): Array[Animation] ->
+    native.

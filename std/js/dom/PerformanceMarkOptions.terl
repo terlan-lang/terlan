@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PerformanceMarkOptions.
+
+pub opaque type PerformanceMarkOptions.
+
+pub (value: PerformanceMarkOptions) start_time(): DOMHighResTimeStamp ->
+    native.

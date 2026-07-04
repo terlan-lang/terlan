@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AddEventListenerOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type AddEventListenerOptions.
+
+pub (value: AddEventListenerOptions) once(): Bool ->
+    native.
+
+pub (value: AddEventListenerOptions) passive(): Bool ->
+    native.
+
+pub (value: AddEventListenerOptions) signal(): AbortSignal ->
+    native.

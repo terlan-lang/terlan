@@ -1,0 +1,26 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DocumentFragment.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`DocumentFragment`** interface represents a minimal document object that has no parent.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DocumentFragment)
+ */
+pub opaque type DocumentFragment.
+
+pub (value: DocumentFragment) owner_document(): Document ->
+    native.
+
+pub (value: DocumentFragment) get_element_by_id(element_id: JsString): Option[HTMLElement] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent)
+ */
+pub (value: DocumentFragment) text_content(): JsString ->
+    native.

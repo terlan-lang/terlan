@@ -1,0 +1,37 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFilterPrimitiveStandardAttributes.
+
+pub opaque type SVGFilterPrimitiveStandardAttributes.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/height)
+ */
+pub (value: SVGFilterPrimitiveStandardAttributes) height(): SVGAnimatedLength ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/result)
+ */
+pub (value: SVGFilterPrimitiveStandardAttributes) result(): SVGAnimatedString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/width)
+ */
+pub (value: SVGFilterPrimitiveStandardAttributes) width(): SVGAnimatedLength ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/x)
+ */
+pub (value: SVGFilterPrimitiveStandardAttributes) x(): SVGAnimatedLength ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/y)
+ */
+pub (value: SVGFilterPrimitiveStandardAttributes) y(): SVGAnimatedLength ->
+    native.

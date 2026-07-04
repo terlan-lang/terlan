@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFitToViewBox.
+
+pub opaque type SVGFitToViewBox.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/preserveAspectRatio)
+ */
+pub (value: SVGFitToViewBox) preserve_aspect_ratio(): SVGAnimatedPreserveAspectRatio ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/viewBox)
+ */
+pub (value: SVGFitToViewBox) view_box(): SVGAnimatedRect ->
+    native.

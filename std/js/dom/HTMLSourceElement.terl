@@ -1,0 +1,82 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLSourceElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLSourceElement`** interface provides special properties (beyond the regular HTMLElement object interface it also has available to it by inheritance) for manipulating source elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement)
+ */
+pub opaque type HTMLSourceElement.
+
+/**
+ * The **`height`** property of the HTMLSourceElement interface is a non-negative number indicating the height of the image resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement/height)
+ */
+pub (value: HTMLSourceElement) height(): JsNumber ->
+    native.
+
+/**
+ * The **`media`** property of the HTMLSourceElement interface is a string representing the intended destination medium for the resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement/media)
+ */
+pub (value: HTMLSourceElement) media(): JsString ->
+    native.
+
+/**
+ * The **`sizes`** property of the HTMLSourceElement interface is a string representing a list of one or more sizes, representing sizes between breakpoints, to which the resource applies.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement/sizes)
+ */
+pub (value: HTMLSourceElement) sizes(): JsString ->
+    native.
+
+/**
+ * The **`src`** property of the HTMLSourceElement interface is a string indicating the URL of a media resource to use as the source for the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement/src)
+ */
+pub (value: HTMLSourceElement) src(): JsString ->
+    native.
+
+/**
+ * The **`srcset`** property of the HTMLSourceElement interface is a string containing a comma-separated list of candidate images.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement/srcset)
+ */
+pub (value: HTMLSourceElement) srcset(): JsString ->
+    native.
+
+/**
+ * The **`type`** property of the HTMLSourceElement interface is a string representing the MIME type of the media resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement/type)
+ */
+pub (value: HTMLSourceElement) type_(): JsString ->
+    native.
+
+/**
+ * The **`width`** property of the HTMLSourceElement interface is a non-negative number indicating the width of the image resource in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSourceElement/width)
+ */
+pub (value: HTMLSourceElement) width(): JsNumber ->
+    native.
+
+pub (value: HTMLSourceElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLSourceElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

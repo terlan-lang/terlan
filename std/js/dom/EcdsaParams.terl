@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EcdsaParams.
+
+pub opaque type EcdsaParams.
+
+pub (value: EcdsaParams) hash(): HashAlgorithmIdentifier ->
+    native.

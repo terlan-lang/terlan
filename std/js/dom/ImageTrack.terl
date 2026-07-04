@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageTrack.
+
+import type std.core.{Bool}.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`ImageTrack`** interface of the WebCodecs API represents an individual image track.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack)
+ */
+pub opaque type ImageTrack.
+
+/**
+ * The **`animated`** property of the ImageTrack interface returns `true` if the track is animated and therefore has multiple frames.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/animated)
+ */
+pub (value: ImageTrack) animated(): Bool ->
+    native.
+
+/**
+ * The **`frameCount`** property of the ImageTrack interface returns the number of frames in the track.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/frameCount)
+ */
+pub (value: ImageTrack) frame_count(): JsNumber ->
+    native.
+
+/**
+ * The **`repetitionCount`** property of the ImageTrack interface returns the number of repetitions of this track.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/repetitionCount)
+ */
+pub (value: ImageTrack) repetition_count(): JsNumber ->
+    native.
+
+/**
+ * The **`selected`** property of the ImageTrack interface returns `true` if the track is selected for decoding.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/selected)
+ */
+pub (value: ImageTrack) selected(): Bool ->
+    native.

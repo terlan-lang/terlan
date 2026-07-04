@@ -1,0 +1,80 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Attr.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`Attr`** interface represents one of an element's attributes as an object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr)
+ */
+pub opaque type Attr.
+
+/**
+ * The read-only **`localName`** property of the Attr interface returns the _local part_ of the _qualified name_ of an attribute, that is the name of the attribute, stripped from any namespace in front of it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/localName)
+ */
+pub (value: Attr) local_name(): JsString ->
+    native.
+
+/**
+ * The read-only **`name`** property of the Attr interface returns the _qualified name_ of an attribute, that is the name of the attribute, with the namespace prefix, if any, in front of it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/name)
+ */
+pub (value: Attr) name(): JsString ->
+    native.
+
+/**
+ * The read-only **`namespaceURI`** property of the Attr interface returns the namespace URI of the attribute, or `null` if the element is not in a namespace.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/namespaceURI)
+ */
+pub (value: Attr) namespace_uri(): Option[JsString] ->
+    native.
+
+pub (value: Attr) owner_document(): Document ->
+    native.
+
+/**
+ * The read-only **`ownerElement`** property of the Attr interface returns the Element the attribute belongs to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/ownerElement)
+ */
+pub (value: Attr) owner_element(): Option[Element] ->
+    native.
+
+/**
+ * The read-only **`prefix`** property of the Attr returns the namespace prefix of the attribute, or `null` if no prefix is specified.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/prefix)
+ */
+pub (value: Attr) prefix(): Option[JsString] ->
+    native.
+
+/**
+ * The read-only **`specified`** property of the Attr interface always returns `true`.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/specified)
+ */
+pub (value: Attr) specified(): std.core.Bool ->
+    native.
+
+/**
+ * The **`value`** property of the Attr interface contains the value of the attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/value)
+ */
+pub (value: Attr) value(): JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent)
+ */
+pub (value: Attr) text_content(): JsString ->
+    native.

@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGTextPathElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGTextPathElement`** interface corresponds to the textPath element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement)
+ */
+pub opaque type SVGTextPathElement.
+
+/**
+ * The **`method`** read-only property of the SVGTextPathElement interface reflects the method attribute of the given textPath element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement/method)
+ */
+pub (value: SVGTextPathElement) method(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`spacing`** read-only property of the SVGTextPathElement interface reflects the spacing attribute of the given textPath element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement/spacing)
+ */
+pub (value: SVGTextPathElement) spacing(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`startOffset`** read-only property of the SVGTextPathElement interface reflects the X component of the startOffset attribute of the given textPath, which defines an offset from the start of the path for the initial current text position along the path after converting the path to the `<textPath>` element's coordinate system.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement/startOffset)
+ */
+pub (value: SVGTextPathElement) start_offset(): SVGAnimatedLength ->
+    native.
+
+pub (value: SVGTextPathElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGTextPathElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.OscillatorOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type OscillatorOptions.
+
+pub (value: OscillatorOptions) detune(): JsNumber ->
+    native.
+
+pub (value: OscillatorOptions) frequency(): JsNumber ->
+    native.
+
+pub (value: OscillatorOptions) periodic_wave(): PeriodicWave ->
+    native.
+
+pub (value: OscillatorOptions) type_(): OscillatorType ->
+    native.

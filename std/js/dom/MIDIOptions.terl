@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MIDIOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type MIDIOptions.
+
+pub (value: MIDIOptions) software(): Bool ->
+    native.
+
+pub (value: MIDIOptions) sysex(): Bool ->
+    native.

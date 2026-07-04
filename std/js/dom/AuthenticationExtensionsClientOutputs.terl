@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsClientOutputs.
+
+import type std.core.{Bool}.
+
+pub opaque type AuthenticationExtensionsClientOutputs.
+
+pub (value: AuthenticationExtensionsClientOutputs) appid(): Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsClientOutputs) cred_props(): CredentialPropertiesOutput ->
+    native.
+
+pub (value: AuthenticationExtensionsClientOutputs) hmac_create_secret(): Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsClientOutputs) large_blob(): AuthenticationExtensionsLargeBlobOutputs ->
+    native.
+
+pub (value: AuthenticationExtensionsClientOutputs) prf(): AuthenticationExtensionsPRFOutputs ->
+    native.

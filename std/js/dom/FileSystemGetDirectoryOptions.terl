@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileSystemGetDirectoryOptions.
+
+pub opaque type FileSystemGetDirectoryOptions.
+
+pub (value: FileSystemGetDirectoryOptions) create(): std.core.Bool ->
+    native.

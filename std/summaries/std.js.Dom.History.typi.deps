@@ -1,8 +1,8 @@
 module=std.js.Dom.History
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=18110174301379805087
-interface_hash=17931659706127204467
-interface_doc_hash=17931659706127204467
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=13600725619988126400
+interface_hash=7992099712193759395
+interface_doc_hash=7992099712193759395
 deps=0

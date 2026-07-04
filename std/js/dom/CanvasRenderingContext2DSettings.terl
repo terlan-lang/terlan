@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasRenderingContext2DSettings.
+
+import type std.core.{Bool}.
+
+pub opaque type CanvasRenderingContext2DSettings.
+
+pub (value: CanvasRenderingContext2DSettings) alpha(): Bool ->
+    native.
+
+pub (value: CanvasRenderingContext2DSettings) color_space(): PredefinedColorSpace ->
+    native.
+
+pub (value: CanvasRenderingContext2DSettings) desynchronized(): Bool ->
+    native.
+
+pub (value: CanvasRenderingContext2DSettings) will_read_frequently(): Bool ->
+    native.

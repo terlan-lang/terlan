@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WritableStreamDefaultController.
+
+/**
+ * The **`WritableStreamDefaultController`** interface of the Streams API represents a controller allowing control of a WritableStream's state.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultController)
+ */
+pub opaque type WritableStreamDefaultController.
+
+/**
+ * The read-only **`signal`** property of the WritableStreamDefaultController interface returns the AbortSignal associated with the controller.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultController/signal)
+ */
+pub (value: WritableStreamDefaultController) signal(): AbortSignal ->
+    native.

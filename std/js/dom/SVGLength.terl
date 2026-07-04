@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGLength.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SVGLength`** interface correspond to the \<length> basic data type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength)
+ */
+pub opaque type SVGLength.
+
+/**
+ * The **`unitType`** property of the SVGLength interface that represents type of the value as specified by one of the `SVG_LENGTHTYPE_*` constants defined on this interface.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/unitType)
+ */
+pub (value: SVGLength) unit_type(): JsNumber ->
+    native.
+
+/**
+ * The `value` property of the SVGLength interface represents the floating point value of the \<length> in user units.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/value)
+ */
+pub (value: SVGLength) value(): JsNumber ->
+    native.
+
+/**
+ * The `valueAsString` property of the SVGLength interface represents the \<length>'s value as a string, in the units expressed by SVGLength.unitType.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/valueAsString)
+ */
+pub (value: SVGLength) value_as_string(): std.js.String.JsString ->
+    native.
+
+/**
+ * The `valueInSpecifiedUnits` property of the SVGLength interface represents floating point value, in the units expressed by SVGLength.unitType.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/valueInSpecifiedUnits)
+ */
+pub (value: SVGLength) value_in_specified_units(): JsNumber ->
+    native.
+
+/**
+ * The `convertToSpecifiedUnits()` method of the SVGLength interface allows you to convert the length's value to the specified unit type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/convertToSpecifiedUnits)
+ */
+pub (value: SVGLength) convert_to_specified_units(unit_type: JsNumber): Unit ->
+    native.
+
+/**
+ * The `newValueSpecifiedUnits()` method of the SVGLength interface resets the value as a number with an associated SVGLength.unitType, thereby replacing the values for all of the attributes on the object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/newValueSpecifiedUnits)
+ */
+pub (value: SVGLength) new_value_specified_units(unit_type: JsNumber, value_in_specified_units: JsNumber): Unit ->
+    native.

@@ -1,7 +1,7 @@
 module=std.js.Promise
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
 source_hash=13527299127133730234
 interface_hash=9221029971361824524
 interface_doc_hash=9445425220887705371

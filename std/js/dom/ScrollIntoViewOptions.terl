@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ScrollIntoViewOptions.
+
+pub opaque type ScrollIntoViewOptions.
+
+pub (value: ScrollIntoViewOptions) block(): ScrollLogicalPosition ->
+    native.
+
+pub (value: ScrollIntoViewOptions) inline(): ScrollLogicalPosition ->
+    native.

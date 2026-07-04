@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GamepadEventInit.
+
+pub opaque type GamepadEventInit.
+
+pub (value: GamepadEventInit) gamepad(): Gamepad ->
+    native.

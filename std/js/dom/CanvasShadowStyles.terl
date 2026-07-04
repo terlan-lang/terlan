@@ -1,0 +1,33 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasShadowStyles.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasShadowStyles.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowBlur)
+ */
+pub (value: CanvasShadowStyles) shadow_blur(): JsNumber ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowColor)
+ */
+pub (value: CanvasShadowStyles) shadow_color(): std.js.String.JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX)
+ */
+pub (value: CanvasShadowStyles) shadow_offset_x(): JsNumber ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetY)
+ */
+pub (value: CanvasShadowStyles) shadow_offset_y(): JsNumber ->
+    native.

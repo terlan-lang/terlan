@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaMetadataInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type MediaMetadataInit.
+
+pub (value: MediaMetadataInit) album(): JsString ->
+    native.
+
+pub (value: MediaMetadataInit) artist(): JsString ->
+    native.
+
+pub (value: MediaMetadataInit) artwork(): std.js.Array[MediaImage] ->
+    native.
+
+pub (value: MediaMetadataInit) title(): JsString ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AesKeyGenParams.
+
+pub opaque type AesKeyGenParams.
+
+pub (value: AesKeyGenParams) length(): std.js.Number.JsNumber ->
+    native.

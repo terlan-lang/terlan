@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.OVR_multiview2.
+
+/**
+ * The `OVR_multiview2` extension is part of the WebGL API and adds support for rendering into multiple views simultaneously.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OVR_multiview2)
+ */
+pub opaque type OVR_multiview2.
+
+/**
+ * The **`OVR_multiview2.framebufferTextureMultiviewOVR()`** method of the WebGL API attaches a multiview texture to a WebGLFramebuffer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OVR_multiview2/framebufferTextureMultiviewOVR)
+ */
+pub (value: OVR_multiview2) framebuffer_texture_multiview_ovr(target_: GLenum, attachment: GLenum, texture: Option[WebGLTexture], level: GLint, base_view_index: GLint, num_views: GLsizei): std.core.Unit ->
+    native.

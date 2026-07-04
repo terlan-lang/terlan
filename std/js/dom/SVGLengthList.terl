@@ -1,0 +1,86 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGLengthList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SVGLengthList`** interface defines a list of SVGLength objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList)
+ */
+pub opaque type SVGLengthList.
+
+/**
+ * The **`length`** property of the SVGLengthList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/length)
+ */
+pub (value: SVGLengthList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`numberOfItems`** property of the SVGLengthList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/numberOfItems)
+ */
+pub (value: SVGLengthList) number_of_items(): JsNumber ->
+    native.
+
+/**
+ * The **`appendItem()`** method of the SVGLengthList interface inserts a new item at the end of the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/appendItem)
+ */
+pub (value: SVGLengthList) append_item(new_item: SVGLength): SVGLength ->
+    native.
+
+/**
+ * The **`clear()`** method of the SVGLengthList interface clears all existing items from the list, with the result being an empty list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/clear)
+ */
+pub (value: SVGLengthList) clear(): std.core.Unit ->
+    native.
+
+/**
+ * The **`getItem()`** method of the SVGLengthList interface returns the specified item from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/getItem)
+ */
+pub (value: SVGLengthList) get_item(index: JsNumber): SVGLength ->
+    native.
+
+/**
+ * The **`initialize()`** method of the SVGLengthList interface clears all existing items from the list and re-initializes the list to hold the single item specified by the parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/initialize)
+ */
+pub (value: SVGLengthList) initialize(new_item: SVGLength): SVGLength ->
+    native.
+
+/**
+ * The **`insertItemBefore()`** method of the SVGLengthList interface inserts a new item into the list at the specified position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/insertItemBefore)
+ */
+pub (value: SVGLengthList) insert_item_before(new_item: SVGLength, index: JsNumber): SVGLength ->
+    native.
+
+/**
+ * The **`removeItem()`** method of the SVGLengthList interface removes an existing item at the given index from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/removeItem)
+ */
+pub (value: SVGLengthList) remove_item(index: JsNumber): SVGLength ->
+    native.
+
+/**
+ * The **`replaceItem()`** method of the SVGLengthList interface replaces an existing item in the list with a new item.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/replaceItem)
+ */
+pub (value: SVGLengthList) replace_item(new_item: SVGLength, index: JsNumber): SVGLength ->
+    native.

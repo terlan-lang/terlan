@@ -1,0 +1,82 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VisualViewport.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`VisualViewport`** interface of the Visual Viewport API represents the visual viewport for a given window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport)
+ */
+pub opaque type VisualViewport.
+
+/**
+ * The **`height`** read-only property of the VisualViewport interface returns the height of the visual viewport, in CSS pixels, or `0` if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/height)
+ */
+pub (value: VisualViewport) height(): JsNumber ->
+    native.
+
+/**
+ * The **`offsetLeft`** read-only property of the VisualViewport interface returns the offset of the left edge of the visual viewport from the left edge of the layout viewport in CSS pixels, or `0` if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/offsetLeft)
+ */
+pub (value: VisualViewport) offset_left(): JsNumber ->
+    native.
+
+/**
+ * The **`offsetTop`** read-only property of the VisualViewport interface returns the offset of the top edge of the visual viewport from the top edge of the layout viewport in CSS pixels, or `0` if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/offsetTop)
+ */
+pub (value: VisualViewport) offset_top(): JsNumber ->
+    native.
+
+/**
+ * The **`pageLeft`** read-only property of the VisualViewport interface returns the x coordinate of the left edge of the visual viewport relative to the initial containing block origin, in CSS pixels, or `0` if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/pageLeft)
+ */
+pub (value: VisualViewport) page_left(): JsNumber ->
+    native.
+
+/**
+ * The **`pageTop`** read-only property of the VisualViewport interface returns the y coordinate of the top edge of the visual viewport relative to the initial containing block origin, in CSS pixels, or `0` if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/pageTop)
+ */
+pub (value: VisualViewport) page_top(): JsNumber ->
+    native.
+
+/**
+ * The **`scale`** read-only property of the VisualViewport interface returns the pinch-zoom scaling factor applied to the visual viewport, or `0` if current document is not fully active, or `1` if there is no output device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/scale)
+ */
+pub (value: VisualViewport) scale(): JsNumber ->
+    native.
+
+/**
+ * The **`width`** read-only property of the VisualViewport interface returns the width of the visual viewport, in CSS pixels, or `0` if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/width)
+ */
+pub (value: VisualViewport) width(): JsNumber ->
+    native.
+
+pub (value: VisualViewport) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: VisualViewport) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

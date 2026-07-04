@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageBitmapRenderingContextSettings.
+
+pub opaque type ImageBitmapRenderingContextSettings.
+
+pub (value: ImageBitmapRenderingContextSettings) alpha(): std.core.Bool ->
+    native.

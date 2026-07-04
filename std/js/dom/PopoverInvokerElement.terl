@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PopoverInvokerElement.
+
+pub opaque type PopoverInvokerElement.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/popoverTargetAction)
+ */
+pub (value: PopoverInvokerElement) popover_target_action(): std.js.String.JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/popoverTargetElement)
+ */
+pub (value: PopoverInvokerElement) popover_target_element(): Option[Element] ->
+    native.

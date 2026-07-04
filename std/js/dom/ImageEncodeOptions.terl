@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageEncodeOptions.
+
+pub opaque type ImageEncodeOptions.
+
+pub (value: ImageEncodeOptions) quality(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: ImageEncodeOptions) type_(): std.js.String.JsString ->
+    native.

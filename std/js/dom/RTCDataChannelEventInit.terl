@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDataChannelEventInit.
+
+pub opaque type RTCDataChannelEventInit.
+
+pub (value: RTCDataChannelEventInit) channel(): RTCDataChannel ->
+    native.

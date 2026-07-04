@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DelayOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DelayOptions.
+
+pub (value: DelayOptions) delay_time(): JsNumber ->
+    native.
+
+pub (value: DelayOptions) max_delay_time(): JsNumber ->
+    native.

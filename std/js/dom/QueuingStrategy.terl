@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.QueuingStrategy.
+
+pub opaque type QueuingStrategy[T].
+
+pub (value: QueuingStrategy[T]) high_water_mark(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: QueuingStrategy[T]) size(): QueuingStrategySize[T] ->
+    native.

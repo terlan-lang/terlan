@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PluginArray.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The `PluginArray` interface is used to store a list of Plugin objects; it's returned by the Navigator.plugins property.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PluginArray)
+ */
+pub opaque type PluginArray.
+
+/**
+ * @deprecated
+ */
+pub (value: PluginArray) length(): JsNumber ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: PluginArray) item(index: JsNumber): Option[Plugin] ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: PluginArray) named_item(name: std.js.String.JsString): Option[Plugin] ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: PluginArray) refresh(): std.core.Unit ->
+    native.

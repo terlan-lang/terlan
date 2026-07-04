@@ -1,0 +1,88 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AnalyserNode.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`AnalyserNode`** interface represents a node able to provide real-time frequency and time-domain analysis information.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode)
+ */
+pub opaque type AnalyserNode.
+
+/**
+ * The **`fftSize`** property of the AnalyserNode interface is an unsigned long value and represents the window size in samples that is used when performing a Fast Fourier Transform (FFT) to get frequency domain data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/fftSize)
+ */
+pub (value: AnalyserNode) fft_size(): JsNumber ->
+    native.
+
+/**
+ * The **`frequencyBinCount`** read-only property of the AnalyserNode interface contains the total number of data points available to AudioContext BaseAudioContext.sampleRate.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/frequencyBinCount)
+ */
+pub (value: AnalyserNode) frequency_bin_count(): JsNumber ->
+    native.
+
+/**
+ * The **`maxDecibels`** property of the AnalyserNode interface is a double value representing the maximum power value in the scaling range for the FFT analysis data, for conversion to unsigned byte values — basically, this specifies the maximum value for the range of results when using `getByteFrequencyData()`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/maxDecibels)
+ */
+pub (value: AnalyserNode) max_decibels(): JsNumber ->
+    native.
+
+/**
+ * The **`minDecibels`** property of the AnalyserNode interface is a double value representing the minimum power value in the scaling range for the FFT analysis data, for conversion to unsigned byte values — basically, this specifies the minimum value for the range of results when using `getByteFrequencyData()`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/minDecibels)
+ */
+pub (value: AnalyserNode) min_decibels(): JsNumber ->
+    native.
+
+/**
+ * The **`smoothingTimeConstant`** property of the AnalyserNode interface is a double value representing the averaging constant with the last analysis frame.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/smoothingTimeConstant)
+ */
+pub (value: AnalyserNode) smoothing_time_constant(): JsNumber ->
+    native.
+
+/**
+ * The **`getByteFrequencyData()`** method of the AnalyserNode interface copies the current frequency data into a Uint8Array (unsigned byte array) passed into it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getByteFrequencyData)
+ */
+pub (value: AnalyserNode) get_byte_frequency_data(array: Uint8Array[ArrayBuffer]): Unit ->
+    native.
+
+/**
+ * The **`getByteTimeDomainData()`** method of the AnalyserNode Interface copies the current waveform, or time-domain, data into a Uint8Array (unsigned byte array) passed into it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getByteTimeDomainData)
+ */
+pub (value: AnalyserNode) get_byte_time_domain_data(array: Uint8Array[ArrayBuffer]): Unit ->
+    native.
+
+/**
+ * The **`getFloatFrequencyData()`** method of the AnalyserNode Interface copies the current frequency data into a Float32Array array passed into it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getFloatFrequencyData)
+ */
+pub (value: AnalyserNode) get_float_frequency_data(array: Float32Array[ArrayBuffer]): Unit ->
+    native.
+
+/**
+ * The **`getFloatTimeDomainData()`** method of the AnalyserNode Interface copies the current waveform, or time-domain, data into a Float32Array array passed into it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getFloatTimeDomainData)
+ */
+pub (value: AnalyserNode) get_float_time_domain_data(array: Float32Array[ArrayBuffer]): Unit ->
+    native.

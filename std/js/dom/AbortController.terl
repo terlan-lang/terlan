@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AbortController.
+
+/**
+ * The **`AbortController`** interface represents a controller object that allows you to abort one or more Web requests as and when desired.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortController)
+ */
+pub opaque type AbortController.
+
+/**
+ * The **`signal`** read-only property of the AbortController interface returns an AbortSignal object instance, which can be used to communicate with/abort an asynchronous operation as desired.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortController/signal)
+ */
+pub (value: AbortController) signal(): AbortSignal ->
+    native.

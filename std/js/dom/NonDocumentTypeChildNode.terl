@@ -1,0 +1,23 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NonDocumentTypeChildNode.
+
+pub opaque type NonDocumentTypeChildNode.
+
+/**
+ * Returns the first following sibling that is an element, and null otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/nextElementSibling)
+ */
+pub (value: NonDocumentTypeChildNode) next_element_sibling(): Option[Element] ->
+    native.
+
+/**
+ * Returns the first preceding sibling that is an element, and null otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/previousElementSibling)
+ */
+pub (value: NonDocumentTypeChildNode) previous_element_sibling(): Option[Element] ->
+    native.

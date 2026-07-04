@@ -1,0 +1,95 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCOutboundRtpStreamStats.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RTCOutboundRtpStreamStats.
+
+pub (value: RTCOutboundRtpStreamStats) active(): std.core.Bool ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) fir_count(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) frame_height(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) frame_width(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) frames_encoded(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) frames_per_second(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) frames_sent(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) header_bytes_sent(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) huge_frames_sent(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) key_frames_encoded(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) media_source_id(): JsString ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) mid(): JsString ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) nack_count(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) pli_count(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) qp_sum(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) quality_limitation_durations(): Record[JsString , JsNumber] ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) quality_limitation_reason(): RTCQualityLimitationReason ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) quality_limitation_resolution_changes(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) remote_id(): JsString ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) retransmitted_bytes_sent(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) retransmitted_packets_sent(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) rid(): JsString ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) rtx_ssrc(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) scalability_mode(): JsString ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) target_bitrate(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) total_encode_time(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) total_encoded_bytes_target(): JsNumber ->
+    native.
+
+pub (value: RTCOutboundRtpStreamStats) total_packet_send_delay(): JsNumber ->
+    native.

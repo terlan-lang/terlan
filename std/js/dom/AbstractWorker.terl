@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AbstractWorker.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type AbstractWorker.
+
+pub (value: AbstractWorker) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: AbstractWorker) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

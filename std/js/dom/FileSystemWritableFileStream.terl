@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileSystemWritableFileStream.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.{Promise}.
+
+/**
+ * The **`FileSystemWritableFileStream`** interface of the File System API is a WritableStream object with additional convenience methods, which operates on a single file on disk.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream)
+ */
+pub opaque type FileSystemWritableFileStream.
+
+/**
+ * The **`seek()`** method of the FileSystemWritableFileStream interface updates the current file cursor offset to the position (in bytes) specified when calling the method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/seek)
+ */
+pub (value: FileSystemWritableFileStream) seek(position: JsNumber): Promise[Unit] ->
+    native.
+
+/**
+ * The **`truncate()`** method of the FileSystemWritableFileStream interface resizes the file associated with the stream to the specified size in bytes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/truncate)
+ */
+pub (value: FileSystemWritableFileStream) truncate(size: JsNumber): Promise[Unit] ->
+    native.
+
+/**
+ * The **`write()`** method of the FileSystemWritableFileStream interface writes content into the file the method is called on, at the current file cursor offset.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/write)
+ */
+pub (value: FileSystemWritableFileStream) write(data: FileSystemWriteChunkType): Promise[Unit] ->
+    native.

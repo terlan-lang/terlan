@@ -1,8 +1,8 @@
 module=std.js.Dom.DeviceOrientationEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=9301725793348362860
-interface_hash=5069384043449605564
-interface_doc_hash=5069384043449605564
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=17780676637192933439
+interface_hash=9533092533767669818
+interface_doc_hash=9533092533767669818
 deps=0

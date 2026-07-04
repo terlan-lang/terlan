@@ -1,0 +1,98 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaStream.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Array}.
+
+/**
+ * The **`MediaStream`** interface of the Media Capture and Streams API represents a stream of media content.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream)
+ */
+pub opaque type MediaStream.
+
+/**
+ * The **`active`** read-only property of the `true` if the stream is currently active; otherwise, it returns `false`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/active)
+ */
+pub (value: MediaStream) active(): Bool ->
+    native.
+
+/**
+ * The **`id`** read-only property of the MediaStream interface is a string containing 36 characters denoting a unique identifier (GUID) for the object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/id)
+ */
+pub (value: MediaStream) id(): JsString ->
+    native.
+
+/**
+ * The **`addTrack()`** method of the MediaStream interface adds a new track to the stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/addTrack)
+ */
+pub (value: MediaStream) add_track(track: MediaStreamTrack): Unit ->
+    native.
+
+/**
+ * The **`clone()`** method of the MediaStream interface creates a duplicate of the `MediaStream`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/clone)
+ */
+pub (value: MediaStream) clone(): MediaStream ->
+    native.
+
+/**
+ * The **`getAudioTracks()`** method of the stream's track set where MediaStreamTrack.kind is `audio`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getAudioTracks)
+ */
+pub (value: MediaStream) get_audio_tracks(): Array[MediaStreamTrack] ->
+    native.
+
+/**
+ * The **`getTrackById()`** method of the MediaStream interface returns a MediaStreamTrack object representing the track with the specified ID string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getTrackById)
+ */
+pub (value: MediaStream) get_track_by_id(track_id: JsString): Option[MediaStreamTrack] ->
+    native.
+
+/**
+ * The **`getTracks()`** method of the stream's track set, regardless of MediaStreamTrack.kind.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getTracks)
+ */
+pub (value: MediaStream) get_tracks(): Array[MediaStreamTrack] ->
+    native.
+
+/**
+ * The **`getVideoTracks()`** method of the ```js-nolint getVideoTracks() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getVideoTracks)
+ */
+pub (value: MediaStream) get_video_tracks(): Array[MediaStreamTrack] ->
+    native.
+
+/**
+ * The **`removeTrack()`** method of the MediaStream interface removes a ```js-nolint removeTrack(track) ``` - `track` - : A MediaStreamTrack that will be removed from the stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/removeTrack)
+ */
+pub (value: MediaStream) remove_track(track: MediaStreamTrack): Unit ->
+    native.
+
+pub (value: MediaStream) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: MediaStream) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCOfferOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type RTCOfferOptions.
+
+pub (value: RTCOfferOptions) ice_restart(): Bool ->
+    native.
+
+pub (value: RTCOfferOptions) offer_to_receive_audio(): Bool ->
+    native.
+
+pub (value: RTCOfferOptions) offer_to_receive_video(): Bool ->
+    native.

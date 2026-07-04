@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PointerLockOptions.
+
+pub opaque type PointerLockOptions.
+
+pub (value: PointerLockOptions) unadjusted_movement(): std.core.Bool ->
+    native.

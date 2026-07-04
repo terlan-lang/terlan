@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCIceCandidateInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RTCIceCandidateInit.
+
+pub (value: RTCIceCandidateInit) candidate(): JsString ->
+    native.
+
+pub (value: RTCIceCandidateInit) sdp_m_line_index(): Option[std.js.Number.JsNumber] ->
+    native.
+
+pub (value: RTCIceCandidateInit) sdp_mid(): Option[JsString] ->
+    native.
+
+pub (value: RTCIceCandidateInit) username_fragment(): Option[JsString] ->
+    native.

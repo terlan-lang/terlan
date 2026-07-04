@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ConcatArray.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type ConcatArray[T].
+
+pub (value: ConcatArray[T]) length(): JsNumber ->
+    native.
+
+pub (value: ConcatArray[T]) join(separator: JsString): JsString ->
+    native.
+
+pub (value: ConcatArray[T]) slice(start: JsNumber, end: JsNumber): std.js.Array[T] ->
+    native.

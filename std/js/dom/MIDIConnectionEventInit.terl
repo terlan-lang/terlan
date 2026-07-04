@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MIDIConnectionEventInit.
+
+pub opaque type MIDIConnectionEventInit.
+
+pub (value: MIDIConnectionEventInit) port(): MIDIPort ->
+    native.

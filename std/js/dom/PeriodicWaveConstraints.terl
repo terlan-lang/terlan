@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PeriodicWaveConstraints.
+
+pub opaque type PeriodicWaveConstraints.
+
+pub (value: PeriodicWaveConstraints) disable_normalization(): std.core.Bool ->
+    native.

@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGLineElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGLineElement`** interface provides access to the properties of line elements, as well as methods to manipulate them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement)
+ */
+pub opaque type SVGLineElement.
+
+/**
+ * The **`x1`** read-only property of the SVGLineElement interface describes the start of the SVG line along the x-axis as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/x1)
+ */
+pub (value: SVGLineElement) x1(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`x2`** read-only property of the SVGLineElement interface describes the x-axis coordinate value of the end of a line as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/x2)
+ */
+pub (value: SVGLineElement) x2(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`y1`** read-only property of the SVGLineElement interface describes the start of the SVG line along the y-axis as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/y1)
+ */
+pub (value: SVGLineElement) y1(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`y2`** read-only property of the SVGLineElement interface describes the v-axis coordinate value of the end of a line as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/y2)
+ */
+pub (value: SVGLineElement) y2(): SVGAnimatedLength ->
+    native.
+
+pub (value: SVGLineElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGLineElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

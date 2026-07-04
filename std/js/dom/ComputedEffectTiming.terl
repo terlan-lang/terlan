@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ComputedEffectTiming.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ComputedEffectTiming.
+
+pub (value: ComputedEffectTiming) active_duration(): CSSNumberish ->
+    native.
+
+pub (value: ComputedEffectTiming) current_iteration(): Option[JsNumber] ->
+    native.
+
+pub (value: ComputedEffectTiming) end_time(): CSSNumberish ->
+    native.
+
+pub (value: ComputedEffectTiming) local_time(): Option[CSSNumberish] ->
+    native.
+
+pub (value: ComputedEffectTiming) progress(): Option[JsNumber] ->
+    native.
+
+pub (value: ComputedEffectTiming) start_time(): CSSNumberish ->
+    native.

@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaEncryptedEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=15725947838473628250
-interface_hash=10625779153997952344
-interface_doc_hash=10625779153997952344
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=1738036287504840966
+interface_hash=12664152509284642872
+interface_doc_hash=12664152509284642872
 deps=0

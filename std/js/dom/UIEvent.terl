@@ -1,0 +1,50 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.UIEvent.
+
+import type std.core.{Bool}.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`UIEvent`** interface represents simple user interface events.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent)
+ */
+pub opaque type UIEvent.
+
+/**
+ * The **`UIEvent.detail`** read-only property, when non-zero, provides the current (or next, depending on the event) click count.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/detail)
+ */
+pub (value: UIEvent) detail(): JsNumber ->
+    native.
+
+/**
+ * The **`UIEvent.view`** read-only property returns the is the Window object the event happened in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/view)
+ */
+pub (value: UIEvent) view(): Option[Window] ->
+    native.
+
+/**
+ * The **`UIEvent.which`** read-only property of the UIEvent interface returns a number that indicates which button was pressed on the mouse, or the numeric `keyCode` or the character code (`charCode`) of the key pressed on the keyboard.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/which)
+ */
+pub (value: UIEvent) which(): JsNumber ->
+    native.
+
+/**
+ * The **`UIEvent.initUIEvent()`** method initializes a UI event once it's been created.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/initUIEvent)
+ */
+pub (value: UIEvent) init_ui_event(type_arg: std.js.String.JsString, bubbles_arg: Bool, cancelable_arg: Bool, view_arg: Option[Window], detail_arg: JsNumber): std.core.Unit ->
+    native.

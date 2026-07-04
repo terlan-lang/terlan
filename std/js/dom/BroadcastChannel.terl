@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.BroadcastChannel.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`BroadcastChannel`** interface represents a named channel that any browsing context of a given origin can subscribe to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel)
+ */
+pub opaque type BroadcastChannel.
+
+/**
+ * The **`name`** read-only property of the BroadcastChannel interface returns a string, which uniquely identifies the given channel with its name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel/name)
+ */
+pub (value: BroadcastChannel) name(): JsString ->
+    native.
+
+/**
+ * The **`close()`** method of the BroadcastChannel interface terminates the connection to the underlying channel, allowing the object to be garbage collected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel/close)
+ */
+pub (value: BroadcastChannel) close(): Unit ->
+    native.
+
+pub (value: BroadcastChannel) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: BroadcastChannel) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

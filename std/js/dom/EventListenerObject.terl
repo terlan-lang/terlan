@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventListenerObject.
+
+pub opaque type EventListenerObject.
+
+pub (value: EventListenerObject) handle_event(object: Event): std.core.Unit ->
+    native.

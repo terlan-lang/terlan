@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextTrackList.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`TextTrackList`** interface is used to represent a list of the text tracks defined for the associated video or audio element, with each track represented by a separate textTrack object in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackList)
+ */
+pub opaque type TextTrackList.
+
+/**
+ * The read-only **TextTrackList** property **`length`** returns the number of entries in the `TextTrackList`, each of which is a TextTrack representing one track in the media element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackList/length)
+ */
+pub (value: TextTrackList) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **TextTrackList** method **`getTrackById()`** returns the first `id` matches the specified string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackList/getTrackById)
+ */
+pub (value: TextTrackList) get_track_by_id(id: JsString): Option[TextTrack] ->
+    native.
+
+pub (value: TextTrackList) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: TextTrackList) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

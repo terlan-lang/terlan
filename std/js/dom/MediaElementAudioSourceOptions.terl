@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaElementAudioSourceOptions.
+
+pub opaque type MediaElementAudioSourceOptions.
+
+pub (value: MediaElementAudioSourceOptions) media_element(): HTMLMediaElement ->
+    native.

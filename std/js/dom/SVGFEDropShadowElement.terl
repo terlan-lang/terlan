@@ -1,0 +1,74 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEDropShadowElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEDropShadowElement`** interface corresponds to the feDropShadow element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDropShadowElement)
+ */
+pub opaque type SVGFEDropShadowElement.
+
+/**
+ * The **`dx`** read-only property of the SVGFEDropShadowElement interface reflects the dx attribute of the given feDropShadow element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDropShadowElement/dx)
+ */
+pub (value: SVGFEDropShadowElement) dx(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`dy`** read-only property of the SVGFEDropShadowElement interface reflects the dy attribute of the given feDropShadow element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDropShadowElement/dy)
+ */
+pub (value: SVGFEDropShadowElement) dy(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`in1`** read-only property of the SVGFEDropShadowElement interface reflects the in attribute of the given feDropShadow element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDropShadowElement/in1)
+ */
+pub (value: SVGFEDropShadowElement) in1(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`stdDeviationX`** read-only property of the SVGFEDropShadowElement interface reflects the (possibly automatically computed) X component of the stdDeviation attribute of the given feDropShadow element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDropShadowElement/stdDeviationX)
+ */
+pub (value: SVGFEDropShadowElement) std_deviation_x(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`stdDeviationY`** read-only property of the SVGFEDropShadowElement interface reflects the (possibly automatically computed) Y component of the stdDeviation attribute of the given feDropShadow element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDropShadowElement/stdDeviationY)
+ */
+pub (value: SVGFEDropShadowElement) std_deviation_y(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The `setStdDeviation()` method of the SVGFEDropShadowElement interface sets the values for the stdDeviation attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDropShadowElement/setStdDeviation)
+ */
+pub (value: SVGFEDropShadowElement) set_std_deviation(std_deviation_x: JsNumber, std_deviation_y: JsNumber): Unit ->
+    native.
+
+pub (value: SVGFEDropShadowElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEDropShadowElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GPUError.
+
+/**
+ * The **`GPUError`** interface of the WebGPU API is the base interface for errors surfaced by GPUDevice.popErrorScope and the GPUDevice.uncapturederror_event event.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GPUError)
+ */
+pub opaque type GPUError.
+
+/**
+ * The **`message`** read-only property of the A string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GPUError/message)
+ */
+pub (value: GPUError) message(): std.js.String.JsString ->
+    native.

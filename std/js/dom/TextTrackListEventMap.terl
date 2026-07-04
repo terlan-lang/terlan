@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextTrackListEventMap.
+
+pub opaque type TextTrackListEventMap.
+
+pub (value: TextTrackListEventMap) addtrack(): TrackEvent ->
+    native.
+
+pub (value: TextTrackListEventMap) change(): Event ->
+    native.
+
+pub (value: TextTrackListEventMap) removetrack(): TrackEvent ->
+    native.

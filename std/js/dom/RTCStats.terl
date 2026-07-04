@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCStats.
+
+pub opaque type RTCStats.
+
+pub (value: RTCStats) id(): std.js.String.JsString ->
+    native.
+
+pub (value: RTCStats) timestamp(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: RTCStats) type_(): RTCStatsType ->
+    native.

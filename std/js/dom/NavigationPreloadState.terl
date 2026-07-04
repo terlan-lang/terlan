@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigationPreloadState.
+
+pub opaque type NavigationPreloadState.
+
+pub (value: NavigationPreloadState) enabled(): std.core.Bool ->
+    native.
+
+pub (value: NavigationPreloadState) header_value(): std.js.String.JsString ->
+    native.

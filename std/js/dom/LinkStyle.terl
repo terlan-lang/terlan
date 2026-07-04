@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.LinkStyle.
+
+pub opaque type LinkStyle.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/sheet)
+ */
+pub (value: LinkStyle) sheet(): Option[CSSStyleSheet] ->
+    native.

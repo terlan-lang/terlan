@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileSystemFlags.
+
+import type std.core.{Bool}.
+
+pub opaque type FileSystemFlags.
+
+pub (value: FileSystemFlags) create(): Bool ->
+    native.
+
+pub (value: FileSystemFlags) exclusive(): Bool ->
+    native.

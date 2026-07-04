@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Highlight.
+
+/**
+ * The **`Highlight`** interface of the CSS Custom Highlight API is used to represent a collection of Range instances to be styled using the API.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Highlight)
+ */
+pub opaque type Highlight.
+
+/**
+ * It is possible to create Range objects that overlap in a document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Highlight/priority)
+ */
+pub (value: Highlight) priority(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The `type` property of the Highlight interface is an enumerated String used to specify the meaning of the highlight.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Highlight/type)
+ */
+pub (value: Highlight) type_(): HighlightType ->
+    native.

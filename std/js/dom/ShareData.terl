@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ShareData.
+
+import type std.js.String.{JsString}.
+
+pub opaque type ShareData.
+
+pub (value: ShareData) files(): std.js.Array[File] ->
+    native.
+
+pub (value: ShareData) text(): JsString ->
+    native.
+
+pub (value: ShareData) title(): JsString ->
+    native.
+
+pub (value: ShareData) url(): JsString ->
+    native.

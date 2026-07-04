@@ -1,8 +1,8 @@
 module=std.js.Dom.SourceBuffer
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=8898670023125913257
-interface_hash=6965435432134554966
-interface_doc_hash=6965435432134554966
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=12735175276970187268
+interface_hash=13726277150720106781
+interface_doc_hash=13726277150720106781
 deps=0

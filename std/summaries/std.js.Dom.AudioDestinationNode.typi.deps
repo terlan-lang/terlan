@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioDestinationNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=3776190739457253736
-interface_hash=3819488585500189796
-interface_doc_hash=3819488585500189796
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=11681034580780719934
+interface_hash=6254866640898069341
+interface_doc_hash=6254866640898069341
 deps=0

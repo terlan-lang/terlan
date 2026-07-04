@@ -1,0 +1,33 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLTableCaptionElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLTableCaptionElement`** interface provides special properties (beyond the regular HTMLElement interface it also has available to it by inheritance) for manipulating table caption elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCaptionElement)
+ */
+pub opaque type HTMLTableCaptionElement.
+
+/**
+ * The **`align`** property of the HTMLTableCaptionElement interface is a string indicating how to horizontally align text in the caption table element.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCaptionElement/align)
+ */
+pub (value: HTMLTableCaptionElement) align(): JsString ->
+    native.
+
+pub (value: HTMLTableCaptionElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLTableCaptionElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GetAnimationsOptions.
+
+pub opaque type GetAnimationsOptions.
+
+pub (value: GetAnimationsOptions) subtree(): std.core.Bool ->
+    native.

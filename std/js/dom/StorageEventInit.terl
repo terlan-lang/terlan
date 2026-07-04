@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.StorageEventInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type StorageEventInit.
+
+pub (value: StorageEventInit) key(): Option[JsString] ->
+    native.
+
+pub (value: StorageEventInit) new_value(): Option[JsString] ->
+    native.
+
+pub (value: StorageEventInit) old_value(): Option[JsString] ->
+    native.
+
+pub (value: StorageEventInit) storage_area(): Option[Storage] ->
+    native.
+
+pub (value: StorageEventInit) url(): JsString ->
+    native.

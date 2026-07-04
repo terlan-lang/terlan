@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaStreamTrackEventMap.
+
+pub opaque type MediaStreamTrackEventMap.
+
+pub (value: MediaStreamTrackEventMap) ended(): Event ->
+    native.
+
+pub (value: MediaStreamTrackEventMap) mute(): Event ->
+    native.
+
+pub (value: MediaStreamTrackEventMap) unmute(): Event ->
+    native.

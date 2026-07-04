@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EffectTiming.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type EffectTiming.
+
+pub (value: EffectTiming) delay(): JsNumber ->
+    native.
+
+pub (value: EffectTiming) direction(): PlaybackDirection ->
+    native.
+
+pub (value: EffectTiming) duration(): CSSNumericValue | JsNumber | JsString ->
+    native.
+
+pub (value: EffectTiming) easing(): JsString ->
+    native.
+
+pub (value: EffectTiming) end_delay(): JsNumber ->
+    native.
+
+pub (value: EffectTiming) fill(): FillMode ->
+    native.
+
+pub (value: EffectTiming) iteration_start(): JsNumber ->
+    native.
+
+pub (value: EffectTiming) iterations(): JsNumber ->
+    native.
+
+pub (value: EffectTiming) playback_rate(): JsNumber ->
+    native.

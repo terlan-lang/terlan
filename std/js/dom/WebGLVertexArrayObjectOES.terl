@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebGLVertexArrayObjectOES.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLVertexArrayObject)
+ */
+pub opaque type WebGLVertexArrayObjectOES.

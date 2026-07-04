@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsClientInputs.
+
+import type std.core.{Bool}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type AuthenticationExtensionsClientInputs.
+
+pub (value: AuthenticationExtensionsClientInputs) appid(): JsString ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputs) cred_props(): Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputs) credential_protection_policy(): JsString ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputs) enforce_credential_protection_policy(): Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputs) hmac_create_secret(): Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputs) large_blob(): AuthenticationExtensionsLargeBlobInputs ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputs) min_pin_length(): Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputs) prf(): AuthenticationExtensionsPRFInputs ->
+    native.

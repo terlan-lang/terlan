@@ -1,0 +1,33 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextDecoderCommon.
+
+import type std.core.{Bool}.
+
+pub opaque type TextDecoderCommon.
+
+/**
+ * Returns encoding's name, lowercased.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/encoding)
+ */
+pub (value: TextDecoderCommon) encoding(): std.js.String.JsString ->
+    native.
+
+/**
+ * Returns true if error mode is "fatal", otherwise false.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/fatal)
+ */
+pub (value: TextDecoderCommon) fatal(): Bool ->
+    native.
+
+/**
+ * Returns the value of ignore BOM.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/ignoreBOM)
+ */
+pub (value: TextDecoderCommon) ignore_bom(): Bool ->
+    native.

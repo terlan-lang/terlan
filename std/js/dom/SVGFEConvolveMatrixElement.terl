@@ -1,0 +1,120 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEConvolveMatrixElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEConvolveMatrixElement`** interface corresponds to the feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement)
+ */
+pub opaque type SVGFEConvolveMatrixElement.
+
+/**
+ * The **`bias`** read-only property of the SVGFEConvolveMatrixElement interface reflects the bias attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/bias)
+ */
+pub (value: SVGFEConvolveMatrixElement) bias(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`divisor`** read-only property of the SVGFEConvolveMatrixElement interface reflects the divisor attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/divisor)
+ */
+pub (value: SVGFEConvolveMatrixElement) divisor(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`edgeMode`** read-only property of the SVGFEConvolveMatrixElement interface reflects the edgeMode attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/edgeMode)
+ */
+pub (value: SVGFEConvolveMatrixElement) edge_mode(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`in1`** read-only property of the SVGFEConvolveMatrixElement interface reflects the in attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/in1)
+ */
+pub (value: SVGFEConvolveMatrixElement) in1(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`kernelMatrix`** read-only property of the SVGFEConvolveMatrixElement interface reflects the kernelMatrix attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/kernelMatrix)
+ */
+pub (value: SVGFEConvolveMatrixElement) kernel_matrix(): SVGAnimatedNumberList ->
+    native.
+
+/**
+ * The **`kernelUnitLengthX`** read-only property of the SVGFEConvolveMatrixElement interface reflects the kernelUnitLength attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/kernelUnitLengthX)
+ */
+pub (value: SVGFEConvolveMatrixElement) kernel_unit_length_x(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`kernelUnitLengthY`** read-only property of the SVGFEConvolveMatrixElement interface reflects the kernelUnitLength attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/kernelUnitLengthY)
+ */
+pub (value: SVGFEConvolveMatrixElement) kernel_unit_length_y(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`orderX`** read-only property of the SVGFEConvolveMatrixElement interface reflects the order attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/orderX)
+ */
+pub (value: SVGFEConvolveMatrixElement) order_x(): SVGAnimatedInteger ->
+    native.
+
+/**
+ * The **`orderY`** read-only property of the SVGFEConvolveMatrixElement interface reflects the order attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/orderY)
+ */
+pub (value: SVGFEConvolveMatrixElement) order_y(): SVGAnimatedInteger ->
+    native.
+
+/**
+ * The **`preserveAlpha`** read-only property of the SVGFEConvolveMatrixElement interface reflects the preserveAlpha attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/preserveAlpha)
+ */
+pub (value: SVGFEConvolveMatrixElement) preserve_alpha(): SVGAnimatedBoolean ->
+    native.
+
+/**
+ * The **`targetX`** read-only property of the SVGFEConvolveMatrixElement interface reflects the targetX attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/targetX)
+ */
+pub (value: SVGFEConvolveMatrixElement) target_x(): SVGAnimatedInteger ->
+    native.
+
+/**
+ * The **`targetY`** read-only property of the SVGFEConvolveMatrixElement interface reflects the targetY attribute of the given feConvolveMatrix element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/targetY)
+ */
+pub (value: SVGFEConvolveMatrixElement) target_y(): SVGAnimatedInteger ->
+    native.
+
+pub (value: SVGFEConvolveMatrixElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEConvolveMatrixElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

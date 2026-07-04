@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigatorLogin.
+
+/**
+ * The **`NavigatorLogin`** interface of the Federated Credential Management (FedCM) API defines login functionality for federated identity providers (IdPs).
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigatorLogin)
+ */
+pub opaque type NavigatorLogin.
+
+/**
+ * The **`setStatus()`** method of the NavigatorLogin interface sets the login status of a federated identity provider (IdP), when called from the IdP's origin.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigatorLogin/setStatus)
+ */
+pub (value: NavigatorLogin) set_status(status: LoginStatus): std.js.Promise[std.core.Unit] ->
+    native.

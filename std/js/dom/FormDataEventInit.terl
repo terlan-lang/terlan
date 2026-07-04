@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FormDataEventInit.
+
+pub opaque type FormDataEventInit.
+
+pub (value: FormDataEventInit) form_data(): FormData ->
+    native.

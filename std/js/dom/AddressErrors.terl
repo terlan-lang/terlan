@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AddressErrors.
+
+import type std.js.String.{JsString}.
+
+pub opaque type AddressErrors.
+
+pub (value: AddressErrors) address_line(): JsString ->
+    native.
+
+pub (value: AddressErrors) city(): JsString ->
+    native.
+
+pub (value: AddressErrors) country(): JsString ->
+    native.
+
+pub (value: AddressErrors) dependent_locality(): JsString ->
+    native.
+
+pub (value: AddressErrors) organization(): JsString ->
+    native.
+
+pub (value: AddressErrors) phone(): JsString ->
+    native.
+
+pub (value: AddressErrors) postal_code(): JsString ->
+    native.
+
+pub (value: AddressErrors) recipient(): JsString ->
+    native.
+
+pub (value: AddressErrors) region(): JsString ->
+    native.
+
+pub (value: AddressErrors) sorting_code(): JsString ->
+    native.

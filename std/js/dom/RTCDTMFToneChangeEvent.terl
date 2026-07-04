@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDTMFToneChangeEvent.
+
+/**
+ * The **`RTCDTMFToneChangeEvent`** interface represents events sent to indicate that DTMF tones have started or finished playing.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDTMFToneChangeEvent)
+ */
+pub opaque type RTCDTMFToneChangeEvent.
+
+/**
+ * The read-only property **`RTCDTMFToneChangeEvent.tone`** returns the DTMF character which has just begun to play, or an empty string (`''`).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDTMFToneChangeEvent/tone)
+ */
+pub (value: RTCDTMFToneChangeEvent) tone(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,29 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.OpusEncoderConfig.
+
+import type std.core.{Bool}.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type OpusEncoderConfig.
+
+pub (value: OpusEncoderConfig) complexity(): JsNumber ->
+    native.
+
+pub (value: OpusEncoderConfig) format(): OpusBitstreamFormat ->
+    native.
+
+pub (value: OpusEncoderConfig) frame_duration(): JsNumber ->
+    native.
+
+pub (value: OpusEncoderConfig) packetlossperc(): JsNumber ->
+    native.
+
+pub (value: OpusEncoderConfig) usedtx(): Bool ->
+    native.
+
+pub (value: OpusEncoderConfig) useinbandfec(): Bool ->
+    native.

@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSContainerRule.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`CSSContainerRule`** interface represents a single CSS @container rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSContainerRule)
+ */
+pub opaque type CSSContainerRule.
+
+/**
+ * The read-only **`containerName`** property of the CSSContainerRule interface represents the container name of the associated CSS @container at-rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSContainerRule/containerName)
+ */
+pub (value: CSSContainerRule) container_name(): JsString ->
+    native.
+
+/**
+ * The read-only **`containerQuery`** property of the CSSContainerRule interface returns a string representing the container conditions that are evaluated when the container changes size in order to determine if the styles in the associated @container are applied.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSContainerRule/containerQuery)
+ */
+pub (value: CSSContainerRule) container_query(): JsString ->
+    native.

@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ReportBody.
+
+/**
+ * The **`ReportBody`** interface of the Reporting API represents the body of a report.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportBody)
+ */
+pub opaque type ReportBody.

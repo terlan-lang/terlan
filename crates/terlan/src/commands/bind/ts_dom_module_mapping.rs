@@ -43,7 +43,6 @@ pub(super) struct DomModulePlan {
     pub(super) type_name: String,
     pub(super) type_params: Vec<String>,
     pub(super) source_path: String,
-    pub(super) interface_path: String,
     pub(super) summary_path: String,
     pub(super) test_path: String,
     pub(super) members: Vec<DomMemberPlan>,
@@ -243,7 +242,6 @@ fn map_interface_to_module(
     }
 
     let namespace = binding_namespace(&interface.namespace);
-    let file_stem = source_name_to_terlan_identifier(&interface.name);
     let module_path = format!("{namespace}.{}", interface.name);
     let source_dir = namespace_to_source_dir(namespace);
     Some(DomModulePlan {
@@ -252,8 +250,7 @@ fn map_interface_to_module(
         doc: interface.doc.clone(),
         type_name: interface.name.clone(),
         type_params: interface.type_params.clone(),
-        source_path: format!("{source_dir}/{file_stem}.terl"),
-        interface_path: format!("{source_dir}/{file_stem}.terli"),
+        source_path: format!("{source_dir}/{}.terl", interface.name),
         summary_path: format!("std/summaries/{module_path}.typi"),
         test_path: format!("{source_dir}/{}Test.terl", interface.name),
         members,

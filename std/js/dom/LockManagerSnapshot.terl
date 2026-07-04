@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.LockManagerSnapshot.
+
+import type std.js.{Array}.
+
+pub opaque type LockManagerSnapshot.
+
+pub (value: LockManagerSnapshot) held(): Array[LockInfo] ->
+    native.
+
+pub (value: LockManagerSnapshot) pending(): Array[LockInfo] ->
+    native.

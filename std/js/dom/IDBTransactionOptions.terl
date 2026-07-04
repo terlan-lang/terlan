@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBTransactionOptions.
+
+pub opaque type IDBTransactionOptions.
+
+pub (value: IDBTransactionOptions) durability(): IDBTransactionDurability ->
+    native.

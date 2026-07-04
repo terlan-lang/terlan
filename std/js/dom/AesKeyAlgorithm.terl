@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AesKeyAlgorithm.
+
+pub opaque type AesKeyAlgorithm.
+
+pub (value: AesKeyAlgorithm) length(): std.js.Number.JsNumber ->
+    native.

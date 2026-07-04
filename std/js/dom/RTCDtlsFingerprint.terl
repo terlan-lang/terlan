@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDtlsFingerprint.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RTCDtlsFingerprint.
+
+pub (value: RTCDtlsFingerprint) algorithm(): JsString ->
+    native.
+
+pub (value: RTCDtlsFingerprint) value(): JsString ->
+    native.

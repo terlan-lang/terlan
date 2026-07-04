@@ -1,8 +1,8 @@
 module=std.js.ReferenceErrorConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=1363998102213932593
-interface_hash=4469137800422392577
-interface_doc_hash=4469137800422392577
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=9995024871100421495
+interface_hash=9790815016340624923
+interface_doc_hash=9790815016340624923
 deps=0

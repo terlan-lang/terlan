@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileSystemCreateWritableOptions.
+
+pub opaque type FileSystemCreateWritableOptions.
+
+pub (value: FileSystemCreateWritableOptions) keep_existing_data(): std.core.Bool ->
+    native.

@@ -1,0 +1,74 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLTableColElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLTableColElement`** interface provides properties for manipulating single or grouped table column elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableColElement)
+ */
+pub opaque type HTMLTableColElement.
+
+/**
+ * The **`align`** property of the HTMLTableColElement interface is a string indicating how to horizontally align text in a table col column element.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableColElement/align)
+ */
+pub (value: HTMLTableColElement) align(): JsString ->
+    native.
+
+/**
+ * The **`ch`** property of the HTMLTableColElement interface does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableColElement/ch)
+ */
+pub (value: HTMLTableColElement) ch(): JsString ->
+    native.
+
+/**
+ * The **`chOff`** property of the HTMLTableColElement interface does nothing.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableColElement/chOff)
+ */
+pub (value: HTMLTableColElement) ch_off(): JsString ->
+    native.
+
+/**
+ * The **`span`** read-only property of the HTMLTableColElement interface represents the number of columns this col or colgroup must span; this lets the column occupy space across multiple columns of the table.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableColElement/span)
+ */
+pub (value: HTMLTableColElement) span(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`vAlign`** property of the HTMLTableColElement interface is a string indicating how to vertically align text in a table col column element.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableColElement/vAlign)
+ */
+pub (value: HTMLTableColElement) v_align(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLTableColElement) width(): JsString ->
+    native.
+
+pub (value: HTMLTableColElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLTableColElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

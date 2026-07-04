@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCError.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`RTCError`** interface describes an error which has occurred while handling WebRTC operations.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError)
+ */
+pub opaque type RTCError.
+
+/**
+ * The RTCError interface's read-only **`errorDetail`** property is a string indicating the WebRTC-specific error code that occurred.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/errorDetail)
+ */
+pub (value: RTCError) error_detail(): RTCErrorDetailType ->
+    native.
+
+/**
+ * The RTCError read-only property **`receivedAlert`** specifies the fatal DTLS error which resulted in an alert being received from the remote peer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/receivedAlert)
+ */
+pub (value: RTCError) received_alert(): Option[JsNumber] ->
+    native.
+
+/**
+ * The read-only **`sctpCauseCode`** property in an why the SCTP negotiation failed, if the `RTCError` represents an SCTP error.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/sctpCauseCode)
+ */
+pub (value: RTCError) sctp_cause_code(): Option[JsNumber] ->
+    native.
+
+/**
+ * The RTCError interface's read-only property **`sdpLineNumber`** specifies the line number within the An unsigned integer value indicating the line within the SDP at which the syntax error described by the `RTCError` object occurred.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/sdpLineNumber)
+ */
+pub (value: RTCError) sdp_line_number(): Option[JsNumber] ->
+    native.
+
+/**
+ * The read-only **`sentAlert`** property in an while sending data to the remote peer, if the error represents an outbound DTLS error.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/sentAlert)
+ */
+pub (value: RTCError) sent_alert(): Option[JsNumber] ->
+    native.

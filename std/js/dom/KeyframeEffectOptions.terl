@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.KeyframeEffectOptions.
+
+pub opaque type KeyframeEffectOptions.
+
+pub (value: KeyframeEffectOptions) composite(): CompositeOperation ->
+    native.
+
+pub (value: KeyframeEffectOptions) iteration_composite(): IterationCompositeOperation ->
+    native.
+
+pub (value: KeyframeEffectOptions) pseudo_element(): Option[std.js.String.JsString] ->
+    native.

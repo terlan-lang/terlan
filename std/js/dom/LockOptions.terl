@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.LockOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type LockOptions.
+
+pub (value: LockOptions) if_available(): Bool ->
+    native.
+
+pub (value: LockOptions) mode(): LockMode ->
+    native.
+
+pub (value: LockOptions) signal(): AbortSignal ->
+    native.
+
+pub (value: LockOptions) steal(): Bool ->
+    native.

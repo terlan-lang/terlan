@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSMathMin.
+
+/**
+ * The **`CSSMathMin`** interface of the CSS Typed Object Model API represents the CSS min function.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathMin)
+ */
+pub opaque type CSSMathMin.
+
+/**
+ * The CSSMathMin.values read-only property of the which contains one or more CSSNumericValue objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathMin/values)
+ */
+pub (value: CSSMathMin) values(): CSSNumericArray ->
+    native.

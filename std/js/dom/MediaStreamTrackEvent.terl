@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaStreamTrackEvent.
+
+/**
+ * The **`MediaStreamTrackEvent`** interface of the Media Capture and Streams API represents events which indicate that a MediaStream has had tracks added to or removed from the stream through calls to Media Capture and Streams API methods.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrackEvent)
+ */
+pub opaque type MediaStreamTrackEvent.
+
+/**
+ * The **`track`** read-only property of the MediaStreamTrackEvent interface returns the MediaStreamTrack associated with this event.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrackEvent/track)
+ */
+pub (value: MediaStreamTrackEvent) track(): MediaStreamTrack ->
+    native.

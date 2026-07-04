@@ -1,8 +1,8 @@
 module=std.js.Dom.PaymentResponseEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=14238315565537385796
-interface_hash=13848775771923344530
-interface_doc_hash=13848775771923344530
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=1967302889836371318
+interface_hash=5679194651565260986
+interface_doc_hash=5679194651565260986
 deps=0

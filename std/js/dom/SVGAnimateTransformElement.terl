@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGAnimateTransformElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The `SVGAnimateTransformElement` interface corresponds to the animateTransform element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimateTransformElement)
+ */
+pub opaque type SVGAnimateTransformElement.
+
+pub (value: SVGAnimateTransformElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGAnimateTransformElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

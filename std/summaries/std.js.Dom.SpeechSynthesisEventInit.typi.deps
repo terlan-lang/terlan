@@ -1,8 +1,8 @@
 module=std.js.Dom.SpeechSynthesisEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=14288897932414317424
-interface_hash=16454166748768752086
-interface_doc_hash=16454166748768752086
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=16988777200471433409
+interface_hash=18170630457228013512
+interface_doc_hash=18170630457228013512
 deps=0

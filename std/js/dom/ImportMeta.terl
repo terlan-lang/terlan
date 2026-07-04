@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImportMeta.
+
+import type std.js.String.{JsString}.
+
+pub opaque type ImportMeta.
+
+pub (value: ImportMeta) url(): JsString ->
+    native.
+
+pub (value: ImportMeta) resolve(specifier: JsString): JsString ->
+    native.

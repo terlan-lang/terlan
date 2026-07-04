@@ -1,21 +1,16 @@
 /**
  * @generated true
  * @do-not-edit true
- * @generator terlc
- * @generator-version 0.0.4
- * @generator-profile typescript-standard-js-dom
- * @artifact-kind test
- * @input-manifest std/js/manifests/std_js_dom_inputs.json
- * @source-package typescript@5.9.3
- * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
- * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
- * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
- * @source-interface Performance
  */
-
 module std.js.Dom.PerformanceTest.
 
-import type std.js.Dom.Performance.Performance.
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Dom.Performance.{Performance}.
+
+import type std.js.String.{JsString}.
 
 @test
 pub generated_binding_surface_exists(): Bool ->
@@ -33,38 +28,38 @@ pub time_origin_typechecks(receiver: Performance): DOMHighResTimeStamp ->
 pub timing_typechecks(receiver: Performance): PerformanceTiming ->
     receiver.timing().
 
-pub clear_marks_typechecks(receiver: Performance, mark_name: std.js.String.JsString): std.core.Unit ->
+pub clear_marks_typechecks(receiver: Performance, mark_name: JsString): Unit ->
     receiver.clear_marks(mark_name).
 
-pub clear_measures_typechecks(receiver: Performance, measure_name: std.js.String.JsString): std.core.Unit ->
+pub clear_measures_typechecks(receiver: Performance, measure_name: JsString): Unit ->
     receiver.clear_measures(measure_name).
 
-pub clear_resource_timings_typechecks(receiver: Performance): std.core.Unit ->
+pub clear_resource_timings_typechecks(receiver: Performance): Unit ->
     receiver.clear_resource_timings().
 
 pub get_entries_typechecks(receiver: Performance): PerformanceEntryList ->
     receiver.get_entries().
 
-pub get_entries_by_name_typechecks(receiver: Performance, name: std.js.String.JsString, type_: std.js.String.JsString): PerformanceEntryList ->
+pub get_entries_by_name_typechecks(receiver: Performance, name: JsString, type_: JsString): PerformanceEntryList ->
     receiver.get_entries_by_name(name, type_).
 
-pub get_entries_by_type_typechecks(receiver: Performance, type_: std.js.String.JsString): PerformanceEntryList ->
+pub get_entries_by_type_typechecks(receiver: Performance, type_: JsString): PerformanceEntryList ->
     receiver.get_entries_by_type(type_).
 
-pub mark_typechecks(receiver: Performance, mark_name: std.js.String.JsString, mark_options: PerformanceMarkOptions): PerformanceMark ->
+pub mark_typechecks(receiver: Performance, mark_name: JsString, mark_options: PerformanceMarkOptions): PerformanceMark ->
     receiver.mark(mark_name, mark_options).
 
-pub measure_typechecks(receiver: Performance, measure_name: std.js.String.JsString, start_or_measure_options: PerformanceMeasureOptions | std.js.String.JsString, end_mark: std.js.String.JsString): PerformanceMeasure ->
+pub measure_typechecks(receiver: Performance, measure_name: JsString, start_or_measure_options: PerformanceMeasureOptions | JsString, end_mark: JsString): PerformanceMeasure ->
     receiver.measure(measure_name, start_or_measure_options, end_mark).
 
 pub now_typechecks(receiver: Performance): DOMHighResTimeStamp ->
     receiver.now().
 
-pub set_resource_timing_buffer_size_typechecks(receiver: Performance, max_size: std.js.Number.JsNumber): std.core.Unit ->
+pub set_resource_timing_buffer_size_typechecks(receiver: Performance, max_size: std.js.Number.JsNumber): Unit ->
     receiver.set_resource_timing_buffer_size(max_size).
 
-pub add_event_listener_typechecks(receiver: Performance, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+pub add_event_listener_typechecks(receiver: Performance, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: Performance, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+pub remove_event_listener_typechecks(receiver: Performance, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
     receiver.remove_event_listener(type_, listener, options).

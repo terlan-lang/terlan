@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ArrayBufferConstructor.
+
+pub opaque type ArrayBufferConstructor.
+
+pub (value: ArrayBufferConstructor) prototype(): ArrayBuffer ->
+    native.

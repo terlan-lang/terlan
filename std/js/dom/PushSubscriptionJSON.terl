@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PushSubscriptionJSON.
+
+import type std.js.String.{JsString}.
+
+pub opaque type PushSubscriptionJSON.
+
+pub (value: PushSubscriptionJSON) endpoint(): JsString ->
+    native.
+
+pub (value: PushSubscriptionJSON) expiration_time(): Option[EpochTimeStamp] ->
+    native.
+
+pub (value: PushSubscriptionJSON) keys(): Record[JsString , JsString] ->
+    native.

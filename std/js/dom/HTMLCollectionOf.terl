@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLCollectionOf.
+
+pub opaque type HTMLCollectionOf[T].
+
+pub (value: HTMLCollectionOf[T]) item(index: std.js.Number.JsNumber): Option[T] ->
+    native.
+
+pub (value: HTMLCollectionOf[T]) named_item(name: std.js.String.JsString): Option[T] ->
+    native.

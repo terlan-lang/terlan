@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasSettings.
+
+pub opaque type CanvasSettings.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getContextAttributes)
+ */
+pub (value: CanvasSettings) get_context_attributes(): CanvasRenderingContext2DSettings ->
+    native.

@@ -1,0 +1,86 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGPointList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SVGPointList`** interface represents a list of DOMPoint objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList)
+ */
+pub opaque type SVGPointList.
+
+/**
+ * The **`length`** read-only property of the SVGPointList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/length)
+ */
+pub (value: SVGPointList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`numberOfItems`** read-only property of the SVGPointList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/numberOfItems)
+ */
+pub (value: SVGPointList) number_of_items(): JsNumber ->
+    native.
+
+/**
+ * The **`appendItem()`** method of the SVGPointList interface adds a DOMPoint to the end of the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/appendItem)
+ */
+pub (value: SVGPointList) append_item(new_item: DOMPoint): DOMPoint ->
+    native.
+
+/**
+ * The **`clear()`** method of the SVGPointList interface removes all items from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/clear)
+ */
+pub (value: SVGPointList) clear(): std.core.Unit ->
+    native.
+
+/**
+ * The **`getItem()`** method of the SVGPointList interface gets one item from the list at the specified index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/getItem)
+ */
+pub (value: SVGPointList) get_item(index: JsNumber): DOMPoint ->
+    native.
+
+/**
+ * The **`initialize()`** method of the SVGPointList interface clears the list then adds a single new DOMPoint object to the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/initialize)
+ */
+pub (value: SVGPointList) initialize(new_item: DOMPoint): DOMPoint ->
+    native.
+
+/**
+ * The **`insertItemBefore()`** method of the SVGPointList interface inserts a DOMPoint before another item in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/insertItemBefore)
+ */
+pub (value: SVGPointList) insert_item_before(new_item: DOMPoint, index: JsNumber): DOMPoint ->
+    native.
+
+/**
+ * The **`removeItem()`** method of the SVGPointList interface removes a DOMPoint from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/removeItem)
+ */
+pub (value: SVGPointList) remove_item(index: JsNumber): DOMPoint ->
+    native.
+
+/**
+ * The **`replaceItem()`** method of the SVGPointList interface replaces a DOMPoint in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/replaceItem)
+ */
+pub (value: SVGPointList) replace_item(new_item: DOMPoint, index: JsNumber): DOMPoint ->
+    native.

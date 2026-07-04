@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.IArguments.
+
+pub opaque type IArguments.
+
+pub (value: IArguments) length(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: IArguments) callee(): Function ->
+    native.

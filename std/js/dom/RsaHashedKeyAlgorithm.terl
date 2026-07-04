@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RsaHashedKeyAlgorithm.
+
+pub opaque type RsaHashedKeyAlgorithm.
+
+pub (value: RsaHashedKeyAlgorithm) hash(): KeyAlgorithm ->
+    native.

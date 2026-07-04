@@ -1,0 +1,76 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ReadonlyArray.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Array}.
+
+pub opaque type ReadonlyArray[T].
+
+/**
+ * Gets the length of the array. This is a number one higher than the highest element defined in an array.
+ */
+pub (value: ReadonlyArray[T]) length(): JsNumber ->
+    native.
+
+/**
+ * Returns a string representation of an array.
+ */
+pub (value: ReadonlyArray[T]) to_string(): JsString ->
+    native.
+
+/**
+ * Returns a string representation of an array. The elements are converted to string using their toLocaleString methods.
+ */
+pub (value: ReadonlyArray[T]) to_locale_string(): JsString ->
+    native.
+
+/**
+ * Combines two or more arrays.
+ * @param items Additional items to add to the end of array1.
+ */
+pub (value: ReadonlyArray[T]) concat(): Array[T] ->
+    native.
+
+/**
+ * Combines two or more arrays.
+ * @param items Additional items to add to the end of array1.
+ */
+pub (value: ReadonlyArray[T]) concat(): Array[T] ->
+    native.
+
+/**
+ * Adds all the elements of an array separated by the specified separator string.
+ * @param separator A string used to separate one element of an array from the next in the resulting String. If omitted, the array elements are separated with a comma.
+ */
+pub (value: ReadonlyArray[T]) join(separator: JsString): JsString ->
+    native.
+
+/**
+ * Returns a section of an array.
+ * @param start The beginning of the specified portion of the array.
+ * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
+ */
+pub (value: ReadonlyArray[T]) slice(start: JsNumber, end: JsNumber): Array[T] ->
+    native.
+
+/**
+ * Returns the index of the first occurrence of a value in an array.
+ * @param searchElement The value to locate in the array.
+ * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the search starts at index 0.
+ */
+pub (value: ReadonlyArray[T]) index_of(search_element: T, from_index: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the index of the last occurrence of a specified value in an array.
+ * @param searchElement The value to locate in the array.
+ * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the search starts at the last index in the array.
+ */
+pub (value: ReadonlyArray[T]) last_index_of(search_element: T, from_index: JsNumber): JsNumber ->
+    native.

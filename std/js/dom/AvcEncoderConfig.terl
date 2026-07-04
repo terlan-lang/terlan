@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AvcEncoderConfig.
+
+pub opaque type AvcEncoderConfig.
+
+pub (value: AvcEncoderConfig) format(): AvcBitstreamFormat ->
+    native.

@@ -1,0 +1,23 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ProcessingInstruction.
+
+/**
+ * The **`ProcessingInstruction`** interface represents a processing instruction; that is, a Node which embeds an instruction targeting a specific application but that can be ignored by any other applications which don't recognize the instruction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProcessingInstruction)
+ */
+pub opaque type ProcessingInstruction.
+
+pub (value: ProcessingInstruction) owner_document(): Document ->
+    native.
+
+/**
+ * The read-only **`target`** property of the ProcessingInstruction interface represent the application to which the `ProcessingInstruction` is targeted.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProcessingInstruction/target)
+ */
+pub (value: ProcessingInstruction) target_(): std.js.String.JsString ->
+    native.

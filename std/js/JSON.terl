@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.JSON.
+
+pub opaque type JSON.

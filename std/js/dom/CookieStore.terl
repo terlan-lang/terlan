@@ -1,0 +1,71 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CookieStore.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Promise}.
+
+/**
+ * The **`CookieStore`** interface of the Cookie Store API provides methods for getting and setting cookies asynchronously from either a page or a service worker.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore)
+ */
+pub opaque type CookieStore.
+
+/**
+ * The **`delete()`** method of the CookieStore interface deletes a cookie that matches the given `name` or `options` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/delete)
+ */
+pub (value: CookieStore) delete(name: JsString): Promise[Unit] ->
+    native.
+
+pub (value: CookieStore) delete(options: CookieStoreDeleteOptions): Promise[Unit] ->
+    native.
+
+/**
+ * The **`get()`** method of the CookieStore interface returns a Promise that resolves to a single cookie matching the given `name` or `options` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/get)
+ */
+pub (value: CookieStore) get(name: JsString): Promise[Option[CookieListItem]] ->
+    native.
+
+pub (value: CookieStore) get(options: CookieStoreGetOptions): Promise[Option[CookieListItem]] ->
+    native.
+
+/**
+ * The **`getAll()`** method of the CookieStore interface returns a Promise that resolves as an array of cookies that match the `name` or `options` passed to it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/getAll)
+ */
+pub (value: CookieStore) get_all(name: JsString): Promise[CookieList] ->
+    native.
+
+pub (value: CookieStore) get_all(options: CookieStoreGetOptions): Promise[CookieList] ->
+    native.
+
+/**
+ * The **`set()`** method of the CookieStore interface sets a cookie with the given `name` and `value` or `options` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/set)
+ */
+pub (value: CookieStore) set(name: JsString, value: JsString): Promise[Unit] ->
+    native.
+
+pub (value: CookieStore) set(options: CookieInit): Promise[Unit] ->
+    native.
+
+pub (value: CookieStore) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: CookieStore) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

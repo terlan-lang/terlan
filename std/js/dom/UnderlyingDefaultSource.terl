@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.UnderlyingDefaultSource.
+
+pub opaque type UnderlyingDefaultSource[R].
+
+pub (value: UnderlyingDefaultSource[R]) cancel(): UnderlyingSourceCancelCallback ->
+    native.

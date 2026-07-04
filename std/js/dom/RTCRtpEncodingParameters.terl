@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpEncodingParameters.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type RTCRtpEncodingParameters.
+
+pub (value: RTCRtpEncodingParameters) active(): std.core.Bool ->
+    native.
+
+pub (value: RTCRtpEncodingParameters) max_bitrate(): JsNumber ->
+    native.
+
+pub (value: RTCRtpEncodingParameters) max_framerate(): JsNumber ->
+    native.
+
+pub (value: RTCRtpEncodingParameters) network_priority(): RTCPriorityType ->
+    native.
+
+pub (value: RTCRtpEncodingParameters) priority(): RTCPriorityType ->
+    native.
+
+pub (value: RTCRtpEncodingParameters) scale_resolution_down_by(): JsNumber ->
+    native.

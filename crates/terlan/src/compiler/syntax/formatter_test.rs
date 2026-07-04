@@ -67,6 +67,41 @@ pub main(): Int -> 1.
     assert!(!output.contains("import test.Other.*."));
 }
 
+/// Verifies declaration annotations are preserved by source formatting.
+///
+/// Inputs:
+/// - A module with a marker `@test` annotation and a metadata annotation.
+///
+/// Output:
+/// - Formatted source containing both annotations before their declarations.
+///
+/// Transformation:
+/// - Exercises the formatter's declaration/annotation pairing so directory
+///   formatting cannot silently remove test or target metadata.
+#[test]
+fn formatter_preserves_declaration_annotations() {
+    let output = format_source_module(
+        r#"
+module annotation_fmt.
+
+@test
+pub parses_float(): Bool ->
+    1.0 == 1.0.
+
+@target.vm {process_mailbox: true}
+pub timeout(): Int ->
+    1.
+"#,
+    )
+    .expect("format annotated source");
+
+    assert!(output.contains("@test\npub parses_float(): Bool ->"));
+    assert!(output.contains("@target.vm"));
+    assert!(output.contains("process_mailbox"));
+    assert!(output.contains("true"));
+    assert!(output.contains("}\npub timeout(): Int ->"));
+}
+
 /// Verifies formatter output organizes imports alphabetically.
 ///
 /// Inputs:
@@ -107,6 +142,90 @@ pub main(): Int -> 1.
         import_lines.last(),
         Some(&"import std.io.Console. println.")
     );
+}
+
+/// Verifies formatter groups regular imports before type imports.
+///
+/// Inputs:
+/// - A source module with regular and type imports in mixed order.
+///
+/// Output:
+/// - Formatted source with alphabetized regular imports, a blank line, then
+///   alphabetized type imports.
+///
+/// Transformation:
+/// - Parses and formats the module, then checks both import group ordering and
+///   the visual separation between value/module imports and type imports.
+#[test]
+fn formatter_sorts_type_imports_after_regular_imports() {
+    let output = format_source_module(
+        r#"
+module sorted_type_import_fmt.
+
+import type app.zeta.Zeta.
+import app.beta.Beta.
+import type app.alpha.Alpha.
+import app.alpha.Alpha.
+
+pub main(): Int -> 1.
+"#,
+    )
+    .expect("format sorted type imports");
+
+    let import_lines = output
+        .lines()
+        .filter(|line| line.starts_with("import"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        import_lines,
+        vec![
+            "import app.alpha. Alpha.",
+            "import app.beta. Beta.",
+            "import type app.alpha.Alpha.",
+            "import type app.zeta.Zeta.",
+        ]
+    );
+    assert!(output.contains("import app.beta. Beta.\n\nimport type app.alpha.Alpha."));
+}
+
+/// Verifies repeated direct type mappings are promoted to type imports.
+///
+/// Inputs:
+/// - A generated-test-shaped module using `std.js.Number.JsNumber` in multiple
+///   type positions.
+///
+/// Output:
+/// - Formatted source imports `JsNumber` once and rewrites the repeated direct
+///   type references to the local type name.
+///
+/// Transformation:
+/// - Exercises formatter normalization for generated std.js tests so direct
+///   mapped types do not remain noisy after two or more uses.
+#[test]
+fn formatter_promotes_repeated_direct_type_mappings_to_type_imports() {
+    let output = format_source_module(
+        r#"
+module direct_type_import_fmt.
+
+import std.js.ArrayBuffer.{ArrayBuffer}.
+
+pub byte_length_typechecks(receiver: ArrayBuffer): std.js.Number.JsNumber ->
+    receiver.byte_length().
+
+pub slice_typechecks(receiver: ArrayBuffer, begin: std.js.Number.JsNumber, end: std.js.Number.JsNumber): ArrayBuffer ->
+    receiver.slice(begin, end).
+"#,
+    )
+    .expect("format repeated direct type mappings");
+
+    assert!(output.contains(
+        "import std.js.ArrayBuffer. ArrayBuffer.\n\nimport type std.js.Number.{JsNumber}."
+    ));
+    assert!(output.contains("pub byte_length_typechecks(receiver: ArrayBuffer): JsNumber ->"));
+    assert!(output.contains(
+        "pub slice_typechecks(receiver: ArrayBuffer, begin: JsNumber, end: JsNumber): ArrayBuffer ->"
+    ));
+    assert!(!output.contains("std.js.Number.JsNumber"));
 }
 
 /// Verifies canonical atom literals format with portable escapes.

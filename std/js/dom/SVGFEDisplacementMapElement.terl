@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEDisplacementMapElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEDisplacementMapElement`** interface corresponds to the feDisplacementMap element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement)
+ */
+pub opaque type SVGFEDisplacementMapElement.
+
+/**
+ * The **`in1`** read-only property of the SVGFEDisplacementMapElement interface reflects the in attribute of the given feDisplacementMap element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/in1)
+ */
+pub (value: SVGFEDisplacementMapElement) in1(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`in2`** read-only property of the SVGFEDisplacementMapElement interface reflects the in2 attribute of the given feDisplacementMap element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/in2)
+ */
+pub (value: SVGFEDisplacementMapElement) in2(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`scale`** read-only property of the SVGFEDisplacementMapElement interface reflects the scale attribute of the given feDisplacementMap element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/scale)
+ */
+pub (value: SVGFEDisplacementMapElement) scale(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`xChannelSelector`** read-only property of the SVGFEDisplacementMapElement interface reflects the xChannelSelector attribute of the given feDisplacementMap element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/xChannelSelector)
+ */
+pub (value: SVGFEDisplacementMapElement) x_channel_selector(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`yChannelSelector`** read-only property of the SVGFEDisplacementMapElement interface reflects the yChannelSelector attribute of the given feDisplacementMap element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/yChannelSelector)
+ */
+pub (value: SVGFEDisplacementMapElement) y_channel_selector(): SVGAnimatedEnumeration ->
+    native.
+
+pub (value: SVGFEDisplacementMapElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEDisplacementMapElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

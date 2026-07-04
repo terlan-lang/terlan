@@ -1,0 +1,82 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLMeterElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The HTML meter elements expose the **`HTMLMeterElement`** interface, which provides special properties and methods (beyond the HTMLElement object interface they also have available to them by inheritance) for manipulating the layout and presentation of meter elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement)
+ */
+pub opaque type HTMLMeterElement.
+
+/**
+ * The **`high`** property of the HTMLMeterElement interface represents the high boundary of the meter element as a floating-point number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/high)
+ */
+pub (value: HTMLMeterElement) high(): JsNumber ->
+    native.
+
+/**
+ * The **`HTMLMeterElement.labels`** read-only property returns a A NodeList containing the `<label>` elements associated with the `<meter>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/labels)
+ */
+pub (value: HTMLMeterElement) labels(): NodeListOf[HTMLLabelElement] ->
+    native.
+
+/**
+ * The **`low`** property of the HTMLMeterElement interface represents the low boundary of the meter element as a floating-point number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/low)
+ */
+pub (value: HTMLMeterElement) low(): JsNumber ->
+    native.
+
+/**
+ * The **`max`** property of the HTMLMeterElement interface represents the maximum value of the meter element as a floating-point number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/max)
+ */
+pub (value: HTMLMeterElement) max(): JsNumber ->
+    native.
+
+/**
+ * The **`min`** property of the HTMLMeterElement interface represents the minimum value of the meter element as a floating-point number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/min)
+ */
+pub (value: HTMLMeterElement) min(): JsNumber ->
+    native.
+
+/**
+ * The **`optimum`** property of the HTMLMeterElement interface represents the optimum boundary of the meter element as a floating-point number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/optimum)
+ */
+pub (value: HTMLMeterElement) optimum(): JsNumber ->
+    native.
+
+/**
+ * The **`value`** property of the HTMLMeterElement interface represents the current value of the meter element as a floating-point number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/value)
+ */
+pub (value: HTMLMeterElement) value(): JsNumber ->
+    native.
+
+pub (value: HTMLMeterElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLMeterElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

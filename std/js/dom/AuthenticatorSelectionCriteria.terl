@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticatorSelectionCriteria.
+
+pub opaque type AuthenticatorSelectionCriteria.
+
+pub (value: AuthenticatorSelectionCriteria) authenticator_attachment(): AuthenticatorAttachment ->
+    native.
+
+pub (value: AuthenticatorSelectionCriteria) require_resident_key(): std.core.Bool ->
+    native.
+
+pub (value: AuthenticatorSelectionCriteria) resident_key(): ResidentKeyRequirement ->
+    native.
+
+pub (value: AuthenticatorSelectionCriteria) user_verification(): UserVerificationRequirement ->
+    native.

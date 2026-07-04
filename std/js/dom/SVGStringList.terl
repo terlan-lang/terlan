@@ -1,0 +1,88 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGStringList.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGStringList`** interface defines a list of strings.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList)
+ */
+pub opaque type SVGStringList.
+
+/**
+ * The **`length`** property of the SVGStringList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/length)
+ */
+pub (value: SVGStringList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`numberOfItems`** property of the SVGStringList interface returns the number of items in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/numberOfItems)
+ */
+pub (value: SVGStringList) number_of_items(): JsNumber ->
+    native.
+
+/**
+ * The **`appendItem()`** method of the SVGStringList interface inserts a new item at the end of the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/appendItem)
+ */
+pub (value: SVGStringList) append_item(new_item: JsString): JsString ->
+    native.
+
+/**
+ * The **`clear()`** method of the SVGStringList interface clears all existing items from the list, with the result being an empty list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/clear)
+ */
+pub (value: SVGStringList) clear(): std.core.Unit ->
+    native.
+
+/**
+ * The **`getItem()`** method of the SVGStringList interface returns the specified item from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/getItem)
+ */
+pub (value: SVGStringList) get_item(index: JsNumber): JsString ->
+    native.
+
+/**
+ * The **`initialize()`** method of the SVGStringList interface clears all existing items from the list and re-initializes the list to hold the single item specified by the parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/initialize)
+ */
+pub (value: SVGStringList) initialize(new_item: JsString): JsString ->
+    native.
+
+/**
+ * The **`insertItemBefore()`** method of the SVGStringList interface inserts a new item into the list at the specified position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/insertItemBefore)
+ */
+pub (value: SVGStringList) insert_item_before(new_item: JsString, index: JsNumber): JsString ->
+    native.
+
+/**
+ * The **`removeItem()`** method of the SVGStringList interface removes an existing item at the given index from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/removeItem)
+ */
+pub (value: SVGStringList) remove_item(index: JsNumber): JsString ->
+    native.
+
+/**
+ * The **`replaceItem()`** method of the SVGStringList interface replaces an existing item in the list with a new item.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/replaceItem)
+ */
+pub (value: SVGStringList) replace_item(new_item: JsString, index: JsNumber): JsString ->
+    native.

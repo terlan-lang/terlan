@@ -24,10 +24,10 @@ writes deterministic templates for the manifest, Terlan DataFrame module,
 Rust adapter `Cargo.toml`, and Rust adapter ABI stub with local smoke tests. It
 does not inspect the upstream crate or produce broad bindings yet.
 
-The 0.0.4 TypeScript DOM implementation reads a pinned input manifest, validates
+The TypeScript DOM implementation reads a pinned input manifest, validates
 committed `.d.ts` hashes, parses declarations through Oxc, maps supported
 interfaces into `std.js.Dom.*` module plans, and writes deterministic `.terl`,
-`.terli`, `.typi`, and generated binding manifest files. It does not use npm
+`.typi`, and generated binding manifest files. It does not use npm
 resolution, Node package lookup, or the network during normal generation.
 
 ## Boundaries

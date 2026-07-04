@@ -1,8 +1,8 @@
 module=std.js.Dom.DecompressionStream
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=7901998342642876438
-interface_hash=14634229564230337774
-interface_doc_hash=14634229564230337774
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=5270185097877701377
+interface_hash=15709875112309689947
+interface_doc_hash=15709875112309689947
 deps=0

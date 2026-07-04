@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EncodedAudioChunkMetadata.
+
+pub opaque type EncodedAudioChunkMetadata.
+
+pub (value: EncodedAudioChunkMetadata) decoder_config(): AudioDecoderConfig ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.StructuredSerializeOptions.
+
+pub opaque type StructuredSerializeOptions.
+
+pub (value: StructuredSerializeOptions) transfer(): std.js.Array[Transferable] ->
+    native.

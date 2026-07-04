@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ReadonlyMap.
+
+pub opaque type ReadonlyMap[K, V].
+
+pub (value: ReadonlyMap[K, V]) get(key: K): Option[V] ->
+    native.
+
+pub (value: ReadonlyMap[K, V]) has(key: K): std.core.Bool ->
+    native.
+
+pub (value: ReadonlyMap[K, V]) size(): std.js.Number.JsNumber ->
+    native.

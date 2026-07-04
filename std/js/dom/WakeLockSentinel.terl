@@ -1,0 +1,49 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WakeLockSentinel.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`WakeLockSentinel`** interface of the Screen Wake Lock API can be used to monitor the status of the platform screen wake lock, and manually release the lock when needed.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel)
+ */
+pub opaque type WakeLockSentinel.
+
+/**
+ * The **`released`** read-only property of the WakeLockSentinel interface returns a boolean that indicates whether a WakeLockSentinel has been released.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/released)
+ */
+pub (value: WakeLockSentinel) released(): Bool ->
+    native.
+
+/**
+ * The **`type`** read-only property of the WakeLockSentinel interface returns a string representation of the currently acquired WakeLockSentinel type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/type)
+ */
+pub (value: WakeLockSentinel) type_(): WakeLockType ->
+    native.
+
+/**
+ * The **`release()`** method of the WakeLockSentinel interface releases the WakeLockSentinel, returning a Promise that is resolved once the sentinel has been successfully released.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/release)
+ */
+pub (value: WakeLockSentinel) release(): std.js.Promise[Unit] ->
+    native.
+
+pub (value: WakeLockSentinel) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: WakeLockSentinel) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

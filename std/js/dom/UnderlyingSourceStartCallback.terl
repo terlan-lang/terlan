@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.UnderlyingSourceStartCallback.
+
+pub opaque type UnderlyingSourceStartCallback[R].

@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLFontElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * Implements the document object model (DOM) representation of the font element.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement)
+ */
+pub opaque type HTMLFontElement.
+
+/**
+ * The obsolete **`HTMLFontElement.color`** property is a string that reflects the `color` HTML attribute, containing either a named color or a color specified in the hexadecimal #RRGGBB format.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/color)
+ */
+pub (value: HTMLFontElement) color(): JsString ->
+    native.
+
+/**
+ * The obsolete **`HTMLFontElement.face`** property is a string that reflects the `face` HTML attribute, containing a comma-separated list of one or more font names.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/face)
+ */
+pub (value: HTMLFontElement) face(): JsString ->
+    native.
+
+/**
+ * The obsolete **`HTMLFontElement.size`** property is a string that reflects the `size` HTML attribute.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/size)
+ */
+pub (value: HTMLFontElement) size(): JsString ->
+    native.
+
+pub (value: HTMLFontElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLFontElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

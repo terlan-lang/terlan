@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioWorkletNodeEventMap.
+
+pub opaque type AudioWorkletNodeEventMap.
+
+pub (value: AudioWorkletNodeEventMap) processorerror(): ErrorEvent ->
+    native.

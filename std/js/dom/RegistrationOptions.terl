@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RegistrationOptions.
+
+pub opaque type RegistrationOptions.
+
+pub (value: RegistrationOptions) scope(): std.js.String.JsString ->
+    native.
+
+pub (value: RegistrationOptions) type_(): WorkerType ->
+    native.
+
+pub (value: RegistrationOptions) update_via_cache(): ServiceWorkerUpdateViaCache ->
+    native.

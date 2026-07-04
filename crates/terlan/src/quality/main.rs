@@ -10,7 +10,7 @@ use crate::terlan_quality::{
     run_executable_docs_vm, run_internal_docs, run_module_readmes,
     run_native_binding_generator_contract, run_no_default_tokio_runtime, run_oxc_boundary,
     run_package_git_source, run_package_lockfile_contract, run_rust_quality, run_rustdoc,
-    run_test_hierarchy, run_vm_artifact_format, run_vm_coverage_100, write_rustdoc_baseline,
+    run_std_generated_metadata, run_std_source_naming, run_test_hierarchy, run_vm_artifact_format, run_vm_coverage_100, write_rustdoc_baseline,
 };
 
 /// Runs repository quality checks from the command line.
@@ -103,6 +103,32 @@ fn main() -> ExitCode {
                 println!(
                     "[test-hierarchy] {} Makefile script gates are release-owned.",
                     summary.invocation_count
+                );
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                eprintln!("{message}");
+                ExitCode::from(1)
+            }
+        },
+        Some("std-source-naming") => match run_std_source_naming(Path::new(".")) {
+            Ok(summary) => {
+                println!(
+                    "[std-source-naming] {} hand-authored std sources match module filenames.",
+                    summary.checked_source_count
+                );
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                eprintln!("{message}");
+                ExitCode::from(1)
+            }
+        },
+        Some("std-generated-metadata") => match run_std_generated_metadata(Path::new(".")) {
+            Ok(summary) => {
+                println!(
+                    "[std-generated-metadata] {} generated std artifacts have minimal headers.",
+                    summary.checked_file_count
                 );
                 ExitCode::SUCCESS
             }
@@ -265,7 +291,7 @@ fn main() -> ExitCode {
         }
         None => {
             eprintln!(
-                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|internal-docs|oxc-boundary|erlang-modernization-inventory|erlang-runtime-matrix|vm-artifact-format|vm-coverage-100|native-binding-generator-contract|no-default-tokio-runtime|package-git-source|package-lockfile-contract|executable-docs-vm>"
+                "usage: terlan-quality <rust-quality|rust-docs|module-readmes|cli-exact-selectors|test-hierarchy|std-source-naming|std-generated-metadata|internal-docs|oxc-boundary|erlang-modernization-inventory|erlang-runtime-matrix|vm-artifact-format|vm-coverage-100|native-binding-generator-contract|no-default-tokio-runtime|package-git-source|package-lockfile-contract|executable-docs-vm>"
             );
             ExitCode::from(2)
         }

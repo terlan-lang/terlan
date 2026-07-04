@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PerformanceEventMap.
+
+pub opaque type PerformanceEventMap.
+
+pub (value: PerformanceEventMap) resourcetimingbufferfull(): Event ->
+    native.

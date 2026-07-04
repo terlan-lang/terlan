@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSNumericArray.
+
+/**
+ * The **`CSSNumericArray`** interface of the CSS Typed Object Model API contains a list of CSSNumericValue objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericArray)
+ */
+pub opaque type CSSNumericArray.
+
+/**
+ * The read-only **`length`** property of the An integer representing the number of CSSNumericValue objects in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericArray/length)
+ */
+pub (value: CSSNumericArray) length(): std.js.Number.JsNumber ->
+    native.

@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WindowEventMap.
+
+pub opaque type WindowEventMap.
+
+pub (value: WindowEventMap) dom_content_loaded(): Event ->
+    native.
+
+pub (value: WindowEventMap) devicemotion(): DeviceMotionEvent ->
+    native.
+
+pub (value: WindowEventMap) deviceorientation(): DeviceOrientationEvent ->
+    native.
+
+pub (value: WindowEventMap) deviceorientationabsolute(): DeviceOrientationEvent ->
+    native.
+
+pub (value: WindowEventMap) gamepadconnected(): GamepadEvent ->
+    native.
+
+pub (value: WindowEventMap) gamepaddisconnected(): GamepadEvent ->
+    native.
+
+pub (value: WindowEventMap) orientationchange(): Event ->
+    native.

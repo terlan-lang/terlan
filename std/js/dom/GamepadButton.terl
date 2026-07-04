@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GamepadButton.
+
+import type std.core.{Bool}.
+
+/**
+ * The **`GamepadButton`** interface defines an individual button of a gamepad or other controller, allowing access to the current state of different types of buttons available on the control device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadButton)
+ */
+pub opaque type GamepadButton.
+
+/**
+ * The **`GamepadButton.pressed`** property of the the button is currently pressed (`true`) or unpressed (`false`).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadButton/pressed)
+ */
+pub (value: GamepadButton) pressed(): Bool ->
+    native.
+
+/**
+ * The **`touched`** property of the a button capable of detecting touch is currently touched (`true`) or not touched (`false`).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadButton/touched)
+ */
+pub (value: GamepadButton) touched(): Bool ->
+    native.
+
+/**
+ * The **`GamepadButton.value`** property of the current state of analog buttons on many modern gamepads, such as the triggers.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadButton/value)
+ */
+pub (value: GamepadButton) value(): std.js.Number.JsNumber ->
+    native.

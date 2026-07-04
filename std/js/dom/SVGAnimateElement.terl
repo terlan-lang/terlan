@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGAnimateElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGAnimateElement`** interface corresponds to the animate element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimateElement)
+ */
+pub opaque type SVGAnimateElement.
+
+pub (value: SVGAnimateElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGAnimateElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ChannelSplitterOptions.
+
+pub opaque type ChannelSplitterOptions.
+
+pub (value: ChannelSplitterOptions) number_of_outputs(): std.js.Number.JsNumber ->
+    native.

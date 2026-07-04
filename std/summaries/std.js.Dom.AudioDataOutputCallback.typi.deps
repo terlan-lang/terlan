@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioDataOutputCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=9300996122986747961
-interface_hash=13161135559206218689
-interface_doc_hash=13161135559206218689
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=5397558640646196666
+interface_hash=5397558640646196666
+interface_doc_hash=5397558640646196666
 deps=0

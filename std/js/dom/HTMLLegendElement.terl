@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLLegendElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLLegendElement`** is an interface allowing to access properties of the legend elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLegendElement)
+ */
+pub opaque type HTMLLegendElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLLegendElement) align(): JsString ->
+    native.
+
+/**
+ * The **`form`** read-only property of the HTMLLegendElement interface returns an HTMLFormElement object that owns the HTMLFieldSetElement associated with this legend, or `null` if this legend is not associated with a fieldset owned by a form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLegendElement/form)
+ */
+pub (value: HTMLLegendElement) form(): Option[HTMLFormElement] ->
+    native.
+
+pub (value: HTMLLegendElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLLegendElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

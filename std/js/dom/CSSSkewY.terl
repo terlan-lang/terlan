@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSSkewY.
+
+/**
+ * The **`CSSSkewY`** interface of the CSS Typed Object Model API represents the `skewY()` value of the individual transform property in CSS.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkewY)
+ */
+pub opaque type CSSSkewY.
+
+/**
+ * The **`ay`** property of the along the y-axis (or ordinate).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkewY/ay)
+ */
+pub (value: CSSSkewY) ay(): CSSNumericValue ->
+    native.

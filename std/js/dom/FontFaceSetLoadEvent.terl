@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FontFaceSetLoadEvent.
+
+/**
+ * The **`FontFaceSetLoadEvent`** interface of the CSS Font Loading API represents events fired at a FontFaceSet after it starts loading font faces.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSetLoadEvent)
+ */
+pub opaque type FontFaceSetLoadEvent.
+
+/**
+ * The **`fontfaces`** read-only property of the An array of FontFace instance.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSetLoadEvent/fontfaces)
+ */
+pub (value: FontFaceSetLoadEvent) fontfaces(): std.js.Array[FontFace] ->
+    native.

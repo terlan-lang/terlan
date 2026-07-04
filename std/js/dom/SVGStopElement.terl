@@ -1,0 +1,32 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGStopElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGStopElement`** interface corresponds to the stop element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStopElement)
+ */
+pub opaque type SVGStopElement.
+
+/**
+ * The **`offset`** read-only property of the SVGStopElement interface reflects the offset attribute of the given stop element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStopElement/offset)
+ */
+pub (value: SVGStopElement) offset(): SVGAnimatedNumber ->
+    native.
+
+pub (value: SVGStopElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGStopElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

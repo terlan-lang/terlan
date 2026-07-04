@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DOMParser.
+
+/**
+ * The **`DOMParser`** interface provides the ability to parse XML or HTML source code from a string into a DOM Document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMParser)
+ */
+pub opaque type DOMParser.
+
+/**
+ * The **`parseFromString()`** method of the DOMParser interface parses a string containing either HTML or XML, returning an HTMLDocument or an XMLDocument.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMParser/parseFromString)
+ */
+pub (value: DOMParser) parse_from_string(string: std.js.String.JsString, type_: DOMParserSupportedType): Document ->
+    native.

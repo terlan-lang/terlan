@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PageSwapEvent.
+
+/**
+ * The **`PageSwapEvent`** event object is made available inside handler functions for the Window.pageswap_event event.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageSwapEvent)
+ */
+pub opaque type PageSwapEvent.
+
+/**
+ * The **`activation`** read-only property of the PageSwapEvent interface contains a NavigationActivation object containing the navigation type and current and destination document history entries for a same-origin navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageSwapEvent/activation)
+ */
+pub (value: PageSwapEvent) activation(): Option[NavigationActivation] ->
+    native.
+
+/**
+ * The **`viewTransition`** read-only property of the PageRevealEvent interface contains a ViewTransition object representing the active view transition for the cross-document navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageSwapEvent/viewTransition)
+ */
+pub (value: PageSwapEvent) view_transition(): Option[ViewTransition] ->
+    native.

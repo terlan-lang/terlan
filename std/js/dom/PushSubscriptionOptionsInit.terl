@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PushSubscriptionOptionsInit.
+
+pub opaque type PushSubscriptionOptionsInit.
+
+pub (value: PushSubscriptionOptionsInit) application_server_key(): Option[BufferSource | std.js.String.JsString] ->
+    native.
+
+pub (value: PushSubscriptionOptionsInit) user_visible_only(): std.core.Bool ->
+    native.

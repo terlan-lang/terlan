@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGAnimatedPreserveAspectRatio.
+
+/**
+ * The **`SVGAnimatedPreserveAspectRatio`** interface represents attributes of type SVGPreserveAspectRatio which can be animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedPreserveAspectRatio)
+ */
+pub opaque type SVGAnimatedPreserveAspectRatio.
+
+/**
+ * The **`animVal`** read-only property of the SVGAnimatedPreserveAspectRatio interface represents the value of the preserveAspectRatio attribute of an SVG element after any animations or transformations are applied.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedPreserveAspectRatio/animVal)
+ */
+pub (value: SVGAnimatedPreserveAspectRatio) anim_val(): SVGPreserveAspectRatio ->
+    native.
+
+/**
+ * The **`baseVal`** read-only property of the SVGAnimatedPreserveAspectRatio interface represents the base (non-animated) value of the preserveAspectRatio attribute of an SVG element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedPreserveAspectRatio/baseVal)
+ */
+pub (value: SVGAnimatedPreserveAspectRatio) base_val(): SVGPreserveAspectRatio ->
+    native.

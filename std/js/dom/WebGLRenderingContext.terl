@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebGLRenderingContext.
+
+/**
+ * The **`WebGLRenderingContext`** interface provides an interface to the OpenGL ES 2.0 graphics rendering context for the drawing surface of an HTML canvas element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext)
+ */
+pub opaque type WebGLRenderingContext.

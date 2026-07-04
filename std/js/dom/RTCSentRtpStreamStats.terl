@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCSentRtpStreamStats.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type RTCSentRtpStreamStats.
+
+pub (value: RTCSentRtpStreamStats) bytes_sent(): JsNumber ->
+    native.
+
+pub (value: RTCSentRtpStreamStats) packets_sent(): JsNumber ->
+    native.

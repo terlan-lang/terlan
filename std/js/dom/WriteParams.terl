@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WriteParams.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type WriteParams.
+
+pub (value: WriteParams) data(): Option[Blob | BufferSource | std.js.String.JsString] ->
+    native.
+
+pub (value: WriteParams) position(): Option[JsNumber] ->
+    native.
+
+pub (value: WriteParams) size(): Option[JsNumber] ->
+    native.
+
+pub (value: WriteParams) type_(): WriteCommandType ->
+    native.

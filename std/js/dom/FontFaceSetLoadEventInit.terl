@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FontFaceSetLoadEventInit.
+
+pub opaque type FontFaceSetLoadEventInit.
+
+pub (value: FontFaceSetLoadEventInit) fontfaces(): std.js.Array[FontFace] ->
+    native.

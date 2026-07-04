@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NotificationEventMap.
+
+pub opaque type NotificationEventMap.
+
+pub (value: NotificationEventMap) click(): Event ->
+    native.
+
+pub (value: NotificationEventMap) close(): Event ->
+    native.
+
+pub (value: NotificationEventMap) error(): Event ->
+    native.
+
+pub (value: NotificationEventMap) show(): Event ->
+    native.

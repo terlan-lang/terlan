@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCCertificateExpiration.
+
+pub opaque type RTCCertificateExpiration.
+
+pub (value: RTCCertificateExpiration) expires(): std.js.Number.JsNumber ->
+    native.

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImportNodeOptions.
+
+pub opaque type ImportNodeOptions.
+
+pub (value: ImportNodeOptions) custom_element_registry(): CustomElementRegistry ->
+    native.
+
+pub (value: ImportNodeOptions) self_only(): std.core.Bool ->
+    native.

@@ -1,8 +1,8 @@
 module=std.js.Dom.OfflineAudioContextEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=8343614854745512572
-interface_hash=983559127656986052
-interface_doc_hash=983559127656986052
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=13880414870451726461
+interface_hash=258399136597764437
+interface_doc_hash=258399136597764437
 deps=0

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.RangeErrorConstructor.
+
+pub opaque type RangeErrorConstructor.
+
+pub (value: RangeErrorConstructor) prototype(): RangeError ->
+    native.

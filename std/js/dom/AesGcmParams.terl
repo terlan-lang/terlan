@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AesGcmParams.
+
+pub opaque type AesGcmParams.
+
+pub (value: AesGcmParams) additional_data(): BufferSource ->
+    native.
+
+pub (value: AesGcmParams) iv(): BufferSource ->
+    native.
+
+pub (value: AesGcmParams) tag_length(): std.js.Number.JsNumber ->
+    native.

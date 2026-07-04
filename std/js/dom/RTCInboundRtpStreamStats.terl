@@ -1,0 +1,167 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCInboundRtpStreamStats.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RTCInboundRtpStreamStats.
+
+pub (value: RTCInboundRtpStreamStats) audio_level(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) bytes_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) concealed_samples(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) concealment_events(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) decoder_implementation(): JsString ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) estimated_playout_timestamp(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) fec_bytes_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) fec_packets_discarded(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) fec_packets_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) fec_ssrc(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) fir_count(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frame_height(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frame_width(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frames_assembled_from_multiple_packets(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frames_decoded(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frames_dropped(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frames_per_second(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frames_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) frames_rendered(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) freeze_count(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) header_bytes_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) inserted_samples_for_deceleration(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_delay(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_emitted_count(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_minimum_delay(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) jitter_buffer_target_delay(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) key_frames_decoded(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) last_packet_received_timestamp(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) mid(): JsString ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) nack_count(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) packets_discarded(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) pause_count(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) playout_id(): JsString ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) pli_count(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) qp_sum(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) remote_id(): JsString ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) removed_samples_for_acceleration(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) retransmitted_bytes_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) retransmitted_packets_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) rtx_ssrc(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) silent_concealed_samples(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_assembly_time(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_audio_energy(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_decode_time(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_freezes_duration(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_inter_frame_delay(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_pauses_duration(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_processing_delay(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_samples_duration(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_samples_received(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) total_squared_inter_frame_delay(): JsNumber ->
+    native.
+
+pub (value: RTCInboundRtpStreamStats) track_identifier(): JsString ->
+    native.

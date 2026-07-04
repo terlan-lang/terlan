@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoDecoderConfig.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type VideoDecoderConfig.
+
+pub (value: VideoDecoderConfig) codec(): std.js.String.JsString ->
+    native.
+
+pub (value: VideoDecoderConfig) coded_height(): JsNumber ->
+    native.
+
+pub (value: VideoDecoderConfig) coded_width(): JsNumber ->
+    native.
+
+pub (value: VideoDecoderConfig) color_space(): VideoColorSpaceInit ->
+    native.
+
+pub (value: VideoDecoderConfig) description(): AllowSharedBufferSource ->
+    native.
+
+pub (value: VideoDecoderConfig) display_aspect_height(): JsNumber ->
+    native.
+
+pub (value: VideoDecoderConfig) display_aspect_width(): JsNumber ->
+    native.
+
+pub (value: VideoDecoderConfig) hardware_acceleration(): HardwareAcceleration ->
+    native.
+
+pub (value: VideoDecoderConfig) optimize_for_latency(): std.core.Bool ->
+    native.

@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ReadableStreamDefaultController.
+
+import type std.core.{Unit}.
+
+/**
+ * The **`ReadableStreamDefaultController`** interface of the Streams API represents a controller allowing control of a ReadableStream's state and internal queue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController)
+ */
+pub opaque type ReadableStreamDefaultController[R].
+
+/**
+ * The **`desiredSize`** read-only property of the required to fill the stream's internal queue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/desiredSize)
+ */
+pub (value: ReadableStreamDefaultController[R]) desired_size(): Option[std.js.Number.JsNumber] ->
+    native.
+
+/**
+ * The **`close()`** method of the ReadableStreamDefaultController interface closes the associated stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/close)
+ */
+pub (value: ReadableStreamDefaultController[R]) close(): Unit ->
+    native.
+
+/**
+ * The **`enqueue()`** method of the ```js-nolint enqueue(chunk) ``` - `chunk` - : The chunk to enqueue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/enqueue)
+ */
+pub (value: ReadableStreamDefaultController[R]) enqueue(chunk: R): Unit ->
+    native.

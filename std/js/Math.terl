@@ -1,0 +1,185 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Math.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type Math.
+
+/**
+ * The mathematical constant e. This is Euler's number, the base of natural logarithms.
+ */
+pub (value: Math) e(): JsNumber ->
+    native.
+
+/**
+ * The natural logarithm of 10.
+ */
+pub (value: Math) ln10(): JsNumber ->
+    native.
+
+/**
+ * The natural logarithm of 2.
+ */
+pub (value: Math) ln2(): JsNumber ->
+    native.
+
+/**
+ * The base-2 logarithm of e.
+ */
+pub (value: Math) log2_e(): JsNumber ->
+    native.
+
+/**
+ * The base-10 logarithm of e.
+ */
+pub (value: Math) log10_e(): JsNumber ->
+    native.
+
+/**
+ * Pi. This is the ratio of the circumference of a circle to its diameter.
+ */
+pub (value: Math) pi(): JsNumber ->
+    native.
+
+/**
+ * The square root of 0.5, or, equivalently, one divided by the square root of 2.
+ */
+pub (value: Math) sqrt1_2(): JsNumber ->
+    native.
+
+/**
+ * The square root of 2.
+ */
+pub (value: Math) sqrt2(): JsNumber ->
+    native.
+
+/**
+ * Returns the absolute value of a number (the value without regard to whether it is positive or negative).
+ * For example, the absolute value of -5 is the same as the absolute value of 5.
+ * @param x A numeric expression for which the absolute value is needed.
+ */
+pub (value: Math) abs(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the arc cosine (or inverse cosine) of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) acos(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the arcsine of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) asin(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the arctangent of a number.
+ * @param x A numeric expression for which the arctangent is needed.
+ */
+pub (value: Math) atan(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the angle (in radians) between the X axis and the line going through both the origin and the given point.
+ * @param y A numeric expression representing the cartesian y-coordinate.
+ * @param x A numeric expression representing the cartesian x-coordinate.
+ */
+pub (value: Math) atan2(y: JsNumber, x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the smallest integer greater than or equal to its numeric argument.
+ * @param x A numeric expression.
+ */
+pub (value: Math) ceil(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the cosine of a number.
+ * @param x A numeric expression that contains an angle measured in radians.
+ */
+pub (value: Math) cos(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns e (the base of natural logarithms) raised to a power.
+ * @param x A numeric expression representing the power of e.
+ */
+pub (value: Math) exp(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the greatest integer less than or equal to its numeric argument.
+ * @param x A numeric expression.
+ */
+pub (value: Math) floor(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the natural logarithm (base e) of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) log(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the larger of a set of supplied numeric expressions.
+ * @param values Numeric expressions to be evaluated.
+ */
+pub (value: Math) max(): JsNumber ->
+    native.
+
+/**
+ * Returns the smaller of a set of supplied numeric expressions.
+ * @param values Numeric expressions to be evaluated.
+ */
+pub (value: Math) min(): JsNumber ->
+    native.
+
+/**
+ * Returns the value of a base expression taken to a specified power.
+ * @param x The base value of the expression.
+ * @param y The exponent value of the expression.
+ */
+pub (value: Math) pow(x: JsNumber, y: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns a pseudorandom number between 0 and 1.
+ */
+pub (value: Math) random(): JsNumber ->
+    native.
+
+/**
+ * Returns a supplied numeric expression rounded to the nearest integer.
+ * @param x The value to be rounded to the nearest integer.
+ */
+pub (value: Math) round(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the sine of a number.
+ * @param x A numeric expression that contains an angle measured in radians.
+ */
+pub (value: Math) sin(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the square root of a number.
+ * @param x A numeric expression.
+ */
+pub (value: Math) sqrt(x: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns the tangent of a number.
+ * @param x A numeric expression that contains an angle measured in radians.
+ */
+pub (value: Math) tan(x: JsNumber): JsNumber ->
+    native.

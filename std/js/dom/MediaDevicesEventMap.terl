@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaDevicesEventMap.
+
+pub opaque type MediaDevicesEventMap.
+
+pub (value: MediaDevicesEventMap) devicechange(): Event ->
+    native.

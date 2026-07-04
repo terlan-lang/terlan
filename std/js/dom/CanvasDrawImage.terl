@@ -1,0 +1,23 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasDrawImage.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasDrawImage.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/drawImage)
+ */
+pub (value: CanvasDrawImage) draw_image(image: CanvasImageSource, dx: JsNumber, dy: JsNumber): Unit ->
+    native.
+
+pub (value: CanvasDrawImage) draw_image(image: CanvasImageSource, dx: JsNumber, dy: JsNumber, dw: JsNumber, dh: JsNumber): Unit ->
+    native.
+
+pub (value: CanvasDrawImage) draw_image(image: CanvasImageSource, sx: JsNumber, sy: JsNumber, sw: JsNumber, sh: JsNumber, dx: JsNumber, dy: JsNumber, dw: JsNumber, dh: JsNumber): Unit ->
+    native.

@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioDataCopyToOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type AudioDataCopyToOptions.
+
+pub (value: AudioDataCopyToOptions) format(): AudioSampleFormat ->
+    native.
+
+pub (value: AudioDataCopyToOptions) frame_count(): JsNumber ->
+    native.
+
+pub (value: AudioDataCopyToOptions) frame_offset(): JsNumber ->
+    native.
+
+pub (value: AudioDataCopyToOptions) plane_index(): JsNumber ->
+    native.

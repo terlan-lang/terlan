@@ -1,42 +1,39 @@
 /**
  * @generated true
  * @do-not-edit true
- * @generator terlc
- * @generator-version 0.0.4
- * @generator-profile typescript-standard-js-dom
- * @artifact-kind test
- * @input-manifest std/js/manifests/std_js_dom_inputs.json
- * @source-package typescript@5.9.3
- * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
- * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
- * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
- * @source-interface HTMLObjectElement
  */
-
 module std.js.Dom.HTMLObjectElementTest.
 
-import type std.js.Dom.HTMLObjectElement.HTMLObjectElement.
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Dom.HTMLObjectElement.{HTMLObjectElement}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
 
 @test
 pub generated_binding_surface_exists(): Bool ->
     true.
 
-pub align_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub align_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.align().
 
-pub archive_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub archive_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.archive().
 
-pub border_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub border_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.border().
 
-pub code_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub code_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.code().
 
-pub code_base_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub code_base_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.code_base().
 
-pub code_type_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub code_type_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.code_type().
 
 pub content_document_typechecks(receiver: HTMLObjectElement): Option[Document] ->
@@ -45,62 +42,62 @@ pub content_document_typechecks(receiver: HTMLObjectElement): Option[Document] -
 pub content_window_typechecks(receiver: HTMLObjectElement): Option[WindowProxy] ->
     receiver.content_window().
 
-pub data_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub data_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.data().
 
-pub declare_typechecks(receiver: HTMLObjectElement): std.core.Bool ->
+pub declare_typechecks(receiver: HTMLObjectElement): Bool ->
     receiver.declare().
 
 pub form_typechecks(receiver: HTMLObjectElement): Option[HTMLFormElement] ->
     receiver.form().
 
-pub height_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub height_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.height().
 
-pub hspace_typechecks(receiver: HTMLObjectElement): std.js.Number.JsNumber ->
+pub hspace_typechecks(receiver: HTMLObjectElement): JsNumber ->
     receiver.hspace().
 
-pub name_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub name_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.name().
 
-pub standby_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub standby_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.standby().
 
-pub type__typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub type__typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.type_().
 
-pub use_map_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub use_map_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.use_map().
 
-pub validation_message_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub validation_message_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.validation_message().
 
 pub validity_typechecks(receiver: HTMLObjectElement): ValidityState ->
     receiver.validity().
 
-pub vspace_typechecks(receiver: HTMLObjectElement): std.js.Number.JsNumber ->
+pub vspace_typechecks(receiver: HTMLObjectElement): JsNumber ->
     receiver.vspace().
 
-pub width_typechecks(receiver: HTMLObjectElement): std.js.String.JsString ->
+pub width_typechecks(receiver: HTMLObjectElement): JsString ->
     receiver.width().
 
-pub will_validate_typechecks(receiver: HTMLObjectElement): std.core.Bool ->
+pub will_validate_typechecks(receiver: HTMLObjectElement): Bool ->
     receiver.will_validate().
 
-pub check_validity_typechecks(receiver: HTMLObjectElement): std.core.Bool ->
+pub check_validity_typechecks(receiver: HTMLObjectElement): Bool ->
     receiver.check_validity().
 
 pub get_svg_document_typechecks(receiver: HTMLObjectElement): Option[Document] ->
     receiver.get_svg_document().
 
-pub report_validity_typechecks(receiver: HTMLObjectElement): std.core.Bool ->
+pub report_validity_typechecks(receiver: HTMLObjectElement): Bool ->
     receiver.report_validity().
 
-pub set_custom_validity_typechecks(receiver: HTMLObjectElement, error: std.js.String.JsString): std.core.Unit ->
+pub set_custom_validity_typechecks(receiver: HTMLObjectElement, error: JsString): Unit ->
     receiver.set_custom_validity(error).
 
-pub add_event_listener_typechecks(receiver: HTMLObjectElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+pub add_event_listener_typechecks(receiver: HTMLObjectElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: HTMLObjectElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+pub remove_event_listener_typechecks(receiver: HTMLObjectElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
     receiver.remove_event_listener(type_, listener, options).

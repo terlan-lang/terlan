@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.XMLHttpRequestEventMap.
+
+pub opaque type XMLHttpRequestEventMap.
+
+pub (value: XMLHttpRequestEventMap) readystatechange(): Event ->
+    native.

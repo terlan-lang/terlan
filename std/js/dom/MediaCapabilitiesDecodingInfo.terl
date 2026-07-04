@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaCapabilitiesDecodingInfo.
+
+pub opaque type MediaCapabilitiesDecodingInfo.
+
+pub (value: MediaCapabilitiesDecodingInfo) key_system_access(): Option[MediaKeySystemAccess] ->
+    native.

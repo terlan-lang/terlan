@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ConstrainULongRange.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ConstrainULongRange.
+
+pub (value: ConstrainULongRange) exact(): JsNumber ->
+    native.
+
+pub (value: ConstrainULongRange) ideal(): JsNumber ->
+    native.

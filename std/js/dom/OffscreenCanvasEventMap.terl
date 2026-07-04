@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.OffscreenCanvasEventMap.
+
+pub opaque type OffscreenCanvasEventMap.
+
+pub (value: OffscreenCanvasEventMap) contextlost(): Event ->
+    native.
+
+pub (value: OffscreenCanvasEventMap) contextrestored(): Event ->
+    native.

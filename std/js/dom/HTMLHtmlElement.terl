@@ -1,0 +1,33 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLHtmlElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLHtmlElement`** interface serves as the root node for a given HTML document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLHtmlElement)
+ */
+pub opaque type HTMLHtmlElement.
+
+/**
+ * Returns version information about the document type definition (DTD) of a document.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLHtmlElement/version)
+ */
+pub (value: HTMLHtmlElement) version(): JsString ->
+    native.
+
+pub (value: HTMLHtmlElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLHtmlElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ErrorConstructor.
+
+pub opaque type ErrorConstructor.
+
+pub (value: ErrorConstructor) prototype(): Error ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.SyntaxErrorConstructor.
+
+pub opaque type SyntaxErrorConstructor.
+
+pub (value: SyntaxErrorConstructor) prototype(): SyntaxError ->
+    native.

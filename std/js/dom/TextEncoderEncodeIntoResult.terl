@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextEncoderEncodeIntoResult.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type TextEncoderEncodeIntoResult.
+
+pub (value: TextEncoderEncodeIntoResult) read(): JsNumber ->
+    native.
+
+pub (value: TextEncoderEncodeIntoResult) written(): JsNumber ->
+    native.

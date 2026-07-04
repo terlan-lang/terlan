@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextEncoderStream.
+
+/**
+ * The **`TextEncoderStream`** interface of the Encoding API converts a stream of strings into bytes in the UTF-8 encoding.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoderStream)
+ */
+pub opaque type TextEncoderStream.
+
+pub (value: TextEncoderStream) readable(): ReadableStream[Uint8Array[ArrayBuffer]] ->
+    native.
+
+pub (value: TextEncoderStream) writable(): WritableStream[std.js.String.JsString] ->
+    native.

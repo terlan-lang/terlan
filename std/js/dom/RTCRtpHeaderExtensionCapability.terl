@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpHeaderExtensionCapability.
+
+pub opaque type RTCRtpHeaderExtensionCapability.
+
+pub (value: RTCRtpHeaderExtensionCapability) uri(): std.js.String.JsString ->
+    native.

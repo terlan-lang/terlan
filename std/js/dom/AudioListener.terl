@@ -1,0 +1,106 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioListener.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The `AudioListener` interface represents the position and orientation of the unique person listening to the audio scene, and is used in audio spatialization.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener)
+ */
+pub opaque type AudioListener.
+
+/**
+ * The `forwardX` read-only property of the AudioListener interface is an AudioParam representing the x value of the direction vector defining the forward direction the listener is pointing in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/forwardX)
+ */
+pub (value: AudioListener) forward_x(): AudioParam ->
+    native.
+
+/**
+ * The `forwardY` read-only property of the AudioListener interface is an AudioParam representing the y value of the direction vector defining the forward direction the listener is pointing in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/forwardY)
+ */
+pub (value: AudioListener) forward_y(): AudioParam ->
+    native.
+
+/**
+ * The `forwardZ` read-only property of the AudioListener interface is an AudioParam representing the z value of the direction vector defining the forward direction the listener is pointing in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/forwardZ)
+ */
+pub (value: AudioListener) forward_z(): AudioParam ->
+    native.
+
+/**
+ * The `positionX` read-only property of the AudioListener interface is an AudioParam representing the x position of the listener in 3D cartesian space.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/positionX)
+ */
+pub (value: AudioListener) position_x(): AudioParam ->
+    native.
+
+/**
+ * The `positionY` read-only property of the AudioListener interface is an AudioParam representing the y position of the listener in 3D cartesian space.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/positionY)
+ */
+pub (value: AudioListener) position_y(): AudioParam ->
+    native.
+
+/**
+ * The `positionZ` read-only property of the AudioListener interface is an AudioParam representing the z position of the listener in 3D cartesian space.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/positionZ)
+ */
+pub (value: AudioListener) position_z(): AudioParam ->
+    native.
+
+/**
+ * The `upX` read-only property of the AudioListener interface is an AudioParam representing the x value of the direction vector defining the up direction the listener is pointing in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/upX)
+ */
+pub (value: AudioListener) up_x(): AudioParam ->
+    native.
+
+/**
+ * The `upY` read-only property of the AudioListener interface is an AudioParam representing the y value of the direction vector defining the up direction the listener is pointing in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/upY)
+ */
+pub (value: AudioListener) up_y(): AudioParam ->
+    native.
+
+/**
+ * The `upZ` read-only property of the AudioListener interface is an AudioParam representing the z value of the direction vector defining the up direction the listener is pointing in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/upZ)
+ */
+pub (value: AudioListener) up_z(): AudioParam ->
+    native.
+
+/**
+ * The `setOrientation()` method of the AudioListener interface defines the orientation of the listener.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/setOrientation)
+ */
+pub (value: AudioListener) set_orientation(x: JsNumber, y: JsNumber, z: JsNumber, x_up: JsNumber, y_up: JsNumber, z_up: JsNumber): Unit ->
+    native.
+
+/**
+ * The `setPosition()` method of the AudioListener Interface defines the position of the listener.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/setPosition)
+ */
+pub (value: AudioListener) set_position(x: JsNumber, y: JsNumber, z: JsNumber): Unit ->
+    native.

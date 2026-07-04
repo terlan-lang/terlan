@@ -1,8 +1,8 @@
 module=std.js.Dom.VideoConfiguration
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=7770335421559046439
-interface_hash=11070116899073876442
-interface_doc_hash=11070116899073876442
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=14203845218031643020
+interface_hash=4465663081623221657
+interface_doc_hash=4465663081623221657
 deps=0

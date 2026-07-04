@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.StyleSheetList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The `StyleSheetList` interface represents a list of CSSStyleSheet objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList)
+ */
+pub opaque type StyleSheetList.
+
+/**
+ * The **`length`** read-only property of the StyleSheetList interface returns the number of CSSStyleSheet objects in the collection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList/length)
+ */
+pub (value: StyleSheetList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`item()`** method of the StyleSheetList interface returns a single CSSStyleSheet object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList/item)
+ */
+pub (value: StyleSheetList) item(index: JsNumber): Option[CSSStyleSheet] ->
+    native.

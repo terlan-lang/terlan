@@ -1,8 +1,8 @@
 module=std.js.Dom.EXT_color_buffer_float
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=6508567033476467939
-interface_hash=14777951985574530244
-interface_doc_hash=14777951985574530244
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=18117550311592851023
+interface_hash=18117550311592851023
+interface_doc_hash=18117550311592851023
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSContainerRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=15145527222579221948
-interface_hash=15493224909909263378
-interface_doc_hash=15493224909909263378
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=14626899934629221409
+interface_hash=10802531351427070200
+interface_doc_hash=10802531351427070200
 deps=0

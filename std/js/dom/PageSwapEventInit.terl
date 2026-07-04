@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PageSwapEventInit.
+
+pub opaque type PageSwapEventInit.
+
+pub (value: PageSwapEventInit) activation(): Option[NavigationActivation] ->
+    native.
+
+pub (value: PageSwapEventInit) view_transition(): Option[ViewTransition] ->
+    native.

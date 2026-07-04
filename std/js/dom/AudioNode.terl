@@ -1,0 +1,101 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioNode.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`AudioNode`** interface is a generic interface for representing an audio processing module.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode)
+ */
+pub opaque type AudioNode.
+
+/**
+ * The **`channelCount`** property of the AudioNode interface represents an integer used to determine how many channels are used when up-mixing and down-mixing connections to any inputs to the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelCount)
+ */
+pub (value: AudioNode) channel_count(): JsNumber ->
+    native.
+
+/**
+ * The `channelCountMode` property of the AudioNode interface represents an enumerated value describing the way channels must be matched between the node's inputs and outputs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelCountMode)
+ */
+pub (value: AudioNode) channel_count_mode(): ChannelCountMode ->
+    native.
+
+/**
+ * The **`channelInterpretation`** property of the AudioNode interface represents an enumerated value describing how input channels are mapped to output channels when the number of inputs/outputs is different.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelInterpretation)
+ */
+pub (value: AudioNode) channel_interpretation(): ChannelInterpretation ->
+    native.
+
+/**
+ * The read-only `context` property of the the node is participating in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/context)
+ */
+pub (value: AudioNode) context(): BaseAudioContext ->
+    native.
+
+/**
+ * The `numberOfInputs` property of the AudioNode interface returns the number of inputs feeding the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/numberOfInputs)
+ */
+pub (value: AudioNode) number_of_inputs(): JsNumber ->
+    native.
+
+/**
+ * The `numberOfOutputs` property of the AudioNode interface returns the number of outputs coming out of the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/numberOfOutputs)
+ */
+pub (value: AudioNode) number_of_outputs(): JsNumber ->
+    native.
+
+/**
+ * The `connect()` method of the AudioNode interface lets you connect one of the node's outputs to a target, which may be either another `AudioNode` (thereby directing the sound data to the specified node) or an change the value of that parameter over time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/connect)
+ */
+pub (value: AudioNode) connect(destination_node: AudioNode, output: JsNumber, input: JsNumber): AudioNode ->
+    native.
+
+pub (value: AudioNode) connect(destination_param: AudioParam, output: JsNumber): Unit ->
+    native.
+
+/**
+ * The **`disconnect()`** method of the AudioNode interface lets you disconnect one or more nodes from the node on which the method is called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/disconnect)
+ */
+pub (value: AudioNode) disconnect(): Unit ->
+    native.
+
+pub (value: AudioNode) disconnect(output: JsNumber): Unit ->
+    native.
+
+pub (value: AudioNode) disconnect(destination_node: AudioNode): Unit ->
+    native.
+
+pub (value: AudioNode) disconnect(destination_node: AudioNode, output: JsNumber): Unit ->
+    native.
+
+pub (value: AudioNode) disconnect(destination_node: AudioNode, output: JsNumber, input: JsNumber): Unit ->
+    native.
+
+pub (value: AudioNode) disconnect(destination_param: AudioParam): Unit ->
+    native.
+
+pub (value: AudioNode) disconnect(destination_param: AudioParam, output: JsNumber): Unit ->
+    native.

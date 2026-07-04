@@ -1,0 +1,33 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSNumericType.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CSSNumericType.
+
+pub (value: CSSNumericType) angle(): JsNumber ->
+    native.
+
+pub (value: CSSNumericType) flex(): JsNumber ->
+    native.
+
+pub (value: CSSNumericType) frequency(): JsNumber ->
+    native.
+
+pub (value: CSSNumericType) length(): JsNumber ->
+    native.
+
+pub (value: CSSNumericType) percent(): JsNumber ->
+    native.
+
+pub (value: CSSNumericType) percent_hint(): CSSNumericBaseType ->
+    native.
+
+pub (value: CSSNumericType) resolution(): JsNumber ->
+    native.
+
+pub (value: CSSNumericType) time(): JsNumber ->
+    native.

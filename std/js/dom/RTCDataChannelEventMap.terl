@@ -1,0 +1,25 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDataChannelEventMap.
+
+pub opaque type RTCDataChannelEventMap.
+
+pub (value: RTCDataChannelEventMap) bufferedamountlow(): Event ->
+    native.
+
+pub (value: RTCDataChannelEventMap) close(): Event ->
+    native.
+
+pub (value: RTCDataChannelEventMap) closing(): Event ->
+    native.
+
+pub (value: RTCDataChannelEventMap) error(): RTCErrorEvent ->
+    native.
+
+pub (value: RTCDataChannelEventMap) message(): MessageEvent ->
+    native.
+
+pub (value: RTCDataChannelEventMap) open(): Event ->
+    native.

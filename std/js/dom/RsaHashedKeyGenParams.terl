@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RsaHashedKeyGenParams.
+
+pub opaque type RsaHashedKeyGenParams.
+
+pub (value: RsaHashedKeyGenParams) hash(): HashAlgorithmIdentifier ->
+    native.

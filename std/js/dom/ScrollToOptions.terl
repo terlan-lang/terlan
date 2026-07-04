@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ScrollToOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ScrollToOptions.
+
+pub (value: ScrollToOptions) left(): JsNumber ->
+    native.
+
+pub (value: ScrollToOptions) top(): JsNumber ->
+    native.

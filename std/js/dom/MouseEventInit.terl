@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MouseEventInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type MouseEventInit.
+
+pub (value: MouseEventInit) button(): JsNumber ->
+    native.
+
+pub (value: MouseEventInit) buttons(): JsNumber ->
+    native.
+
+pub (value: MouseEventInit) client_x(): JsNumber ->
+    native.
+
+pub (value: MouseEventInit) client_y(): JsNumber ->
+    native.
+
+pub (value: MouseEventInit) movement_x(): JsNumber ->
+    native.
+
+pub (value: MouseEventInit) movement_y(): JsNumber ->
+    native.
+
+pub (value: MouseEventInit) related_target(): Option[EventTarget] ->
+    native.
+
+pub (value: MouseEventInit) screen_x(): JsNumber ->
+    native.
+
+pub (value: MouseEventInit) screen_y(): JsNumber ->
+    native.

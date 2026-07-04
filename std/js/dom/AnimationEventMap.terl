@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AnimationEventMap.
+
+pub opaque type AnimationEventMap.
+
+pub (value: AnimationEventMap) cancel(): AnimationPlaybackEvent ->
+    native.
+
+pub (value: AnimationEventMap) finish(): AnimationPlaybackEvent ->
+    native.
+
+pub (value: AnimationEventMap) remove(): AnimationPlaybackEvent ->
+    native.

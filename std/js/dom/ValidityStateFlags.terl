@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ValidityStateFlags.
+
+import type std.core.{Bool}.
+
+pub opaque type ValidityStateFlags.
+
+pub (value: ValidityStateFlags) bad_input(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) custom_error(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) pattern_mismatch(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) range_overflow(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) range_underflow(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) step_mismatch(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) too_long(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) too_short(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) type_mismatch(): Bool ->
+    native.
+
+pub (value: ValidityStateFlags) value_missing(): Bool ->
+    native.

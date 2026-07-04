@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpHeaderExtensionParameters.
+
+pub opaque type RTCRtpHeaderExtensionParameters.
+
+pub (value: RTCRtpHeaderExtensionParameters) encrypted(): std.core.Bool ->
+    native.
+
+pub (value: RTCRtpHeaderExtensionParameters) id(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCRtpHeaderExtensionParameters) uri(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Transformer.
+
+pub opaque type Transformer[I, O].
+
+pub (value: Transformer[I, O]) flush(): TransformerFlushCallback[O] ->
+    native.
+
+pub (value: Transformer[I, O]) start(): TransformerStartCallback[O] ->
+    native.
+
+pub (value: Transformer[I, O]) transform(): TransformerTransformCallback[I , O] ->
+    native.

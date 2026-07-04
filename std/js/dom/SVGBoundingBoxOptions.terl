@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGBoundingBoxOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type SVGBoundingBoxOptions.
+
+pub (value: SVGBoundingBoxOptions) clipped(): Bool ->
+    native.
+
+pub (value: SVGBoundingBoxOptions) fill(): Bool ->
+    native.
+
+pub (value: SVGBoundingBoxOptions) markers(): Bool ->
+    native.
+
+pub (value: SVGBoundingBoxOptions) stroke(): Bool ->
+    native.

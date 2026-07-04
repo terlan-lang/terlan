@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventInit.
+
+import type std.core.{Bool}.
+
+pub opaque type EventInit.
+
+pub (value: EventInit) bubbles(): Bool ->
+    native.
+
+pub (value: EventInit) cancelable(): Bool ->
+    native.
+
+pub (value: EventInit) composed(): Bool ->
+    native.

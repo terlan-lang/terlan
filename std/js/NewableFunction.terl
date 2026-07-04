@@ -1,0 +1,32 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.NewableFunction.
+
+import type std.core.{Unit}.
+
+pub opaque type NewableFunction.
+
+/**
+ * Calls the function with the specified object as the this value and the elements of specified array as the arguments.
+ * @param thisArg The object to be used as the this object.
+ */
+pub (value: NewableFunction) apply(this_arg: T): Unit ->
+    native.
+
+/**
+ * Calls the function with the specified object as the this value and the elements of specified array as the arguments.
+ * @param thisArg The object to be used as the this object.
+ * @param args An array of argument values to be passed to the function.
+ */
+pub (value: NewableFunction) apply(this_arg: T, args: A): Unit ->
+    native.
+
+/**
+ * Calls the function with the specified object as the this value and the specified rest arguments as the arguments.
+ * @param thisArg The object to be used as the this object.
+ * @param args Argument values to be passed to the function.
+ */
+pub (value: NewableFunction) call(this_arg: T): Unit ->
+    native.

@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBKeyRange.
+
+import type std.core.{Bool}.
+
+/**
+ * The **`IDBKeyRange`** interface of the IndexedDB API represents a continuous interval over some data type that is used for keys.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBKeyRange)
+ */
+pub opaque type IDBKeyRange.
+
+/**
+ * The **`lowerOpen`** read-only property of the lower-bound value is included in the key range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBKeyRange/lowerOpen)
+ */
+pub (value: IDBKeyRange) lower_open(): Bool ->
+    native.
+
+/**
+ * The **`upperOpen`** read-only property of the upper-bound value is included in the key range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBKeyRange/upperOpen)
+ */
+pub (value: IDBKeyRange) upper_open(): Bool ->
+    native.

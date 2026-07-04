@@ -1,0 +1,22 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SourceBufferEventMap.
+
+pub opaque type SourceBufferEventMap.
+
+pub (value: SourceBufferEventMap) abort(): Event ->
+    native.
+
+pub (value: SourceBufferEventMap) error(): Event ->
+    native.
+
+pub (value: SourceBufferEventMap) update(): Event ->
+    native.
+
+pub (value: SourceBufferEventMap) updateend(): Event ->
+    native.
+
+pub (value: SourceBufferEventMap) updatestart(): Event ->
+    native.

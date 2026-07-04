@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DeviceOrientationEventInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DeviceOrientationEventInit.
+
+pub (value: DeviceOrientationEventInit) absolute(): std.core.Bool ->
+    native.
+
+pub (value: DeviceOrientationEventInit) alpha(): Option[JsNumber] ->
+    native.
+
+pub (value: DeviceOrientationEventInit) beta(): Option[JsNumber] ->
+    native.
+
+pub (value: DeviceOrientationEventInit) gamma(): Option[JsNumber] ->
+    native.

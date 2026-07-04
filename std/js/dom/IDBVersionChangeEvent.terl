@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBVersionChangeEvent.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`IDBVersionChangeEvent`** interface of the IndexedDB API indicates that the version of the database has changed, as the result of an IDBOpenDBRequest.upgradeneeded_event event handler function.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBVersionChangeEvent)
+ */
+pub opaque type IDBVersionChangeEvent.
+
+/**
+ * The **`newVersion`** read-only property of the database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBVersionChangeEvent/newVersion)
+ */
+pub (value: IDBVersionChangeEvent) new_version(): Option[JsNumber] ->
+    native.
+
+/**
+ * The **`oldVersion`** read-only property of the database.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBVersionChangeEvent/oldVersion)
+ */
+pub (value: IDBVersionChangeEvent) old_version(): JsNumber ->
+    native.

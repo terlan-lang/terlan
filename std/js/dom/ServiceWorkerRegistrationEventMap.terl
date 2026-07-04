@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ServiceWorkerRegistrationEventMap.
+
+pub opaque type ServiceWorkerRegistrationEventMap.
+
+pub (value: ServiceWorkerRegistrationEventMap) updatefound(): Event ->
+    native.

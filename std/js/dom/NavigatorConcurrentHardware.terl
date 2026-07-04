@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigatorConcurrentHardware.
+
+pub opaque type NavigatorConcurrentHardware.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/hardwareConcurrency)
+ */
+pub (value: NavigatorConcurrentHardware) hardware_concurrency(): std.js.Number.JsNumber ->
+    native.

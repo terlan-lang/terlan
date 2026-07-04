@@ -1,0 +1,32 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Int32ArrayConstructor.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type Int32ArrayConstructor.
+
+pub (value: Int32ArrayConstructor) prototype(): Int32Array[ArrayBufferLike] ->
+    native.
+
+/**
+ * The size in bytes of each element in the array.
+ */
+pub (value: Int32ArrayConstructor) bytes_per_element(): JsNumber ->
+    native.
+
+/**
+ * Returns a new array from a set of elements.
+ * @param items A set of elements to include in the new array object.
+ */
+pub (value: Int32ArrayConstructor) of(): Int32Array[ArrayBuffer] ->
+    native.
+
+/**
+ * Creates an array from an array-like or iterable object.
+ * @param arrayLike An array-like object to convert to an array.
+ */
+pub (value: Int32ArrayConstructor) from_(array_like: ArrayLike[JsNumber]): Int32Array[ArrayBuffer] ->
+    native.

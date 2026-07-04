@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSRuleList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * A `CSSRuleList` represents an ordered collection of read-only CSSRule objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRuleList)
+ */
+pub opaque type CSSRuleList.
+
+/**
+ * The **`length`** property of the CSSRuleList interface returns the number of CSSRule objects in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRuleList/length)
+ */
+pub (value: CSSRuleList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`item()`** method of the CSSRuleList interface returns the CSSRule object at the specified `index` or `null` if the specified `index` doesn't exist.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRuleList/item)
+ */
+pub (value: CSSRuleList) item(index: JsNumber): Option[CSSRule] ->
+    native.

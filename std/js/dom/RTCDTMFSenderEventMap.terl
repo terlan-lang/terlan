@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDTMFSenderEventMap.
+
+pub opaque type RTCDTMFSenderEventMap.
+
+pub (value: RTCDTMFSenderEventMap) tonechange(): RTCDTMFToneChangeEvent ->
+    native.

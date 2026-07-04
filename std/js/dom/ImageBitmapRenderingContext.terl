@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageBitmapRenderingContext.
+
+/**
+ * The **`ImageBitmapRenderingContext`** interface is a canvas rendering context that provides the functionality to replace the canvas's contents with the given ImageBitmap.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmapRenderingContext)
+ */
+pub opaque type ImageBitmapRenderingContext.
+
+/**
+ * The **`ImageBitmapRenderingContext.canvas`** property, part of the Canvas API, is a read-only reference to the A HTMLCanvasElement or OffscreenCanvas object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmapRenderingContext/canvas)
+ */
+pub (value: ImageBitmapRenderingContext) canvas(): HTMLCanvasElement | OffscreenCanvas ->
+    native.
+
+/**
+ * The **`ImageBitmapRenderingContext.transferFromImageBitmap()`** method displays the given ImageBitmap in the canvas associated with this rendering context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmapRenderingContext/transferFromImageBitmap)
+ */
+pub (value: ImageBitmapRenderingContext) transfer_from_image_bitmap(bitmap: Option[ImageBitmap]): std.core.Unit ->
+    native.

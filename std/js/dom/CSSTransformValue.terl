@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSTransformValue.
+
+/**
+ * The **`CSSTransformValue`** interface of the CSS Typed Object Model API represents `transform-list` values as used by the CSS transform property.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue)
+ */
+pub opaque type CSSTransformValue.
+
+/**
+ * The read-only **`is2D`** property of the In the case of the `CSSTransformValue` this property returns true unless any of the individual functions return false for `Is2D`, in which case it returns false.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue/is2D)
+ */
+pub (value: CSSTransformValue) is2_d(): std.core.Bool ->
+    native.
+
+/**
+ * The read-only **`length`** property of the the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue/length)
+ */
+pub (value: CSSTransformValue) length(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`toMatrix()`** method of the ```js-nolint toMatrix() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransformValue/toMatrix)
+ */
+pub (value: CSSTransformValue) to_matrix(): DOMMatrix ->
+    native.

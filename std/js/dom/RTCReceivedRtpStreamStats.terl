@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCReceivedRtpStreamStats.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type RTCReceivedRtpStreamStats.
+
+pub (value: RTCReceivedRtpStreamStats) jitter(): JsNumber ->
+    native.
+
+pub (value: RTCReceivedRtpStreamStats) packets_lost(): JsNumber ->
+    native.
+
+pub (value: RTCReceivedRtpStreamStats) packets_received(): JsNumber ->
+    native.

@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DOMStringList.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`DOMStringList`** interface is a legacy type returned by some APIs and represents a non-modifiable list of strings (`DOMString`).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList)
+ */
+pub opaque type DOMStringList.
+
+/**
+ * The read-only **`length`** property indicates the number of strings in the DOMStringList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList/length)
+ */
+pub (value: DOMStringList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`contains()`** method returns a boolean indicating whether the given string is in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList/contains)
+ */
+pub (value: DOMStringList) contains(string: JsString): std.core.Bool ->
+    native.
+
+/**
+ * The **`item()`** method returns a string from a `DOMStringList` by index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList/item)
+ */
+pub (value: DOMStringList) item(index: JsNumber): Option[JsString] ->
+    native.

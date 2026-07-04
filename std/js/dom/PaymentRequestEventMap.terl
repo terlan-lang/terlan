@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentRequestEventMap.
+
+pub opaque type PaymentRequestEventMap.
+
+pub (value: PaymentRequestEventMap) paymentmethodchange(): PaymentMethodChangeEvent ->
+    native.
+
+pub (value: PaymentRequestEventMap) shippingaddresschange(): PaymentRequestUpdateEvent ->
+    native.
+
+pub (value: PaymentRequestEventMap) shippingoptionchange(): PaymentRequestUpdateEvent ->
+    native.

@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DeviceMotionEventRotationRate.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * A **`DeviceMotionEventRotationRate`** interface of the Device Orientation Events provides information about the rate at which the device is rotating around all three axes.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate)
+ */
+pub opaque type DeviceMotionEventRotationRate.
+
+/**
+ * The **`alpha`** read-only property of the DeviceMotionEventRotationRate interface indicates the rate of rotation around the Z axis, in degrees per second.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/alpha)
+ */
+pub (value: DeviceMotionEventRotationRate) alpha(): Option[JsNumber] ->
+    native.
+
+/**
+ * The **`beta`** read-only property of the DeviceMotionEventRotationRate interface indicates the rate of rotation around the X axis, in degrees per second.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/beta)
+ */
+pub (value: DeviceMotionEventRotationRate) beta(): Option[JsNumber] ->
+    native.
+
+/**
+ * The **`gamma`** read-only property of the DeviceMotionEventRotationRate interface indicates the rate of rotation around the Y axis, in degrees per second.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/gamma)
+ */
+pub (value: DeviceMotionEventRotationRate) gamma(): Option[JsNumber] ->
+    native.

@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventCounts.
+
+/**
+ * The **`EventCounts`** interface of the Performance API provides the number of events that have been dispatched for each event type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventCounts)
+ */
+pub opaque type EventCounts.

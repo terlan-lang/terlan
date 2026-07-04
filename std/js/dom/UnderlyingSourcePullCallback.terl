@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.UnderlyingSourcePullCallback.
+
+pub opaque type UnderlyingSourcePullCallback[R].

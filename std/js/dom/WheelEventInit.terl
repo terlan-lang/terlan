@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WheelEventInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type WheelEventInit.
+
+pub (value: WheelEventInit) delta_mode(): JsNumber ->
+    native.
+
+pub (value: WheelEventInit) delta_x(): JsNumber ->
+    native.
+
+pub (value: WheelEventInit) delta_y(): JsNumber ->
+    native.
+
+pub (value: WheelEventInit) delta_z(): JsNumber ->
+    native.

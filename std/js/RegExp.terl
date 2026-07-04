@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.RegExp.
+
+import type std.core.{Bool}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RegExp.
+
+/**
+ * Executes a search on a string using a regular expression pattern, and returns an array containing the results of that search.
+ * @param string The String object or string literal on which to perform the search.
+ */
+pub (value: RegExp) exec(string: JsString): Option[RegExpExecArray] ->
+    native.
+
+/**
+ * Returns a Boolean value that indicates whether or not a pattern exists in a searched string.
+ * @param string String on which to perform the search.
+ */
+pub (value: RegExp) test(string: JsString): Bool ->
+    native.
+
+/**
+ * Returns a copy of the text of the regular expression pattern. Read-only. The regExp argument is a Regular expression object. It can be a variable name or a literal.
+ */
+pub (value: RegExp) source(): JsString ->
+    native.
+
+/**
+ * Returns a Boolean value indicating the state of the global flag (g) used with a regular expression. Default is false. Read-only.
+ */
+pub (value: RegExp) global(): Bool ->
+    native.
+
+/**
+ * Returns a Boolean value indicating the state of the ignoreCase flag (i) used with a regular expression. Default is false. Read-only.
+ */
+pub (value: RegExp) ignore_case(): Bool ->
+    native.
+
+/**
+ * Returns a Boolean value indicating the state of the multiline flag (m) used with a regular expression. Default is false. Read-only.
+ */
+pub (value: RegExp) multiline(): Bool ->
+    native.
+
+pub (value: RegExp) last_index(): std.js.Number.JsNumber ->
+    native.

@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoFrameBufferInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type VideoFrameBufferInit.
+
+pub (value: VideoFrameBufferInit) coded_height(): JsNumber ->
+    native.
+
+pub (value: VideoFrameBufferInit) coded_width(): JsNumber ->
+    native.
+
+pub (value: VideoFrameBufferInit) color_space(): VideoColorSpaceInit ->
+    native.
+
+pub (value: VideoFrameBufferInit) display_height(): JsNumber ->
+    native.
+
+pub (value: VideoFrameBufferInit) display_width(): JsNumber ->
+    native.
+
+pub (value: VideoFrameBufferInit) duration(): JsNumber ->
+    native.
+
+pub (value: VideoFrameBufferInit) format(): VideoPixelFormat ->
+    native.
+
+pub (value: VideoFrameBufferInit) layout(): std.js.Array[PlaneLayout] ->
+    native.
+
+pub (value: VideoFrameBufferInit) timestamp(): JsNumber ->
+    native.
+
+pub (value: VideoFrameBufferInit) visible_rect(): DOMRectInit ->
+    native.

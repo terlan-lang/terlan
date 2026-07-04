@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ServiceWorkerContainerEventMap.
+
+pub opaque type ServiceWorkerContainerEventMap.
+
+pub (value: ServiceWorkerContainerEventMap) controllerchange(): Event ->
+    native.
+
+pub (value: ServiceWorkerContainerEventMap) message(): MessageEvent ->
+    native.
+
+pub (value: ServiceWorkerContainerEventMap) messageerror(): MessageEvent ->
+    native.

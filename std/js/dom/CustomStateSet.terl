@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CustomStateSet.
+
+/**
+ * The **`CustomStateSet`** interface of the Document Object Model stores a list of states for an autonomous custom element, and allows states to be added and removed from the set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomStateSet)
+ */
+pub opaque type CustomStateSet.

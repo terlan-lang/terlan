@@ -197,12 +197,13 @@ pub(super) fn format_import(import: &ImportDecl) -> String {
         return out;
     }
 
-    if import.items.len() == 1 {
-        if import.is_type && is_redundant_default_type_import(import) {
-            out.push_str(&import.module_name);
-            out.push('.');
-            return out;
-        }
+    if import.is_type && import.is_selected && import.items.len() == 1 {
+        out.push('{');
+        out.push_str(&format_import_item(&import.items[0]));
+        out.push('}');
+    } else if import.is_type && import.items.len() == 1 {
+        out.push_str(&format_import_item(&import.items[0]));
+    } else if import.items.len() == 1 {
         out.push(' ');
         out.push_str(&format_import_item(&import.items[0]));
     } else {
@@ -221,29 +222,6 @@ pub(super) fn format_import(import: &ImportDecl) -> String {
 
     out.push('.');
     out
-}
-
-/// Returns whether a type import repeats its default exported type name.
-///
-/// Inputs:
-/// - `import`: parsed import declaration.
-///
-/// Output:
-/// - `true` when the import item repeats its module basename.
-///
-/// Transformation:
-/// - Compares the selected item with the module's final segment when no alias
-///   is present.
-fn is_redundant_default_type_import(import: &ImportDecl) -> bool {
-    let Some(item) = import.items.first() else {
-        return false;
-    };
-    item.as_alias.is_none()
-        && import
-            .module_name
-            .rsplit('.')
-            .next()
-            .is_some_and(|last_segment| last_segment == item.name)
 }
 
 /// Formats one selected import item.

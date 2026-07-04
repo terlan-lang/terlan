@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventSource.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`EventSource`** interface is web content's interface to server-sent events.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource)
+ */
+pub opaque type EventSource.
+
+/**
+ * The **`readyState`** read-only property of the connection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/readyState)
+ */
+pub (value: EventSource) ready_state(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`url`** read-only property of the URL of the source.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/url)
+ */
+pub (value: EventSource) url(): JsString ->
+    native.
+
+/**
+ * The **`withCredentials`** read-only property of the the `EventSource` object was instantiated with CORS credentials set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/withCredentials)
+ */
+pub (value: EventSource) with_credentials(): Bool ->
+    native.
+
+/**
+ * The **`close()`** method of the EventSource interface closes the connection, if one is made, and sets the ```js-nolint close() ``` None.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/close)
+ */
+pub (value: EventSource) close(): Unit ->
+    native.
+
+pub (value: EventSource) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: EventSource) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

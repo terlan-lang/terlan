@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSMatrixComponentOptions.
+
+pub opaque type CSSMatrixComponentOptions.
+
+pub (value: CSSMatrixComponentOptions) is2_d(): std.core.Bool ->
+    native.

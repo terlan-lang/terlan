@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaCapabilitiesInfo.
+
+import type std.core.{Bool}.
+
+pub opaque type MediaCapabilitiesInfo.
+
+pub (value: MediaCapabilitiesInfo) power_efficient(): Bool ->
+    native.
+
+pub (value: MediaCapabilitiesInfo) smooth(): Bool ->
+    native.
+
+pub (value: MediaCapabilitiesInfo) supported(): Bool ->
+    native.

@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentDetailsModifier.
+
+pub opaque type PaymentDetailsModifier.
+
+pub (value: PaymentDetailsModifier) additional_display_items(): std.js.Array[PaymentItem] ->
+    native.
+
+pub (value: PaymentDetailsModifier) supported_methods(): std.js.String.JsString ->
+    native.
+
+pub (value: PaymentDetailsModifier) total(): PaymentItem ->
+    native.

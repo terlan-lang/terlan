@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSMathProduct.
+
+/**
+ * The **`CSSMathProduct`** interface of the CSS Typed Object Model API represents the result obtained by calling CSSNumericValue.add, CSSNumericValue.sub, or CSSNumericValue.toSum on CSSNumericValue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathProduct)
+ */
+pub opaque type CSSMathProduct.
+
+/**
+ * The **`CSSMathProduct.values`** read-only property of the CSSMathProduct interface returns a A CSSNumericArray.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathProduct/values)
+ */
+pub (value: CSSMathProduct) values(): CSSNumericArray ->
+    native.

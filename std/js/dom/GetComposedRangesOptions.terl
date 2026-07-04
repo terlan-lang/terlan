@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GetComposedRangesOptions.
+
+pub opaque type GetComposedRangesOptions.
+
+pub (value: GetComposedRangesOptions) shadow_roots(): std.js.Array[ShadowRoot] ->
+    native.

@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCTrackEventInit.
+
+pub opaque type RTCTrackEventInit.
+
+pub (value: RTCTrackEventInit) receiver(): RTCRtpReceiver ->
+    native.
+
+pub (value: RTCTrackEventInit) streams(): std.js.Array[MediaStream] ->
+    native.
+
+pub (value: RTCTrackEventInit) track(): MediaStreamTrack ->
+    native.
+
+pub (value: RTCTrackEventInit) transceiver(): RTCRtpTransceiver ->
+    native.

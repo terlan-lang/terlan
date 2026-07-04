@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioBufferSourceOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type AudioBufferSourceOptions.
+
+pub (value: AudioBufferSourceOptions) buffer(): Option[AudioBuffer] ->
+    native.
+
+pub (value: AudioBufferSourceOptions) detune(): JsNumber ->
+    native.
+
+pub (value: AudioBufferSourceOptions) loop(): std.core.Bool ->
+    native.
+
+pub (value: AudioBufferSourceOptions) loop_end(): JsNumber ->
+    native.
+
+pub (value: AudioBufferSourceOptions) loop_start(): JsNumber ->
+    native.
+
+pub (value: AudioBufferSourceOptions) playback_rate(): JsNumber ->
+    native.

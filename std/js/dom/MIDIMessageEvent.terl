@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MIDIMessageEvent.
+
+/**
+ * The **`MIDIMessageEvent`** interface of the Web MIDI API represents the event passed to the MIDIInput.midimessage_event event of the MIDIInput interface.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIMessageEvent)
+ */
+pub opaque type MIDIMessageEvent.
+
+/**
+ * The **`data`** read-only property of the MIDIMessageEvent interface returns the MIDI data bytes of a single MIDI message.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIMessageEvent/data)
+ */
+pub (value: MIDIMessageEvent) data(): Option[Uint8Array[ArrayBuffer]] ->
+    native.

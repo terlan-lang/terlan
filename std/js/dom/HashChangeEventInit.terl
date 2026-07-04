@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HashChangeEventInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type HashChangeEventInit.
+
+pub (value: HashChangeEventInit) new_url(): JsString ->
+    native.
+
+pub (value: HashChangeEventInit) old_url(): JsString ->
+    native.

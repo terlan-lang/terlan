@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.KeyboardEventInit.
+
+import type std.core.{Bool}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type KeyboardEventInit.
+
+/**
+ * @deprecated
+ */
+pub (value: KeyboardEventInit) char_code(): JsNumber ->
+    native.
+
+pub (value: KeyboardEventInit) code(): JsString ->
+    native.
+
+pub (value: KeyboardEventInit) is_composing(): Bool ->
+    native.
+
+pub (value: KeyboardEventInit) key(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: KeyboardEventInit) key_code(): JsNumber ->
+    native.
+
+pub (value: KeyboardEventInit) location(): JsNumber ->
+    native.
+
+pub (value: KeyboardEventInit) repeat(): Bool ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.DataViewConstructor.
+
+pub opaque type DataViewConstructor.
+
+pub (value: DataViewConstructor) prototype(): DataView[ArrayBufferLike] ->
+    native.

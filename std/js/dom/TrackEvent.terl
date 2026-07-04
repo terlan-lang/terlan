@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TrackEvent.
+
+/**
+ * The **`TrackEvent`** interface of the HTML DOM API is used for events which represent changes to a set of available tracks on an HTML media element; these events are `addtrack` and `removetrack`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TrackEvent)
+ */
+pub opaque type TrackEvent.
+
+/**
+ * The read-only **`track`** property of the TrackEvent interface specifies the media track object to which the event applies.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TrackEvent/track)
+ */
+pub (value: TrackEvent) track(): Option[TextTrack] ->
+    native.

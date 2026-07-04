@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGAnimatedNumberList
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=8840006914213802995
-interface_hash=13456441462719434628
-interface_doc_hash=13456441462719434628
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=12689702605793698408
+interface_hash=1012842988677088352
+interface_doc_hash=1012842988677088352
 deps=0

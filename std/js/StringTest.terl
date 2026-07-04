@@ -1,6 +1,6 @@
 module tests.js.std.StringTest.
 
-import type std.js.String.JsString.
+import type std.js.String.{JsString}.
 
 pub accepts_js_string(value: JsString): JsString ->
     value.

@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpCapabilities.
+
+import type std.js.{Array}.
+
+pub opaque type RTCRtpCapabilities.
+
+pub (value: RTCRtpCapabilities) codecs(): Array[RTCRtpCodec] ->
+    native.
+
+pub (value: RTCRtpCapabilities) header_extensions(): Array[RTCRtpHeaderExtensionCapability] ->
+    native.

@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoFrameCopyToOptions.
+
+pub opaque type VideoFrameCopyToOptions.
+
+pub (value: VideoFrameCopyToOptions) color_space(): PredefinedColorSpace ->
+    native.
+
+pub (value: VideoFrameCopyToOptions) format(): VideoPixelFormat ->
+    native.
+
+pub (value: VideoFrameCopyToOptions) layout(): std.js.Array[PlaneLayout] ->
+    native.
+
+pub (value: VideoFrameCopyToOptions) rect(): DOMRectInit ->
+    native.

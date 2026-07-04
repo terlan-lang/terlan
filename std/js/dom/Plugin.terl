@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Plugin.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The `Plugin` interface provides information about a browser plugin.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Plugin)
+ */
+pub opaque type Plugin.
+
+/**
+ * Returns the plugin's description.
+ * @deprecated
+ */
+pub (value: Plugin) description(): JsString ->
+    native.
+
+/**
+ * Returns the plugin library's filename, if applicable on the current platform.
+ * @deprecated
+ */
+pub (value: Plugin) filename(): JsString ->
+    native.
+
+/**
+ * Returns the number of MIME types, represented by MimeType objects, supported by the plugin.
+ * @deprecated
+ */
+pub (value: Plugin) length(): JsNumber ->
+    native.
+
+/**
+ * Returns the plugin's name.
+ * @deprecated
+ */
+pub (value: Plugin) name(): JsString ->
+    native.
+
+/**
+ * Returns the specified MimeType object.
+ * @deprecated
+ */
+pub (value: Plugin) item(index: JsNumber): Option[MimeType] ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: Plugin) named_item(name: JsString): Option[MimeType] ->
+    native.

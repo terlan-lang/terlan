@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageBitmapOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ImageBitmapOptions.
+
+pub (value: ImageBitmapOptions) color_space_conversion(): ColorSpaceConversion ->
+    native.
+
+pub (value: ImageBitmapOptions) image_orientation(): ImageOrientation ->
+    native.
+
+pub (value: ImageBitmapOptions) premultiply_alpha(): PremultiplyAlpha ->
+    native.
+
+pub (value: ImageBitmapOptions) resize_height(): JsNumber ->
+    native.
+
+pub (value: ImageBitmapOptions) resize_quality(): ResizeQuality ->
+    native.
+
+pub (value: ImageBitmapOptions) resize_width(): JsNumber ->
+    native.

@@ -1,0 +1,46 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageData.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`ImageData`** interface represents the underlying pixel data of an area of a canvas element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageData)
+ */
+pub opaque type ImageData.
+
+/**
+ * The read-only **`ImageData.colorSpace`** property is a string indicating the color space of the image data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageData/colorSpace)
+ */
+pub (value: ImageData) color_space(): PredefinedColorSpace ->
+    native.
+
+/**
+ * The readonly **`ImageData.data`** property returns a pixel data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageData/data)
+ */
+pub (value: ImageData) data(): ImageDataArray ->
+    native.
+
+/**
+ * The readonly **`ImageData.height`** property returns the number of rows in the ImageData object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageData/height)
+ */
+pub (value: ImageData) height(): JsNumber ->
+    native.
+
+/**
+ * The readonly **`ImageData.width`** property returns the number of pixels per row in the ImageData object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageData/width)
+ */
+pub (value: ImageData) width(): JsNumber ->
+    native.

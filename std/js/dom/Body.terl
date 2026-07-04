@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Body.
+
+import type std.js.{Promise}.
+
+pub opaque type Body.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/body)
+ */
+pub (value: Body) body(): Option[ReadableStream[Uint8Array[ArrayBuffer]]] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bodyUsed)
+ */
+pub (value: Body) body_used(): std.core.Bool ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/arrayBuffer)
+ */
+pub (value: Body) array_buffer(): Promise[ArrayBuffer] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/blob)
+ */
+pub (value: Body) blob(): Promise[Blob] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bytes)
+ */
+pub (value: Body) bytes(): Promise[Uint8Array[ArrayBuffer]] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/formData)
+ */
+pub (value: Body) form_data(): Promise[FormData] ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/text)
+ */
+pub (value: Body) text(): Promise[std.js.String.JsString] ->
+    native.

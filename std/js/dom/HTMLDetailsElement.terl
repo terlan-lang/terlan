@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLDetailsElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLDetailsElement`** interface provides special properties (beyond the regular HTMLElement interface it also has available to it by inheritance) for manipulating details elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDetailsElement)
+ */
+pub opaque type HTMLDetailsElement.
+
+/**
+ * The **`name`** property of the HTMLDetailsElement interface reflects the `name` attribute of details elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDetailsElement/name)
+ */
+pub (value: HTMLDetailsElement) name(): JsString ->
+    native.
+
+/**
+ * The **`open`** property of the `open` HTML attribute, indicating whether the details's contents (not counting the summary) is to be shown to the user.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDetailsElement/open)
+ */
+pub (value: HTMLDetailsElement) open(): Bool ->
+    native.
+
+pub (value: HTMLDetailsElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLDetailsElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioEncoderInit.
+
+pub opaque type AudioEncoderInit.
+
+pub (value: AudioEncoderInit) error(): WebCodecsErrorCallback ->
+    native.
+
+pub (value: AudioEncoderInit) output(): EncodedAudioChunkOutputCallback ->
+    native.

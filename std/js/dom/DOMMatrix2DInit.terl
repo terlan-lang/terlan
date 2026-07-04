@@ -1,0 +1,45 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DOMMatrix2DInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DOMMatrix2DInit.
+
+pub (value: DOMMatrix2DInit) a(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) b(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) c(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) d(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) e(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) f(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) m11(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) m12(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) m21(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) m22(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) m41(): JsNumber ->
+    native.
+
+pub (value: DOMMatrix2DInit) m42(): JsNumber ->
+    native.

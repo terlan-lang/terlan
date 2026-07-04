@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DecompressionStream.
+
+/**
+ * The **`DecompressionStream`** interface of the Compression Streams API is an API for decompressing a stream of data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DecompressionStream)
+ */
+pub opaque type DecompressionStream.
+
+pub (value: DecompressionStream) readable(): ReadableStream[Uint8Array[ArrayBuffer]] ->
+    native.
+
+pub (value: DecompressionStream) writable(): WritableStream[BufferSource] ->
+    native.

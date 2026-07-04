@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageDecodeResult.
+
+pub opaque type ImageDecodeResult.
+
+pub (value: ImageDecodeResult) complete(): std.core.Bool ->
+    native.
+
+pub (value: ImageDecodeResult) image(): VideoFrame ->
+    native.

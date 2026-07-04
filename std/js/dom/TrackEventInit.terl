@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TrackEventInit.
+
+pub opaque type TrackEventInit.
+
+pub (value: TrackEventInit) track(): Option[TextTrack] ->
+    native.

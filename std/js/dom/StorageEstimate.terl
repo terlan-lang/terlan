@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.StorageEstimate.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type StorageEstimate.
+
+pub (value: StorageEstimate) quota(): JsNumber ->
+    native.
+
+pub (value: StorageEstimate) usage(): JsNumber ->
+    native.

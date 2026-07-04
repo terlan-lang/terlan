@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLBaseElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLBaseElement`** interface contains the base URI for a document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement)
+ */
+pub opaque type HTMLBaseElement.
+
+/**
+ * The **`href`** property of the HTMLBaseElement interface contains a string that is the URL to use as the base for relative URLs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement/href)
+ */
+pub (value: HTMLBaseElement) href(): JsString ->
+    native.
+
+/**
+ * The `target` property of the HTMLBaseElement interface is a string that represents the default target tab to show the resulting output for hyperlinks and form elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement/target)
+ */
+pub (value: HTMLBaseElement) target_(): JsString ->
+    native.
+
+pub (value: HTMLBaseElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLBaseElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

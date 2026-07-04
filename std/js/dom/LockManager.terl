@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.LockManager.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Promise}.
+
+/**
+ * The **`LockManager`** interface of the Web Locks API provides methods for requesting a new Lock object and querying for an existing `Lock` object.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager)
+ */
+pub opaque type LockManager.
+
+/**
+ * The **`query()`** method of the LockManager interface returns a Promise that resolves with an object containing information about held and pending locks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/query)
+ */
+pub (value: LockManager) query(): Promise[LockManagerSnapshot] ->
+    native.
+
+/**
+ * The **`request()`** method of the LockManager interface requests a Lock object with parameters specifying its name and characteristics.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/request)
+ */
+pub (value: LockManager) request(name: JsString, callback: LockGrantedCallback[T]): Promise[T] ->
+    native.
+
+pub (value: LockManager) request(name: JsString, options: LockOptions, callback: LockGrantedCallback[T]): Promise[T] ->
+    native.

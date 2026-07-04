@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCErrorEventInit.
+
+pub opaque type RTCErrorEventInit.
+
+pub (value: RTCErrorEventInit) error(): RTCError ->
+    native.

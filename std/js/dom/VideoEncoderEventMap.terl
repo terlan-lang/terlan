@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoEncoderEventMap.
+
+pub opaque type VideoEncoderEventMap.
+
+pub (value: VideoEncoderEventMap) dequeue(): Event ->
+    native.

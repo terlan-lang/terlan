@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ResizeObserverSize.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`ResizeObserverSize`** interface of the Resize Observer API is used by the ResizeObserverEntry interface to access the box sizing properties of the element being observed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverSize)
+ */
+pub opaque type ResizeObserverSize.
+
+/**
+ * The **`blockSize`** read-only property of the ResizeObserverSize interface returns the length of the observed element's border box in the block dimension.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverSize/blockSize)
+ */
+pub (value: ResizeObserverSize) block_size(): JsNumber ->
+    native.
+
+/**
+ * The **`inlineSize`** read-only property of the ResizeObserverSize interface returns the length of the observed element's border box in the inline dimension.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverSize/inlineSize)
+ */
+pub (value: ResizeObserverSize) inline_size(): JsNumber ->
+    native.

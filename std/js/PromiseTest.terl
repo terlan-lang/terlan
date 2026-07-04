@@ -1,7 +1,8 @@
 module tests.js.std.PromiseTest.
 
-import type std.core.Task.
-import type std.js.Promise.
+import type std.core.Task.{Task}.
+
+import type std.js.Promise.{Promise}.
 
 pub accepts_promise(value: Promise[Int]): Promise[Int] ->
     value.

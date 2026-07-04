@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentResponseEventMap.
+
+pub opaque type PaymentResponseEventMap.
+
+pub (value: PaymentResponseEventMap) payerdetailchange(): PaymentRequestUpdateEvent ->
+    native.

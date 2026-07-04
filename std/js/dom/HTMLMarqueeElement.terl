@@ -1,0 +1,105 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLMarqueeElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLMarqueeElement`** interface provides methods to manipulate marquee elements.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMarqueeElement)
+ */
+pub opaque type HTMLMarqueeElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) behavior(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) bg_color(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) direction(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) height(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) hspace(): JsNumber ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) loop(): JsNumber ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) scroll_amount(): JsNumber ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) scroll_delay(): JsNumber ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) true_speed(): Bool ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) vspace(): JsNumber ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) width(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) start(): Unit ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLMarqueeElement) stop(): Unit ->
+    native.
+
+pub (value: HTMLMarqueeElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLMarqueeElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

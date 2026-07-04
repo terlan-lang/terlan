@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FontFaceSetEventMap.
+
+pub opaque type FontFaceSetEventMap.
+
+pub (value: FontFaceSetEventMap) loading(): FontFaceSetLoadEvent ->
+    native.
+
+pub (value: FontFaceSetEventMap) loadingdone(): FontFaceSetLoadEvent ->
+    native.
+
+pub (value: FontFaceSetEventMap) loadingerror(): FontFaceSetLoadEvent ->
+    native.

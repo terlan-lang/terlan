@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.UnderlyingSink.
+
+pub opaque type UnderlyingSink[W].
+
+pub (value: UnderlyingSink[W]) abort(): UnderlyingSinkAbortCallback ->
+    native.
+
+pub (value: UnderlyingSink[W]) close(): UnderlyingSinkCloseCallback ->
+    native.
+
+pub (value: UnderlyingSink[W]) start(): UnderlyingSinkStartCallback ->
+    native.
+
+pub (value: UnderlyingSink[W]) write(): UnderlyingSinkWriteCallback[W] ->
+    native.

@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSMatrixComponent.
+
+/**
+ * The **`CSSMatrixComponent`** interface of the CSS Typed Object Model API represents the matrix() and matrix3d() values of the individual transform property in CSS.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMatrixComponent)
+ */
+pub opaque type CSSMatrixComponent.
+
+/**
+ * The **`matrix`** property of the See the matrix() and matrix3d() pages for examples.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMatrixComponent/matrix)
+ */
+pub (value: CSSMatrixComponent) matrix(): DOMMatrix ->
+    native.

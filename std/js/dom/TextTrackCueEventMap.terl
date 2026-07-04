@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextTrackCueEventMap.
+
+pub opaque type TextTrackCueEventMap.
+
+pub (value: TextTrackCueEventMap) enter(): Event ->
+    native.
+
+pub (value: TextTrackCueEventMap) exit(): Event ->
+    native.

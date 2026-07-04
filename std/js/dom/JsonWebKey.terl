@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.JsonWebKey.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Array}.
+
+pub opaque type JsonWebKey.
+
+pub (value: JsonWebKey) alg(): JsString ->
+    native.
+
+pub (value: JsonWebKey) crv(): JsString ->
+    native.
+
+pub (value: JsonWebKey) d(): JsString ->
+    native.
+
+pub (value: JsonWebKey) dp(): JsString ->
+    native.
+
+pub (value: JsonWebKey) dq(): JsString ->
+    native.
+
+pub (value: JsonWebKey) e(): JsString ->
+    native.
+
+pub (value: JsonWebKey) ext(): std.core.Bool ->
+    native.
+
+pub (value: JsonWebKey) k(): JsString ->
+    native.
+
+pub (value: JsonWebKey) key_ops(): Array[JsString] ->
+    native.
+
+pub (value: JsonWebKey) kty(): JsString ->
+    native.
+
+pub (value: JsonWebKey) n(): JsString ->
+    native.
+
+pub (value: JsonWebKey) oth(): Array[RsaOtherPrimesInfo] ->
+    native.
+
+pub (value: JsonWebKey) p(): JsString ->
+    native.
+
+pub (value: JsonWebKey) q(): JsString ->
+    native.
+
+pub (value: JsonWebKey) qi(): JsString ->
+    native.
+
+pub (value: JsonWebKey) use(): JsString ->
+    native.
+
+pub (value: JsonWebKey) x(): JsString ->
+    native.
+
+pub (value: JsonWebKey) y(): JsString ->
+    native.

@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBDatabaseEventMap.
+
+pub opaque type IDBDatabaseEventMap.
+
+pub (value: IDBDatabaseEventMap) abort(): Event ->
+    native.
+
+pub (value: IDBDatabaseEventMap) close(): Event ->
+    native.
+
+pub (value: IDBDatabaseEventMap) error(): Event ->
+    native.
+
+pub (value: IDBDatabaseEventMap) versionchange(): IDBVersionChangeEvent ->
+    native.

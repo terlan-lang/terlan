@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGAnimatedPoints
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=3491115139349920953
-interface_hash=3114359436301643997
-interface_doc_hash=3114359436301643997
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=13254353908446795645
+interface_hash=2631506300858521479
+interface_doc_hash=2631506300858521479
 deps=0

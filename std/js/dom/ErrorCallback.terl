@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ErrorCallback.
+
+pub opaque type ErrorCallback.

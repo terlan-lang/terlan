@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DeviceMotionEventAccelerationInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DeviceMotionEventAccelerationInit.
+
+pub (value: DeviceMotionEventAccelerationInit) x(): Option[JsNumber] ->
+    native.
+
+pub (value: DeviceMotionEventAccelerationInit) y(): Option[JsNumber] ->
+    native.
+
+pub (value: DeviceMotionEventAccelerationInit) z(): Option[JsNumber] ->
+    native.

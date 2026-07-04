@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CacheQueryOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type CacheQueryOptions.
+
+pub (value: CacheQueryOptions) ignore_method(): Bool ->
+    native.
+
+pub (value: CacheQueryOptions) ignore_search(): Bool ->
+    native.
+
+pub (value: CacheQueryOptions) ignore_vary(): Bool ->
+    native.

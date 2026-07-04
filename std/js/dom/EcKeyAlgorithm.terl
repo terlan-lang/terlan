@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EcKeyAlgorithm.
+
+pub opaque type EcKeyAlgorithm.
+
+pub (value: EcKeyAlgorithm) named_curve(): NamedCurve ->
+    native.

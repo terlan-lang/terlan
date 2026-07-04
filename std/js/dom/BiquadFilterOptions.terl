@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.BiquadFilterOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type BiquadFilterOptions.
+
+pub (value: BiquadFilterOptions) q(): JsNumber ->
+    native.
+
+pub (value: BiquadFilterOptions) detune(): JsNumber ->
+    native.
+
+pub (value: BiquadFilterOptions) frequency(): JsNumber ->
+    native.
+
+pub (value: BiquadFilterOptions) gain(): JsNumber ->
+    native.
+
+pub (value: BiquadFilterOptions) type_(): BiquadFilterType ->
+    native.

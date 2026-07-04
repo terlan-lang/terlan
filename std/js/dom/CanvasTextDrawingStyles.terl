@@ -1,0 +1,69 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasTextDrawingStyles.
+
+import type std.js.String.{JsString}.
+
+pub opaque type CanvasTextDrawingStyles.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/direction)
+ */
+pub (value: CanvasTextDrawingStyles) direction(): CanvasDirection ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/font)
+ */
+pub (value: CanvasTextDrawingStyles) font(): JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontKerning)
+ */
+pub (value: CanvasTextDrawingStyles) font_kerning(): CanvasFontKerning ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontStretch)
+ */
+pub (value: CanvasTextDrawingStyles) font_stretch(): CanvasFontStretch ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontVariantCaps)
+ */
+pub (value: CanvasTextDrawingStyles) font_variant_caps(): CanvasFontVariantCaps ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/letterSpacing)
+ */
+pub (value: CanvasTextDrawingStyles) letter_spacing(): JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textAlign)
+ */
+pub (value: CanvasTextDrawingStyles) text_align(): CanvasTextAlign ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textBaseline)
+ */
+pub (value: CanvasTextDrawingStyles) text_baseline(): CanvasTextBaseline ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textRendering)
+ */
+pub (value: CanvasTextDrawingStyles) text_rendering(): CanvasTextRendering ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/wordSpacing)
+ */
+pub (value: CanvasTextDrawingStyles) word_spacing(): JsString ->
+    native.

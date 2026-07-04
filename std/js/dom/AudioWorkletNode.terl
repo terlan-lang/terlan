@@ -1,0 +1,41 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioWorkletNode.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`AudioWorkletNode`** interface of the Web Audio API represents a base class for a user-defined AudioNode, which can be connected to an audio routing graph along with other nodes.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioWorkletNode)
+ */
+pub opaque type AudioWorkletNode.
+
+/**
+ * The read-only **`parameters`** property of the underlying AudioWorkletProcessor according to its getter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioWorkletNode/parameters)
+ */
+pub (value: AudioWorkletNode) parameters(): AudioParamMap ->
+    native.
+
+/**
+ * The read-only **`port`** property of the associated AudioWorkletProcessor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioWorkletNode/port)
+ */
+pub (value: AudioWorkletNode) port(): MessagePort ->
+    native.
+
+pub (value: AudioWorkletNode) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: AudioWorkletNode) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

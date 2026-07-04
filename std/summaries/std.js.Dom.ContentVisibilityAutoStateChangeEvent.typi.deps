@@ -1,8 +1,8 @@
 module=std.js.Dom.ContentVisibilityAutoStateChangeEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=15053724972872949485
-interface_hash=15956710315101518599
-interface_doc_hash=15956710315101518599
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=11374673018688122039
+interface_hash=423283605351772376
+interface_doc_hash=423283605351772376
 deps=0

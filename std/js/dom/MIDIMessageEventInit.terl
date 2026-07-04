@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MIDIMessageEventInit.
+
+pub opaque type MIDIMessageEventInit.
+
+pub (value: MIDIMessageEventInit) data(): Uint8Array[ArrayBuffer] ->
+    native.

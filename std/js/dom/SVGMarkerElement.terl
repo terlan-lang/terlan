@@ -1,0 +1,96 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGMarkerElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGMarkerElement`** interface provides access to the properties of marker elements, as well as methods to manipulate them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement)
+ */
+pub opaque type SVGMarkerElement.
+
+/**
+ * The **`markerHeight`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedLength object containing the height of the marker viewport as defined by the markerHeight attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerHeight)
+ */
+pub (value: SVGMarkerElement) marker_height(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`markerUnits`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedEnumeration object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerUnits)
+ */
+pub (value: SVGMarkerElement) marker_units(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`markerWidth`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedLength object containing the width of the marker viewport as defined by the markerWidth attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerWidth)
+ */
+pub (value: SVGMarkerElement) marker_width(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`orientAngle`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedAngle object containing the angle of the orient attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/orientAngle)
+ */
+pub (value: SVGMarkerElement) orient_angle(): SVGAnimatedAngle ->
+    native.
+
+/**
+ * The **`orientType`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedEnumeration object indicating whether the orient attribute is `auto`, an angle value, or something else.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/orientType)
+ */
+pub (value: SVGMarkerElement) orient_type(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`refX`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedLength object containing the value of the refX attribute of the marker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/refX)
+ */
+pub (value: SVGMarkerElement) ref_x(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`refY`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedLength object containing the value of the refY attribute of the marker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/refY)
+ */
+pub (value: SVGMarkerElement) ref_y(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`setOrientToAngle()`** method of the SVGMarkerElement interface sets the value of the `orient` attribute to the value in the SVGAngle passed in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/setOrientToAngle)
+ */
+pub (value: SVGMarkerElement) set_orient_to_angle(angle: SVGAngle): Unit ->
+    native.
+
+/**
+ * The **`setOrientToAuto()`** method of the SVGMarkerElement interface sets the value of the `orient` attribute to `auto`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/setOrientToAuto)
+ */
+pub (value: SVGMarkerElement) set_orient_to_auto(): Unit ->
+    native.
+
+pub (value: SVGMarkerElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGMarkerElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

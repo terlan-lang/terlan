@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioDecoderEventMap.
+
+pub opaque type AudioDecoderEventMap.
+
+pub (value: AudioDecoderEventMap) dequeue(): Event ->
+    native.

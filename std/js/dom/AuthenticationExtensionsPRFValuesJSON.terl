@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsPRFValuesJSON.
+
+pub opaque type AuthenticationExtensionsPRFValuesJSON.
+
+pub (value: AuthenticationExtensionsPRFValuesJSON) first(): Base64URLString ->
+    native.
+
+pub (value: AuthenticationExtensionsPRFValuesJSON) second(): Base64URLString ->
+    native.

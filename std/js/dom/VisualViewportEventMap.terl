@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VisualViewportEventMap.
+
+pub opaque type VisualViewportEventMap.
+
+pub (value: VisualViewportEventMap) resize(): Event ->
+    native.
+
+pub (value: VisualViewportEventMap) scroll(): Event ->
+    native.

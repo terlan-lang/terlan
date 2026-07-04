@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ReferenceError.
+
+pub opaque type ReferenceError.

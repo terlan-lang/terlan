@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AnimationEventInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type AnimationEventInit.
+
+pub (value: AnimationEventInit) animation_name(): JsString ->
+    native.
+
+pub (value: AnimationEventInit) elapsed_time(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: AnimationEventInit) pseudo_element(): JsString ->
+    native.

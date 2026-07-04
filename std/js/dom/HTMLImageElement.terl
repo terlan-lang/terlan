@@ -1,0 +1,222 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLImageElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLImageElement`** interface represents an HTML img element, providing the properties and methods used to manipulate image elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement)
+ */
+pub opaque type HTMLImageElement.
+
+/**
+ * The _obsolete_ **`align`** property of the HTMLImageElement interface is a string which indicates how to position the image relative to its container.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/align)
+ */
+pub (value: HTMLImageElement) align(): JsString ->
+    native.
+
+/**
+ * The HTMLImageElement property **`alt`** provides fallback (alternate) text to display when the image specified by the img element is not loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/alt)
+ */
+pub (value: HTMLImageElement) alt(): JsString ->
+    native.
+
+/**
+ * The obsolete HTMLImageElement property **`border`** specifies the number of pixels thick the border surrounding the image should be.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/border)
+ */
+pub (value: HTMLImageElement) border(): JsString ->
+    native.
+
+/**
+ * The read-only HTMLImageElement interface's **`complete`** attribute is a Boolean value which indicates whether or not the image has completely loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/complete)
+ */
+pub (value: HTMLImageElement) complete(): Bool ->
+    native.
+
+/**
+ * The HTMLImageElement interface's **`crossOrigin`** attribute is a string which specifies the Cross-Origin Resource Sharing (CORS) setting to use when retrieving the image.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/crossOrigin)
+ */
+pub (value: HTMLImageElement) cross_origin(): Option[JsString] ->
+    native.
+
+/**
+ * The read-only HTMLImageElement property **`currentSrc`** indicates the URL of the image which is currently presented in the img element it represents.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/currentSrc)
+ */
+pub (value: HTMLImageElement) current_src(): JsString ->
+    native.
+
+/**
+ * The **`height`** property of the drawn, in CSS pixel if the image is being drawn or rendered to any visual medium such as the screen or a printer; otherwise, it's the natural, pixel density corrected height of the image.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/height)
+ */
+pub (value: HTMLImageElement) height(): JsNumber ->
+    native.
+
+/**
+ * The _obsolete_ **`hspace`** property of the space to leave empty on the left and right sides of the img element when laying out the page.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/hspace)
+ */
+pub (value: HTMLImageElement) hspace(): JsNumber ->
+    native.
+
+/**
+ * The HTMLImageElement property **`isMap`** is a Boolean value which indicates that the image is to be used by a server-side image map.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/isMap)
+ */
+pub (value: HTMLImageElement) is_map(): Bool ->
+    native.
+
+/**
+ * The _deprecated_ property **`longDesc`** on the HTMLImageElement interface specifies the URL of a text or HTML file which contains a long-form description of the image.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/longDesc)
+ */
+pub (value: HTMLImageElement) long_desc(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLImageElement) lowsrc(): JsString ->
+    native.
+
+/**
+ * The HTMLImageElement interface's _deprecated_ **`name`** property specifies a name for the element.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/name)
+ */
+pub (value: HTMLImageElement) name(): JsString ->
+    native.
+
+/**
+ * The HTMLImageElement interface's **`naturalHeight`** property is a read-only value which returns the intrinsic (natural), density-corrected height of the image in This is the height the image is if drawn with nothing constraining its height; if you don't specify a height for the image, or place the image inside a container that either limits or expressly specifies the image height, it will be rendered this tall.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/naturalHeight)
+ */
+pub (value: HTMLImageElement) natural_height(): JsNumber ->
+    native.
+
+/**
+ * The HTMLImageElement interface's read-only **`naturalWidth`** property returns the intrinsic (natural), density-corrected width of the image in CSS pixel.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/naturalWidth)
+ */
+pub (value: HTMLImageElement) natural_width(): JsNumber ->
+    native.
+
+/**
+ * The **`HTMLImageElement.referrerPolicy`** property reflects the HTML `referrerpolicy` attribute of the resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/referrerPolicy)
+ */
+pub (value: HTMLImageElement) referrer_policy(): JsString ->
+    native.
+
+/**
+ * The HTMLImageElement property **`sizes`** allows you to specify the layout width of the image for each of a list of media conditions.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/sizes)
+ */
+pub (value: HTMLImageElement) sizes(): JsString ->
+    native.
+
+/**
+ * The HTMLImageElement property **`src`**, which reflects the HTML `src` attribute, specifies the image to display in the img element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/src)
+ */
+pub (value: HTMLImageElement) src(): JsString ->
+    native.
+
+/**
+ * The HTMLImageElement property **`srcset`** is a string which identifies one or more **image candidate strings**, separated using commas (`,`) each specifying image resources to use under given circumstances.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/srcset)
+ */
+pub (value: HTMLImageElement) srcset(): JsString ->
+    native.
+
+/**
+ * The **`useMap`** property on the providing the name of the client-side image map to apply to the image.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/useMap)
+ */
+pub (value: HTMLImageElement) use_map(): JsString ->
+    native.
+
+/**
+ * The _obsolete_ **`vspace`** property of the to leave empty on the top and bottom of the img element when laying out the page.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/vspace)
+ */
+pub (value: HTMLImageElement) vspace(): JsNumber ->
+    native.
+
+/**
+ * The **`width`** property of the drawn in CSS pixel if it's being drawn or rendered to any visual medium such as a screen or printer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/width)
+ */
+pub (value: HTMLImageElement) width(): JsNumber ->
+    native.
+
+/**
+ * The read-only HTMLImageElement property **`x`** indicates the x-coordinate of the origin.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/x)
+ */
+pub (value: HTMLImageElement) x(): JsNumber ->
+    native.
+
+/**
+ * The read-only HTMLImageElement property **`y`** indicates the y-coordinate of the origin.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/y)
+ */
+pub (value: HTMLImageElement) y(): JsNumber ->
+    native.
+
+/**
+ * The **`decode()`** method of the HTMLImageElement interface returns a it to the DOM.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/decode)
+ */
+pub (value: HTMLImageElement) decode(): std.js.Promise[Unit] ->
+    native.
+
+pub (value: HTMLImageElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLImageElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

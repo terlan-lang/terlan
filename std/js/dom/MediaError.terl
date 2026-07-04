@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaError.
+
+/**
+ * The **`MediaError`** interface represents an error which occurred while handling media in an HTML media element based on HTMLMediaElement, such as audio or video.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaError)
+ */
+pub opaque type MediaError.
+
+/**
+ * The read-only property **`MediaError.code`** returns a numeric value which represents the kind of error that occurred on a media element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaError/code)
+ */
+pub (value: MediaError) code(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The read-only property **`MediaError.message`** returns a human-readable string offering specific diagnostic details related to the error described by the `MediaError` object, or an empty string (`''`) if no diagnostic information can be determined or provided.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaError/message)
+ */
+pub (value: MediaError) message(): std.js.String.JsString ->
+    native.

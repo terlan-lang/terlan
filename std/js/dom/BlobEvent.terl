@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.BlobEvent.
+
+/**
+ * The **`BlobEvent`** interface of the MediaStream Recording API represents events associated with a Blob.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BlobEvent)
+ */
+pub opaque type BlobEvent.
+
+/**
+ * The **`data`** read-only property of the BlobEvent interface represents a Blob associated with the event.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BlobEvent/data)
+ */
+pub (value: BlobEvent) data(): Blob ->
+    native.
+
+/**
+ * The **`timecode`** read-only property of the BlobEvent interface indicates the difference between the timestamp of the first chunk of data, and the timestamp of the first chunk in the first `BlobEvent` produced by this recorder.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BlobEvent/timecode)
+ */
+pub (value: BlobEvent) timecode(): DOMHighResTimeStamp ->
+    native.

@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoFrameInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type VideoFrameInit.
+
+pub (value: VideoFrameInit) alpha(): AlphaOption ->
+    native.
+
+pub (value: VideoFrameInit) display_height(): JsNumber ->
+    native.
+
+pub (value: VideoFrameInit) display_width(): JsNumber ->
+    native.
+
+pub (value: VideoFrameInit) duration(): JsNumber ->
+    native.
+
+pub (value: VideoFrameInit) timestamp(): JsNumber ->
+    native.
+
+pub (value: VideoFrameInit) visible_rect(): DOMRectInit ->
+    native.

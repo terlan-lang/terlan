@@ -1,0 +1,22 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.WeakSet.
+
+import type std.core.{Bool}.
+
+pub opaque type WeakSet[T].
+
+/**
+ * Removes the specified element from the WeakSet.
+ * @returns Returns true if the element existed and has been removed, or false if the element does not exist.
+ */
+pub (value: WeakSet[T]) delete(value: T): Bool ->
+    native.
+
+/**
+ * @returns a boolean indicating whether a value exists in the WeakSet or not.
+ */
+pub (value: WeakSet[T]) has(value: T): Bool ->
+    native.

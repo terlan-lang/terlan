@@ -166,6 +166,13 @@ fn validate_generator_metadata(generator: &TsInputGenerator) -> Result<(), Strin
     if generator.version.trim().is_empty() {
         return Err("ts_bindgen.input_manifest_generator_version_empty".to_string());
     }
+    if generator.version != env!("CARGO_PKG_VERSION") {
+        return Err(format!(
+            "ts_bindgen.input_manifest_generator_version_stale: expected `{}`, found `{}`",
+            env!("CARGO_PKG_VERSION"),
+            generator.version
+        ));
+    }
     if generator.profile.trim().is_empty() {
         return Err("ts_bindgen.input_manifest_generator_profile_empty".to_string());
     }

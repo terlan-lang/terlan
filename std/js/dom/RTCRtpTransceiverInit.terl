@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpTransceiverInit.
+
+import type std.js.{Array}.
+
+pub opaque type RTCRtpTransceiverInit.
+
+pub (value: RTCRtpTransceiverInit) direction(): RTCRtpTransceiverDirection ->
+    native.
+
+pub (value: RTCRtpTransceiverInit) send_encodings(): Array[RTCRtpEncodingParameters] ->
+    native.
+
+pub (value: RTCRtpTransceiverInit) streams(): Array[MediaStream] ->
+    native.

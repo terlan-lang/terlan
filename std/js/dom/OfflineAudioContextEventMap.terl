@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.OfflineAudioContextEventMap.
+
+pub opaque type OfflineAudioContextEventMap.
+
+pub (value: OfflineAudioContextEventMap) complete(): OfflineAudioCompletionEvent ->
+    native.

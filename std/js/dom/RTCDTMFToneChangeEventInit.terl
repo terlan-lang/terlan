@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDTMFToneChangeEventInit.
+
+pub opaque type RTCDTMFToneChangeEventInit.
+
+pub (value: RTCDTMFToneChangeEventInit) tone(): std.js.String.JsString ->
+    native.

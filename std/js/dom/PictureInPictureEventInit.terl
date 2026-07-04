@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PictureInPictureEventInit.
+
+pub opaque type PictureInPictureEventInit.
+
+pub (value: PictureInPictureEventInit) picture_in_picture_window(): PictureInPictureWindow ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FilePropertyBag.
+
+pub opaque type FilePropertyBag.
+
+pub (value: FilePropertyBag) last_modified(): std.js.Number.JsNumber ->
+    native.

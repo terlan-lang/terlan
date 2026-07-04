@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentShippingOption.
+
+import type std.js.String.{JsString}.
+
+pub opaque type PaymentShippingOption.
+
+pub (value: PaymentShippingOption) amount(): PaymentCurrencyAmount ->
+    native.
+
+pub (value: PaymentShippingOption) id(): JsString ->
+    native.
+
+pub (value: PaymentShippingOption) label(): JsString ->
+    native.
+
+pub (value: PaymentShippingOption) selected(): std.core.Bool ->
+    native.

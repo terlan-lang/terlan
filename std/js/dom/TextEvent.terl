@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextEvent.
+
+import type std.core.{Bool}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`TextEvent`** interface is a legacy UI event interface for reporting changes to text UI elements.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEvent)
+ */
+pub opaque type TextEvent.
+
+/**
+ * The **`data`** read-only property of the TextEvent interface returns the last character added to the input element.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEvent/data)
+ */
+pub (value: TextEvent) data(): JsString ->
+    native.
+
+/**
+ * The **`initTextEventEvent()`** method of the TextEvent interface initializes the value of a `TextEvent` after it has been created.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEvent/initTextEvent)
+ */
+pub (value: TextEvent) init_text_event(type_: JsString, bubbles: Bool, cancelable: Bool, view: Option[Window], data: JsString): std.core.Unit ->
+    native.

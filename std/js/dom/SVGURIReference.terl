@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGURIReference.
+
+pub opaque type SVGURIReference.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAElement/href)
+ */
+pub (value: SVGURIReference) href(): SVGAnimatedString ->
+    native.

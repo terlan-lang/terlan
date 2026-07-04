@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RsaKeyGenParams.
+
+pub opaque type RsaKeyGenParams.
+
+pub (value: RsaKeyGenParams) modulus_length(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RsaKeyGenParams) public_exponent(): BigInteger ->
+    native.

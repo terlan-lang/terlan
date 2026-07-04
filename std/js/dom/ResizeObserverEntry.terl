@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ResizeObserverEntry.
+
+import type std.js.{Array}.
+
+/**
+ * The **`ResizeObserverEntry`** interface represents the object passed to the ResizeObserver.ResizeObserver constructor's callback function, which allows you to access the new dimensions of the Element or SVGElement being observed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry)
+ */
+pub opaque type ResizeObserverEntry.
+
+/**
+ * The **`borderBoxSize`** read-only property of the ResizeObserverEntry interface returns an array containing the new border box size of the observed element when the callback is run.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/borderBoxSize)
+ */
+pub (value: ResizeObserverEntry) border_box_size(): Array[ResizeObserverSize] ->
+    native.
+
+/**
+ * The **`contentBoxSize`** read-only property of the ResizeObserverEntry interface returns an array containing the new content box size of the observed element when the callback is run.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/contentBoxSize)
+ */
+pub (value: ResizeObserverEntry) content_box_size(): Array[ResizeObserverSize] ->
+    native.
+
+/**
+ * The `contentRect` read-only property of the object containing the new size of the observed element when the callback is run.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/contentRect)
+ */
+pub (value: ResizeObserverEntry) content_rect(): DOMRectReadOnly ->
+    native.
+
+/**
+ * The **`devicePixelContentBoxSize`** read-only property of the ResizeObserverEntry interface returns an array containing the size in device pixels of the observed element when the callback is run.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/devicePixelContentBoxSize)
+ */
+pub (value: ResizeObserverEntry) device_pixel_content_box_size(): Array[ResizeObserverSize] ->
+    native.
+
+/**
+ * The **`target`** read-only property of the An Element or SVGElement representing the element being observed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/target)
+ */
+pub (value: ResizeObserverEntry) target_(): Element ->
+    native.

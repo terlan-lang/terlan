@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBDatabaseInfo.
+
+pub opaque type IDBDatabaseInfo.
+
+pub (value: IDBDatabaseInfo) name(): std.js.String.JsString ->
+    native.
+
+pub (value: IDBDatabaseInfo) version(): std.js.Number.JsNumber ->
+    native.

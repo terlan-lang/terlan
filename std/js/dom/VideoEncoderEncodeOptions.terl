@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoEncoderEncodeOptions.
+
+pub opaque type VideoEncoderEncodeOptions.
+
+pub (value: VideoEncoderEncodeOptions) avc(): VideoEncoderEncodeOptionsForAvc ->
+    native.
+
+pub (value: VideoEncoderEncodeOptions) key_frame(): std.core.Bool ->
+    native.

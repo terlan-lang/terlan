@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCTransportStats
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=4669837238255037257
-interface_hash=7721080256173726965
-interface_doc_hash=7721080256173726965
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=13320125530558478002
+interface_hash=3714802406191702591
+interface_doc_hash=3714802406191702591
 deps=0

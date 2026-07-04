@@ -1,0 +1,26 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCPeerConnectionIceErrorEventInit.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RTCPeerConnectionIceErrorEventInit.
+
+pub (value: RTCPeerConnectionIceErrorEventInit) address(): Option[JsString] ->
+    native.
+
+pub (value: RTCPeerConnectionIceErrorEventInit) error_code(): JsNumber ->
+    native.
+
+pub (value: RTCPeerConnectionIceErrorEventInit) error_text(): JsString ->
+    native.
+
+pub (value: RTCPeerConnectionIceErrorEventInit) port(): Option[JsNumber] ->
+    native.
+
+pub (value: RTCPeerConnectionIceErrorEventInit) url(): JsString ->
+    native.

@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DocumentEventMap.
+
+pub opaque type DocumentEventMap.
+
+pub (value: DocumentEventMap) dom_content_loaded(): Event ->
+    native.
+
+pub (value: DocumentEventMap) fullscreenchange(): Event ->
+    native.
+
+pub (value: DocumentEventMap) fullscreenerror(): Event ->
+    native.
+
+pub (value: DocumentEventMap) pointerlockchange(): Event ->
+    native.
+
+pub (value: DocumentEventMap) pointerlockerror(): Event ->
+    native.
+
+pub (value: DocumentEventMap) readystatechange(): Event ->
+    native.
+
+pub (value: DocumentEventMap) visibilitychange(): Event ->
+    native.

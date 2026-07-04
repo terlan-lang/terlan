@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigationActivation.
+
+/**
+ * The **`NavigationActivation`** interface of the Navigation API represents a recent cross-document navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationActivation)
+ */
+pub opaque type NavigationActivation.
+
+/**
+ * The **`entry`** read-only property of the NavigationActivation interface contains a NavigationHistoryEntry object representing the history entry for the inbound ('to') document in the navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationActivation/entry)
+ */
+pub (value: NavigationActivation) entry(): NavigationHistoryEntry ->
+    native.
+
+/**
+ * The **`from`** read-only property of the NavigationActivation interface contains a NavigationHistoryEntry object representing the history entry for the outgoing ('from') document in the navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationActivation/from)
+ */
+pub (value: NavigationActivation) from_(): Option[NavigationHistoryEntry] ->
+    native.
+
+/**
+ * The **`navigationType`** read-only property of the NavigationActivation interface contains a string indicating the type of navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationActivation/navigationType)
+ */
+pub (value: NavigationActivation) navigation_type(): NavigationType ->
+    native.

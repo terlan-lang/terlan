@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MIDIInputEventMap.
+
+pub opaque type MIDIInputEventMap.
+
+pub (value: MIDIInputEventMap) midimessage(): MIDIMessageEvent ->
+    native.

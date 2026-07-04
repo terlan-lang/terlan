@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CookieStoreDeleteOptions.
+
+import type std.js.String.{JsString}.
+
+pub opaque type CookieStoreDeleteOptions.
+
+pub (value: CookieStoreDeleteOptions) domain(): Option[JsString] ->
+    native.
+
+pub (value: CookieStoreDeleteOptions) name(): JsString ->
+    native.
+
+pub (value: CookieStoreDeleteOptions) partitioned(): std.core.Bool ->
+    native.
+
+pub (value: CookieStoreDeleteOptions) path(): JsString ->
+    native.

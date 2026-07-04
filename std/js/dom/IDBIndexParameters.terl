@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBIndexParameters.
+
+import type std.core.{Bool}.
+
+pub opaque type IDBIndexParameters.
+
+pub (value: IDBIndexParameters) multi_entry(): Bool ->
+    native.
+
+pub (value: IDBIndexParameters) unique(): Bool ->
+    native.

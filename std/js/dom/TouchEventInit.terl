@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TouchEventInit.
+
+import type std.js.{Array}.
+
+pub opaque type TouchEventInit.
+
+pub (value: TouchEventInit) changed_touches(): Array[Touch] ->
+    native.
+
+pub (value: TouchEventInit) target_touches(): Array[Touch] ->
+    native.
+
+pub (value: TouchEventInit) touches(): Array[Touch] ->
+    native.

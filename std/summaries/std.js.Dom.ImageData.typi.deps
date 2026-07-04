@@ -1,8 +1,8 @@
 module=std.js.Dom.ImageData
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=6145874577695254609
-interface_hash=17183494854889661858
-interface_doc_hash=17183494854889661858
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=15994565614967337979
+interface_hash=8834502659118500764
+interface_doc_hash=8834502659118500764
 deps=0

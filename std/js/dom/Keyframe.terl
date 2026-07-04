@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Keyframe.
+
+pub opaque type Keyframe.
+
+pub (value: Keyframe) composite(): CompositeOperationOrAuto ->
+    native.
+
+pub (value: Keyframe) easing(): std.js.String.JsString ->
+    native.
+
+pub (value: Keyframe) offset(): Option[std.js.Number.JsNumber] ->
+    native.

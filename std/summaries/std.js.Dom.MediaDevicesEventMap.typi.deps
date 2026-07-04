@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaDevicesEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=16621307938740624349
-interface_hash=17782643294157687389
-interface_doc_hash=17782643294157687389
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=5562246982019097950
+interface_hash=2797134192592819551
+interface_doc_hash=2797134192592819551
 deps=0

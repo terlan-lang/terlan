@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ANGLE_instanced_arrays.
+
+import type std.core.{Unit}.
+
+/**
+ * The **`ANGLE_instanced_arrays`** extension is part of the WebGL API and allows to draw the same object, or groups of similar objects multiple times, if they share the same vertex data, primitive count and type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ANGLE_instanced_arrays)
+ */
+pub opaque type ANGLE_instanced_arrays.
+
+/**
+ * The **`ANGLE_instanced_arrays.drawArraysInstancedANGLE()`** method of the WebGL API renders primitives from array data like the WebGLRenderingContext.drawArrays() method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ANGLE_instanced_arrays/drawArraysInstancedANGLE)
+ */
+pub (value: ANGLE_instanced_arrays) draw_arrays_instanced_angle(mode: GLenum, first: GLint, count: GLsizei, primcount: GLsizei): Unit ->
+    native.
+
+/**
+ * The **`ANGLE_instanced_arrays.drawElementsInstancedANGLE()`** method of the WebGL API renders primitives from array data like the WebGLRenderingContext.drawElements() method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ANGLE_instanced_arrays/drawElementsInstancedANGLE)
+ */
+pub (value: ANGLE_instanced_arrays) draw_elements_instanced_angle(mode: GLenum, count: GLsizei, type_: GLenum, offset: GLintptr, primcount: GLsizei): Unit ->
+    native.
+
+/**
+ * The **ANGLE_instanced_arrays.vertexAttribDivisorANGLE()** method of the WebGL API modifies the rate at which generic vertex attributes advance when rendering multiple instances of primitives with ANGLE_instanced_arrays.drawArraysInstancedANGLE() and ANGLE_instanced_arrays.drawElementsInstancedANGLE().
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ANGLE_instanced_arrays/vertexAttribDivisorANGLE)
+ */
+pub (value: ANGLE_instanced_arrays) vertex_attrib_divisor_angle(index: GLuint, divisor: GLuint): Unit ->
+    native.

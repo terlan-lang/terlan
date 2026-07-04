@@ -1,0 +1,102 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSCounterStyleRule.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`CSSCounterStyleRule`** interface represents an @counter-style at-rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule)
+ */
+pub opaque type CSSCounterStyleRule.
+
+/**
+ * The **`additiveSymbols`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/additive-symbols descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/additiveSymbols)
+ */
+pub (value: CSSCounterStyleRule) additive_symbols(): JsString ->
+    native.
+
+/**
+ * The **`fallback`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/fallback descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/fallback)
+ */
+pub (value: CSSCounterStyleRule) fallback(): JsString ->
+    native.
+
+/**
+ * The **`name`** property of the CSSCounterStyleRule interface gets and sets the &lt;custom-ident&gt; defined as the `name` for the associated rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/name)
+ */
+pub (value: CSSCounterStyleRule) name(): JsString ->
+    native.
+
+/**
+ * The **`negative`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/negative descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/negative)
+ */
+pub (value: CSSCounterStyleRule) negative(): JsString ->
+    native.
+
+/**
+ * The **`pad`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/pad descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/pad)
+ */
+pub (value: CSSCounterStyleRule) pad(): JsString ->
+    native.
+
+/**
+ * The **`prefix`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/prefix descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/prefix)
+ */
+pub (value: CSSCounterStyleRule) prefix(): JsString ->
+    native.
+
+/**
+ * The **`range`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/range descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/range)
+ */
+pub (value: CSSCounterStyleRule) range(): JsString ->
+    native.
+
+/**
+ * The **`speakAs`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/speak-as descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/speakAs)
+ */
+pub (value: CSSCounterStyleRule) speak_as(): JsString ->
+    native.
+
+/**
+ * The **`suffix`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/suffix descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/suffix)
+ */
+pub (value: CSSCounterStyleRule) suffix(): JsString ->
+    native.
+
+/**
+ * The **`symbols`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/symbols descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/symbols)
+ */
+pub (value: CSSCounterStyleRule) symbols(): JsString ->
+    native.
+
+/**
+ * The **`system`** property of the CSSCounterStyleRule interface gets and sets the value of the @counter-style/system descriptor.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/system)
+ */
+pub (value: CSSCounterStyleRule) system(): JsString ->
+    native.

@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.OES_standard_derivatives.
+
+/**
+ * The **`OES_standard_derivatives`** extension is part of the WebGL API and adds the GLSL derivative functions `dFdx`, `dFdy`, and `fwidth`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_standard_derivatives)
+ */
+pub opaque type OES_standard_derivatives.

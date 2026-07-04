@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaKeyMessageEventInit.
+
+pub opaque type MediaKeyMessageEventInit.
+
+pub (value: MediaKeyMessageEventInit) message(): ArrayBuffer ->
+    native.
+
+pub (value: MediaKeyMessageEventInit) message_type(): MediaKeyMessageType ->
+    native.

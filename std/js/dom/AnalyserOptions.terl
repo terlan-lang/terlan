@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AnalyserOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type AnalyserOptions.
+
+pub (value: AnalyserOptions) fft_size(): JsNumber ->
+    native.
+
+pub (value: AnalyserOptions) max_decibels(): JsNumber ->
+    native.
+
+pub (value: AnalyserOptions) min_decibels(): JsNumber ->
+    native.
+
+pub (value: AnalyserOptions) smoothing_time_constant(): JsNumber ->
+    native.

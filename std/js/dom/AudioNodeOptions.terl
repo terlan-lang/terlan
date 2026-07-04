@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioNodeOptions.
+
+pub opaque type AudioNodeOptions.
+
+pub (value: AudioNodeOptions) channel_count(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: AudioNodeOptions) channel_count_mode(): ChannelCountMode ->
+    native.
+
+pub (value: AudioNodeOptions) channel_interpretation(): ChannelInterpretation ->
+    native.

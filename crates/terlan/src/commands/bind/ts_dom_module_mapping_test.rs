@@ -25,12 +25,12 @@ fn maps_committed_fixture_to_dom_modules() {
     assert_eq!(mapping.modules.len(), 2);
     assert_eq!(mapping.modules[0].module_path, "std.js.Dom.Document");
     assert_eq!(mapping.modules[0].type_name, "Document");
-    assert_eq!(mapping.modules[0].source_path, "std/js/dom/document.terl");
+    assert_eq!(mapping.modules[0].source_path, "std/js/dom/Document.terl");
     assert_eq!(mapping.modules[0].test_path, "std/js/dom/DocumentTest.terl");
     assert_eq!(mapping.modules[1].module_path, "std.js.Dom.HTMLElement");
     assert_eq!(
         mapping.modules[1].source_path,
-        "std/js/dom/html_element.terl"
+        "std/js/dom/HTMLElement.terl"
     );
     assert_eq!(
         mapping.modules[1].test_path,
@@ -132,8 +132,8 @@ fn records_skipped_member_diagnostics() {
 /// - Inline source containing `URLValue` and `HTMLElement`.
 ///
 /// Output:
-/// - Test passes when acronym boundaries become readable Terlan names and
-///   lowercase file stems.
+/// - Test passes when acronym boundaries become readable Terlan member names
+///   while source filenames keep the declared module segment.
 ///
 /// Transformation:
 /// - Pins deterministic naming for source APIs with common DOM acronyms.
@@ -144,7 +144,7 @@ fn normalizes_acronym_boundaries() {
 
     let mapping = map_ts_declarations_to_dom_modules(&declarations);
 
-    assert_eq!(mapping.modules[0].source_path, "std/js/dom/url_thing.terl");
+    assert_eq!(mapping.modules[0].source_path, "std/js/dom/URLThing.terl");
     assert_eq!(
         property(&mapping.modules[0], "URLValue").terlan_name,
         "url_value"

@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EXT_sRGB.
+
+/**
+ * The **`EXT_sRGB`** extension is part of the WebGL API and adds sRGB support to textures and framebuffer objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EXT_sRGB)
+ */
+pub opaque type EXT_sRGB.

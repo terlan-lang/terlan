@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventSourceInit.
+
+pub opaque type EventSourceInit.
+
+pub (value: EventSourceInit) with_credentials(): std.core.Bool ->
+    native.

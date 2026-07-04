@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ReadableStreamReadValueResult.
+
+pub opaque type ReadableStreamReadValueResult[T].
+
+pub (value: ReadableStreamReadValueResult[T]) value(): T ->
+    native.

@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.KHR_parallel_shader_compile.
+
+/**
+ * The **`KHR_parallel_shader_compile`** extension is part of the WebGL API and enables a non-blocking poll operation, so that compile/link status availability (`COMPLETION_STATUS_KHR`) can be queried without potentially incurring stalls.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KHR_parallel_shader_compile)
+ */
+pub opaque type KHR_parallel_shader_compile.

@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEBlendElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEBlendElement`** interface corresponds to the feBlend element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement)
+ */
+pub opaque type SVGFEBlendElement.
+
+/**
+ * The **`in1`** read-only property of the SVGFEBlendElement interface reflects the in attribute of the given element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/in1)
+ */
+pub (value: SVGFEBlendElement) in1(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`in2`** read-only property of the SVGFEBlendElement interface reflects the in2 attribute of the given element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/in2)
+ */
+pub (value: SVGFEBlendElement) in2(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`mode`** read-only property of the SVGFEBlendElement interface reflects the mode attribute of the given element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/mode)
+ */
+pub (value: SVGFEBlendElement) mode(): SVGAnimatedEnumeration ->
+    native.
+
+pub (value: SVGFEBlendElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEBlendElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.WeakMap.
+
+import type std.core.{Bool}.
+
+pub opaque type WeakMap[K, V].
+
+/**
+ * Removes the specified element from the WeakMap.
+ * @returns true if the element was successfully removed, or false if it was not present.
+ */
+pub (value: WeakMap[K, V]) delete(key: K): Bool ->
+    native.
+
+/**
+ * @returns a specified element.
+ */
+pub (value: WeakMap[K, V]) get(key: K): Option[V] ->
+    native.
+
+/**
+ * @returns a boolean indicating whether an element with the specified key exists or not.
+ */
+pub (value: WeakMap[K, V]) has(key: K): Bool ->
+    native.

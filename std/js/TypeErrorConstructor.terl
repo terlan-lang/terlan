@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.TypeErrorConstructor.
+
+pub opaque type TypeErrorConstructor.
+
+pub (value: TypeErrorConstructor) prototype(): TypeError ->
+    native.

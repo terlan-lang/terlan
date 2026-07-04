@@ -1,0 +1,22 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ImportCallOptions.
+
+/**
+ * The type for the optional second argument to `import()`.
+ *
+ * If your host environment supports additional options, this type may be
+ * augmented via interface merging.
+ */
+pub opaque type ImportCallOptions.
+
+/**
+ * @deprecated
+ */
+pub (value: ImportCallOptions) assert(): ImportAssertions ->
+    native.
+
+pub (value: ImportCallOptions) with_(): ImportAttributes ->
+    native.

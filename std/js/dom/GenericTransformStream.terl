@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GenericTransformStream.
+
+pub opaque type GenericTransformStream.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompressionStream/readable)
+ */
+pub (value: GenericTransformStream) readable(): ReadableStream ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompressionStream/writable)
+ */
+pub (value: GenericTransformStream) writable(): WritableStream ->
+    native.

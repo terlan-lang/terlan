@@ -1,8 +1,8 @@
 module=std.js.Dom.ValidityState
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=8228459625999784794
-interface_hash=17586122071596775607
-interface_doc_hash=17586122071596775607
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=15414473609619828084
+interface_hash=2542317491562153581
+interface_doc_hash=2542317491562153581
 deps=0

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoDecoderInit.
+
+pub opaque type VideoDecoderInit.
+
+pub (value: VideoDecoderInit) error(): WebCodecsErrorCallback ->
+    native.
+
+pub (value: VideoDecoderInit) output(): VideoFrameOutputCallback ->
+    native.

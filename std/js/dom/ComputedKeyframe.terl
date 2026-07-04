@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ComputedKeyframe.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ComputedKeyframe.
+
+pub (value: ComputedKeyframe) composite(): CompositeOperationOrAuto ->
+    native.
+
+pub (value: ComputedKeyframe) computed_offset(): JsNumber ->
+    native.
+
+pub (value: ComputedKeyframe) easing(): std.js.String.JsString ->
+    native.
+
+pub (value: ComputedKeyframe) offset(): Option[JsNumber] ->
+    native.

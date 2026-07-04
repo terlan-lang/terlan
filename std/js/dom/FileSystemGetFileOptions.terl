@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileSystemGetFileOptions.
+
+pub opaque type FileSystemGetFileOptions.
+
+pub (value: FileSystemGetFileOptions) create(): std.core.Bool ->
+    native.

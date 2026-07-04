@@ -1,0 +1,11 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ImportAssertions.
+
+/**
+ * The type for the `assert` property of the optional second argument to `import()`.
+ * @deprecated
+ */
+pub opaque type ImportAssertions.

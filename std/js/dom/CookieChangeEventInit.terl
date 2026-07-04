@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CookieChangeEventInit.
+
+pub opaque type CookieChangeEventInit.
+
+pub (value: CookieChangeEventInit) changed(): CookieList ->
+    native.
+
+pub (value: CookieChangeEventInit) deleted(): CookieList ->
+    native.

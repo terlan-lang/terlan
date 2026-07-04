@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PageRevealEventInit.
+
+pub opaque type PageRevealEventInit.
+
+pub (value: PageRevealEventInit) view_transition(): Option[ViewTransition] ->
+    native.

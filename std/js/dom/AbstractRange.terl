@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AbstractRange.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`AbstractRange`** abstract interface is the base class upon which all DOM range types are defined.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange)
+ */
+pub opaque type AbstractRange.
+
+/**
+ * The read-only **`collapsed`** property of the AbstractRange interface returns `true` if the range's start position and end position are the same.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/collapsed)
+ */
+pub (value: AbstractRange) collapsed(): std.core.Bool ->
+    native.
+
+/**
+ * The read-only **`endContainer`** property of the AbstractRange interface returns the Node in which the end of the range is located.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/endContainer)
+ */
+pub (value: AbstractRange) end_container(): Node ->
+    native.
+
+/**
+ * The **`endOffset`** property of the AbstractRange interface returns the offset into the end node of the range's end position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/endOffset)
+ */
+pub (value: AbstractRange) end_offset(): JsNumber ->
+    native.
+
+/**
+ * The read-only **`startContainer`** property of the AbstractRange interface returns the start Node for the range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/startContainer)
+ */
+pub (value: AbstractRange) start_container(): Node ->
+    native.
+
+/**
+ * The read-only **`startOffset`** property of the AbstractRange interface returns the offset into the start node of the range's start position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/startOffset)
+ */
+pub (value: AbstractRange) start_offset(): JsNumber ->
+    native.

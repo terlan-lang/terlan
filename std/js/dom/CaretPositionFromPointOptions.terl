@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CaretPositionFromPointOptions.
+
+pub opaque type CaretPositionFromPointOptions.
+
+pub (value: CaretPositionFromPointOptions) shadow_roots(): std.js.Array[ShadowRoot] ->
+    native.

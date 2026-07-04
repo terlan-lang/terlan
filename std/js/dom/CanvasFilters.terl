@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasFilters.
+
+pub opaque type CanvasFilters.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/filter)
+ */
+pub (value: CanvasFilters) filter(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HashChangeEvent.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HashChangeEvent`** interface represents events that fire when the fragment identifier of the URL has changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HashChangeEvent)
+ */
+pub opaque type HashChangeEvent.
+
+/**
+ * The **`newURL`** read-only property of the navigating.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HashChangeEvent/newURL)
+ */
+pub (value: HashChangeEvent) new_url(): JsString ->
+    native.
+
+/**
+ * The **`oldURL`** read-only property of the was navigated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HashChangeEvent/oldURL)
+ */
+pub (value: HashChangeEvent) old_url(): JsString ->
+    native.

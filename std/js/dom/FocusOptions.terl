@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FocusOptions.
+
+pub opaque type FocusOptions.
+
+pub (value: FocusOptions) prevent_scroll(): std.core.Bool ->
+    native.

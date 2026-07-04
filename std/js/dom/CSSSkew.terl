@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSSkew.
+
+/**
+ * The **`CSSSkew`** interface of the CSS Typed Object Model API is part of the CSSTransformValue interface.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkew)
+ */
+pub opaque type CSSSkew.
+
+/**
+ * The **`ax`** property of the along the x-axis (or abscissa).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkew/ax)
+ */
+pub (value: CSSSkew) ax(): CSSNumericValue ->
+    native.
+
+/**
+ * The **`ay`** property of the along the y-axis (or ordinate).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkew/ay)
+ */
+pub (value: CSSSkew) ay(): CSSNumericValue ->
+    native.

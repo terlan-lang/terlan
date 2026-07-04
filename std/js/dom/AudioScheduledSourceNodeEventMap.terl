@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioScheduledSourceNodeEventMap.
+
+pub opaque type AudioScheduledSourceNodeEventMap.
+
+pub (value: AudioScheduledSourceNodeEventMap) ended(): Event ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventListenerOptions.
+
+pub opaque type EventListenerOptions.
+
+pub (value: EventListenerOptions) capture(): std.core.Bool ->
+    native.

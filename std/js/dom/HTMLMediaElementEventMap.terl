@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLMediaElementEventMap.
+
+pub opaque type HTMLMediaElementEventMap.
+
+pub (value: HTMLMediaElementEventMap) encrypted(): MediaEncryptedEvent ->
+    native.
+
+pub (value: HTMLMediaElementEventMap) waitingforkey(): Event ->
+    native.

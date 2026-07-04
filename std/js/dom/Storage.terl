@@ -1,0 +1,66 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Storage.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`Storage`** interface of the Web Storage API provides access to a particular domain's session or local storage.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage)
+ */
+pub opaque type Storage.
+
+/**
+ * The **`length`** read-only property of the `Storage` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/length)
+ */
+pub (value: Storage) length(): JsNumber ->
+    native.
+
+/**
+ * The **`clear()`** method of the Storage interface clears all keys stored in a given `Storage` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/clear)
+ */
+pub (value: Storage) clear(): Unit ->
+    native.
+
+/**
+ * The **`getItem()`** method of the Storage interface, when passed a key name, will return that key's value, or `null` if the key does not exist, in the given `Storage` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/getItem)
+ */
+pub (value: Storage) get_item(key: JsString): Option[JsString] ->
+    native.
+
+/**
+ * The **`key()`** method of the Storage interface, when passed a number n, returns the name of the nth key in a given `Storage` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/key)
+ */
+pub (value: Storage) key(index: JsNumber): Option[JsString] ->
+    native.
+
+/**
+ * The **`removeItem()`** method of the Storage interface, when passed a key name, will remove that key from the given `Storage` object if it exists.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/removeItem)
+ */
+pub (value: Storage) remove_item(key: JsString): Unit ->
+    native.
+
+/**
+ * The **`setItem()`** method of the Storage interface, when passed a key name and value, will add that key to the given `Storage` object, or update that key's value if it already exists.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/setItem)
+ */
+pub (value: Storage) set_item(key: JsString, value: JsString): Unit ->
+    native.

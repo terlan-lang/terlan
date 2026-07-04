@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ConstrainDoubleRange.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ConstrainDoubleRange.
+
+pub (value: ConstrainDoubleRange) exact(): JsNumber ->
+    native.
+
+pub (value: ConstrainDoubleRange) ideal(): JsNumber ->
+    native.

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioTimestamp.
+
+pub opaque type AudioTimestamp.
+
+pub (value: AudioTimestamp) context_time(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: AudioTimestamp) performance_time(): DOMHighResTimeStamp ->
+    native.

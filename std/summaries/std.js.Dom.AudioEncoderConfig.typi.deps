@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioEncoderConfig
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=17477113451294881223
-interface_hash=14824912406253979575
-interface_doc_hash=14824912406253979575
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=5646699675819190781
+interface_hash=3048228787369616205
+interface_doc_hash=3048228787369616205
 deps=0

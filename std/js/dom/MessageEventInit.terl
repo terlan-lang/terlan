@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MessageEventInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type MessageEventInit[T].
+
+pub (value: MessageEventInit[T]) data(): T ->
+    native.
+
+pub (value: MessageEventInit[T]) last_event_id(): JsString ->
+    native.
+
+pub (value: MessageEventInit[T]) origin(): JsString ->
+    native.
+
+pub (value: MessageEventInit[T]) ports(): std.js.Array[MessagePort] ->
+    native.
+
+pub (value: MessageEventInit[T]) source(): Option[MessageEventSource] ->
+    native.

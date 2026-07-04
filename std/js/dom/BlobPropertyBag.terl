@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.BlobPropertyBag.
+
+pub opaque type BlobPropertyBag.
+
+pub (value: BlobPropertyBag) endings(): EndingType ->
+    native.
+
+pub (value: BlobPropertyBag) type_(): std.js.String.JsString ->
+    native.

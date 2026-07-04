@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasTransform.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasTransform.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getTransform)
+ */
+pub (value: CanvasTransform) get_transform(): DOMMatrix ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/resetTransform)
+ */
+pub (value: CanvasTransform) reset_transform(): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rotate)
+ */
+pub (value: CanvasTransform) rotate(angle: JsNumber): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/scale)
+ */
+pub (value: CanvasTransform) scale(x: JsNumber, y: JsNumber): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setTransform)
+ */
+pub (value: CanvasTransform) set_transform(a: JsNumber, b: JsNumber, c: JsNumber, d: JsNumber, e: JsNumber, f: JsNumber): Unit ->
+    native.
+
+pub (value: CanvasTransform) set_transform(transform: DOMMatrix2DInit): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/transform)
+ */
+pub (value: CanvasTransform) transform(a: JsNumber, b: JsNumber, c: JsNumber, d: JsNumber, e: JsNumber, f: JsNumber): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/translate)
+ */
+pub (value: CanvasTransform) translate(x: JsNumber, y: JsNumber): Unit ->
+    native.

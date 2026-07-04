@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventModifierInit.
+
+import type std.core.{Bool}.
+
+pub opaque type EventModifierInit.
+
+pub (value: EventModifierInit) alt_key(): Bool ->
+    native.
+
+pub (value: EventModifierInit) ctrl_key(): Bool ->
+    native.
+
+pub (value: EventModifierInit) meta_key(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_alt_graph(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_caps_lock(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_fn(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_fn_lock(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_hyper(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_num_lock(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_scroll_lock(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_super(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_symbol(): Bool ->
+    native.
+
+pub (value: EventModifierInit) modifier_symbol_lock(): Bool ->
+    native.
+
+pub (value: EventModifierInit) shift_key(): Bool ->
+    native.

@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCOutboundRtpStreamStats
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=8463276887120461568
-interface_hash=12177198278559794562
-interface_doc_hash=12177198278559794562
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=3928177184995896000
+interface_hash=856511483349706093
+interface_doc_hash=856511483349706093
 deps=0

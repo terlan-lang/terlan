@@ -1,8 +1,8 @@
 module=std.js.Dom.WindowEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=5377579454885215146
-interface_hash=14844772257305351623
-interface_doc_hash=14844772257305351623
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=10811389159717483847
+interface_hash=11385140664656997026
+interface_doc_hash=11385140664656997026
 deps=0

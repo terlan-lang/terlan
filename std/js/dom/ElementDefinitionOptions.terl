@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ElementDefinitionOptions.
+
+pub opaque type ElementDefinitionOptions.
+
+pub (value: ElementDefinitionOptions) extends_(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebGLContextEventInit.
+
+pub opaque type WebGLContextEventInit.
+
+pub (value: WebGLContextEventInit) status_message(): std.js.String.JsString ->
+    native.

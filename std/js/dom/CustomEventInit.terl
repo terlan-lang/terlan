@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CustomEventInit.
+
+pub opaque type CustomEventInit[T].
+
+pub (value: CustomEventInit[T]) detail(): T ->
+    native.

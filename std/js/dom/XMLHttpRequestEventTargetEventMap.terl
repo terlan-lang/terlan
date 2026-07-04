@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.XMLHttpRequestEventTargetEventMap.
+
+pub opaque type XMLHttpRequestEventTargetEventMap.
+
+pub (value: XMLHttpRequestEventTargetEventMap) abort(): ProgressEvent[XMLHttpRequestEventTarget] ->
+    native.
+
+pub (value: XMLHttpRequestEventTargetEventMap) error(): ProgressEvent[XMLHttpRequestEventTarget] ->
+    native.
+
+pub (value: XMLHttpRequestEventTargetEventMap) load(): ProgressEvent[XMLHttpRequestEventTarget] ->
+    native.
+
+pub (value: XMLHttpRequestEventTargetEventMap) loadend(): ProgressEvent[XMLHttpRequestEventTarget] ->
+    native.
+
+pub (value: XMLHttpRequestEventTargetEventMap) loadstart(): ProgressEvent[XMLHttpRequestEventTarget] ->
+    native.
+
+pub (value: XMLHttpRequestEventTargetEventMap) progress(): ProgressEvent[XMLHttpRequestEventTarget] ->
+    native.
+
+pub (value: XMLHttpRequestEventTargetEventMap) timeout(): ProgressEvent[XMLHttpRequestEventTarget] ->
+    native.

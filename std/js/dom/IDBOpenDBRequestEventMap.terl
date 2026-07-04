@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBOpenDBRequestEventMap.
+
+pub opaque type IDBOpenDBRequestEventMap.
+
+pub (value: IDBOpenDBRequestEventMap) blocked(): IDBVersionChangeEvent ->
+    native.
+
+pub (value: IDBOpenDBRequestEventMap) upgradeneeded(): IDBVersionChangeEvent ->
+    native.

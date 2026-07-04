@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON.
+
+pub opaque type AuthenticationExtensionsLargeBlobInputsJSON.
+
+pub (value: AuthenticationExtensionsLargeBlobInputsJSON) read(): std.core.Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsLargeBlobInputsJSON) support(): std.js.String.JsString ->
+    native.
+
+pub (value: AuthenticationExtensionsLargeBlobInputsJSON) write(): Base64URLString ->
+    native.

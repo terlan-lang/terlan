@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.StaticRangeInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type StaticRangeInit.
+
+pub (value: StaticRangeInit) end_container(): Node ->
+    native.
+
+pub (value: StaticRangeInit) end_offset(): JsNumber ->
+    native.
+
+pub (value: StaticRangeInit) start_container(): Node ->
+    native.
+
+pub (value: StaticRangeInit) start_offset(): JsNumber ->
+    native.

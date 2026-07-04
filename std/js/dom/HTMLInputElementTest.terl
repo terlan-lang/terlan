@@ -1,54 +1,51 @@
 /**
  * @generated true
  * @do-not-edit true
- * @generator terlc
- * @generator-version 0.0.4
- * @generator-profile typescript-standard-js-dom
- * @artifact-kind test
- * @input-manifest std/js/manifests/std_js_dom_inputs.json
- * @source-package typescript@5.9.3
- * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
- * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
- * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
- * @source-interface HTMLInputElement
  */
-
 module std.js.Dom.HTMLInputElementTest.
 
-import type std.js.Dom.HTMLInputElement.HTMLInputElement.
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Dom.HTMLInputElement.{HTMLInputElement}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
 
 @test
 pub generated_binding_surface_exists(): Bool ->
     true.
 
-pub accept_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub accept_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.accept().
 
-pub align_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub align_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.align().
 
-pub alt_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub alt_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.alt().
 
 pub autocomplete_typechecks(receiver: HTMLInputElement): AutoFill ->
     receiver.autocomplete().
 
-pub capture_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub capture_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.capture().
 
-pub checked_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub checked_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.checked().
 
-pub default_checked_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub default_checked_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.default_checked().
 
-pub default_value_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub default_value_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.default_value().
 
-pub dir_name_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub dir_name_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.dir_name().
 
-pub disabled_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub disabled_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.disabled().
 
 pub files_typechecks(receiver: HTMLInputElement): Option[FileList] ->
@@ -57,25 +54,25 @@ pub files_typechecks(receiver: HTMLInputElement): Option[FileList] ->
 pub form_typechecks(receiver: HTMLInputElement): Option[HTMLFormElement] ->
     receiver.form().
 
-pub form_action_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub form_action_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.form_action().
 
-pub form_enctype_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub form_enctype_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.form_enctype().
 
-pub form_method_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub form_method_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.form_method().
 
-pub form_no_validate_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub form_no_validate_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.form_no_validate().
 
-pub form_target_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub form_target_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.form_target().
 
-pub height_typechecks(receiver: HTMLInputElement): std.js.Number.JsNumber ->
+pub height_typechecks(receiver: HTMLInputElement): JsNumber ->
     receiver.height().
 
-pub indeterminate_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub indeterminate_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.indeterminate().
 
 pub labels_typechecks(receiver: HTMLInputElement): Option[NodeListOf[HTMLLabelElement]] ->
@@ -84,113 +81,113 @@ pub labels_typechecks(receiver: HTMLInputElement): Option[NodeListOf[HTMLLabelEl
 pub list_typechecks(receiver: HTMLInputElement): Option[HTMLDataListElement] ->
     receiver.list().
 
-pub max_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub max_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.max().
 
-pub max_length_typechecks(receiver: HTMLInputElement): std.js.Number.JsNumber ->
+pub max_length_typechecks(receiver: HTMLInputElement): JsNumber ->
     receiver.max_length().
 
-pub min_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub min_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.min().
 
-pub min_length_typechecks(receiver: HTMLInputElement): std.js.Number.JsNumber ->
+pub min_length_typechecks(receiver: HTMLInputElement): JsNumber ->
     receiver.min_length().
 
-pub multiple_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub multiple_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.multiple().
 
-pub name_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub name_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.name().
 
-pub pattern_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub pattern_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.pattern().
 
-pub placeholder_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub placeholder_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.placeholder().
 
-pub read_only_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub read_only_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.read_only().
 
-pub required_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub required_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.required().
 
-pub selection_end_typechecks(receiver: HTMLInputElement): Option[std.js.Number.JsNumber] ->
+pub selection_end_typechecks(receiver: HTMLInputElement): Option[JsNumber] ->
     receiver.selection_end().
 
-pub selection_start_typechecks(receiver: HTMLInputElement): Option[std.js.Number.JsNumber] ->
+pub selection_start_typechecks(receiver: HTMLInputElement): Option[JsNumber] ->
     receiver.selection_start().
 
-pub size_typechecks(receiver: HTMLInputElement): std.js.Number.JsNumber ->
+pub size_typechecks(receiver: HTMLInputElement): JsNumber ->
     receiver.size().
 
-pub src_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub src_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.src().
 
-pub step_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub step_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.step().
 
-pub type__typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub type__typechecks(receiver: HTMLInputElement): JsString ->
     receiver.type_().
 
-pub use_map_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub use_map_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.use_map().
 
-pub validation_message_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub validation_message_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.validation_message().
 
 pub validity_typechecks(receiver: HTMLInputElement): ValidityState ->
     receiver.validity().
 
-pub value_typechecks(receiver: HTMLInputElement): std.js.String.JsString ->
+pub value_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.value().
 
 pub value_as_date_typechecks(receiver: HTMLInputElement): Option[Date] ->
     receiver.value_as_date().
 
-pub value_as_number_typechecks(receiver: HTMLInputElement): std.js.Number.JsNumber ->
+pub value_as_number_typechecks(receiver: HTMLInputElement): JsNumber ->
     receiver.value_as_number().
 
 pub webkit_entries_typechecks(receiver: HTMLInputElement): std.js.Array[FileSystemEntry] ->
     receiver.webkit_entries().
 
-pub webkitdirectory_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub webkitdirectory_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.webkitdirectory().
 
-pub width_typechecks(receiver: HTMLInputElement): std.js.Number.JsNumber ->
+pub width_typechecks(receiver: HTMLInputElement): JsNumber ->
     receiver.width().
 
-pub will_validate_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub will_validate_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.will_validate().
 
-pub check_validity_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub check_validity_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.check_validity().
 
-pub report_validity_typechecks(receiver: HTMLInputElement): std.core.Bool ->
+pub report_validity_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.report_validity().
 
-pub select_typechecks(receiver: HTMLInputElement): std.core.Unit ->
+pub select_typechecks(receiver: HTMLInputElement): Unit ->
     receiver.select().
 
-pub set_custom_validity_typechecks(receiver: HTMLInputElement, error: std.js.String.JsString): std.core.Unit ->
+pub set_custom_validity_typechecks(receiver: HTMLInputElement, error: JsString): Unit ->
     receiver.set_custom_validity(error).
 
-pub set_range_text_typechecks(receiver: HTMLInputElement, replacement: std.js.String.JsString): std.core.Unit ->
+pub set_range_text_typechecks(receiver: HTMLInputElement, replacement: JsString): Unit ->
     receiver.set_range_text(replacement).
 
-pub set_range_text_typechecks(receiver: HTMLInputElement, replacement: std.js.String.JsString, start: std.js.Number.JsNumber, end: std.js.Number.JsNumber, selection_mode: SelectionMode): std.core.Unit ->
+pub set_range_text_typechecks(receiver: HTMLInputElement, replacement: JsString, start: JsNumber, end: JsNumber, selection_mode: SelectionMode): Unit ->
     receiver.set_range_text(replacement, start, end, selection_mode).
 
-pub show_picker_typechecks(receiver: HTMLInputElement): std.core.Unit ->
+pub show_picker_typechecks(receiver: HTMLInputElement): Unit ->
     receiver.show_picker().
 
-pub step_down_typechecks(receiver: HTMLInputElement, n: std.js.Number.JsNumber): std.core.Unit ->
+pub step_down_typechecks(receiver: HTMLInputElement, n: JsNumber): Unit ->
     receiver.step_down(n).
 
-pub step_up_typechecks(receiver: HTMLInputElement, n: std.js.Number.JsNumber): std.core.Unit ->
+pub step_up_typechecks(receiver: HTMLInputElement, n: JsNumber): Unit ->
     receiver.step_up(n).
 
-pub add_event_listener_typechecks(receiver: HTMLInputElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+pub add_event_listener_typechecks(receiver: HTMLInputElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: HTMLInputElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+pub remove_event_listener_typechecks(receiver: HTMLInputElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
     receiver.remove_event_listener(type_, listener, options).

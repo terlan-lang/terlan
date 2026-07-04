@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLSlotElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Array}.
+
+/**
+ * The **`HTMLSlotElement`** interface of the Shadow DOM API enables access to the name and assigned nodes of an HTML slot element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement)
+ */
+pub opaque type HTMLSlotElement.
+
+/**
+ * The **`name`** property of the HTMLSlotElement interface returns or sets the slot name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/name)
+ */
+pub (value: HTMLSlotElement) name(): JsString ->
+    native.
+
+/**
+ * The **`assign()`** method of the HTMLSlotElement interface sets the slot's _manually assigned nodes_ to an ordered set of slottables.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assign)
+ */
+pub (value: HTMLSlotElement) assign(): Unit ->
+    native.
+
+/**
+ * The **`assignedElements()`** method of the HTMLSlotElement interface returns a sequence of the elements assigned to this slot (and no other nodes).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assignedElements)
+ */
+pub (value: HTMLSlotElement) assigned_elements(options: AssignedNodesOptions): Array[Element] ->
+    native.
+
+/**
+ * The **`assignedNodes()`** method of the HTMLSlotElement interface returns a sequence of the nodes assigned to this slot.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assignedNodes)
+ */
+pub (value: HTMLSlotElement) assigned_nodes(options: AssignedNodesOptions): Array[Node] ->
+    native.
+
+pub (value: HTMLSlotElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLSlotElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

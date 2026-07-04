@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSMediaRule.
+
+/**
+ * The **`CSSMediaRule`** interface represents a single CSS @media rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMediaRule)
+ */
+pub opaque type CSSMediaRule.
+
+/**
+ * The read-only **`media`** property of the destination medium for style information.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMediaRule/media)
+ */
+pub (value: CSSMediaRule) media(): MediaList ->
+    native.

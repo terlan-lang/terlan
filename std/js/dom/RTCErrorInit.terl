@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCErrorInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type RTCErrorInit.
+
+pub (value: RTCErrorInit) error_detail(): RTCErrorDetailType ->
+    native.
+
+pub (value: RTCErrorInit) http_request_status_code(): JsNumber ->
+    native.
+
+pub (value: RTCErrorInit) received_alert(): JsNumber ->
+    native.
+
+pub (value: RTCErrorInit) sctp_cause_code(): JsNumber ->
+    native.
+
+pub (value: RTCErrorInit) sdp_line_number(): JsNumber ->
+    native.
+
+pub (value: RTCErrorInit) sent_alert(): JsNumber ->
+    native.

@@ -1,0 +1,67 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaTrackSettings.
+
+import type std.core.{Bool}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type MediaTrackSettings.
+
+pub (value: MediaTrackSettings) aspect_ratio(): JsNumber ->
+    native.
+
+pub (value: MediaTrackSettings) auto_gain_control(): Bool ->
+    native.
+
+pub (value: MediaTrackSettings) background_blur(): Bool ->
+    native.
+
+pub (value: MediaTrackSettings) channel_count(): JsNumber ->
+    native.
+
+pub (value: MediaTrackSettings) device_id(): JsString ->
+    native.
+
+pub (value: MediaTrackSettings) display_surface(): JsString ->
+    native.
+
+pub (value: MediaTrackSettings) echo_cancellation(): Bool ->
+    native.
+
+pub (value: MediaTrackSettings) facing_mode(): JsString ->
+    native.
+
+pub (value: MediaTrackSettings) frame_rate(): JsNumber ->
+    native.
+
+pub (value: MediaTrackSettings) group_id(): JsString ->
+    native.
+
+pub (value: MediaTrackSettings) height(): JsNumber ->
+    native.
+
+pub (value: MediaTrackSettings) noise_suppression(): Bool ->
+    native.
+
+pub (value: MediaTrackSettings) sample_rate(): JsNumber ->
+    native.
+
+pub (value: MediaTrackSettings) sample_size(): JsNumber ->
+    native.
+
+pub (value: MediaTrackSettings) torch(): Bool ->
+    native.
+
+pub (value: MediaTrackSettings) white_balance_mode(): JsString ->
+    native.
+
+pub (value: MediaTrackSettings) width(): JsNumber ->
+    native.
+
+pub (value: MediaTrackSettings) zoom(): JsNumber ->
+    native.

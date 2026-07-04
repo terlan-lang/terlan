@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEDistantLightElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEDistantLightElement`** interface corresponds to the feDistantLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDistantLightElement)
+ */
+pub opaque type SVGFEDistantLightElement.
+
+/**
+ * The **`azimuth`** read-only property of the SVGFEDistantLightElement interface reflects the azimuth attribute of the given feDistantLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDistantLightElement/azimuth)
+ */
+pub (value: SVGFEDistantLightElement) azimuth(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`elevation`** read-only property of the SVGFEDistantLightElement interface reflects the elevation attribute of the given feDistantLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDistantLightElement/elevation)
+ */
+pub (value: SVGFEDistantLightElement) elevation(): SVGAnimatedNumber ->
+    native.
+
+pub (value: SVGFEDistantLightElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEDistantLightElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

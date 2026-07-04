@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CookieStoreEventMap.
+
+pub opaque type CookieStoreEventMap.
+
+pub (value: CookieStoreEventMap) change(): CookieChangeEvent ->
+    native.

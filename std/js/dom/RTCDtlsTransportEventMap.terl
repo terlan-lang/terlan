@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDtlsTransportEventMap.
+
+pub opaque type RTCDtlsTransportEventMap.
+
+pub (value: RTCDtlsTransportEventMap) error(): RTCErrorEvent ->
+    native.
+
+pub (value: RTCDtlsTransportEventMap) statechange(): Event ->
+    native.

@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentItem.
+
+pub opaque type PaymentItem.
+
+pub (value: PaymentItem) amount(): PaymentCurrencyAmount ->
+    native.
+
+pub (value: PaymentItem) label(): std.js.String.JsString ->
+    native.
+
+pub (value: PaymentItem) pending(): std.core.Bool ->
+    native.

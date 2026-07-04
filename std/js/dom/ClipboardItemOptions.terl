@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ClipboardItemOptions.
+
+pub opaque type ClipboardItemOptions.
+
+pub (value: ClipboardItemOptions) presentation_style(): PresentationStyle ->
+    native.

@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSMathSum
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=293881661774743494
-interface_hash=5303907756545569427
-interface_doc_hash=5303907756545569427
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=2771590982922522886
+interface_hash=4290894617382609346
+interface_doc_hash=4290894617382609346
 deps=0

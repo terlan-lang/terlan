@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WakeLockSentinelEventMap.
+
+pub opaque type WakeLockSentinelEventMap.
+
+pub (value: WakeLockSentinelEventMap) release(): Event ->
+    native.

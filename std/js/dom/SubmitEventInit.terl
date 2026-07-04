@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SubmitEventInit.
+
+pub opaque type SubmitEventInit.
+
+pub (value: SubmitEventInit) submitter(): Option[HTMLElement] ->
+    native.

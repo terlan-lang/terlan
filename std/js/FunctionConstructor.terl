@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.FunctionConstructor.
+
+pub opaque type FunctionConstructor.
+
+pub (value: FunctionConstructor) prototype(): Function ->
+    native.

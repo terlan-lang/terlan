@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGPreserveAspectRatio.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SVGPreserveAspectRatio`** interface corresponds to the preserveAspectRatio attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPreserveAspectRatio)
+ */
+pub opaque type SVGPreserveAspectRatio.
+
+/**
+ * The **`align`** read-only property of the SVGPreserveAspectRatio interface reflects the type of the alignment value as specified by one of the `SVG_PRESERVEASPECTRATIO_*` constants defined on this interface.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPreserveAspectRatio/align)
+ */
+pub (value: SVGPreserveAspectRatio) align(): JsNumber ->
+    native.
+
+/**
+ * The **`meetOrSlice`** read-only property of the SVGPreserveAspectRatio interface reflects the type of the meet-or-slice value as specified by one of the `SVG_MEETORSLICE_*` constants defined on this interface.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPreserveAspectRatio/meetOrSlice)
+ */
+pub (value: SVGPreserveAspectRatio) meet_or_slice(): JsNumber ->
+    native.

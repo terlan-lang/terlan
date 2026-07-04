@@ -1,8 +1,8 @@
 module=std.js.Dom.BarProp
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=5042229651549501183
-interface_hash=15782835213458788220
-interface_doc_hash=15782835213458788220
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=1574891793346163277
+interface_hash=12919917763311307575
+interface_doc_hash=12919917763311307575
 deps=0

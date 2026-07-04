@@ -1,8 +1,8 @@
 module=std.js.Dom.PermissionStatusEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=5966984858970534053
-interface_hash=13953914463163592338
-interface_doc_hash=13953914463163592338
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=17051376695593263200
+interface_hash=6405918166953182554
+interface_doc_hash=6405918166953182554
 deps=0

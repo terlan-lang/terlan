@@ -1,0 +1,32 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Float64ArrayConstructor.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type Float64ArrayConstructor.
+
+pub (value: Float64ArrayConstructor) prototype(): Float64Array[ArrayBufferLike] ->
+    native.
+
+/**
+ * The size in bytes of each element in the array.
+ */
+pub (value: Float64ArrayConstructor) bytes_per_element(): JsNumber ->
+    native.
+
+/**
+ * Returns a new array from a set of elements.
+ * @param items A set of elements to include in the new array object.
+ */
+pub (value: Float64ArrayConstructor) of(): Float64Array[ArrayBuffer] ->
+    native.
+
+/**
+ * Creates an array from an array-like or iterable object.
+ * @param arrayLike An array-like object to convert to an array.
+ */
+pub (value: Float64ArrayConstructor) from_(array_like: ArrayLike[JsNumber]): Float64Array[ArrayBuffer] ->
+    native.

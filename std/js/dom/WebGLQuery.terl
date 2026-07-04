@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebGLQuery.
+
+/**
+ * The **`WebGLQuery`** interface is part of the WebGL 2 API and provides ways to asynchronously query for information.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLQuery)
+ */
+pub opaque type WebGLQuery.

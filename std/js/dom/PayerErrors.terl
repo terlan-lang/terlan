@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PayerErrors.
+
+import type std.js.String.{JsString}.
+
+pub opaque type PayerErrors.
+
+pub (value: PayerErrors) email(): JsString ->
+    native.
+
+pub (value: PayerErrors) name(): JsString ->
+    native.
+
+pub (value: PayerErrors) phone(): JsString ->
+    native.

@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CompressionStream.
+
+/**
+ * The **`CompressionStream`** interface of the Compression Streams API is an API for compressing a stream of data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompressionStream)
+ */
+pub opaque type CompressionStream.
+
+pub (value: CompressionStream) readable(): ReadableStream[Uint8Array[ArrayBuffer]] ->
+    native.
+
+pub (value: CompressionStream) writable(): WritableStream[BufferSource] ->
+    native.

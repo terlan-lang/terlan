@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ScreenOrientationEventMap.
+
+pub opaque type ScreenOrientationEventMap.
+
+pub (value: ScreenOrientationEventMap) change(): Event ->
+    native.

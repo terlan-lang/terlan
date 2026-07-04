@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Report.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The `Report` interface of the Reporting API represents a single report.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report)
+ */
+pub opaque type Report.
+
+/**
+ * The **`body`** read-only property of the Report interface returns the body of the report, which is a `ReportBody` object containing the detailed report information.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report/body)
+ */
+pub (value: Report) body(): Option[ReportBody] ->
+    native.
+
+/**
+ * The **`type`** read-only property of the Report interface returns the type of report generated, e.g., `deprecation` or `intervention`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report/type)
+ */
+pub (value: Report) type_(): JsString ->
+    native.
+
+/**
+ * The **`url`** read-only property of the Report interface returns the URL of the document that generated the report.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report/url)
+ */
+pub (value: Report) url(): JsString ->
+    native.

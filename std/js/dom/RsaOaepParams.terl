@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RsaOaepParams.
+
+pub opaque type RsaOaepParams.
+
+pub (value: RsaOaepParams) label(): BufferSource ->
+    native.

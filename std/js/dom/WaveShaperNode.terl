@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WaveShaperNode.
+
+/**
+ * The **`WaveShaperNode`** interface represents a non-linear distorter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode)
+ */
+pub opaque type WaveShaperNode.
+
+/**
+ * The `curve` property of the WaveShaperNode interface is a Float32Array of numbers describing the distortion to apply.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode/curve)
+ */
+pub (value: WaveShaperNode) curve(): Option[Float32Array[ArrayBuffer]] ->
+    native.
+
+/**
+ * The `oversample` property of the WaveShaperNode interface is an enumerated value indicating if oversampling must be used.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode/oversample)
+ */
+pub (value: WaveShaperNode) oversample(): OverSampleType ->
+    native.

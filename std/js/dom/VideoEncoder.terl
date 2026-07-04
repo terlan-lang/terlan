@@ -1,0 +1,81 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoEncoder.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`VideoEncoder`** interface of the WebCodecs API encodes VideoFrame objects into EncodedVideoChunks.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder)
+ */
+pub opaque type VideoEncoder.
+
+/**
+ * The **`encodeQueueSize`** read-only property of the VideoEncoder interface returns the number of pending encode requests in the queue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/encodeQueueSize)
+ */
+pub (value: VideoEncoder) encode_queue_size(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`state`** read-only property of the VideoEncoder interface returns the current state of the underlying codec.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/state)
+ */
+pub (value: VideoEncoder) state(): CodecState ->
+    native.
+
+/**
+ * The **`close()`** method of the VideoEncoder interface ends all pending work and releases system resources.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/close)
+ */
+pub (value: VideoEncoder) close(): Unit ->
+    native.
+
+/**
+ * The **`configure()`** method of the VideoEncoder interface changes the VideoEncoder.state of the encoder to 'configured' and asynchronously prepares the encoder to accept VideoEncoders for encoding with the specified parameters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/configure)
+ */
+pub (value: VideoEncoder) configure(config: VideoEncoderConfig): Unit ->
+    native.
+
+/**
+ * The **`encode()`** method of the VideoEncoder interface asynchronously encodes a VideoFrame.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/encode)
+ */
+pub (value: VideoEncoder) encode(frame: VideoFrame, options: VideoEncoderEncodeOptions): Unit ->
+    native.
+
+/**
+ * The **`flush()`** method of the VideoEncoder interface forces all pending encodes to complete.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/flush)
+ */
+pub (value: VideoEncoder) flush(): std.js.Promise[Unit] ->
+    native.
+
+/**
+ * The **`reset()`** method of the VideoEncoder interface synchronously cancels all pending encodes and callbacks, frees all underlying resources and sets the VideoEncoder.state to 'unconfigured'.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/reset)
+ */
+pub (value: VideoEncoder) reset(): Unit ->
+    native.
+
+pub (value: VideoEncoder) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: VideoEncoder) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

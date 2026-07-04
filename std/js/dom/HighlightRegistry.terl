@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HighlightRegistry.
+
+/**
+ * The **`HighlightRegistry`** interface of the CSS Custom Highlight API is used to register Highlight objects to be styled using the API.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HighlightRegistry)
+ */
+pub opaque type HighlightRegistry.

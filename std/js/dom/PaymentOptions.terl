@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type PaymentOptions.
+
+pub (value: PaymentOptions) request_payer_email(): Bool ->
+    native.
+
+pub (value: PaymentOptions) request_payer_name(): Bool ->
+    native.
+
+pub (value: PaymentOptions) request_payer_phone(): Bool ->
+    native.
+
+pub (value: PaymentOptions) request_shipping(): Bool ->
+    native.
+
+pub (value: PaymentOptions) shipping_type(): PaymentShippingType ->
+    native.

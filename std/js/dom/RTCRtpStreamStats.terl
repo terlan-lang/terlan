@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpStreamStats.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RTCRtpStreamStats.
+
+pub (value: RTCRtpStreamStats) codec_id(): JsString ->
+    native.
+
+pub (value: RTCRtpStreamStats) kind(): JsString ->
+    native.
+
+pub (value: RTCRtpStreamStats) ssrc(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCRtpStreamStats) transport_id(): JsString ->
+    native.

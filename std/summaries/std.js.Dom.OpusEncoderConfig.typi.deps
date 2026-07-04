@@ -1,8 +1,8 @@
 module=std.js.Dom.OpusEncoderConfig
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=13945452738405960556
-interface_hash=15451631735765501083
-interface_doc_hash=15451631735765501083
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=7809730413252780424
+interface_hash=2657142315817370367
+interface_doc_hash=2657142315817370367
 deps=0

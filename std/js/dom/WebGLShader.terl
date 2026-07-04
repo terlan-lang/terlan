@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebGLShader.
+
+/**
+ * The **WebGLShader** is part of the WebGL API and can either be a vertex or a fragment shader.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLShader)
+ */
+pub opaque type WebGLShader.

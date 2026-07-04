@@ -1,0 +1,95 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DOMTokenList.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`DOMTokenList`** interface represents a set of space-separated tokens.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList)
+ */
+pub opaque type DOMTokenList.
+
+/**
+ * The read-only **`length`** property of the DOMTokenList interface is an `integer` representing the number of objects stored in the object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/length)
+ */
+pub (value: DOMTokenList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`value`** property of the DOMTokenList interface is a stringifier that returns the value of the list serialized as a string, or clears and sets the list to the given value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/value)
+ */
+pub (value: DOMTokenList) value(): JsString ->
+    native.
+
+pub (value: DOMTokenList) to_string(): JsString ->
+    native.
+
+/**
+ * The **`add()`** method of the DOMTokenList interface adds the given tokens to the list, omitting any that are already present.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/add)
+ */
+pub (value: DOMTokenList) add(): Unit ->
+    native.
+
+/**
+ * The **`contains()`** method of the DOMTokenList interface returns a boolean value — `true` if the underlying list contains the given token, otherwise `false`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/contains)
+ */
+pub (value: DOMTokenList) contains(token: JsString): Bool ->
+    native.
+
+/**
+ * The **`item()`** method of the DOMTokenList interface returns an item in the list, determined by its position in the list, its index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/item)
+ */
+pub (value: DOMTokenList) item(index: JsNumber): Option[JsString] ->
+    native.
+
+/**
+ * The **`remove()`** method of the DOMTokenList interface removes the specified _tokens_ from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/remove)
+ */
+pub (value: DOMTokenList) remove(): Unit ->
+    native.
+
+/**
+ * The **`replace()`** method of the DOMTokenList interface replaces an existing token with a new token.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/replace)
+ */
+pub (value: DOMTokenList) replace(token: JsString, new_token: JsString): Bool ->
+    native.
+
+/**
+ * The **`supports()`** method of the DOMTokenList interface returns `true` if a given `token` is in the associated attribute's supported tokens.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/supports)
+ */
+pub (value: DOMTokenList) supports(token: JsString): Bool ->
+    native.
+
+/**
+ * The **`toggle()`** method of the DOMTokenList interface removes an existing token from the list and returns `false`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/toggle)
+ */
+pub (value: DOMTokenList) toggle(token: JsString, force: Bool): Bool ->
+    native.

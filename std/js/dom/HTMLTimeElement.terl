@@ -1,0 +1,32 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLTimeElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLTimeElement`** interface provides special properties (beyond the regular HTMLElement interface it also has available to it by inheritance) for manipulating time elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTimeElement)
+ */
+pub opaque type HTMLTimeElement.
+
+/**
+ * The **`dateTime`** property of the HTMLTimeElement interface is a string that reflects the `datetime` HTML attribute, containing a machine-readable form of the element's date and time value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTimeElement/dateTime)
+ */
+pub (value: HTMLTimeElement) date_time(): JsString ->
+    native.
+
+pub (value: HTMLTimeElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLTimeElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

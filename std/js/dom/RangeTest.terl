@@ -1,21 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
- * @generator terlc
- * @generator-version 0.0.4
- * @generator-profile typescript-standard-js-dom
- * @artifact-kind test
- * @input-manifest std/js/manifests/std_js_dom_inputs.json
- * @source-package typescript@5.9.3
- * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
- * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
- * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
- * @source-interface Range
  */
-
 module std.js.Dom.RangeTest.
 
-import type std.js.Dom.Range.Range.
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Dom.Range.{Range}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
 
 @test
 pub generated_binding_surface_exists(): Bool ->
@@ -30,22 +27,22 @@ pub clone_contents_typechecks(receiver: Range): DocumentFragment ->
 pub clone_range_typechecks(receiver: Range): Range ->
     receiver.clone_range().
 
-pub collapse_typechecks(receiver: Range, to_start: std.core.Bool): std.core.Unit ->
+pub collapse_typechecks(receiver: Range, to_start: Bool): Unit ->
     receiver.collapse(to_start).
 
-pub compare_boundary_points_typechecks(receiver: Range, how: std.js.Number.JsNumber, source_range: Range): std.js.Number.JsNumber ->
+pub compare_boundary_points_typechecks(receiver: Range, how: JsNumber, source_range: Range): JsNumber ->
     receiver.compare_boundary_points(how, source_range).
 
-pub compare_point_typechecks(receiver: Range, node: Node, offset: std.js.Number.JsNumber): std.js.Number.JsNumber ->
+pub compare_point_typechecks(receiver: Range, node: Node, offset: JsNumber): JsNumber ->
     receiver.compare_point(node, offset).
 
-pub create_contextual_fragment_typechecks(receiver: Range, string: std.js.String.JsString): DocumentFragment ->
+pub create_contextual_fragment_typechecks(receiver: Range, string: JsString): DocumentFragment ->
     receiver.create_contextual_fragment(string).
 
-pub delete_contents_typechecks(receiver: Range): std.core.Unit ->
+pub delete_contents_typechecks(receiver: Range): Unit ->
     receiver.delete_contents().
 
-pub detach_typechecks(receiver: Range): std.core.Unit ->
+pub detach_typechecks(receiver: Range): Unit ->
     receiver.detach().
 
 pub extract_contents_typechecks(receiver: Range): DocumentFragment ->
@@ -57,41 +54,41 @@ pub get_bounding_client_rect_typechecks(receiver: Range): DOMRect ->
 pub get_client_rects_typechecks(receiver: Range): DOMRectList ->
     receiver.get_client_rects().
 
-pub insert_node_typechecks(receiver: Range, node: Node): std.core.Unit ->
+pub insert_node_typechecks(receiver: Range, node: Node): Unit ->
     receiver.insert_node(node).
 
-pub intersects_node_typechecks(receiver: Range, node: Node): std.core.Bool ->
+pub intersects_node_typechecks(receiver: Range, node: Node): Bool ->
     receiver.intersects_node(node).
 
-pub is_point_in_range_typechecks(receiver: Range, node: Node, offset: std.js.Number.JsNumber): std.core.Bool ->
+pub is_point_in_range_typechecks(receiver: Range, node: Node, offset: JsNumber): Bool ->
     receiver.is_point_in_range(node, offset).
 
-pub select_node_typechecks(receiver: Range, node: Node): std.core.Unit ->
+pub select_node_typechecks(receiver: Range, node: Node): Unit ->
     receiver.select_node(node).
 
-pub select_node_contents_typechecks(receiver: Range, node: Node): std.core.Unit ->
+pub select_node_contents_typechecks(receiver: Range, node: Node): Unit ->
     receiver.select_node_contents(node).
 
-pub set_end_typechecks(receiver: Range, node: Node, offset: std.js.Number.JsNumber): std.core.Unit ->
+pub set_end_typechecks(receiver: Range, node: Node, offset: JsNumber): Unit ->
     receiver.set_end(node, offset).
 
-pub set_end_after_typechecks(receiver: Range, node: Node): std.core.Unit ->
+pub set_end_after_typechecks(receiver: Range, node: Node): Unit ->
     receiver.set_end_after(node).
 
-pub set_end_before_typechecks(receiver: Range, node: Node): std.core.Unit ->
+pub set_end_before_typechecks(receiver: Range, node: Node): Unit ->
     receiver.set_end_before(node).
 
-pub set_start_typechecks(receiver: Range, node: Node, offset: std.js.Number.JsNumber): std.core.Unit ->
+pub set_start_typechecks(receiver: Range, node: Node, offset: JsNumber): Unit ->
     receiver.set_start(node, offset).
 
-pub set_start_after_typechecks(receiver: Range, node: Node): std.core.Unit ->
+pub set_start_after_typechecks(receiver: Range, node: Node): Unit ->
     receiver.set_start_after(node).
 
-pub set_start_before_typechecks(receiver: Range, node: Node): std.core.Unit ->
+pub set_start_before_typechecks(receiver: Range, node: Node): Unit ->
     receiver.set_start_before(node).
 
-pub surround_contents_typechecks(receiver: Range, new_parent: Node): std.core.Unit ->
+pub surround_contents_typechecks(receiver: Range, new_parent: Node): Unit ->
     receiver.surround_contents(new_parent).
 
-pub to_string_typechecks(receiver: Range): std.js.String.JsString ->
+pub to_string_typechecks(receiver: Range): JsString ->
     receiver.to_string().

@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioContextOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type AudioContextOptions.
+
+pub (value: AudioContextOptions) latency_hint(): AudioContextLatencyCategory | JsNumber ->
+    native.
+
+pub (value: AudioContextOptions) sample_rate(): JsNumber ->
+    native.

@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ObjectConstructor.
+
+pub opaque type ObjectConstructor.
+
+/**
+ * A reference to the prototype for a class of objects.
+ */
+pub (value: ObjectConstructor) prototype(): Object ->
+    native.
+
+/**
+ * Prevents the modification of attributes of existing properties, and prevents the addition of new properties.
+ * @param o Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) seal(o: T): T ->
+    native.
+
+/**
+ * Prevents the modification of existing property attributes and values, and prevents the addition of new properties.
+ * @param f Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) freeze(f: T): T ->
+    native.
+
+/**
+ * Prevents the modification of existing property attributes and values, and prevents the addition of new properties.
+ * @param o Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) freeze(o: T): Readonly[T] ->
+    native.
+
+/**
+ * Prevents the modification of existing property attributes and values, and prevents the addition of new properties.
+ * @param o Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) freeze(o: T): Readonly[T] ->
+    native.
+
+/**
+ * Prevents the addition of new properties to an object.
+ * @param o Object to make non-extensible.
+ */
+pub (value: ObjectConstructor) prevent_extensions(o: T): T ->
+    native.

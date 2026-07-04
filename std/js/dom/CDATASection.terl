@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CDATASection.
+
+/**
+ * The **`CDATASection`** interface represents a CDATA section that can be used within XML to include extended portions of unescaped text.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CDATASection)
+ */
+pub opaque type CDATASection.

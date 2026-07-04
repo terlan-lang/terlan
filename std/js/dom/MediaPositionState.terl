@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaPositionState.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type MediaPositionState.
+
+pub (value: MediaPositionState) duration(): JsNumber ->
+    native.
+
+pub (value: MediaPositionState) playback_rate(): JsNumber ->
+    native.
+
+pub (value: MediaPositionState) position(): JsNumber ->
+    native.

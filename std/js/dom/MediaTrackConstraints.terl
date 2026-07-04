@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaTrackConstraints.
+
+pub opaque type MediaTrackConstraints.
+
+pub (value: MediaTrackConstraints) advanced(): std.js.Array[MediaTrackConstraintSet] ->
+    native.

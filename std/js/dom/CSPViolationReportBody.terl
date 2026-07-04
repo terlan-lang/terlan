@@ -1,0 +1,104 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSPViolationReportBody.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The `CSPViolationReportBody` interface is an extension of the Reporting API that represents the body of a Content Security Policy (CSP) violation report.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody)
+ */
+pub opaque type CSPViolationReportBody.
+
+/**
+ * The **`blockedURL`** read-only property of the CSPViolationReportBody interface is a string value that represents the resource that was blocked because it violates a Content Security Policy (CSP).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/blockedURL)
+ */
+pub (value: CSPViolationReportBody) blocked_url(): Option[JsString] ->
+    native.
+
+/**
+ * The **`columnNumber`** read-only property of the CSPViolationReportBody interface indicates the column number in the source file that triggered the Content Security Policy (CSP) violation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/columnNumber)
+ */
+pub (value: CSPViolationReportBody) column_number(): Option[JsNumber] ->
+    native.
+
+/**
+ * The **`disposition`** read-only property of the CSPViolationReportBody interface indicates whether the user agent is configured to enforce Content Security Policy (CSP) violations or only report them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/disposition)
+ */
+pub (value: CSPViolationReportBody) disposition(): SecurityPolicyViolationEventDisposition ->
+    native.
+
+/**
+ * The **`documentURL`** read-only property of the CSPViolationReportBody interface is a string that represents the URL of the document or worker that violated the Content Security Policy (CSP).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/documentURL)
+ */
+pub (value: CSPViolationReportBody) document_url(): JsString ->
+    native.
+
+/**
+ * The **`effectiveDirective`** read-only property of the CSPViolationReportBody interface is a string that represents the effective Content Security Policy (CSP) directive that was violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/effectiveDirective)
+ */
+pub (value: CSPViolationReportBody) effective_directive(): JsString ->
+    native.
+
+/**
+ * The **`lineNumber`** read-only property of the CSPViolationReportBody interface indicates the line number in the source file that triggered the Content Security Policy (CSP) violation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/lineNumber)
+ */
+pub (value: CSPViolationReportBody) line_number(): Option[JsNumber] ->
+    native.
+
+/**
+ * The **`originalPolicy`** read-only property of the CSPViolationReportBody interface is a string that represents the Content Security Policy (CSP) whose enforcement uncovered the violation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/originalPolicy)
+ */
+pub (value: CSPViolationReportBody) original_policy(): JsString ->
+    native.
+
+/**
+ * The **`referrer`** read-only property of the CSPViolationReportBody interface is a string that represents the URL of the referring page of the resource who's Content Security Policy (CSP) was violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/referrer)
+ */
+pub (value: CSPViolationReportBody) referrer(): Option[JsString] ->
+    native.
+
+/**
+ * The **`sample`** read-only property of the CSPViolationReportBody interface is a string that contains a part of the resource that violated the Content Security Policy (CSP).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/sample)
+ */
+pub (value: CSPViolationReportBody) sample(): Option[JsString] ->
+    native.
+
+/**
+ * The **`sourceFile`** read-only property of the CSPViolationReportBody interface indicates the URL of the source file that violated the Content Security Policy (CSP).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/sourceFile)
+ */
+pub (value: CSPViolationReportBody) source_file(): Option[JsString] ->
+    native.
+
+/**
+ * The **`statusCode`** read-only property of the CSPViolationReportBody interface is a number representing the HTTP status code of the response to the request that triggered a Content Security Policy (CSP) violation (when loading a window or worker).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/statusCode)
+ */
+pub (value: CSPViolationReportBody) status_code(): JsNumber ->
+    native.

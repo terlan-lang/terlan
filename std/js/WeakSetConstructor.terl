@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.WeakSetConstructor.
+
+pub opaque type WeakSetConstructor.
+
+pub (value: WeakSetConstructor) prototype(): WeakSet[WeakKey] ->
+    native.

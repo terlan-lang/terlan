@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EcKeyImportParams.
+
+pub opaque type EcKeyImportParams.
+
+pub (value: EcKeyImportParams) named_curve(): NamedCurve ->
+    native.

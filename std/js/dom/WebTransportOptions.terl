@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebTransportOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type WebTransportOptions.
+
+pub (value: WebTransportOptions) allow_pooling(): Bool ->
+    native.
+
+pub (value: WebTransportOptions) congestion_control(): WebTransportCongestionControl ->
+    native.
+
+pub (value: WebTransportOptions) require_unreliable(): Bool ->
+    native.
+
+pub (value: WebTransportOptions) server_certificate_hashes(): std.js.Array[WebTransportHash] ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FocusEventInit.
+
+pub opaque type FocusEventInit.
+
+pub (value: FocusEventInit) related_target(): Option[EventTarget] ->
+    native.

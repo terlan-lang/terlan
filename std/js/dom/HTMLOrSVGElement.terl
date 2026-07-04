@@ -1,0 +1,45 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLOrSVGElement.
+
+import type std.core.{Unit}.
+
+pub opaque type HTMLOrSVGElement.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autofocus)
+ */
+pub (value: HTMLOrSVGElement) autofocus(): std.core.Bool ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dataset)
+ */
+pub (value: HTMLOrSVGElement) dataset(): DOMStringMap ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/nonce)
+ */
+pub (value: HTMLOrSVGElement) nonce(): std.js.String.JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/tabIndex)
+ */
+pub (value: HTMLOrSVGElement) tab_index(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/blur)
+ */
+pub (value: HTMLOrSVGElement) blur(): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/focus)
+ */
+pub (value: HTMLOrSVGElement) focus(options: FocusOptions): Unit ->
+    native.

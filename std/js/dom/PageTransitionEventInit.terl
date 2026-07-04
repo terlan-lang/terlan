@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PageTransitionEventInit.
+
+pub opaque type PageTransitionEventInit.
+
+pub (value: PageTransitionEventInit) persisted(): std.core.Bool ->
+    native.

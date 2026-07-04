@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ChannelMergerOptions.
+
+pub opaque type ChannelMergerOptions.
+
+pub (value: ChannelMergerOptions) number_of_inputs(): std.js.Number.JsNumber ->
+    native.

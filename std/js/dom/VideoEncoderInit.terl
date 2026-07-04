@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoEncoderInit.
+
+pub opaque type VideoEncoderInit.
+
+pub (value: VideoEncoderInit) error(): WebCodecsErrorCallback ->
+    native.
+
+pub (value: VideoEncoderInit) output(): EncodedVideoChunkOutputCallback ->
+    native.

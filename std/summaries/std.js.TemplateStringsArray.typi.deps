@@ -1,8 +1,8 @@
 module=std.js.TemplateStringsArray
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=4759236135392949233
-interface_hash=3622312358551766963
-interface_doc_hash=3622312358551766963
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=1200515993211047041
+interface_hash=1200515993211047041
+interface_doc_hash=1200515993211047041
 deps=0

@@ -156,10 +156,10 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     )
     .expect("JS DOM generation should succeed");
 
-    assert!(out_dir.join("std/js/dom/document.terl").exists());
-    assert!(out_dir.join("std/js/dom/document.terli").exists());
-    assert!(out_dir.join("std/js/map.terl").exists());
-    assert!(out_dir.join("std/js/set.terl").exists());
+    assert!(out_dir.join("std/js/dom/Document.terl").exists());
+    assert!(!out_dir.join("std/js/dom/Document.terli").exists());
+    assert!(out_dir.join("std/js/Map.terl").exists());
+    assert!(out_dir.join("std/js/Set.terl").exists());
     assert!(out_dir
         .join("std/summaries/std.js.Dom.Document.typi")
         .exists());
@@ -173,20 +173,17 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
         .exists());
 
     let document_source =
-        fs::read_to_string(out_dir.join("std/js/dom/document.terl")).expect("read source");
+        fs::read_to_string(out_dir.join("std/js/dom/Document.terl")).expect("read source");
     assert!(document_source.contains("@generated true"));
     assert!(document_source.contains("@do-not-edit true"));
-    assert!(document_source.contains("@generator terlc"));
-    assert!(document_source.contains("@input-manifest std/js/manifests/std_js_dom_inputs.json"));
-    assert!(document_source.contains(
-        "@source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1"
-    ));
-    assert!(document_source.contains(
-        "@source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44"
-    ));
-    assert!(document_source.contains(
-        "@source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9"
-    ));
+    assert!(!document_source.contains("@generator "));
+    assert!(!document_source.contains("@generator-version"));
+    assert!(!document_source.contains("@generator-profile"));
+    assert!(!document_source.contains("@artifact-kind"));
+    assert!(!document_source.contains("@input-manifest"));
+    assert!(!document_source.contains("@source-package"));
+    assert!(!document_source.contains("@source-input"));
+    assert!(!document_source.contains("@source-interface"));
     assert!(document_source.contains("module std.js.Dom.Document."));
     assert!(document_source.contains("pub opaque type Document."));
     assert!(document_source.contains(
@@ -196,9 +193,18 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
 
     let document_test = fs::read_to_string(out_dir.join("std/js/dom/DocumentTest.terl"))
         .expect("read generated DOM test");
-    assert!(document_test.contains("@artifact-kind test"));
+    assert!(document_test.contains("@generated true"));
+    assert!(document_test.contains("@do-not-edit true"));
+    assert!(!document_test.contains("@generator "));
+    assert!(!document_test.contains("@generator-version"));
+    assert!(!document_test.contains("@generator-profile"));
+    assert!(!document_test.contains("@artifact-kind"));
+    assert!(!document_test.contains("@input-manifest"));
+    assert!(!document_test.contains("@source-package"));
+    assert!(!document_test.contains("@source-input"));
+    assert!(!document_test.contains("@source-interface"));
     assert!(document_test.contains("module std.js.Dom.DocumentTest."));
-    assert!(document_test.contains("import type std.js.Dom.Document.Document."));
+    assert!(document_test.contains("import type std.js.Dom.Document.{Document}."));
     assert!(document_test.contains("@test\npub generated_binding_surface_exists(): Bool ->"));
     assert!(document_test.contains(
         "pub get_element_by_id_typechecks(receiver: Document, element_id: std.js.String.JsString): Option[HTMLElement] ->"
@@ -206,7 +212,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_test.contains("    receiver.get_element_by_id(element_id)."));
 
     let map_source =
-        fs::read_to_string(out_dir.join("std/js/map.terl")).expect("read generated map source");
+        fs::read_to_string(out_dir.join("std/js/Map.terl")).expect("read generated map source");
     assert!(map_source.contains("module std.js.Map."));
     assert!(map_source.contains("pub opaque type Map[K, V]."));
     assert!(
@@ -225,6 +231,8 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(binding_manifest.contains("\"module\": \"std.js.Map\""));
     assert!(binding_manifest.contains("\"summary\": \"std/summaries/std.js.Dom.Document.typi\""));
     assert!(binding_manifest.contains("\"summary\": \"std/summaries/std.js.Map.typi\""));
+    assert!(binding_manifest.contains("\"source\": \"std/js/dom/Document.terl\""));
+    assert!(!binding_manifest.contains("\"interface\""));
     assert!(binding_manifest.contains("\"test\": \"std/js/dom/DocumentTest.terl\""));
     assert!(
         binding_manifest.contains("\"skipped_manifest\": \"std/js/manifests/std_js_skipped.json\"")

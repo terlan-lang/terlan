@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CryptoKeyPair.
+
+pub opaque type CryptoKeyPair.
+
+pub (value: CryptoKeyPair) private_key(): CryptoKey ->
+    native.
+
+pub (value: CryptoKeyPair) public_key(): CryptoKey ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ResizeObserverOptions.
+
+pub opaque type ResizeObserverOptions.
+
+pub (value: ResizeObserverOptions) box(): ResizeObserverBoxOptions ->
+    native.

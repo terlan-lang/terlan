@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsPRFOutputs.
+
+pub opaque type AuthenticationExtensionsPRFOutputs.
+
+pub (value: AuthenticationExtensionsPRFOutputs) enabled(): std.core.Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsPRFOutputs) results(): AuthenticationExtensionsPRFValues ->
+    native.

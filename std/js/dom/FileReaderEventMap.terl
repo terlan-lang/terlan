@@ -1,0 +1,25 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileReaderEventMap.
+
+pub opaque type FileReaderEventMap.
+
+pub (value: FileReaderEventMap) abort(): ProgressEvent[FileReader] ->
+    native.
+
+pub (value: FileReaderEventMap) error(): ProgressEvent[FileReader] ->
+    native.
+
+pub (value: FileReaderEventMap) load(): ProgressEvent[FileReader] ->
+    native.
+
+pub (value: FileReaderEventMap) loadend(): ProgressEvent[FileReader] ->
+    native.
+
+pub (value: FileReaderEventMap) loadstart(): ProgressEvent[FileReader] ->
+    native.
+
+pub (value: FileReaderEventMap) progress(): ProgressEvent[FileReader] ->
+    native.

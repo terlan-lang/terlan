@@ -1,0 +1,79 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigatorID.
+
+import type std.js.String.{JsString}.
+
+pub opaque type NavigatorID.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/appCodeName)
+ */
+pub (value: NavigatorID) app_code_name(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/appName)
+ */
+pub (value: NavigatorID) app_name(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/appVersion)
+ */
+pub (value: NavigatorID) app_version(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/platform)
+ */
+pub (value: NavigatorID) platform(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/product)
+ */
+pub (value: NavigatorID) product(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/productSub)
+ */
+pub (value: NavigatorID) product_sub(): JsString ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/userAgent)
+ */
+pub (value: NavigatorID) user_agent(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/vendor)
+ */
+pub (value: NavigatorID) vendor(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/vendorSub)
+ */
+pub (value: NavigatorID) vendor_sub(): JsString ->
+    native.

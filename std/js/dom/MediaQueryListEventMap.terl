@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaQueryListEventMap.
+
+pub opaque type MediaQueryListEventMap.
+
+pub (value: MediaQueryListEventMap) change(): MediaQueryListEvent ->
+    native.

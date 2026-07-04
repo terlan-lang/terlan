@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AbortSignalEventMap.
+
+pub opaque type AbortSignalEventMap.
+
+pub (value: AbortSignalEventMap) abort(): Event ->
+    native.

@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CookieInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type CookieInit.
+
+pub (value: CookieInit) domain(): Option[JsString] ->
+    native.
+
+pub (value: CookieInit) expires(): Option[DOMHighResTimeStamp] ->
+    native.
+
+pub (value: CookieInit) name(): JsString ->
+    native.
+
+pub (value: CookieInit) partitioned(): std.core.Bool ->
+    native.
+
+pub (value: CookieInit) path(): JsString ->
+    native.
+
+pub (value: CookieInit) same_site(): CookieSameSite ->
+    native.
+
+pub (value: CookieInit) value(): JsString ->
+    native.

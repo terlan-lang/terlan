@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WritableStreamDefaultWriter.
+
+import type std.core.{Unit}.
+
+import type std.js.{Promise}.
+
+/**
+ * The **`WritableStreamDefaultWriter`** interface of the Streams API is the object returned by WritableStream.getWriter() and once created locks the writer to the `WritableStream` ensuring that no other streams can write to the underlying sink.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter)
+ */
+pub opaque type WritableStreamDefaultWriter[W].
+
+/**
+ * The **`closed`** read-only property of the the stream errors or the writer's lock is released.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/closed)
+ */
+pub (value: WritableStreamDefaultWriter[W]) closed(): Promise[Unit] ->
+    native.
+
+/**
+ * The **`desiredSize`** read-only property of the to fill the stream's internal queue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/desiredSize)
+ */
+pub (value: WritableStreamDefaultWriter[W]) desired_size(): Option[std.js.Number.JsNumber] ->
+    native.
+
+/**
+ * The **`ready`** read-only property of the that resolves when the desired size of the stream's internal queue transitions from non-positive to positive, signaling that it is no longer applying backpressure.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/ready)
+ */
+pub (value: WritableStreamDefaultWriter[W]) ready(): Promise[Unit] ->
+    native.
+
+/**
+ * The **`close()`** method of the stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/close)
+ */
+pub (value: WritableStreamDefaultWriter[W]) close(): Promise[Unit] ->
+    native.
+
+/**
+ * The **`releaseLock()`** method of the corresponding stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/releaseLock)
+ */
+pub (value: WritableStreamDefaultWriter[W]) release_lock(): Unit ->
+    native.
+
+/**
+ * The **`write()`** method of the operation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/write)
+ */
+pub (value: WritableStreamDefaultWriter[W]) write(chunk: W): Promise[Unit] ->
+    native.

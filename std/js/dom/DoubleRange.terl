@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DoubleRange.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DoubleRange.
+
+pub (value: DoubleRange) max(): JsNumber ->
+    native.
+
+pub (value: DoubleRange) min(): JsNumber ->
+    native.

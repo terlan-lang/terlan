@@ -1,8 +1,8 @@
 module=std.js.Dom.FormData
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=11048544628360443687
-interface_hash=12911079764770910122
-interface_doc_hash=12911079764770910122
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=17281133990663551615
+interface_hash=6637696887558734642
+interface_doc_hash=6637696887558734642
 deps=0

@@ -1,0 +1,80 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGPatternElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGPatternElement`** interface corresponds to the pattern element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement)
+ */
+pub opaque type SVGPatternElement.
+
+/**
+ * The **`height`** read-only property of the SVGPatternElement interface describes the height of the pattern as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement/height)
+ */
+pub (value: SVGPatternElement) height(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`patternContentUnits`** read-only property of the SVGPatternElement interface reflects the patternContentUnits attribute of the given pattern element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement/patternContentUnits)
+ */
+pub (value: SVGPatternElement) pattern_content_units(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`patternTransform`** read-only property of the SVGPatternElement interface reflects the patternTransform attribute of the given pattern element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement/patternTransform)
+ */
+pub (value: SVGPatternElement) pattern_transform(): SVGAnimatedTransformList ->
+    native.
+
+/**
+ * The **`patternUnits`** read-only property of the SVGPatternElement interface reflects the patternUnits attribute of the given pattern element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement/patternUnits)
+ */
+pub (value: SVGPatternElement) pattern_units(): SVGAnimatedEnumeration ->
+    native.
+
+/**
+ * The **`width`** read-only property of the SVGPatternElement interface describes the width of the pattern as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement/width)
+ */
+pub (value: SVGPatternElement) width(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`x`** read-only property of the SVGPatternElement interface describes the x-axis coordinate of the start point of the pattern as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement/x)
+ */
+pub (value: SVGPatternElement) x(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`y`** read-only property of the SVGPatternElement interface describes the y-axis coordinate of the start point of the pattern as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPatternElement/y)
+ */
+pub (value: SVGPatternElement) y(): SVGAnimatedLength ->
+    native.
+
+pub (value: SVGPatternElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGPatternElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

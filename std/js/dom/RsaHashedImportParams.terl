@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RsaHashedImportParams.
+
+pub opaque type RsaHashedImportParams.
+
+pub (value: RsaHashedImportParams) hash(): HashAlgorithmIdentifier ->
+    native.

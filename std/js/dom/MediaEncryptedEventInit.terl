@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaEncryptedEventInit.
+
+pub opaque type MediaEncryptedEventInit.
+
+pub (value: MediaEncryptedEventInit) init_data(): Option[ArrayBuffer] ->
+    native.
+
+pub (value: MediaEncryptedEventInit) init_data_type(): std.js.String.JsString ->
+    native.

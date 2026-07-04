@@ -1,8 +1,8 @@
 module=std.js.Dom.AddressErrors
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=18393798511776328824
-interface_hash=5900352348628660057
-interface_doc_hash=5900352348628660057
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=12729412216130793558
+interface_hash=5245383947154319699
+interface_doc_hash=5245383947154319699
 deps=0

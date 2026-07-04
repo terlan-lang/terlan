@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WindowPostMessageOptions.
+
+pub opaque type WindowPostMessageOptions.
+
+pub (value: WindowPostMessageOptions) target_origin(): std.js.String.JsString ->
+    native.

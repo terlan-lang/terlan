@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebTransportCloseInfo.
+
+pub opaque type WebTransportCloseInfo.
+
+pub (value: WebTransportCloseInfo) close_code(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: WebTransportCloseInfo) reason(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentValidationErrors.
+
+pub opaque type PaymentValidationErrors.
+
+pub (value: PaymentValidationErrors) error(): std.js.String.JsString ->
+    native.
+
+pub (value: PaymentValidationErrors) payer(): PayerErrors ->
+    native.
+
+pub (value: PaymentValidationErrors) shipping_address(): AddressErrors ->
+    native.

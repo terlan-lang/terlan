@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ClientRect.
+
+/**
+ * @deprecated
+ */
+pub opaque type ClientRect.

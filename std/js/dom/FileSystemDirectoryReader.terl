@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileSystemDirectoryReader.
+
+/**
+ * The `FileSystemDirectoryReader` interface of the File and Directory Entries API lets you access the FileSystemFileEntry-based objects (generally FileSystemFileEntry or FileSystemDirectoryEntry) representing each entry in a directory.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryReader)
+ */
+pub opaque type FileSystemDirectoryReader.
+
+/**
+ * The FileSystemDirectoryReader interface's **`readEntries()`** method retrieves the directory entries within the directory being read and delivers them in an array to a provided callback function.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryReader/readEntries)
+ */
+pub (value: FileSystemDirectoryReader) read_entries(success_callback: FileSystemEntriesCallback, error_callback: ErrorCallback): std.core.Unit ->
+    native.

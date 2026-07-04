@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DOMPointInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DOMPointInit.
+
+pub (value: DOMPointInit) w(): JsNumber ->
+    native.
+
+pub (value: DOMPointInit) x(): JsNumber ->
+    native.
+
+pub (value: DOMPointInit) y(): JsNumber ->
+    native.
+
+pub (value: DOMPointInit) z(): JsNumber ->
+    native.

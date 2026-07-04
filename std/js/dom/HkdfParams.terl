@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HkdfParams.
+
+pub opaque type HkdfParams.
+
+pub (value: HkdfParams) hash(): HashAlgorithmIdentifier ->
+    native.
+
+pub (value: HkdfParams) info(): BufferSource ->
+    native.
+
+pub (value: HkdfParams) salt(): BufferSource ->
+    native.

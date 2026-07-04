@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GetRootNodeOptions.
+
+pub opaque type GetRootNodeOptions.
+
+pub (value: GetRootNodeOptions) composed(): std.core.Bool ->
+    native.

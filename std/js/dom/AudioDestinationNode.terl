@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioDestinationNode.
+
+/**
+ * The `AudioDestinationNode` interface represents the end destination of an audio graph in a given context — usually the speakers of your device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDestinationNode)
+ */
+pub opaque type AudioDestinationNode.
+
+/**
+ * The `maxChannelCount` property of the AudioDestinationNode interface is an `unsigned long` defining the maximum amount of channels that the physical device can handle.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDestinationNode/maxChannelCount)
+ */
+pub (value: AudioDestinationNode) max_channel_count(): std.js.Number.JsNumber ->
+    native.

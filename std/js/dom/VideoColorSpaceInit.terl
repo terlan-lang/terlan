@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoColorSpaceInit.
+
+pub opaque type VideoColorSpaceInit.
+
+pub (value: VideoColorSpaceInit) full_range(): Option[std.core.Bool] ->
+    native.
+
+pub (value: VideoColorSpaceInit) matrix(): Option[VideoMatrixCoefficients] ->
+    native.
+
+pub (value: VideoColorSpaceInit) primaries(): Option[VideoColorPrimaries] ->
+    native.
+
+pub (value: VideoColorSpaceInit) transfer(): Option[VideoTransferCharacteristics] ->
+    native.

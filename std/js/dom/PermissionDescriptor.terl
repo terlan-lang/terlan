@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PermissionDescriptor.
+
+pub opaque type PermissionDescriptor.
+
+pub (value: PermissionDescriptor) name(): PermissionName ->
+    native.

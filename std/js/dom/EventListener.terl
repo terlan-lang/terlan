@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventListener.
+
+pub opaque type EventListener.

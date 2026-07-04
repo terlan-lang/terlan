@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasPattern.
+
+/**
+ * The **`CanvasPattern`** interface represents an opaque object describing a pattern, based on an image, a canvas, or a video, created by the CanvasRenderingContext2D.createPattern() method.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasPattern)
+ */
+pub opaque type CanvasPattern.
+
+/**
+ * The **`CanvasPattern.setTransform()`** method uses a DOMMatrix object as the pattern's transformation matrix and invokes it on the pattern.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasPattern/setTransform)
+ */
+pub (value: CanvasPattern) set_transform(transform: DOMMatrix2DInit): std.core.Unit ->
+    native.

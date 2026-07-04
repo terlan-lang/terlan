@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.UnderlyingByteSource.
+
+pub opaque type UnderlyingByteSource.
+
+pub (value: UnderlyingByteSource) auto_allocate_chunk_size(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: UnderlyingByteSource) cancel(): UnderlyingSourceCancelCallback ->
+    native.

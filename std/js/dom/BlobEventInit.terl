@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.BlobEventInit.
+
+pub opaque type BlobEventInit.
+
+pub (value: BlobEventInit) data(): Blob ->
+    native.
+
+pub (value: BlobEventInit) timecode(): DOMHighResTimeStamp ->
+    native.

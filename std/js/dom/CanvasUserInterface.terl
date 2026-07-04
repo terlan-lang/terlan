@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasUserInterface.
+
+import type std.core.{Unit}.
+
+pub opaque type CanvasUserInterface.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/drawFocusIfNeeded)
+ */
+pub (value: CanvasUserInterface) draw_focus_if_needed(element: Element): Unit ->
+    native.
+
+pub (value: CanvasUserInterface) draw_focus_if_needed(path: Path2D, element: Element): Unit ->
+    native.

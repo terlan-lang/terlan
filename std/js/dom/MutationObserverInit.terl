@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MutationObserverInit.
+
+import type std.core.{Bool}.
+
+pub opaque type MutationObserverInit.
+
+/**
+ * Set to a list of attribute local names (without namespace) if not all attribute mutations need to be observed and attributes is true or omitted.
+ */
+pub (value: MutationObserverInit) attribute_filter(): std.js.Array[std.js.String.JsString] ->
+    native.
+
+/**
+ * Set to true if attributes is true or omitted and target's attribute value before the mutation needs to be recorded.
+ */
+pub (value: MutationObserverInit) attribute_old_value(): Bool ->
+    native.
+
+/**
+ * Set to true if mutations to target's attributes are to be observed. Can be omitted if attributeOldValue or attributeFilter is specified.
+ */
+pub (value: MutationObserverInit) attributes(): Bool ->
+    native.
+
+/**
+ * Set to true if mutations to target's data are to be observed. Can be omitted if characterDataOldValue is specified.
+ */
+pub (value: MutationObserverInit) character_data(): Bool ->
+    native.
+
+/**
+ * Set to true if characterData is set to true or omitted and target's data before the mutation needs to be recorded.
+ */
+pub (value: MutationObserverInit) character_data_old_value(): Bool ->
+    native.
+
+/**
+ * Set to true if mutations to target's children are to be observed.
+ */
+pub (value: MutationObserverInit) child_list(): Bool ->
+    native.
+
+/**
+ * Set to true if mutations to not just target, but also target's descendants are to be observed.
+ */
+pub (value: MutationObserverInit) subtree(): Bool ->
+    native.

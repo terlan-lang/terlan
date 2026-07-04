@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigatorPlugins.
+
+import type std.core.{Bool}.
+
+pub opaque type NavigatorPlugins.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/mimeTypes)
+ */
+pub (value: NavigatorPlugins) mime_types(): MimeTypeArray ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/pdfViewerEnabled)
+ */
+pub (value: NavigatorPlugins) pdf_viewer_enabled(): Bool ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/plugins)
+ */
+pub (value: NavigatorPlugins) plugins(): PluginArray ->
+    native.
+
+/**
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/javaEnabled)
+ */
+pub (value: NavigatorPlugins) java_enabled(): Bool ->
+    native.

@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGTextPositioningElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGTextPositioningElement`** interface is implemented by elements that support attributes that position individual text glyphs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement)
+ */
+pub opaque type SVGTextPositioningElement.
+
+/**
+ * The **`dx`** read-only property of the SVGTextPositioningElement interface describes the x-axis coordinate of the SVGTextElement or SVGTSpanElement as an SVGAnimatedLengthList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/dx)
+ */
+pub (value: SVGTextPositioningElement) dx(): SVGAnimatedLengthList ->
+    native.
+
+/**
+ * The **`dy`** read-only property of the SVGTextPositioningElement interface describes the y-axis coordinate of the SVGTextElement or SVGTSpanElement as an SVGAnimatedLengthList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/dy)
+ */
+pub (value: SVGTextPositioningElement) dy(): SVGAnimatedLengthList ->
+    native.
+
+/**
+ * The **`rotate`** read-only property of the SVGTextPositioningElement interface reflects the rotation of individual text glyphs, as specified by the rotate attribute of the given element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/rotate)
+ */
+pub (value: SVGTextPositioningElement) rotate(): SVGAnimatedNumberList ->
+    native.
+
+/**
+ * The **`x`** read-only property of the SVGTextPositioningElement interface describes the x-axis coordinate of the SVGTextElement or SVGTSpanElement as an SVGAnimatedLengthList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/x)
+ */
+pub (value: SVGTextPositioningElement) x(): SVGAnimatedLengthList ->
+    native.
+
+/**
+ * The **`y`** read-only property of the SVGTextPositioningElement interface describes the y-axis coordinate of the SVGTextElement or SVGTSpanElement as an SVGAnimatedLengthList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/y)
+ */
+pub (value: SVGTextPositioningElement) y(): SVGAnimatedLengthList ->
+    native.
+
+pub (value: SVGTextPositioningElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGTextPositioningElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

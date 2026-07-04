@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBTransactionEventMap.
+
+pub opaque type IDBTransactionEventMap.
+
+pub (value: IDBTransactionEventMap) abort(): Event ->
+    native.
+
+pub (value: IDBTransactionEventMap) complete(): Event ->
+    native.
+
+pub (value: IDBTransactionEventMap) error(): Event ->
+    native.

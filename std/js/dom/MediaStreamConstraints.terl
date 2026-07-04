@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaStreamConstraints.
+
+import type std.core.{Bool}.
+
+pub opaque type MediaStreamConstraints.
+
+pub (value: MediaStreamConstraints) audio(): MediaTrackConstraints | Bool ->
+    native.
+
+pub (value: MediaStreamConstraints) peer_identity(): std.js.String.JsString ->
+    native.
+
+pub (value: MediaStreamConstraints) prefer_current_tab(): Bool ->
+    native.
+
+pub (value: MediaStreamConstraints) video(): MediaTrackConstraints | Bool ->
+    native.

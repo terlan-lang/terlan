@@ -1,0 +1,34 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCPeerConnectionEventMap.
+
+pub opaque type RTCPeerConnectionEventMap.
+
+pub (value: RTCPeerConnectionEventMap) connectionstatechange(): Event ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) datachannel(): RTCDataChannelEvent ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) icecandidate(): RTCPeerConnectionIceEvent ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) icecandidateerror(): RTCPeerConnectionIceErrorEvent ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) iceconnectionstatechange(): Event ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) icegatheringstatechange(): Event ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) negotiationneeded(): Event ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) signalingstatechange(): Event ->
+    native.
+
+pub (value: RTCPeerConnectionEventMap) track(): RTCTrackEvent ->
+    native.

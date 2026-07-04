@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCConfiguration.
+
+import type std.js.{Array}.
+
+pub opaque type RTCConfiguration.
+
+pub (value: RTCConfiguration) bundle_policy(): RTCBundlePolicy ->
+    native.
+
+pub (value: RTCConfiguration) certificates(): Array[RTCCertificate] ->
+    native.
+
+pub (value: RTCConfiguration) ice_candidate_pool_size(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RTCConfiguration) ice_servers(): Array[RTCIceServer] ->
+    native.
+
+pub (value: RTCConfiguration) ice_transport_policy(): RTCIceTransportPolicy ->
+    native.
+
+pub (value: RTCConfiguration) rtcp_mux_policy(): RTCRtcpMuxPolicy ->
+    native.

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigatorCookies.
+
+pub opaque type NavigatorCookies.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/cookieEnabled)
+ */
+pub (value: NavigatorCookies) cookie_enabled(): std.core.Bool ->
+    native.

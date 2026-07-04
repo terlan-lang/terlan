@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageDecodeOptions.
+
+pub opaque type ImageDecodeOptions.
+
+pub (value: ImageDecodeOptions) complete_frames_only(): std.core.Bool ->
+    native.
+
+pub (value: ImageDecodeOptions) frame_index(): std.js.Number.JsNumber ->
+    native.

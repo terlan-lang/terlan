@@ -1,0 +1,46 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSFontPaletteValuesRule.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`CSSFontPaletteValuesRule`** interface represents an @font-palette-values at-rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule)
+ */
+pub opaque type CSSFontPaletteValuesRule.
+
+/**
+ * The read-only **`basePalette`** property of the CSSFontPaletteValuesRule interface indicates the base palette associated with the rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/basePalette)
+ */
+pub (value: CSSFontPaletteValuesRule) base_palette(): JsString ->
+    native.
+
+/**
+ * The read-only **`fontFamily`** property of the CSSFontPaletteValuesRule interface lists the font families the rule can be applied to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/fontFamily)
+ */
+pub (value: CSSFontPaletteValuesRule) font_family(): JsString ->
+    native.
+
+/**
+ * The read-only **`name`** property of the CSSFontPaletteValuesRule interface represents the name identifying the associated @font-palette-values at-rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/name)
+ */
+pub (value: CSSFontPaletteValuesRule) name(): JsString ->
+    native.
+
+/**
+ * The read-only **`overrideColors`** property of the CSSFontPaletteValuesRule interface is a string containing a list of color index and color pair that are to be used instead.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/overrideColors)
+ */
+pub (value: CSSFontPaletteValuesRule) override_colors(): JsString ->
+    native.

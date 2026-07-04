@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WindowLocalStorage.
+
+pub opaque type WindowLocalStorage.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/localStorage)
+ */
+pub (value: WindowLocalStorage) local_storage(): Storage ->
+    native.

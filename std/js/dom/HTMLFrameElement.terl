@@ -1,0 +1,82 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLFrameElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * @deprecated
+ */
+pub opaque type HTMLFrameElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) content_document(): Option[Document] ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) content_window(): Option[WindowProxy] ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) frame_border(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) long_desc(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) margin_height(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) margin_width(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) name(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) no_resize(): Bool ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) scrolling(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) src(): JsString ->
+    native.
+
+pub (value: HTMLFrameElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLFrameElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RsaKeyAlgorithm.
+
+pub opaque type RsaKeyAlgorithm.
+
+pub (value: RsaKeyAlgorithm) modulus_length(): std.js.Number.JsNumber ->
+    native.
+
+pub (value: RsaKeyAlgorithm) public_exponent(): BigInteger ->
+    native.

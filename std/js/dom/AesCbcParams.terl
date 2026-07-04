@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AesCbcParams.
+
+pub opaque type AesCbcParams.
+
+pub (value: AesCbcParams) iv(): BufferSource ->
+    native.

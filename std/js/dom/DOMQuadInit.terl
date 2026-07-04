@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DOMQuadInit.
+
+pub opaque type DOMQuadInit.
+
+pub (value: DOMQuadInit) p1(): DOMPointInit ->
+    native.
+
+pub (value: DOMQuadInit) p2(): DOMPointInit ->
+    native.
+
+pub (value: DOMQuadInit) p3(): DOMPointInit ->
+    native.
+
+pub (value: DOMQuadInit) p4(): DOMPointInit ->
+    native.

@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCDtlsTransport.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`RTCDtlsTransport`** interface provides access to information about the Datagram Transport Layer Security (**DTLS**) transport over which a RTCPeerConnection's RTP and RTCP packets are sent and received by its RTCRtpSender and RTCRtpReceiver objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDtlsTransport)
+ */
+pub opaque type RTCDtlsTransport.
+
+/**
+ * The **`iceTransport`** read-only property of the **RTCDtlsTransport** interface contains a reference to the underlying RTCIceTransport.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDtlsTransport/iceTransport)
+ */
+pub (value: RTCDtlsTransport) ice_transport(): RTCIceTransport ->
+    native.
+
+/**
+ * The **`state`** read-only property of the Datagram Transport Layer Security (**DTLS**) transport state.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDtlsTransport/state)
+ */
+pub (value: RTCDtlsTransport) state(): RTCDtlsTransportState ->
+    native.
+
+pub (value: RTCDtlsTransport) get_remote_certificates(): std.js.Array[ArrayBuffer] ->
+    native.
+
+pub (value: RTCDtlsTransport) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: RTCDtlsTransport) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

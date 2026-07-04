@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ConvolverOptions.
+
+pub opaque type ConvolverOptions.
+
+pub (value: ConvolverOptions) buffer(): Option[AudioBuffer] ->
+    native.
+
+pub (value: ConvolverOptions) disable_normalization(): std.core.Bool ->
+    native.

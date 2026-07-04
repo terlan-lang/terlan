@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EncodedVideoChunkMetadata.
+
+pub opaque type EncodedVideoChunkMetadata.
+
+pub (value: EncodedVideoChunkMetadata) decoder_config(): VideoDecoderConfig ->
+    native.

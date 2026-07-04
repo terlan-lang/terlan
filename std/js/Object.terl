@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Object.
+
+import type std.core.{Bool}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type Object.
+
+/**
+ * The initial value of Object.prototype.constructor is the standard built-in Object constructor.
+ */
+pub (value: Object) constructor_(): Function ->
+    native.
+
+/**
+ * Returns a string representation of an object.
+ */
+pub (value: Object) to_string(): JsString ->
+    native.
+
+/**
+ * Returns a date converted to a string using the current locale.
+ */
+pub (value: Object) to_locale_string(): JsString ->
+    native.
+
+/**
+ * Returns the primitive value of the specified object.
+ */
+pub (value: Object) value_of(): Object ->
+    native.
+
+/**
+ * Determines whether an object has a property with the specified name.
+ * @param v A property name.
+ */
+pub (value: Object) has_own_property(v: PropertyKey): Bool ->
+    native.
+
+/**
+ * Determines whether an object exists in another object's prototype chain.
+ * @param v Another object whose prototype chain is to be checked.
+ */
+pub (value: Object) is_prototype_of(v: Object): Bool ->
+    native.
+
+/**
+ * Determines whether a specified property is enumerable.
+ * @param v A property name.
+ */
+pub (value: Object) property_is_enumerable(v: PropertyKey): Bool ->
+    native.

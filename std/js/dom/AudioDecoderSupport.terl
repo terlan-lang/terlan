@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioDecoderSupport.
+
+pub opaque type AudioDecoderSupport.
+
+pub (value: AudioDecoderSupport) config(): AudioDecoderConfig ->
+    native.
+
+pub (value: AudioDecoderSupport) supported(): std.core.Bool ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MIDIAccessEventMap.
+
+pub opaque type MIDIAccessEventMap.
+
+pub (value: MIDIAccessEventMap) statechange(): MIDIConnectionEvent ->
+    native.

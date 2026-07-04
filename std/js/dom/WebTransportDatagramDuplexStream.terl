@@ -1,0 +1,69 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebTransportDatagramDuplexStream.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`WebTransportDatagramDuplexStream`** interface of the WebTransport API represents a duplex stream that can be used for unreliable transport of datagrams between client and server.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream)
+ */
+pub opaque type WebTransportDatagramDuplexStream.
+
+/**
+ * The **`incomingHighWaterMark`** property of the WebTransportDatagramDuplexStream interface gets or sets the high water mark for incoming chunks of data — this is the maximum size, in chunks, that the incoming ReadableStream's internal queue can reach before it is considered full.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/incomingHighWaterMark)
+ */
+pub (value: WebTransportDatagramDuplexStream) incoming_high_water_mark(): JsNumber ->
+    native.
+
+/**
+ * The **`incomingMaxAge`** property of the WebTransportDatagramDuplexStream interface gets or sets the maximum age for incoming datagrams, in milliseconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/incomingMaxAge)
+ */
+pub (value: WebTransportDatagramDuplexStream) incoming_max_age(): Option[JsNumber] ->
+    native.
+
+/**
+ * The **`maxDatagramSize`** read-only property of the WebTransportDatagramDuplexStream interface returns the maximum allowable size of outgoing datagrams, in bytes, that can be written to WebTransportDatagramDuplexStream.writable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/maxDatagramSize)
+ */
+pub (value: WebTransportDatagramDuplexStream) max_datagram_size(): JsNumber ->
+    native.
+
+/**
+ * The **`outgoingHighWaterMark`** property of the WebTransportDatagramDuplexStream interface gets or sets the high water mark for outgoing chunks of data — this is the maximum size, in chunks, that the outgoing WritableStream's internal queue can reach before it is considered full.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/outgoingHighWaterMark)
+ */
+pub (value: WebTransportDatagramDuplexStream) outgoing_high_water_mark(): JsNumber ->
+    native.
+
+/**
+ * The **`outgoingMaxAge`** property of the WebTransportDatagramDuplexStream interface gets or sets the maximum age for outgoing datagrams, in milliseconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/outgoingMaxAge)
+ */
+pub (value: WebTransportDatagramDuplexStream) outgoing_max_age(): Option[JsNumber] ->
+    native.
+
+/**
+ * The **`readable`** read-only property of the WebTransportDatagramDuplexStream interface returns a ReadableStream instance that can be used to unreliably read incoming datagrams from the stream.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/readable)
+ */
+pub (value: WebTransportDatagramDuplexStream) readable(): ReadableStream ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/writable)
+ */
+pub (value: WebTransportDatagramDuplexStream) writable(): WritableStream ->
+    native.

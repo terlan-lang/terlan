@@ -1,7 +1,8 @@
 module tests.js.std.ArrayTest.
 
 import type std.collections.List.{List}.
-import type std.js.Array.
+
+import type std.js.Array.{Array}.
 
 pub accepts_array(value: Array[Int]): Array[Int] ->
     value.

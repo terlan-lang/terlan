@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NotificationOptions.
+
+import type std.core.{Bool}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type NotificationOptions.
+
+pub (value: NotificationOptions) badge(): JsString ->
+    native.
+
+pub (value: NotificationOptions) body(): JsString ->
+    native.
+
+pub (value: NotificationOptions) dir(): NotificationDirection ->
+    native.
+
+pub (value: NotificationOptions) icon(): JsString ->
+    native.
+
+pub (value: NotificationOptions) lang(): JsString ->
+    native.
+
+pub (value: NotificationOptions) require_interaction(): Bool ->
+    native.
+
+pub (value: NotificationOptions) silent(): Option[Bool] ->
+    native.
+
+pub (value: NotificationOptions) tag(): JsString ->
+    native.

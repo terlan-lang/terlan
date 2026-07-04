@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ProgressEventInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ProgressEventInit.
+
+pub (value: ProgressEventInit) length_computable(): std.core.Bool ->
+    native.
+
+pub (value: ProgressEventInit) loaded(): JsNumber ->
+    native.
+
+pub (value: ProgressEventInit) total(): JsNumber ->
+    native.

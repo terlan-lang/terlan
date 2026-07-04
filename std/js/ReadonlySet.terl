@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ReadonlySet.
+
+pub opaque type ReadonlySet[T].
+
+pub (value: ReadonlySet[T]) has(value: T): std.core.Bool ->
+    native.
+
+pub (value: ReadonlySet[T]) size(): std.js.Number.JsNumber ->
+    native.

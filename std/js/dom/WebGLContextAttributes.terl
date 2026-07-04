@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebGLContextAttributes.
+
+import type std.core.{Bool}.
+
+pub opaque type WebGLContextAttributes.
+
+pub (value: WebGLContextAttributes) alpha(): Bool ->
+    native.
+
+pub (value: WebGLContextAttributes) antialias(): Bool ->
+    native.
+
+pub (value: WebGLContextAttributes) depth(): Bool ->
+    native.
+
+pub (value: WebGLContextAttributes) desynchronized(): Bool ->
+    native.
+
+pub (value: WebGLContextAttributes) fail_if_major_performance_caveat(): Bool ->
+    native.
+
+pub (value: WebGLContextAttributes) power_preference(): WebGLPowerPreference ->
+    native.
+
+pub (value: WebGLContextAttributes) premultiplied_alpha(): Bool ->
+    native.
+
+pub (value: WebGLContextAttributes) preserve_drawing_buffer(): Bool ->
+    native.
+
+pub (value: WebGLContextAttributes) stencil(): Bool ->
+    native.

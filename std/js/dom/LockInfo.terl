@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.LockInfo.
+
+import type std.js.String.{JsString}.
+
+pub opaque type LockInfo.
+
+pub (value: LockInfo) client_id(): JsString ->
+    native.
+
+pub (value: LockInfo) mode(): LockMode ->
+    native.
+
+pub (value: LockInfo) name(): JsString ->
+    native.

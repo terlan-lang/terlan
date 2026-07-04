@@ -1,8 +1,8 @@
 module=std.js.Dom.BiquadFilterNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=2814372345618684705
-interface_hash=8660922195720988314
-interface_doc_hash=8660922195720988314
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=13660704683249184139
+interface_hash=18328152831382685226
+interface_doc_hash=18328152831382685226
 deps=0

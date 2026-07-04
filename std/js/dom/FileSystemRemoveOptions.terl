@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FileSystemRemoveOptions.
+
+pub opaque type FileSystemRemoveOptions.
+
+pub (value: FileSystemRemoveOptions) recursive(): std.core.Bool ->
+    native.

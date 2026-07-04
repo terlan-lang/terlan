@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaEncodingConfiguration.
+
+pub opaque type MediaEncodingConfiguration.
+
+pub (value: MediaEncodingConfiguration) type_(): MediaEncodingType ->
+    native.

@@ -1,0 +1,88 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFESpotLightElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFESpotLightElement`** interface corresponds to the feSpotLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement)
+ */
+pub opaque type SVGFESpotLightElement.
+
+/**
+ * The **`limitingConeAngle`** read-only property of the SVGFESpotLightElement interface reflects the limitingConeAngle attribute of the given feSpotLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/limitingConeAngle)
+ */
+pub (value: SVGFESpotLightElement) limiting_cone_angle(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`pointsAtX`** read-only property of the SVGFESpotLightElement interface reflects the pointsAtX attribute of the given feSpotLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtX)
+ */
+pub (value: SVGFESpotLightElement) points_at_x(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`pointsAtY`** read-only property of the SVGFESpotLightElement interface reflects the pointsAtY attribute of the given feSpotLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtY)
+ */
+pub (value: SVGFESpotLightElement) points_at_y(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`pointsAtZ`** read-only property of the SVGFESpotLightElement interface reflects the pointsAtZ attribute of the given feSpotLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtZ)
+ */
+pub (value: SVGFESpotLightElement) points_at_z(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`specularExponent`** read-only property of the SVGFESpotLightElement interface reflects the specularExponent attribute of the given feSpotLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/specularExponent)
+ */
+pub (value: SVGFESpotLightElement) specular_exponent(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`x`** read-only property of the SVGFESpotLightElement interface describes the horizontal coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/x)
+ */
+pub (value: SVGFESpotLightElement) x(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`y`** read-only property of the SVGFESpotLightElement interface describes the vertical coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/y)
+ */
+pub (value: SVGFESpotLightElement) y(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`z`** read-only property of the SVGFESpotLightElement interface describes the z-axis value of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/z)
+ */
+pub (value: SVGFESpotLightElement) z(): SVGAnimatedNumber ->
+    native.
+
+pub (value: SVGFESpotLightElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFESpotLightElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

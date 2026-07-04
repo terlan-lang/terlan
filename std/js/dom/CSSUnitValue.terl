@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSUnitValue.
+
+/**
+ * The **`CSSUnitValue`** interface of the CSS Typed Object Model API represents values that contain a single unit type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue)
+ */
+pub opaque type CSSUnitValue.
+
+/**
+ * The **`CSSUnitValue.unit`** read-only property of the CSSUnitValue interface returns a string indicating the type of unit.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue/unit)
+ */
+pub (value: CSSUnitValue) unit(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`CSSUnitValue.value`** property of the A double.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue/value)
+ */
+pub (value: CSSUnitValue) value(): std.js.Number.JsNumber ->
+    native.

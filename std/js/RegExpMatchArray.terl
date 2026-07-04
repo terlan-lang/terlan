@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.RegExpMatchArray.
+
+pub opaque type RegExpMatchArray.
+
+/**
+ * The index of the search at which the result was found.
+ */
+pub (value: RegExpMatchArray) index(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * A copy of the search string.
+ */
+pub (value: RegExpMatchArray) input(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SpeechSynthesisUtteranceEventMap.
+
+pub opaque type SpeechSynthesisUtteranceEventMap.
+
+pub (value: SpeechSynthesisUtteranceEventMap) boundary(): SpeechSynthesisEvent ->
+    native.
+
+pub (value: SpeechSynthesisUtteranceEventMap) end(): SpeechSynthesisEvent ->
+    native.
+
+pub (value: SpeechSynthesisUtteranceEventMap) error(): SpeechSynthesisErrorEvent ->
+    native.
+
+pub (value: SpeechSynthesisUtteranceEventMap) mark(): SpeechSynthesisEvent ->
+    native.
+
+pub (value: SpeechSynthesisUtteranceEventMap) pause(): SpeechSynthesisEvent ->
+    native.
+
+pub (value: SpeechSynthesisUtteranceEventMap) resume(): SpeechSynthesisEvent ->
+    native.
+
+pub (value: SpeechSynthesisUtteranceEventMap) start(): SpeechSynthesisEvent ->
+    native.

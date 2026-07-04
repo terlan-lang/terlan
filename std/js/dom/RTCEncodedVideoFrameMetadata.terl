@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCEncodedVideoFrameMetadata.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type RTCEncodedVideoFrameMetadata.
+
+pub (value: RTCEncodedVideoFrameMetadata) dependencies(): std.js.Array[JsNumber] ->
+    native.
+
+pub (value: RTCEncodedVideoFrameMetadata) frame_id(): JsNumber ->
+    native.
+
+pub (value: RTCEncodedVideoFrameMetadata) height(): JsNumber ->
+    native.
+
+pub (value: RTCEncodedVideoFrameMetadata) spatial_index(): JsNumber ->
+    native.
+
+pub (value: RTCEncodedVideoFrameMetadata) temporal_index(): JsNumber ->
+    native.
+
+pub (value: RTCEncodedVideoFrameMetadata) timestamp(): JsNumber ->
+    native.
+
+pub (value: RTCEncodedVideoFrameMetadata) width(): JsNumber ->
+    native.

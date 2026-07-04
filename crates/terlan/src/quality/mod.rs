@@ -15,6 +15,8 @@ mod no_default_tokio_runtime;
 mod oxc_boundary;
 mod package_git_source;
 mod package_lockfile_contract;
+mod std_generated_metadata;
+mod std_source_naming;
 mod test_hierarchy;
 mod vm_artifact_format;
 mod vm_coverage_100;
@@ -39,6 +41,10 @@ pub use package_git_source::{run_package_git_source, PackageGitSourceSummary};
 pub use package_lockfile_contract::{
     run_package_lockfile_contract, PackageLockfileContractSummary,
 };
+pub use std_generated_metadata::{
+    run_std_generated_metadata, StdGeneratedMetadataSummary,
+};
+pub use std_source_naming::{run_std_source_naming, StdSourceNamingSummary};
 pub use test_hierarchy::{run_test_hierarchy, ScriptInvocation, TestHierarchySummary};
 pub use vm_artifact_format::{run_vm_artifact_format, VmArtifactFormatSummary};
 pub use vm_coverage_100::{run_vm_coverage_100, VmCoverage100Summary};

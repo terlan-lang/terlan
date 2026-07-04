@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCPeerConnectionIceEventInit.
+
+pub opaque type RTCPeerConnectionIceEventInit.
+
+pub (value: RTCPeerConnectionIceEventInit) candidate(): Option[RTCIceCandidate] ->
+    native.

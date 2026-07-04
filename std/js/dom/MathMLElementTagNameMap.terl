@@ -1,0 +1,97 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MathMLElementTagNameMap.
+
+pub opaque type MathMLElementTagNameMap.
+
+pub (value: MathMLElementTagNameMap) annotation_(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) annotation_xml(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) maction(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) math(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) merror(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mfrac(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mi(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mmultiscripts(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mn(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mo(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mover(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mpadded(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mphantom(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mprescripts(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mroot(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mrow(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) ms(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mspace(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) msqrt(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mstyle(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) msub(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) msubsup(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) msup(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mtable(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mtd(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mtext(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) mtr(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) munder(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) munderover(): MathMLElement ->
+    native.
+
+pub (value: MathMLElementTagNameMap) semantics(): MathMLElement ->
+    native.

@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GamepadEffectParameters.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type GamepadEffectParameters.
+
+pub (value: GamepadEffectParameters) duration(): JsNumber ->
+    native.
+
+pub (value: GamepadEffectParameters) left_trigger(): JsNumber ->
+    native.
+
+pub (value: GamepadEffectParameters) right_trigger(): JsNumber ->
+    native.
+
+pub (value: GamepadEffectParameters) start_delay(): JsNumber ->
+    native.
+
+pub (value: GamepadEffectParameters) strong_magnitude(): JsNumber ->
+    native.
+
+pub (value: GamepadEffectParameters) weak_magnitude(): JsNumber ->
+    native.

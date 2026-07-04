@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.TypedPropertyDescriptor.
+
+import type std.core.{Bool}.
+
+pub opaque type TypedPropertyDescriptor[T].
+
+pub (value: TypedPropertyDescriptor[T]) enumerable(): Bool ->
+    native.
+
+pub (value: TypedPropertyDescriptor[T]) configurable(): Bool ->
+    native.
+
+pub (value: TypedPropertyDescriptor[T]) writable(): Bool ->
+    native.
+
+pub (value: TypedPropertyDescriptor[T]) value(): T ->
+    native.

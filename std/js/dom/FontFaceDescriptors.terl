@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.FontFaceDescriptors.
+
+import type std.js.String.{JsString}.
+
+pub opaque type FontFaceDescriptors.
+
+pub (value: FontFaceDescriptors) ascent_override(): JsString ->
+    native.
+
+pub (value: FontFaceDescriptors) descent_override(): JsString ->
+    native.
+
+pub (value: FontFaceDescriptors) display(): FontDisplay ->
+    native.
+
+pub (value: FontFaceDescriptors) feature_settings(): JsString ->
+    native.
+
+pub (value: FontFaceDescriptors) line_gap_override(): JsString ->
+    native.
+
+pub (value: FontFaceDescriptors) stretch(): JsString ->
+    native.
+
+pub (value: FontFaceDescriptors) style(): JsString ->
+    native.
+
+pub (value: FontFaceDescriptors) unicode_range(): JsString ->
+    native.
+
+pub (value: FontFaceDescriptors) weight(): JsString ->
+    native.

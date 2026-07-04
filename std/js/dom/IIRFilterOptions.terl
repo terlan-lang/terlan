@@ -1,0 +1,17 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IIRFilterOptions.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.{Array}.
+
+pub opaque type IIRFilterOptions.
+
+pub (value: IIRFilterOptions) feedback(): Array[JsNumber] ->
+    native.
+
+pub (value: IIRFilterOptions) feedforward(): Array[JsNumber] ->
+    native.

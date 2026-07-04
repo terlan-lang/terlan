@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.KeyframeAnimationOptions.
+
+pub opaque type KeyframeAnimationOptions.
+
+pub (value: KeyframeAnimationOptions) id(): std.js.String.JsString ->
+    native.
+
+pub (value: KeyframeAnimationOptions) timeline(): Option[AnimationTimeline] ->
+    native.

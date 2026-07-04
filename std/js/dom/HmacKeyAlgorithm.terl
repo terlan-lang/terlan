@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HmacKeyAlgorithm.
+
+pub opaque type HmacKeyAlgorithm.
+
+pub (value: HmacKeyAlgorithm) hash(): KeyAlgorithm ->
+    native.
+
+pub (value: HmacKeyAlgorithm) length(): std.js.Number.JsNumber ->
+    native.

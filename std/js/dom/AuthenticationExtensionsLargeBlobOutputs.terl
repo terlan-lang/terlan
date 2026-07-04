@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsLargeBlobOutputs.
+
+import type std.core.{Bool}.
+
+pub opaque type AuthenticationExtensionsLargeBlobOutputs.
+
+pub (value: AuthenticationExtensionsLargeBlobOutputs) blob(): ArrayBuffer ->
+    native.
+
+pub (value: AuthenticationExtensionsLargeBlobOutputs) supported(): Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsLargeBlobOutputs) written(): Bool ->
+    native.

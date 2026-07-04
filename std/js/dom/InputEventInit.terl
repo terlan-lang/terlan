@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.InputEventInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type InputEventInit.
+
+pub (value: InputEventInit) data(): Option[JsString] ->
+    native.
+
+pub (value: InputEventInit) data_transfer(): Option[DataTransfer] ->
+    native.
+
+pub (value: InputEventInit) input_type(): JsString ->
+    native.
+
+pub (value: InputEventInit) is_composing(): std.core.Bool ->
+    native.
+
+pub (value: InputEventInit) target_ranges(): std.js.Array[StaticRange] ->
+    native.

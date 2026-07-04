@@ -1,0 +1,17 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PeriodicWaveOptions.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.{Array}.
+
+pub opaque type PeriodicWaveOptions.
+
+pub (value: PeriodicWaveOptions) imag(): Float32Array | Array[JsNumber] ->
+    native.
+
+pub (value: PeriodicWaveOptions) real(): Float32Array | Array[JsNumber] ->
+    native.

@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.History.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`History`** interface of the History API allows manipulation of the browser _session history_, that is the pages visited in the tab or frame that the current page is loaded in.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History)
+ */
+pub opaque type History.
+
+/**
+ * The **`length`** read-only property of the History interface returns an integer representing the number of entries in the session history, including the currently loaded page.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/length)
+ */
+pub (value: History) length(): JsNumber ->
+    native.
+
+/**
+ * The **`scrollRestoration`** property of the History interface allows web applications to explicitly set default scroll restoration behavior on history navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/scrollRestoration)
+ */
+pub (value: History) scroll_restoration(): ScrollRestoration ->
+    native.
+
+/**
+ * The **`back()`** method of the History interface causes the browser to move back one page in the session history.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/back)
+ */
+pub (value: History) back(): Unit ->
+    native.
+
+/**
+ * The **`forward()`** method of the History interface causes the browser to move forward one page in the session history.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/forward)
+ */
+pub (value: History) forward(): Unit ->
+    native.
+
+/**
+ * The **`go()`** method of the History interface loads a specific page from the session history.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/go)
+ */
+pub (value: History) go(delta: JsNumber): Unit ->
+    native.

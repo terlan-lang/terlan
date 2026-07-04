@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MultiCacheQueryOptions.
+
+pub opaque type MultiCacheQueryOptions.
+
+pub (value: MultiCacheQueryOptions) cache_name(): std.js.String.JsString ->
+    native.

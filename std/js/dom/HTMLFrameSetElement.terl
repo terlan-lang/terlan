@@ -1,0 +1,37 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLFrameSetElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLFrameSetElement`** interface provides special properties (beyond those of the regular HTMLElement interface they also inherit) for manipulating frameset elements.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFrameSetElement)
+ */
+pub opaque type HTMLFrameSetElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameSetElement) cols(): JsString ->
+    native.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameSetElement) rows(): JsString ->
+    native.
+
+pub (value: HTMLFrameSetElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLFrameSetElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

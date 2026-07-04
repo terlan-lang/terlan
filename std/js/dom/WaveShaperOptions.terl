@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WaveShaperOptions.
+
+pub opaque type WaveShaperOptions.
+
+pub (value: WaveShaperOptions) curve(): Float32Array | std.js.Array[std.js.Number.JsNumber] ->
+    native.
+
+pub (value: WaveShaperOptions) oversample(): OverSampleType ->
+    native.

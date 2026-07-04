@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NavigatorOnLine.
+
+pub opaque type NavigatorOnLine.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/onLine)
+ */
+pub (value: NavigatorOnLine) on_line(): std.core.Bool ->
+    native.

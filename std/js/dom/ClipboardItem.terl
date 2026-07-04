@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ClipboardItem.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`ClipboardItem`** interface of the Clipboard API represents a single item format, used when reading or writing clipboard data using Clipboard.read() and Clipboard.write() respectively.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem)
+ */
+pub opaque type ClipboardItem.
+
+/**
+ * The read-only **`presentationStyle`** property of the ClipboardItem interface returns a string indicating how an item should be presented.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/presentationStyle)
+ */
+pub (value: ClipboardItem) presentation_style(): PresentationStyle ->
+    native.
+
+/**
+ * The read-only **`types`** property of the ClipboardItem interface returns an Array of MIME type available within the ClipboardItem.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/types)
+ */
+pub (value: ClipboardItem) types(): std.js.Array[JsString] ->
+    native.
+
+/**
+ * The **`getType()`** method of the ClipboardItem interface returns a Promise that resolves with a Blob of the requested MIME type or an error if the MIME type is not found.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/getType)
+ */
+pub (value: ClipboardItem) get_type(type_: JsString): std.js.Promise[Blob] ->
+    native.

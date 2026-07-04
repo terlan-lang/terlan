@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEFuncRElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEFuncRElement`** interface corresponds to the feFuncR element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEFuncRElement)
+ */
+pub opaque type SVGFEFuncRElement.
+
+pub (value: SVGFEFuncRElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEFuncRElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

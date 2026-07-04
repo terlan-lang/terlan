@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DynamicsCompressorOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DynamicsCompressorOptions.
+
+pub (value: DynamicsCompressorOptions) attack(): JsNumber ->
+    native.
+
+pub (value: DynamicsCompressorOptions) knee(): JsNumber ->
+    native.
+
+pub (value: DynamicsCompressorOptions) ratio(): JsNumber ->
+    native.
+
+pub (value: DynamicsCompressorOptions) release(): JsNumber ->
+    native.
+
+pub (value: DynamicsCompressorOptions) threshold(): JsNumber ->
+    native.

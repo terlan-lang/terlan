@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EventSourceEventMap.
+
+pub opaque type EventSourceEventMap.
+
+pub (value: EventSourceEventMap) error(): Event ->
+    native.
+
+pub (value: EventSourceEventMap) message(): MessageEvent ->
+    native.
+
+pub (value: EventSourceEventMap) open(): Event ->
+    native.

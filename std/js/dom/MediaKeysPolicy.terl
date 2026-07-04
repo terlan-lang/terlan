@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaKeysPolicy.
+
+pub opaque type MediaKeysPolicy.
+
+pub (value: MediaKeysPolicy) min_hdcp_version(): std.js.String.JsString ->
+    native.

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ReadableStreamGenericReader.
+
+pub opaque type ReadableStreamGenericReader.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/closed)
+ */
+pub (value: ReadableStreamGenericReader) closed(): std.js.Promise[std.core.Unit] ->
+    native.

@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLOListElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLOListElement`** interface provides special properties (beyond those defined on the regular HTMLElement interface it also has available to it by inheritance) for manipulating ordered list elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOListElement)
+ */
+pub opaque type HTMLOListElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLOListElement) compact(): Bool ->
+    native.
+
+/**
+ * The **`reversed`** property of the HTMLOListElement interface indicates order of a list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOListElement/reversed)
+ */
+pub (value: HTMLOListElement) reversed(): Bool ->
+    native.
+
+/**
+ * The **`start`** property of the HTMLOListElement interface indicates starting value of the ordered list, with default value of 1.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOListElement/start)
+ */
+pub (value: HTMLOListElement) start(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`type`** property of the HTMLOListElement interface indicates the kind of marker to be used to display ordered list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOListElement/type)
+ */
+pub (value: HTMLOListElement) type_(): JsString ->
+    native.
+
+pub (value: HTMLOListElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLOListElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

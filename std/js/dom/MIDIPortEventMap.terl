@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MIDIPortEventMap.
+
+pub opaque type MIDIPortEventMap.
+
+pub (value: MIDIPortEventMap) statechange(): MIDIConnectionEvent ->
+    native.

@@ -1,0 +1,96 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ShadowRoot.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`ShadowRoot`** interface of the Shadow DOM API is the root node of a DOM subtree that is rendered separately from a document's main DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot)
+ */
+pub opaque type ShadowRoot.
+
+/**
+ * The **`clonable`** read-only property of the ShadowRoot interface returns `true` if the shadow root is clonable, and `false` otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/clonable)
+ */
+pub (value: ShadowRoot) clonable(): Bool ->
+    native.
+
+/**
+ * The **`delegatesFocus`** read-only property of the ShadowRoot interface returns `true` if the shadow root delegates focus, and `false` otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/delegatesFocus)
+ */
+pub (value: ShadowRoot) delegates_focus(): Bool ->
+    native.
+
+/**
+ * The **`host`** read-only property of the ShadowRoot returns a reference to the DOM element the `ShadowRoot` is attached to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/host)
+ */
+pub (value: ShadowRoot) host(): Element ->
+    native.
+
+/**
+ * The **`innerHTML`** property of the ShadowRoot interface sets gets or sets the HTML markup to the DOM tree inside the `ShadowRoot`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/innerHTML)
+ */
+pub (value: ShadowRoot) inner_html(): JsString ->
+    native.
+
+/**
+ * The **`mode`** read-only property of the ShadowRoot specifies its mode — either `open` or `closed`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/mode)
+ */
+pub (value: ShadowRoot) mode(): ShadowRootMode ->
+    native.
+
+/**
+ * The **`serializable`** read-only property of the ShadowRoot interface returns `true` if the shadow root is serializable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/serializable)
+ */
+pub (value: ShadowRoot) serializable(): Bool ->
+    native.
+
+/**
+ * The read-only **`slotAssignment`** property of the ShadowRoot interface returns the _slot assignment mode_ for the shadow DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/slotAssignment)
+ */
+pub (value: ShadowRoot) slot_assignment(): SlotAssignmentMode ->
+    native.
+
+/**
+ * The **`getHTML()`** method of the ShadowRoot interface is used to serialize a shadow root's DOM to an HTML string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/getHTML)
+ */
+pub (value: ShadowRoot) get_html(options: GetHTMLOptions): JsString ->
+    native.
+
+/**
+ * The **`setHTMLUnsafe()`** method of the ShadowRoot interface can be used to parse a string of HTML into a DocumentFragment, optionally filtering out unwanted elements and attributes, and then use it to replace the existing tree in the Shadow DOM.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/setHTMLUnsafe)
+ */
+pub (value: ShadowRoot) set_html_unsafe(html_: JsString): Unit ->
+    native.
+
+pub (value: ShadowRoot) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: ShadowRoot) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.BaseAudioContextEventMap.
+
+pub opaque type BaseAudioContextEventMap.
+
+pub (value: BaseAudioContextEventMap) statechange(): Event ->
+    native.

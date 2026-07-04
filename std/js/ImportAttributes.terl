@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ImportAttributes.
+
+/**
+ * The type for the `with` property of the optional second argument to `import()`.
+ */
+pub opaque type ImportAttributes.

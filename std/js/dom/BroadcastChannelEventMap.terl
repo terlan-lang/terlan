@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.BroadcastChannelEventMap.
+
+pub opaque type BroadcastChannelEventMap.
+
+pub (value: BroadcastChannelEventMap) message(): MessageEvent ->
+    native.
+
+pub (value: BroadcastChannelEventMap) messageerror(): MessageEvent ->
+    native.

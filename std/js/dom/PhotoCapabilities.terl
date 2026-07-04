@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PhotoCapabilities.
+
+pub opaque type PhotoCapabilities.
+
+pub (value: PhotoCapabilities) fill_light_mode(): std.js.Array[FillLightMode] ->
+    native.
+
+pub (value: PhotoCapabilities) image_height(): MediaSettingsRange ->
+    native.
+
+pub (value: PhotoCapabilities) image_width(): MediaSettingsRange ->
+    native.
+
+pub (value: PhotoCapabilities) red_eye_reduction(): RedEyeReduction ->
+    native.

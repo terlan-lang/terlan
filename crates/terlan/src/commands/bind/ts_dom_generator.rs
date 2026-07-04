@@ -136,8 +136,8 @@ fn declaration_with_namespace(declaration: TsDeclaration, namespace: &str) -> Ts
 /// - `mapping`: DOM module mapping result.
 ///
 /// Output:
-/// - `Ok(Vec<GeneratedBindingFile>)` with source, interface, summary, test,
-///   and binding manifest files.
+/// - `Ok(Vec<GeneratedBindingFile>)` with source, summary, test, and binding
+///   manifest files.
 /// - `Err(String)` when JSON manifest rendering fails.
 ///
 /// Transformation:
@@ -151,16 +151,11 @@ fn generated_files(
     let mut files = Vec::new();
     for module in &mapping.modules {
         let source = render_module_source(module, manifest, manifest_path);
-        let interface = render_module_interface(module, manifest, manifest_path);
         let summary = render_module_summary(module, manifest, manifest_path);
         let test = render_module_test(module, manifest, manifest_path);
         files.push(GeneratedBindingFile {
             path: module.source_path.clone(),
             contents: source.clone(),
-        });
-        files.push(GeneratedBindingFile {
-            path: module.interface_path.clone(),
-            contents: interface,
         });
         files.push(GeneratedBindingFile {
             path: module.summary_path.clone(),
@@ -238,27 +233,6 @@ fn render_module_source(
     render_module_contract(module, manifest, manifest_path, "source", true)
 }
 
-/// Renders generated Terlan interface text for one DOM module.
-///
-/// Inputs:
-/// - `module`: planned DOM module.
-/// - `manifest`: validated input manifest.
-/// - `manifest_path`: user-supplied manifest path used for provenance.
-///
-/// Output:
-/// - Generated `.terli` text.
-///
-/// Transformation:
-/// - Uses the same first-slice contract representation as `.terl` until the
-///   emitter distinguishes implementation from interface bodies.
-fn render_module_interface(
-    module: &DomModulePlan,
-    manifest: &TsInputManifest,
-    manifest_path: &Path,
-) -> String {
-    render_module_contract(module, manifest, manifest_path, "interface", false)
-}
-
 /// Renders generated summary text for one DOM module.
 ///
 /// Inputs:
@@ -296,12 +270,12 @@ fn render_module_summary(
 fn render_module_test(
     module: &DomModulePlan,
     manifest: &TsInputManifest,
-    manifest_path: &Path,
+    _manifest_path: &Path,
 ) -> String {
-    let mut output = render_module_header(module, manifest, manifest_path, "test");
+    let mut output = render_module_header(manifest);
     output.push_str(&format!("module {}Test.\n\n", module.module_path));
     output.push_str(&format!(
-        "import type {}.{}.\n\n",
+        "import type {}.{{{}}}.\n\n",
         module.module_path, module.type_name
     ));
     output.push_str("@test\npub generated_binding_surface_exists(): Bool ->\n    true.\n");
@@ -330,11 +304,11 @@ fn render_module_test(
 fn render_module_contract(
     module: &DomModulePlan,
     manifest: &TsInputManifest,
-    manifest_path: &Path,
-    kind: &str,
+    _manifest_path: &Path,
+    _kind: &str,
     include_bodies: bool,
 ) -> String {
-    let mut output = render_module_header(module, manifest, manifest_path, kind);
+    let mut output = render_module_header(manifest);
     output.push_str(&format!("module {}.\n\n", module.module_path));
     if let Some(doc) = &module.doc {
         output.push_str(&render_doc_block(doc));
@@ -350,55 +324,22 @@ fn render_module_contract(
     output
 }
 
-/// Renders the generated provenance header for one module artifact.
+/// Renders the generated ownership header for one module artifact.
 ///
 /// Inputs:
-/// - `module`: planned DOM module.
 /// - `manifest`: validated input manifest.
-/// - `manifest_path`: user-supplied manifest path used for provenance.
-/// - `kind`: generated artifact kind label.
 ///
 /// Output:
 /// - Header text ending with one blank line.
 ///
 /// Transformation:
-/// - Converts manifest and module provenance into compact comment metadata
-///   shared by generated sources, interfaces, summaries, and tests.
-fn render_module_header(
-    module: &DomModulePlan,
-    manifest: &TsInputManifest,
-    manifest_path: &Path,
-    kind: &str,
-) -> String {
+/// - Marks generated files without duplicating source provenance that already
+///   lives in checked manifests and summary manifests.
+fn render_module_header(_manifest: &TsInputManifest) -> String {
     let mut output = String::new();
     output.push_str("/**\n");
     output.push_str(" * @generated true\n");
     output.push_str(" * @do-not-edit true\n");
-    output.push_str(" * @generator terlc\n");
-    output.push_str(&format!(
-        " * @generator-version {}\n",
-        manifest.generator.version
-    ));
-    output.push_str(&format!(
-        " * @generator-profile {}\n",
-        manifest.generator.profile
-    ));
-    output.push_str(&format!(" * @artifact-kind {kind}\n"));
-    output.push_str(&format!(" * @input-manifest {}\n", manifest_path.display()));
-    output.push_str(&format!(
-        " * @source-package {}@{}\n",
-        manifest.source_package.name, manifest.source_package.version
-    ));
-    for input in &manifest.inputs {
-        output.push_str(&format!(
-            " * @source-input {} sha256={}\n",
-            input.path, input.sha256
-        ));
-    }
-    output.push_str(&format!(
-        " * @source-interface {}\n",
-        module.source_interface
-    ));
     output.push_str(" */\n\n");
     output
 }
@@ -746,7 +687,6 @@ fn render_binding_manifest(
             json!({
                 "module": module.module_path,
                 "source": module.source_path,
-                "interface": module.interface_path,
                 "summary": module.summary_path,
                 "test": module.test_path,
             })

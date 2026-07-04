@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebSocketEventMap.
+
+pub opaque type WebSocketEventMap.
+
+pub (value: WebSocketEventMap) close(): CloseEvent ->
+    native.
+
+pub (value: WebSocketEventMap) error(): Event ->
+    native.
+
+pub (value: WebSocketEventMap) message(): MessageEvent ->
+    native.
+
+pub (value: WebSocketEventMap) open(): Event ->
+    native.

@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioDecoderInit.
+
+pub opaque type AudioDecoderInit.
+
+pub (value: AudioDecoderInit) error(): WebCodecsErrorCallback ->
+    native.
+
+pub (value: AudioDecoderInit) output(): AudioDataOutputCallback ->
+    native.

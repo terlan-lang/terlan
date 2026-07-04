@@ -1,0 +1,78 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DOMRectReadOnly.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`DOMRectReadOnly`** interface specifies the standard properties (also used by DOMRect) to define a rectangle whose properties are immutable.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly)
+ */
+pub opaque type DOMRectReadOnly.
+
+/**
+ * The **`bottom`** read-only property of the **`DOMRectReadOnly`** interface returns the bottom coordinate value of the `DOMRect`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/bottom)
+ */
+pub (value: DOMRectReadOnly) bottom(): JsNumber ->
+    native.
+
+/**
+ * The **`height`** read-only property of the **`DOMRectReadOnly`** interface represents the height of the `DOMRect`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/height)
+ */
+pub (value: DOMRectReadOnly) height(): JsNumber ->
+    native.
+
+/**
+ * The **`left`** read-only property of the **`DOMRectReadOnly`** interface returns the left coordinate value of the `DOMRect`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/left)
+ */
+pub (value: DOMRectReadOnly) left(): JsNumber ->
+    native.
+
+/**
+ * The **`right`** read-only property of the **`DOMRectReadOnly`** interface returns the right coordinate value of the `DOMRect`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/right)
+ */
+pub (value: DOMRectReadOnly) right(): JsNumber ->
+    native.
+
+/**
+ * The **`top`** read-only property of the **`DOMRectReadOnly`** interface returns the top coordinate value of the `DOMRect`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/top)
+ */
+pub (value: DOMRectReadOnly) top(): JsNumber ->
+    native.
+
+/**
+ * The **`width`** read-only property of the **`DOMRectReadOnly`** interface represents the width of the `DOMRect`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/width)
+ */
+pub (value: DOMRectReadOnly) width(): JsNumber ->
+    native.
+
+/**
+ * The **`x`** read-only property of the **`DOMRectReadOnly`** interface represents the x coordinate of the `DOMRect`'s origin.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/x)
+ */
+pub (value: DOMRectReadOnly) x(): JsNumber ->
+    native.
+
+/**
+ * The **`y`** read-only property of the **`DOMRectReadOnly`** interface represents the y coordinate of the `DOMRect`'s origin.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/y)
+ */
+pub (value: DOMRectReadOnly) y(): JsNumber ->
+    native.

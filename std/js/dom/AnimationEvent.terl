@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AnimationEvent.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`AnimationEvent`** interface represents events providing information related to animations.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEvent)
+ */
+pub opaque type AnimationEvent.
+
+/**
+ * The **`AnimationEvent.animationName`** read-only property is a string containing the value of the animation-name CSS property associated with the transition.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEvent/animationName)
+ */
+pub (value: AnimationEvent) animation_name(): JsString ->
+    native.
+
+/**
+ * The **`AnimationEvent.elapsedTime`** read-only property is a `float` giving the amount of time the animation has been running, in seconds, when this event fired, excluding any time the animation was paused.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEvent/elapsedTime)
+ */
+pub (value: AnimationEvent) elapsed_time(): std.js.Number.JsNumber ->
+    native.
+
+/**
+ * The **`AnimationEvent.pseudoElement`** read-only property is a string, starting with `'::'`, containing the name of the pseudo-element the animation runs on.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEvent/pseudoElement)
+ */
+pub (value: AnimationEvent) pseudo_element(): JsString ->
+    native.

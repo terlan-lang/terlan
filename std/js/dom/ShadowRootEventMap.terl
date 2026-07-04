@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ShadowRootEventMap.
+
+pub opaque type ShadowRootEventMap.
+
+pub (value: ShadowRootEventMap) slotchange(): Event ->
+    native.

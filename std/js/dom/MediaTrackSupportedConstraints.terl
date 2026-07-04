@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaTrackSupportedConstraints.
+
+import type std.core.{Bool}.
+
+pub opaque type MediaTrackSupportedConstraints.
+
+pub (value: MediaTrackSupportedConstraints) aspect_ratio(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) auto_gain_control(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) background_blur(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) channel_count(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) device_id(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) display_surface(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) echo_cancellation(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) facing_mode(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) frame_rate(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) group_id(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) height(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) noise_suppression(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) sample_rate(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) sample_size(): Bool ->
+    native.
+
+pub (value: MediaTrackSupportedConstraints) width(): Bool ->
+    native.

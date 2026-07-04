@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ShadowRootInit.
+
+import type std.core.{Bool}.
+
+pub opaque type ShadowRootInit.
+
+pub (value: ShadowRootInit) clonable(): Bool ->
+    native.
+
+pub (value: ShadowRootInit) custom_element_registry(): CustomElementRegistry ->
+    native.
+
+pub (value: ShadowRootInit) delegates_focus(): Bool ->
+    native.
+
+pub (value: ShadowRootInit) mode(): ShadowRootMode ->
+    native.
+
+pub (value: ShadowRootInit) serializable(): Bool ->
+    native.
+
+pub (value: ShadowRootInit) slot_assignment(): SlotAssignmentMode ->
+    native.

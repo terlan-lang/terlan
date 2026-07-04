@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.EcdhKeyDeriveParams.
+
+pub opaque type EcdhKeyDeriveParams.
+
+pub (value: EcdhKeyDeriveParams) public(): CryptoKey ->
+    native.

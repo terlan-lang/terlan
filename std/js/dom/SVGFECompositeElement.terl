@@ -1,0 +1,80 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFECompositeElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFECompositeElement`** interface corresponds to the feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement)
+ */
+pub opaque type SVGFECompositeElement.
+
+/**
+ * The **`in1`** read-only property of the SVGFECompositeElement interface reflects the in attribute of the given feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/in1)
+ */
+pub (value: SVGFECompositeElement) in1(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`in2`** read-only property of the SVGFECompositeElement interface reflects the in2 attribute of the given feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/in2)
+ */
+pub (value: SVGFECompositeElement) in2(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`k1`** read-only property of the SVGFECompositeElement interface reflects the k1 attribute of the given feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k1)
+ */
+pub (value: SVGFECompositeElement) k1(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`k2`** read-only property of the SVGFECompositeElement interface reflects the k2 attribute of the given feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k2)
+ */
+pub (value: SVGFECompositeElement) k2(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`k3`** read-only property of the SVGFECompositeElement interface reflects the k3 attribute of the given feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k3)
+ */
+pub (value: SVGFECompositeElement) k3(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`k4`** read-only property of the SVGFECompositeElement interface reflects the k4 attribute of the given feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k4)
+ */
+pub (value: SVGFECompositeElement) k4(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`operator`** read-only property of the SVGFECompositeElement interface reflects the operator attribute of the given feComposite element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/operator)
+ */
+pub (value: SVGFECompositeElement) operator(): SVGAnimatedEnumeration ->
+    native.
+
+pub (value: SVGFECompositeElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFECompositeElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

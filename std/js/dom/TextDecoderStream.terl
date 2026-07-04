@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextDecoderStream.
+
+/**
+ * The **`TextDecoderStream`** interface of the Encoding API converts a stream of text in a binary encoding, such as UTF-8 etc., to a stream of strings.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoderStream)
+ */
+pub opaque type TextDecoderStream.
+
+pub (value: TextDecoderStream) readable(): ReadableStream[std.js.String.JsString] ->
+    native.
+
+pub (value: TextDecoderStream) writable(): WritableStream[BufferSource] ->
+    native.

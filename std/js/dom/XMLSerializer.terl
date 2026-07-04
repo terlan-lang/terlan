@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.XMLSerializer.
+
+/**
+ * The `XMLSerializer` interface provides the XMLSerializer.serializeToString method to construct an XML string representing a DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLSerializer)
+ */
+pub opaque type XMLSerializer.
+
+/**
+ * The XMLSerializer method **`serializeToString()`** constructs a string representing the specified DOM tree in XML form.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLSerializer/serializeToString)
+ */
+pub (value: XMLSerializer) serialize_to_string(root: Node): std.js.String.JsString ->
+    native.

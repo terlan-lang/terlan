@@ -1,54 +1,51 @@
 /**
  * @generated true
  * @do-not-edit true
- * @generator terlc
- * @generator-version 0.0.4
- * @generator-profile typescript-standard-js-dom
- * @artifact-kind test
- * @input-manifest std/js/manifests/std_js_dom_inputs.json
- * @source-package typescript@5.9.3
- * @source-input std/js/fixtures/lib.es5.d.ts sha256=c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1
- * @source-input std/js/fixtures/lib.es2015.collection.d.ts sha256=dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44
- * @source-input std/js/fixtures/lib.dom.d.ts sha256=080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9
- * @source-interface HTMLTableElement
  */
-
 module std.js.Dom.HTMLTableElementTest.
 
-import type std.js.Dom.HTMLTableElement.HTMLTableElement.
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Dom.HTMLTableElement.{HTMLTableElement}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
 
 @test
 pub generated_binding_surface_exists(): Bool ->
     true.
 
-pub align_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub align_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.align().
 
-pub bg_color_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub bg_color_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.bg_color().
 
-pub border_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub border_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.border().
 
 pub caption_typechecks(receiver: HTMLTableElement): Option[HTMLTableCaptionElement] ->
     receiver.caption().
 
-pub cell_padding_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub cell_padding_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.cell_padding().
 
-pub cell_spacing_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub cell_spacing_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.cell_spacing().
 
-pub frame_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub frame_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.frame().
 
 pub rows_typechecks(receiver: HTMLTableElement): HTMLCollectionOf[HTMLTableRowElement] ->
     receiver.rows().
 
-pub rules_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub rules_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.rules().
 
-pub summary_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub summary_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.summary().
 
 pub t_bodies_typechecks(receiver: HTMLTableElement): HTMLCollectionOf[HTMLTableSectionElement] ->
@@ -60,7 +57,7 @@ pub t_foot_typechecks(receiver: HTMLTableElement): Option[HTMLTableSectionElemen
 pub t_head_typechecks(receiver: HTMLTableElement): Option[HTMLTableSectionElement] ->
     receiver.t_head().
 
-pub width_typechecks(receiver: HTMLTableElement): std.js.String.JsString ->
+pub width_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.width().
 
 pub create_caption_typechecks(receiver: HTMLTableElement): HTMLTableCaptionElement ->
@@ -75,23 +72,23 @@ pub create_t_foot_typechecks(receiver: HTMLTableElement): HTMLTableSectionElemen
 pub create_t_head_typechecks(receiver: HTMLTableElement): HTMLTableSectionElement ->
     receiver.create_t_head().
 
-pub delete_caption_typechecks(receiver: HTMLTableElement): std.core.Unit ->
+pub delete_caption_typechecks(receiver: HTMLTableElement): Unit ->
     receiver.delete_caption().
 
-pub delete_row_typechecks(receiver: HTMLTableElement, index: std.js.Number.JsNumber): std.core.Unit ->
+pub delete_row_typechecks(receiver: HTMLTableElement, index: JsNumber): Unit ->
     receiver.delete_row(index).
 
-pub delete_t_foot_typechecks(receiver: HTMLTableElement): std.core.Unit ->
+pub delete_t_foot_typechecks(receiver: HTMLTableElement): Unit ->
     receiver.delete_t_foot().
 
-pub delete_t_head_typechecks(receiver: HTMLTableElement): std.core.Unit ->
+pub delete_t_head_typechecks(receiver: HTMLTableElement): Unit ->
     receiver.delete_t_head().
 
-pub insert_row_typechecks(receiver: HTMLTableElement, index: std.js.Number.JsNumber): HTMLTableRowElement ->
+pub insert_row_typechecks(receiver: HTMLTableElement, index: JsNumber): HTMLTableRowElement ->
     receiver.insert_row(index).
 
-pub add_event_listener_typechecks(receiver: HTMLTableElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit ->
+pub add_event_listener_typechecks(receiver: HTMLTableElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: HTMLTableElement, type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit ->
+pub remove_event_listener_typechecks(receiver: HTMLTableElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.OfflineAudioCompletionEventInit.
+
+pub opaque type OfflineAudioCompletionEventInit.
+
+pub (value: OfflineAudioCompletionEventInit) rendered_buffer(): AudioBuffer ->
+    native.

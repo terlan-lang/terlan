@@ -1,0 +1,12 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.XPathEvaluator.
+
+/**
+ * The `XPathEvaluator` interface allows to compile and evaluate XPath expressions.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XPathEvaluator)
+ */
+pub opaque type XPathEvaluator.

@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PaymentDetailsBase.
+
+import type std.js.{Array}.
+
+pub opaque type PaymentDetailsBase.
+
+pub (value: PaymentDetailsBase) display_items(): Array[PaymentItem] ->
+    native.
+
+pub (value: PaymentDetailsBase) modifiers(): Array[PaymentDetailsModifier] ->
+    native.
+
+pub (value: PaymentDetailsBase) shipping_options(): Array[PaymentShippingOption] ->
+    native.

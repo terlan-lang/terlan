@@ -1,0 +1,50 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WEBGL_multi_draw.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.{Array}.
+
+/**
+ * The **`WEBGL_multi_draw`** extension is part of the WebGL API and allows to render more than one primitive with a single function call.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw)
+ */
+pub opaque type WEBGL_multi_draw.
+
+/**
+ * The **`WEBGL_multi_draw.multiDrawArraysInstancedWEBGL()`** method of the WebGL API renders multiple primitives from array data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawArraysInstancedWEBGL)
+ */
+pub (value: WEBGL_multi_draw) multi_draw_arrays_instanced_webgl(mode: GLenum, firsts_list: Int32Array[ArrayBufferLike] | Array[GLint], firsts_offset: JsNumber, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], instance_counts_offset: JsNumber, drawcount: GLsizei): Unit ->
+    native.
+
+/**
+ * The **`WEBGL_multi_draw.multiDrawArraysWEBGL()`** method of the WebGL API renders multiple primitives from array data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawArraysWEBGL)
+ */
+pub (value: WEBGL_multi_draw) multi_draw_arrays_webgl(mode: GLenum, firsts_list: Int32Array[ArrayBufferLike] | Array[GLint], firsts_offset: JsNumber, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, drawcount: GLsizei): Unit ->
+    native.
+
+/**
+ * The **`WEBGL_multi_draw.multiDrawElementsInstancedWEBGL()`** method of the WebGL API renders multiple primitives from array data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawElementsInstancedWEBGL)
+ */
+pub (value: WEBGL_multi_draw) multi_draw_elements_instanced_webgl(mode: GLenum, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, type_: GLenum, offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei], offsets_offset: JsNumber, instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], instance_counts_offset: JsNumber, drawcount: GLsizei): Unit ->
+    native.
+
+/**
+ * The **`WEBGL_multi_draw.multiDrawElementsWEBGL()`** method of the WebGL API renders multiple primitives from array data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawElementsWEBGL)
+ */
+pub (value: WEBGL_multi_draw) multi_draw_elements_webgl(mode: GLenum, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, type_: GLenum, offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei], offsets_offset: JsNumber, drawcount: GLsizei): Unit ->
+    native.

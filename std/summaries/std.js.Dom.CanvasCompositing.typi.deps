@@ -1,8 +1,8 @@
 module=std.js.Dom.CanvasCompositing
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=16142583370484643163
-interface_hash=7789748610186651906
-interface_doc_hash=7789748610186651906
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=946038135725313031
+interface_hash=12801794297122487315
+interface_doc_hash=12801794297122487315
 deps=0

@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaSourceEventMap.
+
+pub opaque type MediaSourceEventMap.
+
+pub (value: MediaSourceEventMap) sourceclose(): Event ->
+    native.
+
+pub (value: MediaSourceEventMap) sourceended(): Event ->
+    native.
+
+pub (value: MediaSourceEventMap) sourceopen(): Event ->
+    native.

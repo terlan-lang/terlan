@@ -1,0 +1,48 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEPointLightElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEPointLightElement`** interface corresponds to the fePointLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement)
+ */
+pub opaque type SVGFEPointLightElement.
+
+/**
+ * The **`x`** read-only property of the SVGFEPointLightElement interface describes the horizontal coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement/x)
+ */
+pub (value: SVGFEPointLightElement) x(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`y`** read-only property of the SVGFEPointLightElement interface describes the vertical coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement/y)
+ */
+pub (value: SVGFEPointLightElement) y(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`z`** read-only property of the SVGFEPointLightElement interface describes the z-axis value of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement/z)
+ */
+pub (value: SVGFEPointLightElement) z(): SVGAnimatedNumber ->
+    native.
+
+pub (value: SVGFEPointLightElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEPointLightElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

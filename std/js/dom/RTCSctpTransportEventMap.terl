@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCSctpTransportEventMap.
+
+pub opaque type RTCSctpTransportEventMap.
+
+pub (value: RTCSctpTransportEventMap) statechange(): Event ->
+    native.

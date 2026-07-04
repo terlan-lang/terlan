@@ -1,0 +1,59 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCTransportStats.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RTCTransportStats.
+
+pub (value: RTCTransportStats) bytes_received(): JsNumber ->
+    native.
+
+pub (value: RTCTransportStats) bytes_sent(): JsNumber ->
+    native.
+
+pub (value: RTCTransportStats) dtls_cipher(): JsString ->
+    native.
+
+pub (value: RTCTransportStats) dtls_role(): RTCDtlsRole ->
+    native.
+
+pub (value: RTCTransportStats) dtls_state(): RTCDtlsTransportState ->
+    native.
+
+pub (value: RTCTransportStats) ice_local_username_fragment(): JsString ->
+    native.
+
+pub (value: RTCTransportStats) ice_role(): RTCIceRole ->
+    native.
+
+pub (value: RTCTransportStats) ice_state(): RTCIceTransportState ->
+    native.
+
+pub (value: RTCTransportStats) local_certificate_id(): JsString ->
+    native.
+
+pub (value: RTCTransportStats) packets_received(): JsNumber ->
+    native.
+
+pub (value: RTCTransportStats) packets_sent(): JsNumber ->
+    native.
+
+pub (value: RTCTransportStats) remote_certificate_id(): JsString ->
+    native.
+
+pub (value: RTCTransportStats) selected_candidate_pair_changes(): JsNumber ->
+    native.
+
+pub (value: RTCTransportStats) selected_candidate_pair_id(): JsString ->
+    native.
+
+pub (value: RTCTransportStats) srtp_cipher(): JsString ->
+    native.
+
+pub (value: RTCTransportStats) tls_version(): JsString ->
+    native.

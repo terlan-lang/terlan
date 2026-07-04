@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PopStateEvent.
+
+/**
+ * **`PopStateEvent`** is an interface for the Window/popstate_event event.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PopStateEvent)
+ */
+pub opaque type PopStateEvent.
+
+/**
+ * The **`hasUAVisualTransition`** read-only property of the PopStateEvent interface returns `true` if the user agent performed a visual transition for this navigation before dispatching this event, or `false` otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PopStateEvent/hasUAVisualTransition)
+ */
+pub (value: PopStateEvent) has_ua_visual_transition(): std.core.Bool ->
+    native.

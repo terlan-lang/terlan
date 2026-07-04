@@ -1,0 +1,29 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CanvasRect.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasRect.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clearRect)
+ */
+pub (value: CanvasRect) clear_rect(x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillRect)
+ */
+pub (value: CanvasRect) fill_rect(x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->
+    native.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeRect)
+ */
+pub (value: CanvasRect) stroke_rect(x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->
+    native.

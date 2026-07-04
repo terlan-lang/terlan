@@ -1,0 +1,92 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.CSSNumericValue.
+
+/**
+ * The **`CSSNumericValue`** interface of the CSS Typed Object Model API represents operations that all numeric values can perform.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue)
+ */
+pub opaque type CSSNumericValue.
+
+/**
+ * The **`add()`** method of the `CSSNumericValue`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/add)
+ */
+pub (value: CSSNumericValue) add(): CSSNumericValue ->
+    native.
+
+/**
+ * The **`div()`** method of the supplied value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/div)
+ */
+pub (value: CSSNumericValue) div_(): CSSNumericValue ->
+    native.
+
+/**
+ * The **`equals()`** method of the value are strictly equal.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/equals)
+ */
+pub (value: CSSNumericValue) equals(): std.core.Bool ->
+    native.
+
+/**
+ * The **`max()`** method of the passed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/max)
+ */
+pub (value: CSSNumericValue) max(): CSSNumericValue ->
+    native.
+
+/**
+ * The **`min()`** method of the values passed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/min)
+ */
+pub (value: CSSNumericValue) min(): CSSNumericValue ->
+    native.
+
+/**
+ * The **`mul()`** method of the the supplied value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/mul)
+ */
+pub (value: CSSNumericValue) mul(): CSSNumericValue ->
+    native.
+
+/**
+ * The **`sub()`** method of the `CSSNumericValue`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/sub)
+ */
+pub (value: CSSNumericValue) sub(): CSSNumericValue ->
+    native.
+
+/**
+ * The **`to()`** method of the another.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/to)
+ */
+pub (value: CSSNumericValue) to(unit: std.js.String.JsString): CSSUnitValue ->
+    native.
+
+/**
+ * The **`toSum()`** method of the ```js-nolint toSum(units) ``` - `units` - : The units to convert to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/toSum)
+ */
+pub (value: CSSNumericValue) to_sum(): CSSMathSum ->
+    native.
+
+/**
+ * The **`type()`** method of the `CSSNumericValue`, one of `angle`, `flex`, `frequency`, `length`, `resolution`, `percent`, `percentHint`, or `time`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/type)
+ */
+pub (value: CSSNumericValue) type_(): CSSNumericType ->
+    native.

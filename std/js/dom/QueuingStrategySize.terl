@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.QueuingStrategySize.
+
+pub opaque type QueuingStrategySize[T].

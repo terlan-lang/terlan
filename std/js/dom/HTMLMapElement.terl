@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLMapElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLMapElement`** interface provides special properties and methods (beyond those of the regular object HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of map elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMapElement)
+ */
+pub opaque type HTMLMapElement.
+
+/**
+ * The **`areas`** read-only property of the HTMLMapElement interface returns a collection of area elements associated with the map element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMapElement/areas)
+ */
+pub (value: HTMLMapElement) areas(): HTMLCollection ->
+    native.
+
+/**
+ * The **`name`** property of the HTMLMapElement represents the unique name `<map>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMapElement/name)
+ */
+pub (value: HTMLMapElement) name(): JsString ->
+    native.
+
+pub (value: HTMLMapElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: HTMLMapElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

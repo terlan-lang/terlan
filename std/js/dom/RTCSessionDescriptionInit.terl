@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCSessionDescriptionInit.
+
+pub opaque type RTCSessionDescriptionInit.
+
+pub (value: RTCSessionDescriptionInit) sdp(): std.js.String.JsString ->
+    native.
+
+pub (value: RTCSessionDescriptionInit) type_(): RTCSdpType ->
+    native.

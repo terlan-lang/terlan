@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WorkletOptions.
+
+pub opaque type WorkletOptions.
+
+pub (value: WorkletOptions) credentials(): RequestCredentials ->
+    native.

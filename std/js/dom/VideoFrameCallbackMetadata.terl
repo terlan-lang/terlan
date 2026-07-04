@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoFrameCallbackMetadata.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type VideoFrameCallbackMetadata.
+
+pub (value: VideoFrameCallbackMetadata) capture_time(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) expected_display_time(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) height(): JsNumber ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) media_time(): JsNumber ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) presentation_time(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) presented_frames(): JsNumber ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) processing_duration(): JsNumber ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) receive_time(): DOMHighResTimeStamp ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) rtp_timestamp(): JsNumber ->
+    native.
+
+pub (value: VideoFrameCallbackMetadata) width(): JsNumber ->
+    native.

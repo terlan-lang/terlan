@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PositionOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type PositionOptions.
+
+pub (value: PositionOptions) enable_high_accuracy(): std.core.Bool ->
+    native.
+
+pub (value: PositionOptions) maximum_age(): JsNumber ->
+    native.
+
+pub (value: PositionOptions) timeout(): JsNumber ->
+    native.

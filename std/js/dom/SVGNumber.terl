@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGNumber.
+
+/**
+ * The **`SVGNumber`** interface corresponds to the &lt;number&gt; basic data type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumber)
+ */
+pub opaque type SVGNumber.
+
+/**
+ * The **`value`** read-only property of the SVGNumber interface represents the number.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumber/value)
+ */
+pub (value: SVGNumber) value(): std.js.Number.JsNumber ->
+    native.

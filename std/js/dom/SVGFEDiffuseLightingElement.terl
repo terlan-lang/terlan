@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGFEDiffuseLightingElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEDiffuseLightingElement`** interface corresponds to the feDiffuseLighting element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement)
+ */
+pub opaque type SVGFEDiffuseLightingElement.
+
+/**
+ * The **`diffuseConstant`** read-only property of the SVGFEDiffuseLightingElement interface reflects the diffuseConstant attribute of the given feDiffuseLighting element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/diffuseConstant)
+ */
+pub (value: SVGFEDiffuseLightingElement) diffuse_constant(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`in1`** read-only property of the SVGFEDiffuseLightingElement interface reflects the in attribute of the given feDiffuseLighting element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/in1)
+ */
+pub (value: SVGFEDiffuseLightingElement) in1(): SVGAnimatedString ->
+    native.
+
+/**
+ * The **`kernelUnitLengthX`** read-only property of the SVGFEDiffuseLightingElement interface reflects the X component of the kernelUnitLength attribute of the given feDiffuseLighting element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/kernelUnitLengthX)
+ */
+pub (value: SVGFEDiffuseLightingElement) kernel_unit_length_x(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`kernelUnitLengthY`** read-only property of the SVGFEDiffuseLightingElement interface reflects the Y component of the kernelUnitLength attribute of the given feDiffuseLighting element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/kernelUnitLengthY)
+ */
+pub (value: SVGFEDiffuseLightingElement) kernel_unit_length_y(): SVGAnimatedNumber ->
+    native.
+
+/**
+ * The **`surfaceScale`** read-only property of the SVGFEDiffuseLightingElement interface reflects the surfaceScale attribute of the given feDiffuseLighting element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/surfaceScale)
+ */
+pub (value: SVGFEDiffuseLightingElement) surface_scale(): SVGAnimatedNumber ->
+    native.
+
+pub (value: SVGFEDiffuseLightingElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGFEDiffuseLightingElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaStreamAudioSourceOptions.
+
+pub opaque type MediaStreamAudioSourceOptions.
+
+pub (value: MediaStreamAudioSourceOptions) media_stream(): MediaStream ->
+    native.

@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Worklet.
+
+/**
+ * The **`Worklet`** interface is a lightweight version of Web Workers and gives developers access to low-level parts of the rendering pipeline.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Worklet)
+ */
+pub opaque type Worklet.
+
+/**
+ * The **`addModule()`** method of the adds it to the current `Worklet`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Worklet/addModule)
+ */
+pub (value: Worklet) add_module(module_url: URL | std.js.String.JsString, options: WorkletOptions): std.js.Promise[std.core.Unit] ->
+    native.

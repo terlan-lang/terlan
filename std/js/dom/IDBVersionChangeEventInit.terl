@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.IDBVersionChangeEventInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type IDBVersionChangeEventInit.
+
+pub (value: IDBVersionChangeEventInit) new_version(): Option[JsNumber] ->
+    native.
+
+pub (value: IDBVersionChangeEventInit) old_version(): JsNumber ->
+    native.

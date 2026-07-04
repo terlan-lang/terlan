@@ -1,0 +1,7 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.UnderlyingSinkWriteCallback.
+
+pub opaque type UnderlyingSinkWriteCallback[W].

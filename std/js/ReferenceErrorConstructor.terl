@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ReferenceErrorConstructor.
+
+pub opaque type ReferenceErrorConstructor.
+
+pub (value: ReferenceErrorConstructor) prototype(): ReferenceError ->
+    native.

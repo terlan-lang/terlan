@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DocumentTimelineOptions.
+
+pub opaque type DocumentTimelineOptions.
+
+pub (value: DocumentTimelineOptions) origin_time(): DOMHighResTimeStamp ->
+    native.

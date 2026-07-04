@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ElementCreationOptions.
+
+pub opaque type ElementCreationOptions.
+
+pub (value: ElementCreationOptions) custom_element_registry(): CustomElementRegistry ->
+    native.
+
+pub (value: ElementCreationOptions) is(): std.js.String.JsString ->
+    native.

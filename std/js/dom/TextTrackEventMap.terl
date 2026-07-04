@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextTrackEventMap.
+
+pub opaque type TextTrackEventMap.
+
+pub (value: TextTrackEventMap) cuechange(): Event ->
+    native.

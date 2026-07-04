@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaKeySessionEventMap.
+
+pub opaque type MediaKeySessionEventMap.
+
+pub (value: MediaKeySessionEventMap) keystatuseschange(): Event ->
+    native.
+
+pub (value: MediaKeySessionEventMap) message(): MediaKeyMessageEvent ->
+    native.

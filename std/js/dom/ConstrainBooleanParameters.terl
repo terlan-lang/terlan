@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ConstrainBooleanParameters.
+
+import type std.core.{Bool}.
+
+pub opaque type ConstrainBooleanParameters.
+
+pub (value: ConstrainBooleanParameters) exact(): Bool ->
+    native.
+
+pub (value: ConstrainBooleanParameters) ideal(): Bool ->
+    native.

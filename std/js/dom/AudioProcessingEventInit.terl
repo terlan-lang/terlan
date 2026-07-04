@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AudioProcessingEventInit.
+
+pub opaque type AudioProcessingEventInit.
+
+pub (value: AudioProcessingEventInit) input_buffer(): AudioBuffer ->
+    native.
+
+pub (value: AudioProcessingEventInit) output_buffer(): AudioBuffer ->
+    native.
+
+pub (value: AudioProcessingEventInit) playback_time(): std.js.Number.JsNumber ->
+    native.

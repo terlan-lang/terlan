@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AssignedNodesOptions.
+
+pub opaque type AssignedNodesOptions.
+
+pub (value: AssignedNodesOptions) flatten(): std.core.Bool ->
+    native.

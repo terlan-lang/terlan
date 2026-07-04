@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.VideoEncoderSupport.
+
+pub opaque type VideoEncoderSupport.
+
+pub (value: VideoEncoderSupport) config(): VideoEncoderConfig ->
+    native.
+
+pub (value: VideoEncoderSupport) supported(): std.core.Bool ->
+    native.

@@ -1,0 +1,18 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpParameters.
+
+import type std.js.{Array}.
+
+pub opaque type RTCRtpParameters.
+
+pub (value: RTCRtpParameters) codecs(): Array[RTCRtpCodecParameters] ->
+    native.
+
+pub (value: RTCRtpParameters) header_extensions(): Array[RTCRtpHeaderExtensionParameters] ->
+    native.
+
+pub (value: RTCRtpParameters) rtcp(): RTCRtcpParameters ->
+    native.

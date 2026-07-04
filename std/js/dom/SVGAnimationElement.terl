@@ -1,0 +1,90 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGAnimationElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.Number.{JsNumber}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGAnimationElement`** interface is the base interface for all of the animation element interfaces: SVGAnimateElement, SVGSetElement, SVGAnimateColorElement, SVGAnimateMotionElement and SVGAnimateTransformElement.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement)
+ */
+pub opaque type SVGAnimationElement.
+
+/**
+ * The **`targetElement`** read-only property of the SVGAnimationElement interface refers to the element which is being animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/targetElement)
+ */
+pub (value: SVGAnimationElement) target_element(): Option[SVGElement] ->
+    native.
+
+/**
+ * The SVGAnimationElement method `beginElement()` creates a begin instance time for the current time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/beginElement)
+ */
+pub (value: SVGAnimationElement) begin_element(): Unit ->
+    native.
+
+/**
+ * The SVGAnimationElement method `beginElementAt()` creates a begin instance time for the current time plus the specified offset.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/beginElementAt)
+ */
+pub (value: SVGAnimationElement) begin_element_at(offset: JsNumber): Unit ->
+    native.
+
+/**
+ * The SVGAnimationElement method `endElement()` creates an end instance time for the current time.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/endElement)
+ */
+pub (value: SVGAnimationElement) end_element(): Unit ->
+    native.
+
+/**
+ * The SVGAnimationElement method `endElementAt()` creates an end instance time for the current time plus the specified offset.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/endElementAt)
+ */
+pub (value: SVGAnimationElement) end_element_at(offset: JsNumber): Unit ->
+    native.
+
+/**
+ * The SVGAnimationElement method `getCurrentTime()` returns a float representing the current time in seconds relative to time zero for the given time container.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/getCurrentTime)
+ */
+pub (value: SVGAnimationElement) get_current_time(): JsNumber ->
+    native.
+
+/**
+ * The SVGAnimationElement method `getSimpleDuration()` returns a float representing the number of seconds for the simple duration for this animation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/getSimpleDuration)
+ */
+pub (value: SVGAnimationElement) get_simple_duration(): JsNumber ->
+    native.
+
+/**
+ * The SVGAnimationElement method `getStartTime()` returns a float representing the start time, in seconds, for this animation element's current interval, if it exists, regardless of whether the interval has begun yet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/getStartTime)
+ */
+pub (value: SVGAnimationElement) get_start_time(): JsNumber ->
+    native.
+
+pub (value: SVGAnimationElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGAnimationElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

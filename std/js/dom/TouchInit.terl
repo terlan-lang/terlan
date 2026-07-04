@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TouchInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type TouchInit.
+
+pub (value: TouchInit) altitude_angle(): JsNumber ->
+    native.
+
+pub (value: TouchInit) azimuth_angle(): JsNumber ->
+    native.
+
+pub (value: TouchInit) client_x(): JsNumber ->
+    native.
+
+pub (value: TouchInit) client_y(): JsNumber ->
+    native.
+
+pub (value: TouchInit) force(): JsNumber ->
+    native.
+
+pub (value: TouchInit) identifier(): JsNumber ->
+    native.
+
+pub (value: TouchInit) page_x(): JsNumber ->
+    native.
+
+pub (value: TouchInit) page_y(): JsNumber ->
+    native.
+
+pub (value: TouchInit) radius_x(): JsNumber ->
+    native.
+
+pub (value: TouchInit) radius_y(): JsNumber ->
+    native.
+
+pub (value: TouchInit) rotation_angle(): JsNumber ->
+    native.
+
+pub (value: TouchInit) screen_x(): JsNumber ->
+    native.
+
+pub (value: TouchInit) screen_y(): JsNumber ->
+    native.
+
+pub (value: TouchInit) target_(): EventTarget ->
+    native.
+
+pub (value: TouchInit) touch_type(): TouchType ->
+    native.

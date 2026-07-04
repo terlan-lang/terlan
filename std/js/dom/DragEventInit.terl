@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DragEventInit.
+
+pub opaque type DragEventInit.
+
+pub (value: DragEventInit) data_transfer(): Option[DataTransfer] ->
+    native.

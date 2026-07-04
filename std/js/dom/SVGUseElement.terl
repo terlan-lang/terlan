@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGUseElement.
+
+import type std.core.{Bool}.
+
+import type std.core.{Unit}.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGUseElement`** interface corresponds to the use element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement)
+ */
+pub opaque type SVGUseElement.
+
+/**
+ * The **`height`** read-only property of the SVGUseElement interface describes the height of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/height)
+ */
+pub (value: SVGUseElement) height(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`width`** read-only property of the SVGUseElement interface describes the width of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/width)
+ */
+pub (value: SVGUseElement) width(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`x`** read-only property of the SVGUseElement interface describes the x-axis coordinate of the start point of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/x)
+ */
+pub (value: SVGUseElement) x(): SVGAnimatedLength ->
+    native.
+
+/**
+ * The **`y`** read-only property of the SVGUseElement interface describes the y-axis coordinate of the start point of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/y)
+ */
+pub (value: SVGUseElement) y(): SVGAnimatedLength ->
+    native.
+
+pub (value: SVGUseElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+    native.
+
+pub (value: SVGUseElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+    native.

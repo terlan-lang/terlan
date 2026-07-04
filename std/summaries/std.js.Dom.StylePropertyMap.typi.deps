@@ -1,8 +1,8 @@
 module=std.js.Dom.StylePropertyMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=3601573543630551942
-interface_hash=1342536258876789990
-interface_doc_hash=1342536258876789990
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=2664710131349649709
+interface_hash=12547001245265658184
+interface_doc_hash=12547001245265658184
 deps=0

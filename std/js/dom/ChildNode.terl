@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ChildNode.
+
+import type std.core.{Unit}.
+
+pub opaque type ChildNode.
+
+/**
+ * Inserts nodes just after node, while replacing strings in nodes with equivalent Text nodes.
+ *
+ * Throws a "HierarchyRequestError" DOMException if the constraints of the node tree are violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/after)
+ */
+pub (value: ChildNode) after_(): Unit ->
+    native.
+
+/**
+ * Inserts nodes just before node, while replacing strings in nodes with equivalent Text nodes.
+ *
+ * Throws a "HierarchyRequestError" DOMException if the constraints of the node tree are violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/before)
+ */
+pub (value: ChildNode) before(): Unit ->
+    native.
+
+/**
+ * Removes node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/remove)
+ */
+pub (value: ChildNode) remove(): Unit ->
+    native.
+
+/**
+ * Replaces node with nodes, while replacing strings in nodes with equivalent Text nodes.
+ *
+ * Throws a "HierarchyRequestError" DOMException if the constraints of the node tree are violated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/replaceWith)
+ */
+pub (value: ChildNode) replace_with(): Unit ->
+    native.

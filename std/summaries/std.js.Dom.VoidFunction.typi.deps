@@ -1,8 +1,8 @@
 module=std.js.Dom.VoidFunction
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=5051238352657940859
-interface_hash=15718695039669785178
-interface_doc_hash=15718695039669785178
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=13469704339418815668
+interface_hash=13469704339418815668
+interface_doc_hash=13469704339418815668
 deps=0

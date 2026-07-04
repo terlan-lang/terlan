@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.WebTransportErrorOptions.
+
+pub opaque type WebTransportErrorOptions.
+
+pub (value: WebTransportErrorOptions) source(): WebTransportErrorSource ->
+    native.
+
+pub (value: WebTransportErrorOptions) stream_error_code(): Option[std.js.Number.JsNumber] ->
+    native.

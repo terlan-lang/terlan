@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ClipboardEventInit.
+
+pub opaque type ClipboardEventInit.
+
+pub (value: ClipboardEventInit) clipboard_data(): Option[DataTransfer] ->
+    native.

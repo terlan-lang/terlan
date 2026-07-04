@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ServiceWorkerEventMap.
+
+pub opaque type ServiceWorkerEventMap.
+
+pub (value: ServiceWorkerEventMap) statechange(): Event ->
+    native.

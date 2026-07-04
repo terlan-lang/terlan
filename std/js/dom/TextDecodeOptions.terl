@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextDecodeOptions.
+
+pub opaque type TextDecodeOptions.
+
+pub (value: TextDecodeOptions) stream(): std.core.Bool ->
+    native.

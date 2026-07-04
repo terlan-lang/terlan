@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaTrackConstraintSet.
+
+pub opaque type MediaTrackConstraintSet.
+
+pub (value: MediaTrackConstraintSet) aspect_ratio(): ConstrainDouble ->
+    native.
+
+pub (value: MediaTrackConstraintSet) auto_gain_control(): ConstrainBoolean ->
+    native.
+
+pub (value: MediaTrackConstraintSet) background_blur(): ConstrainBoolean ->
+    native.
+
+pub (value: MediaTrackConstraintSet) channel_count(): ConstrainULong ->
+    native.
+
+pub (value: MediaTrackConstraintSet) device_id(): ConstrainDOMString ->
+    native.
+
+pub (value: MediaTrackConstraintSet) display_surface(): ConstrainDOMString ->
+    native.
+
+pub (value: MediaTrackConstraintSet) echo_cancellation(): ConstrainBoolean ->
+    native.
+
+pub (value: MediaTrackConstraintSet) facing_mode(): ConstrainDOMString ->
+    native.
+
+pub (value: MediaTrackConstraintSet) frame_rate(): ConstrainDouble ->
+    native.
+
+pub (value: MediaTrackConstraintSet) group_id(): ConstrainDOMString ->
+    native.
+
+pub (value: MediaTrackConstraintSet) height(): ConstrainULong ->
+    native.
+
+pub (value: MediaTrackConstraintSet) noise_suppression(): ConstrainBoolean ->
+    native.
+
+pub (value: MediaTrackConstraintSet) sample_rate(): ConstrainULong ->
+    native.
+
+pub (value: MediaTrackConstraintSet) sample_size(): ConstrainULong ->
+    native.
+
+pub (value: MediaTrackConstraintSet) width(): ConstrainULong ->
+    native.

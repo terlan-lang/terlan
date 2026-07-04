@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextDecoderOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type TextDecoderOptions.
+
+pub (value: TextDecoderOptions) fatal(): Bool ->
+    native.
+
+pub (value: TextDecoderOptions) ignore_bom(): Bool ->
+    native.

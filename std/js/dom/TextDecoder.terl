@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.TextDecoder.
+
+/**
+ * The **`TextDecoder`** interface represents a decoder for a specific text encoding, such as `UTF-8`, `ISO-8859-2`, `KOI8-R`, `GBK`, etc.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder)
+ */
+pub opaque type TextDecoder.
+
+/**
+ * The **`TextDecoder.decode()`** method returns a string containing text decoded from the buffer passed as a parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/decode)
+ */
+pub (value: TextDecoder) decode(input: AllowSharedBufferSource, options: TextDecodeOptions): std.js.String.JsString ->
+    native.

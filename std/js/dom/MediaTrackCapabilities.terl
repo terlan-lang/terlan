@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaTrackCapabilities.
+
+import type std.core.{Bool}.
+
+import type std.js.String.{JsString}.
+
+import type std.js.{Array}.
+
+pub opaque type MediaTrackCapabilities.
+
+pub (value: MediaTrackCapabilities) aspect_ratio(): DoubleRange ->
+    native.
+
+pub (value: MediaTrackCapabilities) auto_gain_control(): Array[Bool] ->
+    native.
+
+pub (value: MediaTrackCapabilities) background_blur(): Array[Bool] ->
+    native.
+
+pub (value: MediaTrackCapabilities) channel_count(): ULongRange ->
+    native.
+
+pub (value: MediaTrackCapabilities) device_id(): JsString ->
+    native.
+
+pub (value: MediaTrackCapabilities) display_surface(): JsString ->
+    native.
+
+pub (value: MediaTrackCapabilities) echo_cancellation(): Array[Bool] ->
+    native.
+
+pub (value: MediaTrackCapabilities) facing_mode(): Array[JsString] ->
+    native.
+
+pub (value: MediaTrackCapabilities) frame_rate(): DoubleRange ->
+    native.
+
+pub (value: MediaTrackCapabilities) group_id(): JsString ->
+    native.
+
+pub (value: MediaTrackCapabilities) height(): ULongRange ->
+    native.
+
+pub (value: MediaTrackCapabilities) noise_suppression(): Array[Bool] ->
+    native.
+
+pub (value: MediaTrackCapabilities) sample_rate(): ULongRange ->
+    native.
+
+pub (value: MediaTrackCapabilities) sample_size(): ULongRange ->
+    native.
+
+pub (value: MediaTrackCapabilities) width(): ULongRange ->
+    native.

@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.ThisType.
+
+/**
+ * Marker for contextual 'this' type
+ */
+pub opaque type ThisType[T].

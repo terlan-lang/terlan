@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.URIErrorConstructor.
+
+pub opaque type URIErrorConstructor.
+
+pub (value: URIErrorConstructor) prototype(): URIError ->
+    native.

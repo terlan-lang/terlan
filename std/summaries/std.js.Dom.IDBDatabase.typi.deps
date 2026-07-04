@@ -1,8 +1,8 @@
 module=std.js.Dom.IDBDatabase
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=14825232357175659196
-interface_hash=11915915003172249581
-interface_doc_hash=11915915003172249581
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=4129383615421582906
+interface_hash=14794440303373443908
+interface_doc_hash=14794440303373443908
 deps=0

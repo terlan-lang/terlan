@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Boolean.
+
+pub opaque type Boolean.
+
+/**
+ * Returns the primitive value of the specified object.
+ */
+pub (value: Boolean) value_of(): std.core.Bool ->
+    native.

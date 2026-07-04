@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MessageEventTargetEventMap.
+
+pub opaque type MessageEventTargetEventMap.
+
+pub (value: MessageEventTargetEventMap) message(): MessageEvent ->
+    native.
+
+pub (value: MessageEventTargetEventMap) messageerror(): MessageEvent ->
+    native.

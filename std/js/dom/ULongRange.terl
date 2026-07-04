@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ULongRange.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type ULongRange.
+
+pub (value: ULongRange) max(): JsNumber ->
+    native.
+
+pub (value: ULongRange) min(): JsNumber ->
+    native.

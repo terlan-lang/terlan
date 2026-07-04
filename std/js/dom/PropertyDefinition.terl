@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.PropertyDefinition.
+
+import type std.js.String.{JsString}.
+
+pub opaque type PropertyDefinition.
+
+pub (value: PropertyDefinition) inherits(): std.core.Bool ->
+    native.
+
+pub (value: PropertyDefinition) initial_value(): JsString ->
+    native.
+
+pub (value: PropertyDefinition) name(): JsString ->
+    native.
+
+pub (value: PropertyDefinition) syntax(): JsString ->
+    native.

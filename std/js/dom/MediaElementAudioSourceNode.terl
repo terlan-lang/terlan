@@ -1,0 +1,20 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.MediaElementAudioSourceNode.
+
+/**
+ * The `MediaElementAudioSourceNode` interface represents an audio source consisting of an HTML audio or video element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaElementAudioSourceNode)
+ */
+pub opaque type MediaElementAudioSourceNode.
+
+/**
+ * The MediaElementAudioSourceNode interface's read-only **`mediaElement`** property indicates the receiving audio.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaElementAudioSourceNode/mediaElement)
+ */
+pub (value: MediaElementAudioSourceNode) media_element(): HTMLMediaElement ->
+    native.

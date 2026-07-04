@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.GetNotificationOptions.
+
+pub opaque type GetNotificationOptions.
+
+pub (value: GetNotificationOptions) tag(): std.js.String.JsString ->
+    native.

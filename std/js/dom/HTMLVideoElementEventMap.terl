@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.HTMLVideoElementEventMap.
+
+pub opaque type HTMLVideoElementEventMap.
+
+pub (value: HTMLVideoElementEventMap) enterpictureinpicture(): PictureInPictureEvent ->
+    native.
+
+pub (value: HTMLVideoElementEventMap) leavepictureinpicture(): PictureInPictureEvent ->
+    native.

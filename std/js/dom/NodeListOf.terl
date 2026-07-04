@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.NodeListOf.
+
+pub opaque type NodeListOf[TNode].
+
+pub (value: NodeListOf[TNode]) item(index: std.js.Number.JsNumber): TNode ->
+    native.

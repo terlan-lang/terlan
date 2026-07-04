@@ -1,0 +1,46 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ImageTrackList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`ImageTrackList`** interface of the WebCodecs API represents a list of image tracks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList)
+ */
+pub opaque type ImageTrackList.
+
+/**
+ * The **`length`** property of the ImageTrackList interface returns the length of the `ImageTrackList`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/length)
+ */
+pub (value: ImageTrackList) length(): JsNumber ->
+    native.
+
+/**
+ * The **`ready`** property of the ImageTrackList interface returns a Promise that resolves when the `ImageTrackList` is populated with ImageTrack.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/ready)
+ */
+pub (value: ImageTrackList) ready(): std.js.Promise[std.core.Unit] ->
+    native.
+
+/**
+ * The **`selectedIndex`** property of the ImageTrackList interface returns the `index` of the selected track.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/selectedIndex)
+ */
+pub (value: ImageTrackList) selected_index(): JsNumber ->
+    native.
+
+/**
+ * The **`selectedTrack`** property of the ImageTrackList interface returns an ImageTrack object representing the currently selected track.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/selectedTrack)
+ */
+pub (value: ImageTrackList) selected_track(): Option[ImageTrack] ->
+    native.

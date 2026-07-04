@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCDTMFSenderEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:e295cf593ba6a675
-source_hash=16411301819138057070
-interface_hash=7546803334015951827
-interface_doc_hash=7546803334015951827
+syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+source_hash=145441176705340158
+interface_hash=11828764616925201017
+interface_doc_hash=11828764616925201017
 deps=0

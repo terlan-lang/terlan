@@ -1,0 +1,13 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.ElementEventMap.
+
+pub opaque type ElementEventMap.
+
+pub (value: ElementEventMap) fullscreenchange(): Event ->
+    native.
+
+pub (value: ElementEventMap) fullscreenerror(): Event ->
+    native.

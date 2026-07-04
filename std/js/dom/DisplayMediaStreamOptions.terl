@@ -1,0 +1,15 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.DisplayMediaStreamOptions.
+
+import type std.core.{Bool}.
+
+pub opaque type DisplayMediaStreamOptions.
+
+pub (value: DisplayMediaStreamOptions) audio(): MediaTrackConstraints | Bool ->
+    native.
+
+pub (value: DisplayMediaStreamOptions) video(): MediaTrackConstraints | Bool ->
+    native.

@@ -1,0 +1,28 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.Text.
+
+/**
+ * The **`Text`** interface represents a text Node in a DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Text)
+ */
+pub opaque type Text.
+
+/**
+ * The read-only **`wholeText`** property of the Text interface returns the full text of all Text nodes logically adjacent to the node.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Text/wholeText)
+ */
+pub (value: Text) whole_text(): std.js.String.JsString ->
+    native.
+
+/**
+ * The **`splitText()`** method of the Text interface breaks the Text node into two nodes at the specified offset, keeping both nodes in the tree as siblings.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Text/splitText)
+ */
+pub (value: Text) split_text(offset: std.js.Number.JsNumber): Text ->
+    native.

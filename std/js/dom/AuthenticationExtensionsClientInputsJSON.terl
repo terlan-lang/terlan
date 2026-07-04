@@ -1,0 +1,19 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.AuthenticationExtensionsClientInputsJSON.
+
+pub opaque type AuthenticationExtensionsClientInputsJSON.
+
+pub (value: AuthenticationExtensionsClientInputsJSON) appid(): std.js.String.JsString ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputsJSON) cred_props(): std.core.Bool ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputsJSON) large_blob(): AuthenticationExtensionsLargeBlobInputsJSON ->
+    native.
+
+pub (value: AuthenticationExtensionsClientInputsJSON) prf(): AuthenticationExtensionsPRFInputsJSON ->
+    native.

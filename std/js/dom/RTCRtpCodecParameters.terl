@@ -1,0 +1,10 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCRtpCodecParameters.
+
+pub opaque type RTCRtpCodecParameters.
+
+pub (value: RTCRtpCodecParameters) payload_type(): std.js.Number.JsNumber ->
+    native.

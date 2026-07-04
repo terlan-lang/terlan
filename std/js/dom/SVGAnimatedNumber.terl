@@ -1,0 +1,30 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.SVGAnimatedNumber.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SVGAnimatedNumber`** interface represents attributes of type \<number> which can be animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumber)
+ */
+pub opaque type SVGAnimatedNumber.
+
+/**
+ * The **`animVal`** read-only property of the SVGAnimatedNumber interface represents the animated value of an SVG element's numeric attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumber/animVal)
+ */
+pub (value: SVGAnimatedNumber) anim_val(): JsNumber ->
+    native.
+
+/**
+ * The **`baseVal`** property of the SVGAnimatedNumber interface represents the base (non-animated) value of an animatable numeric attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumber/baseVal)
+ */
+pub (value: SVGAnimatedNumber) base_val(): JsNumber ->
+    native.

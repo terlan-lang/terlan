@@ -1,0 +1,16 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ */
+module std.js.Dom.RTCIceTransportEventMap.
+
+pub opaque type RTCIceTransportEventMap.
+
+pub (value: RTCIceTransportEventMap) gatheringstatechange(): Event ->
+    native.
+
+pub (value: RTCIceTransportEventMap) selectedcandidatepairchange(): Event ->
+    native.
+
+pub (value: RTCIceTransportEventMap) statechange(): Event ->
+    native.
