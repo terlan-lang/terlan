@@ -79,9 +79,7 @@ fn reject_duplicate_modules(cores: &[CoreModule]) -> Result<(), String> {
 
 /// Returns the canonical diagnostic for a repeated application module identity.
 pub(super) fn duplicate_module_diagnostic(module: &str) -> String {
-    format!(
-        "error[native_ir.duplicate_module]: application contains duplicate module `{module}`"
-    )
+    format!("error[native_ir.duplicate_module]: application contains duplicate module `{module}`")
 }
 
 /// Rejects duplicate local function identities before resolver construction.

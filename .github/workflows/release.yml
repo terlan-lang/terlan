@@ -76,10 +76,34 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  thread-sanitizer:
+    name: release AOT ThreadSanitizer
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust ThreadSanitizer target
+        run: rustup toolchain install stable --profile minimal --target x86_64-unknown-linux-gnutsan
+
+      - name: Validate thread-neutral AOT runtime
+        run: make tvm-aot-thread-sanitizer-check
+
+      - name: Upload ThreadSanitizer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-tvm-aot-thread-sanitizer
+          path: target/quality/tvm-aot-thread-sanitizer-report.json
+          if-no-files-found: error
+          retention-days: 90
+
   validate:
     name: validate release
     runs-on: ubuntu-latest
-    needs: platform-matrix
+    needs:
+      - platform-matrix
+      - thread-sanitizer
 
     steps:
       - name: Checkout
@@ -88,8 +112,28 @@ jobs:
       - name: Install Rust toolchain
         run: rustup toolchain install stable --profile minimal
 
-      - name: Validate AOT cutover
-        run: make release-candidate-check
+      - name: Download platform aggregate evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: release-tvm-aot-platform-matrix
+          path: target/quality
+
+      - name: Download ThreadSanitizer evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: release-tvm-aot-thread-sanitizer
+          path: target/quality
+
+      - name: Validate and seal complete AOT closeout
+        run: make tvm-aot-release-closeout-check
+
+      - name: Upload AOT closeout evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-tvm-aot-closeout
+          path: target/quality/tvm-aot-release-closeout-report.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Upload failure evidence
         if: failure()

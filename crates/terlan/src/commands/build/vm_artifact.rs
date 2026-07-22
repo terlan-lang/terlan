@@ -16,6 +16,10 @@ pub(crate) mod native_image;
 mod native_reuse;
 mod native_units;
 mod orchestration;
+mod output_cleanup;
+#[cfg(test)]
+#[path = "vm_artifact/output_cleanup_test.rs"]
+mod output_cleanup_test;
 mod parallel_compile;
 #[cfg(test)]
 #[path = "vm_artifact/parallel_compile_test.rs"]

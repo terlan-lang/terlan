@@ -110,6 +110,28 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  aot-thread-sanitizer:
+    name: Direct AOT ThreadSanitizer
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust ThreadSanitizer target
+        run: rustup toolchain install stable --profile minimal --target x86_64-unknown-linux-gnutsan
+
+      - name: Validate thread-neutral AOT runtime
+        run: make tvm-aot-thread-sanitizer-check
+
+      - name: Upload ThreadSanitizer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvm-aot-thread-sanitizer
+          path: target/quality/tvm-aot-thread-sanitizer-report.json
+          if-no-files-found: error
+          retention-days: 90
+
   # Non-AOT feature jobs are intentionally paused during the hard AOT cutover.
   # cpp-metadata-extractor:
   #   ...

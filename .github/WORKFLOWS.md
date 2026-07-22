@@ -43,6 +43,16 @@ attestation. The aggregate accepts only the complete six-target set from one
 official GitHub workflow run, attempt, and commit, then retains the aggregate
 report for 90 days.
 
+A separate Linux x86-64 job installs Rust's fully instrumented
+`x86_64-unknown-linux-gnutsan` standard library target and runs:
+
+```sh
+make tvm-aot-thread-sanitizer-check
+```
+
+This job detects data races in the thread-neutral AOT runtime independently of
+the deterministic schedule models in `make tvm-aot-multicore-readiness-check`.
+
 The independent compiler job runs the reduced AOT release-candidate gate:
 
 ```sh
@@ -59,12 +69,18 @@ Non-AOT feature jobs remain paused during the hard AOT cutover.
 v0.0.4
 ```
 
-It runs the same six target-native AOT attestations and strict aggregate before
-the release validation job can execute. The validation job runs:
+It runs the same six target-native AOT attestations, strict aggregate, and Linux
+ThreadSanitizer gate before the release validation job can execute. The
+validation job runs:
 
 ```sh
-make release-candidate-check
+make tvm-aot-release-closeout-check
 ```
+
+The closeout gate reruns the complete local AOT gate set from the clean release
+checkout, validates that the downloaded platform and ThreadSanitizer evidence
+records belong to the same commit and workflow run, and retains one checksummed
+`tvm-aot-release-closeout-report.json` provenance record for 90 days.
 
 It does not build release artifacts and it does not publish GitHub releases.
 Publication is owned by the local release command:

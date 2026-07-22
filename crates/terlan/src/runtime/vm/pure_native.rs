@@ -7,6 +7,10 @@ mod execution_shard;
 mod io_wakeup;
 mod thread_neutral;
 
+#[cfg(test)]
+#[path = "pure_native/multicore_model_test.rs"]
+mod multicore_model_test;
+
 use std::path::Path;
 
 use crate::runtime::native_image::control::TvmControlFrame;

@@ -17,10 +17,10 @@ use crate::runtime::native_image::{
 use crate::terlan_typeck::CoreModule;
 
 use super::super::{write_build_file, BuildOneError};
-use super::native_cache;
 use super::native_debug::{encode_native_debug, NativeDebugInput};
 use super::native_descriptor::native_application_image_descriptor;
 use super::native_units::prepare_native_object_units;
+use super::{native_cache, output_cleanup};
 
 pub(super) const DIRECT_AOT_BACKEND: &str = "cranelift-0.133.1";
 pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v2";
@@ -65,7 +65,7 @@ pub(super) fn compile_native_application_image(
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
     let mut natives = NativeModule::lower_application(cores).map_err(BuildOneError::Message)?;
     if natives.is_empty() {
-        native_cache::remove_stale_tvm_images(vm_dir, None)?;
+        output_cleanup::remove_stale_tvm_images(vm_dir, None)?;
         return Ok(None);
     }
     natives.sort_by(|left, right| left.name.cmp(&right.name));
@@ -190,7 +190,7 @@ pub(super) fn compile_native_application_image(
         )));
     }
     write_build_file(&image_path, &image, incremental).map_err(BuildOneError::Message)?;
-    native_cache::remove_stale_tvm_images(vm_dir, Some(&image_name))?;
+    output_cleanup::remove_stale_tvm_images(vm_dir, Some(&image_name))?;
 
     Ok(Some(CompiledNativeApplicationImage {
         image_name,

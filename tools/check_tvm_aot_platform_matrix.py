@@ -87,6 +87,16 @@ TARGETS = {
 }
 
 
+def is_sha256(value: object) -> bool:
+    """Return whether a value is one canonical lowercase SHA-256 digest."""
+
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
 def run(command: list[str]) -> None:
     """Run one matrix command from the repository root."""
 
@@ -292,6 +302,10 @@ def load_target_reports(root: Path) -> dict[str, dict[str, object]]:
 def build_matrix(reports: dict[str, dict[str, object]]) -> dict[str, object]:
     """Validate target reports and return one canonical aggregate record."""
 
+    missing = sorted(set(TARGETS) - set(reports))
+    extra = sorted(set(reports) - set(TARGETS))
+    if missing or extra:
+        raise AssertionError(f"platform attestation mismatch: missing={missing}, extra={extra}")
     revisions = {str(report.get("source_revision")) for report in reports.values()}
     versions = {str(report.get("version")) for report in reports.values()}
     if len(revisions) != 1 or len(versions) != 1:
@@ -330,6 +344,18 @@ def build_matrix(reports: dict[str, dict[str, object]]) -> dict[str, object]:
         if report.get("executed_checks") != list(REQUIRED_EXECUTED_CHECKS):
             raise AssertionError(
                 f"platform `{target_id}` has incomplete or noncanonical executable checks"
+            )
+        for field in ("descriptor_digest", "image_sha256"):
+            if not is_sha256(report.get(field)):
+                raise AssertionError(
+                    f"platform `{target_id}` has invalid artifact `{field}`"
+                )
+        if not report.get("continuation_ids"):
+            raise AssertionError(f"platform `{target_id}` omitted continuation identities")
+        debug_count = report.get("native_debug_record_count")
+        if not isinstance(debug_count, int) or isinstance(debug_count, bool) or debug_count < 2:
+            raise AssertionError(
+                f"platform `{target_id}` omitted native debug/stack records"
             )
 
     return {
@@ -413,6 +439,10 @@ def self_test() -> None:
                 "run_id": 100,
                 "run_attempt": 1,
                 "commit_sha": "self-test-revision-full-sha",
+                "descriptor_digest": "ab" * 32,
+                "image_sha256": "cd" * 32,
+                "continuation_ids": [1],
+                "native_debug_record_count": 2,
                 "executed_checks": list(REQUIRED_EXECUTED_CHECKS),
             }
             valid[target_id] = report
@@ -449,6 +479,10 @@ def self_test() -> None:
             ("execution_environment", "local"),
             ("run_id", 101),
             ("commit_sha", "unrelated-commit"),
+            ("descriptor_digest", "not-a-digest"),
+            ("image_sha256", "CD" * 32),
+            ("continuation_ids", []),
+            ("native_debug_record_count", 1),
         ]:
             candidate = {target: dict(report) for target, report in valid.items()}
             candidate["windows-aarch64"][field] = value

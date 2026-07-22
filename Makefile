@@ -18,8 +18,8 @@ SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
 .PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-benchmark-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
-.PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check
-.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check
+.PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
+.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
 .PHONY: no-tvm-json-runtime-check no-vmir-interpreter-check runtime-aot-only-check
 .PHONY: vm-debug-key-compatibility-check
 .PHONY: vm-latin1-source-policy-check
@@ -1067,6 +1067,7 @@ tvm-aot-thread-neutral-continuation-check:
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor::actor_suspension_test
 
 tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::pure_native::multicore_model_test
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::pure_native
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::actor_continuations_interleave_reentrantly_on_one_shard -- --exact
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::empty_shard_forks_execute_concurrently_without_shared_state -- --exact
@@ -1090,6 +1091,7 @@ tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
 		echo 'error[aot.reentrant]: admitted direct backend must retain immutable image code only'; \
 		exit 1; \
 	fi
+
 	@if sed -n '/pub(crate) struct PureNativeBoundary {/,/^}/p' crates/terlan/src/runtime/vm/pure_native.rs | rg -n 'next_request|pending|continuation|Mutex|RwLock'; then \
 		echo 'error[aot.reentrant]: admitted boundary must not retain mutable actor execution state'; \
 		exit 1; \
@@ -1108,6 +1110,51 @@ tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
 		echo 'error[aot.multicore]: direct actor execution must not use process-global locks or thread-local runtime state'; \
 		exit 1; \
 	fi
+
+tvm-aot-thread-sanitizer-check:
+	$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py run
+
+tvm-aot-thread-sanitizer-contract-check:
+	$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py self-test
+
+AOT_RELEASE_LOCAL_GATES := \
+	runtime-aot-only-check \
+	tvm-direct-aot-backend-check \
+	tvm-managed-memory-check \
+	tvm-managed-list-profile-benchmark-check \
+	terlan-vm-artifact-format-check \
+	tvm-native-image-format-check \
+	tvm-native-image-loader-check \
+	tvm-aot-consumer-check \
+	tvm-aot-package-install-consumer-check \
+	tvm-aot-runtime-transition-check \
+	tvm-aot-shard-ownership-check \
+	tvm-aot-supervisor-lifecycle-check \
+	tvm-aot-stale-epoch-check \
+	tvm-aot-crash-injection-check \
+	tvm-aot-capability-worker-check \
+	tvm-aot-image-lifetime-check \
+	tvm-aot-lowering-coverage-check \
+	tvm-aot-http-generation-lifetime-check \
+	tvm-aot-http-performance-check \
+	tvm-aot-multicore-readiness-check \
+	tvm-aot-c-abi-boundary-check \
+	tvm-aot-compilation-time-check \
+	tvm-single-image-artifact-check \
+	no-tvm-json-runtime-check \
+	no-vmir-interpreter-check \
+	rust-quality-check \
+	roadmap-gate-integrity-check \
+	check
+
+tvm-aot-release-closeout-contract-check: tvm-aot-thread-sanitizer-contract-check tvm-aot-platform-matrix-contract-check
+	$(PYTHON) tools/check_tvm_aot_release_closeout.py self-test
+
+tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check
+	$(PYTHON) tools/check_tvm_aot_release_closeout.py precheck
+	$(MAKE) $(AOT_RELEASE_LOCAL_GATES)
+	env -u RUSTFLAGS $(CARGO) check --locked -p terlan
+	$(PYTHON) tools/check_tvm_aot_release_closeout.py record
 
 tvm-aot-static-callable-check:
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::static_callable_test
@@ -1305,8 +1352,14 @@ tvm-aot-image-lifetime-check: tvm-aot-package-install-consumer-check
 	@rg -q 'Library::new\(sealed\.path\(\)\)' crates/terlan/src/runtime/vm/pure_native/direct_backend.rs
 	@rg -q 'sealed\.verify_unchanged\(\)' crates/terlan/src/runtime/vm/pure_native/direct_backend.rs
 	@rg -q 'loaded image does not match admitted package bytes' crates/terlan/src/runtime/native_image/package_validation.rs
-	@if rg -n 'tvm\.reuse' crates/terlan/src/commands/build/vm_artifact; then \
+	@if rg -n 'tvm\.reuse' crates/terlan/src/commands/build/vm_artifact \
+		--glob '*.rs' --glob '!output_cleanup.rs' --glob '!output_cleanup_test.rs'; then \
 		echo 'error[aot.image_lifetime]: compiler cache metadata must not be published beside native images'; \
+		exit 1; \
+	fi
+	@rg -q 'ends_with\("\.tvm\.reuse"\)' crates/terlan/src/commands/build/vm_artifact/output_cleanup.rs
+	@if rg -n 'fs::write|File::create|OpenOptions|write_all|fs::rename' crates/terlan/src/commands/build/vm_artifact/output_cleanup.rs; then \
+		echo 'error[aot.image_lifetime]: retired-sidecar cleanup must remain delete-only'; \
 		exit 1; \
 	fi
 	@if rg -n 'Library::new\(path\)|fs::read\(path\)' crates/terlan/src/runtime/vm/pure_native/direct_backend.rs; then \
@@ -1552,7 +1605,7 @@ no-vmir-interpreter-check:
 runtime-aot-only-check:
 	$(PYTHON) tools/release_transition_scan.py crates tools tests std docs
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::build::build_test::tests::args_test::parse_build_args_rejects_runtime_fallback_selection -- --exact
-	$(RUST_TEST) --locked -p terlan --bin terlc commands::build::vm_artifact::native_cache_test::native_output_cleanup_removes_json_and_reuse_sidecars -- --exact
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::build::vm_artifact::output_cleanup_test::native_output_cleanup_removes_json_and_reuse_sidecars -- --exact
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::run::run_test::validate_run_args_rejects_runtime_fallback_selection -- --exact
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::test::test_command_test::parse_test_args_rejects_runtime_fallback_selection -- --exact
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::repl::repl_aot_test::repl_command_rejects_runtime_selection -- --exact

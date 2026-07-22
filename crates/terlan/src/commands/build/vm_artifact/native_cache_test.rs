@@ -3,8 +3,7 @@ use std::fs;
 use crate::support::test_fs;
 
 use super::native_cache::{
-    cache_manifest_bytes, load_verified_entry, publish_file, remove_stale_tvm_images, sha256_hex,
-    CACHE_MANIFEST_NAME,
+    cache_manifest_bytes, load_verified_entry, publish_file, sha256_hex, CACHE_MANIFEST_NAME,
 };
 
 #[test]
@@ -140,33 +139,4 @@ fn native_cache_rejects_poisoned_keys_target_drift_and_incomplete_publications()
     )
     .is_none());
     fs::remove_dir_all(root).expect("remove verified cache fixture");
-}
-
-/// Verifies native output cleanup removes legacy executable sidecars.
-#[test]
-fn native_output_cleanup_removes_json_and_reuse_sidecars() {
-    let root = test_fs::temp_dir("native_cache", "legacy_sidecar_cleanup");
-    let retained = root.join("app.tvm");
-    let stale_image = root.join("old.tvm");
-    let json_sidecar = root.join("app.tvm.json");
-    let reuse_sidecar = root.join("app.tvm.reuse");
-    let unrelated = root.join("notes.json");
-    for path in [
-        &retained,
-        &stale_image,
-        &json_sidecar,
-        &reuse_sidecar,
-        &unrelated,
-    ] {
-        fs::write(path, b"stale").expect("write cleanup fixture");
-    }
-
-    remove_stale_tvm_images(&root, Some("app.tvm")).expect("clean native output");
-
-    assert!(retained.is_file());
-    assert!(unrelated.is_file());
-    assert!(!stale_image.exists());
-    assert!(!json_sidecar.exists());
-    assert!(!reuse_sidecar.exists());
-    fs::remove_dir_all(root).expect("remove native cleanup fixture");
 }
