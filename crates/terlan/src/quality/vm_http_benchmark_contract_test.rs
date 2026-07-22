@@ -42,8 +42,8 @@ impl TestRepo {
             "transportNs parserNs schedulerNs routingNs allocationAndConversionNs handlerNs responseWriteNs completedMatchesReductions phaseBucketsMatchAccountedTotal queueBalanced parkedProcessesReleased saturationHasBackpressureOutcome",
         )?;
         self.write(
-            "crates/terlan/src/vm/main/http_benchmark_handlers.rs",
-            "terlan-vm-http-replay-v1 fingerprintSha256 executionValidated",
+            "crates/terlan/src/benchmark/binary_protocol_http.rs",
+            "terlan-vm-http-replay-v1 VmHttpReplayEvidence execution_validated request_count validate_completion",
         )?;
         self.write("Makefile", COMPLETE_MAKEFILE)
     }
@@ -92,6 +92,9 @@ vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)
 
 vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check
 	cargo run -- vm-http-runtime-attribution
+
+vm-http-vs-axum-check:
+	python3 tools/check_vm_benchmark_family_plan.py vm-http-vs-axum-check
 
 release-0-0-7-preflight: vm-http-runtime-attribution-check release-version-channel-check
 "#;
@@ -182,4 +185,21 @@ fn attribution_contract_rejects_release_order_drift() {
 
     let error = run_vm_http_runtime_attribution_contract(repo.root()).expect_err("must fail");
     assert!(error.contains("release-0-0-7-preflight"));
+}
+
+#[test]
+fn attribution_contract_rejects_unrelated_http_benchmark_prerequisites() {
+    let repo = TestRepo::new("benchmark-prerequisite").expect("fixture");
+    repo.write_complete_fixture().expect("write fixture");
+    repo.write(
+        "Makefile",
+        &COMPLETE_MAKEFILE.replace(
+            "vm-http-vs-axum-check:\n",
+            "vm-http-vs-axum-check: binary-bitstring-processing-check\n",
+        ),
+    )
+    .expect("rewrite Makefile");
+
+    let error = run_vm_http_runtime_attribution_contract(repo.root()).expect_err("must fail");
+    assert!(error.contains("vm-http-vs-axum-check"));
 }

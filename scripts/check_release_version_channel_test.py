@@ -21,7 +21,8 @@ class ReleaseVersionChannelTest(unittest.TestCase):
         self.root = Path(self.temp.name)
         paths = (
             "Cargo.toml", "README.md", "CHANGELOG.md", "install.sh", "install.ps1",
-            "crates/terlan/Cargo.toml", "crates/terlan/src/main.rs", "crates/terlan/src/vm/main.rs",
+            "crates/terlan/Cargo.toml", "crates/terlan/src/main.rs",
+            "crates/terlan/src/vm/main_part_001.rs",
             "std/manifest.toml", "editors/vscode/package.json", "editors/vscode/package-lock.json",
             "tree-sitter-terlan/package.json", "tree-sitter-terlan/package-lock.json",
             "editors/intellij/build.gradle.kts",
@@ -88,6 +89,16 @@ class ReleaseVersionChannelTest(unittest.TestCase):
         result = self.check("--compiler", str(compiler))
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("compiler_binary_version", result.stderr)
+
+    def test_missing_vm_runtime_version_source_fails(self) -> None:
+        self.replace(
+            "crates/terlan/src/vm/main_part_001.rs",
+            'env!("CARGO_PKG_VERSION")',
+            '"stale-version"',
+        )
+        result = self.check()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("crates/terlan/src/vm/main_part_001.rs:runtime_version_source", result.stderr)
 
     def test_write_updates_supported_metadata(self) -> None:
         result = self.check("0.0.8", "--write")

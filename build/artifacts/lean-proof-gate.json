@@ -134,54 +134,54 @@
   "proof_gap_metrics": {
     "gap_classification_confidence": 1.0,
     "gap_count": 8,
-    "gap_staleness_days": 3,
+    "gap_staleness_days": 6,
     "gaps": [
       {
         "feature": "EBNF syntax preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "typed CoreIR preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "target-profile inference",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "VM execution subset",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "pattern and operator coverage",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "native-boundary contracts",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "Wasm CoreIR lowering",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "Aeneas Rust verification bridge",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 3,
+        "gap_staleness_days": 6,
         "lifecycle_status": "blocked"
       }
     ],
@@ -201,7 +201,7 @@
       "verdict": "pass"
     },
     {
-      "dependency_set_hash": "sha256:6c04f3023dd7fc23236e3adcf07616a2c15ed6b4ca101d519a74d73f7f2d744a",
+      "dependency_set_hash": "sha256:bfc30a13ae27060d64d16862ee79ff4da6beccf5aed93cbe5aa1715fb3c55620",
       "family": "feature-cull-legacy-boundaries",
       "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
       "proof_digest": "sha256:2bd4f904792ad70cbca438b0b9463fe94fc2d1ec7ede553c43563e53a70306cd",

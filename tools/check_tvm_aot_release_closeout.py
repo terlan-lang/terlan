@@ -56,7 +56,9 @@ LOCAL_GATES = (
     "no-tvm-json-runtime-check",
     "no-vmir-interpreter-check",
     "rust-quality-check",
+    "tvm-aot-roadmap-reconciliation-check",
     "roadmap-gate-integrity-check",
+    "release-0-0-7-preflight",
     "check",
     "cargo-check-locked-terlan",
 )
@@ -77,6 +79,48 @@ EVIDENCE = {
         None,
     ),
 }
+
+
+def make_list_variable(makefile: str, name: str) -> tuple[str, ...]:
+    """Parse one continued Make list assignment into its ordered values."""
+
+    prefix = f"{name} :="
+    lines = makefile.splitlines()
+    for index, line in enumerate(lines):
+        if not line.startswith(prefix):
+            continue
+        values: list[str] = []
+        current = line[len(prefix) :].strip()
+        while True:
+            continued = current.endswith("\\")
+            value = current.removesuffix("\\").strip()
+            if value:
+                values.append(value)
+            if not continued:
+                return tuple(values)
+            index += 1
+            if index >= len(lines):
+                raise AssertionError(f"Makefile `{name}` assignment is incomplete")
+            current = lines[index].strip()
+    raise AssertionError(f"Makefile omits `{name}`")
+
+
+def validate_makefile_contract(makefile: str) -> None:
+    """Require release closeout to execute every recorded local gate in order."""
+
+    expected = LOCAL_GATES[:-1]
+    actual = make_list_variable(makefile, "AOT_RELEASE_LOCAL_GATES")
+    if actual != expected:
+        raise AssertionError("AOT release Make gates disagree with retained closeout gates")
+    closeout = (
+        "tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check\n"
+        "\t$(PYTHON) tools/check_tvm_aot_release_closeout.py precheck\n"
+        "\t$(MAKE) $(AOT_RELEASE_LOCAL_GATES)\n"
+        "\tenv -u RUSTFLAGS $(CARGO) check --locked -p terlan\n"
+        "\t$(PYTHON) tools/check_tvm_aot_release_closeout.py record\n"
+    )
+    if closeout not in makefile:
+        raise AssertionError("AOT release closeout no longer executes its canonical gate graph")
 
 
 def command_output(command: list[str], root: Path = ROOT) -> str:
@@ -320,6 +364,16 @@ def record_closeout(root: Path = ROOT, require_ci: bool = True) -> Path:
 
 def self_test() -> None:
     """Prove mixed revisions, skipped targets, and migration debt fail closed."""
+
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    validate_makefile_contract(makefile)
+    invalid_makefile = makefile.replace("\trelease-0-0-7-preflight \\\n", "", 1)
+    try:
+        validate_makefile_contract(invalid_makefile)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("closeout accepted a missing 0.0.7 release preflight")
 
     revision = "a" * 40
     target_reports: dict[str, dict[str, object]] = {}

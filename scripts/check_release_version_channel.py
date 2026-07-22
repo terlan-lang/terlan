@@ -108,7 +108,7 @@ def collect_fields(root: Path, version: str) -> list[CheckedField]:
     crate = (root / "crates/terlan/Cargo.toml").read_text(encoding="utf-8")
     inherited = bool(re.search(r"(?m)^version\.workspace\s*=\s*true$", crate))
     fields.append(checked("crates/terlan/Cargo.toml", "package.version.workspace", str(inherited).lower(), "true"))
-    for relative in ("crates/terlan/src/main.rs", "crates/terlan/src/vm/main.rs"):
+    for relative in ("crates/terlan/src/main.rs", "crates/terlan/src/vm/main_part_001.rs"):
         present = 'env!("CARGO_PKG_VERSION")' in (root / relative).read_text(encoding="utf-8")
         fields.append(checked(relative, "runtime_version_source", str(present).lower(), "true"))
     return fields

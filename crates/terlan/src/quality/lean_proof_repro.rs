@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
@@ -517,18 +517,31 @@ fn write_reports(
 fn write_baseline(root: &Path, statuses: &[ProofFamilyStatus]) -> QualityResult<()> {
     let mut text = String::from("feature_class\texpected_status\tlast_confirmed_hash\n");
     for feature_class in BASELINE_CLASSES {
-        let status = statuses
+        let class_statuses = statuses
             .iter()
-            .find(|status| status.feature_class == *feature_class);
-        let (expected_status, hash) = status
-            .map(|status| {
-                (
-                    status.proof_status.as_str(),
-                    status.last_executed_digest.as_str(),
-                )
-            })
-            .unwrap_or(("incomplete", "none"));
-        text.push_str(&format!("{feature_class}\t{expected_status}\t{hash}\n"));
+            .filter(|status| status.feature_class == *feature_class)
+            .collect::<Vec<_>>();
+        if class_statuses.is_empty() {
+            text.push_str(&format!("{feature_class}\tincomplete\tnone\n"));
+            continue;
+        }
+        let expected_status = class_statuses[0].proof_status.as_str();
+        if class_statuses
+            .iter()
+            .any(|status| status.proof_status != expected_status)
+        {
+            return Err(format!(
+                "proof class `{feature_class}` has mixed statuses and cannot produce a canonical baseline"
+            ));
+        }
+        let hashes = class_statuses
+            .iter()
+            .map(|status| status.last_executed_digest.as_str())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .join(";");
+        text.push_str(&format!("{feature_class}\t{expected_status}\t{hashes}\n"));
     }
     let path = root.join(BASELINE_PATH);
     fs::write(&path, text).map_err(|err| {

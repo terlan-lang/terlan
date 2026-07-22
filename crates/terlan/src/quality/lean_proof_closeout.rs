@@ -205,9 +205,10 @@ fn validate_baseline(rows: &[BaselineRow]) -> Vec<String> {
                 row.feature_class, row.expected_status
             ));
         }
-        if row.expected_status == "current" && !is_sha256(&row.last_confirmed_hash) {
+        if row.expected_status == "current" && confirmed_hashes(&row.last_confirmed_hash).is_none()
+        {
             diagnostics.push(format!(
-                "error[lean_proof_closeout_baseline]: current class `{}` lacks a confirmed SHA-256 hash",
+                "error[lean_proof_closeout_baseline]: current class `{}` lacks a sorted, unique confirmed SHA-256 hash set",
                 row.feature_class
             ));
         }
@@ -249,7 +250,9 @@ fn validate_closeout(families: &[FamilyStatus], baseline: &[BaselineRow]) -> Vec
         match baseline.get(family.feature_class.as_str()) {
             Some(row)
                 if row.expected_status == "current"
-                    && row.last_confirmed_hash == family.last_executed_digest => {}
+                    && confirmed_hashes(&row.last_confirmed_hash).is_some_and(|hashes| {
+                        hashes.contains(&family.last_executed_digest.as_str())
+                    }) => {}
             _ => diagnostics.push(format!(
                 "error[lean_proof_closeout_baseline]: family `{}` is missing a matching current baseline",
                 family.family
@@ -268,6 +271,18 @@ fn is_sha256(value: &str) -> bool {
     value
         .strip_prefix("sha256:")
         .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()))
+}
+
+/// Parses a canonical baseline digest set, rejecting malformed, duplicate, or unsorted hashes.
+fn confirmed_hashes(value: &str) -> Option<Vec<&str>> {
+    let hashes = value.split(';').collect::<Vec<_>>();
+    if hashes.is_empty()
+        || hashes.iter().any(|hash| !is_sha256(hash))
+        || hashes.windows(2).any(|pair| pair[0] >= pair[1])
+    {
+        return None;
+    }
+    Some(hashes)
 }
 
 fn sha256_text(text: &str) -> String {

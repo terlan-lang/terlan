@@ -65,7 +65,7 @@
       "path": "crates/terlan/src/runtime/vm/evaluation_helpers.rs",
       "classification": "generated-style-dispatch",
       "reason": "Evaluator helpers are textually included by the active VM runtime and dispatch broad expression, pattern, iterator, range, and imported stdlib behavior while that surface is being split into independently promotable units.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": [
         "expression and pattern dispatch variants",
         "iterator and range fallback branches",
@@ -447,7 +447,7 @@
       "path": "crates/terlan/src/runtime/vm/actor_checkpoint.rs",
       "classification": "generated-style-dispatch",
       "reason": "Actor checkpoint restore and validation were split from the evaluator and still contain broad state-transition branches.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["checkpoint restore rejection branches"],
       "promotion_plan": "Add focused corruption and compatibility coverage, then promote the deterministic checkpoint state machine."
     },
@@ -455,7 +455,7 @@
       "path": "crates/terlan/src/runtime/vm/actor_exit.rs",
       "classification": "generated-style-dispatch",
       "reason": "Actor exit propagation covers linked-process, monitor, trap-exit, and cleanup outcomes across the scheduler state machine.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["linked exit propagation variants"],
       "promotion_plan": "Separate exit planning from scheduler mutation and promote the deterministic planning layer after exhaustive transition tests."
     },
@@ -463,7 +463,7 @@
       "path": "crates/terlan/src/runtime/vm/actor_postgres.rs",
       "classification": "adapter-boundary",
       "reason": "Actor PostgreSQL operations cross the VM reactor and external native driver boundary with cancellation and ownership paths.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["driver cancellation and ownership branches"],
       "promotion_plan": "Split deterministic request planning from native driver execution, then promote request planning into strict coverage."
     },
@@ -471,7 +471,7 @@
       "path": "crates/terlan/src/runtime/vm/actor_registry.rs",
       "classification": "generated-style-dispatch",
       "reason": "Actor registry operations cover registration races, stale owners, lookup outcomes, and process-exit cleanup.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["registration race and stale-owner branches"],
       "promotion_plan": "Extract the deterministic registry transition table and promote it after adversarial registration and cleanup coverage."
     },
@@ -479,7 +479,7 @@
       "path": "crates/terlan/src/runtime/vm/actor_suspension.rs",
       "classification": "generated-style-dispatch",
       "reason": "Actor suspension coordinates resumptions, timeouts, continuations, and process termination across scheduler transitions.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["resume timeout and termination variants"],
       "promotion_plan": "Separate suspension state transitions from scheduler wakeups, then promote the transition core with exhaustive tests."
     },
@@ -495,7 +495,7 @@
       "path": "crates/terlan/src/runtime/vm/comprehension_guard.rs",
       "classification": "generated-style-dispatch",
       "reason": "Comprehension guard evaluation dispatches typed guard forms and stable rejection paths during the evaluator-to-AOT transition.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["guard dispatch and rejection variants"],
       "promotion_plan": "Move const-safe guard evaluation into a focused typed helper and promote it after complete operator coverage."
     },
@@ -503,7 +503,7 @@
       "path": "crates/terlan/src/runtime/vm/comprehension_source.rs",
       "classification": "generated-style-dispatch",
       "reason": "Comprehension source evaluation handles list, iterator, and invalid-source variants inherited from the broad evaluator surface.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["iterator source and invalid-source variants"],
       "promotion_plan": "Split source normalization from evaluator dispatch and promote normalization after iterator adversarial coverage."
     },
@@ -511,7 +511,7 @@
       "path": "crates/terlan/src/runtime/vm/effect.rs",
       "classification": "generated-style-dispatch",
       "reason": "Effect execution dispatches compiler-classified runtime effects while ownership and cancellation policies are still being separated.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["effect dispatch and cancellation variants"],
       "promotion_plan": "Extract typed effect descriptors from runtime execution and promote their validator before adapter-specific effect handlers."
     },
@@ -519,7 +519,7 @@
       "path": "crates/terlan/src/runtime/vm/external_function_reference.rs",
       "classification": "generated-style-dispatch",
       "reason": "External function references validate module, function, arity, and callable availability across dynamically loaded VM modules.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["missing module and callable variants"],
       "promotion_plan": "Separate reference validation from module lookup and promote the deterministic validator after malformed-reference coverage."
     },
@@ -527,7 +527,7 @@
       "path": "crates/terlan/src/runtime/vm/fault_remote.rs",
       "classification": "generated-style-dispatch",
       "reason": "Fault remote dispatch maps public fault descriptors into scheduler and supervision outcomes with defensive rejection paths.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["fault descriptor rejection variants"],
       "promotion_plan": "Extract descriptor decoding from scheduler effects and promote the decoder after complete malformed-input coverage."
     },
@@ -535,7 +535,7 @@
       "path": "crates/terlan/src/runtime/vm/integer_operator.rs",
       "classification": "generated-style-dispatch",
       "reason": "Integer operator execution contains checked arithmetic, comparison, division, and overflow branches split from the evaluator.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["checked arithmetic overflow variants"],
       "promotion_plan": "Unify checked integer operations with the typed AOT primitive layer and promote after exhaustive boundary-value coverage."
     },
@@ -543,7 +543,7 @@
       "path": "crates/terlan/src/runtime/vm/postgres.rs",
       "classification": "adapter-boundary",
       "reason": "PostgreSQL runtime behavior spans reactor readiness, native driver state, row conversion, cancellation, and cleanup.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["reactor readiness and driver cleanup branches"],
       "promotion_plan": "Separate deterministic protocol state from native driver readiness and promote the state machine before adapter paths."
     },
@@ -551,7 +551,7 @@
       "path": "crates/terlan/src/runtime/vm/postgres_command.rs",
       "classification": "generated-style-dispatch",
       "reason": "PostgreSQL command decoding validates query operation shapes and maps typed values into driver requests.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["command decode and parameter rejection variants"],
       "promotion_plan": "Extract the command schema validator and promote it after exhaustive parameter and operation-shape coverage."
     },
@@ -559,7 +559,7 @@
       "path": "crates/terlan/src/runtime/vm/pure_native.rs",
       "classification": "adapter-boundary",
       "reason": "Pure native dispatch loads checksum-verified AOT images and crosses the stable TVM native ABI with typed values.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["image loading and ABI rejection variants"],
       "promotion_plan": "Split image and ABI validation from dynamic loading, then promote the validators before platform loader adapters."
     },
@@ -567,7 +567,7 @@
       "path": "crates/terlan/src/runtime/vm/record.rs",
       "classification": "generated-style-dispatch",
       "reason": "Record evaluation handles construction, update, access, nominal checks, and malformed field variants split from the evaluator.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["record field and nominal rejection variants"],
       "promotion_plan": "Unify record layout operations behind a typed runtime primitive and promote after exhaustive field-shape coverage."
     },
@@ -575,7 +575,7 @@
       "path": "crates/terlan/src/runtime/vm/source_postgres.rs",
       "classification": "adapter-boundary",
       "reason": "Source PostgreSQL helpers bridge source-visible query descriptors to asynchronous native driver operations and errors.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["source descriptor and driver error variants"],
       "promotion_plan": "Separate source descriptor validation from driver execution and promote the validator after malformed-query coverage."
     },
@@ -583,7 +583,7 @@
       "path": "crates/terlan/src/runtime/vm/tail_call.rs",
       "classification": "generated-style-dispatch",
       "reason": "Tail-call execution coordinates argument replacement, local and remote targets, and continuation-free evaluator loops.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["local and remote tail-call variants"],
       "promotion_plan": "Move pure tail-call planning into typed VMIR lowering and promote runtime validation after deep-recursion coverage."
     },
@@ -599,7 +599,7 @@
       "path": "crates/terlan/src/runtime/vm/try_expr.rs",
       "classification": "generated-style-dispatch",
       "reason": "Try expression execution covers structured throw, catch matching, after cleanup, and unmatched exception propagation.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["catch matching and after-cleanup variants"],
       "promotion_plan": "Separate structured exception transitions from evaluator dispatch and promote them after exhaustive cleanup coverage."
     },
@@ -607,7 +607,7 @@
       "path": "crates/terlan/src/runtime/vm/type_reflection.rs",
       "classification": "generated-style-dispatch",
       "reason": "Type reflection maps runtime values to closed type descriptors while rejecting unsupported handles and internal shapes.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["handle and internal-shape rejection variants"],
       "promotion_plan": "Define a closed typed reflection table and promote it after complete runtime value-family coverage."
     },
@@ -615,7 +615,7 @@
       "path": "crates/terlan/src/runtime/vm/value_hash.rs",
       "classification": "generated-style-dispatch",
       "reason": "Value hashing dispatches every immutable VM value family and rejects identity-bearing resources and unsupported forms.",
-      "gate": "make tvm-aot-pivot-inventory-check",
+      "gate": "make runtime-aot-only-check",
       "summary_only_misses": ["nested value and resource rejection variants"],
       "promotion_plan": "Align hashing with the native data-layout equality contract and promote after collision and nested-value coverage."
     },

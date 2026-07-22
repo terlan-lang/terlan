@@ -109,6 +109,50 @@ fn lean_proof_repro_cleans_lake_config_and_family_build_state() {
     assert!(!family_build.exists());
 }
 
+#[test]
+fn lean_proof_repro_baseline_aggregates_families_in_one_class() {
+    let root = TempRepo::new("shared_baseline_class");
+    fs::create_dir_all(root.path().join("build/artifacts")).expect("artifact directory");
+    let statuses = vec![
+        proof_status("coreir-arithmetic", "sha256:bbbb"),
+        proof_status("shape-implication", "sha256:aaaa"),
+    ];
+
+    write_baseline(root.path(), &statuses).expect("write baseline");
+
+    let baseline = fs::read_to_string(root.path().join(BASELINE_PATH)).expect("read baseline");
+    assert!(baseline.contains("coreir\tcurrent\tsha256:aaaa;sha256:bbbb\n"));
+}
+
+#[test]
+fn lean_proof_repro_baseline_rejects_mixed_class_statuses() {
+    let root = TempRepo::new("mixed_baseline_class");
+    fs::create_dir_all(root.path().join("build/artifacts")).expect("artifact directory");
+    let mut stale = proof_status("shape-implication", "sha256:aaaa");
+    stale.proof_status = "stale".to_string();
+
+    let error = write_baseline(
+        root.path(),
+        &[proof_status("coreir-arithmetic", "sha256:bbbb"), stale],
+    )
+    .expect_err("mixed statuses must fail");
+
+    assert!(error.contains("mixed statuses"));
+}
+
+fn proof_status(family: &str, digest: &str) -> ProofFamilyStatus {
+    ProofFamilyStatus {
+        family: family.to_string(),
+        feature_class: "coreir".to_string(),
+        theorem_identity: vec!["Terlan.Core.theorem".to_string()],
+        proof_status: "current".to_string(),
+        last_executed_digest: digest.to_string(),
+        reproducibility_verdict: "pass".to_string(),
+        blockers: Vec::new(),
+        remediation_gates: Vec::new(),
+    }
+}
+
 struct TempRepo {
     path: PathBuf,
 }

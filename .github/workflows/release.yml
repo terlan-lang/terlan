@@ -131,7 +131,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-tvm-aot-closeout
-          path: target/quality/tvm-aot-release-closeout-report.json
+          path: |
+            target/quality/tvm-aot-release-closeout-report.json
+            target/quality/tvm-aot-release-clean-checkout.json
+            target/quality/tvm-aot-platform-matrix-report.json
+            target/quality/tvm-aot-thread-sanitizer-report.json
+            target/quality/aot-compilation-benchmark.json
+            target/quality/http-aot-performance-comparison.json
+            target/quality/tvm-managed-list-profile.json
           if-no-files-found: error
           retention-days: 90
 

@@ -138,7 +138,7 @@ fn replacement_make_targets() -> String {
     REQUIRED_FEATURES
         .iter()
         .zip([
-            "tvm-aot-pivot-inventory-check",
+            "runtime-aot-only-check",
             "target-inference-default-vm-check",
             "target-inference-contract-check",
             "all-terlan-tests-vm-check",

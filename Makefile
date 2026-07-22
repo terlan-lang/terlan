@@ -19,7 +19,7 @@ SHELL := bash
 
 .PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-benchmark-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
-.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
+.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-roadmap-reconciliation-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
 .PHONY: no-tvm-json-runtime-check no-vmir-interpreter-check runtime-aot-only-check
 .PHONY: vm-debug-key-compatibility-check
 .PHONY: vm-latin1-source-policy-check
@@ -327,6 +327,7 @@ CHECK_GATES := \
 	tvm-aot-crash-injection-check \
 	tvm-aot-capability-worker-check \
 	tvm-aot-multicore-readiness-check \
+	tvm-aot-roadmap-reconciliation-check \
 	no-tvm-json-runtime-check \
 	no-vmir-interpreter-check
 
@@ -1144,8 +1145,14 @@ AOT_RELEASE_LOCAL_GATES := \
 	no-tvm-json-runtime-check \
 	no-vmir-interpreter-check \
 	rust-quality-check \
+	tvm-aot-roadmap-reconciliation-check \
 	roadmap-gate-integrity-check \
+	release-0-0-7-preflight \
 	check
+
+tvm-aot-roadmap-reconciliation-check:
+	$(PYTHON) tools/check_tvm_aot_roadmap_reconciliation.py self-test
+	$(PYTHON) tools/check_tvm_aot_roadmap_reconciliation.py check
 
 tvm-aot-release-closeout-contract-check: tvm-aot-thread-sanitizer-contract-check tvm-aot-platform-matrix-contract-check
 	$(PYTHON) tools/check_tvm_aot_release_closeout.py self-test
@@ -2309,6 +2316,7 @@ vm-timer-primitives-check:
 	$(RUST_TEST) -p terlan --bin terlan-vm runtime::vm::timer::timer_test
 
 vm-timer-deadline-check:
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::timer::timer_test::timer_table_writes_deadline_report_from_runtime_events -- --exact
 	test -f target/quality/vm-timer-deadline-report.json
 
 vm-resource-ownership-check:
@@ -3087,7 +3095,7 @@ http-runtime-stack-check:
 	$(TERLC_EXACT_TEST) commands::serve::serve_test::run_serve_check_rejects_dynamic_handlers_missing_source_metadata -- --exact
 	$(TERLC_EXACT_TEST) commands::serve::serve_test::run_serve_check_rejects_dynamic_handlers_with_removed_beam_runtime -- --exact
 
-vm-http-vs-axum-check: binary-bitstring-processing-check
+vm-http-vs-axum-check:
 	$(PYTHON) tools/check_vm_benchmark_family_plan.py vm-http-vs-axum-check
 	$(PYTHON) scripts/benchmarks/protocol/protocol_benchmark.py --validate-only --anchor binary_protocol_concurrency_benchmark
 
@@ -3102,6 +3110,7 @@ vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-runtime-attribution
 
 vm-http-soak-stability-check: vm-http-runtime-attribution-check vm-timer-deadline-check
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm $(if $(filter release,$(HTTP_SOAK_PROFILE)),runtime::vm::http::soak_test::vm_http_release_soak_replays_canonical_schedule_and_proves_stability,runtime::vm::http::soak_test::vm_http_short_soak_proves_resource_stability) -- --exact
 	test -s $(HTTP_SOAK_REPORT)
 
 vm-semantics-vs-otp-check: binary-bitstring-processing-check

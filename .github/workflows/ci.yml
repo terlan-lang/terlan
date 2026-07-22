@@ -1,6 +1,7 @@
 name: Compiler CI
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "Cargo.toml"
@@ -12,6 +13,8 @@ on:
       - "tree-sitter-terlan/**"
       - "tests/**"
       - "docs/grammar/**"
+      - "docs/release/evidence/**"
+      - "docs/roadmap/**"
       - "tools/**"
       - "scripts/**"
       - "install.sh"
@@ -22,6 +25,7 @@ on:
   push:
     branches:
       - main
+      - "agent/aot-*"
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -32,6 +36,8 @@ on:
       - "tree-sitter-terlan/**"
       - "tests/**"
       - "docs/grammar/**"
+      - "docs/release/evidence/**"
+      - "docs/roadmap/**"
       - "tools/**"
       - "scripts/**"
       - "install.sh"

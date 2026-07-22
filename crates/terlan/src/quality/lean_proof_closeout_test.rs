@@ -20,6 +20,49 @@ fn lean_proof_closeout_accepts_current_reproducible_family_idempotently() {
 }
 
 #[test]
+fn lean_proof_closeout_accepts_multiple_current_families_in_one_class() {
+    let root = TempRepo::new("closeout_shared_class");
+    write_complete_fixture(root.path(), Vec::new(), "pass", "current");
+    let second_digest = format!("sha256:{}", "b".repeat(64));
+    let gate_path = root.path().join(GATE_REPORT);
+    let mut gate: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&gate_path).expect("read gate report"))
+            .expect("parse gate report");
+    gate["families"]
+        .as_array_mut()
+        .expect("family array")
+        .push(json!({
+            "family": "shape-implication",
+            "feature_class": "coreir",
+            "theorem_identity": ["Terlan.Type.ShapeImplication.theorem"],
+            "proof_status": "current",
+            "last_executed_digest": second_digest,
+            "reproducibility_verdict": "pass",
+            "blockers": [],
+            "remediation_gates": [],
+        }));
+    fs::write(
+        gate_path,
+        serde_json::to_string_pretty(&gate).expect("serialize gate report"),
+    )
+    .expect("write gate report");
+    let baseline_path = root.path().join(BASELINE);
+    let baseline = fs::read_to_string(&baseline_path).expect("read baseline");
+    fs::write(
+        baseline_path,
+        baseline.replace(
+            &format!("coreir\tcurrent\t{}", valid_digest()),
+            &format!("coreir\tcurrent\t{};{second_digest}", valid_digest()),
+        ),
+    )
+    .expect("write baseline");
+
+    let summary = run_lean_proof_closeout(root.path()).expect("shared class closeout");
+
+    assert_eq!(summary.family_count, 2);
+}
+
+#[test]
 fn lean_proof_closeout_schema_accepts_all_lifecycle_statuses() {
     let families = VALID_STATUSES
         .iter()

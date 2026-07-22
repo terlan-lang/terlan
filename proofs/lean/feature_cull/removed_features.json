@@ -8,7 +8,7 @@
       "id": "beam_lowering",
       "rejection_phase": "compile",
       "replacement_contract": "direct CoreIR-to-VMIR lowering",
-      "replacement_gate": "tvm-aot-pivot-inventory-check",
+      "replacement_gate": "runtime-aot-only-check",
       "theorem": "Terlan.FeatureCull.bytecodeIntermediaryRejectedBeforeVm",
       "forbidden_terms": ["@target.erlang", "BEAM lowering", "Erlang lowering"]
     },

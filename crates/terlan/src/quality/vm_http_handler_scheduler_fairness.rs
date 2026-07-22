@@ -143,14 +143,13 @@ const REQUIRED_RUNTIME_ATTRIBUTION_TEST_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_REPLAY_DETERMINISM_ANCHORS: &[&str] = &[
-    "benchmark_http_replay_evidence",
-    "read_benchmark_http_request_with_metrics",
-    "write_benchmark_http_response_with_metrics",
+    "VmHttpReplayEvidence",
+    "replay_determinism",
     "terlan-vm-http-replay-v1",
-    "request-index-order-with-stateful-counter-ordinal",
-    "fingerprintSha256",
-    "executionValidated",
-    "Sha256",
+    "execution_validated",
+    "request_count",
+    "validate_completion",
+    "parser_rejects_incomplete_execution_evidence",
 ];
 
 const REQUIRED_EXACT_SELECTORS: &[&str] = &[
@@ -404,7 +403,7 @@ pub fn run_vm_http_handler_scheduler_fairness(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/vm/main/http_benchmark_handlers.rs",
+        "crates/terlan/src/benchmark/binary_protocol_http.rs",
         REQUIRED_REPLAY_DETERMINISM_ANCHORS,
         "VM HTTP replay determinism",
     )?);

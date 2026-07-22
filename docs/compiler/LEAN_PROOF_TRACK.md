@@ -40,6 +40,8 @@ The gate is `make lean-proof-track-check`.
   missing proofs, toolchain/lockfile drift, non-current status, blockers, or a
   reproducibility verdict other than `pass` with stable
   `error[lean_proof_closeout_*]` identifiers.
+- A current baseline class records every current family digest as a sorted,
+  unique semicolon-separated SHA-256 set.
 - `release-0-0-7-preflight` and `publish-preflight` require Lean proof closeout.
 - A proof gap row must name the missing feature, lifecycle status, category,
   reason, remediation owner, planned gate, deadline or exception, blocker

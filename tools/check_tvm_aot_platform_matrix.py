@@ -85,6 +85,23 @@ TARGETS = {
         "calling_convention": "windows_fastcall",
     },
 }
+RUNNERS = {
+    "linux-x86_64": "ubuntu-24.04",
+    "linux-aarch64": "ubuntu-24.04-arm",
+    "macos-x86_64": "macos-15-intel",
+    "macos-aarch64": "macos-15",
+    "windows-x86_64": "windows-2025",
+    "windows-aarch64": "windows-11-arm",
+}
+RELEASE_EVIDENCE = (
+    "tvm-aot-release-closeout-report.json",
+    "tvm-aot-release-clean-checkout.json",
+    "tvm-aot-platform-matrix-report.json",
+    "tvm-aot-thread-sanitizer-report.json",
+    "aot-compilation-benchmark.json",
+    "http-aot-performance-comparison.json",
+    "tvm-managed-list-profile.json",
+)
 
 
 def is_sha256(value: object) -> bool:
@@ -101,6 +118,68 @@ def run(command: list[str]) -> None:
     """Run one matrix command from the repository root."""
 
     subprocess.run(command, cwd=ROOT, check=True)
+
+
+def validate_workflow_text(name: str, workflow: str) -> None:
+    """Validate one native matrix workflow without requiring a YAML package."""
+
+    if "  workflow_dispatch:\n" not in workflow:
+        raise AssertionError(f"{name} workflow cannot be dispatched for an exact revision")
+    rows = workflow.count("          - target:")
+    if rows != len(RUNNERS):
+        raise AssertionError(f"{name} workflow defines {rows} native matrix rows")
+    for target, runner in RUNNERS.items():
+        row = f"          - target: {target}\n            runner: {runner}\n"
+        if workflow.count(row) != 1:
+            raise AssertionError(
+                f"{name} workflow omits canonical runner `{runner}` for `{target}`"
+            )
+    required = (
+        "python -B tools/check_tvm_aot_platform_matrix.py target",
+        "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
+        "python -B tools/check_tvm_aot_platform_matrix.py aggregate",
+        "retention-days: 90",
+        "uses: actions/checkout@v4",
+        "uses: actions/upload-artifact@v4",
+        "uses: actions/download-artifact@v4",
+    )
+    for fragment in required:
+        if fragment not in workflow:
+            raise AssertionError(f"{name} workflow omits `{fragment}`")
+
+
+def validate_ci_trigger_text(workflow: str) -> None:
+    """Require pull-request, main, and dedicated AOT branch CI execution."""
+
+    if "  pull_request:\n" not in workflow:
+        raise AssertionError("CI workflow lost pull-request execution")
+    branch_contract = '    branches:\n      - main\n      - "agent/aot-*"\n'
+    if branch_contract not in workflow:
+        raise AssertionError("CI workflow lost main or dedicated AOT branch execution")
+
+
+def validate_workflow_contract(root: Path = ROOT) -> None:
+    """Require CI and release to launch and retain the same six native targets."""
+
+    ci = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    release = (root / ".github/workflows/release.yml").read_text(encoding="utf-8")
+    validate_workflow_text("CI", ci)
+    validate_workflow_text("release", release)
+    validate_ci_trigger_text(ci)
+    for path_filter in ('      - "docs/release/evidence/**"', '      - "docs/roadmap/**"'):
+        if ci.count(path_filter) != 2:
+            raise AssertionError(f"CI workflow does not validate changes matching {path_filter}")
+    if "\ttvm-aot-roadmap-reconciliation-check \\\n" not in (root / "Makefile").read_text(
+        encoding="utf-8"
+    ):
+        raise AssertionError("release-candidate gate omits AOT roadmap reconciliation")
+    if '      - "v*"\n' not in release:
+        raise AssertionError("release workflow lost version-tag execution")
+    if "run: make tvm-aot-release-closeout-check" not in release:
+        raise AssertionError("release workflow omits canonical AOT closeout")
+    for evidence in RELEASE_EVIDENCE:
+        if f"target/quality/{evidence}" not in release:
+            raise AssertionError(f"release workflow does not retain `{evidence}`")
 
 
 def normalized_host() -> tuple[str, str]:
@@ -388,6 +467,30 @@ def aggregate(report_root: Path) -> Path:
 
 def self_test() -> None:
     """Prove incomplete, duplicate, skipped, stale, and mixed rows fail closed."""
+
+    validate_workflow_contract()
+    ci_text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    for invalid in (
+        ci_text.replace("  workflow_dispatch:\n", "", 1),
+        ci_text.replace("runner: windows-11-arm", "runner: windows-2025", 1),
+        ci_text.replace("          - target: linux-x86_64\n", "", 1),
+    ):
+        try:
+            validate_workflow_text("CI fixture", invalid)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("platform contract accepted an invalid CI workflow")
+    for invalid in (
+        ci_text.replace("  pull_request:\n", "", 1),
+        ci_text.replace('      - "agent/aot-*"\n', "", 1),
+    ):
+        try:
+            validate_ci_trigger_text(invalid)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("platform contract accepted invalid CI triggers")
 
     with patch.dict(os.environ, {"GITHUB_ACTIONS": "false"}):
         assert execution_provenance("local-revision") == {

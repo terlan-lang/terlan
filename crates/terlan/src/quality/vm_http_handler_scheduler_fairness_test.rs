@@ -113,12 +113,11 @@ runtime_attribution_classifies_deterministic_handler_workloads
 "#,
         )?;
         self.write(
-            "crates/terlan/src/vm/main/http_benchmark_handlers.rs",
+            "crates/terlan/src/benchmark/binary_protocol_http.rs",
             r#"
-benchmark_http_replay_evidence terlan-vm-http-replay-v1
-request-index-order-with-stateful-counter-ordinal fingerprintSha256
-executionValidated Sha256 read_benchmark_http_request_with_metrics
-write_benchmark_http_response_with_metrics
+VmHttpReplayEvidence replay_determinism terlan-vm-http-replay-v1
+execution_validated request_count validate_completion
+parser_rejects_incomplete_execution_evidence
 "#,
         )?;
         self.write("Makefile", COMPLETE_MAKEFILE)

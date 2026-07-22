@@ -164,11 +164,13 @@ pub fn run_vm_http_runtime_attribution_contract(
     )?);
     diagnostics.extend(validate_source_terms(
         root,
-        "crates/terlan/src/vm/main/http_benchmark_handlers.rs",
+        "crates/terlan/src/benchmark/binary_protocol_http.rs",
         &[
             "terlan-vm-http-replay-v1",
-            "fingerprintSha256",
-            "executionValidated",
+            "VmHttpReplayEvidence",
+            "execution_validated",
+            "request_count",
+            "validate_completion",
         ],
         "replay evidence",
     )?);
@@ -348,6 +350,7 @@ fn validate_make_ownership(root: &Path) -> QualityResult<Vec<String>> {
         "vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)",
         "vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check",
         "vm-http-runtime-attribution-check \\",
+        "vm-http-vs-axum-check:\n",
         "release-0-0-7-preflight: vm-http-runtime-attribution-check",
     ];
     Ok(required

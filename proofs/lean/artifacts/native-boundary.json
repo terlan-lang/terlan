@@ -12,8 +12,8 @@
     "Terlan.Runtime.NativeBoundary.cancellationPreservesCredits"
   ],
   "manifest_fingerprints": {
-    "crates/terlan/src/runtime/native_boundary/metadata.rs": "sha256:7386be27c1d980f24a8091ff99ca9f618e7ccac1d6147fa8c349f92e390959af",
-    "crates/terlan/src/runtime/native_boundary/worker.rs": "sha256:b79d5d2039ffe84cfd3147e36b18eb71bd13d3ca8eccfa89027ff3e64a34e7c4",
+    "crates/terlan/src/runtime/native_boundary/metadata.rs": "sha256:1e7a3ab488c80fb3bd97277d8241b4b7d0576b62d4460abe815ce0f2eec31288",
+    "crates/terlan/src/runtime/native_boundary/worker.rs": "sha256:5d9af3600d7a09fe29de2d94021246d3c5a832325f1b439f7344b340cf035e8d",
     "docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md": "sha256:8b02d8dd8e34cc0bbd3d3b95ff61e06d4fa75a94281f7ff78b95a4e2b4515616",
     "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:78a4b54b5dd4f87041b9a9622432493cc69de91d0ce260efed9415d506ea337a"
   },

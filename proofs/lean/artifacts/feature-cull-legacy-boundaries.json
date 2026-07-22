@@ -15,7 +15,7 @@
   "manifest_fingerprints": {
     "docs/compiler/TERLAN_TARGET_INFERENCE.md": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f",
     "docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md": "sha256:8b02d8dd8e34cc0bbd3d3b95ff61e06d4fa75a94281f7ff78b95a4e2b4515616",
-    "proofs/lean/feature_cull/removed_features.json": "sha256:da11de055b0519347f027d6371fab0951d43e1ce737769a42ec6c8ac649f9789"
+    "proofs/lean/feature_cull/removed_features.json": "sha256:d2a8ddee95e937bf114736483252be22e6efd4ec8932d639ff947d750853a4b4"
   },
   "dependency_files": [
     "proofs/lean/feature_cull/removed_features.json",
@@ -23,7 +23,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "proof_dependency_set_hash": "sha256:6c04f3023dd7fc23236e3adcf07616a2c15ed6b4ca101d519a74d73f7f2d744a",
+  "proof_dependency_set_hash": "sha256:bfc30a13ae27060d64d16862ee79ff4da6beccf5aed93cbe5aa1715fb3c55620",
   "source_digest": "sha256:2bd4f904792ad70cbca438b0b9463fe94fc2d1ec7ede553c43563e53a70306cd",
   "execution_command": [
     "lake",

@@ -133,7 +133,7 @@
       "expected": "true",
       "field": "runtime_version_source",
       "observed": "true",
-      "path": "crates/terlan/src/vm/main.rs",
+      "path": "crates/terlan/src/vm/main_part_001.rs",
       "status": "ok"
     },
     {
