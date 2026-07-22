@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SpeechRecognitionAlternative
+ */
+module std.js.Dom.SpeechRecognitionAlternative.
+
+/**
+ * The **`SpeechRecognitionAlternative`** interface of the Web Speech API represents a single word that has been recognized by the speech recognition service.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative)
+ */
+pub opaque type SpeechRecognitionAlternative.
+
+/**
+ * The **`confidence`** read-only property of the confident the speech recognition system is that the recognition is correct.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative/confidence)
+ */
+pub (value: SpeechRecognitionAlternative) confidence(): std.js.Number.JsNumber.
+
+/**
+ * The **`transcript`** read-only property of the transcript of the recognized word(s).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative/transcript)
+ */
+pub (value: SpeechRecognitionAlternative) transcript(): std.js.String.JsString.

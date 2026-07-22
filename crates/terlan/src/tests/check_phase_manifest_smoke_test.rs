@@ -20,7 +20,7 @@ fn run_check_single_file_warns_for_unconsumed_config_entries_in_phase_manifest()
     let source = dir.join("config_entries.terl");
     fs::write(
         &source,
-        "module config_entries.\n\ntarget erlang {\n  otp_application: true;\n  features: [sockets]\n}.\n\npub value(): Int ->\n  1.\n",
+        "module config_entries.\n\ntarget vm {\n  application: true;\n  features: [sockets]\n}.\n\npub value(): Int ->\n  1.\n",
     )
     .expect("write config entry source");
     let manifest = dir.join("config_entries.phase-manifest.json");
@@ -42,7 +42,7 @@ fn run_check_single_file_warns_for_unconsumed_config_entries_in_phase_manifest()
     assert!(manifest_text.contains(r#""name":"parse","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"typecheck","status":"ok""#));
     assert!(manifest_text.contains(r#""code":"type_warning""#));
-    assert!(manifest_text.contains("config metadata entries for `target erlang`"));
+    assert!(manifest_text.contains("config metadata entries for `target vm`"));
     assert!(manifest_text.contains("preserved but not semantically consumed"));
     assert!(manifest_text.contains(r#""name":"core","status":"ok""#));
 }

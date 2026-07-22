@@ -1,15 +1,19 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLObjectElement
  */
 module std.js.Dom.HTMLObjectElement.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
+import type std.core.{Bool, Unit}.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
 /**
@@ -208,8 +212,16 @@ pub (value: HTMLObjectElement) report_validity(): Bool ->
 pub (value: HTMLObjectElement) set_custom_validity(error: JsString): Unit ->
     native.
 
-pub (value: HTMLObjectElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub (value: HTMLObjectElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     native.
 
-pub (value: HTMLObjectElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub (value: HTMLObjectElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     native.

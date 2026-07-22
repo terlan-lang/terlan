@@ -1,0 +1,82 @@
+/**
+ * Lifecycle testing helper coverage.
+ *
+ * `std.test.LifecycleTest` proves explicit setup and cleanup helpers preserve
+ * deterministic order and typed fixture values on the VM default path.
+ */
+module std.test.LifecycleTest.
+
+import std.collections.List.
+import std.test.Test.{assert_equal, assert_false, lifecycle, lifecycle_result, table_lifecycle, table_lifecycle_result}.
+
+/**
+ * Verifies lifecycle callbacks receive values in deterministic order.
+ *
+ * Input: string seed and pure setup/body/cleanup callbacks.
+ * Output: `true` when the fixture and suite values show the expected order.
+ * Transformation: threads setup output explicitly through the lifecycle.
+ */
+@test
+pub lifecycle_threads_typed_fixture_values(): Bool ->
+    lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (fixture) -> fixture == 3, (fixture) -> fixture == 3, (suite) -> suite == 2).
+
+/**
+ * Verifies cleanup results remain visible when the body fails.
+ *
+ * Input: lifecycle callbacks where the body returns `false`.
+ * Output: `true` when `lifecycle_result` reports body failure and cleanup
+ * success independently.
+ * Transformation: proves cleanup callbacks are evaluated after body failure
+ * without relying on ambient mutation.
+ */
+@test
+pub lifecycle_result_preserves_cleanup_after_body_failure(): Bool ->
+    assert_equal({false, true, true}, lifecycle_result(1, (seed) -> seed + 1, (suite) -> suite + 1, (_fixture) -> false, (fixture) -> fixture == 3, (suite) -> suite == 2)).
+
+/**
+ * Verifies cleanup failure contributes to the combined lifecycle assertion.
+ *
+ * Input: lifecycle callbacks where `after_each` fails.
+ * Output: `true` when `lifecycle` returns `false`.
+ * Transformation: confirms cleanup failure is not hidden by a passing body.
+ */
+@test
+pub lifecycle_reports_after_each_failure(): Bool ->
+    assert_false(lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (_fixture) -> true, (_fixture) -> false, (_suite) -> true)).
+
+/**
+ * Verifies final cleanup failure contributes to the combined assertion.
+ *
+ * Input: lifecycle callbacks where `after_all` fails.
+ * Output: `true` when `lifecycle` returns `false`.
+ * Transformation: confirms final cleanup failure is not hidden by a passing
+ * body and passing per-test cleanup.
+ */
+@test
+pub lifecycle_reports_after_all_failure(): Bool ->
+    assert_false(lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (_fixture) -> true, (_fixture) -> true, (_suite) -> false)).
+
+/**
+ * Verifies table lifecycle hooks run for every row.
+ *
+ * Input: two integer rows and pure setup/body/cleanup callbacks.
+ * Output: `true` when both rows receive deterministic fixtures and final
+ * cleanup sees the suite value.
+ * Transformation: threads table row values through explicit lifecycle hooks.
+ */
+@test
+pub table_lifecycle_runs_hooks_for_each_row(): Bool ->
+    table_lifecycle(1, List(1, 2), (seed) -> seed + 10, (suite, row) -> suite + row, (fixture) -> fixture > 11, (fixture) -> fixture < 14, (suite) -> suite == 11).
+
+/**
+ * Verifies table lifecycle cleanup remains visible after row failure.
+ *
+ * Input: two rows where one body callback fails.
+ * Output: `true` when body failure and cleanup success are reported
+ * independently.
+ * Transformation: proves per-row cleanup still runs without ambient mutable
+ * test state.
+ */
+@test
+pub table_lifecycle_result_keeps_row_cleanup(): Bool ->
+    assert_equal({false, true, true}, table_lifecycle_result(1, List(1, 2), (seed) -> seed, (_suite, row) -> row, (fixture) -> fixture == 1, (_fixture) -> true, (_suite) -> true)).

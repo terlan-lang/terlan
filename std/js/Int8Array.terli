@@ -1,0 +1,102 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Int8Array
+ */
+module std.js.Int8Array.
+
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * A typed array of 8-bit integer values. The contents are initialized to 0. If the requested
+ * number of bytes could not be allocated an exception is raised.
+ */
+pub opaque type Int8Array[TArrayBuffer].
+
+/**
+ * The size in bytes of each element in the array.
+ */
+pub (value: Int8Array[TArrayBuffer]) bytes_per_element(): JsNumber.
+
+/**
+ * The ArrayBuffer instance referenced by the array.
+ */
+pub (value: Int8Array[TArrayBuffer]) buffer(): TArrayBuffer.
+
+/**
+ * The length in bytes of the array.
+ */
+pub (value: Int8Array[TArrayBuffer]) byte_length(): JsNumber.
+
+/**
+ * The offset in bytes of the array.
+ */
+pub (value: Int8Array[TArrayBuffer]) byte_offset(): JsNumber.
+
+/**
+ * Returns the index of the first occurrence of a value in an array.
+ * @param searchElement The value to locate in the array.
+ * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
+ * search starts at index 0.
+ */
+pub (value: Int8Array[TArrayBuffer]) index_of(search_element: JsNumber, from_index: JsNumber): JsNumber.
+
+/**
+ * Adds all the elements of an array separated by the specified separator string.
+ * @param separator A string used to separate one element of an array from the next in the
+ * resulting String. If omitted, the array elements are separated with a comma.
+ */
+pub (value: Int8Array[TArrayBuffer]) join(separator: JsString): JsString.
+
+/**
+ * Returns the index of the last occurrence of a value in an array.
+ * @param searchElement The value to locate in the array.
+ * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
+ * search starts at index 0.
+ */
+pub (value: Int8Array[TArrayBuffer]) last_index_of(search_element: JsNumber, from_index: JsNumber): JsNumber.
+
+/**
+ * The length of the array.
+ */
+pub (value: Int8Array[TArrayBuffer]) length(): JsNumber.
+
+/**
+ * Sets a value or an array of values.
+ * @param array A typed or untyped array of values to set.
+ * @param offset The index in the current array at which the values are to be written.
+ */
+pub (value: Int8Array[TArrayBuffer]) set(array: ArrayLike[JsNumber], offset: JsNumber): std.core.Unit.
+
+/**
+ * Returns a section of an array.
+ * @param start The beginning of the specified portion of the array.
+ * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
+ */
+pub (value: Int8Array[TArrayBuffer]) slice(start: JsNumber, end: JsNumber): Int8Array[ArrayBuffer].
+
+/**
+ * Gets a new Int8Array view of the ArrayBuffer store for this array, referencing the elements
+ * at begin, inclusive, up to end, exclusive.
+ * @param begin The index of the beginning of the array.
+ * @param end The index of the end of the array.
+ */
+pub (value: Int8Array[TArrayBuffer]) subarray(begin: JsNumber, end: JsNumber): Int8Array[TArrayBuffer].
+
+/**
+ * Converts a number to a string by using the current locale.
+ */
+pub (value: Int8Array[TArrayBuffer]) to_locale_string(): JsString.
+
+/**
+ * Returns a string representation of an array.
+ */
+pub (value: Int8Array[TArrayBuffer]) to_string(): JsString.

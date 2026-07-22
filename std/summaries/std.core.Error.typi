@@ -26,6 +26,7 @@ pub struct Error {
 /// Output: the receiver's machine-readable `Atom` code.
 /// Transformation: reads the `code` field without changing the error value.
 
+@pure
 pub (error: Error) code(): Atom.
 
 /// Returns an error's human-readable message.
@@ -34,6 +35,7 @@ pub (error: Error) code(): Atom.
 /// Output: the receiver's `String` message.
 /// Transformation: reads the `message` field without changing the error value.
 
+@pure
 pub (error: Error) message(): String.
 
 /// Creates an `Error`.

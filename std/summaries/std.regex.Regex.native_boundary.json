@@ -1,0 +1,53 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "compile",
+      "operation": "std.regex.regex.compile"
+    },
+    {
+      "arity": 2,
+      "name": "is_match",
+      "operation": "std.regex.regex.is_match"
+    },
+    {
+      "arity": 2,
+      "name": "find",
+      "operation": "std.regex.regex.find"
+    },
+    {
+      "arity": 2,
+      "name": "find_all",
+      "operation": "std.regex.regex.find_all"
+    },
+    {
+      "arity": 3,
+      "name": "capture",
+      "operation": "std.regex.regex.capture"
+    },
+    {
+      "arity": 3,
+      "name": "named_capture",
+      "operation": "std.regex.regex.named_capture"
+    },
+    {
+      "arity": 3,
+      "name": "replace",
+      "operation": "std.regex.regex.replace"
+    },
+    {
+      "arity": 2,
+      "name": "split",
+      "operation": "std.regex.regex.split"
+    },
+    {
+      "arity": 1,
+      "name": "escape",
+      "operation": "std.regex.regex.escape"
+    }
+  ],
+  "module": "std_regex_regex_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.regex.Regex"
+}

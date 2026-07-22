@@ -1,16 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AuthenticatorSelectionCriteria
  */
 module std.js.Dom.AuthenticatorSelectionCriteriaTest.
 
-import type std.js.Dom.AuthenticatorSelectionCriteria.{AuthenticatorSelectionCriteria}.
+import type std.js.Dom.AuthenticatorSelectionCriteria.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub authenticator_attachment_typechecks(receiver: AuthenticatorSelectionCriteria): AuthenticatorAttachment ->
+pub authenticator_attachment_typechecks(
+    receiver: AuthenticatorSelectionCriteria
+): AuthenticatorAttachment ->
     receiver.authenticator_attachment().
 
 pub require_resident_key_typechecks(receiver: AuthenticatorSelectionCriteria): std.core.Bool ->
@@ -19,5 +27,7 @@ pub require_resident_key_typechecks(receiver: AuthenticatorSelectionCriteria): s
 pub resident_key_typechecks(receiver: AuthenticatorSelectionCriteria): ResidentKeyRequirement ->
     receiver.resident_key().
 
-pub user_verification_typechecks(receiver: AuthenticatorSelectionCriteria): UserVerificationRequirement ->
+pub user_verification_typechecks(
+    receiver: AuthenticatorSelectionCriteria
+): UserVerificationRequirement ->
     receiver.user_verification().

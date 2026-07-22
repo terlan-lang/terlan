@@ -1,8 +1,8 @@
 module=std.js.Dom.PaymentMethodChangeEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=6039083619013749395
-interface_hash=16405815841697735016
-interface_doc_hash=16405815841697735016
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=1397182776113746822
+interface_hash=17731341974967262564
+interface_doc_hash=17731341974967262564
 deps=0

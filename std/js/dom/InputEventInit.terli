@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface InputEventInit
+ */
+module std.js.Dom.InputEventInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type InputEventInit.
+
+pub (value: InputEventInit) data(): Option[JsString].
+
+pub (value: InputEventInit) data_transfer(): Option[DataTransfer].
+
+pub (value: InputEventInit) input_type(): JsString.
+
+pub (value: InputEventInit) is_composing(): std.core.Bool.
+
+pub (value: InputEventInit) target_ranges(): std.js.Array[StaticRange].

@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLOrSVGElement
+ */
+module std.js.Dom.HTMLOrSVGElement.
+
+import type std.core.{Unit}.
+
+pub opaque type HTMLOrSVGElement.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autofocus)
+ */
+pub (value: HTMLOrSVGElement) autofocus(): std.core.Bool.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dataset)
+ */
+pub (value: HTMLOrSVGElement) dataset(): DOMStringMap.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/nonce)
+ */
+pub (value: HTMLOrSVGElement) nonce(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/tabIndex)
+ */
+pub (value: HTMLOrSVGElement) tab_index(): std.js.Number.JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/blur)
+ */
+pub (value: HTMLOrSVGElement) blur(): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/focus)
+ */
+pub (value: HTMLOrSVGElement) focus(options: FocusOptions): Unit.

@@ -1,0 +1,9 @@
+feature_class	current_proof_count	stale_count	gap_count	nondeterministic_count	repro_fail_count	repro_pass_rate_7d	lane_pass_rate_30d
+EBNF syntax preservation	0	0	1	0	0	100	100
+typed CoreIR preservation	0	0	1	0	0	100	100
+target-profile inference	0	0	1	0	0	100	100
+VM execution subset	0	0	1	0	0	100	100
+pattern and operator coverage	0	0	1	0	0	100	100
+native-boundary contracts	0	0	1	0	0	100	100
+Wasm CoreIR lowering	0	0	1	0	0	100	100
+Aeneas Rust verification bridge	0	0	1	0	0	100	100

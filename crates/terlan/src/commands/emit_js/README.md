@@ -122,7 +122,7 @@ Dependency rules:
   lowering cannot silently invent binding capture, guard dispatch,
   destructuring dispatch, or missing-branch behavior.
 - Anonymous function values lower to JavaScript arrow functions. Callable-value
-  invocation uses Terlan's dedicated `f.(args)` syntax.
+  invocation uses Terlan's dedicated `f(args)` syntax.
 - Pipe-forward expressions lower only for the focused local-call shape
   `value |> f(extra)` as `f(value, extra)`. General pipe targets such as
   `value |> target` are rejected by the typechecker before backend lowering,
@@ -157,11 +157,11 @@ Dependency rules:
   target macro-AST runtime semantics are selected. Quote and unquote bodies are
   covered by fallback regressions so runtime-boundary macro values cannot
   silently lower to ad hoc JavaScript objects or splices.
-- `emit-js` does not render inline HTML blocks or HTML templates. Inline
-  `html { ... }` blocks are covered by fallback regression.
-  `CoreExpr::TemplateInstantiate` currently lowers to a plain JavaScript object
-  with template prop names; static HTML rendering remains owned by the
-  static-site command path.
+- `emit-js` does not lower inline `html { ... }` blocks yet; they remain covered
+  by fallback regression. External typed template declarations do render in
+  JS/shared and browser artifacts: `CoreExpr::TemplateInstantiate` calls a
+  generated renderer whose descriptor comes from the parsed template tree and
+  whose attribute categories come from the shared HTML slot-policy matrix.
 - The command-facing Oxc backend facade must keep fallback behavior explicit:
   if direct AST lowering declines a module, unsupported public function bodies
   continue to emit the existing bootstrap JS stub instead of failing `emit-js`.

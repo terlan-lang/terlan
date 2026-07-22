@@ -163,25 +163,12 @@ impl VmResourceTable {
         from: VmProcessId,
         to: VmProcessId,
     ) -> Result<VmResourceEvent, String> {
-        ensure_live_process(processes, from, "source")?;
-        ensure_live_process(processes, to, "target")?;
+        self.validate_transfer(processes, resource, from, to)?;
 
-        let record = self.live_resource_mut(resource)?;
-        if record.owner != from {
-            return Err(format!(
-                "resource {} is owned by process {}, not {}",
-                resource.as_u64(),
-                record.owner.as_u64(),
-                from.as_u64()
-            ));
-        }
-        if record.transfer_policy != VmResourceTransferPolicy::Transferable {
-            return Err(format!(
-                "resource {} cannot be transferred",
-                resource.as_u64()
-            ));
-        }
-
+        let record = self
+            .resources
+            .get_mut(&resource)
+            .expect("resource was validated before transfer mutation");
         let handle = resource_handle_name(resource);
         processes
             .get_mut(from)
@@ -199,6 +186,35 @@ impl VmResourceTable {
         })
     }
 
+    /// Validates resource transfer without mutating ownership state.
+    pub(crate) fn validate_transfer(
+        &self,
+        processes: &VmProcessTable,
+        resource: VmResourceId,
+        from: VmProcessId,
+        to: VmProcessId,
+    ) -> Result<(), String> {
+        ensure_live_process(processes, from, "source")?;
+        ensure_live_process(processes, to, "target")?;
+
+        let record = self.live_resource(resource)?;
+        if record.owner != from {
+            return Err(format!(
+                "resource {} is owned by process {}, not {}",
+                resource.as_u64(),
+                record.owner.as_u64(),
+                from.as_u64()
+            ));
+        }
+        if record.transfer_policy != VmResourceTransferPolicy::Transferable {
+            return Err(format!(
+                "resource {} cannot be transferred",
+                resource.as_u64()
+            ));
+        }
+        Ok(())
+    }
+
     /// Releases a resource by its current owner.
     pub(crate) fn release(
         &mut self,
@@ -206,16 +222,7 @@ impl VmResourceTable {
         owner: VmProcessId,
         resource: VmResourceId,
     ) -> Result<VmResourceEvent, String> {
-        ensure_live_process(processes, owner, "owner")?;
-        let record = self.live_resource(resource)?;
-        if record.owner != owner {
-            return Err(format!(
-                "resource {} is owned by process {}, not {}",
-                resource.as_u64(),
-                record.owner.as_u64(),
-                owner.as_u64()
-            ));
-        }
+        self.validate_release(processes, owner, resource)?;
 
         self.resources.remove(&resource);
         processes
@@ -226,6 +233,26 @@ impl VmResourceTable {
             id: resource,
             owner,
         })
+    }
+
+    /// Validates resource release without mutating ownership state.
+    pub(crate) fn validate_release(
+        &self,
+        processes: &VmProcessTable,
+        owner: VmProcessId,
+        resource: VmResourceId,
+    ) -> Result<(), String> {
+        ensure_live_process(processes, owner, "owner")?;
+        let record = self.live_resource(resource)?;
+        if record.owner != owner {
+            return Err(format!(
+                "resource {} is owned by process {}, not {}",
+                resource.as_u64(),
+                record.owner.as_u64(),
+                owner.as_u64()
+            ));
+        }
+        Ok(())
     }
 
     /// Cleans up every live resource owned by an exiting process.
@@ -249,17 +276,38 @@ impl VmResourceTable {
             .collect()
     }
 
+    /// Cleans up owned resources and removes matching process handle rows when
+    /// cleanup is triggered before the process table exit path runs.
+    pub(crate) fn cleanup_owner_handles(
+        &mut self,
+        processes: &mut VmProcessTable,
+        owner: VmProcessId,
+    ) -> Vec<VmResourceEvent> {
+        let owned_ids = self
+            .resources
+            .values()
+            .filter_map(|record| (record.owner == owner).then_some(record.id))
+            .collect::<Vec<_>>();
+        let events = self.cleanup_owner(owner);
+        if let Some(process) = processes.get_mut(owner) {
+            for id in owned_ids {
+                process.remove_resource_handle(&resource_handle_name(id));
+            }
+        }
+        events
+    }
+
     /// Returns live resource rows for runtime inspection.
     pub(crate) fn snapshots(&self) -> Vec<VmResourceSnapshot> {
+        self.resources.values().map(resource_snapshot).collect()
+    }
+
+    /// Returns deterministic live resource rows for one process owner.
+    pub(crate) fn snapshots_for_owner(&self, owner: VmProcessId) -> Vec<VmResourceSnapshot> {
         self.resources
             .values()
-            .map(|record| VmResourceSnapshot {
-                id: record.id,
-                owner: record.owner,
-                kind: record.descriptor.kind.clone(),
-                label: record.descriptor.label.clone(),
-                transfer_policy: record.transfer_policy,
-            })
+            .filter(|record| record.owner == owner)
+            .map(resource_snapshot)
             .collect()
     }
 
@@ -268,14 +316,15 @@ impl VmResourceTable {
             .get(&resource)
             .ok_or_else(|| stale_resource_diagnostic(resource))
     }
+}
 
-    fn live_resource_mut(
-        &mut self,
-        resource: VmResourceId,
-    ) -> Result<&mut VmResourceRecord, String> {
-        self.resources
-            .get_mut(&resource)
-            .ok_or_else(|| stale_resource_diagnostic(resource))
+fn resource_snapshot(record: &VmResourceRecord) -> VmResourceSnapshot {
+    VmResourceSnapshot {
+        id: record.id,
+        owner: record.owner,
+        kind: record.descriptor.kind.clone(),
+        label: record.descriptor.label.clone(),
+        transfer_policy: record.transfer_policy,
     }
 }
 
@@ -300,6 +349,14 @@ fn resource_handle_name(resource: VmResourceId) -> String {
 fn stale_resource_diagnostic(resource: VmResourceId) -> String {
     format!("stale native resource handle {}", resource.as_u64())
 }
+
+#[cfg(test)]
+#[path = "resource_cancellation_test.rs"]
+mod resource_cancellation_test;
+
+#[cfg(test)]
+#[path = "resource_owner_test.rs"]
+mod resource_owner_test;
 
 #[cfg(test)]
 #[path = "resource_test.rs"]

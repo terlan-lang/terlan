@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFEDistantLightElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=13094479538298477654
-interface_hash=17664208294183663679
-interface_doc_hash=17664208294183663679
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15319324403905979637
+interface_hash=12093392320628831862
+interface_doc_hash=12093392320628831862
 deps=0

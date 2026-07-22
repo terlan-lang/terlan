@@ -1,5 +1,10 @@
 #![allow(dead_code)]
 
+#[path = "table/atomic.rs"]
+pub(crate) mod atomic;
+#[path = "table/counter.rs"]
+pub(crate) mod counter;
+
 use super::process::{VmProcessId, VmProcessState, VmProcessTable};
 use super::ReplValue;
 
@@ -21,6 +26,12 @@ impl VmTableId {
     /// Returns the numeric table id.
     pub(crate) fn as_u64(self) -> u64 {
         self.0
+    }
+
+    /// Creates a table id for adversarial VM runtime tests.
+    #[cfg(test)]
+    pub(crate) fn from_raw_for_test(value: u64) -> Self {
+        Self(value)
     }
 }
 
@@ -164,14 +175,74 @@ impl VmTableStore {
         table: VmTableId,
         key: &ReplValue,
     ) -> Result<Option<ReplValue>, String> {
-        ensure_live_process(processes, requester, "requester")?;
-        let record = self.live_table(table)?;
-        ensure_read_access(record, requester)?;
+        let record = self.readable_table(processes, requester, table)?;
         Ok(record
             .entries
             .iter()
             .find(|entry| &entry.key == key)
             .map(|entry| entry.value.clone()))
+    }
+
+    /// Exports table entries when read policy allows it.
+    pub(crate) fn entries(
+        &self,
+        processes: &VmProcessTable,
+        requester: VmProcessId,
+        table: VmTableId,
+    ) -> Result<Vec<VmTableEntry>, String> {
+        let record = self.readable_table(processes, requester, table)?;
+        Ok(record.entries.clone())
+    }
+
+    /// Returns the first entry in deterministic insertion order.
+    pub(crate) fn first_entry(
+        &self,
+        processes: &VmProcessTable,
+        requester: VmProcessId,
+        table: VmTableId,
+    ) -> Result<Option<VmTableEntry>, String> {
+        let record = self.readable_table(processes, requester, table)?;
+        Ok(record.entries.first().cloned())
+    }
+
+    /// Returns the last entry in deterministic insertion order.
+    pub(crate) fn last_entry(
+        &self,
+        processes: &VmProcessTable,
+        requester: VmProcessId,
+        table: VmTableId,
+    ) -> Result<Option<VmTableEntry>, String> {
+        let record = self.readable_table(processes, requester, table)?;
+        Ok(record.entries.last().cloned())
+    }
+
+    /// Returns the entry after an existing key in insertion order.
+    pub(crate) fn next_entry(
+        &self,
+        processes: &VmProcessTable,
+        requester: VmProcessId,
+        table: VmTableId,
+        key: &ReplValue,
+    ) -> Result<Option<VmTableEntry>, String> {
+        let record = self.readable_table(processes, requester, table)?;
+        let position = table_entry_position(record, table, key)?;
+        Ok(record.entries.get(position.saturating_add(1)).cloned())
+    }
+
+    /// Returns the entry before an existing key in insertion order.
+    pub(crate) fn previous_entry(
+        &self,
+        processes: &VmProcessTable,
+        requester: VmProcessId,
+        table: VmTableId,
+        key: &ReplValue,
+    ) -> Result<Option<VmTableEntry>, String> {
+        let record = self.readable_table(processes, requester, table)?;
+        let position = table_entry_position(record, table, key)?;
+        Ok(position
+            .checked_sub(1)
+            .and_then(|previous| record.entries.get(previous))
+            .cloned())
     }
 
     /// Deletes a key from a table when write policy allows it.
@@ -242,6 +313,30 @@ impl VmTableStore {
             .find(|record| record.id == table)
             .ok_or_else(|| stale_table_diagnostic(table))
     }
+
+    fn readable_table<'table>(
+        &'table self,
+        processes: &VmProcessTable,
+        requester: VmProcessId,
+        table: VmTableId,
+    ) -> Result<&'table VmTableRecord, String> {
+        ensure_live_process(processes, requester, "requester")?;
+        let record = self.live_table(table)?;
+        ensure_read_access(record, requester)?;
+        Ok(record)
+    }
+}
+
+fn table_entry_position(
+    record: &VmTableRecord,
+    table: VmTableId,
+    key: &ReplValue,
+) -> Result<usize, String> {
+    record
+        .entries
+        .iter()
+        .position(|entry| &entry.key == key)
+        .ok_or_else(|| format!("missing key in VM table {}", table.as_u64()))
 }
 
 fn ensure_live_process(

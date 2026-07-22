@@ -3,7 +3,8 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, EbnfCompileError, SyntaxDeclarationOutput, SyntaxModuleOutput,
+    parse_module_as_syntax_output, EbnfCompileError, SyntaxDeclarationOutput,
+    SyntaxDeclarationPayload, SyntaxModuleOutput,
 };
 use crate::DiagnosticFormat;
 
@@ -25,7 +26,9 @@ use super::event::{emit_repl_event, emit_repl_result, repl_json_field};
 /// Transformation:
 /// - Rewraps the entry as a temporary module, stores source-spanned
 ///   declarations, and reports both expression and declaration parse failures
-///   so ambiguous REPL entries remain debuggable.
+///   so ambiguous REPL entries remain debuggable. Expression diagnostics that
+///   already explain an expression-only mistake are emitted without a
+///   misleading declaration fallback.
 pub(super) fn parse_repl_declaration_and_log(
     module_name: &str,
     declaration: &str,
@@ -51,14 +54,15 @@ pub(super) fn parse_repl_declaration_and_log(
         }
         Err((decl_message, start, end)) => {
             if let Some((expr_message, expr_start, expr_end)) = expr_parse_error {
-                crate::support::emit_diagnostic(
-                    "parse_error",
-                    &format!("expression parse error: {expr_message}"),
-                    "<repl>",
+                emit_repl_expression_parse_error(
+                    expr_message,
                     expr_start,
                     expr_end,
                     diagnostic_format,
                 );
+                if expression_parse_error_blocks_declaration_fallback(expr_message) {
+                    return;
+                }
             }
             crate::support::emit_diagnostic(
                 "parse_error",
@@ -70,6 +74,47 @@ pub(super) fn parse_repl_declaration_and_log(
             );
         }
     }
+}
+
+/// Emits an expression parse error for a REPL entry.
+fn emit_repl_expression_parse_error(
+    message: &str,
+    start: usize,
+    end: usize,
+    diagnostic_format: DiagnosticFormat,
+) {
+    crate::support::emit_diagnostic(
+        "parse_error",
+        &format!("expression parse error: {message}"),
+        "<repl>",
+        start,
+        end,
+        diagnostic_format,
+    );
+}
+
+/// Returns whether an expression parse error is more useful than declaration
+/// fallback.
+///
+/// Inputs:
+/// - `message`: parser diagnostic from expression parsing.
+///
+/// Output:
+/// - `true` when declaration fallback would add noise rather than context.
+///
+/// Transformation:
+/// - Keeps assignment-shaped REPL mistakes focused on the expression-level
+///   guidance because `a = b` is neither a declaration nor a supported match
+///   expression.
+pub(super) fn expression_parse_error_blocks_declaration_fallback(message: &str) -> bool {
+    message.contains("plain `=` is not assignment or pattern matching in Terlan")
+        || matches!(
+            message,
+            "adjacent string captures require a literal separator"
+                | "unterminated string capture pattern"
+                | "empty string capture pattern"
+                | "string capture type annotation cannot be empty"
+        )
 }
 
 /// Parses a complete Terlan module into syntax output for REPL loading.
@@ -157,6 +202,20 @@ pub(super) fn parse_repl_declaration(
 ) -> Result<Vec<String>, (String, usize, usize)> {
     let source = format!("module {}.\n\n{}\n", module_name, declaration);
     let module = parse_syntax_module(&source)?;
+    if let Some(declaration) = module.declarations.iter().find(|declaration| {
+        matches!(
+            declaration.payload,
+            SyntaxDeclarationPayload::Constant { .. }
+                | SyntaxDeclarationPayload::ConstFunction { .. }
+        )
+    }) {
+        return Err((
+            "REPL_CONSTANT_DECLARATION: constants must be declared in a source module; the REPL may only import them"
+                .into(),
+            declaration.span.start,
+            declaration.span.end,
+        ));
+    }
     let declarations = repl_declaration_sources(&source, &module.declarations);
     if declarations.is_empty() {
         return Err((

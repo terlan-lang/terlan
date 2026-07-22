@@ -1,20 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasDrawPath
  */
 module std.js.Dom.CanvasDrawPathTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.CanvasDrawPath.{CanvasDrawPath}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.CanvasDrawPath.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub begin_path_typechecks(receiver: CanvasDrawPath): Unit ->
     receiver.begin_path().
@@ -31,16 +33,32 @@ pub fill_typechecks(receiver: CanvasDrawPath, fill_rule: CanvasFillRule): Unit -
 pub fill_typechecks(receiver: CanvasDrawPath, path: Path2D, fill_rule: CanvasFillRule): Unit ->
     receiver.fill(path, fill_rule).
 
-pub is_point_in_path_typechecks(receiver: CanvasDrawPath, x: JsNumber, y: JsNumber, fill_rule: CanvasFillRule): Bool ->
+pub is_point_in_path_typechecks(
+    receiver: CanvasDrawPath,
+    x: JsNumber,
+    y: JsNumber,
+    fill_rule: CanvasFillRule
+): Bool ->
     receiver.is_point_in_path(x, y, fill_rule).
 
-pub is_point_in_path_typechecks(receiver: CanvasDrawPath, path: Path2D, x: JsNumber, y: JsNumber, fill_rule: CanvasFillRule): Bool ->
+pub is_point_in_path_typechecks(
+    receiver: CanvasDrawPath,
+    path: Path2D,
+    x: JsNumber,
+    y: JsNumber,
+    fill_rule: CanvasFillRule
+): Bool ->
     receiver.is_point_in_path(path, x, y, fill_rule).
 
 pub is_point_in_stroke_typechecks(receiver: CanvasDrawPath, x: JsNumber, y: JsNumber): Bool ->
     receiver.is_point_in_stroke(x, y).
 
-pub is_point_in_stroke_typechecks(receiver: CanvasDrawPath, path: Path2D, x: JsNumber, y: JsNumber): Bool ->
+pub is_point_in_stroke_typechecks(
+    receiver: CanvasDrawPath,
+    path: Path2D,
+    x: JsNumber,
+    y: JsNumber
+): Bool ->
     receiver.is_point_in_stroke(path, x, y).
 
 pub stroke_typechecks(receiver: CanvasDrawPath): Unit ->

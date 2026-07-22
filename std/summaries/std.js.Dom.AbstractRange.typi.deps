@@ -1,8 +1,8 @@
 module=std.js.Dom.AbstractRange
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=4788468177047047577
-interface_hash=6848139243279352621
-interface_doc_hash=6848139243279352621
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=11778179195854445597
+interface_hash=13519392813998747535
+interface_doc_hash=13519392813998747535
 deps=0

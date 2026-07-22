@@ -3,20 +3,20 @@
 
 Inputs:
 - `crates/terlan/src/compiler/typeck/sql_forms/README.md`.
-- `crates/terlan/src/compiler/typeck/sql_forms/scanner.rs`.
+- `crates/terlan/src/compiler/typeck/sql_forms/classification.rs`.
 - `crates/terlan/src/compiler/typeck/sql_forms/projection.rs`.
 
 Outputs:
-- Exit status 0 when SQL scanner/projection code remains documented as
-  non-authoritative helper logic.
+- Exit status 0 when SQL AST classification/projection code remains documented
+  with the maintained-parser ownership boundary.
 - Exit status 1 with stable diagnostics when the boundary markers are missing
   or obvious hand-rolled parser ownership markers appear.
 
 Transformation:
 - Requires explicit documentation that projection extraction is not an
   authoritative SQL parser.
-- Requires scanner/projection implementation docs to describe conservative
-  metadata extraction.
+- Requires AST classification to operate on parsed statements without
+  inspecting rendered SQL.
 - Rejects local AST/parser-type names that would indicate the scanner is
   becoming a custom SQL parser instead of a narrow compiler aid.
 """
@@ -32,8 +32,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 SQL_FORMS_ROOT = ROOT / "crates" / "terlan" / "src" / "compiler" / "typeck" / "sql_forms"
 README = SQL_FORMS_ROOT / "README.md"
-SCANNER = SQL_FORMS_ROOT / "scanner.rs"
+CLASSIFICATION = SQL_FORMS_ROOT / "classification.rs"
 PROJECTION = SQL_FORMS_ROOT / "projection.rs"
+SQL_RUNTIME = ROOT / "crates" / "terlan" / "src" / "commands" / "sql_runtime.rs"
 
 REQUIRED_MARKERS = (
     (
@@ -41,12 +42,16 @@ REQUIRED_MARKERS = (
         "not an authoritative SQL",
     ),
     (
-        SCANNER,
-        "Lowercase word-like and number-like SQL tokens.",
+        CLASSIFICATION,
+        "without inspecting rendered SQL",
     ),
     (
         PROJECTION,
         "Postgres-backed validation",
+    ),
+    (
+        SQL_RUNTIME,
+        "VmPostgresCommandClient",
     ),
 )
 
@@ -55,6 +60,13 @@ FORBIDDEN_PATTERNS = (
     re.compile(r"\benum\s+Sql(?:Ast|Parser|Statement|Expression|Node)\b"),
     re.compile(r"\bparse_sql_(?:statement|expression|ast|node)\b"),
     re.compile(r"\bvalidate_sql_(?:syntax|semantics)\b"),
+)
+
+FORBIDDEN_RUNTIME_PATTERNS = (
+    re.compile(r"\bpostgres::connect\s*\("),
+    re.compile(r"\bpostgres::query(?:_one)?\s*\("),
+    re.compile(r"\bpostgres::execute\s*\("),
+    re.compile(r"\bpostgres::transaction\s*\("),
 )
 
 
@@ -166,7 +178,7 @@ def forbidden_pattern_findings() -> list[Finding]:
 
     Transformation:
     - Searches line by line so violations identify the exact regression while
-      allowing the existing scanner helpers for token masking and metadata.
+      allowing narrow interpolation and projection metadata helpers.
     """
 
     findings: list[Finding] = []
@@ -184,6 +196,23 @@ def forbidden_pattern_findings() -> list[Finding]:
     return findings
 
 
+def runtime_boundary_findings() -> list[Finding]:
+    """Reject compatibility-adapter execution from the SQL runtime helper."""
+
+    findings: list[Finding] = []
+    for line_no, line in enumerate(read_text(SQL_RUNTIME).splitlines(), 1):
+        for pattern in FORBIDDEN_RUNTIME_PATTERNS:
+            if pattern.search(line):
+                findings.append(
+                    Finding(
+                        path=relative(SQL_RUNTIME),
+                        line=line_no,
+                        message="SQL runtime execution must use the VM-owned Postgres command client",
+                    )
+                )
+    return findings
+
+
 def check_sql_form_boundary() -> list[Finding]:
     """Return all SQL form boundary findings.
 
@@ -197,7 +226,7 @@ def check_sql_form_boundary() -> list[Finding]:
     - Combines required marker checks with forbidden parser-ownership scans.
     """
 
-    return marker_findings() + forbidden_pattern_findings()
+    return marker_findings() + forbidden_pattern_findings() + runtime_boundary_findings()
 
 
 def main() -> int:

@@ -1,0 +1,234 @@
+module std.random.RandomTest.
+
+import std.core.Result.{Err, Ok, is_err}.
+import std.random.Random.
+import std.test.Test.{assert, assert_equal}.
+
+import type std.collections.List.
+import type std.core.Result.
+import type std.random.Random.{Generator, RandomError}.
+
+pub accepts_generator(value: Generator): Generator ->
+    value.
+
+pub accepts_random_error(value: RandomError): RandomError ->
+    value.
+
+pub accepts_generator_result(value: Result[Generator, RandomError]): Result[Generator, RandomError] ->
+    value.
+
+pub accepts_int_draw(value: {Generator, Int}): {Generator, Int} ->
+    value.
+
+pub accepts_int_draw_result(
+    value: Result[{Generator, Int}, RandomError]
+): Result[{Generator, Int}, RandomError] ->
+    value.
+
+pub accepts_bool_draw(value: {Generator, Bool}): {Generator, Bool} ->
+    value.
+
+pub accepts_float_draw(value: {Generator, Float}): {Generator, Float} ->
+    value.
+
+pub accepts_string_choice(
+    value: Result[{Generator, String}, RandomError]
+): Result[{Generator, String}, RandomError] ->
+    value.
+
+pub accepts_int_shuffle(value: {Generator, List[Int]}): {Generator, List[Int]} ->
+    value.
+
+pub accepts_int_sample(
+    value: Result[{Generator, List[Int]}, RandomError]
+): Result[{Generator, List[Int]}, RandomError] ->
+    value.
+
+pub replay_bounded_sequence(left: Generator, right: Generator, remaining: Int): Bool ->
+    case remaining {
+        0 -> true;
+        _ ->
+            case Random.bounded_int(left, 1, 8) {
+                Ok({left_next, left_value}) ->
+                    case Random.bounded_int(right, 1, 8) {
+                        Ok({right_next, right_value}) ->
+                            left_value >= 1 and left_value < 8 and left_value == right_value and replay_bounded_sequence(left_next, right_next, remaining - 1);
+                        Err(_reason) -> false
+                    };
+                Err(_reason) -> false
+            }
+    }.
+
+@test
+pub seeded_generators_replay_first_int(): Bool ->
+    case accepts_generator_result(Random.seed(42)) {
+        Ok(left) ->
+            case Random.seed(42) {
+                Ok(right) ->
+                    case accepts_int_draw(Random.int(left)) {
+                        {_left_next, left_value} ->
+                            case Random.int(right) {
+                                {_right_next, right_value} -> assert_equal(left_value, right_value)
+                            }
+                    };
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub seeded_generators_replay_second_int_after_state_advance(): Bool ->
+    case Random.seed(42) {
+        Ok(left) ->
+            case Random.seed(42) {
+                Ok(right) ->
+                    case Random.int(left) {
+                        {left_next, _left_first} ->
+                            case Random.int(right) {
+                                {right_next, _right_first} ->
+                                    case Random.int(left_next) {
+                                        {_left_done, left_second} ->
+                                            case Random.int(right_next) {
+                                                {_right_done, right_second} ->
+                                                    assert_equal(left_second, right_second)
+                                            }
+                                    }
+                            }
+                    };
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub seeded_bounded_sequences_replay_ten_draws(): Bool ->
+    case Random.seed(77) {
+        Ok(left) ->
+            case Random.seed(77) {
+                Ok(right) -> replay_bounded_sequence(left, right, 10);
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub different_seeds_diverge_on_first_int(): Bool ->
+    case Random.seed(1) {
+        Ok(left) ->
+            case Random.seed(2) {
+                Ok(right) ->
+                    case Random.int(left) {
+                        {_left_next, left_value} ->
+                            case Random.int(right) {
+                                {_right_next, right_value} -> assert(left_value != right_value)
+                            }
+                    };
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub invalid_seed_returns_typed_error(): Bool ->
+    assert(is_err(Random.seed(-1))).
+
+@test
+pub bounded_int_respects_exclusive_upper_bound(): Bool ->
+    case Random.seed(7) {
+        Ok(generator) ->
+            case accepts_int_draw_result(Random.bounded_int(generator, 3, 9)) {
+                Ok({_next, value}) -> assert(value >= 3 and value < 9);
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub invalid_bounds_return_typed_error(): Bool ->
+    case Random.seed(7) {
+        Ok(generator) -> assert(is_err(Random.bounded_int(generator, 9, 3)));
+        Err(_reason) -> false
+    }.
+
+@test
+pub bool_and_float_draws_have_expected_shape(): Bool ->
+    case Random.seed(11) {
+        Ok(generator) ->
+            case accepts_bool_draw(Random.bool(generator)) {
+                {after_bool, _flag} ->
+                    case accepts_float_draw(Random.float(after_bool)) {
+                        {_after_float, value} -> assert(value >= 0 and value < 1)
+                    }
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub choice_returns_one_input_value(): Bool ->
+    case Random.seed(12) {
+        Ok(generator) ->
+            case accepts_string_choice(Random.choice(generator, ["red", "green", "blue"])) {
+                Ok({_next, value}) -> assert(value == "red" or value == "green" or value == "blue");
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub empty_choice_returns_typed_error(): Bool ->
+    case Random.seed(13) {
+        Ok(generator) -> assert(is_err(Random.choice[String](generator, [])));
+        Err(_reason) -> false
+    }.
+
+@test
+pub shuffle_preserves_list_length(): Bool ->
+    case Random.seed(14) {
+        Ok(generator) ->
+            case accepts_int_shuffle(Random.shuffle(generator, [1, 2, 3, 4])) {
+                {_next, values} -> assert_equal(4, values.length())
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub sample_returns_requested_count(): Bool ->
+    case Random.seed(15) {
+        Ok(generator) ->
+            case accepts_int_sample(Random.sample(generator, [1, 2, 3, 4], 2)) {
+                Ok({_next, values}) -> assert_equal(2, values.length());
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub zero_size_sample_returns_empty_list(): Bool ->
+    case Random.seed(15) {
+        Ok(generator) ->
+            case accepts_int_sample(Random.sample(generator, [1, 2, 3, 4], 0)) {
+                Ok({_next, values}) -> assert_equal(0, values.length());
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub oversized_sample_returns_typed_error(): Bool ->
+    case Random.seed(16) {
+        Ok(generator) -> assert(is_err(Random.sample(generator, [1, 2], 3)));
+        Err(_reason) -> false
+    }.
+
+@test
+pub negative_sample_size_returns_typed_error(): Bool ->
+    case Random.seed(17) {
+        Ok(generator) -> assert(is_err(Random.sample(generator, [1, 2], -1)));
+        Err(_reason) -> false
+    }.
+
+@test
+pub entropy_generator_can_draw_integer(): Bool ->
+    case accepts_int_draw(Random.int(accepts_generator(Random.entropy()))) {
+        {_next, _value} -> true
+    }.

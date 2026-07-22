@@ -1,0 +1,34 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGAnimatedNumberList
+ */
+module std.js.Dom.SVGAnimatedNumberList.
+
+/**
+ * The **`SVGAnimatedNumberList`** interface represents a list of attributes of type \<number> which can be animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumberList)
+ */
+pub opaque type SVGAnimatedNumberList.
+
+/**
+ * The **`animVal`** read-only property of the SVGAnimatedNumberList interface represents the current animated value of an animatable attribute that accepts a list of `<number>` values.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumberList/animVal)
+ */
+pub (value: SVGAnimatedNumberList) anim_val(): SVGNumberList.
+
+/**
+ * The **`baseVal`** read-only property of the SVGAnimatedNumberList interface represents the base (non-animated) value of an animatable attribute that accepts a list of `<number>` values.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumberList/baseVal)
+ */
+pub (value: SVGAnimatedNumberList) base_val(): SVGNumberList.

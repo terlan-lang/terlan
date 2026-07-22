@@ -2,7 +2,7 @@ module a0_13_constructor_pattern.
 
 pub constructor Some {
     (value: Dynamic): Dynamic ->
-        {:some, value}
+        {some, value}
 }.
 
 pub unwrap(input: Dynamic): Dynamic ->

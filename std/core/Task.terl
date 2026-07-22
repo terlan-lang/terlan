@@ -7,11 +7,9 @@
  * JavaScript promises, native worker commands, or an unsupported-target
  * diagnostic.
  */
-
 module std.core.Task.
 
-import type std.core.Error.
-import type std.core.Result.
+import type std.core.{Error, Result}.
 
 /**
  * Task represents asynchronous work that produces `T`.

@@ -1,0 +1,29 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface VideoFrameInit
+ */
+module std.js.Dom.VideoFrameInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type VideoFrameInit.
+
+pub (value: VideoFrameInit) alpha(): AlphaOption.
+
+pub (value: VideoFrameInit) display_height(): JsNumber.
+
+pub (value: VideoFrameInit) display_width(): JsNumber.
+
+pub (value: VideoFrameInit) duration(): JsNumber.
+
+pub (value: VideoFrameInit) timestamp(): JsNumber.
+
+pub (value: VideoFrameInit) visible_rect(): DOMRectInit.

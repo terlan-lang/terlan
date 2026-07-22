@@ -1,0 +1,49 @@
+/**
+ * Property distribution metadata coverage.
+ *
+ * `std.test.PropertyDistributionTest` validates first-class property
+ * distribution reports for labels, classifications, collected values,
+ * coverage thresholds, and discard-limit diagnostics.
+ */
+module std.test.PropertyDistributionTest.
+
+import std.collections.List.
+import std.test.Gen.{classify, collect, cover, discard_ratio_report, discard_report, elements, int_range, label}.
+import std.test.Test.{assert_equal}.
+
+/**
+ * Verifies distribution observations remain stable.
+ *
+ * Input: explicit labels, classifications, collected values, and coverage
+ * thresholds.
+ * Output: `true` when distribution helpers retain observations and weak
+ * coverage fails.
+ * Transformation: checks the public metadata shape used by property reports.
+ */
+@test
+pub distribution_observations_are_stable(): Bool ->
+    assert_equal({true, ["positive"]}, label("positive", true)) and assert_equal({true, ["small"]}, classify(true, "small", true)) and assert_equal({true, List.new[String]()}, classify(false, "large", true)) and assert_equal({true, ["size=3"]}, collect("size=3", true)) and assert_equal({true, ["small"]}, cover(2, 3, "small", true)) and assert_equal({false, ["large"]}, cover(4, 3, "large", true)).
+
+/**
+ * Verifies discard-limit diagnostics report counts and failures.
+ *
+ * Input: generator, discard limits, and predicate accepting one value.
+ * Output: `true` when reports record accepted and exceeded discard limits.
+ * Transformation: checks stable diagnostics for conditional properties.
+ */
+@test
+pub discard_report_counts_rejected_samples(): Bool ->
+    assert_equal({true, 2, "ok"}, discard_report(int_range(1, 3), 2, (value) -> value == 3)) and assert_equal({false, 2, "discard limit exceeded"}, discard_report(int_range(1, 3), 1, (value) -> value == 3)).
+
+/**
+ * Verifies discard-ratio diagnostics report counts and failures.
+ *
+ * Input: generator, percent discard limits, and predicates.
+ * Output: `true` when ratio reports record accepted and exceeded discard
+ * ratios, including the empty-generator boundary.
+ * Transformation: checks QuickCheck-style maximum discard ratio without
+ * relying on floating-point rounding.
+ */
+@test
+pub discard_ratio_report_counts_rejected_percentage(): Bool ->
+    assert_equal({true, 2, "ok"}, discard_ratio_report(int_range(1, 4), 50, (value) -> value > 2)) and assert_equal({false, 2, "discard ratio exceeded"}, discard_ratio_report(int_range(1, 4), 49, (value) -> value > 2)) and assert_equal({true, 0, "ok"}, discard_ratio_report(elements([]), 0, (value) -> value == value)).

@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioDataInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=11494950253324011465
-interface_hash=12705270642640739566
-interface_doc_hash=12705270642640739566
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=13428807120087870695
+interface_hash=12069439514241220350
+interface_doc_hash=12069439514241220350
 deps=0

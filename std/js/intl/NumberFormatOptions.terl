@@ -1,0 +1,44 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface NumberFormatOptions
+ */
+module std.js.Intl.NumberFormatOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type NumberFormatOptions.
+
+pub (value: NumberFormatOptions) style(): Option[NumberFormatOptionsStyle] ->
+    native.
+
+pub (value: NumberFormatOptions) currency(): Option[std.js.String.JsString] ->
+    native.
+
+pub (value: NumberFormatOptions) currency_display(): Option[NumberFormatOptionsCurrencyDisplay] ->
+    native.
+
+pub (value: NumberFormatOptions) use_grouping(): Option[NumberFormatOptionsUseGrouping] ->
+    native.
+
+pub (value: NumberFormatOptions) minimum_integer_digits(): Option[JsNumber] ->
+    native.
+
+pub (value: NumberFormatOptions) minimum_fraction_digits(): Option[JsNumber] ->
+    native.
+
+pub (value: NumberFormatOptions) maximum_fraction_digits(): Option[JsNumber] ->
+    native.
+
+pub (value: NumberFormatOptions) minimum_significant_digits(): Option[JsNumber] ->
+    native.
+
+pub (value: NumberFormatOptions) maximum_significant_digits(): Option[JsNumber] ->
+    native.

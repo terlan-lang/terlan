@@ -5,12 +5,13 @@
  * surface. It is not part of portable `std.collections`; targets must provide
  * an indexed-storage capability before this module can execute.
  */
-
 module std.native.collections.Vector.
 
-import type std.collections.List.
 import std.collections.Index.{IndexGet}.
-import std.core.Unit.{Unit}.
+import std.collections.List.{first}.
+import std.core.{Option, Unit}.
+
+import type std.collections.List.
 
 /**
  * Vector represents a native indexed collection.
@@ -68,8 +69,7 @@ pub from_list[T](values: List[T]): Vector[T] ->
  * the vector contents.
  */
 @compiler.native {std.native.collections.vector.length}
-pub (vector: Vector[T]) length(): Int ->
-    0.
+pub (vector: Vector[T]) length(): Int -> 0.
 
 /**
  * Returns the number of values in a vector.
@@ -80,8 +80,7 @@ pub (vector: Vector[T]) length(): Int ->
  * receiver name used by algorithm-oriented code.
  */
 @compiler.native {std.native.collections.vector.length}
-pub (vector: Vector[T]) len(): Int ->
-    0.
+pub (vector: Vector[T]) len(): Int -> 0.
 
 /**
  * Returns the value at an index.
@@ -93,6 +92,31 @@ pub (vector: Vector[T]) len(): Int ->
  */
 @compiler.native {std.native.collections.vector.get_at}
 pub (vector: Vector[T]) get_at(index: Int): T ->
+    native.
+
+/**
+ * Safely returns the value at a zero-based index.
+ *
+ * Input: one `Vector[T]` receiver and one `Int` index.
+ * Output: `Some(value)` when the index is non-negative and less than the
+ * vector length; otherwise `None`.
+ * Transformation: performs one atomic native lookup that returns zero or one
+ * values, then converts that compact bridge result into ordinary typed control
+ * flow without invoking the strict `get_at` primitive.
+ */
+pub (vector: Vector[T]) get(index: Int): Option[T] ->
+    get_optional_values(vector, index).first().
+
+/**
+ * Reads zero or one value for the recoverable lookup surface.
+ *
+ * Input: one `Vector[T]` receiver and one `Int` index.
+ * Output: a singleton list for a valid index, or an empty list otherwise.
+ * Transformation: uses a bridge-stable list shape to carry a generic optional
+ * value atomically across NativeBoundary.
+ */
+@compiler.native {std.native.collections.vector.get}
+pub get_optional_values[T](vector: Vector[T], index: Int): List[T] ->
     native.
 
 /**

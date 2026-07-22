@@ -1,22 +1,33 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableStreamBYOBRequest
  */
 module std.js.Dom.ReadableStreamBYOBRequestTest.
 
 import type std.core.{Unit}.
+import type std.js.Dom.ReadableStreamBYOBRequest.
 
-import type std.js.Dom.ReadableStreamBYOBRequest.{ReadableStreamBYOBRequest}.
-
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub view_typechecks(receiver: ReadableStreamBYOBRequest): Option[ArrayBufferView[ArrayBuffer]] ->
     receiver.view().
 
-pub respond_typechecks(receiver: ReadableStreamBYOBRequest, bytes_written: std.js.Number.JsNumber): Unit ->
+pub respond_typechecks(
+    receiver: ReadableStreamBYOBRequest,
+    bytes_written: std.js.Number.JsNumber
+): Unit ->
     receiver.respond(bytes_written).
 
-pub respond_with_new_view_typechecks(receiver: ReadableStreamBYOBRequest, view: ArrayBufferView[ArrayBuffer]): Unit ->
+pub respond_with_new_view_typechecks(
+    receiver: ReadableStreamBYOBRequest,
+    view: ArrayBufferView[ArrayBuffer]
+): Unit ->
     receiver.respond_with_new_view(view).

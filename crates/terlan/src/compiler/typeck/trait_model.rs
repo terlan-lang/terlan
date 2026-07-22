@@ -4,9 +4,11 @@ use crate::terlan_hir::{ModuleInterface, ResolvedModule};
 use crate::terlan_syntax::{span::Span, SyntaxDeclarationPayload, SyntaxModuleOutput};
 
 use super::{
-    interface_qualified_type_names, interface_type_names, normalize_type_param_name,
-    parse_generic_bounds, parse_type_expr, pretty_type, qualify_type_names, substitute_type_vars,
-    syntax_declared_implements, syntax_trait_impl_to_parsed, FunctionBound, FunctionScheme, Type,
+    imported_type_names, imported_type_text_refs, interface_qualified_type_names,
+    interface_type_names, normalize_type_param_name, parse_generic_bounds,
+    parse_structural_implication_bounds, parse_type_expr, pretty_type, qualify_type_names,
+    substitute_type_vars, syntax_declared_implements, syntax_trait_impl_to_parsed, FunctionBound,
+    FunctionScheme, Type,
 };
 
 mod text;
@@ -68,6 +70,7 @@ pub(super) struct TraitMethodSignature {
     pub(super) return_type: String,
     pub(super) generic_bounds: Vec<String>,
     pub(super) has_default: bool,
+    pub(super) pure: bool,
 }
 
 /// Trait method parameter requirement.
@@ -101,6 +104,7 @@ pub(super) struct TraitMethodParamSignature {
 #[derive(Debug, Clone)]
 pub(super) struct ParsedTraitImpl {
     pub(super) target: ParsedTraitInstance,
+    pub(super) generic_params: Vec<String>,
     pub(super) for_type: Option<String>,
     pub(super) methods: Vec<ParsedMethodSignature>,
 }
@@ -143,6 +147,7 @@ pub(super) fn collect_syntax_trait_signatures(
     resolved: &ResolvedModule,
 ) -> HashMap<String, ParsedTraitSignature> {
     let mut traits = collect_imported_trait_signatures(resolved);
+    let imported_type_refs = imported_type_text_refs(&imported_type_names(resolved));
 
     for declaration in &module.declarations {
         let SyntaxDeclarationPayload::Trait {
@@ -166,13 +171,24 @@ pub(super) fn collect_syntax_trait_signatures(
                         .params
                         .iter()
                         .map(|param| TraitMethodParamSignature {
-                            ty: normalize_trait_type_text(&param.annotation.text),
+                            ty: normalize_trait_type_text(
+                                &crate::terlan_hir::qualify_syntax_type_text(
+                                    &param.annotation.text,
+                                    &imported_type_refs,
+                                ),
+                            ),
                             is_mutable: param.is_mutable,
                         })
                         .collect(),
-                    return_type: normalize_trait_type_text(&method.return_type.text),
+                    return_type: normalize_trait_type_text(
+                        &crate::terlan_hir::qualify_syntax_type_text(
+                            &method.return_type.text,
+                            &imported_type_refs,
+                        ),
+                    ),
                     generic_bounds: method.generic_bounds.clone(),
                     has_default: method.default_body.is_some(),
+                    pure: method.is_pure,
                 },
             );
         }
@@ -182,7 +198,15 @@ pub(super) fn collect_syntax_trait_signatures(
             ParsedTraitSignature {
                 type_params: params.clone(),
                 methods: method_signatures,
-                super_traits: super_traits.clone(),
+                super_traits: super_traits
+                    .iter()
+                    .map(|super_trait| {
+                        crate::terlan_hir::qualify_syntax_type_text(
+                            super_trait,
+                            &imported_type_refs,
+                        )
+                    })
+                    .collect(),
             },
         );
     }
@@ -233,6 +257,7 @@ fn collect_imported_trait_signatures(
                     return_type: normalize_trait_type_text(&method_signature.return_type),
                     generic_bounds: method_signature.generic_bounds.clone(),
                     has_default: method_signature.has_default,
+                    pure: method_signature.pure,
                 },
             );
         }
@@ -342,6 +367,7 @@ pub(super) fn collect_syntax_trait_method_calls(
         &mut methods,
         trait_signatures,
         alias_names,
+        &imported_type_text_refs(&imported_type_names(resolved)),
         &mut inheritance_cache,
     );
     collect_imported_interface_trait_method_calls(
@@ -387,7 +413,7 @@ fn collect_imported_interface_trait_method_calls(
         };
 
         for conformance in &interface.trait_conformances {
-            if !conformance.public {
+            if !conformance.public || conformance.is_negative {
                 continue;
             }
             let Some(mut implemented_trait) =
@@ -399,14 +425,22 @@ fn collect_imported_interface_trait_method_calls(
                 continue;
             }
             implemented_trait.name = imported.local_name.clone();
-            implemented_trait.type_args =
-                qualify_interface_trait_type_args(&implemented_trait.type_args, interface);
-            let for_type = qualify_interface_trait_type_text(&conformance.for_type, interface)
-                .unwrap_or_else(|| conformance.for_type.clone());
+            implemented_trait.type_args = qualify_interface_trait_type_args(
+                &implemented_trait.type_args,
+                interface,
+                &resolved.interface_map,
+            );
+            let for_type = qualify_interface_trait_type_text(
+                &conformance.for_type,
+                interface,
+                &resolved.interface_map,
+            )
+            .unwrap_or_else(|| conformance.for_type.clone());
             collect_trait_method_candidates(
                 methods,
                 &ParsedTraitImpl {
                     target: implemented_trait,
+                    generic_params: conformance.generic_params.clone(),
                     for_type: Some(for_type),
                     methods: Vec::new(),
                 },
@@ -434,13 +468,17 @@ fn collect_imported_interface_trait_method_calls(
 /// - Parses each type argument using the provider interface type namespace,
 ///   qualifies public type heads, then renders the internal type back to stable
 ///   text for ordinary trait candidate specialization.
-fn qualify_interface_trait_type_args(
+pub(super) fn qualify_interface_trait_type_args(
     type_args: &[String],
     interface: &ModuleInterface,
+    interfaces: &HashMap<String, ModuleInterface>,
 ) -> Vec<String> {
     type_args
         .iter()
-        .map(|arg| qualify_interface_trait_type_text(arg, interface).unwrap_or_else(|| arg.clone()))
+        .map(|arg| {
+            qualify_interface_trait_type_text(arg, interface, interfaces)
+                .unwrap_or_else(|| arg.clone())
+        })
         .collect()
 }
 
@@ -458,13 +496,41 @@ fn qualify_interface_trait_type_args(
 ///   unqualified type names to `module.Type`, and renders the result through
 ///   `pretty_type` so imported conformance dispatch matches consumer-side
 ///   imported type inference.
-fn qualify_interface_trait_type_text(text: &str, interface: &ModuleInterface) -> Option<String> {
+pub(super) fn qualify_interface_trait_type_text(
+    text: &str,
+    interface: &ModuleInterface,
+    interfaces: &HashMap<String, ModuleInterface>,
+) -> Option<String> {
     let mut vars = HashMap::new();
     let mut next_var = 0usize;
     let alias_names = interface_type_names(interface);
     let qualified_names = interface_qualified_type_names(interface);
     let parsed = parse_type_expr(text, &alias_names, &mut vars, &mut next_var)?;
-    Some(pretty_type(&qualify_type_names(&parsed, &qualified_names)))
+    let qualified = pretty_type(&qualify_type_names(&parsed, &qualified_names));
+    Some(qualify_default_module_type_text(&qualified, interfaces))
+}
+
+/// Resolves module shorthand to a loaded module's same-named default type.
+fn qualify_default_module_type_text(
+    text: &str,
+    interfaces: &HashMap<String, ModuleInterface>,
+) -> String {
+    let Some(mut parsed) = parse_trait_instance_from_text(text) else {
+        return text.to_string();
+    };
+    if let Some(interface) = interfaces.get(&parsed.name) {
+        if let Some(default_name) = parsed.name.rsplit('.').next().filter(|name| {
+            interface.public_types.contains(*name) || interface.opaque_types.contains(*name)
+        }) {
+            parsed.name = format!("{}.{}", parsed.name, default_name);
+        }
+    }
+    parsed.type_args = parsed
+        .type_args
+        .iter()
+        .map(|arg| qualify_default_module_type_text(arg, interfaces))
+        .collect();
+    trait_instance_key(&parsed).unwrap_or_else(|| text.to_string())
 }
 
 /// Seeds trait method lookup keys before concrete impl candidates are added.
@@ -546,6 +612,7 @@ fn collect_syntax_declared_implements_trait_method_calls(
                 &mut synthesized,
                 &ParsedTraitImpl {
                     target: implemented_trait,
+                    generic_params: Vec::new(),
                     for_type: None,
                     methods: Vec::new(),
                 },
@@ -594,13 +661,17 @@ fn collect_syntax_explicit_trait_method_calls(
     methods: &mut HashMap<(String, String), Vec<ResolvedTraitMethod>>,
     trait_signatures: &HashMap<String, ParsedTraitSignature>,
     alias_names: &HashSet<String>,
+    imported_type_refs: &HashMap<String, String>,
     inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
 ) {
     for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::TraitImpl { .. } = &declaration.payload else {
+        let SyntaxDeclarationPayload::TraitImpl {
+            is_negative: false, ..
+        } = &declaration.payload
+        else {
             continue;
         };
-        let Some(impl_decl) = syntax_trait_impl_to_parsed(declaration) else {
+        let Some(impl_decl) = syntax_trait_impl_to_parsed(declaration, imported_type_refs) else {
             continue;
         };
         let trait_name = impl_decl.target.name.clone();
@@ -744,7 +815,7 @@ fn collect_trait_method_candidates(
             continue;
         }
 
-        let specialized_bounds =
+        let mut specialized_bounds: Vec<FunctionBound> =
             parse_generic_bounds(&method_sig.generic_bounds, &method_vars, alias_names)
                 .into_iter()
                 .map(|bound| FunctionBound {
@@ -756,6 +827,11 @@ fn collect_trait_method_candidates(
                         .collect(),
                 })
                 .collect();
+        specialized_bounds.extend(parse_structural_implication_bounds(
+            &impl_decl.generic_params,
+            &arg_vars,
+            alias_names,
+        ));
 
         let specialized = FunctionScheme {
             params: parsed_params

@@ -1,0 +1,130 @@
+{
+  "schema": "terlan.std.js.type-mapping.v1",
+  "generator": "terlc",
+  "generator_profile": "typescript-standard-js-dom",
+  "generator_version": "0.0.7",
+  "input_manifest": "std/js/manifests/std_js_dom_inputs.json",
+  "categories": [
+    {
+      "id": "primitive",
+      "typescript_shape": "string, number, boolean, bigint, symbol, void, undefined, null, any, unknown, never",
+      "terlan_surface": "std.js wrappers or portable primitives when lossless",
+      "status": "supported"
+    },
+    {
+      "id": "constructor",
+      "typescript_shape": "interface constructor objects and new/call signatures",
+      "terlan_surface": "dedicated constructor modules such as std.js.ArrayConstructor",
+      "status": "supported"
+    },
+    {
+      "id": "interface",
+      "typescript_shape": "interface declarations",
+      "terlan_surface": "opaque wrapper type plus generated receiver methods",
+      "status": "supported"
+    },
+    {
+      "id": "call-signature",
+      "typescript_shape": "method and callable signatures",
+      "terlan_surface": "public functions or receiver methods with explicit argument types",
+      "status": "supported"
+    },
+    {
+      "id": "overload",
+      "typescript_shape": "same-name TypeScript overloads",
+      "terlan_surface": "same-name Terlan overload declarations preserving source order",
+      "status": "supported"
+    },
+    {
+      "id": "optional",
+      "typescript_shape": "optional parameters and optional properties",
+      "terlan_surface": "defaulted parameters or Option[T] when absence is observable",
+      "status": "supported"
+    },
+    {
+      "id": "nullable",
+      "typescript_shape": "T | null and nullable DOM returns",
+      "terlan_surface": "Option[T]",
+      "status": "supported"
+    },
+    {
+      "id": "array",
+      "typescript_shape": "Array<T> and T[]",
+      "terlan_surface": "std.js.Array[T]",
+      "status": "supported"
+    },
+    {
+      "id": "tuple",
+      "typescript_shape": "fixed TypeScript tuple types",
+      "terlan_surface": "Terlan tuple types with matching arity",
+      "status": "supported"
+    },
+    {
+      "id": "readonly-collection",
+      "typescript_shape": "ReadonlyArray, ReadonlyMap, ReadonlySet",
+      "terlan_surface": "readonly std.js wrapper modules without mutable receiver methods",
+      "status": "supported"
+    },
+    {
+      "id": "map",
+      "typescript_shape": "Map<K, V> and map-like DOM declarations",
+      "terlan_surface": "std.js.Map[K, V]",
+      "status": "supported"
+    },
+    {
+      "id": "set",
+      "typescript_shape": "Set<T> and set-like DOM declarations",
+      "terlan_surface": "std.js.Set[T]",
+      "status": "supported"
+    },
+    {
+      "id": "promise",
+      "typescript_shape": "Promise<T> and PromiseLike<T>",
+      "terlan_surface": "std.js.Promise[T] and std.js.PromiseLike[T] with explicit conversion",
+      "status": "supported"
+    },
+    {
+      "id": "iterable",
+      "typescript_shape": "Iterable<T>, Iterator<T>, array-like iteration",
+      "terlan_surface": "std.collections.Iterator[T] bridge methods where target supports iteration",
+      "status": "supported"
+    },
+    {
+      "id": "callback",
+      "typescript_shape": "function-valued parameters and callback interfaces",
+      "terlan_surface": "Terlan function types with generated wrapper aliases when named",
+      "status": "supported"
+    },
+    {
+      "id": "structural-record",
+      "typescript_shape": "object literal option bags and dictionary-like interfaces",
+      "terlan_surface": "generated struct or std.core.Object when keys are intentionally dynamic",
+      "status": "supported"
+    },
+    {
+      "id": "union",
+      "typescript_shape": "TypeScript union types",
+      "terlan_surface": "Option[T] for nullish unions, generated enum/variant surface when finite, Dynamic only when explicitly classified",
+      "status": "supported"
+    },
+    {
+      "id": "this-parameter",
+      "typescript_shape": "explicit TypeScript this parameters",
+      "terlan_surface": "receiver method when the receiver type is supported",
+      "status": "supported"
+    },
+    {
+      "id": "index-signature",
+      "typescript_shape": "string/number index signatures",
+      "terlan_surface": "IndexGet/IndexSet implementations or std.core.Object for dynamic dictionaries",
+      "status": "supported"
+    },
+    {
+      "id": "unsupported-shape",
+      "typescript_shape": "TypeScript shapes outside the current generator slice",
+      "terlan_surface": "absent generated API with explicit skip metadata",
+      "status": "unsupported",
+      "unsupported_policy": "record every skipped declaration in std/js/manifests/std_js_skipped.json with source, ts_bindgen reason, and detail"
+    }
+  ]
+}

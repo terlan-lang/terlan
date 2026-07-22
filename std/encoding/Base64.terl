@@ -2,14 +2,14 @@
  * Portable Base64 encoding contract.
  *
  * `std.encoding.Base64` exposes text-oriented Base64 helpers through a
- * target-neutral Terlan API. Its first backend is Rust/SafeNative with the
- * `base64` crate; source code sees only `String`, `Base64Error`, and `Result`.
+ * target-neutral Terlan API. Its first backend is Rust/NativeBoundary with the
+ * `base64` crate; source code sees only `String`, `Bytes`, `Base64Error`, and
+ * `Result`.
  */
-
 module std.encoding.Base64.
 
-import type std.core.Error.
-import type std.core.Result.
+import type std.core.{Error, Result}.
+import type std.vm.Bytes.
 
 /**
  * Base64Error is the portable error returned by Base64 decoding operations.
@@ -74,4 +74,52 @@ pub encode_url(text: String): String ->
  */
 @compiler.native {std.encoding.base64.decode_url}
 pub decode_url(text: String): Result[String, Base64Error] ->
+    native.
+
+/**
+ * Encodes arbitrary VM-owned bytes with the standard Base64 alphabet.
+ *
+ * Input: one immutable `Bytes` payload.
+ * Output: padded Base64 text using the standard alphabet.
+ * Transformation: passes the exact octets through the selected native
+ * capability without interpreting them as UTF-8.
+ */
+@compiler.native {std.encoding.base64.encode_bytes}
+pub encode_bytes(bytes: Bytes): String ->
+    native.
+
+/**
+ * Decodes standard Base64 text into arbitrary VM-owned bytes.
+ *
+ * Input: one strictly encoded standard Base64 string.
+ * Output: `Ok(bytes)` for valid input or `Err(Base64Error)` for malformed text.
+ * Transformation: decodes directly into VM-owned bytes without a UTF-8
+ * validation step.
+ */
+@compiler.native {std.encoding.base64.decode_bytes}
+pub decode_bytes(text: String): Result[Bytes, Base64Error] ->
+    native.
+
+/**
+ * Encodes arbitrary VM-owned bytes with the URL-safe Base64 alphabet.
+ *
+ * Input: one immutable `Bytes` payload.
+ * Output: padded Base64 text using the URL-safe alphabet.
+ * Transformation: passes the exact octets through the selected URL-safe
+ * native capability without interpreting them as UTF-8.
+ */
+@compiler.native {std.encoding.base64.encode_url_bytes}
+pub encode_url_bytes(bytes: Bytes): String ->
+    native.
+
+/**
+ * Decodes URL-safe Base64 text into arbitrary VM-owned bytes.
+ *
+ * Input: one strictly encoded URL-safe Base64 string.
+ * Output: `Ok(bytes)` for valid input or `Err(Base64Error)` for malformed text.
+ * Transformation: decodes directly into VM-owned bytes without a UTF-8
+ * validation step.
+ */
+@compiler.native {std.encoding.base64.decode_url_bytes}
+pub decode_url_bytes(text: String): Result[Bytes, Base64Error] ->
     native.

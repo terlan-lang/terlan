@@ -4,7 +4,6 @@
  * `std.vm.Timeout` gives runtime-targeted tests and runtime adapters a typed
  * duration value for receive, socket, and port operations.
  */
-
 module std.vm.Timeout.
 
 /**

@@ -1,8 +1,8 @@
 module=std.js.Dom.AuthenticationExtensionsLargeBlobInputs
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=2655087360383355753
-interface_hash=3816090851172004831
-interface_doc_hash=3816090851172004831
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=2734291501085861254
+interface_hash=18355535826998956886
+interface_doc_hash=18355535826998956886
 deps=0

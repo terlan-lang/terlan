@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::{check_dir_phase_manifest_path, parse_check_args, validate_directory_module_layout};
+use super::{check_dir_phase_manifest_path, parse_check_args};
 
 fn args(items: &[&str]) -> Vec<String> {
     items.iter().map(|item| (*item).to_string()).collect()
@@ -59,29 +59,6 @@ fn parse_check_args_rejects_missing_path_and_extra_positionals() {
         parse_check_args(&args(&["src/app/Main.terl", "src/app/Other.terl"]))
             .expect_err("extra path"),
         "unexpected positional argument: src/app/Other.terl"
-    );
-}
-
-#[test]
-fn validate_directory_module_layout_accepts_path_derived_module_name() {
-    let root = Path::new("src");
-    let file = Path::new("src/app/Main.terl");
-
-    assert_eq!(
-        validate_directory_module_layout(root, file, "app.Main"),
-        Ok(())
-    );
-}
-
-#[test]
-fn validate_directory_module_layout_reports_expected_module_name() {
-    let root = Path::new("src");
-    let file = Path::new("src/app/Main.terl");
-    let error = validate_directory_module_layout(root, file, "app.Wrong").expect_err("layout");
-
-    assert_eq!(
-        error,
-        "module declaration `app.Wrong` does not match source path `src/app/Main.terl`; expected `module app.Main.`"
     );
 }
 

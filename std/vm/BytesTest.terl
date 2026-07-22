@@ -1,0 +1,29 @@
+module std.vm.BytesTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.Bytes.{concat, from_list}.
+
+@test
+pub byte_list_roundtrip_preserves_octet_boundaries(): Bool ->
+    let bytes = from_list([0, 127, 255]);
+    assert_equal([0, 127, 255], bytes.to_list()).
+
+@test
+pub empty_byte_list_roundtrip_is_stable(): Bool ->
+    let bytes = from_list([]);
+    assert_equal(0, bytes.length()).
+
+@test
+pub byte_slice_accepts_start_middle_and_end_boundaries(): Bool ->
+    let bytes = from_list([65, 66, 67, 68]);
+    assert_equal(from_list([]), bytes.slice(0, 0));
+    assert_equal(from_list([66, 67]), bytes.slice(1, 2));
+    assert_equal(from_list([68]), bytes.slice(3, 1));
+    assert_equal(from_list([]), bytes.slice(4, 0)).
+
+@test
+pub byte_concat_replaces_untyped_nested_iolist_flattening(): Bool ->
+    let prefix = from_list([65]);
+    let middle = from_list([66, 67]);
+    let suffix = from_list([68]);
+    assert_equal(from_list([65, 66, 67, 68]), concat(concat(prefix, middle), suffix)).

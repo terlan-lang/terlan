@@ -27,6 +27,7 @@ module std.core.Atom.
 ///    std.core.Atom.equal(Ready, Ready).
 /// ```
 
+@pure
 pub equal[T](left: T, right: T): Bool.
 
 /// Renders a singleton atom-backed value as canonical text.
@@ -46,4 +47,5 @@ pub equal[T](left: T, right: T): Bool.
 ///    std.core.Atom.to_string(Ready).
 /// ```
 
+@pure
 pub to_string(value: Atom): String.

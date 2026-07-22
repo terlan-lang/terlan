@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLOptionsCollection
  */
 module std.js.Dom.HTMLOptionsCollectionTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.HTMLOptionsCollection.{HTMLOptionsCollection}.
-
+import type std.js.Dom.HTMLOptionsCollection.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub length_typechecks(receiver: HTMLOptionsCollection): JsNumber ->
     receiver.length().
@@ -20,7 +24,11 @@ pub length_typechecks(receiver: HTMLOptionsCollection): JsNumber ->
 pub selected_index_typechecks(receiver: HTMLOptionsCollection): JsNumber ->
     receiver.selected_index().
 
-pub add_typechecks(receiver: HTMLOptionsCollection, element: HTMLOptGroupElement | HTMLOptionElement, before: Option[HTMLElement | JsNumber]): Unit ->
+pub add_typechecks(
+    receiver: HTMLOptionsCollection,
+    element: HTMLOptGroupElement | HTMLOptionElement,
+    before: Option[HTMLElement | JsNumber]
+): Unit ->
     receiver.add(element, before).
 
 pub remove_typechecks(receiver: HTMLOptionsCollection, index: JsNumber): Unit ->

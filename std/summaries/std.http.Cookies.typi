@@ -144,7 +144,7 @@ pub set_header_options(name: String, value: String, options: Options): String.
 /// Output: serialized `Set-Cookie` header value.
 /// Transformation: delegates validation and deterministic serialization to the
 /// Rust HTTP adapter while keeping the source API ready for a future `Options`
-/// record wrapper once records can cross SafeNative directly.
+/// record wrapper once records can cross NativeBoundary directly.
 
 pub set_header_with_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): String.
 

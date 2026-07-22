@@ -1,24 +1,46 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasRect
  */
 module std.js.Dom.CanvasRectTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.CanvasRect.{CanvasRect}.
-
+import type std.js.Dom.CanvasRect.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub clear_rect_typechecks(receiver: CanvasRect, x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->
+pub clear_rect_typechecks(
+    receiver: CanvasRect,
+    x: JsNumber,
+    y: JsNumber,
+    w: JsNumber,
+    h: JsNumber
+): Unit ->
     receiver.clear_rect(x, y, w, h).
 
-pub fill_rect_typechecks(receiver: CanvasRect, x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->
+pub fill_rect_typechecks(
+    receiver: CanvasRect,
+    x: JsNumber,
+    y: JsNumber,
+    w: JsNumber,
+    h: JsNumber
+): Unit ->
     receiver.fill_rect(x, y, w, h).
 
-pub stroke_rect_typechecks(receiver: CanvasRect, x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->
+pub stroke_rect_typechecks(
+    receiver: CanvasRect,
+    x: JsNumber,
+    y: JsNumber,
+    w: JsNumber,
+    h: JsNumber
+): Unit ->
     receiver.stroke_rect(x, y, w, h).

@@ -1,23 +1,13 @@
 use super::*;
 
+mod expression_fields;
 mod helpers;
 mod let_bindings;
 mod postfix;
 mod sql;
 
+use expression_fields::ExprFieldKind;
 use sql::parse_sql_interpolations;
-
-/// Expression field grammar context for key class and separator validation.
-///
-/// Inputs: selected by the caller based on the production being parsed.
-/// Output: passed to expression-field parsing as a compact policy value.
-/// Transformation: distinguishes Terlan source records/templates from Erlang
-/// record interop without changing the emitted field representation.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ExprFieldKind {
-    Map,
-    TerlanRecord,
-}
 
 impl Parser {
     /// Parses a full expression.
@@ -82,7 +72,7 @@ impl Parser {
 
         let Expr::Index(collection, index) = left else {
             return Err(ParseError {
-                message: "assignment is only supported for indexed collection updates".to_string(),
+                message: "plain `=` is not assignment or pattern matching in Terlan; use `let name = value` to bind, `==` to compare, `case` to match shapes, or `collection[index] = value` for indexed collection updates".to_string(),
                 span: self.previous().span(),
             });
         };
@@ -104,7 +94,7 @@ impl Parser {
     ///
     /// Transformation:
     /// - Applies precedence climbing over unary operands and rejects deprecated
-    ///   Erlang-style equality/inequality operators at parse time.
+    ///   Vm-style equality/inequality operators at parse time.
     fn parse_binary_expr(&mut self, min_prec: u8) -> ParseResult<Expr> {
         let mut left = self.parse_unary_expr()?;
 
@@ -154,9 +144,17 @@ impl Parser {
                 TokenKind::GtEq => (Some(BinaryOp::GtEq), 5),
                 TokenKind::DivRem => (Some(BinaryOp::DivRem), 7),
                 TokenKind::Rem => (Some(BinaryOp::Rem), 7),
+                TokenKind::DotDot => (Some(BinaryOp::Range), 6),
+                TokenKind::In => (Some(BinaryOp::In), 5),
                 TokenKind::And => (Some(BinaryOp::And), 4),
                 TokenKind::Or => (Some(BinaryOp::Or), 3),
                 TokenKind::PipeForward => (Some(BinaryOp::PipeForward), 2),
+                TokenKind::FatArrow => {
+                    return Err(ParseError {
+                        message: "`=>` is the compile-time implication arrow; it is not a runtime expression operator".to_string(),
+                        span: self.current().span(),
+                    });
+                }
                 _ => (None, 0),
             };
 
@@ -208,6 +206,8 @@ impl Parser {
             TokenKind::GtEq,
             TokenKind::DivRem,
             TokenKind::Rem,
+            TokenKind::DotDot,
+            TokenKind::In,
             TokenKind::And,
             TokenKind::Or,
             TokenKind::PipeForward,
@@ -247,7 +247,7 @@ impl Parser {
             }
             TokenKind::Float => {
                 self.bump();
-                Expr::Float(token.text.parse::<f64>().unwrap_or(0.0))
+                Expr::Float(parse_float_literal_token(&token)?)
             }
             TokenKind::Minus => {
                 self.bump();
@@ -282,10 +282,7 @@ impl Parser {
                 self.expect(TokenKind::RParen)?;
                 Expr::Unquote(Box::new(inner))
             }
-            TokenKind::Colon => {
-                self.bump();
-                Expr::Atom(self.expect_atom_literal_name()?)
-            }
+            TokenKind::Colon => Expr::AtomLiteral(self.parse_raw_atom_literal_payload()?),
             TokenKind::Question => {
                 self.bump();
                 let name = self.expect_ident()?;
@@ -337,6 +334,9 @@ impl Parser {
                 }
             }
             TokenKind::Atom | TokenKind::Var => {
+                if self.starts_binary_layout() {
+                    return self.parse_binary_layout_expr();
+                }
                 if token.text == "Atom"
                     && matches!(
                         self.tokens.get(self.pos + 1),
@@ -385,6 +385,16 @@ impl Parser {
                     {
                         let type_args = self.parse_required_trait_call_type_arg_text()?;
                         self.expect(TokenKind::Dot)?;
+                        if self.current().kind == TokenKind::Var
+                            && super::constants::is_screaming_snake_case(&self.current().text)
+                        {
+                            let field = self.current().text.clone();
+                            self.bump();
+                            return Ok(Expr::FieldAccess {
+                                value: Box::new(Expr::Var(format!("{}{type_args}", token.text))),
+                                field,
+                            });
+                        }
                         let fun =
                             self.expect_lower_ident("expected lower-case trait method name")?;
                         self.expect(TokenKind::LParen)?;
@@ -520,7 +530,7 @@ impl Parser {
             }
             TokenKind::Binary => {
                 return Err(ParseError {
-                    message: "Erlang binary literal syntax is not valid Terlan source; use a normal string literal".to_string(),
+                    message: "Vm binary literal syntax is not valid Terlan source; use a normal string literal".to_string(),
                     span: token.span(),
                 });
             }
@@ -537,25 +547,44 @@ impl Parser {
                         let generator = self.parse_list_generator();
                         match generator {
                             Ok((pattern, source)) => {
-                                let mut guard = None;
+                                let mut generators = vec![
+                                    crate::terlan_syntax::parse_tree::ListComprehensionGenerator {
+                                        pattern,
+                                        source: Box::new(source),
+                                    },
+                                ];
+                                let mut guards = Vec::new();
                                 while self.consume_if(TokenKind::Comma) {
                                     let qualifier_checkpoint = self.pos;
-                                    if self.parse_list_generator().is_ok() {
-                                        return Err(ParseError {
-                                            message: "multiple list comprehension generators are not supported in the formal parser path".to_string(),
-                                            span: self.current().span(),
-                                        });
+                                    if let Ok((pattern, source)) = self.parse_list_generator() {
+                                        if !guards.is_empty() {
+                                            return Err(ParseError {
+                                                message: "list comprehension generators must precede filter expressions".to_string(),
+                                                span: self.current().span(),
+                                            });
+                                        }
+                                        generators.push(
+                                            crate::terlan_syntax::parse_tree::ListComprehensionGenerator {
+                                                pattern,
+                                                source: Box::new(source),
+                                            },
+                                        );
+                                        continue;
                                     }
                                     self.pos = qualifier_checkpoint;
-                                    let filter = self.parse_expr()?;
-                                    guard = Some(combine_comprehension_filter_guard(guard, filter));
+                                    guards.push(self.parse_expr()?);
+                                }
+                                if self.check(TokenKind::Where) {
+                                    return Err(ParseError {
+                                        message: "list comprehension filters use comma-separated boolean expressions; `where` is only for pattern and clause guards".to_string(),
+                                        span: self.current().span(),
+                                    });
                                 }
                                 self.expect(TokenKind::RBracket)?;
                                 Expr::ListComprehension {
                                     expr: Box::new(first),
-                                    pattern,
-                                    source: Box::new(source),
-                                    guard,
+                                    generators,
+                                    guards,
                                 }
                             }
                             Err(_) => {
@@ -711,7 +740,7 @@ impl Parser {
                 return Err(ParseError {
                     message: format!("unexpected token {:?} in expression", other),
                     span: token.span(),
-                })
+                });
             }
         };
 

@@ -1,0 +1,138 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "start",
+      "operation": "postgres.libpq.connection.start"
+    },
+    {
+      "arity": 1,
+      "name": "dispose_connection",
+      "operation": "postgres.libpq.connection.dispose"
+    },
+    {
+      "arity": 1,
+      "name": "socket",
+      "operation": "postgres.libpq.connection.socket"
+    },
+    {
+      "arity": 1,
+      "name": "poll_connect",
+      "operation": "postgres.libpq.connection.poll_connect"
+    },
+    {
+      "arity": 1,
+      "name": "error_length",
+      "operation": "postgres.libpq.connection.error_length"
+    },
+    {
+      "arity": 1,
+      "name": "error_bytes",
+      "operation": "postgres.libpq.connection.error_bytes"
+    },
+    {
+      "arity": 1,
+      "name": "clear_parameters",
+      "operation": "postgres.libpq.connection.clear_parameters"
+    },
+    {
+      "arity": 1,
+      "name": "push_null",
+      "operation": "postgres.libpq.connection.push_null"
+    },
+    {
+      "arity": 2,
+      "name": "push_text",
+      "operation": "postgres.libpq.connection.push_text"
+    },
+    {
+      "arity": 2,
+      "name": "send_query",
+      "operation": "postgres.libpq.connection.send_query"
+    },
+    {
+      "arity": 2,
+      "name": "send_batch",
+      "operation": "postgres.libpq.connection.send_batch"
+    },
+    {
+      "arity": 1,
+      "name": "consume_input",
+      "operation": "postgres.libpq.connection.consume_input"
+    },
+    {
+      "arity": 1,
+      "name": "is_busy",
+      "operation": "postgres.libpq.connection.is_busy"
+    },
+    {
+      "arity": 1,
+      "name": "next_result",
+      "operation": "postgres.libpq.connection.next_result"
+    },
+    {
+      "arity": 1,
+      "name": "abort",
+      "operation": "postgres.libpq.connection.abort"
+    },
+    {
+      "arity": 1,
+      "name": "dispose_result",
+      "operation": "postgres.libpq.result.dispose"
+    },
+    {
+      "arity": 1,
+      "name": "status",
+      "operation": "postgres.libpq.result.status"
+    },
+    {
+      "arity": 1,
+      "name": "row_count",
+      "operation": "postgres.libpq.result.row_count"
+    },
+    {
+      "arity": 1,
+      "name": "column_count",
+      "operation": "postgres.libpq.result.column_count"
+    },
+    {
+      "arity": 2,
+      "name": "select_column_name",
+      "operation": "postgres.libpq.result.select_column_name"
+    },
+    {
+      "arity": 2,
+      "name": "column_oid",
+      "operation": "postgres.libpq.result.column_oid"
+    },
+    {
+      "arity": 3,
+      "name": "select_value",
+      "operation": "postgres.libpq.result.select_value"
+    },
+    {
+      "arity": 1,
+      "name": "value_length",
+      "operation": "postgres.libpq.result.value_length"
+    },
+    {
+      "arity": 1,
+      "name": "value_bytes",
+      "operation": "postgres.libpq.result.value_bytes"
+    },
+    {
+      "arity": 1,
+      "name": "value_is_null",
+      "operation": "postgres.libpq.result.value_is_null"
+    },
+    {
+      "arity": 1,
+      "name": "affected_rows",
+      "operation": "postgres.libpq.result.affected_rows"
+    }
+  ],
+  "module": "terlan_libpq_driver_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "terlan_libpq.Driver"
+}

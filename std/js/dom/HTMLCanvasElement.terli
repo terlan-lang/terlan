@@ -1,0 +1,78 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLCanvasElement
+ */
+module std.js.Dom.HTMLCanvasElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLCanvasElement`** interface provides properties and methods for manipulating the layout and presentation of canvas elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement)
+ */
+pub opaque type HTMLCanvasElement.
+
+/**
+ * The **`HTMLCanvasElement.height`** property is a positive `integer` reflecting the `height` HTML attribute of the canvas element interpreted in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/height)
+ */
+pub (value: HTMLCanvasElement) height(): JsNumber.
+
+/**
+ * The **`HTMLCanvasElement.width`** property is a positive `integer` reflecting the `width` HTML attribute of the canvas element interpreted in CSS pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/width)
+ */
+pub (value: HTMLCanvasElement) width(): JsNumber.
+
+/**
+ * The **`captureStream()`** method of the HTMLCanvasElement interface returns a MediaStream which includes a CanvasCaptureMediaStreamTrack containing a real-time video capture of the canvas's contents.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/captureStream)
+ */
+pub (value: HTMLCanvasElement) capture_stream(frame_request_rate: JsNumber): MediaStream.
+
+/**
+ * The **`HTMLCanvasElement.toBlob()`** method creates a Blob object representing the image contained in the canvas.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toBlob)
+ */
+pub (value: HTMLCanvasElement) to_blob(callback: BlobCallback, type_: JsString, quality: JsNumber): Unit.
+
+/**
+ * The **`HTMLCanvasElement.toDataURL()`** method returns a data URL containing a representation of the image in the format specified by the `type` parameter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL)
+ */
+pub (value: HTMLCanvasElement) to_data_url(type_: JsString, quality: JsNumber): JsString.
+
+/**
+ * The **`HTMLCanvasElement.transferControlToOffscreen()`** method transfers control to an OffscreenCanvas object, either on the main thread or on a worker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/transferControlToOffscreen)
+ */
+pub (value: HTMLCanvasElement) transfer_control_to_offscreen(): OffscreenCanvas.
+
+pub (value: HTMLCanvasElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLCanvasElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

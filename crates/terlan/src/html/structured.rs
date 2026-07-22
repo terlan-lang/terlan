@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use quick_xml::events::{BytesRef, BytesStart, Event};
+use quick_xml::reader::Reader;
 use serde_json::Value;
 use yaml_rust::YamlLoader;
 
@@ -16,7 +18,7 @@ use crate::terlan_html::{
 /// Output:
 /// - `Ok(())` when the target validator accepts the source.
 /// - `Err(Vec<HtmlDiagnostic>)` when the suffix is unknown, validation fails,
-///   or the target validator is not implemented yet.
+///   or the target structure is invalid.
 ///
 /// Transformation:
 /// - Classifies the path with the shared artifact-template target contract and
@@ -40,8 +42,171 @@ pub fn validate_artifact_template_structure(
         ArtifactTemplateTarget::Json => validate_json_template_structure(source, path),
         ArtifactTemplateTarget::Toml => validate_toml_template_structure(source, path),
         ArtifactTemplateTarget::Yaml => validate_yaml_template_structure(source, path),
+        ArtifactTemplateTarget::Xml => validate_xml_template_structure(source, path),
         ArtifactTemplateTarget::Text => validate_text_template_structure(source, path),
     }
+}
+
+/// Validates a `.terl.xml` template's static XML structure.
+///
+/// Inputs:
+/// - `source`: XML source containing optional `${...}` text or quoted-attribute
+///   interpolation islands.
+/// - `path`: source path used for diagnostics.
+///
+/// Output:
+/// - `Ok(())` for one well-formed XML document root.
+/// - `Err(Vec<HtmlDiagnostic>)` for malformed interpolation, malformed XML,
+///   multiple roots, non-whitespace outside the root, or DTD declarations.
+///
+/// Transformation:
+/// - Masks interpolation with XML-compatible text that remains invalid as an
+///   element or attribute name, then delegates tokenization and name matching
+///   to `quick-xml` with all well-formedness checks enabled.
+pub fn validate_xml_template_structure(
+    source: impl AsRef<str>,
+    path: impl AsRef<Path>,
+) -> Result<(), Vec<HtmlDiagnostic>> {
+    let path = path.as_ref();
+    let masked = mask_plain_interpolations(
+        source.as_ref(),
+        path,
+        "XML template interpolation",
+        "__terlan interpolation__",
+    )?;
+    let mut reader = Reader::from_str(&masked);
+    reader.config_mut().enable_all_checks(true);
+    let mut depth = 0usize;
+    let mut root_seen = false;
+    let mut declaration_seen = false;
+
+    loop {
+        let event = reader
+            .read_event()
+            .map_err(|error| invalid_xml(path, error))?;
+        match event {
+            Event::Start(element) => {
+                validate_xml_attributes(&element, path)?;
+                enter_xml_root(path, depth, &mut root_seen)?;
+                depth += 1;
+            }
+            Event::Empty(element) => {
+                validate_xml_attributes(&element, path)?;
+                enter_xml_root(path, depth, &mut root_seen)?;
+            }
+            Event::End(_) => {
+                depth = depth.checked_sub(1).ok_or_else(|| {
+                    invalid_xml_message(path, "closing element has no matching start element")
+                })?;
+            }
+            Event::Text(text)
+                if depth == 0 && !text.iter().all(|byte: &u8| byte.is_ascii_whitespace()) =>
+            {
+                return Err(invalid_xml_message(
+                    path,
+                    "non-whitespace content appears outside the document root",
+                ));
+            }
+            Event::CData(_) | Event::GeneralRef(_) if depth == 0 => {
+                return Err(invalid_xml_message(
+                    path,
+                    "content appears outside the document root",
+                ));
+            }
+            Event::DocType(_) => {
+                return Err(invalid_xml_message(
+                    path,
+                    "document type declarations are not supported",
+                ));
+            }
+            Event::Decl(_) => {
+                if declaration_seen || root_seen {
+                    return Err(invalid_xml_message(
+                        path,
+                        "XML declaration must appear once before the document root",
+                    ));
+                }
+                declaration_seen = true;
+            }
+            Event::GeneralRef(reference) => validate_xml_reference(&reference, path)?,
+            Event::Eof => break,
+            Event::Text(_) | Event::CData(_) | Event::Comment(_) | Event::PI(_) => {}
+        }
+    }
+
+    if !root_seen {
+        return Err(invalid_xml_message(
+            path,
+            "document must contain one root element",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_xml_attributes(
+    element: &BytesStart<'_>,
+    path: &Path,
+) -> Result<(), Vec<HtmlDiagnostic>> {
+    let mut attributes = element.attributes();
+    attributes.with_checks(true);
+    for attribute in attributes {
+        let attribute = attribute.map_err(|error| invalid_xml(path, error))?;
+        attribute
+            .unescape_value()
+            .map_err(|error| invalid_xml(path, error))?;
+    }
+    Ok(())
+}
+
+fn validate_xml_reference(
+    reference: &BytesRef<'_>,
+    path: &Path,
+) -> Result<(), Vec<HtmlDiagnostic>> {
+    if reference.is_char_ref() {
+        reference
+            .resolve_char_ref()
+            .map_err(|error| invalid_xml(path, error))?;
+        return Ok(());
+    }
+    let name = reference
+        .decode()
+        .map_err(|error| invalid_xml(path, error))?;
+    if matches!(name.as_ref(), "amp" | "lt" | "gt" | "apos" | "quot") {
+        return Ok(());
+    }
+    Err(invalid_xml_message(
+        path,
+        &format!("undeclared entity reference `{name}`"),
+    ))
+}
+
+fn enter_xml_root(
+    path: &Path,
+    depth: usize,
+    root_seen: &mut bool,
+) -> Result<(), Vec<HtmlDiagnostic>> {
+    if depth != 0 {
+        return Ok(());
+    }
+    if *root_seen {
+        return Err(invalid_xml_message(
+            path,
+            "document contains more than one root element",
+        ));
+    }
+    *root_seen = true;
+    Ok(())
+}
+
+fn invalid_xml(path: &Path, error: impl std::fmt::Display) -> Vec<HtmlDiagnostic> {
+    invalid_xml_message(path, &error.to_string())
+}
+
+fn invalid_xml_message(path: &Path, detail: &str) -> Vec<HtmlDiagnostic> {
+    vec![HtmlDiagnostic::new(
+        Some(path.to_path_buf()),
+        format!("invalid XML template structure: {detail}"),
+    )]
 }
 
 /// Validates a `.terl.toml` template's static TOML structure.

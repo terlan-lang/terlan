@@ -31,6 +31,12 @@ pub(super) fn infer_syntax_remote_call(
         .get(&trait_remote_name)
         .map(String::as_str)
         .unwrap_or(trait_remote_name.as_str());
+    if let Err(message) =
+        require_explicit_process_value_type(resolved_module_name, function_name, type_args)
+    {
+        errors.push(message);
+        return Type::Dynamic;
+    }
 
     if resolved_module_name == "Html" && function_name == "raw" {
         if arg_types.len() != 1 {
@@ -56,6 +62,17 @@ pub(super) fn infer_syntax_remote_call(
             .iter()
             .map(|arg| apply_subst(arg, subst))
             .collect::<Vec<_>>();
+        if explicit_trait_type_arg.is_none() {
+            if let Some(ty) = infer_trait_method_call_from_current_bounds(
+                resolved_module_name,
+                function_name,
+                &lookup_arg_types,
+                ctx,
+                subst,
+            ) {
+                return ty;
+            }
+        }
         let dispatch_arg_types = lookup_arg_types
             .iter()
             .map(|arg| qualify_imported_named_heads(arg, ctx))
@@ -76,34 +93,39 @@ pub(super) fn infer_syntax_remote_call(
                 let mut matching = None::<usize>;
                 let mut matches = 0usize;
                 for (index, impl_candidate) in impls.iter().enumerate() {
-                    if !explicit_trait_type_arg.as_ref().is_none_or(|expected| {
-                        trait_candidate_matches_explicit_type_arg(
-                            impl_candidate,
-                            expected,
-                            ctx,
-                            subst,
-                        )
-                    }) {
+                    let candidate_subst: HashMap<TypeVarId, Type> = HashMap::new();
+                    let explicit_matches =
+                        explicit_trait_type_arg.as_ref().is_none_or(|expected| {
+                            trait_candidate_matches_explicit_type_arg(
+                                impl_candidate,
+                                expected,
+                                ctx,
+                                &candidate_subst,
+                            )
+                        });
+                    if !explicit_matches {
                         continue;
                     }
-                    if !trait_method_candidate_matches_call(
+                    let candidate_matches = trait_method_candidate_matches_call(
                         impl_candidate,
                         &dispatch_arg_types,
                         ctx,
-                        subst,
-                    ) {
+                        &candidate_subst,
+                    );
+                    if !candidate_matches {
                         continue;
                     }
                     let mut trial_subst = subst.clone();
-                    if infer_function_with_bounds(
-                        &impl_candidate.scheme,
+                    let qualified_scheme =
+                        qualify_imported_function_scheme(&impl_candidate.scheme, ctx);
+                    let infer_result = infer_function_with_bounds(
+                        &qualified_scheme,
                         None,
                         &dispatch_arg_types,
                         ctx,
                         &mut trial_subst,
-                    )
-                    .is_ok()
-                    {
+                    );
+                    if infer_result.is_ok() {
                         matches += 1;
                         if matching.is_none() {
                             matching = Some(index);
@@ -136,8 +158,10 @@ pub(super) fn infer_syntax_remote_call(
                 let mut inferred_subst = subst.clone();
                 let mut success = None::<(Type, HashMap<TypeVarId, Type>)>;
                 if let Some(impl_candidate) = impls.get(index) {
+                    let qualified_scheme =
+                        qualify_imported_function_scheme(&impl_candidate.scheme, ctx);
                     if let Ok(ty) = infer_function_with_bounds(
-                        &impl_candidate.scheme,
+                        &qualified_scheme,
                         None,
                         &dispatch_arg_types,
                         ctx,
@@ -389,14 +413,12 @@ pub(crate) fn trait_method_candidate_matches_call(
         if unify(first_param_type, first_arg_type, &mut trial_subst).is_ok() {
             return true;
         }
-
         let param_expanded = expand_type_aliases(first_param_type, ctx.aliases);
         let arg_expanded = expand_type_aliases(first_arg_type, ctx.aliases);
         let mut expanded_subst = subst.clone();
         if unify(&param_expanded, &arg_expanded, &mut expanded_subst).is_ok() {
             return true;
         }
-
         let param_qualified = qualify_imported_named_heads(first_param_type, ctx);
         let arg_qualified = qualify_imported_named_heads(first_arg_type, ctx);
         let mut qualified_subst = subst.clone();
@@ -416,13 +438,11 @@ pub(crate) fn trait_method_candidate_matches_call(
     if unify(owner_type, first_arg_type, &mut trial_subst).is_ok() {
         return true;
     }
-
     let owner_expanded = expand_type_aliases(owner_type, ctx.aliases);
     let arg_expanded = expand_type_aliases(first_arg_type, ctx.aliases);
     if unify(&owner_expanded, &arg_expanded, &mut trial_subst).is_ok() {
         return true;
     }
-
     let owner_qualified = qualify_imported_named_heads(owner_type, ctx);
     let arg_qualified = qualify_imported_named_heads(first_arg_type, ctx);
     let mut qualified_subst = subst.clone();
@@ -631,5 +651,46 @@ pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
             elem: Box::new(qualify_imported_named_heads(elem, ctx)),
         },
         other => other.clone(),
+    }
+}
+
+/// Qualifies imported named heads inside one function scheme.
+///
+/// Inputs:
+/// - `scheme`: a resolved callable scheme from a trait implementation.
+/// - `ctx`: active expression context with imported type-name metadata.
+///
+/// Output:
+/// - A cloned scheme whose parameter, return, and bound argument types use the
+///   same provider-qualified names as call-site argument inference.
+///
+/// Transformation:
+/// - Keeps candidate filtering and final function inference on the same type
+///   spelling so a trait impl over an imported constructor such as `Map` does
+///   not match during candidate filtering and then fail during unification.
+fn qualify_imported_function_scheme(
+    scheme: &FunctionScheme,
+    ctx: &ExprInferContext<'_>,
+) -> FunctionScheme {
+    FunctionScheme {
+        params: scheme
+            .params
+            .iter()
+            .map(|param| qualify_imported_named_heads(param, ctx))
+            .collect(),
+        ret: qualify_imported_named_heads(&scheme.ret, ctx),
+        generic_params: scheme.generic_params.clone(),
+        bounds: scheme
+            .bounds
+            .iter()
+            .map(|bound| FunctionBound {
+                trait_name: bound.trait_name.clone(),
+                trait_args: bound
+                    .trait_args
+                    .iter()
+                    .map(|arg| qualify_imported_named_heads(arg, ctx))
+                    .collect(),
+            })
+            .collect(),
     }
 }

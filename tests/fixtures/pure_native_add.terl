@@ -1,0 +1,7 @@
+module pure_native_add.
+
+pub add(x: Int, y: Int): Int ->
+    x + y.
+
+pub main(): Bool ->
+    add(1, 2) == 3.

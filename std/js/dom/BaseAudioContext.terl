@@ -1,17 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface BaseAudioContext
  */
 module std.js.Dom.BaseAudioContext.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
+import type std.core.{Bool, Unit}.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
 /**
@@ -91,7 +94,11 @@ pub (value: BaseAudioContext) create_biquad_filter(): BiquadFilterNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createBuffer)
  */
-pub (value: BaseAudioContext) create_buffer(number_of_channels: JsNumber, length: JsNumber, sample_rate: JsNumber): AudioBuffer ->
+pub (value: BaseAudioContext) create_buffer(
+    number_of_channels: JsNumber,
+    length: JsNumber,
+    sample_rate: JsNumber
+): AudioBuffer ->
     native.
 
 /**
@@ -187,7 +194,11 @@ pub (value: BaseAudioContext) create_panner(): PannerNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createPeriodicWave)
  */
-pub (value: BaseAudioContext) create_periodic_wave(real: Float32Array | Array[JsNumber], imag: Float32Array | Array[JsNumber], constraints: PeriodicWaveConstraints): PeriodicWave ->
+pub (value: BaseAudioContext) create_periodic_wave(
+    real: Float32Array | Array[JsNumber],
+    imag: Float32Array | Array[JsNumber],
+    constraints: PeriodicWaveConstraints
+): PeriodicWave ->
     native.
 
 /**
@@ -196,7 +207,11 @@ pub (value: BaseAudioContext) create_periodic_wave(real: Float32Array | Array[Js
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createScriptProcessor)
  */
-pub (value: BaseAudioContext) create_script_processor(buffer_size: JsNumber, number_of_input_channels: JsNumber, number_of_output_channels: JsNumber): ScriptProcessorNode ->
+pub (value: BaseAudioContext) create_script_processor(
+    buffer_size: JsNumber,
+    number_of_input_channels: JsNumber,
+    number_of_output_channels: JsNumber
+): ScriptProcessorNode ->
     native.
 
 /**
@@ -220,11 +235,23 @@ pub (value: BaseAudioContext) create_wave_shaper(): WaveShaperNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/decodeAudioData)
  */
-pub (value: BaseAudioContext) decode_audio_data(audio_data: ArrayBuffer, success_callback: Option[DecodeSuccessCallback], error_callback: Option[DecodeErrorCallback]): std.js.Promise[AudioBuffer] ->
+pub (value: BaseAudioContext) decode_audio_data(
+    audio_data: ArrayBuffer,
+    success_callback: Option[DecodeSuccessCallback],
+    error_callback: Option[DecodeErrorCallback]
+): std.js.Promise[AudioBuffer] ->
     native.
 
-pub (value: BaseAudioContext) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub (value: BaseAudioContext) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     native.
 
-pub (value: BaseAudioContext) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub (value: BaseAudioContext) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     native.

@@ -1,8 +1,8 @@
 module=std.js.Dom.NavigatorCookies
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5291625726880895235
-interface_hash=9287960663067204111
-interface_doc_hash=9287960663067204111
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5244025022141691339
+interface_hash=13306886050883267119
+interface_doc_hash=13306886050883267119
 deps=0

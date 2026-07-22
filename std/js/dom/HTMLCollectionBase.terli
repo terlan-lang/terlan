@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLCollectionBase
+ */
+module std.js.Dom.HTMLCollectionBase.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`HTMLCollection`** interface represents a generic collection (array-like object similar to Functions/arguments) of elements (in document order) and offers methods and properties for selecting from the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection)
+ */
+pub opaque type HTMLCollectionBase.
+
+/**
+ * The **`HTMLCollection.length`** property returns the number of items in a HTMLCollection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/length)
+ */
+pub (value: HTMLCollectionBase) length(): JsNumber.
+
+/**
+ * The HTMLCollection method `item()` returns the element located at the specified offset into the collection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/item)
+ */
+pub (value: HTMLCollectionBase) item(index: JsNumber): Option[Element].

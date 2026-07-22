@@ -31,7 +31,7 @@ pub answer(): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -79,7 +79,7 @@ pub parse(text: String): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile trait-backed conversion cast to CoreIR");
 
@@ -192,7 +192,7 @@ pub wrap(value: AppMap): JsMap ->
             DiagnosticFormat::default(),
             None,
             NativePolicy::default(),
-            TargetProfile::default(),
+            TargetProfile::JsShared,
         )
         .unwrap_or_else(|_| panic!("compile JS wrapper conversion fixture {path}"));
 

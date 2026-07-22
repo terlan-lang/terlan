@@ -1,0 +1,49 @@
+{
+  "schema": "terlan.lean-proof-replay.v1",
+  "family": "feature-cull-legacy-boundaries",
+  "theorem_names": [
+    "Terlan.FeatureCull.bytecodeIntermediaryRejectedBeforeVm",
+    "Terlan.FeatureCull.explicitCoreTargetRejectedBeforeVm",
+    "Terlan.FeatureCull.importNamespaceShortcutRejectedBeforeVm",
+    "Terlan.FeatureCull.hostTestRuntimeRejectedBeforeVm",
+    "Terlan.FeatureCull.tupleBindingWithoutPatternRejectedBeforeVm",
+    "Terlan.FeatureCull.nativeBridgeShortcutRejectedBeforeVm",
+    "Terlan.FeatureCull.profileSwitchRejectedBeforeVm",
+    "Terlan.FeatureCull.everyRetiredAssumptionIsBlockedBeforeVm",
+    "Terlan.FeatureCull.noProofArtifactUsesRetiredAssumptions"
+  ],
+  "manifest_fingerprints": {
+    "docs/compiler/TERLAN_TARGET_INFERENCE.md": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f",
+    "docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md": "sha256:8b02d8dd8e34cc0bbd3d3b95ff61e06d4fa75a94281f7ff78b95a4e2b4515616",
+    "proofs/lean/feature_cull/removed_features.json": "sha256:da11de055b0519347f027d6371fab0951d43e1ce737769a42ec6c8ac649f9789"
+  },
+  "dependency_files": [
+    "proofs/lean/feature_cull/removed_features.json",
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "proof_dependency_set_hash": "sha256:6c04f3023dd7fc23236e3adcf07616a2c15ed6b4ca101d519a74d73f7f2d744a",
+  "source_digest": "sha256:2bd4f904792ad70cbca438b0b9463fe94fc2d1ec7ede553c43563e53a70306cd",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "Terlan/FeatureCull/LegacyBoundaries.lean"
+  ],
+  "working_directory": "proofs/lean",
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "output_signature": {
+    "stdout_class": "empty",
+    "stderr_class": "empty",
+    "exit_class": "success"
+  },
+  "toolchain": {
+    "lean_version": "4.31.0",
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ]
+  }
+}

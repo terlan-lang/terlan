@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MutationObserver
+ */
+module std.js.Dom.MutationObserver.
+
+import type std.core.{Unit}.
+
+/**
+ * The **`MutationObserver`** interface provides the ability to watch for changes being made to the DOM tree.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver)
+ */
+pub opaque type MutationObserver.
+
+/**
+ * The MutationObserver method **`disconnect()`** tells the observer to stop watching for mutations.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/disconnect)
+ */
+pub (value: MutationObserver) disconnect(): Unit.
+
+/**
+ * The MutationObserver method **`observe()`** configures the `MutationObserver` callback to begin receiving notifications of changes to the DOM that match the given options.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/observe)
+ */
+pub (value: MutationObserver) observe(target_: Node, options: MutationObserverInit): Unit.
+
+/**
+ * The MutationObserver method **`takeRecords()`** returns a list of all matching DOM changes that have been detected but not yet processed by the observer's callback function, leaving the mutation queue empty.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/takeRecords)
+ */
+pub (value: MutationObserver) take_records(): std.js.Array[MutationRecord].

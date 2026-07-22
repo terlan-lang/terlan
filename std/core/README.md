@@ -15,7 +15,8 @@ must preserve.
 
 - Primitive/core value modules: `Atom`, `Bool`, `Int`, `Float`, `String`,
   `Object`, and `Unit`.
-- Algebraic modules: `Option`, `Result`, `Ordering`, and `Task`.
+- Algebraic modules: `Option`, `Result`, `Ordering`, `Effect`,
+  `GuardResult`, and `Task`.
 - Trait modules: `Equal`, error, parse/show-related contracts, and ordering
   contracts.
 - `BACKEND_PRIMITIVE_CALLS.tsv`: audited primitive backend call surface.
@@ -62,6 +63,15 @@ Important invariants:
 
 `Result[T, E]`
 : Success or error result type.
+
+`Effect[T]`
+: Composable effect-description value with completed, mapped, flat-mapped,
+  failed, and cooperatively cancelled forms executed at the VM boundary.
+
+`GuardResult`
+: Trait contract mapping a deferred guard result to its unary lift container.
+  Boolean and completed guard results stay pure; registered effect descriptors
+  lift the whole comprehension and execute serially through the VM scheduler.
 
 `Object[V]`
 : Dynamic string-keyed object type backed by `Map[String, V]`.

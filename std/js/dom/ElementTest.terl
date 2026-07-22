@@ -1,24 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Element
  */
 module std.js.Dom.ElementTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.Element.{Element}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.Element.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub attributes_typechecks(receiver: Element): NamedNodeMap ->
     receiver.attributes().
@@ -104,7 +104,11 @@ pub computed_style_map_typechecks(receiver: Element): StylePropertyMapReadOnly -
 pub get_attribute_typechecks(receiver: Element, qualified_name: JsString): Option[JsString] ->
     receiver.get_attribute(qualified_name).
 
-pub get_attribute_ns_typechecks(receiver: Element, namespace: Option[JsString], local_name: JsString): Option[JsString] ->
+pub get_attribute_ns_typechecks(
+    receiver: Element,
+    namespace: Option[JsString],
+    local_name: JsString
+): Option[JsString] ->
     receiver.get_attribute_ns(namespace, local_name).
 
 pub get_attribute_names_typechecks(receiver: Element): std.js.Array[JsString] ->
@@ -113,7 +117,11 @@ pub get_attribute_names_typechecks(receiver: Element): std.js.Array[JsString] ->
 pub get_attribute_node_typechecks(receiver: Element, qualified_name: JsString): Option[Attr] ->
     receiver.get_attribute_node(qualified_name).
 
-pub get_attribute_node_ns_typechecks(receiver: Element, namespace: Option[JsString], local_name: JsString): Option[Attr] ->
+pub get_attribute_node_ns_typechecks(
+    receiver: Element,
+    namespace: Option[JsString],
+    local_name: JsString
+): Option[Attr] ->
     receiver.get_attribute_node_ns(namespace, local_name).
 
 pub get_bounding_client_rect_typechecks(receiver: Element): DOMRect ->
@@ -122,13 +130,23 @@ pub get_bounding_client_rect_typechecks(receiver: Element): DOMRect ->
 pub get_client_rects_typechecks(receiver: Element): DOMRectList ->
     receiver.get_client_rects().
 
-pub get_elements_by_class_name_typechecks(receiver: Element, class_names: JsString): HTMLCollectionOf[Element] ->
+pub get_elements_by_class_name_typechecks(
+    receiver: Element,
+    class_names: JsString
+): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_class_name(class_names).
 
-pub get_elements_by_tag_name_typechecks(receiver: Element, qualified_name: JsString): HTMLCollectionOf[Element] ->
+pub get_elements_by_tag_name_typechecks(
+    receiver: Element,
+    qualified_name: JsString
+): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name(qualified_name).
 
-pub get_elements_by_tag_name_ns_typechecks(receiver: Element, namespace: Option[JsString], local_name: JsString): HTMLCollectionOf[Element] ->
+pub get_elements_by_tag_name_ns_typechecks(
+    receiver: Element,
+    namespace: Option[JsString],
+    local_name: JsString
+): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name_ns(namespace, local_name).
 
 pub get_html_typechecks(receiver: Element, options: GetHTMLOptions): JsString ->
@@ -137,7 +155,11 @@ pub get_html_typechecks(receiver: Element, options: GetHTMLOptions): JsString ->
 pub has_attribute_typechecks(receiver: Element, qualified_name: JsString): Bool ->
     receiver.has_attribute(qualified_name).
 
-pub has_attribute_ns_typechecks(receiver: Element, namespace: Option[JsString], local_name: JsString): Bool ->
+pub has_attribute_ns_typechecks(
+    receiver: Element,
+    namespace: Option[JsString],
+    local_name: JsString
+): Bool ->
     receiver.has_attribute_ns(namespace, local_name).
 
 pub has_attributes_typechecks(receiver: Element): Bool ->
@@ -146,10 +168,18 @@ pub has_attributes_typechecks(receiver: Element): Bool ->
 pub has_pointer_capture_typechecks(receiver: Element, pointer_id: JsNumber): Bool ->
     receiver.has_pointer_capture(pointer_id).
 
-pub insert_adjacent_element_typechecks(receiver: Element, where_: InsertPosition, element: Element): Option[Element] ->
+pub insert_adjacent_element_typechecks(
+    receiver: Element,
+    where_: InsertPosition,
+    element: Element
+): Option[Element] ->
     receiver.insert_adjacent_element(where_, element).
 
-pub insert_adjacent_html_typechecks(receiver: Element, position: InsertPosition, string: JsString): Unit ->
+pub insert_adjacent_html_typechecks(
+    receiver: Element,
+    position: InsertPosition,
+    string: JsString
+): Unit ->
     receiver.insert_adjacent_html(position, string).
 
 pub insert_adjacent_text_typechecks(receiver: Element, where_: InsertPosition, data: JsString): Unit ->
@@ -164,7 +194,11 @@ pub release_pointer_capture_typechecks(receiver: Element, pointer_id: JsNumber):
 pub remove_attribute_typechecks(receiver: Element, qualified_name: JsString): Unit ->
     receiver.remove_attribute(qualified_name).
 
-pub remove_attribute_ns_typechecks(receiver: Element, namespace: Option[JsString], local_name: JsString): Unit ->
+pub remove_attribute_ns_typechecks(
+    receiver: Element,
+    namespace: Option[JsString],
+    local_name: JsString
+): Unit ->
     receiver.remove_attribute_ns(namespace, local_name).
 
 pub remove_attribute_node_typechecks(receiver: Element, attr: Attr): Attr ->
@@ -200,7 +234,12 @@ pub scroll_to_typechecks(receiver: Element, x: JsNumber, y: JsNumber): Unit ->
 pub set_attribute_typechecks(receiver: Element, qualified_name: JsString, value: JsString): Unit ->
     receiver.set_attribute(qualified_name, value).
 
-pub set_attribute_ns_typechecks(receiver: Element, namespace: Option[JsString], qualified_name: JsString, value: JsString): Unit ->
+pub set_attribute_ns_typechecks(
+    receiver: Element,
+    namespace: Option[JsString],
+    qualified_name: JsString,
+    value: JsString
+): Unit ->
     receiver.set_attribute_ns(namespace, qualified_name, value).
 
 pub set_attribute_node_typechecks(receiver: Element, attr: Attr): Option[Attr] ->
@@ -224,8 +263,18 @@ pub webkit_matches_selector_typechecks(receiver: Element, selectors: JsString): 
 pub text_content_typechecks(receiver: Element): JsString ->
     receiver.text_content().
 
-pub add_event_listener_typechecks(receiver: Element, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: Element,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: Element, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: Element,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface VideoPlaybackQuality
+ */
+module std.js.Dom.VideoPlaybackQuality.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * A **`VideoPlaybackQuality`** object is returned by the HTMLVideoElement.getVideoPlaybackQuality() method and contains metrics that can be used to determine the playback quality of a video.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality)
+ */
+pub opaque type VideoPlaybackQuality.
+
+/**
+ * The VideoPlaybackQuality interface's read-only **`corruptedVideoFrames`** property the number of corrupted video frames that have been received since the video element was last loaded or reloaded.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/corruptedVideoFrames)
+ */
+pub (value: VideoPlaybackQuality) corrupted_video_frames(): JsNumber.
+
+/**
+ * The read-only **`creationTime`** property on the the browsing context was created this quality sample was recorded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/creationTime)
+ */
+pub (value: VideoPlaybackQuality) creation_time(): DOMHighResTimeStamp.
+
+/**
+ * The read-only **`droppedVideoFrames`** property of the VideoPlaybackQuality interface returns the number of video frames which have been dropped rather than being displayed since the last time the media was loaded into the HTMLVideoElement.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/droppedVideoFrames)
+ */
+pub (value: VideoPlaybackQuality) dropped_video_frames(): JsNumber.
+
+/**
+ * The VideoPlaybackQuality interface's **`totalVideoFrames`** read-only property returns the total number of video frames that have been displayed or dropped since the media was loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/totalVideoFrames)
+ */
+pub (value: VideoPlaybackQuality) total_video_frames(): JsNumber.

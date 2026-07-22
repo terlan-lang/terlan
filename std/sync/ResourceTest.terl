@@ -1,7 +1,9 @@
 module std.sync.ResourceTest.
 
 import std.sync.Resource.
-import type std.sync.Resource.{Change, ChangeKind, Resource}.
+import std.test.Test.{assert_equal}.
+
+import type std.sync.Resource.{Change, ChangeKind, Deleted, Inserted, Resource, Updated}.
 
 pub accepts_resource(value: Resource[Int]): Resource[Int] ->
     value.
@@ -28,5 +30,9 @@ pub reads_change_value(value: Change[Int]): Int ->
     Resource.value(value).
 
 @test
-pub resource_surface_is_declared(): Bool ->
-    true.
+pub inserted_change_has_kind_and_value(): Bool ->
+    assert_equal(Inserted, Resource.kind(Resource.inserted(1))) and assert_equal(1, Resource.value(Resource.inserted(1))).
+
+@test
+pub updated_and_deleted_changes_have_expected_kinds(): Bool ->
+    assert_equal(Updated, Resource.kind(Resource.updated(2))) and assert_equal(Deleted, Resource.kind(Resource.deleted(3))).

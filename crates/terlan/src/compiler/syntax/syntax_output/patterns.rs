@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::terlan_syntax::parse_tree::{MapField, Pattern};
+use crate::terlan_syntax::parse_tree::{
+    BinaryLayoutField, MapField, Pattern, StringPatternSegment,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// Serializable pattern node emitted by syntax output.
@@ -58,8 +60,12 @@ pub enum SyntaxPatternKind {
     Var,
     Int,
     Float,
+    String,
+    StringPattern,
+    StringCapture,
     Atom,
     Tuple,
+    Alias,
     List,
     ListCons,
     Constructor,
@@ -68,6 +74,7 @@ pub enum SyntaxPatternKind {
     Ignore,
     Placeholder,
     Record,
+    BinaryLayout,
 }
 
 /// Converts a parse-tree pattern into syntax-output metadata.
@@ -89,7 +96,15 @@ pub(crate) fn pattern_output(pattern: &Pattern) -> SyntaxPatternOutput {
         Pattern::Var(name) => pattern_leaf(SyntaxPatternKind::Var, Some(name.clone())),
         Pattern::Int(value) => pattern_leaf(SyntaxPatternKind::Int, Some(value.to_string())),
         Pattern::Float(value) => pattern_leaf(SyntaxPatternKind::Float, Some(value.to_string())),
+        Pattern::String(value) => pattern_leaf(SyntaxPatternKind::String, Some(value.clone())),
+        Pattern::StringPattern(segments) => pattern_node(
+            SyntaxPatternKind::StringPattern,
+            Some(string_pattern_text(segments)),
+            string_pattern_capture_outputs(segments),
+            Vec::new(),
+        ),
         Pattern::Atom(name) => pattern_leaf(SyntaxPatternKind::Atom, Some(name.clone())),
+        Pattern::AtomLiteral(name) => pattern_leaf(SyntaxPatternKind::Atom, Some(name.clone())),
         Pattern::Tuple(items) if is_constructor_pattern_tuple(items) => {
             let Pattern::Atom(name) = &items[0] else {
                 unreachable!("constructor pattern tuple starts with atom");
@@ -105,6 +120,12 @@ pub(crate) fn pattern_output(pattern: &Pattern) -> SyntaxPatternOutput {
             SyntaxPatternKind::Tuple,
             None,
             items.iter().map(pattern_output).collect(),
+            Vec::new(),
+        ),
+        Pattern::Alias { alias, pattern } => pattern_node(
+            SyntaxPatternKind::Alias,
+            Some(alias.clone()),
+            vec![pattern_output(pattern)],
             Vec::new(),
         ),
         Pattern::List(items) => pattern_node(
@@ -131,7 +152,75 @@ pub(crate) fn pattern_output(pattern: &Pattern) -> SyntaxPatternOutput {
             Vec::new(),
             fields.iter().map(pattern_field_output).collect(),
         ),
+        Pattern::BinaryLayout { endian, fields } => pattern_node(
+            SyntaxPatternKind::BinaryLayout,
+            Some(endian.clone()),
+            Vec::new(),
+            fields
+                .iter()
+                .map(binary_layout_pattern_field_output)
+                .collect(),
+        ),
     }
+}
+
+/// Renders a segmented string pattern as canonical source-like payload.
+///
+/// Inputs:
+/// - `segments`: parsed string pattern segments.
+///
+/// Output:
+/// - String pattern text without surrounding quotes.
+///
+/// Transformation:
+/// - Preserves literal/capture order and normalizes typed capture spacing so
+///   syntax-output snapshots can compare capture-bearing patterns
+///   deterministically.
+fn string_pattern_text(segments: &[StringPatternSegment]) -> String {
+    let mut out = String::new();
+    for segment in segments {
+        match segment {
+            StringPatternSegment::Literal(value) => out.push_str(value),
+            StringPatternSegment::Capture(capture) => {
+                out.push_str("${");
+                out.push_str(&capture.name);
+                if let Some(annotation) = &capture.annotation {
+                    out.push_str(": ");
+                    out.push_str(&annotation.text);
+                }
+                out.push('}');
+            }
+        }
+    }
+    out
+}
+
+/// Converts string-pattern captures into ordered child output nodes.
+///
+/// Inputs:
+/// - `segments`: parsed string pattern segments.
+///
+/// Output:
+/// - One `string_capture` child per capture slot, preserving source order.
+///
+/// Transformation:
+/// - Encodes capture metadata in existing syntax-output child slots so the
+///   parser can expose a first-class capture family without changing the stable
+///   top-level output structure.
+fn string_pattern_capture_outputs(segments: &[StringPatternSegment]) -> Vec<SyntaxPatternOutput> {
+    segments
+        .iter()
+        .filter_map(|segment| {
+            let StringPatternSegment::Capture(capture) = segment else {
+                return None;
+            };
+            let text = match &capture.annotation {
+                Some(annotation) => format!("{}: {}", capture.name, annotation.text),
+                None => capture.name.clone(),
+            };
+            Some(pattern_leaf(SyntaxPatternKind::StringCapture, Some(text)))
+        })
+        .collect()
 }
 
 /// Builds a leaf pattern-output node.
@@ -199,6 +288,18 @@ fn pattern_field_output(field: &MapField) -> SyntaxPatternFieldOutput {
         key: field.key.clone(),
         required: field.required,
         value: Box::new(pattern_output(&field.value)),
+    }
+}
+
+/// Converts one binary layout descriptor field into syntax-output shape.
+fn binary_layout_pattern_field_output(field: &BinaryLayoutField) -> SyntaxPatternFieldOutput {
+    SyntaxPatternFieldOutput {
+        key: field.name.clone(),
+        required: true,
+        value: Box::new(pattern_leaf(
+            SyntaxPatternKind::Var,
+            Some(field.descriptor.text.clone()),
+        )),
     }
 }
 

@@ -1,21 +1,320 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Date
  */
 module std.js.Date.
 
+import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
+/**
+ * Enables basic storage and retrieval of dates and times.
+ */
 pub opaque type Date.
+
+/**
+ * Returns a string representation of a date. The format of the string depends on the locale.
+ */
+pub (value: Date) to_string(): JsString ->
+    native.
+
+/**
+ * Returns a date as a string value.
+ */
+pub (value: Date) to_date_string(): JsString ->
+    native.
+
+/**
+ * Returns a time as a string value.
+ */
+pub (value: Date) to_time_string(): JsString ->
+    native.
+
+/**
+ * Returns a value as a string value appropriate to the host environment's current locale.
+ */
+pub (value: Date) to_locale_string(): JsString ->
+    native.
+
+/**
+ * Returns a date as a string value appropriate to the host environment's current locale.
+ */
+pub (value: Date) to_locale_date_string(): JsString ->
+    native.
+
+/**
+ * Returns a time as a string value appropriate to the host environment's current locale.
+ */
+pub (value: Date) to_locale_time_string(): JsString ->
+    native.
+
+/**
+ * Returns the stored time value in milliseconds since midnight, January 1, 1970 UTC.
+ */
+pub (value: Date) value_of(): JsNumber ->
+    native.
+
+/**
+ * Returns the stored time value in milliseconds since midnight, January 1, 1970 UTC.
+ */
+pub (value: Date) get_time(): JsNumber ->
+    native.
+
+/**
+ * Gets the year, using local time.
+ */
+pub (value: Date) get_full_year(): JsNumber ->
+    native.
+
+/**
+ * Gets the year using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_full_year(): JsNumber ->
+    native.
+
+/**
+ * Gets the month, using local time.
+ */
+pub (value: Date) get_month(): JsNumber ->
+    native.
+
+/**
+ * Gets the month of a Date object using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_month(): JsNumber ->
+    native.
+
+/**
+ * Gets the day-of-the-month, using local time.
+ */
+pub (value: Date) get_date(): JsNumber ->
+    native.
+
+/**
+ * Gets the day-of-the-month, using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_date(): JsNumber ->
+    native.
+
+/**
+ * Gets the day of the week, using local time.
+ */
+pub (value: Date) get_day(): JsNumber ->
+    native.
+
+/**
+ * Gets the day of the week using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_day(): JsNumber ->
+    native.
+
+/**
+ * Gets the hours in a date, using local time.
+ */
+pub (value: Date) get_hours(): JsNumber ->
+    native.
+
+/**
+ * Gets the hours value in a Date object using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_hours(): JsNumber ->
+    native.
+
+/**
+ * Gets the minutes of a Date object, using local time.
+ */
+pub (value: Date) get_minutes(): JsNumber ->
+    native.
+
+/**
+ * Gets the minutes of a Date object using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_minutes(): JsNumber ->
+    native.
+
+/**
+ * Gets the seconds of a Date object, using local time.
+ */
+pub (value: Date) get_seconds(): JsNumber ->
+    native.
+
+/**
+ * Gets the seconds of a Date object using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_seconds(): JsNumber ->
+    native.
+
+/**
+ * Gets the milliseconds of a Date, using local time.
+ */
+pub (value: Date) get_milliseconds(): JsNumber ->
+    native.
+
+/**
+ * Gets the milliseconds of a Date object using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) get_utc_milliseconds(): JsNumber ->
+    native.
+
+/**
+ * Gets the difference in minutes between Universal Coordinated Time (UTC) and the time on the local computer.
+ */
+pub (value: Date) get_timezone_offset(): JsNumber ->
+    native.
+
+/**
+ * Sets the date and time value in the Date object.
+ * @param time A numeric value representing the number of elapsed milliseconds since midnight, January 1, 1970 GMT.
+ */
+pub (value: Date) set_time(time: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the milliseconds value in the Date object using local time.
+ * @param ms A numeric value equal to the millisecond value.
+ */
+pub (value: Date) set_milliseconds(ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the milliseconds value in the Date object using Universal Coordinated Time (UTC).
+ * @param ms A numeric value equal to the millisecond value.
+ */
+pub (value: Date) set_utc_milliseconds(ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the seconds value in the Date object using local time.
+ * @param sec A numeric value equal to the seconds value.
+ * @param ms A numeric value equal to the milliseconds value.
+ */
+pub (value: Date) set_seconds(sec: JsNumber, ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the seconds value in the Date object using Universal Coordinated Time (UTC).
+ * @param sec A numeric value equal to the seconds value.
+ * @param ms A numeric value equal to the milliseconds value.
+ */
+pub (value: Date) set_utc_seconds(sec: JsNumber, ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the minutes value in the Date object using local time.
+ * @param min A numeric value equal to the minutes value.
+ * @param sec A numeric value equal to the seconds value.
+ * @param ms A numeric value equal to the milliseconds value.
+ */
+pub (value: Date) set_minutes(min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the minutes value in the Date object using Universal Coordinated Time (UTC).
+ * @param min A numeric value equal to the minutes value.
+ * @param sec A numeric value equal to the seconds value.
+ * @param ms A numeric value equal to the milliseconds value.
+ */
+pub (value: Date) set_utc_minutes(min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the hour value in the Date object using local time.
+ * @param hours A numeric value equal to the hours value.
+ * @param min A numeric value equal to the minutes value.
+ * @param sec A numeric value equal to the seconds value.
+ * @param ms A numeric value equal to the milliseconds value.
+ */
+pub (value: Date) set_hours(hours: JsNumber, min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the hours value in the Date object using Universal Coordinated Time (UTC).
+ * @param hours A numeric value equal to the hours value.
+ * @param min A numeric value equal to the minutes value.
+ * @param sec A numeric value equal to the seconds value.
+ * @param ms A numeric value equal to the milliseconds value.
+ */
+pub (value: Date) set_utc_hours(hours: JsNumber, min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the numeric day-of-the-month value of the Date object using local time.
+ * @param date A numeric value equal to the day of the month.
+ */
+pub (value: Date) set_date(date: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the numeric day of the month in the Date object using Universal Coordinated Time (UTC).
+ * @param date A numeric value equal to the day of the month.
+ */
+pub (value: Date) set_utc_date(date: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the month value in the Date object using local time.
+ * @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively.
+ * @param date A numeric value representing the day of the month. If this value is not supplied, the value from a call to the getDate method is used.
+ */
+pub (value: Date) set_month(month: JsNumber, date: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the month value in the Date object using Universal Coordinated Time (UTC).
+ * @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively.
+ * @param date A numeric value representing the day of the month. If it is not supplied, the value from a call to the getUTCDate method is used.
+ */
+pub (value: Date) set_utc_month(month: JsNumber, date: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the year of the Date object using local time.
+ * @param year A numeric value for the year.
+ * @param month A zero-based numeric value for the month (0 for January, 11 for December). Must be specified if numDate is specified.
+ * @param date A numeric value equal for the day of the month.
+ */
+pub (value: Date) set_full_year(year: JsNumber, month: JsNumber, date: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Sets the year value in the Date object using Universal Coordinated Time (UTC).
+ * @param year A numeric value equal to the year.
+ * @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively. Must be supplied if numDate is supplied.
+ * @param date A numeric value equal to the day of the month.
+ */
+pub (value: Date) set_utc_full_year(year: JsNumber, month: JsNumber, date: JsNumber): JsNumber ->
+    native.
+
+/**
+ * Returns a date converted to a string using Universal Coordinated Time (UTC).
+ */
+pub (value: Date) to_utc_string(): JsString ->
+    native.
+
+/**
+ * Returns a date as a string value in ISO format.
+ */
+pub (value: Date) to_iso_string(): JsString ->
+    native.
 
 /**
  * Converts a date and time to a string by using the current or specified locale.
  * @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
  * @param options An object that contains one or more properties that specify comparison options.
  */
-pub (value: Date) to_locale_string(locales: Array[JsString] | JsString, options: Intl.DateTimeFormatOptions): JsString ->
+pub (value: Date) to_locale_string(
+    locales: Array[JsString] | JsString,
+    options: Intl.DateTimeFormatOptions
+): JsString ->
     native.
 
 /**
@@ -23,7 +322,10 @@ pub (value: Date) to_locale_string(locales: Array[JsString] | JsString, options:
  * @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
  * @param options An object that contains one or more properties that specify comparison options.
  */
-pub (value: Date) to_locale_date_string(locales: Array[JsString] | JsString, options: Intl.DateTimeFormatOptions): JsString ->
+pub (value: Date) to_locale_date_string(
+    locales: Array[JsString] | JsString,
+    options: Intl.DateTimeFormatOptions
+): JsString ->
     native.
 
 /**
@@ -31,5 +333,8 @@ pub (value: Date) to_locale_date_string(locales: Array[JsString] | JsString, opt
  * @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
  * @param options An object that contains one or more properties that specify comparison options.
  */
-pub (value: Date) to_locale_time_string(locales: Array[JsString] | JsString, options: Intl.DateTimeFormatOptions): JsString ->
+pub (value: Date) to_locale_time_string(
+    locales: Array[JsString] | JsString,
+    options: Intl.DateTimeFormatOptions
+): JsString ->
     native.

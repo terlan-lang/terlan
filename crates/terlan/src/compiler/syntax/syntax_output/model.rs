@@ -96,6 +96,19 @@ pub enum SyntaxDeclarationPayload {
     Export {
         items: Vec<SyntaxExportItem>,
     },
+    Constant {
+        name: String,
+        annotation: SyntaxTypeOutput,
+        value: SyntaxExprOutput,
+        is_public: bool,
+    },
+    ConstFunction {
+        name: String,
+        params: Vec<SyntaxParamOutput>,
+        return_type: SyntaxTypeOutput,
+        body: SyntaxExprOutput,
+        is_public: bool,
+    },
     Type {
         name: String,
         params: Vec<String>,
@@ -103,9 +116,14 @@ pub enum SyntaxDeclarationPayload {
         is_opaque: bool,
         implements: Vec<SyntaxTypeOutput>,
         variants: Vec<SyntaxTypeOutput>,
+        #[serde(default)]
+        representation: Option<SyntaxTypeOutput>,
+        #[serde(default)]
+        valued_arms: Vec<SyntaxValuedUnionArmOutput>,
     },
     Struct {
         name: String,
+        generic_params: Vec<String>,
         includes: Vec<String>,
         implements: Vec<SyntaxTypeOutput>,
         is_public: bool,
@@ -143,12 +161,20 @@ pub enum SyntaxDeclarationPayload {
         super_traits: Vec<String>,
         is_public: bool,
         methods: Vec<SyntaxTraitMethodOutput>,
+        #[serde(default)]
+        constants: Vec<SyntaxTraitConstOutput>,
     },
     TraitImpl {
         trait_ref: SyntaxTypeOutput,
+        #[serde(default)]
+        generic_params: Vec<String>,
         for_type: SyntaxTypeOutput,
+        #[serde(default)]
+        is_negative: bool,
         is_public: bool,
         methods: Vec<SyntaxImplMethodOutput>,
+        #[serde(default)]
+        constants: Vec<SyntaxImplConstOutput>,
     },
     AnnotationSchema {
         path: Vec<String>,
@@ -170,6 +196,30 @@ pub enum SyntaxDeclarationPayload {
         raw_kind: String,
         text: String,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SyntaxValuedUnionArmOutput {
+    pub name: String,
+    pub value: SyntaxExprOutput,
+    pub span: EbnfSourceSpan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SyntaxTraitConstOutput {
+    pub name: String,
+    pub annotation: SyntaxTypeOutput,
+    pub default: Option<SyntaxExprOutput>,
+    pub docs: Vec<String>,
+    pub span: EbnfSourceSpan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SyntaxImplConstOutput {
+    pub name: String,
+    pub annotation: Option<SyntaxTypeOutput>,
+    pub value: SyntaxExprOutput,
+    pub span: EbnfSourceSpan,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -299,6 +349,8 @@ pub struct SyntaxTraitMethodOutput {
     pub generic_bounds: Vec<String>,
     #[serde(default)]
     pub default_body: Option<SyntaxExprOutput>,
+    #[serde(default)]
+    pub is_pure: bool,
     pub is_public: bool,
     pub docs: Vec<String>,
     pub span: EbnfSourceSpan,

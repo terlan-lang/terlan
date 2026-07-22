@@ -1,27 +1,52 @@
+#![deny(unsafe_code)]
+
+// `terlc` compiles images and hosts compiler-facing commands. The external
+// capability transport belongs to the execution VM; retain it here only in
+// unit-test builds that exercise the shared source modules.
+macro_rules! vm_capability_component {
+    ($($item:item)*) => {
+        $(#[cfg(test)] $item)*
+    };
+}
+
+macro_rules! vm_map_profile_component {
+    ($($item:item)*) => {
+        $(#[cfg(test)] $item)*
+    };
+}
+
 pub mod backends;
 pub mod compiler;
+pub(crate) mod database_schema;
 pub mod formal_pipeline;
 pub mod html;
+#[cfg(feature = "editor-lsp")]
 pub mod lsp;
+pub(crate) mod mobile;
 pub mod runtime;
 pub mod support;
 pub mod validation;
 
-pub(crate) use backends::erlang as terlan_erlang;
 pub(crate) use compiler::hir as terlan_hir;
+pub(crate) use compiler::purity as terlan_purity;
 pub(crate) use compiler::syntax as terlan_syntax;
 pub(crate) use compiler::typeck as terlan_typeck;
+pub(crate) use compiler::value_lifecycle;
 pub(crate) use html as terlan_html;
+#[cfg(feature = "editor-lsp")]
 pub(crate) use lsp as terlan_lsp;
 pub(crate) use runtime::native as terlan_native;
-pub(crate) use runtime::safenative as terlan_safenative;
+pub(crate) use runtime::native_boundary as terlan_native_boundary;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 use validation::native_policy::NativePolicy;
 use validation::target_profile::TargetProfile;
 
+mod cli_usage;
 mod commands;
+
+use cli_usage::{debug_usage_lines, public_usage_lines};
 
 /// Terminal color selection for human-readable diagnostics.
 ///
@@ -107,7 +132,7 @@ enum DocFormat {
 ///
 /// Transformation:
 /// - Separates command-independent flags from the verb-specific argument list.
-#[derive(Default, Clone)]
+#[derive(Clone)]
 struct CliState {
     no_emit: bool,
     incremental: bool,
@@ -120,6 +145,25 @@ struct CliState {
     doc_format: DocFormat,
     native_policy: NativePolicy,
     target_profile: TargetProfile,
+}
+
+impl Default for CliState {
+    /// Returns the baseline CLI state used when no global flags override it.
+    fn default() -> Self {
+        Self {
+            no_emit: false,
+            incremental: false,
+            timings: false,
+            experimental: false,
+            out_dir: PathBuf::from("_build"),
+            cache_dir: None,
+            trace_invalidation: false,
+            diagnostic_format: DiagnosticFormat::default(),
+            doc_format: DocFormat::Html,
+            native_policy: NativePolicy::NativeBoundaryOptional,
+            target_profile: TargetProfile::Vm,
+        }
+    }
 }
 
 /// Parsed command verb and command-local arguments.
@@ -137,42 +181,6 @@ struct CliState {
 struct CliCommand {
     verb: Option<String>,
     args: Vec<String>,
-}
-
-/// Returns the release-facing top-level usage lines.
-///
-/// Inputs:
-/// - None; the public command surface is a compile-time list.
-///
-/// Output:
-/// - Ordered usage lines shown by bare `terlc`, `terlc help`, and unknown
-///   command diagnostics.
-///
-/// Transformation:
-/// - Filters the implemented command set down to the stable user-facing
-///   release surface so scratch, maintainer, and internal validation commands
-///   do not leak through the default CLI output.
-fn public_usage_lines() -> &'static [&'static str] {
-    &[
-        "terlc help [command]",
-        "terlc init [project-name] [--profile default|web|static]",
-        "terlc check <file.terl|file.terli|dir>",
-        "terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]",
-        "terlc run [project-dir] [--target erlang]",
-        "terlc clean [project-dir]",
-        "terlc doctor [project-dir]",
-        "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]",
-        "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]",
-        "terlc static <emit|serve|check> <file.terl>",
-        "terlc test [file.terl|dir] [--target erlang|js] [--name <test_function>]",
-        "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
-        "terlc api <emit|check|import>",
-        "terlc db <init|new|validate|status|migrate|rebuild|reset>",
-        "terlc repl [--help] [--runtime beam|vm] [<file.terl|project-dir>]",
-        "terlc fmt <file.terl>",
-        "terlc version | terlc --version | terlc -V",
-        "Global options: --diagnostic-format text|json --color auto|always|never --target-profile erlang|js.shared|js.browser|js.worker --timings",
-    ]
 }
 
 /// Prints the public `terlc` command summary.
@@ -203,7 +211,24 @@ fn print_usage() {
 /// Transformation:
 /// - Drops the executable path and delegates all CLI behavior to `run_cli`.
 fn main() -> ExitCode {
-    run_cli(std::env::args().skip(1).collect())
+    let args = std::env::args().skip(1).collect();
+    match std::thread::Builder::new()
+        .name("terlc-command".to_string())
+        .stack_size(32 * 1024 * 1024)
+        .spawn(move || run_cli(args))
+    {
+        Ok(command) => match command.join() {
+            Ok(exit_code) => exit_code,
+            Err(_) => {
+                eprintln!("terlc command worker panicked");
+                ExitCode::from(1)
+            }
+        },
+        Err(error) => {
+            eprintln!("cannot start terlc command worker: {error}");
+            ExitCode::from(1)
+        }
+    }
 }
 
 /// Runs the Terlan CLI dispatcher.
@@ -258,13 +283,15 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "bind" => commands::bind::run(cmd),
         "build" => commands::build::run(cmd, state),
         "run" => commands::run::run(cmd, state),
+        "scripts" => commands::scripts::run(cmd),
+        "package" => commands::build::run_package_command(cmd),
         "clean" => commands::clean::run(cmd),
         "doctor" => commands::doctor::run(cmd),
+        "inspect" => commands::inspect::run(cmd),
         "serve" => commands::serve::run(cmd, state),
         "integration-test" => commands::integration_test::run(cmd, state),
         "static" => commands::static_site::run(cmd, state),
         "check" => commands::check::run(cmd, state),
-        "emit" => commands::emit::run(cmd, state),
         "emit-static" => commands::static_site::run_emit_static(cmd, state),
         "serve-static" => commands::static_site::run_serve_static(cmd, state),
         "emit-js" => commands::emit_js::run(&cmd.args, &state),
@@ -275,15 +302,17 @@ fn run_cli(args: Vec<String>) -> ExitCode {
         "deploy" => commands::deploy::run(cmd, state),
         "vm" => commands::vm::run(cmd, state),
         "db" => commands::db::run(cmd),
+        "debug" => commands::debug::run(cmd, state.diagnostic_format),
         "doctest" => commands::doc::run_doctest(cmd, state),
         "emit-native-metadata" => commands::emit_native_metadata::run(cmd, state),
         "repl" => commands::repl::run(cmd, state),
         "fmt" => commands::fmt::run(&cmd.args),
+        "lint" => commands::lint::run(&cmd.args),
+        "migrate" => commands::migrate::run(cmd),
         "hover" => commands::hover::run(cmd, state),
         "lsp" => commands::lsp::run(&cmd.args),
         "syntax-contract" => commands::syntax_contract::run(&cmd.args),
         "__sql-runtime" => commands::sql_runtime::run(&cmd.args),
-        "__safe-native-runtime" => commands::safe_native_runtime::run(&cmd.args),
         "__native-vector-runtime" => commands::native_vector_runtime::run(&cmd.args),
         "version" => run_version_command(&cmd),
         unknown => {
@@ -437,15 +466,29 @@ fn print_command_help(command: &str) -> ExitCode {
 fn print_command_usage(command: &str) -> bool {
     match command {
         "help" => println!("terlc help [command]"),
-        "init" => println!("terlc init [project-name] [--profile default|web|static]"),
-        "bind" => println!("terlc bind rust --crate <crate-name> --out <dir>"),
+        "init" => println!("terlc init [project-name] [--profile default|web|static|mobile]"),
+        "bind" => println!(
+            "terlc bind native --crate <crate-name> --out <dir>\nterlc bind js-dom --manifest <path> --out <dir>\nterlc bind cpp --manifest <path> --out <dir>\nterlc bind c --manifest <path> --out <dir>"
+        ),
         "check" => println!("terlc check <file.terl|file.terli|dir> [--emit-phase-manifest <path>]"),
-        "build" => println!("terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]"),
-        "run" => println!("terlc run [project-dir] [--target erlang]"),
+        "build" => println!(
+            "terlc build [file.terl|dir] [--target terlan-vm|js|wasm.core|mobile.android|mobile.ios] [--release] [--out-dir <dir>]"
+        ),
+        "run" => {
+            println!("terlc run [project-dir|file.terl] [--target terlan-vm]");
+            println!(
+                "terlc run <artifact.wasm> [--export <name>] [--arg <type:value>] [--host-return <module.name=type:value>] [--expect <type:value>] [--repeat <count>] [--timeout-ms <ms>]"
+            );
+        }
+        "scripts" => println!("terlc scripts [project-dir]"),
+        "package" => println!(
+            "terlc package fetch [project-dir] [--target <triple>] [--artifact <archive.tar.zst>]..."
+        ),
         "clean" => println!("terlc clean [project-dir]"),
         "doctor" => println!("terlc doctor [project-dir]"),
+        "inspect" => println!("terlc inspect [project-dir] --snapshot"),
         "serve" => println!(
-            "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--check]"
+            "terlc serve [web-dir] [--host <host>] [--port <port>] [--poll-ms <ms>] [--handler-runtime static] [--check|--check-config]"
         ),
         "integration-test" => println!(
             "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--compose-service <name>] [--skip-db] [--skip-build] [--migrations <dir>] [--wait-secs <seconds>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]"
@@ -461,12 +504,11 @@ fn print_command_usage(command: &str) -> bool {
                 "terlc static check <file.terl> [--out-dir <dir>] [--base-path <path>] [--asset-include <pattern>] [--asset-exclude <pattern>]"
             );
         }
-        "emit" => println!("terlc emit <file.terl> [--out-dir <dir>] [--no-emit] [--incremental]"),
         "emit-js" => println!("terlc emit-js <file.terl> [--out-dir <dir>] [--declarations]"),
         "test" => println!(
-            "terlc test [file.terl|dir] [--target erlang|js] [--name <test_function>] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
+            "terlc test [file.terl|dir] [--target terlan-vm|js|wasm] [--name <test_function>] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
         ),
-        "interface" => println!("terlc interface <file.terli> [--out-dir <dir>]"),
+        "interface" => println!("terlc interface <file.terl|file.terli> [--out-dir <dir>]"),
         "doc" => println!(
             "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>] [--check] [--missing-docs]"
         ),
@@ -488,16 +530,25 @@ fn print_command_usage(command: &str) -> bool {
             println!("terlc db rebuild --dev [--database-url URL] [migrations-dir]");
             println!("terlc db reset --dev [--database-url URL] [migrations-dir]");
         }
+        "debug" => {
+            for line in debug_usage_lines() {
+                println!("{line}");
+            }
+        }
         "doctest" => println!("terlc doctest <file.terl>"),
         "emit-native-metadata" => {
             println!("terlc emit-native-metadata <file.terl> [--out-dir <dir>]")
         }
         "repl" => {
-            println!("terlc repl [--help|-h] [--runtime beam|vm] [<file.terl|project-dir>]");
+            println!("terlc repl [--help|-h] [--debug] [<file.terl|project-dir>]");
             println!("Interactive mode accepts normal Terlan entries terminated with '.'.");
-            println!("Available commands: :help, :quit, :reset, :load <file.terl|project-dir>");
+            println!("Available commands: :help, :quit, :reset, :debug, :load <file.terl|project-dir>");
         }
-        "fmt" => println!("terlc fmt <file.terl>"),
+        "fmt" => println!("terlc fmt [--migrate-repeated-lets] <file.terl|dir>"),
+        "lint" => println!("terlc lint [--fix] <file.terl|file.terli|dir>"),
+        "migrate" => {
+            println!("terlc migrate pattern-head [--write] [--json] <file.terl|file.terli|dir>")
+        }
         "hover" => println!("terlc hover <file.terl> --line <line> (--column|--col) <column>"),
         "lsp" => println!("terlc lsp --stdio"),
         "version" => println!("terlc version | terlc --version | terlc -V"),
@@ -530,22 +581,27 @@ fn command_has_usage(command: &str) -> bool {
             | "check"
             | "build"
             | "run"
+            | "scripts"
+            | "package"
             | "clean"
             | "doctor"
+            | "inspect"
             | "serve"
             | "integration-test"
             | "static"
-            | "emit"
             | "emit-js"
             | "test"
             | "interface"
             | "doc"
             | "api"
             | "db"
+            | "debug"
             | "doctest"
             | "emit-native-metadata"
             | "repl"
             | "fmt"
+            | "lint"
+            | "migrate"
             | "hover"
             | "lsp"
             | "version"
@@ -649,8 +705,8 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
         trace_invalidation: false,
         diagnostic_format: DiagnosticFormat::default(),
         doc_format: DocFormat::Html,
-        native_policy: NativePolicy::SafeNativeOptional,
-        target_profile: TargetProfile::Erlang,
+        native_policy: NativePolicy::NativeBoundaryOptional,
+        target_profile: TargetProfile::Vm,
     };
 
     let mut cmd = CliCommand::default();
@@ -808,11 +864,10 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
                         },
                     );
                 }
-                state.native_policy = match args[i + 1].as_str() {
-                    "pure" => NativePolicy::Pure,
-                    "safe_native_optional" => NativePolicy::SafeNativeOptional,
-                    "safe_native_required" => NativePolicy::SafeNativeRequired,
-                    other => {
+                state.native_policy = match NativePolicy::from_cli(args[i + 1].as_str()) {
+                    Some(policy) => policy,
+                    None => {
+                        let other = &args[i + 1];
                         eprintln!("unsupported native policy: {}", other);
                         return (
                             CliState::default(),
@@ -837,33 +892,23 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
                     );
                 }
                 state.target_profile = match args[i + 1].as_str() {
-                    "erlang" => TargetProfile::Erlang,
-                    "a0-erlang" => TargetProfile::A0Erlang,
-                    "a0.1-erlang" => TargetProfile::A01Erlang,
-                    "a0.2-erlang" => TargetProfile::A02Erlang,
-                    "a0.3-erlang" => TargetProfile::A03Erlang,
-                    "a0.4-erlang" => TargetProfile::A04Erlang,
-                    "a0.5-erlang" => TargetProfile::A05Erlang,
-                    "a0.6-erlang" => TargetProfile::A06Erlang,
-                    "a0.7-erlang" => TargetProfile::A07Erlang,
-                    "a0.8-erlang" => TargetProfile::A08Erlang,
-                    "a0.9-erlang" => TargetProfile::A09Erlang,
-                    "a0.10-erlang" => TargetProfile::A010Erlang,
-                    "a0.11-erlang" => TargetProfile::A011Erlang,
-                    "a0.12-erlang" => TargetProfile::A012Erlang,
-                    "a0.13-erlang" => TargetProfile::A013Erlang,
-                    "a0.14-erlang" => TargetProfile::A014Erlang,
-                    "a0.15-erlang" => TargetProfile::A015Erlang,
-                    "a0.16-erlang" => TargetProfile::A016Erlang,
-                    "a0.17-erlang" => TargetProfile::A017Erlang,
-                    "a0.18-erlang" => TargetProfile::A018Erlang,
-                    "a0.19-erlang" => TargetProfile::A019Erlang,
-                    "a0.20-erlang" => TargetProfile::A020Erlang,
-                    "a0.21-erlang" => TargetProfile::A021Erlang,
+                    value if value == "erlang" || value.ends_with("-erlang") => {
+                        eprintln!(
+                            "target profile `{}` was removed from the public CLI; the compiler selects the VM profile by default",
+                            value
+                        );
+                        return (
+                            CliState::default(),
+                            CliCommand {
+                                verb: None,
+                                args: vec![],
+                            },
+                        );
+                    }
+                    "vm" | "terlan-vm" => TargetProfile::Vm,
                     "js" | "js.shared" => TargetProfile::JsShared,
                     "js.browser" => TargetProfile::JsBrowser,
                     "js.worker" => TargetProfile::JsWorker,
-                    "core-v0" => TargetProfile::CoreV0,
                     other => {
                         eprintln!("unsupported target profile: {}", other);
                         return (

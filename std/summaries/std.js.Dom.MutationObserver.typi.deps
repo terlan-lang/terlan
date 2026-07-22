@@ -1,8 +1,8 @@
 module=std.js.Dom.MutationObserver
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=9363022733330439066
-interface_hash=11647127112483106587
-interface_doc_hash=11647127112483106587
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15895553323332252708
+interface_hash=3287807904831171924
+interface_doc_hash=3287807904831171924
 deps=0

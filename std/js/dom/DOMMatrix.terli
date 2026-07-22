@@ -1,0 +1,228 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DOMMatrix
+ */
+module std.js.Dom.DOMMatrix.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`DOMMatrix`** interface represents 4×4 matrices, suitable for 2D and 3D operations including rotation and translation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix)
+ */
+pub opaque type DOMMatrix.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) a(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) b(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) c(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) d(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) e(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) f(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m11(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m12(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m13(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m14(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m21(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m22(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m23(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m24(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m31(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m32(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m33(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m34(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m41(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m42(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m43(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
+ */
+pub (value: DOMMatrix) m44(): JsNumber.
+
+/**
+ * The **`invertSelf()`** method of the DOMMatrix interface inverts the original matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/invertSelf)
+ */
+pub (value: DOMMatrix) invert_self(): DOMMatrix.
+
+/**
+ * The **`multiplySelf()`** method of the DOMMatrix interface multiplies a matrix by the `otherMatrix` parameter, computing the dot product of the original matrix and the specified matrix: `A⋅B`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/multiplySelf)
+ */
+pub (value: DOMMatrix) multiply_self(other: DOMMatrixInit): DOMMatrix.
+
+/**
+ * The **`preMultiplySelf()`** method of the DOMMatrix interface modifies the matrix by pre-multiplying it with the specified `DOMMatrix`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/preMultiplySelf)
+ */
+pub (value: DOMMatrix) pre_multiply_self(other: DOMMatrixInit): DOMMatrix.
+
+/**
+ * The `rotateAxisAngleSelf()` method of the DOMMatrix interface is a transformation method that rotates the source matrix by the given vector and angle, returning the altered matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/rotateAxisAngleSelf)
+ */
+pub (value: DOMMatrix) rotate_axis_angle_self(x: JsNumber, y: JsNumber, z: JsNumber, angle: JsNumber): DOMMatrix.
+
+/**
+ * The `rotateFromVectorSelf()` method of the DOMMatrix interface is a mutable transformation method that modifies a matrix by rotating the matrix by the angle between the specified vector and `(1, 0)`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/rotateFromVectorSelf)
+ */
+pub (value: DOMMatrix) rotate_from_vector_self(x: JsNumber, y: JsNumber): DOMMatrix.
+
+/**
+ * The `rotateSelf()` method of the DOMMatrix interface is a mutable transformation method that modifies a matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/rotateSelf)
+ */
+pub (value: DOMMatrix) rotate_self(rot_x: JsNumber, rot_y: JsNumber, rot_z: JsNumber): DOMMatrix.
+
+/**
+ * The **`scale3dSelf()`** method of the DOMMatrix interface is a mutable transformation method that modifies a matrix by applying a specified scaling factor to all three axes, centered on the given origin, with a default origin of `(0, 0, 0)`, returning the 3D-scaled matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/scale3dSelf)
+ */
+pub (value: DOMMatrix) scale3d_self(
+    scale: JsNumber,
+    origin_x: JsNumber,
+    origin_y: JsNumber,
+    origin_z: JsNumber
+): DOMMatrix.
+
+/**
+ * The **`scaleSelf()`** method of the DOMMatrix interface is a mutable transformation method that modifies a matrix by applying a specified scaling factor, centered on the given origin, with a default origin of `(0, 0)`, returning the scaled matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/scaleSelf)
+ */
+pub (value: DOMMatrix) scale_self(
+    scale_x: JsNumber,
+    scale_y: JsNumber,
+    scale_z: JsNumber,
+    origin_x: JsNumber,
+    origin_y: JsNumber,
+    origin_z: JsNumber
+): DOMMatrix.
+
+/**
+ * The **`setMatrixValue()`** method of the DOMMatrix interface replaces the contents of the matrix with the matrix described by the specified transform or transforms, returning itself.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/setMatrixValue)
+ */
+pub (value: DOMMatrix) set_matrix_value(transform_list: std.js.String.JsString): DOMMatrix.
+
+/**
+ * The `skewXSelf()` method of the DOMMatrix interface is a mutable transformation method that modifies a matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/skewXSelf)
+ */
+pub (value: DOMMatrix) skew_x_self(sx: JsNumber): DOMMatrix.
+
+/**
+ * The `skewYSelf()` method of the DOMMatrix interface is a mutable transformation method that modifies a matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/skewYSelf)
+ */
+pub (value: DOMMatrix) skew_y_self(sy: JsNumber): DOMMatrix.
+
+/**
+ * The `translateSelf()` method of the DOMMatrix interface is a mutable transformation method that modifies a matrix.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/translateSelf)
+ */
+pub (value: DOMMatrix) translate_self(tx: JsNumber, ty: JsNumber, tz: JsNumber): DOMMatrix.

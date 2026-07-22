@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::Serialize;
@@ -14,6 +15,7 @@ use super::super::{fingerprint, write_build_file};
 /// - `assets`: copied asset metadata.
 /// - `handlers`: dynamic route-handler rows.
 /// - `websockets`: WebSocket upgrade route rows.
+/// - `sse`: SSE route rows.
 /// - `static_responses`: route-backed constant response rows.
 /// - `file_responses`: route-backed file response rows.
 /// - `error_handler`: optional router-level error handler.
@@ -31,16 +33,19 @@ pub(super) fn write_browser_manifest(
     assets: Vec<WebAssetArtifact>,
     handlers: Vec<WebHandlerArtifact>,
     websockets: Vec<WebSocketArtifact>,
+    sse: Vec<WebSseArtifact>,
     static_responses: Vec<WebStaticResponseArtifact>,
     file_responses: Vec<WebFileResponseArtifact>,
     error_handler: Option<WebErrorHandlerArtifact>,
     incremental: bool,
 ) -> Result<(), String> {
+    validate_unique_web_asset_paths(&assets)?;
     let build_id = web_build_id(
         contract,
         &assets,
         &handlers,
         &websockets,
+        &sse,
         &static_responses,
         &file_responses,
         error_handler.as_ref(),
@@ -54,6 +59,7 @@ pub(super) fn write_browser_manifest(
         assets,
         handlers,
         websockets,
+        sse,
         static_responses,
         file_responses,
         error_handler,
@@ -65,6 +71,21 @@ pub(super) fn write_browser_manifest(
         manifest_json.as_bytes(),
         incremental,
     )
+}
+
+/// Rejects duplicate final browser asset paths before manifest serialization.
+fn validate_unique_web_asset_paths(assets: &[WebAssetArtifact]) -> Result<(), String> {
+    let mut seen = BTreeMap::<&str, &WebAssetArtifact>::new();
+    for asset in assets {
+        if let Some(existing) = seen.get(asset.web_relative_path.as_str()) {
+            return Err(format!(
+                "error[web_assets]: duplicate browser asset path `{}` from `{}` and `{}`",
+                asset.web_relative_path, existing.source_relative_path, asset.source_relative_path
+            ));
+        }
+        seen.insert(asset.web_relative_path.as_str(), asset);
+    }
+    Ok(())
 }
 
 /// Builds a deterministic browser package identifier.
@@ -88,6 +109,7 @@ fn web_build_id(
     assets: &[WebAssetArtifact],
     handlers: &[WebHandlerArtifact],
     websockets: &[WebSocketArtifact],
+    sse: &[WebSseArtifact],
     static_responses: &[WebStaticResponseArtifact],
     file_responses: &[WebFileResponseArtifact],
     error_handler: Option<&WebErrorHandlerArtifact>,
@@ -110,6 +132,8 @@ fn web_build_id(
         text.push_str(&asset.web_relative_path);
         text.push('|');
         text.push_str(&asset.fingerprint.to_string());
+        text.push('|');
+        text.push_str(&asset.integrity);
         text.push('\n');
     }
     for handler in handlers {
@@ -127,13 +151,28 @@ fn web_build_id(
     }
     for websocket in websockets {
         text.push_str("websocket=");
+        text.push_str(&websocket.module);
+        text.push('|');
         text.push_str(&websocket.route);
         text.push('|');
         text.push_str(&websocket.protocol);
         text.push('\n');
     }
+    for endpoint in sse {
+        text.push_str("sse=");
+        text.push_str(&endpoint.module);
+        text.push('|');
+        text.push_str(&endpoint.route);
+        text.push('\n');
+    }
     for response in static_responses {
         text.push_str("static_response=");
+        text.push_str(&response.module);
+        text.push('|');
+        text.push_str(&response.function);
+        text.push('|');
+        text.push_str(&response.arity.to_string());
+        text.push('|');
         text.push_str(&response.method);
         text.push('|');
         text.push_str(&response.route);
@@ -199,6 +238,7 @@ struct WebBuildManifest {
     assets: Vec<WebAssetArtifact>,
     handlers: Vec<WebHandlerArtifact>,
     websockets: Vec<WebSocketArtifact>,
+    sse: Vec<WebSseArtifact>,
     static_responses: Vec<WebStaticResponseArtifact>,
     file_responses: Vec<WebFileResponseArtifact>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -215,7 +255,8 @@ struct WebBuildManifest {
 ///
 /// Transformation:
 /// - Connects a Terlan module to its original JS artifact path and copied web
-///   asset path, plus a deterministic fingerprint for release checks.
+///   asset path, plus deterministic fingerprint and browser integrity metadata
+///   for release checks.
 #[derive(Debug, Serialize)]
 pub(super) struct WebAssetArtifact {
     pub(super) module: String,
@@ -223,6 +264,7 @@ pub(super) struct WebAssetArtifact {
     pub(super) source_relative_path: String,
     pub(super) web_relative_path: String,
     pub(super) fingerprint: u64,
+    pub(super) integrity: String,
 }
 
 /// Browser dynamic handler manifest entry.
@@ -235,7 +277,7 @@ pub(super) struct WebAssetArtifact {
 /// - Serializable handler entry inside the browser package manifest.
 ///
 /// Transformation:
-/// - Preserves route identity, BEAM callback identity, and optional source
+/// - Preserves route identity, VM callback identity, and optional source
 ///   metadata for dynamic routes that cannot be served as static responses.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(super) struct WebHandlerArtifact {
@@ -257,12 +299,23 @@ pub(super) struct WebHandlerArtifact {
 /// - Serializable WebSocket entry inside the browser package manifest.
 ///
 /// Transformation:
-/// - Preserves only route, runtime protocol identity, and optional source
-///   location while `terlc serve` owns the upgrade and connection lifecycle.
+/// - Preserves the source module, route, runtime protocol identity, and
+///   optional source location while `terlc serve` owns the upgrade and
+///   connection lifecycle.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(super) struct WebSocketArtifact {
+    pub(super) module: String,
     pub(super) route: String,
     pub(super) protocol: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) source: Option<WebSourceSpanArtifact>,
+}
+
+/// Browser SSE route manifest entry discovered from a source router graph.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(super) struct WebSseArtifact {
+    pub(super) module: String,
+    pub(super) route: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) source: Option<WebSourceSpanArtifact>,
 }
@@ -294,10 +347,13 @@ pub(super) struct WebSourceSpanArtifact {
 /// - Serializable response row inside the browser package manifest.
 ///
 /// Transformation:
-/// - Stores cacheable route responses directly in the manifest so local and
-///   release servers can answer them without invoking BEAM-backed handlers.
+/// - Stores cacheable route responses directly in the manifest while retaining
+///   source ownership so VM router middleware can activate when available.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(super) struct WebStaticResponseArtifact {
+    pub(super) module: String,
+    pub(super) function: String,
+    pub(super) arity: usize,
     pub(super) method: String,
     pub(super) route: String,
     pub(super) status: u16,
@@ -337,7 +393,7 @@ pub(super) struct WebResponseHeaderArtifact {
 /// Transformation:
 /// - Stores a route-backed package-relative file response so local and release
 ///   servers can stream the file through the Rust HTTP path without invoking
-///   BEAM-backed handlers.
+///   VM handlers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(super) struct WebFileResponseArtifact {
     pub(super) method: String,

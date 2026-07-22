@@ -72,7 +72,7 @@ fn js_target_contract_records_artifact_layout() {
         JS_UNSUPPORTED_FEATURE_CODE
     );
     assert_eq!(
-        js_target_contract(TargetProfile::Erlang),
+        js_target_contract(TargetProfile::Vm),
         None,
         "non-JS profiles must not expose a JS artifact contract"
     );

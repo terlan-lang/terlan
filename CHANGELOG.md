@@ -4,6 +4,20 @@ All notable release-facing changes to Terlan are tracked here.
 
 ## Unreleased
 
+## 0.0.7
+
+- Make `terlan-vm` the default build, run, and test runtime path while rejecting
+  removed public Erlang/OTP target spellings.
+- Add VM artifact emission, VM runner handoff, REPL VM execution, and runtime
+  conformance coverage for the active compiler-owned VM path.
+- Rename BEAM-facing standard-library surfaces toward `std.vm` and add release
+  gates that keep OTP references inventoried instead of implicit.
+- Harden installer, package, stdlib summary, editor, and quality gates around
+  the bundled `terlc` plus `terlan-vm` release model.
+- Add `terlc migrate pattern-head` as a dry-run-first migration assist for
+  rejected reverse-alias function-head patterns, with `--write` and `--json`
+  modes sharing the stable migration IDs used by diagnostics.
+
 ## 0.0.6
 
 - Add experimental `terlan-vm` packaging and validation paths so VM execution

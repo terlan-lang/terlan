@@ -1,3 +1,0 @@
--module(phase_int_literal).
--export([value/0]).
-value() ->

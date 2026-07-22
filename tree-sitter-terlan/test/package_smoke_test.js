@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
+const WORKSPACE_ROOT = path.resolve(PACKAGE_ROOT, "..");
 
 /**
  * Reads and parses a JSON file from the Tree-sitter package.
@@ -33,6 +34,21 @@ function readJson(relativePath) {
  */
 function readText(relativePath) {
   return fs.readFileSync(path.join(PACKAGE_ROOT, relativePath), "utf8");
+}
+
+function testSharedInterpolationFixtureCoverage() {
+  const fixtureTable = fs.readFileSync(
+    path.join(WORKSPACE_ROOT, "tests/template/INTERPOLATION_TOOLING_FIXTURES.tsv"),
+    "utf8"
+  );
+  const corpus = readText("test/corpus/basic.txt");
+  for (const line of fixtureTable.trim().split("\n")) {
+    const [name] = line.split("\t");
+    assert.ok(
+      corpus.includes(`[fixture:${name}]`),
+      `Tree-sitter corpus missing shared interpolation fixture ${name}`
+    );
+  }
 }
 
 /**
@@ -195,6 +211,7 @@ function testHighlightQueryCoverage() {
     "@namespace",
     "@function",
     "@function.call",
+    "@operator",
     "@type",
     "@type.builtin",
     "@variable",
@@ -202,6 +219,7 @@ function testHighlightQueryCoverage() {
     "@property",
     "@number",
     "@string",
+    "@string.special",
     "@comment",
     "@embedded"
   ];
@@ -209,6 +227,8 @@ function testHighlightQueryCoverage() {
     "annotation",
     "module_declaration",
     "import_declaration",
+    "shape_declaration",
+    "shape_guard_expression",
     "function_declaration",
     "function_signature",
     "template_declaration",
@@ -217,12 +237,20 @@ function testHighlightQueryCoverage() {
     "type_identifier",
     "atom_type",
     "field_declaration",
+    "field_identifier",
+    "private_field_selector",
     "private_field_identifier",
     "parameter",
     "receiver",
     "line_comment",
     "block_comment",
-    "interpolation"
+    "interpolation",
+    "interpolation_start",
+    "template_interpolation_start",
+    "interpolation_end",
+    "template_text_interpolation",
+    "template_attribute_interpolation",
+    "string_pattern"
   ];
 
   for (const capture of requiredCaptures) {
@@ -268,11 +296,15 @@ function testInjectionQueryCoverage() {
  */
 function testCanonicalPipeOperatorSpelling() {
   const grammar = readText("grammar.js");
+  const binaryExpression = grammar.match(/\n\s{4}binary_expression:[\s\S]*?\n\s{4}raw_macro_expression:/);
 
   assert.ok(grammar.includes('"|>"'), "grammar should recognize canonical |>");
+  assert.ok(grammar.includes("list_comprehension_body"), "grammar should parse list comprehensions");
+  assert.ok(grammar.includes('"|"'), "grammar should recognize the list-comprehension separator");
+  assert.ok(binaryExpression, "grammar should expose binary expression production");
   assert.ok(
-    !grammar.includes('"|"'),
-    "grammar must not introduce single-bar template filter pipes"
+    !binaryExpression[0].includes('"|"'),
+    "grammar must not introduce single-bar expression pipes"
   );
 }
 
@@ -327,12 +359,109 @@ function testCorpusCoverage() {
   );
 }
 
+/**
+ * Verifies every long-tail string-capture context has a Tree-sitter anchor.
+ *
+ * @returns {void}
+ */
+function testStringPatternLongTailCorpusCoverage() {
+  const corpus = readText("test/corpus/basic.txt");
+  const requiredSnippets = [
+    "string capture patterns",
+    '"users/${id: Int}/${name}.json" where id > 0',
+    'let "users/${id: Int}/${name}.json" = path',
+    'pub named("users/${id: Int}/${name}.json")',
+    "shape synonym declaration",
+    'shape UserAsset(id, file) = "users/${id: Int}/assets/${file}".',
+    "long-tail string capture contexts",
+    'let render = ("docs/${section}/${slug}.html")',
+    '<p>${case route {',
+    "(lambda_expression",
+    "(template_text_interpolation",
+    "(string_pattern)"
+  ];
+
+  for (const snippet of requiredSnippets) {
+    assert.ok(corpus.includes(snippet), `missing long-tail corpus snippet ${snippet}`);
+  }
+}
+
+/**
+ * Verifies shape declarations and their ordinary pattern uses stay aligned
+ * with the compiler grammar.
+ *
+ * @returns {void}
+ */
+function testShapeSynonymCorpusCoverage() {
+  const grammar = readText("grammar.js");
+  const corpus = readText("test/corpus/shape_synonyms.txt");
+  const shapeGuard = grammar.match(
+    /\n\s{4}shape_guard_clause:[\s\S]*?\n\s{4}shape_guard_expression:/
+  );
+  const requiredSnippets = [
+    "shape synonym declarations and ordinary pattern uses",
+    "pub shape OkResponse(body)",
+    'shape UserAsset(id) = "users/${id: Int}.json".',
+    "pub status(OkResponse(body): Dynamic): Int -> body.",
+    "UserAsset(id) -> id;",
+    "(shape_declaration",
+    "(constructor_pattern",
+    "(case_expression"
+  ];
+
+  assert.ok(shapeGuard, "grammar should expose the shape guard production");
+  assert.ok(shapeGuard[0].includes('seq("where"'), "shape guards must use canonical where");
+  assert.ok(!shapeGuard[0].includes('"when"'), "shape guards must reject legacy when");
+  for (const snippet of requiredSnippets) {
+    assert.ok(corpus.includes(snippet), `missing shape corpus snippet ${snippet}`);
+  }
+}
+
+/**
+ * Verifies binary constructors and every shared pattern position are owned by
+ * the editor grammar and highlight query.
+ *
+ * @returns {void}
+ */
+function testBinaryLayoutToolingCoverage() {
+  const grammar = readText("grammar.js");
+  const query = readText("queries/highlights.scm");
+  const corpus = readText("test/corpus/binary_layouts.txt");
+  const requiredGrammarNodes = [
+    "binary_layout_expression",
+    "binary_layout_pattern",
+    "binary_layout_descriptor",
+    "binary_layout_endian"
+  ];
+  const requiredCorpusSnippets = [
+    "binary layout constructors and patterns",
+    "Binary[big] { port: UInt[16], scalar: Utf8, body: Rest }",
+    "Binary[little] { port: UInt[16], delta: IntBits[8] }",
+    "pub decode_head(Binary[big]",
+    "let decode = ((Binary[big]",
+    "let Binary[big] { prefix: Bytes[2], flags: Bits[3], body: Rest }"
+  ];
+
+  for (const node of requiredGrammarNodes) {
+    assert.ok(grammar.includes(node), `missing binary grammar node ${node}`);
+    assert.ok(query.includes(node), `missing binary highlight node ${node}`);
+  }
+  for (const snippet of requiredCorpusSnippets) {
+    assert.ok(corpus.includes(snippet), `missing binary corpus snippet ${snippet}`);
+  }
+  assert.ok(query.includes('@constant.builtin'), "binary endian should be highlighted as a constant");
+}
+
 testTreeSitterScripts();
 testTreeSitterFileTypes();
 testPackageFileSelection();
 testHighlightQueryCoverage();
 testInjectionQueryCoverage();
+testSharedInterpolationFixtureCoverage();
 testCanonicalPipeOperatorSpelling();
 testCorpusCoverage();
+testStringPatternLongTailCorpusCoverage();
+testShapeSynonymCorpusCoverage();
+testBinaryLayoutToolingCoverage();
 
 console.log("terlan tree-sitter package smoke tests passed");

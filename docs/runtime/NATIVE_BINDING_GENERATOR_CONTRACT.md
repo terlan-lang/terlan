@@ -20,6 +20,13 @@ model used by Python libraries through CPython extensions, pybind11, Cython,
 SWIG, or stable C ABI shims: the user-facing language surface is generated from
 an adapter contract, not guessed from every native implementation detail.
 
+The compiler-owned conformance fixture is deliberately package-neutral. It
+proves that an ordinary C++ project can expose a curated, metadata-described
+surface through a generated `cxx` package and a Terlan consumer. Real packages
+remain external repositories; in particular, PyTorch support belongs to the
+separate future `terlan-pytorch` repository and must not introduce `torch`
+namespaces or LibTorch dependencies into the compiler.
+
 ## Supported Inputs
 
 The generator may accept these input shapes:

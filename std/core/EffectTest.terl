@@ -1,0 +1,28 @@
+module std.core.EffectTest.
+
+import std.core.Effect.
+import std.test.Test.{assert_equal}.
+
+@test
+pub map_transforms_completed_value(): Bool ->
+    let effect = Effect.succeed(3);
+    let mapped = Effect.map(effect, (value) -> value + 4);
+    assert_equal(7, Effect.run(mapped)).
+
+@test
+pub flat_map_sequences_completed_value(): Bool ->
+    let effect = Effect.succeed(3);
+    let mapped = Effect.flat_map(effect, (value) -> Effect.succeed(value + 4));
+    assert_equal(7, Effect.run(mapped)).
+
+@pure
+pub pure_handler_plan(value: Int): Effect[Int] ->
+    Effect.map(Effect.succeed(value), (current) -> current + 1).
+
+@test
+pub pure_handler_plan_is_executed_at_the_vm_boundary(): Bool ->
+    assert_equal(42, Effect.run(pure_handler_plan(41))).
+
+@test
+pub run_executes_completed_value_at_vm_boundary(): Bool ->
+    assert_equal(11, Effect.run(Effect.succeed(11))).

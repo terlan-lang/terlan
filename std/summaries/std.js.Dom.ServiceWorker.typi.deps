@@ -1,8 +1,8 @@
 module=std.js.Dom.ServiceWorker
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=11288009330128035330
-interface_hash=4999086432165130751
-interface_doc_hash=4999086432165130751
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=13590828554748437741
+interface_hash=530242313807041982
+interface_doc_hash=530242313807041982
 deps=0

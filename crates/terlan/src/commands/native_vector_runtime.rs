@@ -1,9 +1,9 @@
 use std::io::{self, BufRead, Write};
 use std::process::ExitCode;
 
-use crate::terlan_safenative::request::RequestId;
-use crate::terlan_safenative::term::{SafeNativeReplyTerm, SafeNativeTerm};
-use crate::terlan_safenative::worker::SafeNativeWorker;
+use crate::terlan_native_boundary::request::RequestId;
+use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
+use crate::terlan_native_boundary::worker::NativeBoundaryWorker;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 
@@ -17,7 +17,7 @@ use base64::Engine;
 /// - Exit failure for malformed helper startup only.
 ///
 /// Transformation:
-/// - Creates one Rust-owned SafeNative worker and keeps vector resources alive
+/// - Creates one Rust-owned NativeBoundary worker and keeps vector resources alive
 ///   across bridge calls until the process exits.
 pub(crate) fn run(args: &[String]) -> ExitCode {
     if !args.is_empty() {
@@ -31,16 +31,16 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
 ///
 /// Inputs:
 /// - `input`: newline-delimited helper commands.
-/// - `output`: response writer consumed by the BEAM bridge.
+/// - `output`: response writer consumed by the VM bridge.
 ///
 /// Output:
 /// - Success after EOF or a write failure.
 ///
 /// Transformation:
-/// - Parses each command, dispatches it through one persistent SafeNative
+/// - Parses each command, dispatches it through one persistent NativeBoundary
 ///   worker, and writes one line-oriented response per request.
 fn run_loop(input: impl BufRead, mut output: impl Write) -> ExitCode {
-    let mut worker = SafeNativeWorker::new(32);
+    let mut worker = NativeBoundaryWorker::new(32);
     let mut next_request_id = 1_u64;
     for line in input.lines() {
         let response = match line {
@@ -65,17 +65,17 @@ fn run_loop(input: impl BufRead, mut output: impl Write) -> ExitCode {
 /// Executes one helper protocol line.
 ///
 /// Inputs:
-/// - `worker`: persistent SafeNative worker that owns vector resources.
+/// - `worker`: persistent NativeBoundary worker that owns vector resources.
 /// - `request_id`: monotonic request id for worker accounting.
-/// - `line`: one command line from the BEAM bridge.
+/// - `line`: one command line from the VM bridge.
 ///
 /// Output:
 /// - One encoded response line.
 ///
 /// Transformation:
-/// - Converts the compact bridge protocol into SafeNative term calls and
+/// - Converts the compact bridge protocol into NativeBoundary term calls and
 ///   converts the worker reply back into the compact protocol.
-fn execute_line(worker: &mut SafeNativeWorker, request_id: u64, line: &str) -> String {
+fn execute_line(worker: &mut NativeBoundaryWorker, request_id: u64, line: &str) -> String {
     let mut parts = line.split_whitespace();
     let Some(command) = parts.next() else {
         return error_response("native_vector_empty_command", "empty native vector command");
@@ -96,13 +96,13 @@ fn execute_line(worker: &mut SafeNativeWorker, request_id: u64, line: &str) -> S
                 Ok(values) => {
                     let values = values
                         .into_iter()
-                        .map(SafeNativeTerm::Text)
+                        .map(NativeBoundaryTerm::Text)
                         .collect::<Vec<_>>();
                     call_worker(
                         worker,
                         request_id,
                         "std.native.collections.vector.from_list",
-                        vec![SafeNativeTerm::List(values)],
+                        vec![NativeBoundaryTerm::List(values)],
                     )
                 }
                 Err(response) => response,
@@ -122,12 +122,25 @@ fn execute_line(worker: &mut SafeNativeWorker, request_id: u64, line: &str) -> S
         "get_at" => match handle_args(&mut parts).and_then(|handle| {
             let index = parse_i64_arg(parts.next(), "index")?;
             reject_extra_args(&mut parts, command)?;
-            Ok(vec![handle, SafeNativeTerm::Int(index)])
+            Ok(vec![handle, NativeBoundaryTerm::Int(index)])
         }) {
             Ok(args) => call_worker(
                 worker,
                 request_id,
                 "std.native.collections.vector.get_at",
+                args,
+            ),
+            Err(response) => response,
+        },
+        "get" => match handle_args(&mut parts).and_then(|handle| {
+            let index = parse_i64_arg(parts.next(), "index")?;
+            reject_extra_args(&mut parts, command)?;
+            Ok(vec![handle, NativeBoundaryTerm::Int(index)])
+        }) {
+            Ok(args) => call_worker(
+                worker,
+                request_id,
+                "std.native.collections.vector.get",
                 args,
             ),
             Err(response) => response,
@@ -138,8 +151,8 @@ fn execute_line(worker: &mut SafeNativeWorker, request_id: u64, line: &str) -> S
             reject_extra_args(&mut parts, command)?;
             Ok(vec![
                 handle,
-                SafeNativeTerm::Int(index),
-                SafeNativeTerm::Text(value),
+                NativeBoundaryTerm::Int(index),
+                NativeBoundaryTerm::Text(value),
             ])
         }) {
             Ok(args) => call_worker(
@@ -156,8 +169,8 @@ fn execute_line(worker: &mut SafeNativeWorker, request_id: u64, line: &str) -> S
             reject_extra_args(&mut parts, command)?;
             Ok(vec![
                 handle,
-                SafeNativeTerm::Int(left),
-                SafeNativeTerm::Int(right),
+                NativeBoundaryTerm::Int(left),
+                NativeBoundaryTerm::Int(right),
             ])
         }) {
             Ok(args) => call_worker(
@@ -171,7 +184,7 @@ fn execute_line(worker: &mut SafeNativeWorker, request_id: u64, line: &str) -> S
         "push" => match handle_args(&mut parts).and_then(|handle| {
             let value = parse_encoded_term_arg(parts.next(), "push value")?;
             reject_extra_args(&mut parts, command)?;
-            Ok(vec![handle, SafeNativeTerm::Text(value)])
+            Ok(vec![handle, NativeBoundaryTerm::Text(value)])
         }) {
             Ok(args) => call_worker(
                 worker,
@@ -199,65 +212,65 @@ fn execute_line(worker: &mut SafeNativeWorker, request_id: u64, line: &str) -> S
     }
 }
 
-/// Calls the SafeNative worker and formats the reply.
+/// Calls the NativeBoundary worker and formats the reply.
 ///
 /// Inputs:
-/// - `worker`: persistent SafeNative worker.
+/// - `worker`: persistent NativeBoundary worker.
 /// - `request_id`: request id for this call.
-/// - `operation`: SafeNative operation id.
+/// - `operation`: NativeBoundary operation id.
 /// - `args`: stable term arguments.
 ///
 /// Output:
 /// - Encoded helper response line.
 ///
 /// Transformation:
-/// - Delegates resource ownership and mutation to SafeNative, then renders only
-///   primitive protocol fields for the Erlang bridge.
+/// - Delegates resource ownership and mutation to NativeBoundary, then renders only
+///   primitive protocol fields for the Vm bridge.
 fn call_worker(
-    worker: &mut SafeNativeWorker,
+    worker: &mut NativeBoundaryWorker,
     request_id: u64,
     operation: &str,
-    args: Vec<SafeNativeTerm>,
+    args: Vec<NativeBoundaryTerm>,
 ) -> String {
     let reply = worker.call(RequestId { value: request_id }, operation, &args);
     encode_reply(reply.result)
 }
 
-/// Encodes one SafeNative reply for the helper protocol.
+/// Encodes one NativeBoundary reply for the helper protocol.
 ///
 /// Inputs:
-/// - `reply`: stable SafeNative reply term.
+/// - `reply`: stable NativeBoundary reply term.
 ///
 /// Output:
 /// - One response line with no embedded whitespace.
 ///
 /// Transformation:
-/// - Converts handles, ints, encoded Erlang term strings, and lists into the
-///   private bridge protocol used by generated Erlang runtime code.
-fn encode_reply(reply: SafeNativeReplyTerm) -> String {
+/// - Converts handles, ints, encoded Vm term strings, and lists into the
+///   private bridge protocol used by generated Vm runtime code.
+fn encode_reply(reply: NativeBoundaryReplyTerm) -> String {
     match reply {
-        SafeNativeReplyTerm::Ok(SafeNativeTerm::Unit) => "ok_unit".to_string(),
-        SafeNativeReplyTerm::Ok(SafeNativeTerm::Int(value)) => format!("ok_int {value}"),
-        SafeNativeReplyTerm::Ok(SafeNativeTerm::Text(value)) => format!("ok_term {value}"),
-        SafeNativeReplyTerm::Ok(SafeNativeTerm::Handle { id, generation }) => {
+        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Unit) => "ok_unit".to_string(),
+        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Int(value)) => format!("ok_int {value}"),
+        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Text(value)) => format!("ok_term {value}"),
+        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Handle { id, generation }) => {
             format!("ok_handle {id} {generation}")
         }
-        SafeNativeReplyTerm::Ok(SafeNativeTerm::List(values)) => {
+        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::List(values)) => {
             let encoded = values
                 .into_iter()
                 .filter_map(|value| match value {
-                    SafeNativeTerm::Text(text) => Some(text),
+                    NativeBoundaryTerm::Text(text) => Some(text),
                     _ => None,
                 })
                 .collect::<Vec<_>>()
                 .join(",");
             format!("ok_terms {encoded}")
         }
-        SafeNativeReplyTerm::Ok(_) => error_response(
+        NativeBoundaryReplyTerm::Ok(_) => error_response(
             "native_vector_unexpected_reply",
             "native vector runtime returned an unsupported reply value",
         ),
-        SafeNativeReplyTerm::Error { code, message, .. } => error_response(&code, &message),
+        NativeBoundaryReplyTerm::Error { code, message, .. } => error_response(&code, &message),
     }
 }
 
@@ -267,15 +280,17 @@ fn encode_reply(reply: SafeNativeReplyTerm) -> String {
 /// - `parts`: remaining command fields.
 ///
 /// Output:
-/// - SafeNative handle term or encoded error response.
+/// - NativeBoundary handle term or encoded error response.
 ///
 /// Transformation:
 /// - Reads id and generation as unsigned integers and keeps them opaque for
-///   SafeNative resource validation.
-fn handle_args<'a>(parts: &mut impl Iterator<Item = &'a str>) -> Result<SafeNativeTerm, String> {
+///   NativeBoundary resource validation.
+fn handle_args<'a>(
+    parts: &mut impl Iterator<Item = &'a str>,
+) -> Result<NativeBoundaryTerm, String> {
     let id = parse_u64_arg(parts.next(), "handle id")?;
     let generation = parse_u64_arg(parts.next(), "handle generation")?;
-    Ok(SafeNativeTerm::Handle { id, generation })
+    Ok(NativeBoundaryTerm::Handle { id, generation })
 }
 
 /// Parses a required unsigned integer protocol argument.
@@ -289,7 +304,7 @@ fn handle_args<'a>(parts: &mut impl Iterator<Item = &'a str>) -> Result<SafeNati
 ///
 /// Transformation:
 /// - Converts helper protocol text into the handle integer shape used by
-///   SafeNative terms.
+///   NativeBoundary terms.
 fn parse_u64_arg(value: Option<&str>, name: &str) -> Result<u64, String> {
     value
         .ok_or_else(|| {
@@ -335,7 +350,7 @@ fn parse_i64_arg(value: Option<&str>, name: &str) -> Result<i64, String> {
         })
 }
 
-/// Parses a required encoded Erlang term protocol argument.
+/// Parses a required encoded Vm term protocol argument.
 ///
 /// Inputs:
 /// - `value`: optional encoded text argument.
@@ -384,7 +399,7 @@ fn reject_extra_args<'a>(
     }
 }
 
-/// Validates one encoded Erlang term payload.
+/// Validates one encoded Vm term payload.
 ///
 /// Inputs:
 /// - `value`: encoded term text from the helper protocol.
@@ -405,7 +420,7 @@ fn validate_encoded_term(value: &str) -> Result<(), String> {
     })
 }
 
-/// Splits and validates comma-separated encoded Erlang terms.
+/// Splits and validates comma-separated encoded Vm terms.
 ///
 /// Inputs:
 /// - `encoded`: comma-separated base64 term payloads.
@@ -438,7 +453,7 @@ fn encoded_terms(encoded: &str) -> Result<Vec<String>, String> {
 /// - `message`: human-readable diagnostic.
 ///
 /// Output:
-/// - Error line accepted by the Erlang bridge parser.
+/// - Error line accepted by the Vm bridge parser.
 ///
 /// Transformation:
 /// - Base64-encodes the message so the line protocol stays single-line and

@@ -1,6 +1,64 @@
 use super::*;
 
-/// Verifies project builds include local path dependency source roots.
+/// Verifies direct VM file builds resolve sibling modules from their project.
+///
+/// Inputs:
+/// - A manifest-backed package with an entry module and a sibling helper.
+/// - A build command selecting only the entry source file.
+///
+/// Output:
+/// - A checked entry interface without emitting an unrelated helper image.
+///
+/// Transformation:
+/// - Exercises package discovery and the source-root interface prepass used by
+///   `terlc run <file>` while preserving selected-entry artifact emission.
+#[test]
+fn build_command_resolves_project_sibling_for_direct_vm_file() {
+    let dir = make_temp_dir("direct_vm_file_project_sibling");
+    let project_dir = dir.join("project");
+    let source_dir = project_dir.join("src/app");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&source_dir).expect("create project source dir");
+    fs::write(
+        project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+    )
+    .expect("write project manifest");
+    fs::write(
+        source_dir.join("Helper.terl"),
+        "module app.Helper.\n\npub answer(): Int ->\n    42.\n",
+    )
+    .expect("write sibling module");
+    let entry = source_dir.join("Main.terl");
+    fs::write(
+        &entry,
+        "module app.Main.\n\nimport app.Helper.{answer}.\n\npub main(): Int ->\n    answer().\n",
+    )
+    .expect("write entry module");
+
+    let status = run(
+        CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                entry.display().to_string(),
+                "--target".to_string(),
+                "terlan-vm".to_string(),
+            ],
+        },
+        CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        },
+    );
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    assert!(out_dir.join(".terlan/app.Main.typi").is_file());
+    assert!(!out_dir.join("vm/app_Main.tvm").exists());
+    assert!(!out_dir.join("vm/app_Helper.tvm").exists());
+    assert!(out_dir.join(".terlan/app.Helper.typi").is_file());
+}
+
+/// Verifies VM project builds resolve local path dependency import closure.
 ///
 /// Inputs:
 /// - A root project manifest with a local `[dependencies]` path entry.
@@ -8,15 +66,15 @@ use super::*;
 /// - A root source file that imports a value from the dependency source.
 ///
 /// Output:
-/// - Test passes when both dependency and root modules emit Erlang source
-///   and BEAM artifacts through one project build.
+/// - Test passes when one linked application image contains the dependency and
+///   root native exports without writing legacy Erlang artifacts.
 ///
 /// Transformation:
-/// - Resolves the local path dependency manifest before backend emission,
-///   validates dependency source roots before the root source root, and
-///   emits the ordered package closure through the existing build path.
+/// - Resolves the local path dependency manifest before VM artifact emission,
+///   validates dependency source roots before the root source root, and feeds
+///   dependency interfaces into root module typechecking.
 #[test]
-fn build_command_compiles_project_with_local_path_dependency() {
+fn build_command_accepts_project_with_local_path_dependency_vm_import_closure() {
     let dir = make_temp_dir("project_local_path_dependency");
     let app_dir = dir.join("app");
     let dep_dir = dir.join("local_utils");
@@ -27,12 +85,12 @@ fn build_command_compiles_project_with_local_path_dependency() {
     fs::create_dir_all(&dep_src).expect("failed to create dependency src dir");
     fs::write(
             app_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\n",
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\n",
         )
         .expect("failed to write app manifest");
     fs::write(
             dep_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"local_utils\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[native.rust]\ncrate = \"local_utils_native\"\npath = \"native\"\nhelper = \"local-utils-safe-native\"\nhelper_env = \"LOCAL_UTILS_SAFE_NATIVE_PATH\"\n",
+            "[package]\nname = \"local_utils\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n\n[native.rust]\ncrate = \"local_utils_native\"\npath = \"native\"\nhelper = \"local-utils-native-boundary\"\nhelper_env = \"LOCAL_UTILS_NATIVE_BOUNDARY_PATH\"\n",
         )
         .expect("failed to write dependency manifest");
     fs::write(
@@ -55,71 +113,123 @@ fn build_command_compiles_project_with_local_path_dependency() {
         args: vec![
             app_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/local_utils_util.erl").exists());
-    assert!(out_dir.join("src/app_main.erl").exists());
-    assert!(out_dir.join("ebin/local_utils_util.beam").exists());
-    assert!(out_dir.join("ebin/app_main.beam").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    let image_path = out_dir.join("vm/app_Main.tvm");
+    assert!(image_path.exists());
+    assert!(!out_dir.join("vm/local_utils_Util.tvm").exists());
+    assert_eq!(
+        native_image_export_names(&image_path),
+        vec!["app.Main.value/0", "local_utils.Util.one/0"]
+    );
+}
 
-    let debug_map_text = fs::read_to_string(out_dir.join(BUILD_DEBUG_MAP_FILE))
-        .expect("read local dependency project debug map");
-    let debug_map: serde_json::Value =
-        serde_json::from_str(&debug_map_text).expect("parse local dependency debug map");
-    let modules = debug_map["modules"].as_array().expect("modules");
-    let module_names = modules
-        .iter()
-        .map(|entry| entry["module"].as_str().expect("module name"))
+fn native_image_export_names(path: &Path) -> Vec<String> {
+    let image = fs::read(path).expect("read native application image");
+    let target = crate::runtime::native_image::host_tvm_target().expect("host TVM target");
+    let mut names = crate::runtime::native_image::inspect_tvm_image(&image, &target.triple)
+        .expect("inspect native application image")
+        .descriptor
+        .exports
+        .into_iter()
+        .map(|export| export.name)
         .collect::<Vec<_>>();
-    assert_eq!(module_names, vec!["local_utils.Util", "app.Main"]);
+    names.sort();
+    names
+}
 
-    let package_metadata_text = fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
-        .expect("read local dependency package metadata");
-    let package_metadata: serde_json::Value = serde_json::from_str(&package_metadata_text)
-        .expect("parse local dependency package metadata");
-    assert_eq!(package_metadata["schema"], BUILD_PACKAGE_METADATA_SCHEMA);
-    assert_eq!(package_metadata["package"]["name"], "app");
-    let dependencies = package_metadata["dependencies"]
-        .as_array()
-        .expect("package dependencies");
-    assert_eq!(dependencies.len(), 1);
-    assert_eq!(dependencies[0]["alias"], "local_utils");
-    assert_eq!(dependencies[0]["scope"], "local");
-    assert_eq!(dependencies[0]["source"], "path");
-    assert_eq!(dependencies[0]["path"], "../local_utils");
-    assert!(dependencies[0].get("package").is_none());
-    assert!(dependencies[0].get("version").is_none());
-    let native_dependencies = package_metadata["native"]["rust_dependencies"]
-        .as_array()
-        .expect("native rust dependencies");
-    assert_eq!(native_dependencies.len(), 1);
-    assert_eq!(native_dependencies[0]["package"], "local_utils");
+/// Verifies package-native local dependencies reject unsupported targets.
+///
+/// Inputs:
+/// - A consumer project with a local `terlan-polars` dependency declaring a
+///   Rust native process helper.
+/// - An explicit `js.shared` build target.
+///
+/// Output:
+/// - Stable package/capability diagnostic and no backend artifacts.
+///
+/// Transformation:
+/// - Resolves transitive manifest capability metadata before JS source
+///   emission, proving native package failures identify the provider and
+///   helper instead of falling through to a generic emitter diagnostic.
+#[test]
+fn build_command_rejects_polars_native_dependency_on_unsupported_target() {
+    let dir = make_temp_dir("polars_native_dependency_unsupported_target");
+    let app_dir = dir.join("app");
+    let polars_dir = dir.join("terlan-polars");
+    let app_src = app_dir.join("src/app");
+    let polars_src = polars_dir.join("src/polars");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&app_src).expect("create app source");
+    fs::create_dir_all(&polars_src).expect("create Polars source");
+    fs::write(
+        app_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n\n[dependencies]\nterlan-polars = { path = \"../terlan-polars\" }\n",
+    )
+    .expect("write app manifest");
+    fs::write(
+        polars_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\nnamespace = \"polars\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n\n[native.rust]\ncrate = \"terlan_polars_native\"\npath = \"native\"\nhelper = \"terlan-polars-native-boundary\"\nhelper_env = \"TERLAN_NATIVE_BOUNDARY_HELPER_PATH\"\nfeatures = [\"real-polars\"]\n",
+    )
+    .expect("write Polars manifest");
+    fs::write(
+        app_src.join("Main.terl"),
+        "module app.Main.\n\nimport polars.DataFrame.{height}.\n\npub rows(df: polars.DataFrame.DataFrame): Int ->\n    height(df).\n",
+    )
+    .expect("write app source");
+    fs::write(
+        polars_src.join("DataFrame.terl"),
+        "module polars.DataFrame.\n\npub opaque type DataFrame.\n\n@compiler.native {polars.dataframe.height}\npub (_df: DataFrame) height(): Int ->\n    native.\n",
+    )
+    .expect("write Polars source");
+
+    let error = validate_project_native_target(&app_dir, BuildTarget::Js(TargetProfile::JsShared))
+        .expect_err("JS target should reject package native helper");
     assert_eq!(
-        native_dependencies[0]["rust"]["crate"],
-        "local_utils_native"
+        error,
+        "error[package_native_target_unsupported]: target `js.shared` cannot build package `app` because local dependency `terlan-polars` requires native process helper `terlan-polars-native-boundary`; capability `native-process-helper` is currently supported only by target `terlan-vm`"
     );
-    assert_eq!(native_dependencies[0]["rust"]["path"], "native");
-    assert_eq!(
-        native_dependencies[0]["rust"]["helper"],
-        "local-utils-safe-native"
+    for (target, target_name) in [
+        (BuildTarget::WasmCore, "wasm.core"),
+        (
+            BuildTarget::Mobile(args::MobileBuildTarget::Android),
+            "mobile.android",
+        ),
+        (
+            BuildTarget::Mobile(args::MobileBuildTarget::Ios),
+            "mobile.ios",
+        ),
+    ] {
+        let error = validate_project_native_target(&app_dir, target)
+            .expect_err("non-VM target should reject package native helper");
+        assert!(error.contains(&format!("target `{target_name}`")));
+        assert!(error.contains("capability `native-process-helper`"));
+    }
+
+    let status = run(
+        CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                app_dir.display().to_string(),
+                "--target".to_string(),
+                "js.shared".to_string(),
+            ],
+        },
+        CliState {
+            out_dir: out_dir.clone(),
+            ..CliState::default()
+        },
     );
-    assert_eq!(
-        native_dependencies[0]["rust"]["helper_env"],
-        "LOCAL_UTILS_SAFE_NATIVE_PATH"
-    );
-    assert_eq!(
-        native_dependencies[0]["rust"]["package_dir"],
-        dep_dir
-            .canonicalize()
-            .expect("canonical dependency dir")
-            .display()
-            .to_string()
-    );
+
+    assert_eq!(status, ExitCode::from(1));
+    assert!(!out_dir.exists());
 }
 
 /// Verifies local path dependencies require their own manifest.
@@ -164,7 +274,7 @@ fn build_command_rejects_local_path_dependency_without_manifest() {
         args: vec![
             app_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
@@ -227,7 +337,7 @@ fn build_command_rejects_local_path_dependency_cycle() {
         args: vec![
             app_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
@@ -239,21 +349,21 @@ fn build_command_rejects_local_path_dependency_cycle() {
     assert!(!out_dir.join(BUILD_DEBUG_MAP_FILE).exists());
 }
 
-/// Verifies Hex dependency metadata is rejected before backend emission.
+/// Verifies legacy target dependency metadata is rejected before backend emission.
 ///
 /// Inputs:
-/// - A project manifest with `[target.erlang.dependencies]`.
+/// - A project manifest with a legacy `[target.erlang.dependencies]` section.
 /// - A buildable source root.
 ///
 /// Output:
 /// - Test passes when build exits with failure and writes no artifacts.
 ///
 /// Transformation:
-/// - Parses the target-scoped dependency metadata, detects unsupported Hex
-///   package-manager integration, and stops before source-root emission.
+/// - Rejects the legacy target-scoped dependency section and stops before
+///   source-root emission.
 #[test]
-fn build_command_rejects_hex_dependency_metadata_before_emission() {
-    let dir = make_temp_dir("project_hex_dependency_metadata");
+fn build_command_rejects_legacy_target_dependency_metadata_before_emission() {
+    let dir = make_temp_dir("project_legacy_target_dependency_metadata");
     let project_dir = dir.join("project");
     let source_dir = project_dir.join("src");
     let out_dir = dir.join("build");
@@ -278,7 +388,7 @@ fn build_command_rejects_hex_dependency_metadata_before_emission() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
@@ -328,7 +438,7 @@ fn build_command_rejects_npm_dependency_metadata_before_emission() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
@@ -379,7 +489,7 @@ fn build_command_rejects_cargo_dependency_metadata_before_emission() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 

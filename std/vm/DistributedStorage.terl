@@ -1,0 +1,1085 @@
+/**
+ * Terlan VM distributed storage adapter contract.
+ *
+ * `std.vm.DistributedStorage` exposes typed descriptors for VM-owned
+ * checkpoint storage adapters. The VM owns backend selection, write-ahead
+ * persistence, snapshot validation, compaction, and capability outcomes.
+ */
+module std.vm.DistributedStorage.
+
+/**
+ * Mode represents one distributed storage backend class.
+ *
+ * Input: mode constructor such as local-only, durable, or cluster.
+ * Output: an opaque storage mode descriptor.
+ * Transformation: keeps backend capability checks inside the VM storage lane.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Mode.
+
+/**
+ * Policy represents one storage adapter policy.
+ *
+ * Input: adapter name, mode, and availability.
+ * Output: an opaque storage policy descriptor.
+ * Transformation: validates selected backend behavior without exposing backend
+ * internals to Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Policy.
+
+/**
+ * Adapter represents one VM-owned storage backend instance.
+ *
+ * Input: validated storage policy.
+ * Output: an opaque adapter descriptor.
+ * Transformation: owns lifecycle state and backend access through the VM.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Adapter.
+
+/**
+ * AtomicAppendProof represents an adapter's atomic append sequence boundary.
+ *
+ * Input: adapter capability state and current sequence.
+ * Output: an opaque proof descriptor for append atomicity.
+ * Transformation: lets conformance tests prove failed appends do not advance
+ * the durable sequence boundary.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type AtomicAppendProof.
+
+/**
+ * SnapshotIsolationProof represents one validated isolated checkpoint view.
+ *
+ * Input: loaded checkpoint id, sequence, and checksum.
+ * Output: an opaque proof descriptor for snapshot isolation.
+ * Transformation: lets conformance tests prove later adapter mutations do not
+ * rewrite an already issued checkpoint view.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type SnapshotIsolationProof.
+
+/**
+ * DurableFlushProof represents the last successfully flushed sequence.
+ *
+ * Input: adapter capability state and flush lifecycle.
+ * Output: an opaque proof descriptor for durable flush progress.
+ * Transformation: lets conformance tests prove failed or timed-out flushes do
+ * not advance the durable replay boundary.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type DurableFlushProof.
+
+/**
+ * TransactionalBatchProof represents the last all-or-nothing batch commit.
+ *
+ * Input: adapter capability state and batch append lifecycle.
+ * Output: an opaque proof descriptor for the last committed batch.
+ * Transformation: lets conformance tests prove partial batch attempts do not
+ * mutate adapter state or advance batch commit metadata.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type TransactionalBatchProof.
+
+/**
+ * SchemaMigrationProof represents the current adapter schema version.
+ *
+ * Input: adapter capability state and schema migration lifecycle.
+ * Output: an opaque proof descriptor for schema version and storage sequence.
+ * Transformation: lets conformance tests prove stale schema migrations do not
+ * mutate adapter schema state or advance schema proof metadata.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type SchemaMigrationProof.
+
+/**
+ * ResourceHandleValidationProof represents the last validated handle set.
+ *
+ * Input: adapter capability state and resource handle validation lifecycle.
+ * Output: an opaque proof descriptor for validated handle count and storage
+ * sequence.
+ * Transformation: lets conformance tests prove missing resource handles do not
+ * advance validation proof metadata.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ResourceHandleValidationProof.
+
+/**
+ * CompareAndSwapToken represents one observed adapter sequence.
+ *
+ * Input: adapter sequence observed before an append attempt.
+ * Output: an opaque optimistic concurrency token.
+ * Transformation: prevents stale writers from overwriting newer checkpoints
+ * without exposing adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type CompareAndSwapToken.
+
+/**
+ * Snapshot represents one deterministic storage checkpoint descriptor.
+ *
+ * Input: checkpoint id, sequence, and distributed state snapshot.
+ * Output: an opaque storage snapshot descriptor.
+ * Transformation: binds state snapshots to storage ordering and checksum
+ * validation.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Snapshot.
+
+/**
+ * Outcome represents one storage lifecycle result.
+ *
+ * Input: storage adapter operation.
+ * Output: opened, appended, flushed, compacted, loaded, missing, closed,
+ * unavailable, stale, checksum-mismatch, finalize-failed, flush-timed-out,
+ * partial-write, or unsupported-operation descriptor.
+ * Transformation: makes storage success and failure paths typed at the Terlan
+ * boundary.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Outcome.
+
+/**
+ * Builds the local-only storage mode.
+ *
+ * Input: no runtime input.
+ * Output: local-only storage mode.
+ * Transformation: selects force-local VM behavior for tests and development.
+ */
+@target.vm {process_mailbox: true}
+pub local_only(): Mode ->
+    native.
+
+/**
+ * Builds the durable storage mode.
+ *
+ * Input: no runtime input.
+ * Output: durable storage mode.
+ * Transformation: selects persistence-backed behavior when an adapter is
+ * available.
+ */
+@target.vm {process_mailbox: true}
+pub durable(): Mode ->
+    native.
+
+/**
+ * Builds the cluster storage mode.
+ *
+ * Input: no runtime input.
+ * Output: cluster storage mode.
+ * Transformation: selects replication-aware checkpoint behavior when a backend
+ * supports it.
+ */
+@target.vm {process_mailbox: true}
+pub cluster(): Mode ->
+    native.
+
+/**
+ * Builds the default force-local storage policy.
+ *
+ * Input: no runtime input.
+ * Output: local-only available policy.
+ * Transformation: gives VM tests and development flows a deterministic adapter
+ * that does not require external storage.
+ */
+@target.vm {process_mailbox: true}
+pub force_local(): Policy ->
+    native.
+
+/**
+ * Builds a storage policy descriptor.
+ *
+ * Input: policy name, backend mode, and availability flag.
+ * Output: storage policy descriptor.
+ * Transformation: validates adapter selection before lifecycle operations.
+ */
+@target.vm {process_mailbox: true}
+pub policy(name: String, mode: Mode, available: Bool): Policy ->
+    native.
+
+/**
+ * Returns the stable policy name.
+ *
+ * Input: storage policy descriptor.
+ * Output: policy name text.
+ * Transformation: exposes adapter selection identity without leaking backend
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub policy_name(policy: Policy): String ->
+    native.
+
+/**
+ * Returns the stable policy mode kind.
+ *
+ * Input: storage policy descriptor.
+ * Output: mode kind text.
+ * Transformation: exposes adapter mode selection without leaking backend
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub policy_mode_kind(policy: Policy): String ->
+    native.
+
+/**
+ * Returns whether the selected backend is available.
+ *
+ * Input: storage policy descriptor.
+ * Output: `true` when the policy points at an available backend.
+ * Transformation: exposes deterministic backend availability for validation
+ * without opening the adapter.
+ */
+@target.vm {process_mailbox: true}
+pub policy_available(policy: Policy): Bool ->
+    native.
+
+/**
+ * Returns whether a policy can perform cluster replication.
+ *
+ * Input: storage policy descriptor.
+ * Output: `true` when the selected mode supports cluster replication and the
+ * backend is available.
+ * Transformation: exposes deterministic capability checks before adapter
+ * lifecycle calls.
+ */
+@target.vm {process_mailbox: true}
+pub policy_can_cluster_replicate(policy: Policy): Bool ->
+    native.
+
+/**
+ * Creates a storage adapter from a policy.
+ *
+ * Input: storage policy.
+ * Output: closed adapter descriptor.
+ * Transformation: binds lifecycle operations to one VM-owned backend policy.
+ */
+@target.vm {process_mailbox: true}
+pub adapter(policy: Policy): Adapter ->
+    native.
+
+/**
+ * Returns the policy name attached to an adapter.
+ *
+ * Input: adapter receiver.
+ * Output: policy name text.
+ * Transformation: exposes adapter selection identity without exposing adapter
+ * state or backend internals.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) policy_name(): String ->
+    native.
+
+/**
+ * Returns the policy mode kind attached to an adapter.
+ *
+ * Input: adapter receiver.
+ * Output: mode kind text.
+ * Transformation: exposes adapter mode selection without exposing adapter
+ * state or backend internals.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) policy_mode_kind(): String ->
+    native.
+
+/**
+ * Returns whether an adapter's selected backend is available.
+ *
+ * Input: adapter receiver.
+ * Output: `true` when the selected backend is available.
+ * Transformation: exposes deterministic backend availability without probing
+ * backend internals.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) policy_available(): Bool ->
+    native.
+
+/**
+ * Returns whether an adapter can perform cluster replication.
+ *
+ * Input: adapter receiver.
+ * Output: `true` when the selected mode supports cluster replication and the
+ * backend is available.
+ * Transformation: exposes deterministic capability checks before
+ * `require_cluster_replication`.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) can_cluster_replicate(): Bool ->
+    native.
+
+/**
+ * Builds a checkpoint descriptor from distributed state.
+ *
+ * Input: checkpoint id, non-zero sequence, and distributed state snapshot.
+ * Output: storage snapshot descriptor.
+ * Transformation: attaches deterministic storage metadata to a VM state
+ * checkpoint.
+ */
+@target.vm {process_mailbox: true}
+pub checkpoint(
+    checkpoint_id: String,
+    sequence: Int,
+    state: std.vm.DistributedState.Snapshot
+): Snapshot ->
+    native.
+
+/**
+ * Opens a storage adapter.
+ *
+ * Input: adapter receiver.
+ * Output: lifecycle outcome descriptor.
+ * Transformation: performs deterministic capability and availability checks.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) open(): Outcome ->
+    native.
+
+/**
+ * Appends a storage snapshot.
+ *
+ * Input: adapter receiver and snapshot descriptor.
+ * Output: appended, partial-write, stale, unavailable, or unsupported outcome
+ * descriptor.
+ * Transformation: delegates write ordering and stale replay rejection to the VM
+ * storage lane.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) append(snapshot: Snapshot): Outcome ->
+    native.
+
+/**
+ * Requires atomic append support.
+ *
+ * Input: adapter receiver.
+ * Output: opened or unavailable outcome descriptor.
+ * Transformation: exposes deterministic append capability checks before
+ * writing checkpoints.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) require_atomic_append(): Outcome ->
+    native.
+
+/**
+ * Returns the current atomic append proof.
+ *
+ * Input: adapter receiver.
+ * Output: atomic append proof descriptor.
+ * Transformation: captures the sequence boundary that failed append attempts
+ * must not advance.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) atomic_append_proof(): AtomicAppendProof ->
+    native.
+
+/**
+ * Requires snapshot isolation support.
+ *
+ * Input: adapter receiver.
+ * Output: opened or unavailable outcome descriptor.
+ * Transformation: exposes deterministic snapshot isolation capability checks
+ * before loading checkpoint views.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) require_snapshot_isolation(): Outcome ->
+    native.
+
+/**
+ * Returns a snapshot isolation proof for a checkpoint.
+ *
+ * Input: adapter receiver and checkpoint id.
+ * Output: snapshot isolation proof descriptor.
+ * Transformation: validates and freezes one checkpoint view before later
+ * adapter writes or compaction can occur.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) snapshot_isolation_proof(checkpoint_id: String): SnapshotIsolationProof ->
+    native.
+
+/**
+ * Requires durable flush proof support.
+ *
+ * Input: adapter receiver.
+ * Output: opened or unavailable outcome descriptor.
+ * Transformation: exposes deterministic fsync/equivalent durability
+ * capability checks before accepting a durable boundary proof.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) require_durable_flush(): Outcome ->
+    native.
+
+/**
+ * Returns the current durable flush proof.
+ *
+ * Input: adapter receiver.
+ * Output: durable flush proof descriptor.
+ * Transformation: captures the flushed sequence boundary that failed or timed
+ * out flush attempts must not advance.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) durable_flush_proof(): DurableFlushProof ->
+    native.
+
+/**
+ * Requires transactional batch append support.
+ *
+ * Input: adapter receiver.
+ * Output: opened or unavailable outcome descriptor.
+ * Transformation: exposes deterministic all-or-nothing batch capability checks
+ * before accepting grouped checkpoint writes.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) require_transactional_batch(): Outcome ->
+    native.
+
+/**
+ * Returns the current transactional batch proof.
+ *
+ * Input: adapter receiver.
+ * Output: transactional batch proof descriptor.
+ * Transformation: captures the last committed batch boundary that failed
+ * partial batch attempts must not advance.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) transactional_batch_proof(): TransactionalBatchProof ->
+    native.
+
+/**
+ * Appends a group of snapshots as one all-or-nothing transaction.
+ *
+ * Input: adapter receiver and ordered snapshot descriptors.
+ * Output: batch-appended, partial-write, stale, checksum-mismatch,
+ * unavailable, or unsupported outcome descriptor.
+ * Transformation: validates every checkpoint before mutating adapter state so
+ * a partial batch cannot become actor-visible.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) transactional_batch_append(snapshots: List[Snapshot]): Outcome ->
+    native.
+
+/**
+ * Requires schema migration support.
+ *
+ * Input: adapter receiver.
+ * Output: opened or unavailable outcome descriptor.
+ * Transformation: exposes deterministic schema migration capability checks
+ * before accepting adapter schema changes.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) require_schema_migration(): Outcome ->
+    native.
+
+/**
+ * Returns the current schema migration proof.
+ *
+ * Input: adapter receiver.
+ * Output: schema migration proof descriptor.
+ * Transformation: captures the schema version and storage sequence that stale
+ * migration attempts must not advance.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) schema_migration_proof(): SchemaMigrationProof ->
+    native.
+
+/**
+ * Migrates the adapter schema when the expected version is current.
+ *
+ * Input: adapter receiver, expected current schema version, and next schema
+ * version.
+ * Output: schema-migrated or schema-migration-mismatch outcome descriptor.
+ * Transformation: makes schema evolution explicit at the storage adapter
+ * boundary instead of allowing hidden adapter-specific rewrites.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) migrate_schema(expected_schema: Int, next_schema: Int): Outcome ->
+    native.
+
+/**
+ * Requires resource handle validation support.
+ *
+ * Input: adapter receiver.
+ * Output: opened or unavailable outcome descriptor.
+ * Transformation: exposes deterministic durable resource handle validation
+ * capability checks before accepting restored or replayed handles.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) require_resource_handle_validation(): Outcome ->
+    native.
+
+/**
+ * Returns the current resource handle validation proof.
+ *
+ * Input: adapter receiver.
+ * Output: resource handle validation proof descriptor.
+ * Transformation: captures the last validated handle count and storage
+ * sequence that missing-handle failures must not advance.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) resource_handle_validation_proof(): ResourceHandleValidationProof ->
+    native.
+
+/**
+ * Registers a durable resource handle with the adapter.
+ *
+ * Input: adapter receiver and durable resource handle id.
+ * Output: resource-handles-validated or resource-handle-validation-failed
+ * outcome descriptor.
+ * Transformation: keeps resource custody inside the storage adapter instead of
+ * allowing hidden restore-side handle assumptions.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) register_resource_handle(handle: String): Outcome ->
+    native.
+
+/**
+ * Validates that every durable resource handle is registered.
+ *
+ * Input: adapter receiver and durable resource handle ids.
+ * Output: resource-handles-validated or resource-handle-validation-failed
+ * outcome descriptor.
+ * Transformation: prevents restored or replayed actor state from referencing
+ * missing VM-owned resources.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) validate_resource_handles(handles: List[String]): Outcome ->
+    native.
+
+/**
+ * Replicates a storage snapshot through a cluster-capable adapter.
+ *
+ * Input: adapter receiver and snapshot descriptor.
+ * Output: appended, partial-write, stale, unavailable, checksum-mismatch, or
+ * unsupported outcome descriptor.
+ * Transformation: routes replicated checkpoint writes through the VM-owned
+ * cluster storage lane while preserving typed lifecycle metadata.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) replicate_snapshot(snapshot: Snapshot): Outcome ->
+    native.
+
+/**
+ * Returns a compare-and-swap append token for the current sequence.
+ *
+ * Input: adapter receiver.
+ * Output: compare-and-swap token descriptor.
+ * Transformation: captures the adapter sequence that must still be current
+ * before a guarded append can commit.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) compare_and_swap_token(): CompareAndSwapToken ->
+    native.
+
+/**
+ * Appends a storage snapshot if the compare-and-swap token is current.
+ *
+ * Input: adapter receiver, snapshot descriptor, and compare-and-swap token.
+ * Output: appended, stale-token, partial-write, stale, unavailable, or
+ * unsupported outcome descriptor.
+ * Transformation: makes optimistic concurrency explicit at the storage adapter
+ * boundary.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) compare_and_swap_append(snapshot: Snapshot, token: CompareAndSwapToken): Outcome ->
+    native.
+
+/**
+ * Flushes pending storage writes.
+ *
+ * Input: adapter receiver.
+ * Output: flushed, finalize-failed, flush-timed-out, unavailable, or
+ * unsupported outcome descriptor.
+ * Transformation: makes fsync/finalize success, timeout, and failure explicit.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) flush(): Outcome ->
+    native.
+
+/**
+ * Compacts old storage snapshots.
+ *
+ * Input: adapter receiver and first sequence to retain.
+ * Output: compacted, unavailable, or unsupported outcome descriptor.
+ * Transformation: delegates deterministic retention to the VM storage lane.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) compact(retain_from_sequence: Int): Outcome ->
+    native.
+
+/**
+ * Loads a checkpoint by id.
+ *
+ * Input: adapter receiver and checkpoint id.
+ * Output: loaded, missing, unavailable, checksum-mismatch, or unsupported
+ * outcome descriptor.
+ * Transformation: validates checksum and backend capability before exposing the
+ * loaded descriptor.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) load_snapshot(checkpoint_id: String): Outcome ->
+    native.
+
+/**
+ * Closes a storage adapter.
+ *
+ * Input: adapter receiver.
+ * Output: closed, unavailable, or unsupported outcome descriptor.
+ * Transformation: makes adapter lifecycle shutdown explicit.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) close(): Outcome ->
+    native.
+
+/**
+ * Requires cluster replication support.
+ *
+ * Input: adapter receiver.
+ * Output: opened or unsupported outcome descriptor.
+ * Transformation: exposes deterministic capability checks without probing
+ * backend internals.
+ */
+@target.vm {process_mailbox: true}
+pub (adapter: Adapter) require_cluster_replication(): Outcome ->
+    native.
+
+/**
+ * Returns the sequence boundary covered by an atomic append proof.
+ *
+ * Input: atomic append proof descriptor.
+ * Output: observed adapter sequence.
+ * Transformation: exposes atomic append conformance without exposing adapter
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub proof_sequence(proof: AtomicAppendProof): Int ->
+    native.
+
+/**
+ * Returns the checkpoint id covered by a snapshot isolation proof.
+ *
+ * Input: snapshot isolation proof descriptor.
+ * Output: isolated checkpoint id.
+ * Transformation: exposes stable snapshot identity without exposing adapter
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String ->
+    native.
+
+/**
+ * Returns the sequence covered by a snapshot isolation proof.
+ *
+ * Input: snapshot isolation proof descriptor.
+ * Output: isolated checkpoint sequence.
+ * Transformation: exposes stable snapshot ordering without exposing adapter
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub isolation_sequence(proof: SnapshotIsolationProof): Int ->
+    native.
+
+/**
+ * Returns the checksum covered by a snapshot isolation proof.
+ *
+ * Input: snapshot isolation proof descriptor.
+ * Output: isolated checkpoint checksum.
+ * Transformation: exposes stable snapshot integrity evidence without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub isolation_checksum(proof: SnapshotIsolationProof): Int ->
+    native.
+
+/**
+ * Returns the sequence covered by a durable flush proof.
+ *
+ * Input: durable flush proof descriptor.
+ * Output: last successfully flushed sequence.
+ * Transformation: exposes fsync/equivalent conformance without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub durable_flush_sequence(proof: DurableFlushProof): Int ->
+    native.
+
+/**
+ * Returns the first sequence covered by a transactional batch proof.
+ *
+ * Input: transactional batch proof descriptor.
+ * Output: first sequence committed by the last batch.
+ * Transformation: exposes all-or-nothing batch conformance without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub batch_first_sequence(proof: TransactionalBatchProof): Int ->
+    native.
+
+/**
+ * Returns the last sequence covered by a transactional batch proof.
+ *
+ * Input: transactional batch proof descriptor.
+ * Output: last sequence committed by the last batch.
+ * Transformation: exposes all-or-nothing batch conformance without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub batch_last_sequence(proof: TransactionalBatchProof): Int ->
+    native.
+
+/**
+ * Returns the number of snapshots covered by a transactional batch proof.
+ *
+ * Input: transactional batch proof descriptor.
+ * Output: committed snapshot count for the last batch.
+ * Transformation: exposes all-or-nothing batch conformance without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub batch_committed_count(proof: TransactionalBatchProof): Int ->
+    native.
+
+/**
+ * Returns the schema version covered by a schema migration proof.
+ *
+ * Input: schema migration proof descriptor.
+ * Output: current adapter schema version.
+ * Transformation: exposes schema evolution conformance without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub schema_version(proof: SchemaMigrationProof): Int ->
+    native.
+
+/**
+ * Returns the storage sequence covered by a schema migration proof.
+ *
+ * Input: schema migration proof descriptor.
+ * Output: adapter storage sequence when the schema proof was issued.
+ * Transformation: binds schema evolution to replay ordering without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub schema_sequence(proof: SchemaMigrationProof): Int ->
+    native.
+
+/**
+ * Returns the count covered by a resource handle validation proof.
+ *
+ * Input: resource handle validation proof descriptor.
+ * Output: count of handles covered by the last successful validation.
+ * Transformation: exposes resource validation conformance without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub resource_handle_count(proof: ResourceHandleValidationProof): Int ->
+    native.
+
+/**
+ * Returns the storage sequence covered by a resource validation proof.
+ *
+ * Input: resource handle validation proof descriptor.
+ * Output: adapter storage sequence when resource handles were validated.
+ * Transformation: binds resource validation to replay ordering without
+ * exposing adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int ->
+    native.
+
+/**
+ * Returns the missing resource handle for validation failures.
+ *
+ * Input: resource-handle-validation-failed outcome descriptor.
+ * Output: missing durable resource handle id, or empty text for other outcomes.
+ * Transformation: exposes resource recovery diagnostics without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub missing_resource_handle(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns the count validated by a successful resource handle check.
+ *
+ * Input: resource-handles-validated outcome descriptor.
+ * Output: validated handle count, or zero for other outcomes.
+ * Transformation: exposes resource validation metadata for conformance tests
+ * and replay diagnostics.
+ */
+@target.vm {process_mailbox: true}
+pub validated_resource_count(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Extracts a loaded snapshot from a lifecycle outcome.
+ *
+ * Input: loaded outcome descriptor.
+ * Output: storage snapshot descriptor.
+ * Transformation: keeps snapshot extraction typed and avoids diagnostic
+ * parsing.
+ */
+@target.vm {process_mailbox: true}
+pub loaded_snapshot(outcome: Outcome): Snapshot ->
+    native.
+
+/**
+ * Returns the textual lifecycle outcome kind.
+ *
+ * Input: outcome descriptor.
+ * Output: stable outcome kind text.
+ * Transformation: exposes storage result classification for tests, logs, and
+ * tools.
+ */
+@target.vm {process_mailbox: true}
+pub kind(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns the lifecycle operation kind associated with an outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: stable operation kind text, or an empty string when the outcome does
+ * not carry operation metadata.
+ * Transformation: exposes capability/failure operation metadata without
+ * exposing backend internals or debug text.
+ */
+@target.vm {process_mailbox: true}
+pub operation_kind(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns the storage mode kind associated with an outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: stable mode kind text, or an empty string when the outcome does not
+ * carry backend mode metadata.
+ * Transformation: exposes backend class metadata for capability decisions
+ * without exposing adapter state.
+ */
+@target.vm {process_mailbox: true}
+pub mode_kind(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns the stable failure reason associated with an outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: stable reason code for failure outcomes, or an empty string for
+ * successful outcomes.
+ * Transformation: exposes machine-readable storage diagnostics without
+ * leaking backend-specific error messages.
+ */
+@target.vm {process_mailbox: true}
+pub reason(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns whether an outcome represents a failed storage operation.
+ *
+ * Input: outcome descriptor.
+ * Output: `true` for unavailable, unsupported, stale, checksum mismatch,
+ * finalize-failed, partial-write, and missing snapshot outcomes.
+ * Transformation: exposes success/failure branching as typed metadata instead
+ * of requiring string comparisons.
+ */
+@target.vm {process_mailbox: true}
+pub is_failure(outcome: Outcome): Bool ->
+    native.
+
+/**
+ * Returns whether an outcome represents a successful storage operation.
+ *
+ * Input: outcome descriptor.
+ * Output: `true` for opened, appended, flushed, compacted, loaded, and closed
+ * outcomes.
+ * Transformation: exposes success branching as typed metadata instead of
+ * requiring callers to negate failure state.
+ */
+@target.vm {process_mailbox: true}
+pub is_success(outcome: Outcome): Bool ->
+    native.
+
+/**
+ * Returns whether a failure outcome requires storage recovery work.
+ *
+ * Input: outcome descriptor.
+ * Output: `true` for stale snapshot, checksum mismatch, finalize failure, and
+ * partial-write outcomes.
+ * Transformation: separates recovery-required failures from ordinary
+ * capability or lookup outcomes without string comparisons.
+ */
+@target.vm {process_mailbox: true}
+pub requires_recovery(outcome: Outcome): Bool ->
+    native.
+
+/**
+ * Returns the recovery action associated with a failure outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: stable recovery action code, or an empty string when no recovery
+ * action is required.
+ * Transformation: exposes recovery routing as typed storage metadata instead
+ * of coupling migration or fault code to diagnostic strings.
+ */
+@target.vm {process_mailbox: true}
+pub recovery_action(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns the sequence associated with a lifecycle outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: storage sequence number or zero when the outcome has no sequence.
+ * Transformation: exposes deterministic checkpoint ordering for diagnostics
+ * without exposing backend internals.
+ */
+@target.vm {process_mailbox: true}
+pub sequence(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the expected sequence for compare-and-swap token mismatch outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: expected sequence number, or zero when the outcome is not a
+ * compare-and-swap token mismatch.
+ * Transformation: exposes stale writer diagnostics without exposing adapter
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub expected_sequence(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the actual sequence for compare-and-swap token mismatch outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: current adapter sequence number, or zero when the outcome is not a
+ * compare-and-swap token mismatch.
+ * Transformation: exposes stale writer diagnostics without exposing adapter
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub actual_sequence(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the expected schema version for schema migration failures.
+ *
+ * Input: outcome descriptor.
+ * Output: expected schema version, or zero when the outcome is not a stale
+ * schema migration failure.
+ * Transformation: exposes schema migration diagnostics without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub expected_schema(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the actual schema version for schema migration outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: actual schema version, or zero when the outcome does not carry
+ * schema metadata.
+ * Transformation: exposes schema migration diagnostics without exposing
+ * adapter internals.
+ */
+@target.vm {process_mailbox: true}
+pub actual_schema(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the checkpoint id associated with a lifecycle outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: checkpoint id text, or an empty string when the outcome has no
+ * checkpoint id.
+ * Transformation: exposes stable checkpoint metadata for diagnostics and
+ * recovery without exposing snapshot internals.
+ */
+@target.vm {process_mailbox: true}
+pub checkpoint_id(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns the local sequence for stale-snapshot outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: local sequence number, or zero when the outcome is not stale.
+ * Transformation: exposes stale replay diagnostics without exposing adapter
+ * state.
+ */
+@target.vm {process_mailbox: true}
+pub local_sequence(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the incoming sequence for stale-snapshot outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: incoming sequence number, or zero when the outcome is not stale.
+ * Transformation: exposes rejected checkpoint ordering as typed metadata.
+ */
+@target.vm {process_mailbox: true}
+pub incoming_sequence(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the checksum associated with a lifecycle outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: checksum integer or zero when the outcome has no checksum.
+ * Transformation: exposes checksum metadata for audit and validation without
+ * leaking the snapshot representation.
+ */
+@target.vm {process_mailbox: true}
+pub checksum(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the expected checksum for checksum-mismatch outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: expected checksum integer, or zero when the outcome is not a checksum
+ * mismatch.
+ * Transformation: exposes checksum mismatch diagnostics without exposing the
+ * snapshot representation.
+ */
+@target.vm {process_mailbox: true}
+pub expected_checksum(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the expected entry count for partial-write outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: expected entry count, or zero when the outcome is not partial-write.
+ * Transformation: exposes bounded recovery metadata without exposing the
+ * adapter log representation.
+ */
+@target.vm {process_mailbox: true}
+pub expected_entries(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the persisted entry count for partial-write outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: persisted entry count, or zero when the outcome is not partial-write.
+ * Transformation: exposes partial persistence progress as typed metadata for
+ * recovery and diagnostics.
+ */
+@target.vm {process_mailbox: true}
+pub persisted_entries(outcome: Outcome): Int ->
+    native.
+
+/**
+ * Returns the retained snapshot count for compaction outcomes.
+ *
+ * Input: outcome descriptor.
+ * Output: retained snapshot count, or zero when the outcome is not compacted.
+ * Transformation: exposes deterministic compaction progress without exposing
+ * adapter log internals.
+ */
+@target.vm {process_mailbox: true}
+pub retained_snapshots(outcome: Outcome): Int ->
+    native.

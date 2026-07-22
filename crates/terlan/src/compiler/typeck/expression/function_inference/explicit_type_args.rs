@@ -43,12 +43,40 @@ pub(super) fn bind_explicit_call_type_args(
         let supplied = parse_explicit_call_type_arg(type_arg, ctx)?;
         if let Some(generic_param) = scheme.generic_params.get(index) {
             validate_explicit_hkt_type_arg_variance(generic_param, &supplied, type_arg, ctx)?;
+            if generic_param.trim().starts_with("const ") {
+                bind_explicit_const_arg(var, supplied, subst)?;
+                continue;
+            }
         }
         if let Err(message) = unify(&Type::Var(var), &supplied, subst) {
             return Err(message);
         }
     }
 
+    Ok(())
+}
+
+fn bind_explicit_const_arg(
+    var: TypeVarId,
+    supplied: Type,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    if !matches!(
+        supplied,
+        Type::LiteralInt(_) | Type::LiteralBool(_) | Type::LiteralAtom(_)
+    ) {
+        return Err("const generic argument must be an Int, Bool, or Atom literal".to_string());
+    }
+    if let Some(existing) = subst.get(&var) {
+        if existing == &supplied {
+            return Ok(());
+        }
+        return Err(format!(
+            "const generic argument conflicts with existing `{}`",
+            pretty_type(existing)
+        ));
+    }
+    subst.insert(var, supplied);
     Ok(())
 }
 
@@ -348,7 +376,14 @@ fn collect_type_vars_in_order(ty: &Type, vars: &mut Vec<TypeVarId>) {
                 collect_type_vars_in_order(&field.value, vars);
             }
         }
-        Type::FixedArray { elem, .. } => collect_type_vars_in_order(elem, vars),
+        Type::FixedArray { size, elem } => {
+            if let crate::terlan_typeck::types::FixedArraySize::Param(id) = size {
+                if !vars.contains(id) {
+                    vars.push(*id);
+                }
+            }
+            collect_type_vars_in_order(elem, vars);
+        }
         Type::Named { args, .. } => {
             for arg in args {
                 collect_type_vars_in_order(arg, vars);
@@ -371,7 +406,8 @@ fn collect_type_vars_in_order(ty: &Type, vars: &mut Vec<TypeVarId>) {
         | Type::Never
         | Type::Placeholder
         | Type::LiteralAtom(_)
-        | Type::LiteralInt(_) => {}
+        | Type::LiteralInt(_)
+        | Type::LiteralBool(_) => {}
     }
 }
 
@@ -423,7 +459,12 @@ fn collect_type_vars_in_order_excluding(
                 collect_type_vars_in_order_excluding(&field.value, vars, excluded);
             }
         }
-        Type::FixedArray { elem, .. } => {
+        Type::FixedArray { size, elem } => {
+            if let crate::terlan_typeck::types::FixedArraySize::Param(id) = size {
+                if !excluded.contains(id) && !vars.contains(id) {
+                    vars.push(*id);
+                }
+            }
             collect_type_vars_in_order_excluding(elem, vars, excluded);
         }
         Type::Named { args, .. } => {
@@ -448,6 +489,7 @@ fn collect_type_vars_in_order_excluding(
         | Type::Never
         | Type::Placeholder
         | Type::LiteralAtom(_)
-        | Type::LiteralInt(_) => {}
+        | Type::LiteralInt(_)
+        | Type::LiteralBool(_) => {}
     }
 }

@@ -1,9 +1,11 @@
 use super::{
-    development_schema_reset_sql, migration_history_insert_sql, MigrationExecutionReport,
-    MigrationExecutionRequest,
+    development_schema_reset_sql, migration_failed_message, migration_history_insert_sql,
+    pending_after_lock, validate_migration_lock_result, MigrationExecutionReport,
+    MigrationExecutionRequest, MIGRATION_LOCK_SQL,
 };
-use crate::commands::db::migration::MigrationEngineInput;
+use crate::commands::db::migration::{AppliedMigration, MigrationEngineInput};
 use crate::commands::db::{DatabaseConfigSource, ResolvedDatabaseConfig};
+use crate::runtime::vm::postgres::VmPostgresDecodedValue;
 use crate::terlan_native::postgres;
 
 /// Builds one migration-engine input fixture.
@@ -78,7 +80,7 @@ fn migration_application_sql(migration: &MigrationEngineInput) -> String {
 /// Transformation:
 /// - Converts the centralized parameterized insert contract into a literal SQL
 ///   statement only for SQL-shape regression tests. Runtime execution uses
-///   parameterized SafeNative calls instead.
+///   parameterized VM Postgres calls instead.
 fn migration_history_insert_sql_for(migration: &MigrationEngineInput) -> String {
     migration_history_insert_sql()
         .replace("$1", &sql_string_literal(&migration.version))
@@ -141,6 +143,32 @@ fn migration_execution_request_preserves_adapter_inputs() {
     assert_eq!(request.config().source_label(), "--database-url");
     assert_eq!(request.pending(), pending.as_slice());
     assert!(request.destructive());
+}
+
+/// Formats a typed migration failure without leaking source SQL or credentials.
+#[test]
+fn migration_failed_message_identifies_migration_and_redacts_request_data() {
+    let config = resolved_config(
+        "postgres://alice:secret@localhost/terlan_dev",
+        DatabaseConfigSource::CommandLine,
+    );
+    let migration = migration_input();
+    let pending = [migration.clone()];
+    let request = MigrationExecutionRequest::new("migrate", &config, &pending, false);
+
+    let message = migration_failed_message(
+        &request,
+        &migration,
+        "error[postgres.query_failed]: database rejected request".to_string(),
+    );
+
+    assert_eq!(
+        message,
+        "error[db.migration.failed]: Migration `20260619123000` failed: terlc db migrate failed: error[postgres.query_failed]: database rejected request"
+    );
+    assert!(!message.contains("CREATE TABLE"));
+    assert!(!message.contains("alice"));
+    assert!(!message.contains("secret"));
 }
 
 /// Builds a development schema reset batch.
@@ -225,4 +253,96 @@ fn migration_application_sql_wraps_up_sql_and_history_insert() {
     assert!(sql.starts_with("BEGIN;\nCREATE TABLE users"));
     assert!(sql.contains("INSERT INTO terlan_schema_migrations"));
     assert!(sql.ends_with("\nCOMMIT;"));
+}
+
+#[test]
+fn migration_lock_sql_uses_transaction_scoped_nonblocking_lock() {
+    assert_eq!(
+        MIGRATION_LOCK_SQL,
+        "SELECT pg_try_advisory_xact_lock(1413829196, 1296648018) AS acquired;"
+    );
+}
+
+#[test]
+fn migration_lock_result_accepts_only_true_boolean() {
+    assert_eq!(
+        validate_migration_lock_result(VmPostgresDecodedValue::Bool(true)),
+        Ok(())
+    );
+    assert_eq!(
+        validate_migration_lock_result(VmPostgresDecodedValue::Bool(false)),
+        Err(
+            "error[db.migration.lock_conflict]: Another migration command owns the database lock."
+                .to_string()
+        )
+    );
+    assert_eq!(
+        validate_migration_lock_result(VmPostgresDecodedValue::Int(1)),
+        Err(
+            "error[db.migration.lock_protocol]: Postgres returned an invalid migration lock result."
+                .to_string()
+        )
+    );
+}
+
+#[test]
+fn migration_plan_revalidates_history_after_lock() {
+    let first = migration_input();
+    let mut second = migration_input();
+    second.version = "20260619123100".to_string();
+    second.name = "add_user_email".to_string();
+    second.checksum = "b".repeat(64);
+    let applied = AppliedMigration {
+        version: first.version.clone(),
+        name: first.name.clone(),
+        checksum: first.checksum.clone(),
+        applied_at: "2026-06-19T12:30:00.000000Z".to_string(),
+    };
+
+    let planned = [first, second.clone()];
+    let pending = pending_after_lock(&planned, &[applied]).expect("history should be compatible");
+
+    assert_eq!(pending, vec![&second]);
+}
+
+#[test]
+fn migration_plan_rejects_history_that_changes_while_waiting_for_lock() {
+    let migration = migration_input();
+    let applied = AppliedMigration {
+        version: migration.version.clone(),
+        name: migration.name.clone(),
+        checksum: "b".repeat(64),
+        applied_at: "2026-06-19T12:30:00.000000Z".to_string(),
+    };
+
+    assert_eq!(
+        pending_after_lock(&[migration], &[applied]),
+        Err(
+            "error[db.migration.history_divergent]: Migration `20260619123000` changed while waiting for the database lock."
+                .to_string()
+        )
+    );
+}
+
+#[test]
+fn migration_plan_rejects_out_of_order_history_introduced_while_waiting_for_lock() {
+    let first = migration_input();
+    let mut second = migration_input();
+    second.version = "20260619123100".to_string();
+    second.name = "add_user_email".to_string();
+    second.checksum = "b".repeat(64);
+    let applied = AppliedMigration {
+        version: second.version.clone(),
+        name: second.name.clone(),
+        checksum: second.checksum.clone(),
+        applied_at: "2026-06-19T12:30:00.000000Z".to_string(),
+    };
+
+    assert_eq!(
+        pending_after_lock(&[first, second], &[applied]),
+        Err(
+            "error[db.migration.out_of_order]: Database history contains a later applied migration before local migration `20260619123000`."
+                .to_string()
+        )
+    );
 }

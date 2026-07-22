@@ -38,6 +38,11 @@ fn write_manifest_package(web_root: &Path) {
         "export const value = 1;\n",
     )
     .expect("write app asset");
+    fs::write(
+        web_root.join("assets/js/modules/app.js.map"),
+        r#"{"version":3,"file":"app.js","sources":["app.terl"],"names":[],"mappings":""}"#,
+    )
+    .expect("write source map asset");
     fs::write(web_root.join("assets/app.css"), "body { color: black; }\n")
         .expect("write css asset");
     fs::write(web_root.join("assets/hello.txt"), "hello asset\n").expect("write static asset");
@@ -56,6 +61,13 @@ fn write_manifest_package(web_root: &Path) {
       "source_relative_path": "modules/app.js",
       "web_relative_path": "assets/js/modules/app.js",
       "fingerprint": 1
+    },
+    {
+      "module": "app",
+      "kind": "javascript-source-map",
+      "source_relative_path": "modules/app.js.map",
+      "web_relative_path": "assets/js/modules/app.js.map",
+      "fingerprint": 4
     },
     {
       "module": "",
@@ -367,12 +379,15 @@ fn manifest_static_file_for_request_matches_index_and_assets() {
         manifest_static_file_for_request(&web_root, "/index.html").expect("explicit index");
     let asset = manifest_static_file_for_request(&web_root, "/assets/js/modules/app.js")
         .expect("manifest asset");
+    let source_map = manifest_static_file_for_request(&web_root, "/assets/js/modules/app.js.map")
+        .expect("manifest source map");
     let static_asset =
         manifest_static_file_for_request(&web_root, "/assets/hello.txt").expect("static asset");
 
     assert_eq!(root_index, web_root.join("index.html"));
     assert_eq!(explicit_index, web_root.join("index.html"));
     assert_eq!(asset, web_root.join("assets/js/modules/app.js"));
+    assert_eq!(source_map, web_root.join("assets/js/modules/app.js.map"));
     assert_eq!(static_asset, web_root.join("assets/hello.txt"));
     fs::remove_dir_all(dir).expect("cleanup");
 }

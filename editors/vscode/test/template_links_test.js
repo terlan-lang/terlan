@@ -5,6 +5,7 @@ const path = require("path");
 const {
   findTemplateComponentTagLinks,
   parseTemplateDeclarations,
+  templateRenderModeFromPath,
   templateTagFromPath
 } = require("../src/template_links");
 
@@ -34,6 +35,34 @@ function testTemplateTagFromPath() {
 }
 
 /**
+ * Verifies editor template declarations expose compiler render-mode metadata.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Keeps VS Code template links aligned with the typed-template render-mode
+ * inventory used by generated docs and release quality reports.
+ */
+function testTemplateRenderModeFromPath() {
+  assert.strictEqual(
+    templateRenderModeFromPath("templates/page_shell.terl.html"),
+    "staticHtml"
+  );
+  assert.strictEqual(
+    templateRenderModeFromPath("templates/readme.terl.md"),
+    "documentationExample"
+  );
+  assert.strictEqual(
+    templateRenderModeFromPath("templates/manifest.terl.json"),
+    "structuredArtifact"
+  );
+  assert.strictEqual(
+    templateRenderModeFromPath("templates/page.html"),
+    undefined
+  );
+}
+
+/**
  * Verifies Terlan template declarations are parsed with tag and location data.
  *
  * @returns {void}
@@ -55,6 +84,7 @@ function testParseTemplateDeclarations() {
   assert.strictEqual(declarations.length, 1);
   assert.strictEqual(declarations[0].name, "PageShell");
   assert.strictEqual(declarations[0].tag, "page-shell");
+  assert.strictEqual(declarations[0].renderMode, "staticHtml");
   assert.strictEqual(
     declarations[0].sourceFile,
     path.resolve("/repo/src/app", "../../templates/page_shell.terl.html")
@@ -84,6 +114,7 @@ function testFindTemplateComponentTagLinks() {
 }
 
 testTemplateTagFromPath();
+testTemplateRenderModeFromPath();
 testParseTemplateDeclarations();
 testFindTemplateComponentTagLinks();
 

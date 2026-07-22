@@ -6,6 +6,13 @@ use super::direct_helpers::{
     is_direct_oxc_js_identifier, is_js_safe_integer, oxc_ident_name, oxc_string_value,
 };
 use super::direct_reachability::reachable_direct_function_names;
+use super::template_runtime::template_renderer_identifier;
+
+mod case;
+mod comprehension;
+
+use case::core_case_clauses_to_oxc_expression;
+use comprehension::core_list_comprehension_to_oxc_expression;
 
 /// Builds and prints a minimal JavaScript module directly through Oxc AST APIs.
 ///
@@ -270,12 +277,13 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
         }
         crate::terlan_typeck::CoreExpr::ListComprehension {
             expr,
-            pattern,
-            source,
-            guard,
-        } => {
-            core_list_comprehension_to_oxc_expression(ast, expr, pattern, source, guard.as_deref())
-        }
+            generators,
+            guards,
+            lift,
+        } => lift
+            .is_none()
+            .then(|| core_list_comprehension_to_oxc_expression(ast, expr, generators, guards))
+            .flatten(),
         crate::terlan_typeck::CoreExpr::ListCons { head, tail } => {
             let mut elements = ast.vec();
             elements.push(ArrayExpressionElement::from(core_expr_to_oxc_expression(
@@ -333,8 +341,7 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
             }
             Some(ast.expression_object(SPAN, properties))
         }
-        crate::terlan_typeck::CoreExpr::RecordConstruct { fields, .. }
-        | crate::terlan_typeck::CoreExpr::TemplateInstantiate { fields, .. } => {
+        crate::terlan_typeck::CoreExpr::RecordConstruct { fields, .. } => {
             let mut properties = ast.vec();
             for field in fields {
                 properties.push(core_object_field_to_oxc_property(
@@ -344,6 +351,30 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
                 )?);
             }
             Some(ast.expression_object(SPAN, properties))
+        }
+        crate::terlan_typeck::CoreExpr::TemplateInstantiate { name, fields } => {
+            use oxc_ast::ast::Argument;
+
+            let mut properties = ast.vec();
+            for field in fields {
+                properties.push(core_object_field_to_oxc_property(
+                    ast,
+                    field.key.as_str(),
+                    &field.value,
+                )?);
+            }
+            let mut arguments = ast.vec();
+            arguments.push(Argument::from(ast.expression_object(SPAN, properties)));
+            Some(ast.expression_call(
+                SPAN,
+                ast.expression_identifier(
+                    SPAN,
+                    oxc_ident_name(ast, template_renderer_identifier(name)?.as_str()),
+                ),
+                oxc_ast::NONE,
+                arguments,
+                false,
+            ))
         }
         crate::terlan_typeck::CoreExpr::RecordUpdate { base, fields, .. } => {
             let mut properties = ast.vec();
@@ -405,6 +436,13 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
             operator,
             left,
             right,
+        } if matches!(operator.as_str(), "and" | "&&" | "or" | "||") => {
+            core_logical_expr_to_oxc_expression(ast, operator, left, right)
+        }
+        crate::terlan_typeck::CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
         } => Some(ast.expression_binary(
             SPAN,
             core_expr_to_oxc_expression(ast, left)?,
@@ -413,6 +451,43 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
         )),
         _ => None,
     }
+}
+
+/// Lowers Terlan boolean operators into Oxc logical expressions.
+///
+/// Inputs:
+/// - `ast`: Oxc AST builder tied to the destination allocator.
+/// - `operator`: CoreIR logical operator spelling.
+/// - `left`: left-hand boolean expression.
+/// - `right`: right-hand boolean expression.
+///
+/// Output:
+/// - `Some(Expression)` for supported short-circuit logical operators.
+/// - `None` when either child expression remains unsupported.
+///
+/// Transformation:
+/// - Maps Terlan `and`/`or` and their symbolic aliases to JavaScript logical
+///   expressions so direct Oxc lowering preserves short-circuit semantics.
+fn core_logical_expr_to_oxc_expression<'a>(
+    ast: oxc_ast::AstBuilder<'a>,
+    operator: &str,
+    left: &crate::terlan_typeck::CoreExpr,
+    right: &crate::terlan_typeck::CoreExpr,
+) -> Option<oxc_ast::ast::Expression<'a>> {
+    use oxc_span::SPAN;
+    use oxc_syntax::operator::LogicalOperator;
+
+    let operator = match operator {
+        "and" | "&&" => LogicalOperator::And,
+        "or" | "||" => LogicalOperator::Or,
+        _ => return None,
+    };
+    Some(ast.expression_logical(
+        SPAN,
+        core_expr_to_oxc_expression(ast, left)?,
+        operator,
+        core_expr_to_oxc_expression(ast, right)?,
+    ))
 }
 
 /// Lowers a supported CoreIR intrinsic call into an Oxc expression.
@@ -530,7 +605,7 @@ fn core_function_call_expr_to_oxc_expression<'a>(
 ///   function-value invocation.
 ///
 /// Output:
-/// - `Some(Expression)` for `left |> f(args...)` or `left |> f.(args...)` in
+/// - `Some(Expression)` for `left |> f(args...)` or `left |> f(args...)` in
 ///   the supported subset.
 /// - `None` when the right side is not a supported call shape or any child
 ///   expression remains unsupported.
@@ -625,55 +700,6 @@ fn core_integer_division_to_oxc_expression<'a>(
     Some(ast.expression_call(SPAN, callee, oxc_ast::NONE, args, false))
 }
 
-/// Lowers a simple CoreIR list comprehension into an Oxc `.map(...)` call.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `expr`: yielded CoreIR expression.
-/// - `pattern`: generator pattern bound for each source element.
-/// - `source`: CoreIR source-list expression.
-/// - `guard`: optional CoreIR guard expression.
-///
-/// Output:
-/// - `Some(Expression)` for a single-generator, variable-pattern, unguarded
-///   list comprehension whose yield/source expressions are directly lowerable.
-/// - `None` for guarded comprehensions, destructuring patterns, unsupported
-///   parameter names, or unsupported yield/source expressions.
-///
-/// Transformation:
-/// - Converts `[yield | value <- source]` into `source.map((value) => yield)`.
-///   This preserves the current list-valued artifact shape without introducing
-///   filter semantics or pattern dispatch.
-fn core_list_comprehension_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    expr: &crate::terlan_typeck::CoreExpr,
-    pattern: &crate::terlan_typeck::CorePattern,
-    source: &crate::terlan_typeck::CoreExpr,
-    guard: Option<&crate::terlan_typeck::CoreExpr>,
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_ast::ast::Argument;
-    use oxc_span::SPAN;
-
-    if guard.is_some() {
-        return None;
-    }
-    let callee = ast
-        .member_expression_static(
-            SPAN,
-            core_expr_to_oxc_expression(ast, source)?,
-            ast.identifier_name(SPAN, "map"),
-            false,
-        )
-        .into();
-    let mut args = ast.vec();
-    args.push(Argument::from(core_lam_expr_to_oxc_expression(
-        ast,
-        std::slice::from_ref(pattern),
-        expr,
-    )?));
-    Some(ast.expression_call(SPAN, callee, oxc_ast::NONE, args, false))
-}
-
 /// Lowers a CoreIR anonymous function value into an Oxc arrow function expression.
 ///
 /// Inputs:
@@ -690,7 +716,7 @@ fn core_list_comprehension_to_oxc_expression<'a>(
 /// Transformation:
 /// - Converts Terlan `(patterns) -> Expr` lambda values into JavaScript
 ///   expression-body arrow functions. This only lowers the function value;
-///   callable-value invocation is handled by the dedicated `f.(args)` syntax.
+///   callable-value invocation is handled by the dedicated `f(args)` syntax.
 fn core_lam_expr_to_oxc_expression<'a>(
     ast: oxc_ast::AstBuilder<'a>,
     params: &[crate::terlan_typeck::CorePattern],
@@ -734,28 +760,24 @@ fn core_lam_expr_to_oxc_expression<'a>(
 /// - `param`: CoreIR lambda parameter pattern.
 ///
 /// Output:
-/// - `Some(FormalParameter)` for direct variable patterns.
-/// - `None` for every non-variable pattern or unsupported identifier.
+/// - `Some(FormalParameter)` for direct variable and tuple/list destructuring
+///   patterns.
+/// - `None` for unsupported identifiers or patterns.
 ///
 /// Transformation:
-/// - Keeps this JS slice limited to non-destructuring anonymous functions and
-///   reuses the direct Oxc backend's conservative JavaScript identifier policy.
+/// - Reuses the direct Oxc backend's conservative JavaScript identifier policy
+///   and lowers Terlan tuple/list patterns to JavaScript array destructuring
+///   because this backend represents tuple and list values as arrays.
 fn core_lam_param_to_oxc_formal_parameter<'a>(
     ast: oxc_ast::AstBuilder<'a>,
     param: &crate::terlan_typeck::CorePattern,
 ) -> Option<oxc_ast::ast::FormalParameter<'a>> {
     use oxc_span::SPAN;
 
-    let crate::terlan_typeck::CorePattern::Var(name) = param else {
-        return None;
-    };
-    if !is_direct_oxc_js_identifier(name) {
-        return None;
-    }
     Some(ast.formal_parameter(
         SPAN,
         ast.vec(),
-        ast.binding_pattern_binding_identifier(SPAN, oxc_ident_name(ast, name.as_str())),
+        core_pattern_to_oxc_binding_pattern(ast, param)?,
         oxc_ast::NONE,
         oxc_ast::NONE,
         false,
@@ -765,138 +787,101 @@ fn core_lam_param_to_oxc_formal_parameter<'a>(
     ))
 }
 
-/// Lowers total literal-pattern CoreIR case clauses into an Oxc conditional expression.
+/// Converts a CoreIR pattern into an Oxc binding pattern for direct JS lambdas.
 ///
 /// Inputs:
 /// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `scrutinee`: CoreIR expression being matched.
-/// - `clauses`: CoreIR case clauses in source order.
+/// - `param`: CoreIR lambda parameter pattern.
 ///
 /// Output:
-/// - `Some(Expression)` when the scrutinee is a direct variable, every
-///   non-final clause is an unguarded atom, integer, or finite-float literal
-///   pattern, the final clause is an unguarded wildcard fallback, and all
-///   branch bodies are directly lowerable.
-/// - `None` for guarded, partial, binding, destructuring, or otherwise
-///   unsupported case expressions.
+/// - `Some(BindingPattern)` for variable, sequence, map, and record patterns.
+/// - `None` for wildcards at the top level or unsupported nested patterns.
 ///
 /// Transformation:
-/// - Uses the final wildcard branch as the alternate expression and folds
-///   preceding literal clauses from right to left into nested Oxc conditional
-///   expressions. The scrutinee is restricted to a variable so this
-///   direct AST path does not introduce repeated evaluation semantics.
-fn core_case_clauses_to_oxc_expression<'a>(
+/// - Maps Terlan tuple/list destructuring onto arrays and map/record patterns
+///   onto objects. Wildcards are handled only as nested array holes by
+///   `core_pattern_to_oxc_array_binding_element`.
+fn core_pattern_to_oxc_binding_pattern<'a>(
     ast: oxc_ast::AstBuilder<'a>,
-    scrutinee: &crate::terlan_typeck::CoreExpr,
-    clauses: &[crate::terlan_typeck::CoreCaseClause],
-) -> Option<oxc_ast::ast::Expression<'a>> {
+    param: &crate::terlan_typeck::CorePattern,
+) -> Option<oxc_ast::ast::BindingPattern<'a>> {
     use oxc_span::SPAN;
 
-    let crate::terlan_typeck::CoreExpr::Var(scrutinee_name) = scrutinee else {
-        return None;
-    };
-    if !is_direct_oxc_js_identifier(scrutinee_name) {
-        return None;
-    }
-
-    let (fallback, clauses) = clauses.split_last()?;
-    if fallback.guard.is_some()
-        || !matches!(
-            fallback.pattern,
-            crate::terlan_typeck::CorePattern::Wildcard
-        )
-    {
-        return None;
-    }
-
-    let mut expr = core_expr_to_oxc_expression(ast, &fallback.body)?;
-    for clause in clauses.iter().rev() {
-        if clause.guard.is_some() {
-            return None;
+    match param {
+        crate::terlan_typeck::CorePattern::Var(name) if is_direct_oxc_js_identifier(name) => {
+            Some(ast.binding_pattern_binding_identifier(SPAN, oxc_ident_name(ast, name.as_str())))
         }
-        expr = ast.expression_conditional(
-            SPAN,
-            core_case_literal_pattern_test_to_oxc_expression(ast, scrutinee_name, &clause.pattern)?,
-            core_expr_to_oxc_expression(ast, &clause.body)?,
-            expr,
-        );
+        crate::terlan_typeck::CorePattern::Tuple(items)
+        | crate::terlan_typeck::CorePattern::List(items) => {
+            let mut elements = ast.vec();
+            for item in items {
+                elements.push(core_pattern_to_oxc_array_binding_element(ast, item)?);
+            }
+            Some(ast.binding_pattern_array_pattern(SPAN, elements, oxc_ast::NONE))
+        }
+        crate::terlan_typeck::CorePattern::Map(fields) => {
+            let mut properties = ast.vec();
+            for field in fields {
+                if !is_direct_oxc_js_identifier(&field.key) {
+                    return None;
+                }
+                properties.push(ast.binding_property(
+                    SPAN,
+                    ast.property_key_static_identifier(
+                        SPAN,
+                        oxc_ident_name(ast, field.key.as_str()),
+                    ),
+                    core_pattern_to_oxc_binding_pattern(ast, &field.value)?,
+                    false,
+                    false,
+                ));
+            }
+            Some(ast.binding_pattern_object_pattern(SPAN, properties, oxc_ast::NONE))
+        }
+        crate::terlan_typeck::CorePattern::Record { fields, .. } => {
+            let mut properties = ast.vec();
+            for field in fields {
+                if !is_direct_oxc_js_identifier(&field.key) {
+                    return None;
+                }
+                properties.push(ast.binding_property(
+                    SPAN,
+                    ast.property_key_static_identifier(
+                        SPAN,
+                        oxc_ident_name(ast, field.key.as_str()),
+                    ),
+                    core_pattern_to_oxc_binding_pattern(ast, &field.value)?,
+                    false,
+                    false,
+                ));
+            }
+            Some(ast.binding_pattern_object_pattern(SPAN, properties, oxc_ast::NONE))
+        }
+        _ => None,
     }
-    Some(expr)
 }
 
-/// Builds an Oxc strict-equality test for one supported CoreIR case pattern.
+/// Converts a nested CoreIR pattern into an Oxc array-binding element.
 ///
 /// Inputs:
 /// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `scrutinee_name`: already-validated JavaScript identifier holding the case
-///   scrutinee value.
-/// - `pattern`: CoreIR pattern from a non-final case clause.
+/// - `param`: CoreIR pattern inside tuple/list destructuring.
 ///
 /// Output:
-/// - `Some(Expression)` for atom, integer, and finite-float literal patterns.
-/// - `None` for every other pattern shape.
+/// - `Some(Some(BindingPattern))` for bindable child patterns.
+/// - `Some(None)` for wildcard children, represented as JavaScript array holes.
+/// - `None` for unsupported child patterns.
 ///
 /// Transformation:
-/// - Reconstructs the scrutinee identifier for each comparison and compares it
-///   with the same atom artifact value used by expression lowering or a
-///   JavaScript numeric literal for numeric patterns.
-fn core_case_literal_pattern_test_to_oxc_expression<'a>(
+/// - Preserves wildcard non-binding semantics without inventing placeholder
+///   identifiers in generated JavaScript.
+fn core_pattern_to_oxc_array_binding_element<'a>(
     ast: oxc_ast::AstBuilder<'a>,
-    scrutinee_name: &str,
-    pattern: &crate::terlan_typeck::CorePattern,
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_span::SPAN;
-    use oxc_syntax::number::NumberBase;
-    use oxc_syntax::operator::BinaryOperator;
-
-    let literal = match pattern {
-        crate::terlan_typeck::CorePattern::Atom(value) => {
-            core_atom_artifact_to_oxc_expression(ast, value)?
-        }
-        crate::terlan_typeck::CorePattern::Int(value)
-            if *value >= 0 && is_js_safe_integer(*value) =>
-        {
-            ast.expression_numeric_literal(SPAN, *value as f64, None, NumberBase::Decimal)
-        }
-        crate::terlan_typeck::CorePattern::Float(value) => ast.expression_numeric_literal(
-            SPAN,
-            core_float_literal_to_oxc_number(value)?,
-            None,
-            NumberBase::Decimal,
-        ),
-        _ => return None,
-    };
-    Some(ast.expression_binary(
-        SPAN,
-        ast.expression_identifier(SPAN, oxc_ident_name(ast, scrutinee_name)),
-        BinaryOperator::StrictEquality,
-        literal,
-    ))
-}
-
-/// Lowers a CoreIR atom artifact into an Oxc expression.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `value`: CoreIR atom payload without Terlan's source-level `:` prefix.
-///
-/// Output:
-/// - Oxc boolean literal for `true` and `false`.
-/// - Oxc string literal for every other atom artifact.
-///
-/// Transformation:
-/// - Mirrors `core_expr_to_oxc_expression` atom handling so atom patterns and
-///   atom expressions compare against the same JavaScript artifact values.
-fn core_atom_artifact_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    value: &str,
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_span::SPAN;
-
-    if value == "true" || value == "false" {
-        Some(ast.expression_boolean_literal(SPAN, value == "true"))
-    } else {
-        Some(ast.expression_string_literal(SPAN, oxc_string_value(ast, value), None))
+    param: &crate::terlan_typeck::CorePattern,
+) -> Option<Option<oxc_ast::ast::BindingPattern<'a>>> {
+    match param {
+        crate::terlan_typeck::CorePattern::Wildcard => Some(None),
+        _ => Some(Some(core_pattern_to_oxc_binding_pattern(ast, param)?)),
     }
 }
 

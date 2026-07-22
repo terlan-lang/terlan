@@ -108,21 +108,6 @@ pub(super) fn select_tests(
     }
 }
 
-/// Returns whether tests need compiled std release support modules.
-///
-/// Inputs:
-/// - `tests`: discovered test metadata after syntax validation.
-///
-/// Output:
-/// - `true` when at least one test body is not a literal boolean.
-///
-/// Transformation:
-/// - Treats literal-bool surface tests as self-contained and all other tests as
-///   runtime tests that may call support modules.
-pub(super) fn tests_require_release_support(tests: &[DiscoveredTest]) -> bool {
-    tests.iter().any(|test| test.literal_bool_result.is_none())
-}
-
 /// Extracts a literal boolean test result when the function body is trivial.
 ///
 /// Inputs:

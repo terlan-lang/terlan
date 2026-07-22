@@ -1,8 +1,8 @@
 module=std.js.Dom.GamepadEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=1875279679748006727
-interface_hash=9606708127990157019
-interface_doc_hash=9606708127990157019
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=957660288357258162
+interface_hash=321595977100007003
+interface_doc_hash=321595977100007003
 deps=0

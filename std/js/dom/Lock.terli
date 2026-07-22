@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Lock
+ */
+module std.js.Dom.Lock.
+
+/**
+ * The **`Lock`** interface of the Web Locks API provides the name and mode of a lock.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Lock)
+ */
+pub opaque type Lock.
+
+/**
+ * The **`mode`** read-only property of the Lock interface returns the access mode passed to LockManager.request() when the lock was requested.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Lock/mode)
+ */
+pub (value: Lock) mode(): LockMode.
+
+/**
+ * The **`name`** read-only property of the Lock interface returns the _name_ passed to The name of a lock is passed by script when the lock is requested.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Lock/name)
+ */
+pub (value: Lock) name(): std.js.String.JsString.

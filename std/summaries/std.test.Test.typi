@@ -15,12 +15,54 @@ module std.test.Test.
 pub type Assertion =
     Bool.
 
+/// LifecycleResult records body and cleanup outcomes.
+///
+/// Input: no runtime input; this is a public type alias.
+/// Output: `{body, after_each, after_all}` assertion outcomes.
+/// Transformation: makes hook execution observable without ambient mutation or
+/// test-runner-specific state.
+
+pub type LifecycleResult =
+    {Assertion, Assertion, Assertion}.
+
+/// Row is a named table-driven test row.
+///
+/// Input: input type `T` and expected-result type `E`.
+/// Output: an ordinary Terlan tuple value containing `name`, `input`, and
+/// `expected` in that order.
+/// Transformation: keeps table rows as normal source values while preserving
+/// generic input and expected-result types on the current compiler path.
+
+pub type Row[T, E] =
+    {Binary, T, E}.
+
+/// TableResultFailure records the first failed expected-value table row.
+///
+/// Input: expected-result type `E`.
+/// Output: `{index, row_name, expected, actual}`.
+/// Transformation: keeps row diagnostics as typed Terlan data so runners and
+/// editors can render useful failures without parsing text.
+
+pub type TableResultFailure[E] =
+    {Int, Binary, E, E}.
+
+/// TableResultReport records expected-value table execution diagnostics.
+///
+/// Input: expected-result type `E`.
+/// Output: `{passed, first_failure}`.
+/// Transformation: reports `None` when all rows pass and `Some(failure)` for
+/// the first mismatched row.
+
+pub type TableResultReport[E] =
+    {Assertion, Option[TableResultFailure[E]]}.
+
 /// Returns the condition as an assertion result.
 ///
 /// Input: `condition`, the Bool expression being checked.
 /// Output: `true` when `condition` is true, otherwise `false`.
 /// Transformation: returns `condition` unchanged.
 
+@pure
 pub assert(condition: Bool): Assertion.
 
 /// Returns whether the two values are exactly equal.
@@ -29,6 +71,7 @@ pub assert(condition: Bool): Assertion.
 /// Output: `true` when `left == right`, otherwise `false`.
 /// Transformation: applies Terlan equality to the two inputs.
 
+@pure
 pub assert_equal(left: A, right: A): Assertion.
 
 /// Returns whether the condition is false.
@@ -37,6 +80,7 @@ pub assert_equal(left: A, right: A): Assertion.
 /// Output: `true` when `condition` is false, otherwise `false`.
 /// Transformation: compares `condition` against `false`.
 
+@pure
 pub assert_false(condition: Bool): Assertion.
 
 /// Returns whether the two values are not exactly equal.
@@ -45,6 +89,7 @@ pub assert_false(condition: Bool): Assertion.
 /// Output: `true` when `left != right`, otherwise `false`.
 /// Transformation: applies Terlan inequality to the two inputs.
 
+@pure
 pub assert_not_equal(left: A, right: A): Assertion.
 
 /// Returns the condition as an explicit truth assertion result.
@@ -54,7 +99,117 @@ pub assert_not_equal(left: A, right: A): Assertion.
 /// Transformation: returns `condition` unchanged under the clearer
 /// `assert_true` name.
 
+@pure
 pub assert_true(condition: Bool): Assertion.
+
+/// Returns table rows unchanged.
+///
+/// Input: a list of row values.
+/// Output: the same list.
+/// Transformation: gives tests a named table entry point without special
+/// syntax or runner behavior.
+
+@pure
+pub cases(rows: List[T]): List[T].
+
+/// Combines one row lifecycle result with remaining row results.
+///
+/// Input: body result, per-row cleanup result, and remaining aggregate result.
+/// Output: combined body and cleanup aggregate.
+/// Transformation: keeps table lifecycle aggregation explicit and testable.
+
+@pure
+pub combine_table_lifecycle_row(body_result: Assertion, after_each_result: Assertion, rest: {Assertion, Assertion}): {Assertion, Assertion}.
+
+/// Builds Cartesian-product table rows from two value lists.
+///
+/// Input: left values and right values.
+/// Output: `{left, right}` rows in left-major order.
+/// Transformation: gives table-driven tests a standard generated-boundary row
+/// helper without adding test-only syntax.
+
+@pure
+pub cross_cases(lefts: List[A], rights: List[B]): List[{A, B}].
+
+/// Builds Cartesian-product rows for every remaining left value.
+///
+/// Input: remaining left values and all right values.
+/// Output: left-major `{left, right}` rows.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub cross_cases_lefts(lefts: List[A], rights: List[B]): List[{A, B}].
+
+/// Builds Cartesian-product rows for one left value.
+///
+/// Input: one left value, remaining right values, and tail rows.
+/// Output: rows for `left` followed by the supplied tail rows.
+/// Transformation: preserves left-major order without relying on multiple
+/// list-comprehension generators.
+
+@pure
+pub cross_cases_rights(left: A, rights: List[B], tail: List[{A, B}]): List[{A, B}].
+
+/// Runs one assertion callback for every row.
+///
+/// Input: rows and a callback from row value to `Assertion`.
+/// Output: `true` when every callback returns `true`; otherwise `false`.
+/// Transformation: recursively evaluates rows in source order and short-circuits
+/// on the first failing row.
+
+pub each(rows: List[T], assertion: (T) -> Assertion): Assertion.
+
+/// Runs one assertion callback for every iterator value.
+///
+/// Input: iterator state and callback from item to `Assertion`.
+/// Output: `true` when all items pass; otherwise `false`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub each_iterator(iterator: Iterator[T], assertion: (T) -> Assertion): Assertion.
+
+/// Runs one expected-value callback for every named row.
+///
+/// Input: named rows and a callback from row input to actual value.
+/// Output: `true` when every actual value equals the row's expected value;
+/// otherwise `false`.
+/// Transformation: delegates to `each` and compares every row's `expected`
+/// field with the callback result.
+
+pub each_result(rows: List[Row[T, E]], actual: (T) -> E): Assertion.
+
+/// Runs expected-value assertions for every named-row iterator value.
+///
+/// Input: iterator state over `Row[T, E]` and callback from input to actual
+/// value.
+/// Output: `true` when all actual values equal their expected values;
+/// otherwise `false`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub each_result_iterator(iterator: Iterator[Row[T, E]], actual: (T) -> E): Assertion.
+
+/// Runs expected-value callbacks and returns typed row diagnostics.
+///
+/// Input: named rows and a callback from row input to actual value.
+/// Output: `{true, None}` when all rows pass, or `{false, Some(failure)}` for
+/// the first row where expected and actual differ.
+/// Transformation: exposes row index, row name, expected value, and actual
+/// value as ordinary data for future runner/editor rendering.
+
+pub each_result_report(rows: List[Row[T, E]], actual: (T) -> E): TableResultReport[E].
+
+/// Runs expected-value assertions for every named-row iterator value and
+/// returns typed diagnostics.
+///
+/// Input: iterator state, current row index, and callback from input to actual
+/// value.
+/// Output: a table result report for the remaining iterator values.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub each_result_report_iterator(iterator: Iterator[Row[T, E]], index: Int, actual: (T) -> E): TableResultReport[E].
 
 /// Returns a failing assertion result.
 ///
@@ -62,4 +217,65 @@ pub assert_true(condition: Bool): Assertion.
 /// Output: always `false`.
 /// Transformation: returns the portable failing assertion value directly.
 
+@pure
 pub fail(): Assertion.
+
+/// Runs one explicit lifecycle and returns the combined assertion result.
+///
+/// Input: seed value, setup callbacks, body callback, and cleanup callbacks.
+/// Output: `true` only when body and both cleanup callbacks return `true`.
+/// Transformation: delegates to `lifecycle_result` and combines the three
+/// observable outcomes without hiding cleanup failures.
+
+pub lifecycle(seed: Seed, before_all: (Seed) -> Suite, before_each: (Suite) -> Fixture, body: (Fixture) -> Assertion, after_each: (Fixture) -> Assertion, after_all: (Suite) -> Assertion): Assertion.
+
+/// Runs one explicit lifecycle and returns every observable outcome.
+///
+/// Input: seed value, setup callbacks, body callback, and cleanup callbacks.
+/// Output: `{body_result, after_each_result, after_all_result}`.
+/// Transformation: runs `before_all`, then `before_each`, then `body`, then
+/// `after_each`, then `after_all`. Cleanup callbacks run even when `body`
+/// returns `false` because the results are collected independently.
+
+pub lifecycle_result(seed: Seed, before_all: (Seed) -> Suite, before_each: (Suite) -> Fixture, body: (Fixture) -> Assertion, after_each: (Fixture) -> Assertion, after_all: (Suite) -> Assertion): LifecycleResult.
+
+/// Constructs one named table row.
+///
+/// Input: row name, input value, and expected value.
+/// Output: a `Row[T, E]`.
+/// Transformation: stores test data as an ordinary tuple value.
+
+@pure
+pub row(name: Binary, input: T, expected: E): Row[T, E].
+
+/// Runs lifecycle hooks across table rows and returns one assertion.
+///
+/// Input: seed value, table rows, setup callbacks, body callback, and cleanup
+/// callbacks.
+/// Output: `true` only when every row body, every per-row cleanup, and final
+/// cleanup pass.
+/// Transformation: delegates to `table_lifecycle_result` and combines the
+/// observable outcomes without hiding cleanup failures.
+
+pub table_lifecycle(seed: Seed, rows: List[Item], before_all: (Seed) -> Suite, before_each: (Suite, Item) -> Fixture, body: (Fixture) -> Assertion, after_each: (Fixture) -> Assertion, after_all: (Suite) -> Assertion): Assertion.
+
+/// Runs lifecycle hooks across table rows and returns observable outcomes.
+///
+/// Input: seed value, table rows, setup callbacks, body callback, and cleanup
+/// callbacks.
+/// Output: `{body_result, after_each_result, after_all_result}`.
+/// Transformation: runs `before_all` once, then `before_each`, `body`, and
+/// `after_each` for every row, then `after_all` once. Per-row cleanup is
+/// evaluated even when a row body fails.
+
+pub table_lifecycle_result(seed: Seed, rows: List[Item], before_all: (Seed) -> Suite, before_each: (Suite, Item) -> Fixture, body: (Fixture) -> Assertion, after_each: (Fixture) -> Assertion, after_all: (Suite) -> Assertion): LifecycleResult.
+
+/// Runs per-row lifecycle callbacks for every table row.
+///
+/// Input: rows, suite fixture, per-row setup callback, body callback, and
+/// per-row cleanup callback.
+/// Output: `{all_body_results, all_after_each_results}`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub table_lifecycle_rows(rows: List[Item], suite: Suite, before_each: (Suite, Item) -> Fixture, body: (Fixture) -> Assertion, after_each: (Fixture) -> Assertion): {Assertion, Assertion}.

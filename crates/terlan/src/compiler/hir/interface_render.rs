@@ -1,4 +1,5 @@
 use crate::terlan_hir::{ModuleInterface, ParamSignature};
+use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 
 impl ModuleInterface {
     /// Renders this module interface as a full Terlan interface summary.
@@ -56,6 +57,12 @@ impl ModuleInterface {
             );
         }
 
+        let mut public_shapes: Vec<_> = self.shapes.values().collect();
+        public_shapes.sort_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
+        for shape in public_shapes {
+            push_doc_lines(&mut out, "/", &shape.docs);
+        }
+
         let mut public_functions: Vec<_> = self
             .function_overloads
             .iter()
@@ -71,7 +78,18 @@ impl ModuleInterface {
             ord => ord,
         });
 
-        for (_key, function) in public_functions {
+        let mut expression_macros = self.expression_macros.values().collect::<Vec<_>>();
+        expression_macros.sort_by(|left, right| {
+            (left.name.as_str(), left.params.len()).cmp(&(right.name.as_str(), right.params.len()))
+        });
+        for expression_macro in expression_macros {
+            push_doc_lines(&mut out, "/", &expression_macro.docs);
+        }
+
+        for (key, function) in public_functions {
+            if self.expression_macros.contains_key(key) {
+                continue;
+            }
             push_doc_lines(&mut out, "/", &function.docs);
         }
 
@@ -100,6 +118,42 @@ impl ModuleInterface {
         }
         out.push_str(&format!("module {}.\n\n", self.module));
 
+        let mut constants = self.constants.values().collect::<Vec<_>>();
+        constants.sort_by(|left, right| left.name.cmp(&right.name));
+        for constant in constants {
+            if include_docs {
+                push_doc_lines(&mut out, "/", &constant.docs);
+            }
+            out.push_str(&format!(
+                "pub const {}: {} = {}.\n\n",
+                constant.name,
+                normalize_type_text(&constant.annotation),
+                render_constant_expr(&constant.value)
+            ));
+        }
+
+        let mut const_functions = self.const_functions.values().collect::<Vec<_>>();
+        const_functions.sort_by(|left, right| {
+            (left.name.as_str(), left.params.len()).cmp(&(right.name.as_str(), right.params.len()))
+        });
+        for function in const_functions {
+            if include_docs {
+                push_doc_lines(&mut out, "/", &function.docs);
+            }
+            out.push_str(&format!(
+                "pub const {}({}): {} -> {}.\n\n",
+                function.name,
+                function
+                    .params
+                    .iter()
+                    .map(render_param_signature)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                normalize_type_text(&function.return_type),
+                function.body_text
+            ));
+        }
+
         let mut public_types: Vec<_> = self.public_types.iter().cloned().collect();
         public_types.sort();
         for ty in &public_types {
@@ -110,14 +164,31 @@ impl ModuleInterface {
                     self.type_docs.get(ty).map(Vec::as_slice).unwrap_or(&[]),
                 );
             }
-            if self.opaque_types.contains(ty) {
+            if let Some(union) = self.valued_unions.get(ty) {
+                out.push_str(&format!(
+                    "pub type {}{}: {} =\n    {}.\n\n",
+                    ty,
+                    render_type_params(self.type_params.get(ty)),
+                    normalize_type_text(&union.representation),
+                    union
+                        .arms
+                        .iter()
+                        .map(|arm| format!("{} = {}", arm.name, arm.value_text))
+                        .collect::<Vec<_>>()
+                        .join("\n  | ")
+                ));
+            } else if self.opaque_types.contains(ty) {
                 out.push_str(&format!(
                     "pub opaque type {}{}.\n\n",
                     ty,
                     render_type_params(self.type_params.get(ty))
                 ));
             } else if let Some(fields) = self.struct_fields.get(ty) {
-                out.push_str(&format!("pub struct {} {{\n", ty));
+                out.push_str(&format!(
+                    "pub struct {}{} {{\n",
+                    ty,
+                    render_type_params(self.type_params.get(ty))
+                ));
                 for (index, field) in fields.iter().enumerate() {
                     let suffix = if index + 1 == fields.len() { "" } else { "," };
                     let privacy = if field.is_private { "#" } else { "" };
@@ -148,6 +219,16 @@ impl ModuleInterface {
             }
         }
 
+        let mut public_shapes: Vec<_> = self.shapes.values().collect();
+        public_shapes.sort_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
+        for shape in public_shapes {
+            if include_docs {
+                push_doc_lines(&mut out, "/", &shape.docs);
+            }
+            out.push_str(&shape.signature);
+            out.push_str("\n\n");
+        }
+
         let mut public_functions: Vec<_> = self
             .function_overloads
             .iter()
@@ -163,9 +244,37 @@ impl ModuleInterface {
             ord => ord,
         });
 
-        for (_key, function) in public_functions {
+        let mut expression_macros = self.expression_macros.values().collect::<Vec<_>>();
+        expression_macros.sort_by(|left, right| {
+            (left.name.as_str(), left.params.len()).cmp(&(right.name.as_str(), right.params.len()))
+        });
+        for expression_macro in expression_macros {
+            if include_docs {
+                push_doc_lines(&mut out, "/", &expression_macro.docs);
+            }
+            out.push_str(&format!(
+                "pub macro {}({}): {} ->\n    quote {}.\n\n",
+                expression_macro.name,
+                expression_macro
+                    .params
+                    .iter()
+                    .map(render_param_signature)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                normalize_type_text(&expression_macro.return_type),
+                render_constant_expr(&expression_macro.template)
+            ));
+        }
+
+        for (key, function) in public_functions {
+            if self.expression_macros.contains_key(key) {
+                continue;
+            }
             if include_docs {
                 push_doc_lines(&mut out, "/", &function.docs);
+            }
+            if function.pure {
+                out.push_str("@pure\n");
             }
             if function.receiver_method && !function.params.is_empty() {
                 let receiver = &function.params[0];
@@ -229,9 +338,30 @@ impl ModuleInterface {
             }
             out.push_str(" {\n");
 
+            let mut constants = trait_signature.constants.iter().collect::<Vec<_>>();
+            constants.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (name, constant) in constants {
+                if include_docs {
+                    push_doc_lines(&mut out, "/", &constant.docs);
+                }
+                out.push_str(&format!(
+                    "    const {}: {}{}.\n",
+                    name,
+                    normalize_type_text(&constant.annotation),
+                    constant
+                        .default_text
+                        .as_ref()
+                        .map(|value| format!(" = {value}"))
+                        .unwrap_or_default()
+                ));
+            }
+
             for (method_name, method) in methods {
                 if include_docs {
                     push_doc_lines(&mut out, "/", &method.docs);
+                }
+                if method.pure {
+                    out.push_str("    @pure\n");
                 }
                 let params = method
                     .params
@@ -266,11 +396,42 @@ impl ModuleInterface {
         public_conformances.sort();
 
         for conformance in public_conformances {
+            if conformance.is_negative {
+                out.push_str(&format!(
+                    "pub impl not {}[{}].\n\n",
+                    normalize_type_text(&conformance.trait_ref),
+                    normalize_type_text(&conformance.for_type)
+                ));
+                continue;
+            }
             out.push_str(&format!(
-                "pub impl {} for {} {{\n}}.\n\n",
-                normalize_type_text(&conformance.trait_ref),
+                "pub impl {} for {} {{\n",
+                crate::terlan_syntax::render_trait_impl_ref(
+                    &normalize_type_text(&conformance.trait_ref),
+                    &conformance.generic_params,
+                ),
                 normalize_type_text(&conformance.for_type)
             ));
+            let owner = if conformance.trait_ref.contains('[') {
+                normalize_type_text(&conformance.trait_ref)
+            } else {
+                format!(
+                    "{}[{}]",
+                    normalize_type_text(&conformance.trait_ref),
+                    normalize_type_text(&conformance.for_type)
+                )
+            };
+            let mut constants = self
+                .associated_constants
+                .iter()
+                .filter(|(name, _)| name.starts_with(&format!("{owner}.")))
+                .collect::<Vec<_>>();
+            constants.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (qualified, constant) in constants {
+                let name = qualified.rsplit('.').next().unwrap_or(qualified);
+                out.push_str(&format!("    const {name} = {}.\n", constant.value_text));
+            }
+            out.push_str("}.\n\n");
         }
 
         let mut public_constructors: Vec<_> = self
@@ -346,6 +507,271 @@ impl ModuleInterface {
 
         normalize_final_newline(&mut out);
         out
+    }
+}
+
+pub(super) fn render_constant_expr(expr: &SyntaxExprOutput) -> String {
+    match expr.kind {
+        SyntaxExprKind::Int | SyntaxExprKind::Float | SyntaxExprKind::Var => {
+            expr.text.clone().unwrap_or_default()
+        }
+        SyntaxExprKind::Atom => expr
+            .raw
+            .clone()
+            .unwrap_or_else(|| expr.text.clone().unwrap_or_default()),
+        SyntaxExprKind::Binary => format!(
+            "\"{}\"",
+            expr.text
+                .as_deref()
+                .unwrap_or_default()
+                .replace('"', "\\\"")
+        ),
+        SyntaxExprKind::Tuple => format!(
+            "{{{}}}",
+            expr.children
+                .iter()
+                .map(render_constant_expr)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxExprKind::List => format!(
+            "[{}]",
+            expr.children
+                .iter()
+                .map(render_constant_expr)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxExprKind::FixedArray => format!(
+            "#[{}]",
+            expr.children
+                .iter()
+                .map(render_constant_expr)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxExprKind::Map => format!(
+            "{{{}}}",
+            expr.fields
+                .iter()
+                .map(|field| format!("{}: {}", field.key, render_constant_expr(&field.value)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxExprKind::RecordConstruct => format!(
+            "{} {{{}}}",
+            expr.text.as_deref().unwrap_or_default(),
+            expr.fields
+                .iter()
+                .map(|field| format!("{}: {}", field.key, render_constant_expr(&field.value)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxExprKind::ListCons => format!(
+            "[{} | {}]",
+            render_constant_expr(&expr.children[0]),
+            render_constant_expr(&expr.children[1])
+        ),
+        SyntaxExprKind::UnaryOp => format!(
+            "{} {}",
+            expr.operator.as_deref().unwrap_or(""),
+            render_constant_expr(&expr.children[0])
+        ),
+        SyntaxExprKind::BinaryOp => format!(
+            "({} {} {})",
+            render_constant_expr(&expr.children[0]),
+            expr.operator.as_deref().unwrap_or(""),
+            render_constant_expr(&expr.children[1])
+        ),
+        SyntaxExprKind::Call | SyntaxExprKind::FunctionCall => {
+            let callee = expr
+                .children
+                .first()
+                .map(render_constant_expr)
+                .unwrap_or_default();
+            let type_args = if expr.type_args.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "[{}]",
+                    expr.type_args
+                        .iter()
+                        .map(|ty| ty.text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            };
+            let args = expr
+                .children
+                .iter()
+                .skip(1)
+                .enumerate()
+                .map(|(index, arg)| {
+                    let value = render_constant_expr(arg);
+                    expr.arg_names
+                        .get(index)
+                        .and_then(|name| name.as_deref())
+                        .map_or(value.clone(), |name| format!("{name} = {value}"))
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{callee}{type_args}({args})")
+        }
+        SyntaxExprKind::FieldAccess => format!(
+            "{}.{}",
+            render_constant_expr(&expr.children[0]),
+            expr.text.as_deref().unwrap_or_default()
+        ),
+        SyntaxExprKind::Index => format!(
+            "{}[{}]",
+            render_constant_expr(&expr.children[0]),
+            render_constant_expr(&expr.children[1])
+        ),
+        SyntaxExprKind::Cast => format!(
+            "{} as {}",
+            render_constant_expr(&expr.children[0]),
+            expr.text.as_deref().unwrap_or_default()
+        ),
+        SyntaxExprKind::Macro => format!(
+            "?{}({})",
+            expr.text.as_deref().unwrap_or_default(),
+            expr.children
+                .iter()
+                .map(render_constant_expr)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxExprKind::Quote => format!(
+            "quote {}",
+            expr.children
+                .first()
+                .map(render_constant_expr)
+                .unwrap_or_else(|| "Unit".to_string())
+        ),
+        SyntaxExprKind::Unquote => format!(
+            "unquote({})",
+            expr.children
+                .first()
+                .map(render_constant_expr)
+                .unwrap_or_else(|| "Unit".to_string())
+        ),
+        SyntaxExprKind::Sequence => expr
+            .children
+            .iter()
+            .map(render_constant_expr)
+            .collect::<Vec<_>>()
+            .join("; "),
+        SyntaxExprKind::Let => {
+            let mut parts = expr
+                .patterns
+                .iter()
+                .zip(expr.children.iter())
+                .map(|(pattern, value)| {
+                    format!(
+                        "let {} = {}",
+                        render_constant_pattern(pattern),
+                        render_constant_expr(value)
+                    )
+                })
+                .collect::<Vec<_>>();
+            if let Some(body) = expr.children.get(expr.patterns.len()) {
+                parts.push(render_constant_expr(body));
+            }
+            parts.join("; ")
+        }
+        SyntaxExprKind::Case => format!(
+            "case {} {{ {} }}",
+            expr.children
+                .first()
+                .map(render_constant_expr)
+                .unwrap_or_default(),
+            expr.clauses
+                .iter()
+                .map(render_constant_clause)
+                .collect::<Vec<_>>()
+                .join("; ")
+        ),
+        _ => expr
+            .raw
+            .clone()
+            .or_else(|| expr.text.clone())
+            .unwrap_or_else(|| "Unit".to_string()),
+    }
+}
+
+fn render_constant_clause(clause: &crate::terlan_syntax::SyntaxClauseOutput) -> String {
+    let patterns = clause
+        .patterns
+        .iter()
+        .map(render_constant_pattern)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let guard = clause
+        .guard
+        .as_ref()
+        .map(|guard| format!(" where {}", render_constant_expr(guard)))
+        .unwrap_or_default();
+    format!(
+        "{patterns}{guard} -> {}",
+        render_constant_expr(&clause.body)
+    )
+}
+
+fn render_constant_pattern(pattern: &crate::terlan_syntax::SyntaxPatternOutput) -> String {
+    use crate::terlan_syntax::SyntaxPatternKind;
+    match pattern.kind {
+        SyntaxPatternKind::Wildcard => "_".to_string(),
+        SyntaxPatternKind::Var
+        | SyntaxPatternKind::Int
+        | SyntaxPatternKind::Float
+        | SyntaxPatternKind::Atom => pattern.text.clone().unwrap_or_default(),
+        SyntaxPatternKind::String => format!(
+            "\"{}\"",
+            pattern
+                .text
+                .as_deref()
+                .unwrap_or_default()
+                .replace('"', "\\\"")
+        ),
+        SyntaxPatternKind::Tuple => format!(
+            "{{{}}}",
+            pattern
+                .children
+                .iter()
+                .map(render_constant_pattern)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxPatternKind::List => format!(
+            "[{}]",
+            pattern
+                .children
+                .iter()
+                .map(render_constant_pattern)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SyntaxPatternKind::ListCons => format!(
+            "[{} | {}]",
+            render_constant_pattern(&pattern.children[0]),
+            render_constant_pattern(&pattern.children[1])
+        ),
+        SyntaxPatternKind::Alias => format!(
+            "{} = {}",
+            pattern.text.as_deref().unwrap_or_default(),
+            render_constant_pattern(&pattern.children[0])
+        ),
+        SyntaxPatternKind::Constructor => format!(
+            "{{{}, {}}}",
+            pattern.text.as_deref().unwrap_or_default(),
+            pattern
+                .children
+                .iter()
+                .map(render_constant_pattern)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        _ => pattern.text.clone().unwrap_or_else(|| "_".to_string()),
     }
 }
 
@@ -454,6 +880,7 @@ fn render_generic_bounds(bounds: &[String]) -> String {
 fn push_doc_lines(out: &mut String, marker: &str, docs: &[String]) {
     for block in docs {
         for line in block.lines() {
+            let line = line.trim_end();
             if line.is_empty() {
                 out.push_str(&format!("//{}\n", marker));
             } else {

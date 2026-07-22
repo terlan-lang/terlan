@@ -1,0 +1,42 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CallableFunction
+ */
+module std.js.CallableFunction.
+
+pub opaque type CallableFunction.
+
+/**
+ * Calls the function with the specified object as the this value and the elements of specified array as the arguments.
+ * @param thisArg The object to be used as the this object.
+ */
+pub (value: CallableFunction) apply(this_arg: T): R.
+
+/**
+ * Calls the function with the specified object as the this value and the elements of specified array as the arguments.
+ * @param thisArg The object to be used as the this object.
+ * @param args An array of argument values to be passed to the function.
+ */
+pub (value: CallableFunction) apply(this_arg: T, args: A): R.
+
+/**
+ * Calls the function with the specified object as the this value and the specified rest arguments as the arguments.
+ * @param thisArg The object to be used as the this object.
+ * @param args Argument values to be passed to the function.
+ */
+pub (value: CallableFunction) call(this_arg: T): R.
+
+/**
+ * For a given function, creates a bound function that has the same body as the original function.
+ * The this object of the bound function is associated with the specified object, and has the specified initial parameters.
+ * @param thisArg The object to be used as the this object.
+ */
+pub (value: CallableFunction) bind(this_arg: ThisParameterType[T]): OmitThisParameter[T].

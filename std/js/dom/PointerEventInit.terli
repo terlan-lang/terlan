@@ -1,0 +1,46 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PointerEventInit
+ */
+module std.js.Dom.PointerEventInit.
+
+import type std.js.Number.{JsNumber}.
+import type std.js.{Array}.
+
+pub opaque type PointerEventInit.
+
+pub (value: PointerEventInit) altitude_angle(): JsNumber.
+
+pub (value: PointerEventInit) azimuth_angle(): JsNumber.
+
+pub (value: PointerEventInit) coalesced_events(): Array[PointerEvent].
+
+pub (value: PointerEventInit) height(): JsNumber.
+
+pub (value: PointerEventInit) is_primary(): std.core.Bool.
+
+pub (value: PointerEventInit) pointer_id(): JsNumber.
+
+pub (value: PointerEventInit) pointer_type(): std.js.String.JsString.
+
+pub (value: PointerEventInit) predicted_events(): Array[PointerEvent].
+
+pub (value: PointerEventInit) pressure(): JsNumber.
+
+pub (value: PointerEventInit) tangential_pressure(): JsNumber.
+
+pub (value: PointerEventInit) tilt_x(): JsNumber.
+
+pub (value: PointerEventInit) tilt_y(): JsNumber.
+
+pub (value: PointerEventInit) twist(): JsNumber.
+
+pub (value: PointerEventInit) width(): JsNumber.

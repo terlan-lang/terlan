@@ -35,6 +35,7 @@ pub(super) fn infer_syntax_receiver_method_call(
     let receiver = callee.children.first()?;
     let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
 
+    let mut bound_error = None;
     for candidate in &candidates {
         let mut trial_subst = subst.clone();
         let param_names = candidate
@@ -71,10 +72,26 @@ pub(super) fn infer_syntax_receiver_method_call(
                 *subst = trial_subst;
                 return Some(ty);
             }
-            Err(_) => {
+            Err(message) => {
+                if message.starts_with("unproven_implication:")
+                    || (message.contains("trait bound") && message.contains("explicitly denied"))
+                {
+                    bound_error.get_or_insert(message);
+                }
                 continue;
             }
         }
+    }
+
+    if let Some(message) = bound_error {
+        errors.push(message);
+        return Some(Type::Dynamic);
+    }
+
+    if let Some(ty) =
+        infer_trait_receiver_method_call(method, &receiver_type, arg_types, ctx, subst, errors)
+    {
+        return Some(ty);
     }
 
     let candidate_types = candidates
@@ -90,6 +107,140 @@ pub(super) fn infer_syntax_receiver_method_call(
         candidate_types
     ));
     Some(Type::Dynamic)
+}
+
+/// Infers a receiver call through a visible trait implementation.
+///
+/// Inputs:
+/// - `expr`: syntax-output call expression whose callee may be field access.
+/// - `arg_types`: inferred non-receiver argument types.
+/// - `locals`, `ctx`, `subst`, and `errors`: active inference context.
+///
+/// Output:
+/// - `Some(Type)` when `receiver.method(args...)` resolves to a trait method
+///   by prepending the receiver as the trait method's first argument.
+/// - `None` when no visible trait method matches the receiver call.
+///
+/// Transformation:
+/// - Reuses ordinary trait-method dispatch candidates, preserving the standard
+///   `Trait.method(receiver, args...)` semantics while allowing collection
+///   traits such as `Enumerable` to expose receiver-style calls.
+pub(super) fn infer_syntax_trait_receiver_method_call(
+    expr: &SyntaxExprOutput,
+    arg_types: &[Type],
+    locals: &HashMap<String, Type>,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    let callee = expr.children.first()?;
+    if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+        return None;
+    }
+    let method = callee.text.as_deref()?;
+    let receiver = callee.children.first()?;
+    let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
+
+    infer_trait_receiver_method_call(method, &receiver_type, arg_types, ctx, subst, errors)
+}
+
+/// Resolves a receiver-call shape against visible trait method candidates.
+///
+/// Inputs:
+/// - `method`: source method name from `receiver.method(...)`.
+/// - `receiver_type`: inferred receiver type.
+/// - `arg_types`: inferred non-receiver argument types.
+/// - `ctx`, `subst`, and `errors`: active inference context.
+///
+/// Output:
+/// - `Some(Type)` for a single matching trait method candidate or an ambiguity
+///   diagnostic.
+/// - `None` when no visible trait method can accept the receiver-first call.
+///
+/// Transformation:
+/// - Builds the equivalent `Trait.method(receiver, args...)` argument list and
+///   asks the existing trait dispatch matcher/inferencer to select an impl.
+fn infer_trait_receiver_method_call(
+    method: &str,
+    receiver_type: &Type,
+    arg_types: &[Type],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    let lookup_arg_types = std::iter::once(receiver_type)
+        .chain(arg_types.iter())
+        .map(|arg| apply_subst(arg, subst))
+        .collect::<Vec<_>>();
+    let dispatch_arg_types = lookup_arg_types
+        .iter()
+        .map(|arg| qualify_imported_named_heads(arg, ctx))
+        .collect::<Vec<_>>();
+
+    let mut success = None::<(Type, HashMap<TypeVarId, Type>)>;
+    let mut matches = 0usize;
+    let mut visible_trait_names = Vec::new();
+
+    for ((trait_name, method_name), impls) in ctx.trait_method_calls {
+        if method_name != method {
+            continue;
+        }
+        visible_trait_names.push(trait_name.as_str());
+        for impl_candidate in impls {
+            if !trait_method_candidate_matches_call(impl_candidate, &dispatch_arg_types, ctx, subst)
+            {
+                continue;
+            }
+            let mut trial_subst = subst.clone();
+            if let Ok(ty) = infer_function_with_bounds(
+                &impl_candidate.scheme,
+                Some(method),
+                &dispatch_arg_types,
+                ctx,
+                &mut trial_subst,
+            ) {
+                matches += 1;
+                if success.is_none() {
+                    success = Some((ty, trial_subst));
+                } else {
+                    break;
+                }
+            }
+        }
+        if matches > 1 {
+            break;
+        }
+    }
+
+    if matches == 1 {
+        if let Some((ty, inferred_subst)) = success {
+            *subst = inferred_subst;
+            return Some(ty);
+        }
+    }
+    if matches > 1 {
+        errors.push(format!(
+            "ambiguous trait receiver method `{}` / {} for {}",
+            method,
+            arg_types.len(),
+            pretty_type(receiver_type)
+        ));
+        return Some(Type::Dynamic);
+    }
+
+    for trait_name in visible_trait_names {
+        if let Some(ty) = infer_trait_method_call_from_current_bounds(
+            trait_name,
+            method,
+            &lookup_arg_types,
+            ctx,
+            subst,
+        ) {
+            return Some(ty);
+        }
+    }
+
+    None
 }
 
 /// Returns receiver-method candidates that accept a supplied argument count.

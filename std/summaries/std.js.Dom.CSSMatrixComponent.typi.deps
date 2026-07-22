@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSMatrixComponent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=15486078062277026638
-interface_hash=915955634855601201
-interface_doc_hash=915955634855601201
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15507728466205973179
+interface_hash=4509883018060133335
+interface_doc_hash=4509883018060133335
 deps=0

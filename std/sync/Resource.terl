@@ -5,7 +5,6 @@
  * Postgres streams, actor-backed templates, and cloud runtime channels. It
  * does not define transport or delivery guarantees.
  */
-
 module std.sync.Resource.
 
 /**
@@ -26,8 +25,7 @@ pub opaque type Resource[T].
  * Transformation: aliases a language-neutral atom so source code does not
  * depend on backend atom syntax.
  */
-pub type Inserted =
-    Atom["inserted"].
+pub type Inserted.
 
 /**
  * Updated represents an updated model value.
@@ -37,8 +35,7 @@ pub type Inserted =
  * Transformation: aliases a language-neutral atom so source code does not
  * depend on backend atom syntax.
  */
-pub type Updated =
-    Atom["updated"].
+pub type Updated.
 
 /**
  * Deleted represents a deleted model value.
@@ -48,8 +45,7 @@ pub type Updated =
  * Transformation: aliases a language-neutral atom so source code does not
  * depend on backend atom syntax.
  */
-pub type Deleted =
-    Atom["deleted"].
+pub type Deleted.
 
 /**
  * ChangeKind represents the portable model-change category carrier.
@@ -59,8 +55,7 @@ pub type Deleted =
  * Transformation: keeps sync event classification target-neutral while the
  * named singleton aliases document and constrain the standard change kinds.
  */
-pub type ChangeKind =
-    Atom.
+pub type ChangeKind = Atom.
 
 /**
  * Change represents one typed model-change event.
@@ -70,8 +65,7 @@ pub type ChangeKind =
  * Transformation: couples the change classification with a typechecked payload
  * while leaving runtime delivery and replay outside this module.
  */
-pub type Change[T] =
-    {Atom["change"], kind: ChangeKind, value: T}.
+pub type Change[T] = {Atom["change"], kind: ChangeKind, value: T}.
 
 /**
  * Builds an inserted change event.
@@ -113,8 +107,7 @@ pub deleted(value: T): Change[T] ->
  */
 pub kind(change: Change[T]): ChangeKind ->
     case change {
-        Change(kind, _value) ->
-            kind
+        Change(kind, _value) -> kind
     }.
 
 /**
@@ -127,8 +120,7 @@ pub kind(change: Change[T]): ChangeKind ->
  */
 pub value(change: Change[T]): T ->
     case change {
-        Change(_kind, value) ->
-            value
+        Change(_kind, value) -> value
     }.
 
 /**

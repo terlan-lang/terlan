@@ -24,6 +24,7 @@ module std.core.Bool.
 ///    std.core.Bool.compare(false, true).
 /// ```
 
+@pure
 pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison.
 
 /// Returns whether two `Bool` values are equal.
@@ -48,6 +49,7 @@ pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison.
 ///    equal(Value, Value).
 /// ```
 
+@pure
 pub equal(Left: Bool, Right: Bool): Bool.
 
 /// Parses a canonical UTF-8 `String` into a `Bool`.
@@ -80,6 +82,7 @@ pub from_string(value: String): Option[Bool].
 ///     std.core.Bool.is_false(value).
 /// ```
 
+@pure
 pub is_false(value: Bool): Bool.
 
 /// Returns whether a `Bool` value is true.
@@ -96,6 +99,7 @@ pub is_false(value: Bool): Bool.
 ///     std.core.Bool.is_true(value).
 /// ```
 
+@pure
 pub is_true(value: Bool): Bool.
 
 /// Renders a `Bool` as its canonical UTF-8 `String`.
@@ -112,4 +116,5 @@ pub is_true(value: Bool): Bool.
 ///    std.core.Bool.to_string(true).
 /// ```
 
+@pure
 pub to_string(value: Bool): String.

@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface UIEvent
  */
 module std.js.Dom.UIEventTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.UIEvent.{UIEvent}.
-
+import type std.js.Dom.UIEvent.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub detail_typechecks(receiver: UIEvent): JsNumber ->
     receiver.detail().
@@ -23,5 +27,12 @@ pub view_typechecks(receiver: UIEvent): Option[Window] ->
 pub which_typechecks(receiver: UIEvent): JsNumber ->
     receiver.which().
 
-pub init_ui_event_typechecks(receiver: UIEvent, type_arg: std.js.String.JsString, bubbles_arg: Bool, cancelable_arg: Bool, view_arg: Option[Window], detail_arg: JsNumber): std.core.Unit ->
+pub init_ui_event_typechecks(
+    receiver: UIEvent,
+    type_arg: std.js.String.JsString,
+    bubbles_arg: Bool,
+    cancelable_arg: Bool,
+    view_arg: Option[Window],
+    detail_arg: JsNumber
+): std.core.Unit ->
     receiver.init_ui_event(type_arg, bubbles_arg, cancelable_arg, view_arg, detail_arg).

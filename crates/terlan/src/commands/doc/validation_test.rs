@@ -142,8 +142,8 @@ pub greet(): Unit ->
         &module,
         source,
         crate::DiagnosticFormat::default(),
-        NativePolicy::SafeNativeOptional,
-        TargetProfile::Erlang,
+        NativePolicy::NativeBoundaryOptional,
+        TargetProfile::Vm,
     )
     .expect("validate examples");
 }
@@ -179,8 +179,8 @@ pub add(x: Int): Int ->
         &module,
         source,
         crate::DiagnosticFormat::default(),
-        NativePolicy::SafeNativeOptional,
-        TargetProfile::Erlang,
+        NativePolicy::NativeBoundaryOptional,
+        TargetProfile::Vm,
     )
     .expect_err("reject mismatch");
 
@@ -220,8 +220,8 @@ pub value(): Int ->
         &module,
         source,
         crate::DiagnosticFormat::default(),
-        NativePolicy::SafeNativeOptional,
-        TargetProfile::Erlang,
+        NativePolicy::NativeBoundaryOptional,
+        TargetProfile::Vm,
     )
     .expect("validate expected error");
 }
@@ -233,7 +233,7 @@ pub value(): Int ->
 ///   current REPL if it were executed.
 ///
 /// Output:
-/// - Successful validation under the Erlang profile.
+/// - Successful validation under the Vm profile.
 ///
 /// Transformation:
 /// - Confirms `@example target rust` is classified separately from generic
@@ -257,8 +257,8 @@ pub value(): Int ->
         &module,
         source,
         crate::DiagnosticFormat::default(),
-        NativePolicy::SafeNativeOptional,
-        TargetProfile::Erlang,
+        NativePolicy::NativeBoundaryOptional,
+        TargetProfile::Vm,
     )
     .expect("skip non-matching target example");
 }
@@ -295,8 +295,8 @@ pub value(): Int ->
         &module,
         source,
         crate::DiagnosticFormat::default(),
-        NativePolicy::SafeNativeOptional,
-        TargetProfile::Erlang,
+        NativePolicy::NativeBoundaryOptional,
+        TargetProfile::Vm,
     )
     .expect_err("reject expected-error mismatch");
 

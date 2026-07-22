@@ -1,0 +1,14 @@
+[package]
+name = "terlan-libpq"
+version = "0.0.0"
+namespace = "terlan_libpq"
+
+[build]
+source_roots = ["src"]
+artifact = "library"
+
+[native.rust]
+crate = "terlan-libpq"
+path = "native/rust"
+helper = "native-boundary-helper"
+helper_env = "TERLAN_NATIVE_BOUNDARY_HELPER_PATH"

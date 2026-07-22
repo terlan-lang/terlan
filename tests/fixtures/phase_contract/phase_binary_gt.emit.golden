@@ -1,3 +1,0 @@
--module(phase_binary_gt).
--export([greater_than/2]).
-greater_than(X, Y) ->

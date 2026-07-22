@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CSSGroupingRule
+ */
+module std.js.Dom.CSSGroupingRule.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`CSSGroupingRule`** interface of the CSS Object Model represents any CSS at-rule that contains other rules nested within it.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSGroupingRule)
+ */
+pub opaque type CSSGroupingRule.
+
+/**
+ * The **`cssRules`** property of the a collection of CSSRule objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSGroupingRule/cssRules)
+ */
+pub (value: CSSGroupingRule) css_rules(): CSSRuleList.
+
+/**
+ * The **`deleteRule()`** method of the rules.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSGroupingRule/deleteRule)
+ */
+pub (value: CSSGroupingRule) delete_rule(index: JsNumber): std.core.Unit.
+
+/**
+ * The **`insertRule()`** method of the ```js-nolint insertRule(rule) insertRule(rule, index) ``` - `rule` - : A string - `index` [MISSING: optional_inline] - : An optional index at which to insert the rule; defaults to 0.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSGroupingRule/insertRule)
+ */
+pub (value: CSSGroupingRule) insert_rule(rule: std.js.String.JsString, index: JsNumber): JsNumber.

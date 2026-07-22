@@ -1,0 +1,50 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PictureInPictureWindow
+ */
+module std.js.Dom.PictureInPictureWindow.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`PictureInPictureWindow`** interface represents an object able to programmatically obtain the **`width`** and **`height`** and **`resize event`** of the floating video window.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PictureInPictureWindow)
+ */
+pub opaque type PictureInPictureWindow.
+
+/**
+ * The read-only **`height`** property of the PictureInPictureWindow interface returns the height of the floating video window in pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PictureInPictureWindow/height)
+ */
+pub (value: PictureInPictureWindow) height(): JsNumber.
+
+/**
+ * The read-only **`width`** property of the PictureInPictureWindow interface returns the width of the floating video window in pixels.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PictureInPictureWindow/width)
+ */
+pub (value: PictureInPictureWindow) width(): JsNumber.
+
+pub (value: PictureInPictureWindow) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: PictureInPictureWindow) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

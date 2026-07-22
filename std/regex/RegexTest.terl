@@ -1,0 +1,138 @@
+module std.regex.RegexTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, is_err}.
+import std.regex.Regex.
+import std.test.Test.{assert, assert_equal}.
+
+import type std.collections.List.
+import type std.core.{Option, Result}.
+import type std.regex.Regex.{Regex, RegexError}.
+
+pub accepts_regex(value: Regex): Regex ->
+    value.
+
+pub accepts_regex_error(value: RegexError): RegexError ->
+    value.
+
+pub accepts_regex_result(value: Result[Regex, RegexError]): Result[Regex, RegexError] ->
+    value.
+
+pub accepts_string_option(value: Option[String]): Option[String] ->
+    value.
+
+pub accepts_string_list(value: List[String]): List[String] ->
+    value.
+
+@test
+pub compile_and_match_accepts_valid_pattern(): Bool ->
+    case accepts_regex_result(Regex.compile("ter[a-z]+")) {
+        Ok(regex) -> assert(Regex.is_match(accepts_regex(regex), "terlan"));
+        Err(_reason) -> false
+    }.
+
+@test
+pub compile_reports_invalid_pattern(): Bool ->
+    assert(is_err(Regex.compile("("))).
+
+@test
+pub find_returns_first_match(): Bool ->
+    case Regex.compile("[0-9]+") {
+        Ok(regex) ->
+            case accepts_string_option(Regex.find(regex, "a12 b34")) {
+                Some(value) -> assert_equal("12", value);
+                None -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub find_returns_none_without_match(): Bool ->
+    case Regex.compile("[0-9]+") {
+        Ok(regex) ->
+            case accepts_string_option(Regex.find(regex, "abc")) {
+                None -> true;
+                Some(_value) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub find_all_returns_all_matches(): Bool ->
+    case Regex.compile("[0-9]+") {
+        Ok(regex) ->
+            assert_equal(["12", "34"], accepts_string_list(Regex.find_all(regex, "a12 b34")));
+        Err(_reason) -> false
+    }.
+
+@test
+pub find_all_returns_empty_list_without_match(): Bool ->
+    case Regex.compile("[0-9]+") {
+        Ok(regex) -> assert_equal(0, accepts_string_list(Regex.find_all(regex, "abc")).length());
+        Err(_reason) -> false
+    }.
+
+@test
+pub captures_read_positional_and_named_groups(): Bool ->
+    case Regex.compile("(?P<name>[A-Z][a-z]+) ([0-9]+)") {
+        Ok(regex) ->
+            case Regex.capture(regex, "Ada 42", 2) {
+                Some(age) ->
+                    case Regex.named_capture(regex, "Ada 42", "name") {
+                        Some(name) -> assert_equal("42", age) and assert_equal("Ada", name);
+                        None -> false
+                    };
+                None -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub missing_capture_groups_return_none(): Bool ->
+    case Regex.compile("(?P<name>[A-Z][a-z]+) ([0-9]+)") {
+        Ok(regex) ->
+            case Regex.capture(regex, "Ada 42", 3) {
+                None ->
+                    case Regex.named_capture(regex, "Ada 42", "missing") {
+                        None -> true;
+                        Some(_value) -> false
+                    };
+                Some(_value) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub replace_updates_all_matches(): Bool ->
+    case Regex.compile("[0-9]+") {
+        Ok(regex) -> assert_equal("a# b#", Regex.replace(regex, "a12 b34", "#"));
+        Err(_reason) -> false
+    }.
+
+@test
+pub replace_expands_numbered_capture_groups(): Bool ->
+    case Regex.compile("([A-Z][a-z]+) ([0-9]+)") {
+        Ok(regex) -> assert_equal("Ada:42", Regex.replace(regex, "Ada 42", "$1:$2"));
+        Err(_reason) -> false
+    }.
+
+@test
+pub split_returns_segments(): Bool ->
+    case Regex.compile(",") {
+        Ok(regex) -> assert_equal(["a", "b", "c"], Regex.split(regex, "a,b,c"));
+        Err(_reason) -> false
+    }.
+
+@test
+pub unicode_literal_matches_utf8_text(): Bool ->
+    case Regex.compile("é+") {
+        Ok(regex) -> assert(Regex.is_match(regex, "café"));
+        Err(_reason) -> false
+    }.
+
+@test
+pub escape_treats_metacharacters_as_literal_text(): Bool ->
+    case Regex.compile(Regex.escape("a+b")) {
+        Ok(regex) -> assert(Regex.is_match(regex, "a+b"));
+        Err(_reason) -> false
+    }.

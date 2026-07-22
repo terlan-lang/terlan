@@ -9,13 +9,20 @@
 //! Concrete Rust-native adapter implementations.
 //!
 //! This module owns native-backed behavior for standard-library adapters that
-//! are implemented as Rust resources. SafeNative remains the bridge and safety
+//! are implemented as Rust resources. NativeBoundary remains the bridge and safety
 //! contract layer; this module owns concrete storage and target-native logic.
 
 pub mod base64;
 pub mod http;
 pub mod json;
+pub mod md5;
 pub mod path;
 pub mod postgres;
+pub mod random;
+pub mod regex;
 pub mod uri;
 pub mod vector;
+
+#[cfg(test)]
+#[path = "postgres_test.rs"]
+mod postgres_test;

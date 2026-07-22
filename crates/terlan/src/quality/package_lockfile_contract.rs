@@ -21,6 +21,17 @@ const REQUIRED_TERMS: &[&str] = &[
     "secondary to `terlan.lock`",
 ];
 
+const REQUIRED_LOCKFILE_FIELDS: &[&str] = &[
+    "package name",
+    "package version",
+    "resolved source",
+    "source checksum",
+    "target/capability constraints",
+    "generated binding hashes",
+    "native artifact hashes",
+    "resolver version",
+];
+
 const FORBIDDEN_CLAIMS: &[&str] = &[
     "cargo.lock is the terlan lockfile",
     "package-lock.json is the terlan lockfile",
@@ -28,10 +39,13 @@ const FORBIDDEN_CLAIMS: &[&str] = &[
     "hex lock is authoritative",
 ];
 
+const PLACEHOLDER_TERMS: &[&str] = &["todo", "tbd", "placeholder", "fixme"];
+
 /// Summary produced by the package lockfile contract gate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageLockfileContractSummary {
     pub required_term_count: usize,
+    pub required_field_count: usize,
 }
 
 /// Runs the package lockfile contract gate.
@@ -61,6 +75,7 @@ pub fn run_package_lockfile_contract(root: &Path) -> QualityResult<PackageLockfi
     }
     Ok(PackageLockfileContractSummary {
         required_term_count: REQUIRED_TERMS.len(),
+        required_field_count: REQUIRED_LOCKFILE_FIELDS.len(),
     })
 }
 
@@ -73,9 +88,21 @@ fn validate_package_lockfile_text(text: &str) -> Vec<String> {
             diagnostics.push(format!("missing package lockfile contract term `{term}`"));
         }
     }
+    for field in REQUIRED_LOCKFILE_FIELDS {
+        if !normalized.contains(field) {
+            diagnostics.push(format!("missing package lockfile field `{field}`"));
+        }
+    }
     for claim in FORBIDDEN_CLAIMS {
         if normalized.contains(claim) {
             diagnostics.push(format!("forbidden package lockfile claim `{claim}`"));
+        }
+    }
+    for placeholder in PLACEHOLDER_TERMS {
+        if normalized.contains(placeholder) {
+            diagnostics.push(format!(
+                "placeholder package lockfile text `{placeholder}` is not allowed"
+            ));
         }
     }
     diagnostics

@@ -27,12 +27,12 @@
  * - Examples use canonical Terlan source syntax and should become executable
  *  std tests as the documentation pipeline hardens.
  */
-
 module std.core.String.
 
 import std.core.Option.{None, Some}.
-import type std.core.Option.
 import std.core.Ordering.{Eq, Gt, Lt}.
+
+import type std.core.Option.
 
 /**
  * Describes values that can be rendered as a `String`.
@@ -277,16 +277,11 @@ pub (left: String) equal(right: String): Bool ->
 @compiler.intrinsic
 pub (left: String) compare(right: String): std.core.Ordering.Comparison ->
     case left == right {
-        true ->
-            Eq;
-
+        true -> Eq;
         false ->
             case left < right {
-                true ->
-                    Lt;
-
-                false ->
-                    Gt
+                true -> Lt;
+                false -> Gt
             }
     }.
 
@@ -381,8 +376,7 @@ pub (left: String) append(right: String): String ->
  * ```
  */
 @compiler.intrinsic
-pub concat(values: List[String]): String ->
-    "".
+pub concat(values: List[String]): String -> "".
 
 /**
  * Returns whether a `String` contains a pattern.
@@ -399,9 +393,9 @@ pub concat(values: List[String]): String ->
  *    "hello".contains("ell").
  * ```
  */
+@pure
 @compiler.intrinsic
-pub (value: String) contains(pattern: String): Bool ->
-    false.
+pub (value: String) contains(pattern: String): Bool -> false.
 
 /**
  * Returns whether a `String` starts with a prefix.
@@ -418,9 +412,9 @@ pub (value: String) contains(pattern: String): Bool ->
  *    "hello".starts_with("he").
  * ```
  */
+@pure
 @compiler.intrinsic
-pub (value: String) starts_with(prefix: String): Bool ->
-    false.
+pub (value: String) starts_with(prefix: String): Bool -> false.
 
 /**
  * Returns whether a `String` ends with a suffix.
@@ -439,8 +433,7 @@ pub (value: String) starts_with(prefix: String): Bool ->
  * ```
  */
 @compiler.intrinsic
-pub (value: String) ends_with(suffix: String): Bool ->
-    false.
+pub (value: String) ends_with(suffix: String): Bool -> false.
 
 /**
  * Counts user-visible text units in a `String`.
@@ -458,8 +451,7 @@ pub (value: String) ends_with(suffix: String): Bool ->
  * ```
  */
 @compiler.intrinsic
-pub (value: String) length(): Int ->
-    0.
+pub (value: String) length(): Int -> 0.
 
 /**
  * Counts encoded bytes in a `String`.
@@ -477,8 +469,7 @@ pub (value: String) length(): Int ->
  * ```
  */
 @compiler.intrinsic
-pub (value: String) byte_size(): Int ->
-    0.
+pub (value: String) byte_size(): Int -> 0.
 
 /**
  * Converts a `String` to lowercase.
@@ -516,6 +507,26 @@ pub (value: String) lowercase(): String ->
  */
 @compiler.intrinsic
 pub (value: String) uppercase(): String ->
+    value.
+
+/**
+ * Reverses a `String` by portable text units.
+ *
+ * Input: one UTF-8 `String` value.
+ * Output: a `String` with the input text units in reverse order.
+ * Transformation: lowers through the compiler-owned `core.string.reverse`
+ * intrinsic for each target backend. The operation follows the same text-unit
+ * boundary as `String.length`.
+ *
+ * ```terlan
+ * module string_reverse_example.
+ *
+ * pub demo(): String ->
+ *    "hello".reverse().
+ * ```
+ */
+@compiler.intrinsic
+pub (value: String) reverse(): String ->
     value.
 
 /**
@@ -611,8 +622,7 @@ pub (value: String) replace(pattern: String, replacement: String): String ->
  * ```
  */
 @compiler.intrinsic
-pub (value: String) split(on: String): List[String] ->
-    [].
+pub (value: String) split(on: String): List[String] -> [].
 
 /**
  * Splits a `String` on the first occurrence of a separator.

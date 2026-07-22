@@ -1,7 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use crate::terlan_erlang::try_emit_core_module_to_erlang_with_syntax_bridge;
 use crate::terlan_syntax::{SyntaxDeclarationPayload, SyntaxModuleOutput};
 
 mod repl_examples;
@@ -186,6 +185,8 @@ fn syntax_module_doc_blocks(module: &SyntaxModuleOutput) -> Vec<&[String]> {
             SyntaxDeclarationPayload::TraitImpl { .. } => {}
             SyntaxDeclarationPayload::Import { .. }
             | SyntaxDeclarationPayload::Export { .. }
+            | SyntaxDeclarationPayload::Constant { .. }
+            | SyntaxDeclarationPayload::ConstFunction { .. }
             | SyntaxDeclarationPayload::Type { .. }
             | SyntaxDeclarationPayload::Constructor { .. }
             | SyntaxDeclarationPayload::Function { .. }
@@ -215,6 +216,13 @@ fn syntax_module_doc_anchors(module: &SyntaxModuleOutput) -> BTreeSet<String> {
     insert_doc_anchor(&mut anchors, &module.module_name);
     for decl in &module.declarations {
         match &decl.payload {
+            SyntaxDeclarationPayload::Constant { name, .. } => {
+                insert_doc_anchor(&mut anchors, name)
+            }
+            SyntaxDeclarationPayload::ConstFunction { name, params, .. } => {
+                insert_doc_anchor(&mut anchors, name);
+                insert_doc_anchor(&mut anchors, &format!("{}/{}", name, params.len()));
+            }
             SyntaxDeclarationPayload::Type { name, .. } => insert_doc_anchor(&mut anchors, name),
             SyntaxDeclarationPayload::Struct { name, fields, .. } => {
                 insert_doc_anchor(&mut anchors, name);
@@ -253,13 +261,21 @@ fn syntax_module_doc_anchors(module: &SyntaxModuleOutput) -> BTreeSet<String> {
             }
             SyntaxDeclarationPayload::TraitImpl {
                 trait_ref,
+                generic_params,
                 for_type,
                 methods,
                 ..
             } => {
                 insert_doc_anchor(
                     &mut anchors,
-                    &format!("{} for {}", trait_ref.text, for_type.text),
+                    &format!(
+                        "{} for {}",
+                        crate::terlan_syntax::render_trait_impl_ref(
+                            &trait_ref.text,
+                            generic_params
+                        ),
+                        for_type.text
+                    ),
                 );
                 insert_doc_anchor(&mut anchors, "impl");
                 for method in methods {
@@ -472,6 +488,31 @@ pub(crate) fn validate_syntax_missing_docs(
 ) -> Result<(), MissingDocError> {
     for decl in &module.declarations {
         match &decl.payload {
+            SyntaxDeclarationPayload::Constant {
+                name, is_public, ..
+            } => require_docs(
+                *is_public,
+                &decl.docs,
+                format!("missing docs for public constant `{}`", name),
+                decl.span.start,
+                decl.span.end,
+            )?,
+            SyntaxDeclarationPayload::ConstFunction {
+                name,
+                params,
+                is_public,
+                ..
+            } => require_docs(
+                *is_public,
+                &decl.docs,
+                format!(
+                    "missing docs for public const function `{}/{}`",
+                    name,
+                    params.len()
+                ),
+                decl.span.start,
+                decl.span.end,
+            )?,
             SyntaxDeclarationPayload::Type {
                 name, is_public, ..
             } => require_docs(
@@ -546,6 +587,7 @@ pub(crate) fn validate_syntax_missing_docs(
             )?,
             SyntaxDeclarationPayload::TraitImpl {
                 trait_ref,
+                generic_params,
                 for_type,
                 is_public,
                 ..
@@ -554,7 +596,8 @@ pub(crate) fn validate_syntax_missing_docs(
                 &decl.docs,
                 format!(
                     "missing docs for public impl `{} for {}`",
-                    trait_ref.text, for_type.text
+                    crate::terlan_syntax::render_trait_impl_ref(&trait_ref.text, generic_params),
+                    for_type.text
                 ),
                 decl.span.start,
                 decl.span.end,
@@ -649,7 +692,7 @@ fn missing_doc_error(message: String, start: usize, end: usize) -> MissingDocErr
 /// - `path`: source path used to load neighboring interfaces.
 ///
 /// Output:
-/// - `Ok(())` when all Terlan doctests parse, resolve, typecheck, and emit.
+/// - `Ok(())` when all Terlan doctests parse, resolve, and typecheck.
 /// - `Err(DoctestError)` for the first failing doctest.
 ///
 /// Transformation:
@@ -682,8 +725,8 @@ pub(crate) fn compile_syntax_terlan_doctests(
             &temp_source,
             crate::DiagnosticFormat::default(),
             None,
-            crate::validation::native_policy::NativePolicy::SafeNativeOptional,
-            crate::validation::target_profile::TargetProfile::Erlang,
+            crate::validation::native_policy::NativePolicy::NativeBoundaryOptional,
+            crate::validation::target_profile::TargetProfile::Vm,
         );
         if !compile.parse_diagnostics.is_empty() {
             return Err(DoctestError {
@@ -756,19 +799,7 @@ pub(crate) fn compile_syntax_terlan_doctests(
                 })
             }
         };
-        try_emit_core_module_to_erlang_with_syntax_bridge(
-            &compiled.core,
-            &compiled.syntax_output,
-            &interface_map,
-            &BTreeMap::new(),
-            &BTreeMap::new(),
-            &BTreeMap::new(),
-        )
-        .map_err(|message| DoctestError {
-            message: format!("doctest emit error: {}", message),
-            offset: block.offset,
-            len: block.body.len().max(1),
-        })?;
+        let _ = (&compiled.core, &compiled.syntax_output, &interface_map);
     }
     Ok(())
 }

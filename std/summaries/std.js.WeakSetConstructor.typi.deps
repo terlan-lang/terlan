@@ -1,8 +1,8 @@
 module=std.js.WeakSetConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=15530931693149329696
-interface_hash=14609427241380080637
-interface_doc_hash=14609427241380080637
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3491540025329670308
+interface_hash=8380449653147955249
+interface_doc_hash=8380449653147955249
 deps=0

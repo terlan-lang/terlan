@@ -41,8 +41,26 @@ Important invariants:
 - Compiler crates remain the source of language truth.
 - Template files must not receive bogus Terlan module parse errors simply
   because an editor attaches them to the shared LSP.
-- Template diagnostics are structure-oriented until interpolation typechecking
-  and precise per-target spans are exposed through the template crate.
+- Canonical `${...}` template diagnostics preserve the exact interpolation
+  range. Other target-structure diagnostics remain document-oriented when the
+  underlying format parser has no source span.
+- Completion inside `${...}` is scoped to `@template.params`. Item metadata
+  reports the declared type and expected `TextSlot`, `AttrSlot`, `UrlSlot`,
+  `BoolSlot`, or `TrustedFragmentSlot` context. Completion outside an
+  interpolation returns no template parameters.
+
+Supported:
+
+```html
+@template { params = { title: String, url: Uri } }
+<a href="${url}">${title}</a>
+```
+
+Rejected with a range beginning at the `${` pair:
+
+```html
+<main>${unterminated</main>
+```
 
 ## Integration Points
 
@@ -54,11 +72,12 @@ Important invariants:
 
 ## File Layout
 
-- `lib.rs`: server construction, LSP request handlers, diagnostic conversion,
+- `mod.rs`: server construction, LSP request handlers, diagnostic conversion,
   document symbols, and same-document definition lookup.
 - `document.rs`: open-document storage, document classification, compiler-path
   parsing/typechecking, template validation dispatch, and UTF-16 range
   conversion.
+- `template_completion.rs`: template-param completion and slot-context metadata.
 - `lib_test.rs`: LSP behavior tests.
 - `main.rs`: standalone crate-local binary entry point.
 

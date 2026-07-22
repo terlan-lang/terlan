@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFEConvolveMatrixElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5327751868877058428
-interface_hash=11408453598975794742
-interface_doc_hash=11408453598975794742
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=13509866230837626482
+interface_hash=4457463177055368006
+interface_doc_hash=4457463177055368006
 deps=0

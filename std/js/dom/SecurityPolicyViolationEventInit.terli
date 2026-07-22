@@ -1,0 +1,42 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SecurityPolicyViolationEventInit
+ */
+module std.js.Dom.SecurityPolicyViolationEventInit.
+
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+pub opaque type SecurityPolicyViolationEventInit.
+
+pub (value: SecurityPolicyViolationEventInit) blocked_uri(): JsString.
+
+pub (value: SecurityPolicyViolationEventInit) column_number(): JsNumber.
+
+pub (value: SecurityPolicyViolationEventInit) disposition(): SecurityPolicyViolationEventDisposition.
+
+pub (value: SecurityPolicyViolationEventInit) document_uri(): JsString.
+
+pub (value: SecurityPolicyViolationEventInit) effective_directive(): JsString.
+
+pub (value: SecurityPolicyViolationEventInit) line_number(): JsNumber.
+
+pub (value: SecurityPolicyViolationEventInit) original_policy(): JsString.
+
+pub (value: SecurityPolicyViolationEventInit) referrer(): JsString.
+
+pub (value: SecurityPolicyViolationEventInit) sample(): JsString.
+
+pub (value: SecurityPolicyViolationEventInit) source_file(): JsString.
+
+pub (value: SecurityPolicyViolationEventInit) status_code(): JsNumber.
+
+pub (value: SecurityPolicyViolationEventInit) violated_directive(): JsString.

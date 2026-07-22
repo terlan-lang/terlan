@@ -9,12 +9,7 @@
 module std.js.Array.
 
 import type std.collections.Index.{IndexGet}.
-
-import type std.collections.Iterable.{Iterable}.
-
-import type std.collections.Iterator.{Iterator}.
-
-import type std.collections.List.{List}.
+import type std.collections.{Iterable, Iterator, List}.
 
 /**
  * Represents a JavaScript-native array value.
@@ -90,7 +85,7 @@ pub (array: Array[T]) iterator(): Iterator[T] ->
  * generated bindings and hand-authored JS-targeted modules share one
  * traversal shape.
  */
-pub impl Iterable[Array[T] , T] for Array[T] {
+pub impl Iterable[Array[T], T] for Array[T] {
     iterator(array: Array[T]): Iterator[T] ->
         array.iterator().
 }.
@@ -103,7 +98,7 @@ pub impl Iterable[Array[T] , T] for Array[T] {
  * Transformation: delegates `IndexGet.get_at` to the receiver method so
  * `array[index]` remains trait-backed and target-specific.
  */
-pub impl IndexGet[Array[T] , Int , T] for Array[T] {
+pub impl IndexGet[Array[T], Int, T] for Array[T] {
     get_at(array: Array[T], index: Int): T ->
         array.get_at(index).
 }.

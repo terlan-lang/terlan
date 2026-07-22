@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use super::test_support::check_syntax_output;
 use super::*;
-use crate::terlan_hir::resolve_syntax_module_output;
+use crate::terlan_hir::{resolve_syntax_module_output, syntax_module_output_to_interface};
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
 /// Verifies multi-segment module type references keep their full module path.
@@ -31,6 +31,36 @@ fn type_parser_preserves_multi_segment_module_type_references() {
     .expect("parse qualified type");
 
     assert_eq!(pretty_type(&ty), "people.Provider.ExternalUser");
+}
+
+/// Verifies local and imported aliases retain structural implication evidence.
+#[test]
+fn type_aliases_preserve_structural_implication_bounds() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module alias_implication_metadata.
+
+pub type Named[T => {name: String}] = T.
+"#,
+    )
+    .expect("parse implication-constrained alias");
+
+    let local = collect_syntax_type_aliases(&module);
+    assert_alias_structural_implication(&local["Named"]);
+
+    let interface = syntax_module_output_to_interface(&module);
+    let imported = interface_type_aliases(&interface);
+    assert_alias_structural_implication(&imported["Named"]);
+}
+
+fn assert_alias_structural_implication(alias: &TypeAlias) {
+    assert_eq!(alias.params, vec![0]);
+    assert_eq!(alias.bounds.len(), 1);
+    assert_eq!(alias.bounds[0].trait_name, STRUCTURAL_IMPLICATION_BOUND);
+    assert!(matches!(
+        alias.bounds[0].trait_args.as_slice(),
+        [Type::Var(0), Type::Map(_)]
+    ));
 }
 
 /// Verifies singleton atom types unquote escaped single-quoted atom payloads.
@@ -208,6 +238,49 @@ fn substitute_type_vars_applies_higher_kind_constructor_mapping() {
     );
 }
 
+/// Verifies transparent recursive aliases terminate during expansion.
+#[test]
+fn expand_type_aliases_preserves_recursive_cycle_reference() {
+    let recursive_reference = Type::Named {
+        module: None,
+        name: "Node".to_string(),
+        args: Vec::new(),
+    };
+    let aliases = HashMap::from([(
+        "Node".to_string(),
+        TypeAlias {
+            params: Vec::new(),
+            param_variance: Vec::new(),
+            bounds: Vec::new(),
+            body: Type::Union(vec![
+                Type::LiteralAtom("end".to_string()),
+                recursive_reference,
+            ]),
+            constructor_param_names: Vec::new(),
+            is_opaque: false,
+        },
+    )]);
+
+    assert_eq!(
+        expand_type_aliases(
+            &Type::Named {
+                module: None,
+                name: "Node".to_string(),
+                args: Vec::new(),
+            },
+            &aliases,
+        ),
+        Type::Union(vec![
+            Type::LiteralAtom("end".to_string()),
+            Type::Named {
+                module: None,
+                name: "Node".to_string(),
+                args: Vec::new(),
+            },
+        ])
+    );
+}
+
 /// Verifies inference substitution rewrites higher-kinded applications.
 ///
 /// Inputs:
@@ -342,6 +415,7 @@ fn single_param_opaque_alias(name: &str, variance: Variance) -> TypeAlias {
     TypeAlias {
         params: vec![0],
         param_variance: vec![variance],
+        bounds: Vec::new(),
         body: Type::Named {
             module: None,
             name: name.to_string(),
@@ -680,7 +754,7 @@ fn syntax_output_collects_type_aliases_on_formal_path() {
         r#"
 module aliases.
 
-pub type Status = :active | :disabled.
+pub type Status = Atom["active"] | Atom["disabled"].
 pub type Boxed[T] = List[T].
 
 pub struct User {
@@ -709,7 +783,7 @@ pub constructor Boxed[T] {
 }.
 
 pub ok(): Status ->
-    :active.
+    Atom["active"].
 
 pub tag_count(tags: Boxed[Binary]): Int ->
     0.

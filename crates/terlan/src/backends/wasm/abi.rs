@@ -64,10 +64,16 @@ impl std::fmt::Display for WasmAbiError {
                 "Wasm ABI function `{function}` has {count} result values; multi-value results are reserved"
             ),
             Self::MissingResult { function } => {
-                write!(f, "Wasm ABI function `{function}` requires one result value")
+                write!(
+                    f,
+                    "Wasm ABI function `{function}` requires one result value"
+                )
             }
             Self::UnexpectedResult { function } => {
-                write!(f, "Wasm ABI function `{function}` does not declare a result value")
+                write!(
+                    f,
+                    "Wasm ABI function `{function}` does not declare a result value"
+                )
             }
             Self::ResultTypeMismatch {
                 function,

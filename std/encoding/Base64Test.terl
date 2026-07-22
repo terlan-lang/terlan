@@ -1,0 +1,116 @@
+/**
+ * Executable release checks for `std.encoding.Base64`.
+ *
+ * These tests exercise the VM-owned Base64 std bridge over the Rust `base64`
+ * adapter and keep the public Result/Error shapes visible to release coverage.
+ */
+module std.encoding.Base64Test.
+
+import std.core.Result.{Err, Ok, is_err}.
+import std.encoding.Base64.
+import std.test.Test.{assert, assert_equal, each, row}.
+import std.vm.Bytes.{from_list}.
+
+import type std.core.Result.
+import type std.encoding.Base64.Base64Error.
+import type std.vm.Bytes.
+
+/**
+ * Accepts one Base64 error value and returns it unchanged.
+ *
+ * Input: one portable `Base64Error`.
+ * Output: the same error value.
+ * Transformation: proves the public error shape is importable and usable in
+ * signatures without exposing native adapter internals.
+ */
+pub accepts_base64_error(value: Base64Error): Base64Error ->
+    value.
+
+/**
+ * Accepts one Base64 decode result and returns it unchanged.
+ *
+ * Input: one `Result[String, Base64Error]`.
+ * Output: the same result value.
+ * Transformation: proves decode helpers expose the expected portable result
+ * shape.
+ */
+pub accepts_decode_result(value: Result[String, Base64Error]): Result[String, Base64Error] ->
+    value.
+
+/**
+ * Accepts one byte-oriented Base64 decode result unchanged.
+ *
+ * Input: one `Result[Bytes, Base64Error]`.
+ * Output: the same result value.
+ * Transformation: proves byte decoders expose the typed VM byte result shape.
+ */
+pub accepts_byte_decode_result(value: Result[Bytes, Base64Error]): Result[Bytes, Base64Error] ->
+    value.
+
+@test
+pub encode_uses_standard_base64_alphabet(): Bool ->
+    assert_equal("dGVybGFu", Base64.encode("terlan")).
+
+@test
+pub decode_reads_standard_base64_text(): Bool ->
+    case accepts_decode_result(Base64.decode("dGVybGFu")) {
+        Ok(value) -> assert_equal("terlan", value);
+        Err(_reason) -> false
+    }.
+
+@test
+pub encode_url_round_trips_with_url_safe_decoder(): Bool ->
+    case Base64.decode_url(Base64.encode_url("url text")) {
+        Ok(value) -> assert_equal("url text", value);
+        Err(_reason) -> false
+    }.
+
+@test
+pub decode_rows_report_invalid_base64_text(): Bool ->
+    each([row("plain text", "not base64!", true), row("bad padding", "abcd=", true), row("bad character", "!!!!", true)], (current) -> case current {
+        {_name, input, _expected} -> assert(is_err(Base64.decode(input)))
+    }).
+
+@test
+pub byte_operations_preserve_non_utf8_octets(): Bool ->
+    let bytes = from_list([0, 127, 128, 255]);
+    case accepts_byte_decode_result(Base64.decode_bytes(Base64.encode_bytes(bytes))) {
+        Ok(decoded) -> assert_equal(bytes, decoded);
+        Err(_reason) -> false
+    }.
+
+@test
+pub url_byte_operations_preserve_non_utf8_octets(): Bool ->
+    let bytes = from_list([251, 255, 239, 0, 128]);
+    case Base64.decode_url_bytes(Base64.encode_url_bytes(bytes)) {
+        Ok(decoded) -> assert_equal(bytes, decoded);
+        Err(_reason) -> false
+    }.
+
+@test
+pub byte_decoders_reject_malformed_input(): Bool ->
+    assert(is_err(Base64.decode_bytes("!!!!")) and is_err(Base64.decode_url_bytes("!!!!"))).
+
+@test
+pub byte_modes_use_distinct_rfc_4648_alphabets(): Bool ->
+    let bytes = from_list([23, 234, 63, 163, 239, 129, 253, 175, 171]);
+    assert_equal("F+o/o++B/a+r", Base64.encode_bytes(bytes));
+    assert_equal("F-o_o--B_a-r", Base64.encode_url_bytes(bytes)).
+
+@test
+pub byte_decoders_reject_cross_alphabet_input(): Bool ->
+    assert(is_err(Base64.decode_bytes("F-o_o--B_a-r")) and is_err(Base64.decode_url_bytes("F+o/o++B/a+r"))).
+
+@test
+pub strict_decoder_rejects_missing_padding_trailing_data_and_whitespace(): Bool ->
+    each([row("two pads missing", "QWxhZGRpbjpvcGVuIHNlc2FtZQ", true), row("one pad missing", "SGVsbG8gV29ybGQ", true), row("trailing payload", "dGVzda==a", true), row("embedded whitespace", "MDEy MzQ1", true)], (current) -> case current {
+        {_name, input, _expected} -> assert(is_err(Base64.decode_bytes(input)))
+    }).
+
+@test
+pub standard_text_vectors_preserve_padding_boundaries(): Bool ->
+    assert_equal("QWxhZGRpbjpvcGVuIHNlc2FtZQ==", Base64.encode("Aladdin:open sesame"));
+    assert_equal("SGVsbG8gV29ybGQ=", Base64.encode("Hello World"));
+    assert_equal("QWxhZGRpbjpvcGVuIHNlc2Ft", Base64.encode("Aladdin:open sesam"));
+    assert_equal("MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9", Base64.encode("0123456789!@#0^&*();:<>,. []{}"));
+    assert_equal("PT09", Base64.encode("===")).

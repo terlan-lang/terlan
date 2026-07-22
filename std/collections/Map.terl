@@ -4,13 +4,13 @@
  * `std.collections.Map` is the portable key-value collection surface. Backends own
  * the efficient runtime representation while preserving this source contract.
  */
-
 module std.collections.Map.
 
-import type std.collections.List.
+import std.collections.Iterator.
 import std.core.Option.{None, Option}.
-import std.core.Unit.{Unit}.
-import std.collections.Iterator.{Iterator}.
+import std.core.Unit.
+
+import type std.collections.List.
 
 /**
  * Map represents a collection of values addressed by keys.
@@ -66,13 +66,13 @@ pub from_entries[K, V](entries: List[{K, V}]): Map[K, V] ->
  * Returns whether a map contains no entries.
  *
  * Input: one `Map[K, V]`.
- * Output: `true` when the map has no entries; otherwise `false`.
+ * Output: `true` when the map has no entries;
+ * otherwise `false`.
  * Transformation: lowers through the compiler-owned `core.map.is_empty`
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (map: Map[K, V]) is_empty(): Bool ->
-    true.
+pub (map: Map[K, V]) is_empty(): Bool -> true.
 
 /**
  * Returns the number of entries in a map.
@@ -83,14 +83,14 @@ pub (map: Map[K, V]) is_empty(): Bool ->
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (map: Map[K, V]) size(): Int ->
-    0.
+pub (map: Map[K, V]) size(): Int -> 0.
 
 /**
  * Looks up a value by key.
  *
  * Input: one `Map[K, V]` receiver and one key of type `K`.
- * Output: `Some(value)` when the key exists; otherwise `None`.
+ * Output: `Some(value)` when the key exists;
+ * otherwise `None`.
  * Transformation: lowers through the compiler-owned `core.map.get`
  * intrinsic and observes the receiver without changing its contents.
  */
@@ -102,13 +102,26 @@ pub (map: Map[K, V]) get(key: K): Option[V] ->
  * Returns whether a key exists.
  *
  * Input: one `Map[K, V]` receiver and one key of type `K`.
- * Output: `true` when the key exists; otherwise `false`.
+ * Output: `true` when the key exists;
+ * otherwise `false`.
  * Transformation: lowers through the compiler-owned `core.map.contains_key`
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (map: Map[K, V]) contains_key(key: K): Bool ->
-    false.
+pub (map: Map[K, V]) contains_key(key: K): Bool -> false.
+
+/**
+ * Returns a value and a map without the requested key.
+ *
+ * Input: one `Map[K, V]` and one key of type `K`.
+ * Output: `{Some(value), remaining}` when the key exists, otherwise
+ * `{None, original}`.
+ * Transformation: observes the value before removing the key from a local
+ * persistent map value. The input map remains available to the caller.
+ */
+@compiler.intrinsic
+pub take[K, V](map: Map[K, V], key: K): {Option[V], Map[K, V]} ->
+    {None, map}.
 
 /**
  * Creates an iterator over key-value entries.

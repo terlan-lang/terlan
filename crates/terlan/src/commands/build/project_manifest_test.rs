@@ -1,4 +1,4 @@
-use super::model::{ProjectServerTls, ProjectServerTlsProvider};
+use super::model::{ProjectServerProfile, ProjectServerTls, ProjectServerTlsProvider};
 use super::*;
 use std::path::PathBuf;
 
@@ -28,7 +28,7 @@ fn project_manifest_parses_package_name_with_default_source_root() {
     assert_eq!(parsed.package.version, "0.0.1");
     assert_eq!(parsed.package.namespace, None);
     assert_eq!(parsed.source_roots, vec!["src"]);
-    assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
+    assert_eq!(parsed.artifact, ProjectArtifactKind::TerlanVm);
 }
 
 #[test]
@@ -60,7 +60,7 @@ fn project_manifest_rejects_invalid_package_namespace() {
 #[test]
 fn project_manifest_parses_explicit_source_roots() {
     let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\", \"lib\"]\nartifact = \"beam-thin\"\n",
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\", \"lib\"]\nartifact = \"terlan-vm\"\n",
             &manifest_path(),
         )
         .expect("manifest should parse");
@@ -68,7 +68,67 @@ fn project_manifest_parses_explicit_source_roots() {
     assert_eq!(parsed.package.name, "demo");
     assert_eq!(parsed.package.version, "0.0.1");
     assert_eq!(parsed.source_roots, vec!["src", "lib"]);
-    assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
+    assert_eq!(parsed.artifact, ProjectArtifactKind::TerlanVm);
+}
+
+#[test]
+fn project_manifest_parses_script_aliases() {
+    let parsed = parse_project_manifest(
+        "\
+[package]
+name = \"demo\"
+version = \"0.0.1\"
+
+[scripts]
+seed = \"scripts/SeedDatabase.terl\"
+db.reset = \"scripts/db/Reset.terl\"
+",
+        &manifest_path(),
+    )
+    .expect("manifest should parse script aliases");
+
+    assert_eq!(
+        parsed.scripts,
+        vec![
+            ProjectScript {
+                name: "seed".to_string(),
+                path: "scripts/SeedDatabase.terl".to_string(),
+            },
+            ProjectScript {
+                name: "db.reset".to_string(),
+                path: "scripts/db/Reset.terl".to_string(),
+            },
+        ]
+    );
+}
+
+#[test]
+fn project_manifest_rejects_unsafe_script_path() {
+    let err = parse_project_manifest(
+        "\
+[package]
+name = \"demo\"
+version = \"0.0.1\"
+
+[scripts]
+seed = \"../SeedDatabase.terl\"
+",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject unsafe script path");
+
+    assert!(err.contains("cannot use current-directory or parent traversal"));
+}
+
+#[test]
+fn project_manifest_rejects_legacy_beam_thin_artifact_kind() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"beam-thin\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject legacy beam-thin artifact kind");
+
+    assert!(err.contains("unsupported [build] artifact `beam-thin`"));
 }
 
 #[test]
@@ -236,6 +296,20 @@ fn project_manifest_parses_server_tls_manual_config() {
 }
 
 #[test]
+fn project_manifest_parses_server_production_profile() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server]\nprofile = \"production\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse production server profile");
+
+    assert_eq!(
+        parsed.server_profile,
+        Some(ProjectServerProfile::Production)
+    );
+}
+
+#[test]
 fn project_manifest_accepts_absent_server_tls_config() {
     let parsed = parse_project_manifest(
         "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n",
@@ -244,6 +318,17 @@ fn project_manifest_accepts_absent_server_tls_config() {
     .expect("manifest should parse without server tls config");
 
     assert_eq!(parsed.server_tls, None);
+}
+
+#[test]
+fn project_manifest_rejects_production_internal_server_tls() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[server]\nprofile = \"production\"\n\n[server.tls]\nmode = \"internal\"\nserver_name = \"localhost\"\ntrust_local = true\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject production internal server tls config");
+
+    assert!(err.contains("[server] profile production cannot use [server.tls] mode internal"));
 }
 
 #[test]
@@ -455,6 +540,10 @@ fn project_manifest_rejects_unsupported_artifact_kind() {
         .expect_err("manifest should reject unsupported artifact kind");
 
     assert!(err.contains("unsupported [build] artifact `beam-standalone`"));
+    assert!(
+        !err.contains("beam-thin"),
+        "public artifact diagnostics must not advertise the legacy VM artifact: {err}"
+    );
 }
 
 /// Verifies manifest parsing rejects empty source-root entries.
@@ -480,28 +569,220 @@ fn adversarial_project_manifest_rejects_empty_source_root_entries() {
 }
 
 #[test]
+fn adversarial_project_manifest_rejects_empty_source_root_list() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = []\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject empty source root lists");
+
+    assert!(err.contains("project manifest string array cannot be empty"));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_absolute_source_root() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"/tmp/generated\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject absolute source roots");
+
+    assert!(err.contains("source_root `/tmp/generated` must be package-relative"));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_parent_traversal_source_root() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"../sibling\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject source roots that escape the package");
+
+    assert!(
+        err.contains("source_root `../sibling` cannot use current-directory or parent traversal")
+    );
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_current_directory_source_root() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\".\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject ambiguous current-directory source root");
+
+    assert!(err.contains("source_root `.` cannot use current-directory or parent traversal"));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_duplicate_source_roots() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\", \"src\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject duplicate source roots");
+
+    assert!(err.contains("source_root `src` is declared more than once"));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_whitespace_padded_source_root() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\" src\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject whitespace-padded source roots");
+
+    assert!(err.contains("source_root ` src` cannot contain leading or trailing whitespace"));
+}
+
+#[test]
+fn project_manifest_parses_script_entrypoints() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed-db = \"scripts/SeedDatabase.terl\"\nreports.daily = \"scripts/reports/Daily.terl\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse script entrypoints");
+
+    assert_eq!(
+        parsed.scripts,
+        vec![
+            ProjectScript {
+                name: "seed-db".to_string(),
+                path: "scripts/SeedDatabase.terl".to_string(),
+            },
+            ProjectScript {
+                name: "reports.daily".to_string(),
+                path: "scripts/reports/Daily.terl".to_string(),
+            },
+        ]
+    );
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_duplicate_script_aliases() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"scripts/Seed.terl\"\nseed = \"scripts/Other.terl\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject duplicate script aliases");
+
+    assert!(err.contains("[scripts] alias `seed` is declared more than once"));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_invalid_script_alias() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nSeed = \"scripts/Seed.terl\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject invalid script aliases");
+
+    assert!(err.contains("[scripts] alias `Seed` may contain only lowercase ASCII"));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_absolute_script_path() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"/tmp/Seed.terl\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject absolute script paths");
+
+    assert!(err.contains("[scripts] path `/tmp/Seed.terl` must be package-relative"));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_parent_traversal_script_path() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"../Seed.terl\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject script paths that escape the package");
+
+    assert!(err.contains(
+        "[scripts] path `../Seed.terl` cannot use current-directory or parent traversal"
+    ));
+}
+
+#[test]
+fn adversarial_project_manifest_rejects_non_terlan_script_path() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"scripts/Seed.txt\"\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject non-Terlan script paths");
+
+    assert!(err.contains("[scripts] path `scripts/Seed.txt` must point to a .terl file"));
+}
+
+#[test]
 fn project_manifest_accepts_reserved_empty_dependency_sections() {
     let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\n\n[target.erlang.dependencies]\n\n[target.js.dependencies]\n\n[target.rust.dependencies]\n",
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\n\n[target.js.dependencies]\n\n[target.rust.dependencies]\n",
             &manifest_path(),
         )
         .expect("manifest should accept reserved dependency section boundaries");
 
     assert_eq!(parsed.package.name, "demo");
     assert_eq!(parsed.package.version, "0.0.1");
-    assert_eq!(parsed.artifact, ProjectArtifactKind::BeamThin);
+    assert_eq!(parsed.artifact, ProjectArtifactKind::TerlanVm);
     assert!(parsed.dependencies.is_empty());
+}
+
+#[test]
+fn project_manifest_parses_package_publication_metadata() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\nnamespace = \"polars\"\ndescription = \"Polars DataFrames for Terlan\"\nlicense = \"MIT\"\nrepository = \"https://github.com/terlan-lang/terlan-polars\"\ncompiler = \">= 0.0.7\"\nlinks = [\"https://terlan.org\", \"https://pola.rs\"]\n",
+        &manifest_path(),
+    )
+    .expect("manifest should accept publication metadata");
+
+    assert_eq!(
+        parsed.package.description.as_deref(),
+        Some("Polars DataFrames for Terlan")
+    );
+    assert_eq!(parsed.package.license.as_deref(), Some("MIT"));
+    assert_eq!(
+        parsed.package.repository.as_deref(),
+        Some("https://github.com/terlan-lang/terlan-polars")
+    );
+    assert_eq!(parsed.package.compiler.as_deref(), Some(">= 0.0.7"));
+    assert_eq!(
+        parsed.package.links,
+        vec![
+            "https://terlan.org".to_string(),
+            "https://pola.rs".to_string()
+        ]
+    );
+}
+
+#[test]
+fn project_manifest_rejects_empty_or_duplicate_publication_metadata() {
+    let empty = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\nlicense = \"\"\n",
+        &manifest_path(),
+    )
+    .expect_err("empty publication field should fail");
+    assert!(empty.contains("[package] `license` cannot be empty"));
+
+    let duplicate = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\nlinks = [\"https://terlan.org\", \"https://terlan.org\"]\n",
+        &manifest_path(),
+    )
+    .expect_err("duplicate package link should fail");
+    assert!(duplicate.contains("[package] `links` contains duplicate"));
 }
 
 #[test]
 fn project_manifest_parses_dependency_source_metadata() {
     let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\nsyntax_tools = { git = \"https://example.test/terlan/syntax-tools.git\", rev = \"0123456789abcdef\" }\n\n[target.erlang.dependencies]\ncowboy = { hex = \"cowboy\", version = \"2.12.0\" }\n\n[target.js.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\" }\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", version = \"1.0.0\" }\n",
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\nremote_utils = { git = \"https://github.com/terlan-lang/utils\", rev = \"a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4\" }\n\n[target.js.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\" }\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", version = \"1.0.0\" }\n",
             &manifest_path(),
         )
         .expect("manifest should parse dependency metadata");
 
-    assert_eq!(parsed.dependencies.len(), 5);
+    assert_eq!(parsed.dependencies.len(), 4);
     assert_eq!(
         parsed.dependencies[0],
         ProjectDependency {
@@ -515,27 +796,16 @@ fn project_manifest_parses_dependency_source_metadata() {
     assert_eq!(
         parsed.dependencies[1],
         ProjectDependency {
-            alias: "syntax_tools".to_string(),
+            alias: "remote_utils".to_string(),
             scope: ProjectDependencyScope::Local,
             source: ProjectDependencySource::Git {
-                url: "https://example.test/terlan/syntax-tools.git".to_string(),
-                rev: "0123456789abcdef".to_string(),
+                url: "https://github.com/terlan-lang/utils".to_string(),
+                rev: "a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4".to_string()
             },
         }
     );
     assert_eq!(
         parsed.dependencies[2],
-        ProjectDependency {
-            alias: "cowboy".to_string(),
-            scope: ProjectDependencyScope::Target(ProjectTarget::Erlang),
-            source: ProjectDependencySource::Hex {
-                package: "cowboy".to_string(),
-                version: "2.12.0".to_string()
-            },
-        }
-    );
-    assert_eq!(
-        parsed.dependencies[3],
         ProjectDependency {
             alias: "zod".to_string(),
             scope: ProjectDependencyScope::Target(ProjectTarget::Js),
@@ -546,7 +816,7 @@ fn project_manifest_parses_dependency_source_metadata() {
         }
     );
     assert_eq!(
-        parsed.dependencies[4],
+        parsed.dependencies[3],
         ProjectDependency {
             alias: "serde".to_string(),
             scope: ProjectDependencyScope::Target(ProjectTarget::Rust),
@@ -557,6 +827,32 @@ fn project_manifest_parses_dependency_source_metadata() {
             },
         }
     );
+}
+
+#[test]
+fn project_manifest_rejects_git_dependency_without_rev() {
+    let err = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nutils = { git = \"https://github.com/terlan-lang/utils\" }\n",
+        &manifest_path(),
+    )
+    .expect_err("manifest should reject unpinned git dependency");
+
+    assert!(err.contains("[dependencies] entries must use"));
+    assert!(err.contains("rev"));
+}
+
+#[test]
+fn project_manifest_rejects_abbreviated_or_symbolic_git_revisions() {
+    for rev in ["a1b2c3d4", "main", "v0.1.0"] {
+        let source = format!(
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nutils = {{ git = \"https://github.com/terlan-lang/utils\", rev = \"{rev}\" }}\n"
+        );
+        let err = parse_project_manifest(&source, &manifest_path())
+            .expect_err("manifest should reject non-immutable Git revision");
+
+        assert!(err.contains("full 40- or 64-character hexadecimal commit id"));
+        assert!(err.contains(rev));
+    }
 }
 
 #[test]
@@ -582,23 +878,20 @@ fn project_manifest_parses_rust_dependency_feature_metadata() {
 }
 
 #[test]
-fn project_manifest_parses_erlang_package_adapter_metadata() {
-    let parsed = parse_project_manifest(
+fn project_manifest_rejects_legacy_target_package_metadata() {
+    let err = parse_project_manifest(
             "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.erlang.package]\nadapter = \"rebar3-compatible\"\n",
             &manifest_path(),
         )
-        .expect("manifest should parse Erlang package adapter metadata");
+        .expect_err("manifest should reject legacy target package metadata");
 
-    assert_eq!(
-        parsed.erlang_package_adapter,
-        Some(ProjectErlangPackageAdapter::Rebar3Compatible)
-    );
+    assert!(err.contains("unsupported project manifest section `target.erlang.package`"));
 }
 
 #[test]
 fn project_manifest_parses_native_rust_helper_metadata() {
     let parsed = parse_project_manifest(
-            "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\n\n[native.rust]\ncrate = \"terlan_polars_native\"\npath = \"native\"\nhelper = \"terlan-polars-safe-native\"\nhelper_env = \"TERLAN_SAFE_NATIVE_PATH\"\nfeatures = [\"real-polars\"]\n",
+            "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\n\n[native.rust]\ncrate = \"terlan_polars_native\"\npath = \"native\"\nhelper = \"terlan-polars-native-boundary\"\nhelper_env = \"TERLAN_NATIVE_BOUNDARY_HELPER_PATH\"\nfeatures = [\"real-polars\"]\n",
             &manifest_path(),
         )
         .expect("manifest should parse native Rust helper metadata");
@@ -608,8 +901,8 @@ fn project_manifest_parses_native_rust_helper_metadata() {
         Some(ProjectNativeRust {
             crate_name: "terlan_polars_native".to_string(),
             path: "native".to_string(),
-            helper: "terlan-polars-safe-native".to_string(),
-            helper_env: "TERLAN_SAFE_NATIVE_PATH".to_string(),
+            helper: "terlan-polars-native-boundary".to_string(),
+            helper_env: "TERLAN_NATIVE_BOUNDARY_HELPER_PATH".to_string(),
             features: vec!["real-polars".to_string()],
         })
     );
@@ -618,7 +911,7 @@ fn project_manifest_parses_native_rust_helper_metadata() {
 #[test]
 fn project_manifest_rejects_partial_native_rust_helper_metadata() {
     let err = parse_project_manifest(
-        "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\n\n[native.rust]\ncrate = \"terlan_polars_native\"\npath = \"native\"\nhelper = \"terlan-polars-safe-native\"\n",
+        "[package]\nname = \"terlan-polars\"\nversion = \"0.1.0\"\n\n[native.rust]\ncrate = \"terlan_polars_native\"\npath = \"native\"\nhelper = \"terlan-polars-native-boundary\"\n",
         &manifest_path(),
     )
     .expect_err("manifest should reject partial native Rust helper metadata");
@@ -627,14 +920,14 @@ fn project_manifest_rejects_partial_native_rust_helper_metadata() {
 }
 
 #[test]
-fn project_manifest_rejects_unsupported_erlang_package_adapter() {
+fn project_manifest_rejects_unsupported_legacy_target_package_metadata() {
     let err = parse_project_manifest(
             "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[target.erlang.package]\nadapter = \"rebar3-plugin\"\n",
             &manifest_path(),
         )
-        .expect_err("manifest should reject unsupported Erlang package adapter");
+        .expect_err("manifest should reject unsupported legacy target package metadata");
 
-    assert!(err.contains("unsupported [target.erlang.package] adapter `rebar3-plugin`"));
+    assert!(err.contains("unsupported project manifest section `target.erlang.package`"));
 }
 
 #[test]
@@ -645,18 +938,10 @@ fn project_manifest_rejects_registry_dependency_in_local_scope() {
         )
         .expect_err("manifest should reject registry dependency in local scope");
 
-    assert!(err.contains("[dependencies] entries must use exactly"));
-}
-
-#[test]
-fn project_manifest_rejects_git_dependency_without_rev() {
-    let err = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nsyntax_tools = { git = \"https://example.test/terlan/syntax-tools.git\" }\n",
-        &manifest_path(),
-    )
-    .expect_err("manifest should reject Git dependency without immutable rev");
-
-    assert!(err.contains("{ git = \"...\", rev = \"...\" }"));
+    assert!(
+        err.contains("[dependencies] entries must use { path = \"...\" }"),
+        "{err}"
+    );
 }
 
 #[test]
@@ -667,7 +952,7 @@ fn project_manifest_rejects_wrong_target_dependency_source() {
         )
         .expect_err("manifest should reject wrong target dependency source");
 
-    assert!(err.contains("{ hex = \"...\", version = \"...\" }"));
+    assert!(err.contains("unsupported project manifest section `target.erlang.dependencies`"));
 }
 
 /// Verifies target dependency entries cannot mix multiple package managers.

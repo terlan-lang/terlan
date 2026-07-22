@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface OverconstrainedError
+ */
+module std.js.Dom.OverconstrainedError.
+
+/**
+ * The **`OverconstrainedError`** interface of the Media Capture and Streams API indicates that the set of desired capabilities for the current MediaStreamTrack cannot currently be met.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OverconstrainedError)
+ */
+pub opaque type OverconstrainedError.
+
+/**
+ * The **`constraint`** read-only property of the in the constructor, meaning the constraint that was not satisfied.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OverconstrainedError/constraint)
+ */
+pub (value: OverconstrainedError) constraint(): std.js.String.JsString.

@@ -1,0 +1,501 @@
+module tests.pattern.PatternMatchingTest.
+
+import std.binary.Binary.{compact_frame_shape, decode_fixed_header, decoded_field, decoded_protocol, decoded_protocol_remaining_bytes, decoded_protocol_value, protocol_shape_alias, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_resolve, tcp_header_shape}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.test.Test.{assert_equal}.
+import std.vm.Bytes.
+
+pub type Ready = Atom["ready"].
+
+pub type Done = Atom["done"].
+
+pub type Status = Ready | Done.
+
+pub constructor Ship {
+    (id: Int, size: Int): Dynamic ->
+        {Atom["ship"], id, size}
+}.
+
+pub struct ResponseShape {
+    status: Int,
+    body: String
+}.
+
+pub choose_status(): Status ->
+    Ready.
+
+pub first_value(value: Int, _ignored: Int): Int ->
+    value.
+
+pub constant_value(_ignored: Int): Int -> 7.
+
+pub is_success_status(status: Int): Bool ->
+    status in 200 .. 299.
+
+pub classify_guarded(_Arg1: Dynamic): Dynamic.
+classify_guarded(value) where value < 0 ->
+    "negative";
+classify_guarded(0) ->
+    "zero";
+classify_guarded(_value) ->
+    "positive".
+
+pub classify_typed_guarded(value: Int): String.
+classify_typed_guarded(value) where value < 0 ->
+    "negative";
+classify_typed_guarded(0) ->
+    "zero";
+classify_typed_guarded(_value) ->
+    "positive".
+
+pub classify_string_literal(value: String): String.
+classify_string_literal("terlan") ->
+    "language";
+classify_string_literal(_value) ->
+    "other".
+
+pub classify_user_path(value: String): String.
+classify_user_path("users/${id: Int}/${name}.json") ->
+    case id {
+        value where value in 40 .. 49 -> name;
+        _ -> "out-of-range"
+    };
+classify_user_path(_value) ->
+    "other".
+
+@test
+pub case_wildcard_matches_any_value(): Bool ->
+    case 42 {
+        _ -> assert_equal(42, 42)
+    }.
+
+@test
+pub case_variable_pattern_binds_value(): Bool ->
+    case 42 {
+        value -> assert_equal(43, value + 1)
+    }.
+
+@test
+pub case_int_literal_requires_exact_value(): Bool ->
+    case 2 {
+        1 -> false;
+        2 -> assert_equal(4, 2 + 2);
+        _ -> false
+    }.
+
+@test
+pub case_float_literal_requires_exact_value(): Bool ->
+    case 0.2 {
+        0.1 -> false;
+        0.2 -> assert_equal(0.30000000000000004, 0.2 + 0.1);
+        _ -> false
+    }.
+
+@test
+pub case_bool_literal_matches_true_and_false(): Bool ->
+    let left =
+        case true {
+            true -> 1;
+            false -> 0
+        };
+    let right =
+        case false {
+            true -> 0;
+            false -> 1
+        };
+    assert_equal(2, left + right).
+
+@test
+pub case_string_literal_requires_exact_value(): Bool ->
+    case "terlan" {
+        "erl" -> false;
+        "terlan" -> assert_equal("terlan", "terlan");
+        _ -> false
+    }.
+
+@test
+pub case_string_capture_binds_typed_value(): Bool ->
+    case "users/42/alice.json" {
+        "users/${id: Int}/${name}.json" ->
+            assert_equal(43, id + 1) and assert_equal("alice", name);
+        _ -> false
+    }.
+
+@test
+pub case_string_capture_falls_through_on_failed_conversion(): Bool ->
+    case "users/not-int/alice.json" {
+        "users/${id: Int}/${_name}.json" -> false;
+        _ -> assert_equal(1, 1)
+    }.
+
+@test
+pub case_string_capture_guard_uses_bound_value(): Bool ->
+    case "users/204/ok.json" {
+        "users/${status: Int}/${body}.json" where status in 200 .. 299 ->
+            assert_equal("ok", body);
+        _ -> false
+    }.
+
+@test
+pub case_atom_alias_matches_exact_value(): Bool ->
+    case choose_status() {
+        Ready -> assert_equal(1, 1);
+        Done -> false
+    }.
+
+@test
+pub case_unit_constructor_matches_unit_value(): Bool ->
+    case Unit {
+        Unit -> assert_equal(Unit, Unit)
+    }.
+
+@test
+pub case_option_constructors_match_both_shapes(): Bool ->
+    let present =
+        case Some(41) {
+            Some(value) -> value + 1;
+            None -> 0
+        };
+    let missing =
+        case None {
+            Some(_value) -> 0;
+            None -> 1
+        };
+    assert_equal(43, present + missing).
+
+@test
+pub case_result_constructors_match_both_shapes(): Bool ->
+    let success =
+        case Ok(40) {
+            Ok(value) -> value + 2;
+            Err(_reason) -> 0
+        };
+    let failure =
+        case Err(Ready) {
+            Ok(_value) -> 0;
+            Err(reason) ->
+                case reason {
+                    Ready -> 1;
+                    Done -> 0
+                }
+        };
+    assert_equal(43, success + failure).
+
+@test
+pub case_tuple_pattern_binds_nested_values(): Bool ->
+    case {{1, 2}, 3} {
+        {{left, right}, last} -> assert_equal(6, left + right + last)
+    }.
+
+@test
+pub case_exact_list_pattern_binds_entries(): Bool ->
+    case [1, 2, 3] {
+        [left, middle, right] -> assert_equal(6, left + middle + right);
+        _ -> false
+    }.
+
+@test
+pub case_empty_list_pattern_matches_empty_list(): Bool ->
+    case [] {
+        [] -> assert_equal(1, 1);
+        [_head | _tail] -> false
+    }.
+
+@test
+pub case_list_cons_pattern_splits_head_and_tail(): Bool ->
+    case [1, 2, 3] {
+        [head | tail] ->
+            case tail {
+                [next, last] -> assert_equal(6, head + next + last);
+                _ -> false
+            };
+        [] -> false
+    }.
+
+@test
+pub case_list_cons_pattern_falls_through_on_empty_list(): Bool ->
+    case [] {
+        [head | _tail] -> assert_equal(0, head);
+        [] -> assert_equal(1, 1)
+    }.
+
+@test
+pub case_map_pattern_binds_required_keys(): Bool ->
+    case {name: "Ada", age: 42} {
+        {name: name, age: age} -> assert_equal(45, age + 3);
+        _ -> false
+    }.
+
+@test
+pub case_custom_constructor_pattern_binds_payloads(): Bool ->
+    case Ship(4, 2) {
+        Ship(id, size) -> assert_equal(6, id + size);
+        _ -> false
+    }.
+
+@test
+pub binary_protocol_shape_helpers_resolve_and_split_tcp_header(): Bool ->
+    let payload = Bytes.from_list([0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187]);
+    case protocol_shape_set("transport", List(tcp_header_shape()), List.new[std.binary.Binary.ProtocolShapeAlias]()) {
+        Err(_reason) -> false;
+        Ok(set) ->
+            case protocol_shape_set_resolve(set, "tcp_header") {
+                Err(_reason) -> false;
+                Ok(shape) ->
+                    case decode_fixed_header(shape, payload) {
+                        Err(_reason) -> false;
+                        Ok({header, body}) ->
+                            assert_equal(20, header.length()) and assert_equal(Bytes.from_list([170, 187]), body)
+                    }
+            }
+    }.
+
+@test
+pub binary_protocol_shape_helpers_roundtrip_aliased_compact_frame(): Bool ->
+    let fields =
+        List(
+            decoded_field("version", 1),
+            decoded_field("kind", 2),
+            decoded_field("length", 2)
+        );
+    let decoded = decoded_protocol(fields, Bytes.from_list([170, 187]));
+    let aliases = List(protocol_shape_alias("current", "compact_frame"));
+    case protocol_shape_set("frames", List(compact_frame_shape()), aliases) {
+        Err(_reason) -> false;
+        Ok(set) ->
+            case protocol_shape_set_encode_exact(set, "current", decoded) {
+                Err(_reason) -> false;
+                Ok(encoded) ->
+                    case protocol_shape_set_decode(set, "current", encoded) {
+                        Err(_reason) -> false;
+                        Ok(roundtrip) ->
+                            case {
+                                decoded_protocol_value(roundtrip, "version"),
+                                decoded_protocol_value(roundtrip, "kind"),
+                                decoded_protocol_value(roundtrip, "length")
+                            } {
+                                {Some(1), Some(2), Some(2)} ->
+                                    assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip));
+                                _ -> false
+                            }
+                    }
+            }
+    }.
+
+@test
+pub case_guard_uses_bound_value_and_falls_through(): Bool ->
+    case 4 {
+        value where value < 4 -> false;
+        value where value == 4 -> assert_equal(8, value * 2);
+        _ -> false
+    }.
+
+@test
+pub case_where_guard_uses_bound_value_and_falls_through(): Bool ->
+    case 5 {
+        value where value < 5 -> false;
+        value where value == 5 -> assert_equal(10, value * 2);
+        _ -> false
+    }.
+
+@test
+pub case_where_guard_accepts_range_membership(): Bool ->
+    case 204 {
+        status where status in 200 .. 299 -> assert_equal(204, status);
+        _ -> false
+    }.
+
+@test
+pub case_where_guard_accepts_pure_helper_call(): Bool ->
+    case 204 {
+        status where is_success_status(status) -> assert_equal(204, status);
+        _ -> false
+    }.
+
+@test
+pub case_where_guard_accepts_field_read(): Bool ->
+    case ResponseShape {status: 204, body: "ok"} {
+        response where response.status in 200 .. 299 -> assert_equal("ok", response.body);
+        _ -> false
+    }.
+
+@test
+pub case_where_guard_accepts_index_read(): Bool ->
+    case [100, 204] {
+        values where values[1] in 200 .. 299 -> assert_equal(204, values[1]);
+        _ -> false
+    }.
+
+@test
+pub case_where_guard_accepts_receiver_call(): Bool ->
+    case "terlan" {
+        text where text.starts_with("ter") -> assert_equal("terlan", text);
+        _ -> false
+    }.
+
+@test
+pub function_head_where_guard_orders_clauses(): Bool ->
+    assert_equal("negative", classify_guarded(-1)).
+
+@test
+pub typed_function_head_where_guard_uses_signature(): Bool ->
+    assert_equal("negative", classify_typed_guarded(-1)).
+
+pub clause_add_pair_from_function_head({left, right}: Dynamic): Int.
+clause_add_pair_from_function_head({left, right}) ->
+    left + right;
+clause_add_pair_from_function_head(_) ->
+    0.
+
+pub add_pair_from_function_head({left, right}: Dynamic): Int ->
+    left + right.
+
+pub add_typed_pair_from_function_head({left, right}: {Int, Int}): Int ->
+    left + right.
+
+pub add_pair_alias_from_function_head({left, right} = pair: Dynamic): Int ->
+    case pair == {4, 5} {
+        true -> left + right + 4;
+        false -> 0
+    }.
+
+pub first_from_function_head([head, _tail]: Dynamic): Int ->
+    head.
+
+pub option_value_from_function_head(Some(value): Dynamic): Dynamic ->
+    value.
+
+pub status_from_function_head({status: code, body: _body}: Dynamic): Int ->
+    code.
+
+pub response_status_from_function_head(ResponseShape {status: code, body: _body}: Dynamic): Int ->
+    code.
+
+pub wildcard_from_function_head(_: Dynamic): Int ->
+    42.
+
+@test
+pub function_head_tuple_pattern_binds_expression_body_argument(): Bool ->
+    assert_equal(9, add_pair_from_function_head({4, 5})).
+
+@test
+pub function_head_tuple_pattern_refines_typed_bindings(): Bool ->
+    assert_equal(9, add_typed_pair_from_function_head({4, 5})).
+
+@test
+pub function_head_alias_pattern_binds_alias_and_fields(): Bool ->
+    assert_equal(13, add_pair_alias_from_function_head({4, 5})).
+
+@test
+pub function_head_tuple_pattern_binds_clause_style_argument(): Bool ->
+    assert_equal(9, clause_add_pair_from_function_head({4, 5}))
+        and assert_equal(0, clause_add_pair_from_function_head(4)).
+
+@test
+pub function_head_list_pattern_binds_expression_body_argument(): Bool ->
+    assert_equal(7, first_from_function_head([7, 9])).
+
+@test
+pub function_head_constructor_pattern_binds_expression_body_argument(): Bool ->
+    assert_equal(11, option_value_from_function_head(Some(11))).
+
+@test
+pub function_head_map_pattern_binds_expression_body_argument(): Bool ->
+    assert_equal(204, status_from_function_head({status: 204, body: "ok"})).
+
+@test
+pub function_head_record_pattern_binds_expression_body_argument(): Bool ->
+    assert_equal(204, response_status_from_function_head(ResponseShape {status: 204, body: "ok"})).
+
+@test
+pub record_update_is_immutable_and_preserves_unmodified_fields(): Bool ->
+    let original = ResponseShape {status: 200, body: "old"};
+        let updated = original#ResponseShape {body: "new"};
+    assert_equal(200, updated.status)
+        and assert_equal("new", updated.body)
+        and assert_equal("old", original.body).
+
+@test
+pub function_head_wildcard_pattern_ignores_expression_body_argument(): Bool ->
+    assert_equal(42, wildcard_from_function_head({4, 5})).
+
+@test
+pub let_tuple_destructuring_binds_values(): Bool ->
+    let {left, right} = {2, 5}; assert_equal(7, left + right).
+
+@test
+pub let_list_destructuring_binds_exact_entries(): Bool ->
+    let [left, right] = [3, 4]; assert_equal(7, left + right).
+
+@test
+pub let_list_cons_destructuring_binds_tail(): Bool ->
+    let [head | tail] = [3, 4, 5];
+    case tail {
+        [next, last] -> assert_equal(12, head + next + last);
+        _ -> false
+    }.
+
+@test
+pub let_constructor_destructuring_binds_payloads(): Bool ->
+    let Ship(id, size) = Ship(8, 3); assert_equal(11, id + size).
+
+@test
+pub let_string_literal_pattern_requires_exact_value(): Bool ->
+    let "terlan" = "terlan"; assert_equal("terlan", "terlan").
+
+@test
+pub let_string_capture_binds_typed_values(): Bool ->
+    let "users/${id: Int}/${name}.json" = "users/7/bob.json";
+    assert_equal(10, id + 3) and assert_equal("bob", name).
+
+@test
+pub lambda_variable_pattern_binds_argument(): Bool ->
+    let double = ((value) -> value * 2); assert_equal(8, double(4)).
+
+@test
+pub lambda_tuple_pattern_binds_argument_shape(): Bool ->
+    let add_pair = (({left, right}) -> left + right); assert_equal(9, add_pair({4, 5})).
+
+@test
+pub lambda_list_cons_pattern_binds_argument_shape(): Bool ->
+    let head_plus_tail =
+        (([head | tail]) -> case tail {
+                [next] -> head + next;
+                _ -> 0
+            });
+    assert_equal(7, head_plus_tail([3, 4])).
+
+@test
+pub lambda_constructor_pattern_binds_argument_shape(): Bool ->
+    let size_score = ((Ship(_id, size)) -> size * 10); assert_equal(30, size_score(Ship(7, 3))).
+
+@test
+pub lambda_string_literal_pattern_requires_exact_value(): Bool ->
+    let classify = (("terlan") -> "language"); assert_equal("language", classify("terlan")).
+
+@test
+pub lambda_string_capture_binds_argument_shape(): Bool ->
+    let next_id = (("users/${id: Int}") -> id + 1); assert_equal(43, next_id("users/42")).
+
+@test
+pub function_variable_parameters_bind_arguments(): Bool ->
+    assert_equal(3, first_value(3, 9)).
+
+@test
+pub function_wildcard_parameters_ignore_arguments(): Bool ->
+    assert_equal(7, constant_value(99)).
+
+@test
+pub function_head_string_literal_pattern_requires_exact_value(): Bool ->
+    let exact = classify_string_literal("terlan");
+        let fallback = classify_string_literal("other");
+    assert_equal("language:other", exact + ":" + fallback).
+
+@test
+pub function_head_string_capture_binds_argument_shape(): Bool ->
+    let exact = classify_user_path("users/42/alice.json");
+        let fallback = classify_user_path("users/not-int/alice.json");
+    assert_equal("alice:other", exact + ":" + fallback).

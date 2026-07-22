@@ -1,8 +1,8 @@
 module=std.js.Dom.PageTransitionEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8553073748310990334
-interface_hash=5264002311210413775
-interface_doc_hash=5264002311210413775
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15590592755232084490
+interface_hash=15504043943607371359
+interface_doc_hash=15504043943607371359
 deps=0

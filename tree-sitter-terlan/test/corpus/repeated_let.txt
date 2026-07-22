@@ -1,0 +1,139 @@
+==================
+repeated let bindings
+==================
+
+module app.RepeatedLet.
+
+pub total(value: Int): Int ->
+  let first = value;
+  let second = first + 1;
+  second.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (let_expression
+        (let_binding
+          (pattern
+            (identifier))
+          (expression
+            (identifier)))
+        (expression
+          (let_expression
+            (let_binding
+              (pattern
+                (identifier))
+              (expression
+                (binary_expression
+                  (expression
+                    (identifier))
+                  (expression
+                    (number)))))
+            (expression
+              (identifier))))))))
+
+==================
+grouped refutable let bindings
+==================
+
+module app.GroupedLetElse.
+
+pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
+  let {
+      Ok(left) <- first;
+      Ok(right) <- second
+  } else {
+      Err(reason) -> Err(reason)
+  };
+  Ok(left + right).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))
+            (type_expression
+              (type_identifier)))))
+      (parameter
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))
+        (type_expression
+          (type_identifier))))
+    (expression
+      (let_expression
+        (refutable_let_expression
+          (refutable_let_binding
+            (pattern
+              (constructor_pattern
+                (type_identifier)
+                (pattern
+                  (identifier))))
+            (expression
+              (identifier)))
+          (refutable_let_binding
+            (pattern
+              (constructor_pattern
+                (type_identifier)
+                (pattern
+                  (identifier))))
+            (expression
+              (identifier)))
+          (case_arm
+            (pattern
+              (constructor_pattern
+                (type_identifier)
+                (pattern
+                  (identifier))))
+            (expression
+              (call_expression
+                (type_identifier)
+                (arguments
+                  (argument
+                    (expression
+                      (identifier)))))))
+          (expression
+            (call_expression
+              (type_identifier)
+              (arguments
+                (argument
+                  (expression
+                    (binary_expression
+                      (expression
+                        (identifier))
+                      (expression
+                        (identifier)))))))))))))

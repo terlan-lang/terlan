@@ -1,0 +1,74 @@
+/**
+ * Property-based Map collection invariants.
+ *
+ * `std.collections.MapPropertyTest` validates generated mutation sequences
+ * against the public Map API so collection behavior is covered by the shared
+ * property-testing machinery.
+ */
+module std.collections.MapPropertyTest.
+
+import std.collections.Map.
+import std.core.Option.{None, Some}.
+import std.test.Gen.{elements, for_all}.
+import std.test.Test.{assert_false}.
+
+/**
+ * Verifies generated keys can be inserted and observed.
+ *
+ * Input: generated string keys.
+ * Output: `true` when each key is present after insertion and the map has one
+ * visible entry.
+ * Transformation: checks the put/contains/size invariant over generated input.
+ */
+@test
+pub generated_key_put_updates_presence_and_size(): Bool ->
+    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1});
+    state.contains_key(key) and state.size() == 1).
+
+/**
+ * Verifies removing generated keys restores missing state.
+ *
+ * Input: generated string keys.
+ * Output: `true` when each key is absent and the map is empty after removal.
+ * Transformation: checks the put/remove/contains/size invariant over
+ * generated input.
+ */
+@test
+pub generated_key_remove_restores_missing_state(): Bool ->
+    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1});
+    state.remove(key);
+    assert_false(state.contains_key(key)) and state.size() == 0).
+
+/**
+ * Verifies taking generated keys preserves the source and removes only the
+ * returned map entry.
+ *
+ * Input: generated string keys.
+ * Output: `true` when take returns the stored value, leaves the source map
+ * unchanged, and produces an empty remainder.
+ * Transformation: checks persistent value-plus-remainder behavior over
+ * generated input.
+ */
+@test
+pub generated_key_take_is_persistent(): Bool ->
+    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1});
+    case Map.take(state, key) {
+        {Some(value), remaining} ->
+            value == 1 and state.contains_key(key) and remaining.contains_key(key) == false and remaining.size() == 0;
+        {None, _remaining} -> false
+    }).
+
+/**
+ * Verifies duplicate generated keys retain the latest value without growing
+ * the map.
+ *
+ * Input: generated string keys.
+ * Output: `true` when replacing one key keeps one entry and exposes the latest
+ * value.
+ * Transformation: checks bulk-construction duplicate replacement over
+ * generated input.
+ */
+@test
+pub generated_duplicate_key_keeps_latest_value(): Bool ->
+    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1}, {key, 2});
+    state.size() == 1 and state.get(key) == Some(2)).

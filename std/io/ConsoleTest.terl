@@ -1,6 +1,6 @@
 module std.io.ConsoleTest.
 
-import std.core.Unit.{Unit}.
+import std.core.Unit.
 
 @test
 pub println_returns_unit(): Bool ->

@@ -1,0 +1,110 @@
+//! Immutable VM-owned bitstring values.
+//!
+//! Bitstrings preserve an exact logical bit length and use network bit order
+//! inside each packed byte. They remain distinct from byte-aligned `Bytes`.
+
+module std.vm.BitString.
+
+/// Exact-length immutable bit storage owned by the Terlan VM.
+
+pub opaque type BitString.
+
+/// Returns the exact logical bit length.
+
+pub (bits: BitString) bit_length(): Int.
+
+/// Returns the packed storage length rounded up to complete bytes.
+
+pub (bits: BitString) byte_length(): Int.
+
+/// Concatenates exact logical bits without inserting byte padding.
+
+pub (bits: BitString) concat(suffix: BitString): BitString.
+
+/// Builds a bitstring from the leading `bit_length` bits of packed bytes.
+
+pub from_bytes(bytes: Bytes, bit_length: Int): BitString.
+
+/// Encodes one signed two's-complement integer in big-endian wire order.
+
+pub from_int_be(value: Int, bit_width: Int): BitString.
+
+/// Encodes one signed two's-complement integer in little-endian wire order.
+
+pub from_int_le(value: Int, bit_width: Int): BitString.
+
+/// Encodes one unsigned integer in big-endian wire order.
+
+pub from_uint_be(value: Int, bit_width: Int): BitString.
+
+/// Encodes one unsigned integer in little-endian wire order.
+
+pub from_uint_le(value: Int, bit_width: Int): BitString.
+
+/// Reports whether the logical value ends on a byte boundary.
+
+pub (bits: BitString) is_byte_aligned(): Bool.
+
+/// Copies a checked bit range into a new zero-based immutable value.
+
+pub (bits: BitString) slice(start: Int, bit_length: Int): BitString.
+
+/// Converts an aligned bitstring to Bytes and rejects partial final bytes.
+
+pub (bits: BitString) to_bytes(): Bytes.
+
+/// Decodes the exact bitstring as a signed big-endian integer.
+
+pub (bits: BitString) to_int_be(): Int.
+
+/// Decodes the exact bitstring as a signed little-endian integer.
+
+pub (bits: BitString) to_int_le(): Int.
+
+/// Decodes the exact bitstring as an unsigned big-endian integer.
+
+pub (bits: BitString) to_uint_be(): Int.
+
+/// Decodes the exact bitstring as an unsigned little-endian integer.
+
+pub (bits: BitString) to_uint_le(): Int.
+
+/// Decodes exactly one big-endian UTF-16 scalar.
+
+pub (bits: BitString) to_utf16_be_scalar(): Int.
+
+/// Decodes exactly one little-endian UTF-16 scalar.
+
+pub (bits: BitString) to_utf16_le_scalar(): Int.
+
+/// Decodes exactly one big-endian UTF-32 scalar.
+
+pub (bits: BitString) to_utf32_be_scalar(): Int.
+
+/// Decodes exactly one little-endian UTF-32 scalar.
+
+pub (bits: BitString) to_utf32_le_scalar(): Int.
+
+/// Decodes one exact byte-aligned UTF-8 scalar to its integer value.
+
+pub (bits: BitString) to_utf8_scalar(): Int.
+
+/// Encodes one Unicode scalar as big-endian UTF-16 code units.
+
+pub utf16_be_scalar(value: Int): BitString.
+
+/// Encodes one Unicode scalar as little-endian UTF-16 code units.
+
+pub utf16_le_scalar(value: Int): BitString.
+
+/// Encodes one Unicode scalar as one big-endian UTF-32 code unit.
+
+pub utf32_be_scalar(value: Int): BitString.
+
+/// Encodes one Unicode scalar as one little-endian UTF-32 code unit.
+
+pub utf32_le_scalar(value: Int): BitString.
+
+/// Encodes one Unicode scalar as a byte-aligned UTF-8 bitstring.
+
+pub utf8_scalar(value: Int): BitString.

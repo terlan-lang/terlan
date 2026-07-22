@@ -194,7 +194,7 @@ pub(crate) fn validate_repl_doc_examples(
 /// - `true` when the target label applies to the active profile.
 ///
 /// Transformation:
-/// - Treats `erlang` as the family label for all Erlang release profiles and
+/// - Treats `erlang` as the family label for all Vm release profiles and
 ///   otherwise requires an exact profile-name match.
 fn repl_doc_example_target_matches(
     target: &str,

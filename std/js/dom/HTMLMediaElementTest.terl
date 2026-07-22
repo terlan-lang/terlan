@@ -1,24 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLMediaElement
  */
 module std.js.Dom.HTMLMediaElementTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.HTMLMediaElement.{HTMLMediaElement}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.HTMLMediaElement.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub autoplay_typechecks(receiver: HTMLMediaElement): Bool ->
     receiver.autoplay().
@@ -107,7 +107,12 @@ pub text_tracks_typechecks(receiver: HTMLMediaElement): TextTrackList ->
 pub volume_typechecks(receiver: HTMLMediaElement): JsNumber ->
     receiver.volume().
 
-pub add_text_track_typechecks(receiver: HTMLMediaElement, kind: TextTrackKind, label: JsString, language: JsString): TextTrack ->
+pub add_text_track_typechecks(
+    receiver: HTMLMediaElement,
+    kind: TextTrackKind,
+    label: JsString,
+    language: JsString
+): TextTrack ->
     receiver.add_text_track(kind, label, language).
 
 pub can_play_type_typechecks(receiver: HTMLMediaElement, type_: JsString): CanPlayTypeResult ->
@@ -125,14 +130,27 @@ pub pause_typechecks(receiver: HTMLMediaElement): Unit ->
 pub play_typechecks(receiver: HTMLMediaElement): Promise[Unit] ->
     receiver.play().
 
-pub set_media_keys_typechecks(receiver: HTMLMediaElement, media_keys: Option[MediaKeys]): Promise[Unit] ->
+pub set_media_keys_typechecks(
+    receiver: HTMLMediaElement,
+    media_keys: Option[MediaKeys]
+): Promise[Unit] ->
     receiver.set_media_keys(media_keys).
 
 pub set_sink_id_typechecks(receiver: HTMLMediaElement, sink_id: JsString): Promise[Unit] ->
     receiver.set_sink_id(sink_id).
 
-pub add_event_listener_typechecks(receiver: HTMLMediaElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: HTMLMediaElement,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: HTMLMediaElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: HTMLMediaElement,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

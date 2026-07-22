@@ -1,24 +1,188 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Date
  */
 module std.js.DateTest.
 
-import type std.js.Date.{Date}.
-
+import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
+import type std.js.{Array, Date}.
 
-import type std.js.{Array}.
+pub generated_binding_surface_contract(): Bool -> true.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub to_string_typechecks(receiver: Date): JsString ->
+    receiver.to_string().
 
-pub to_locale_string_typechecks(receiver: Date, locales: Array[JsString] | JsString, options: Intl.DateTimeFormatOptions): JsString ->
+pub to_date_string_typechecks(receiver: Date): JsString ->
+    receiver.to_date_string().
+
+pub to_time_string_typechecks(receiver: Date): JsString ->
+    receiver.to_time_string().
+
+pub to_locale_string_typechecks(receiver: Date): JsString ->
+    receiver.to_locale_string().
+
+pub to_locale_date_string_typechecks(receiver: Date): JsString ->
+    receiver.to_locale_date_string().
+
+pub to_locale_time_string_typechecks(receiver: Date): JsString ->
+    receiver.to_locale_time_string().
+
+pub value_of_typechecks(receiver: Date): JsNumber ->
+    receiver.value_of().
+
+pub get_time_typechecks(receiver: Date): JsNumber ->
+    receiver.get_time().
+
+pub get_full_year_typechecks(receiver: Date): JsNumber ->
+    receiver.get_full_year().
+
+pub get_utc_full_year_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_full_year().
+
+pub get_month_typechecks(receiver: Date): JsNumber ->
+    receiver.get_month().
+
+pub get_utc_month_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_month().
+
+pub get_date_typechecks(receiver: Date): JsNumber ->
+    receiver.get_date().
+
+pub get_utc_date_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_date().
+
+pub get_day_typechecks(receiver: Date): JsNumber ->
+    receiver.get_day().
+
+pub get_utc_day_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_day().
+
+pub get_hours_typechecks(receiver: Date): JsNumber ->
+    receiver.get_hours().
+
+pub get_utc_hours_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_hours().
+
+pub get_minutes_typechecks(receiver: Date): JsNumber ->
+    receiver.get_minutes().
+
+pub get_utc_minutes_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_minutes().
+
+pub get_seconds_typechecks(receiver: Date): JsNumber ->
+    receiver.get_seconds().
+
+pub get_utc_seconds_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_seconds().
+
+pub get_milliseconds_typechecks(receiver: Date): JsNumber ->
+    receiver.get_milliseconds().
+
+pub get_utc_milliseconds_typechecks(receiver: Date): JsNumber ->
+    receiver.get_utc_milliseconds().
+
+pub get_timezone_offset_typechecks(receiver: Date): JsNumber ->
+    receiver.get_timezone_offset().
+
+pub set_time_typechecks(receiver: Date, time: JsNumber): JsNumber ->
+    receiver.set_time(time).
+
+pub set_milliseconds_typechecks(receiver: Date, ms: JsNumber): JsNumber ->
+    receiver.set_milliseconds(ms).
+
+pub set_utc_milliseconds_typechecks(receiver: Date, ms: JsNumber): JsNumber ->
+    receiver.set_utc_milliseconds(ms).
+
+pub set_seconds_typechecks(receiver: Date, sec: JsNumber, ms: JsNumber): JsNumber ->
+    receiver.set_seconds(sec, ms).
+
+pub set_utc_seconds_typechecks(receiver: Date, sec: JsNumber, ms: JsNumber): JsNumber ->
+    receiver.set_utc_seconds(sec, ms).
+
+pub set_minutes_typechecks(receiver: Date, min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+    receiver.set_minutes(min, sec, ms).
+
+pub set_utc_minutes_typechecks(receiver: Date, min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+    receiver.set_utc_minutes(min, sec, ms).
+
+pub set_hours_typechecks(
+    receiver: Date,
+    hours: JsNumber,
+    min: JsNumber,
+    sec: JsNumber,
+    ms: JsNumber
+): JsNumber ->
+    receiver.set_hours(hours, min, sec, ms).
+
+pub set_utc_hours_typechecks(
+    receiver: Date,
+    hours: JsNumber,
+    min: JsNumber,
+    sec: JsNumber,
+    ms: JsNumber
+): JsNumber ->
+    receiver.set_utc_hours(hours, min, sec, ms).
+
+pub set_date_typechecks(receiver: Date, date: JsNumber): JsNumber ->
+    receiver.set_date(date).
+
+pub set_utc_date_typechecks(receiver: Date, date: JsNumber): JsNumber ->
+    receiver.set_utc_date(date).
+
+pub set_month_typechecks(receiver: Date, month: JsNumber, date: JsNumber): JsNumber ->
+    receiver.set_month(month, date).
+
+pub set_utc_month_typechecks(receiver: Date, month: JsNumber, date: JsNumber): JsNumber ->
+    receiver.set_utc_month(month, date).
+
+pub set_full_year_typechecks(
+    receiver: Date,
+    year: JsNumber,
+    month: JsNumber,
+    date: JsNumber
+): JsNumber ->
+    receiver.set_full_year(year, month, date).
+
+pub set_utc_full_year_typechecks(
+    receiver: Date,
+    year: JsNumber,
+    month: JsNumber,
+    date: JsNumber
+): JsNumber ->
+    receiver.set_utc_full_year(year, month, date).
+
+pub to_utc_string_typechecks(receiver: Date): JsString ->
+    receiver.to_utc_string().
+
+pub to_iso_string_typechecks(receiver: Date): JsString ->
+    receiver.to_iso_string().
+
+pub to_locale_string_typechecks(
+    receiver: Date,
+    locales: Array[JsString] | JsString,
+    options: Intl.DateTimeFormatOptions
+): JsString ->
     receiver.to_locale_string(locales, options).
 
-pub to_locale_date_string_typechecks(receiver: Date, locales: Array[JsString] | JsString, options: Intl.DateTimeFormatOptions): JsString ->
+pub to_locale_date_string_typechecks(
+    receiver: Date,
+    locales: Array[JsString] | JsString,
+    options: Intl.DateTimeFormatOptions
+): JsString ->
     receiver.to_locale_date_string(locales, options).
 
-pub to_locale_time_string_typechecks(receiver: Date, locales: Array[JsString] | JsString, options: Intl.DateTimeFormatOptions): JsString ->
+pub to_locale_time_string_typechecks(
+    receiver: Date,
+    locales: Array[JsString] | JsString,
+    options: Intl.DateTimeFormatOptions
+): JsString ->
     receiver.to_locale_time_string(locales, options).

@@ -1,22 +1,44 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ANGLE_instanced_arrays
  */
 module std.js.Dom.ANGLE_instanced_arraysTest.
 
 import type std.core.{Unit}.
+import type std.js.Dom.ANGLE_instanced_arrays.
 
-import type std.js.Dom.ANGLE_instanced_arrays.{ANGLE_instanced_arrays}.
+pub generated_binding_surface_contract(): Bool -> true.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
-
-pub draw_arrays_instanced_angle_typechecks(receiver: ANGLE_instanced_arrays, mode: GLenum, first: GLint, count: GLsizei, primcount: GLsizei): Unit ->
+pub draw_arrays_instanced_angle_typechecks(
+    receiver: ANGLE_instanced_arrays,
+    mode: GLenum,
+    first: GLint,
+    count: GLsizei,
+    primcount: GLsizei
+): Unit ->
     receiver.draw_arrays_instanced_angle(mode, first, count, primcount).
 
-pub draw_elements_instanced_angle_typechecks(receiver: ANGLE_instanced_arrays, mode: GLenum, count: GLsizei, type_: GLenum, offset: GLintptr, primcount: GLsizei): Unit ->
+pub draw_elements_instanced_angle_typechecks(
+    receiver: ANGLE_instanced_arrays,
+    mode: GLenum,
+    count: GLsizei,
+    type_: GLenum,
+    offset: GLintptr,
+    primcount: GLsizei
+): Unit ->
     receiver.draw_elements_instanced_angle(mode, count, type_, offset, primcount).
 
-pub vertex_attrib_divisor_angle_typechecks(receiver: ANGLE_instanced_arrays, index: GLuint, divisor: GLuint): Unit ->
+pub vertex_attrib_divisor_angle_typechecks(
+    receiver: ANGLE_instanced_arrays,
+    index: GLuint,
+    divisor: GLuint
+): Unit ->
     receiver.vertex_attrib_divisor_angle(index, divisor).

@@ -4,12 +4,12 @@
  * `std.core.Int` provides named operations used by stdlib trait/conformance
  * implementations for primitive `Int`.
  */
-
 module std.core.Int.
 
 import std.core.Option.{None, Some}.
-import type std.core.Option.
 import std.core.Ordering.{Eq, Gt, Lt}.
+
+import type std.core.Option.
 
 /**
  * Returns whether two `Int` values are equal.
@@ -47,11 +47,8 @@ pub equal(left: Int, right: Int): Bool ->
  */
 pub min(left: Int, right: Int): Int ->
     case left <= right {
-        true ->
-            left;
-
-        false ->
-            right
+        true -> left;
+        false -> right
     }.
 
 /**
@@ -72,11 +69,8 @@ pub min(left: Int, right: Int): Int ->
  */
 pub max(left: Int, right: Int): Int ->
     case left >= right {
-        true ->
-            left;
-
-        false ->
-            right
+        true -> left;
+        false -> right
     }.
 
 /**
@@ -96,11 +90,8 @@ pub max(left: Int, right: Int): Int ->
  */
 pub abs(value: Int): Int ->
     case value < 0 {
-        true ->
-            0 - value;
-
-        false ->
-            value
+        true -> 0 - value;
+        false -> value
     }.
 
 /**
@@ -125,16 +116,11 @@ pub abs(value: Int): Int ->
  */
 pub compare(left: Int, right: Int): std.core.Ordering.Comparison ->
     case left == right {
-        true ->
-            Eq;
-
+        true -> Eq;
         false ->
             case left < right {
-                true ->
-                    Lt;
-
-                false ->
-                    Gt
+                true -> Lt;
+                false -> Gt
             }
     }.
 
@@ -155,8 +141,27 @@ pub compare(left: Int, right: Int): std.core.Ordering.Comparison ->
  * ```
  */
 @compiler.intrinsic
-pub to_string(value: Int): String ->
-    "".
+pub to_string(value: Int): String -> "".
+
+/**
+ * Renders an `Int` using an explicit base from 2 through 36.
+ *
+ * Input: an integer value and numeric base.
+ * Output: `Some(String)` with canonical uppercase digits, or `None` when the
+ * base is outside the supported range.
+ * Transformation: lowers through `core.int.to_string_base` without exposing
+ * backend conversion functions or exceptions.
+ *
+ * ```terlan
+ * module int_to_string_base_example.
+ *
+ * pub demo(): Option[String] ->
+ *     std.core.Int.to_string_base(255, 16).
+ * ```
+ */
+@compiler.intrinsic
+pub to_string_base(value: Int, base: Int): Option[String] ->
+    None.
 
 /**
  * Parses a canonical UTF-8 `String` into `Int`.
@@ -176,4 +181,24 @@ pub to_string(value: Int): String ->
  */
 @compiler.intrinsic
 pub from_string(value: String): Option[Int] ->
+    None.
+
+/**
+ * Parses a complete signed integer string using a base from 2 through 36.
+ *
+ * Input: canonical integer text and numeric base.
+ * Output: `Some(Int)` when the full string is valid and in range, or `None`
+ * for an invalid base, malformed text, or integer overflow.
+ * Transformation: lowers through `core.int.from_string_base` and accepts both
+ * uppercase and lowercase input digits.
+ *
+ * ```terlan
+ * module int_from_string_base_example.
+ *
+ * pub demo(): Option[Int] ->
+ *     std.core.Int.from_string_base("FF", 16).
+ * ```
+ */
+@compiler.intrinsic
+pub from_string_base(value: String, base: Int): Option[Int] ->
     None.

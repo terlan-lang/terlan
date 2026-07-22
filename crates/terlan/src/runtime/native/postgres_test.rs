@@ -1,4 +1,6 @@
-use super::*;
+use super::json as json_adapter;
+use super::postgres::test_support::disconnected_pool;
+use super::postgres::*;
 
 /// Builds a pool fixture without opening a database connection.
 ///
@@ -13,44 +15,7 @@ use super::*;
 ///   module so operation functions can be referenced before live connection
 ///   setup exists.
 fn pool_fixture() -> Pool {
-    Pool::disconnected("postgres://127.0.0.1:1/terlan")
-}
-
-/// Reads the optional live Postgres test URL.
-///
-/// Inputs:
-/// - `test_name`: name used in the skip diagnostic.
-///
-/// Output:
-/// - `Some(url)` when `TERLAN_TEST_POSTGRES_URL` is configured.
-/// - `None` when live database tests should be skipped.
-///
-/// Transformation:
-/// - Reads only the process environment and emits a human-readable skip line
-///   for ordinary non-Docker unit test runs.
-fn live_postgres_url(test_name: &str) -> Option<String> {
-    match std::env::var("TERLAN_TEST_POSTGRES_URL") {
-        Ok(url) => Some(url),
-        Err(_) => {
-            eprintln!("skipping {test_name}; TERLAN_TEST_POSTGRES_URL is not set");
-            None
-        }
-    }
-}
-
-/// Builds a unique table name for one live Postgres test.
-///
-/// Inputs:
-/// - `prefix`: descriptive table-name prefix.
-///
-/// Output:
-/// - Table name unique enough for concurrent test processes.
-///
-/// Transformation:
-/// - Combines the prefix with the current process id so Docker-backed tests can
-///   create regular tables without colliding with each other.
-fn live_table(prefix: &str) -> String {
-    format!("{prefix}_{}", std::process::id())
+    disconnected_pool("postgres://127.0.0.1:1/terlan")
 }
 
 /// Verifies config preserves URLs and uses stable connection diagnostics.
@@ -71,8 +36,8 @@ fn connect_validates_url_before_driver_connection_error() {
     assert_eq!(config.url(), "postgres://127.0.0.1:1/terlan");
 
     let error = connect(&config).expect_err("unreachable database should fail");
-    assert_eq!(error.code(), "postgres.connect");
-    assert!(error.message().contains("Postgres pool error"));
+    assert_eq!(error.code(), "postgres.vm_driver_unavailable");
+    assert!(error.message().contains("VM-owned Postgres I/O driver"));
 
     let invalid = Config::new("mysql://localhost/terlan");
     let error = connect(&invalid).expect_err("unsupported scheme should fail");
@@ -111,7 +76,7 @@ fn config_defaults_are_stable() {
 ///
 /// Transformation:
 /// - Exercises the Terlan-facing config surface before it is lowered into the
-///   maintained deadpool config.
+///   VM-owned pool config.
 #[test]
 fn config_builders_set_pool_limits_and_timeouts() {
     let config = Config::new("postgres://localhost/terlan")
@@ -123,25 +88,6 @@ fn config_builders_set_pool_limits_and_timeouts() {
     assert_eq!(config.max_connections(), 8);
     assert_eq!(config.wait_timeout_ms(), 250);
     assert_eq!(config.connect_timeout_ms(), 750);
-}
-
-/// Verifies Postgres adapter operations reuse one Tokio runtime.
-///
-/// Inputs:
-/// - Two runtime requests through the private adapter helper.
-///
-/// Output:
-/// - Test passes when both requests return the same runtime instance.
-///
-/// Transformation:
-/// - Locks the 0.0.7 baseline fix that prevents every synchronous Postgres
-///   operation from creating and dropping its own Tokio runtime.
-#[test]
-fn runtime_is_shared_across_postgres_adapter_calls() {
-    let first = runtime().expect("runtime should initialize");
-    let second = runtime().expect("runtime should be reused");
-
-    assert!(std::ptr::eq(first, second));
 }
 
 /// Verifies config validation is available without opening an adapter.
@@ -176,8 +122,8 @@ fn validate_config_checks_url_scheme_without_opening_sockets() {
 /// - Test passes when each incomplete URL returns the stable invalid-url code.
 ///
 /// Transformation:
-/// - Locks the minimum SafeNative connection identity contract before a live
-///   Rust/Tokio client gets a chance to interpret adapter-specific defaults.
+/// - Locks the minimum NativeBoundary connection identity contract before a live
+///   maintained client gets a chance to interpret adapter-specific defaults.
 #[test]
 fn validate_config_requires_host_and_database_name() {
     let missing_host =
@@ -241,20 +187,19 @@ fn validate_config_rejects_invalid_pool_settings() {
     }
 }
 
-/// Verifies query operations expose stable maintained-driver errors.
+/// Verifies compatibility operations require the VM-owned driver.
 ///
 /// Inputs:
 /// - Pool fixture, SQL text, and empty JSON parameter list.
 ///
 /// Output:
-/// - Test passes when `query`, `query_one`, and `execute` all return the same
-///   stable connection error before a live database is configured.
+/// - Test passes when query, query_one, and execute all return the stable
+///   VM-driver-unavailable code without acquiring sockets.
 ///
 /// Transformation:
-/// - Locks the operation surface through the maintained Rust/Tokio client path
-///   without requiring a live database for ordinary unit tests.
+/// - Locks the backend-neutral boundary while live VM I/O remains unfinished.
 #[test]
-fn query_operations_return_stable_driver_connection_error() {
+fn query_operations_return_stable_vm_driver_unavailable_error() {
     let pool = pool_fixture();
     let params = Vec::new();
 
@@ -262,19 +207,19 @@ fn query_operations_return_stable_driver_connection_error() {
         query(&pool, "SELECT 1", &params)
             .expect_err("query unavailable")
             .code(),
-        "postgres.connect"
+        "postgres.vm_driver_unavailable"
     );
     assert_eq!(
         query_one(&pool, "SELECT 1 LIMIT 1", &params)
             .expect_err("query_one unavailable")
             .code(),
-        "postgres.connect"
+        "postgres.vm_driver_unavailable"
     );
     assert_eq!(
         execute(&pool, "CREATE TABLE users(id BIGINT)", &params)
             .expect_err("execute unavailable")
             .code(),
-        "postgres.connect"
+        "postgres.vm_driver_unavailable"
     );
 }
 
@@ -289,7 +234,7 @@ fn query_operations_return_stable_driver_connection_error() {
 ///
 /// Transformation:
 /// - Locks a minimal transport-boundary guard without introducing SQL parsing
-///   or semantic validation into the SafeNative proof-track adapter.
+///   or semantic validation into the NativeBoundary proof-track adapter.
 #[test]
 fn query_operations_reject_empty_sql_before_adapter_dispatch() {
     let pool = pool_fixture();
@@ -333,269 +278,7 @@ fn transaction_returns_stable_driver_connection_error() {
 
     let error = transaction(&pool, |_connection| Ok(7)).expect_err("transaction unavailable");
 
-    assert_eq!(error.code(), "postgres.connect");
-}
-
-/// Verifies live Postgres query execution when a test database is configured.
-///
-/// Inputs:
-/// - `TERLAN_TEST_POSTGRES_URL`: optional Postgres URL supplied by Docker gate.
-///
-/// Output:
-/// - Test is skipped when no URL is configured.
-/// - Test passes when connect/query/query_one/execute/transaction all execute
-///   through the maintained Rust/Tokio Postgres client.
-///
-/// Transformation:
-/// - Converts the Docker-provided URL into a live SafeNative pool profile and
-///   verifies typed row decoding for string, integer, boolean, and JSON values.
-#[test]
-fn live_postgres_query_execute_and_transaction_roundtrip_when_configured() {
-    let Some(url) = live_postgres_url("live Postgres adapter roundtrip test") else {
-        return;
-    };
-    let pool = connect(
-        &Config::new(url)
-            .with_pool_limits(2, 4)
-            .with_timeouts(1_000, 1_000),
-    )
-    .expect("live Postgres connect should succeed");
-    let status = pool
-        .inner
-        .as_ref()
-        .map(deadpool_postgres::Pool::status)
-        .expect("live pool should expose status");
-    assert_eq!(status.max_size, 4);
-    assert!(status.size >= 2);
-    assert!(status.available >= 2);
-    let params = Vec::new();
-    let table = live_table("terlan_live_check");
-
-    execute(&pool, &format!("DROP TABLE IF EXISTS {table}"), &params)
-        .expect("test table cleanup should succeed");
-    execute(
-        &pool,
-        &format!("CREATE TABLE {table}(id BIGINT, name TEXT, active BOOL, meta JSONB)"),
-        &params,
-    )
-    .expect("temp table creation should succeed");
-    let affected = execute(
-        &pool,
-        &format!("INSERT INTO {table}(id, name, active, meta) VALUES (1, 'Ada', true, '{{\"ok\":true}}'::jsonb)"),
-        &params,
-    )
-    .expect("insert should succeed");
-    assert_eq!(affected, 1);
-
-    let rows = query(
-        &pool,
-        &format!("SELECT id, name, active, meta FROM {table} ORDER BY id"),
-        &params,
-    )
-    .expect("query should succeed");
-    assert_eq!(rows.len(), 1);
-    assert_eq!(int(&rows[0], "id"), Ok(1));
-    assert_eq!(string(&rows[0], "name"), Ok(String::from("Ada")));
-    assert_eq!(r#bool(&rows[0], "active"), Ok(true));
-    assert_eq!(
-        json(&rows[0], "meta"),
-        Ok(json_adapter::Json::from_serde(
-            serde_json::json!({"ok": true})
-        ))
-    );
-
-    let row = query_one(
-        &pool,
-        &format!("SELECT id, name, active, meta FROM {table} LIMIT 1"),
-        &params,
-    )
-    .expect("query_one should succeed")
-    .expect("query_one should return one row");
-    assert_eq!(string(&row, "name"), Ok(String::from("Ada")));
-
-    let value = transaction(&pool, |_connection| Ok(42)).expect("transaction should commit");
-    assert_eq!(value, 42);
-
-    execute(&pool, &format!("DROP TABLE IF EXISTS {table}"), &params)
-        .expect("test table cleanup should succeed");
-}
-
-/// Verifies live parameter binding and single-row absence handling.
-///
-/// Inputs:
-/// - `TERLAN_TEST_POSTGRES_URL`: optional Postgres URL supplied by Docker gate.
-///
-/// Output:
-/// - Test is skipped when no URL is configured.
-/// - Test passes when scalar and JSON parameters bind through
-///   `tokio-postgres`, and `query_one` returns `None` for empty result sets.
-///
-/// Transformation:
-/// - Inserts a row using positional parameters instead of interpolated SQL,
-///   then decodes the row through Terlan-facing accessors.
-#[test]
-fn live_postgres_binds_params_and_returns_none_for_missing_query_one() {
-    let Some(url) = live_postgres_url("live Postgres parameter binding test") else {
-        return;
-    };
-    let pool = connect(&Config::new(url)).expect("live Postgres connect should succeed");
-    let table = live_table("terlan_live_params");
-    let no_params = Vec::new();
-
-    execute(&pool, &format!("DROP TABLE IF EXISTS {table}"), &no_params)
-        .expect("test table cleanup should succeed");
-    execute(
-        &pool,
-        &format!("CREATE TABLE {table}(id BIGINT, name TEXT, active BOOL, meta JSONB)"),
-        &no_params,
-    )
-    .expect("test table creation should succeed");
-
-    let params = vec![
-        json_adapter::int(7),
-        json_adapter::string("Grace"),
-        json_adapter::r#bool(false),
-        json_adapter::Json::from_serde(serde_json::json!({"source": "param"})),
-    ];
-    let affected = execute(
-        &pool,
-        &format!("INSERT INTO {table}(id, name, active, meta) VALUES ($1, $2, $3, $4::jsonb)"),
-        &params,
-    )
-    .expect("parameterized insert should succeed");
-    assert_eq!(affected, 1);
-
-    let row = query_one(
-        &pool,
-        &format!("SELECT id, name, active, meta FROM {table} WHERE id = $1"),
-        &[json_adapter::int(7)],
-    )
-    .expect("parameterized query_one should succeed")
-    .expect("inserted row should be present");
-    assert_eq!(int(&row, "id"), Ok(7));
-    assert_eq!(string(&row, "name"), Ok(String::from("Grace")));
-    assert_eq!(r#bool(&row, "active"), Ok(false));
-    assert_eq!(
-        json(&row, "meta"),
-        Ok(json_adapter::Json::from_serde(
-            serde_json::json!({"source": "param"})
-        ))
-    );
-
-    let missing = query_one(
-        &pool,
-        &format!("SELECT id FROM {table} WHERE id = $1"),
-        &[json_adapter::int(999)],
-    )
-    .expect("missing query_one should succeed");
-    assert_eq!(missing, None);
-
-    execute(&pool, &format!("DROP TABLE IF EXISTS {table}"), &no_params)
-        .expect("test table cleanup should succeed");
-}
-
-/// Verifies transaction rollback errors do not poison the pool.
-///
-/// Inputs:
-/// - `TERLAN_TEST_POSTGRES_URL`: optional Postgres URL supplied by Docker gate.
-///
-/// Output:
-/// - Test is skipped when no URL is configured.
-/// - Test passes when a transaction callback error is returned unchanged and
-///   the pool can serve a later query.
-///
-/// Transformation:
-/// - Forces the callback error branch and then checks out the pool through a
-///   normal query to prove rollback cleanup returned the connection.
-#[test]
-fn live_postgres_transaction_callback_error_rolls_back_and_pool_remains_usable() {
-    let Some(url) = live_postgres_url("live Postgres transaction rollback test") else {
-        return;
-    };
-    let pool = connect(&Config::new(url)).expect("live Postgres connect should succeed");
-
-    let error = transaction::<i64>(&pool, |_connection| {
-        Err(PostgresError::new(
-            "postgres.test.rollback",
-            "forced rollback",
-        ))
-    })
-    .expect_err("forced transaction error should be returned");
-    assert_eq!(error.code(), "postgres.test.rollback");
-
-    let row = query_one(&pool, "SELECT 1::BIGINT AS value", &[])
-        .expect("pool should remain usable after rollback")
-        .expect("query should return one row");
-    assert_eq!(int(&row, "value"), Ok(1));
-}
-
-/// Verifies pool wait timeouts are surfaced with stable diagnostics.
-///
-/// Inputs:
-/// - `TERLAN_TEST_POSTGRES_URL`: optional Postgres URL supplied by Docker gate.
-///
-/// Output:
-/// - Test is skipped when no URL is configured.
-/// - Test passes when a max-size-one pool times out while its only client is
-///   held by another checkout.
-///
-/// Transformation:
-/// - Uses the maintained deadpool checkout path directly inside the adjacent
-///   test module to prove Terlan maps pool exhaustion to `postgres.connect`.
-#[test]
-fn live_postgres_pool_wait_timeout_is_stable_when_exhausted() {
-    let Some(url) = live_postgres_url("live Postgres pool timeout test") else {
-        return;
-    };
-    let pool = connect(
-        &Config::new(url)
-            .with_pool_limits(1, 1)
-            .with_timeouts(1, 1_000),
-    )
-    .expect("live Postgres connect should succeed");
-
-    let runtime = runtime().expect("test runtime should start");
-    runtime.block_on(async {
-        let inner = pool
-            .inner
-            .as_ref()
-            .expect("live pool should own native pool");
-        let held_client = inner.get().await.expect("first checkout should succeed");
-        let error = pool_client(&pool)
-            .await
-            .expect_err("second checkout should timeout");
-        assert_eq!(error.code(), "postgres.connect");
-        assert!(error
-            .message()
-            .contains("Timeout occurred while waiting for a slot"));
-        drop(held_client);
-    });
-}
-
-/// Verifies unsupported live row column types return stable row errors.
-///
-/// Inputs:
-/// - `TERLAN_TEST_POSTGRES_URL`: optional Postgres URL supplied by Docker gate.
-///
-/// Output:
-/// - Test is skipped when no URL is configured.
-/// - Test passes when a live query returning an unsupported float column uses
-///   the stable unsupported-type code.
-///
-/// Transformation:
-/// - Lets Postgres produce a real row type that the current Terlan row surface
-///   intentionally does not expose yet.
-#[test]
-fn live_postgres_unsupported_row_type_returns_stable_error() {
-    let Some(url) = live_postgres_url("live Postgres unsupported row type test") else {
-        return;
-    };
-    let pool = connect(&Config::new(url)).expect("live Postgres connect should succeed");
-
-    let error = query(&pool, "SELECT 1.5::DOUBLE PRECISION AS value", &[])
-        .expect_err("unsupported row type should fail");
-    assert_eq!(error.code(), "postgres.row.unsupported_type");
-    assert!(error.message().contains("value"));
+    assert_eq!(error.code(), "postgres.vm_driver_unavailable");
 }
 
 /// Verifies row typed accessors decode matching column values.
@@ -621,6 +304,69 @@ fn row_accessors_decode_matching_values() {
     assert_eq!(int(&row, "age"), Ok(42));
     assert_eq!(r#bool(&row, "active"), Ok(true));
     assert_eq!(json(&row, "meta"), Ok(json_adapter::string("ok")));
+}
+
+/// Verifies driver-owned dynamic decoding preserves concrete values and null.
+#[test]
+fn row_dynamic_decode_preserves_concrete_types_and_null() {
+    let mut row = Row::new();
+    row.put_string("name", "Ada");
+    row.put_int("age", 42);
+    row.put_bool("active", true);
+    row.put_json("meta", json_adapter::string("ok"));
+    row.put_libpq_text("nickname", 25, None)
+        .expect("store null libpq value");
+
+    assert_eq!(value(&row, "name"), Ok(DecodedValue::String("Ada".into())));
+    assert_eq!(value(&row, "age"), Ok(DecodedValue::Int(42)));
+    assert_eq!(value(&row, "active"), Ok(DecodedValue::Bool(true)));
+    assert_eq!(
+        value(&row, "meta"),
+        Ok(DecodedValue::Json(json_adapter::string("ok")))
+    );
+    assert_eq!(value(&row, "nickname"), Ok(DecodedValue::Null));
+    assert_eq!(
+        value(&row, "missing")
+            .expect_err("missing dynamic column")
+            .code(),
+        "postgres.row.missing_column"
+    );
+}
+
+/// Verifies row column names stay text even when they look like atom builders.
+///
+/// Inputs:
+/// - Row fixture with string, enum-like text, and JSON columns named after
+///   unsafe Vm atom-construction functions.
+///
+/// Output:
+/// - Test passes when every accessor uses the literal column name.
+///
+/// Transformation:
+/// - Locks the Postgres row boundary to string-keyed decoding so database text
+///   and enum labels cannot create runtime atoms.
+#[test]
+fn row_accessors_keep_dynamic_column_and_enum_text_as_strings() {
+    let mut row = Row::new();
+    row.put_string("binary_to_atom", "pending");
+    row.put_string("list_to_atom", "ready");
+    row.put_json(
+        "meta",
+        json_adapter::Json::from_serde(serde_json::json!({
+            "binary_to_atom": "json-key",
+            "status": "ok"
+        })),
+    );
+
+    assert_eq!(string(&row, "binary_to_atom"), Ok("pending".to_string()));
+    assert_eq!(string(&row, "list_to_atom"), Ok("ready".to_string()));
+    assert_eq!(
+        json(&row, "meta"),
+        Ok(json_adapter::Json::from_serde(serde_json::json!({
+            "binary_to_atom": "json-key",
+            "status": "ok"
+        })))
+    );
 }
 
 /// Verifies row typed accessors reject missing and mismatched columns.

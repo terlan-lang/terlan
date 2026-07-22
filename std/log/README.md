@@ -1,6 +1,6 @@
 # Std Log Internals
 
-This directory owns portable source-level logging helpers. `std.log` is the
+This directory owns portable source-level logging helpers. `std.log.Log` is the
 handler-facing logging surface used by application code instead of depending on
 console output, BEAM logger calls, Rust tracing APIs, or JavaScript logging
 objects directly.
@@ -14,10 +14,10 @@ objects directly.
 
 ## Public Surface
 
-- `std.log.debug`: debug-level application message.
-- `std.log.info`: info-level application message.
-- `std.log.warn`: warning-level application message.
-- `std.log.error`: error-level application message.
+- `std.log.Log.debug`: debug-level application message.
+- `std.log.Log.info`: info-level application message.
+- `std.log.Log.warn`: warning-level application message.
+- `std.log.Log.error`: error-level application message.
 
 ## Core Model
 
@@ -28,7 +28,7 @@ around the same source-level calls without changing user code.
 
 Important invariants:
 
-- Source code imports `std.log`, not a backend logging module.
+- Source code imports `std.log.Log`, not a backend logging module.
 - Logging helpers return `Unit`.
 - Log message formatting remains ordinary Terlan source behavior.
 - Backend-specific structured metadata is runtime context, not part of the
@@ -51,7 +51,7 @@ Important invariants:
 
 ## Types And Interfaces
 
-`std.log`
+`std.log.Log`
 : Portable application logging module.
 
 ## Testing Notes

@@ -1,0 +1,44 @@
+/**
+ * Property-based String invariants.
+ *
+ * `std.core.StringPropertyTest` validates generated text values against the
+ * public String API so core text behavior is covered by the shared
+ * property-testing machinery.
+ */
+module std.core.StringPropertyTest.
+
+import std.test.Gen.{for_all, strings}.
+import std.test.Test.{each}.
+
+/**
+ * Verifies generated strings have at least as many UTF-8 bytes as text units.
+ *
+ * Input: generated strings.
+ * Output: `true` when byte size is greater than or equal to character length.
+ * Transformation: checks UTF-8 byte-size and text-unit length consistency.
+ */
+@test
+pub generated_strings_have_byte_size_at_least_length(): Bool ->
+    for_all(strings(), (text) -> text.byte_size() >= text.length()).
+
+/**
+ * Verifies empty append preserves generated string values.
+ *
+ * Input: generated strings.
+ * Output: `true` when appending empty text leaves each value unchanged.
+ * Transformation: checks the right identity law for `String.append`.
+ */
+@test
+pub generated_strings_append_empty_preserves_value(): Bool ->
+    for_all(strings(), (text) -> text.append("") == text).
+
+/**
+ * Verifies reversing generated strings twice restores the original value.
+ *
+ * Input: generated strings.
+ * Output: `true` when two reverse operations produce the original text.
+ * Transformation: checks the involution law for `String.reverse`.
+ */
+@test
+pub generated_strings_reverse_twice_restores_value(): Bool ->
+    for_all(strings(), (text) -> text.reverse().reverse() == text).

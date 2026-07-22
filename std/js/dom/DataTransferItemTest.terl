@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DataTransferItem
  */
 module std.js.Dom.DataTransferItemTest.
 
-import type std.js.Dom.DataTransferItem.{DataTransferItem}.
-
+import type std.js.Dom.DataTransferItem.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub kind_typechecks(receiver: DataTransferItem): JsString ->
     receiver.kind().
@@ -21,7 +26,10 @@ pub type__typechecks(receiver: DataTransferItem): JsString ->
 pub get_as_file_typechecks(receiver: DataTransferItem): Option[File] ->
     receiver.get_as_file().
 
-pub get_as_string_typechecks(receiver: DataTransferItem, callback: Option[FunctionStringCallback]): std.core.Unit ->
+pub get_as_string_typechecks(
+    receiver: DataTransferItem,
+    callback: Option[FunctionStringCallback]
+): std.core.Unit ->
     receiver.get_as_string(callback).
 
 pub webkit_get_as_entry_typechecks(receiver: DataTransferItem): Option[FileSystemEntry] ->

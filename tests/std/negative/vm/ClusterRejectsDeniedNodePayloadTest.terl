@@ -1,0 +1,18 @@
+module std.vm.Cluster.ClusterRejectsDeniedNodePayloadTest.
+
+import std.vm.Cluster.
+import std.vm.Cluster.{SendAcrossNode}.
+
+import type std.vm.Cluster.{Frame, Session}.
+
+pub struct LocalOnlyPayload {
+    value: Int
+}.
+
+pub impl not SendAcrossNode[LocalOnlyPayload].
+
+deliver(session: Session, payload: LocalOnlyPayload): Frame ->
+    session.send("message", payload).
+
+@test
+pub node_payload_denial_is_checked_before_execution(): Bool -> true.

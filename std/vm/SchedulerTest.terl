@@ -1,0 +1,105 @@
+module std.vm.SchedulerTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.Scheduler.
+
+import type std.collections.List.
+import type std.vm.Scheduler.{Node}.
+
+pub active_nodes(): List[Node] ->
+    [Scheduler.node("node-a", "active"), Scheduler.node("node-b", "active")].
+
+@test
+pub pinned_workload_placement_executes(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let policy = Scheduler.pinned("node-a");
+    let result = scheduler.place("actor-a", policy);
+    let placement = Scheduler.placement(result);
+    assert_equal("actor-a", Scheduler.placement_actor_id(placement)) and assert_equal("node-a", Scheduler.placement_node_id(placement)) and assert_equal("pinned", Scheduler.placement_policy(placement)) and assert_equal(false, Scheduler.placement_fallback_used(placement)).
+
+@test
+pub least_connections_uses_load_and_stable_tie_breaks(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let policy = Scheduler.least_connections();
+    let tie_result = scheduler.place("actor-tie", policy);
+    let tie = Scheduler.placement(tie_result);
+    let placed = Scheduler.placement_scheduler(tie_result);
+    let node_a_loaded = placed.update_load("node-a", 4);
+    let node_b_loaded = node_a_loaded.update_load("node-b", 1);
+    let loaded_result = node_b_loaded.place("actor-loaded", policy);
+    let loaded = Scheduler.placement(loaded_result);
+    assert_equal("node-a", Scheduler.placement_node_id(tie)) and assert_equal("node-b", Scheduler.placement_node_id(loaded)) and assert_equal("least_connections", Scheduler.placement_policy(loaded)) and assert_equal(false, Scheduler.placement_fallback_used(loaded)).
+
+@test
+pub sharded_workload_reacts_to_membership_refresh(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let policy = Scheduler.shard_affinity("tenant-a", "round_robin");
+    let first_result = scheduler.place("actor-a", policy);
+    let first = Scheduler.placement(first_result);
+    let placed = Scheduler.placement_scheduler(first_result);
+    let refreshed = placed.refresh([Scheduler.node("node-a", "unreachable"), Scheduler.node("node-b", "active")]);
+    let second_result = refreshed.place("actor-b", policy);
+    let second = Scheduler.placement(second_result);
+    assert_equal("node-a", Scheduler.placement_node_id(first)) and assert_equal("node-b", Scheduler.placement_node_id(second)) and assert_equal(true, Scheduler.placement_fallback_used(second)).
+
+@test
+pub scoped_policy_precedence_executes(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let route_scoped = scheduler.declare_route_policy("/rooms", Scheduler.pinned("node-b"));
+    let group_scoped = route_scoped.declare_actor_group_policy("/rooms", "moderators", Scheduler.pinned("node-a"));
+    let route_result = group_scoped.place_for_route("actor-route", "/rooms", Scheduler.round_robin());
+    let route_placement = Scheduler.placement(route_result);
+    let placed = Scheduler.placement_scheduler(route_result);
+    let group_result = placed.place_for_actor_group("actor-group", "/rooms", "moderators", Scheduler.round_robin());
+    let group_placement = Scheduler.placement(group_result);
+    assert_equal("node-b", Scheduler.placement_node_id(route_placement)) and assert_equal("node-a", Scheduler.placement_node_id(group_placement)).
+
+@test
+pub undeclared_scope_uses_call_site_default(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let result = scheduler.place_for_route("actor-default", "/health", Scheduler.round_robin());
+    let placement = Scheduler.placement(result);
+    assert_equal("node-a", Scheduler.placement_node_id(placement)) and assert_equal("round_robin", Scheduler.placement_policy(placement)).
+
+@test
+pub controlled_migration_executes_in_order(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let requested_result = scheduler.request_migration("actor-a", "node-a", "node-b", true);
+    let requested = Scheduler.migration(requested_result);
+    let requested_scheduler = Scheduler.migration_scheduler(requested_result);
+    let snapshot_result = requested_scheduler.advance_migration(requested, "snapshotting");
+    let snapshot = Scheduler.migration(snapshot_result);
+    let snapshot_scheduler = Scheduler.migration_scheduler(snapshot_result);
+    let transfer_result = snapshot_scheduler.advance_migration(snapshot, "transferring");
+    let transferring = Scheduler.migration(transfer_result);
+    let transfer_scheduler = Scheduler.migration_scheduler(transfer_result);
+    let resume_result = transfer_scheduler.advance_migration(transferring, "resuming");
+    let resuming = Scheduler.migration(resume_result);
+    let resumable_scheduler = Scheduler.migration_scheduler(resume_result);
+    let commit_result = resumable_scheduler.commit_migration(resuming);
+    let outcome = Scheduler.outcome(commit_result);
+    let completed_scheduler = Scheduler.outcome_scheduler(commit_result);
+    let events = completed_scheduler.events_after(0);
+    assert_equal("actor-a", Scheduler.migration_actor_id(resuming)) and assert_equal("node-a", Scheduler.migration_from_node_id(resuming)) and assert_equal("node-b", Scheduler.migration_to_node_id(resuming)) and assert_equal(1, Scheduler.migration_sequence(resuming)) and assert_equal(true, Scheduler.migration_stateful(resuming)) and assert_equal("resuming", Scheduler.migration_phase(resuming)) and assert_equal("committed", Scheduler.outcome_kind(outcome)) and assert_equal(1, Scheduler.outcome_sequence(outcome)) and assert_equal("", Scheduler.outcome_reason(outcome)) and assert_equal(5, events.length()).
+
+@test
+pub controlled_migration_rolls_back_with_reason(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let requested_result = scheduler.request_migration("actor-a", "node-a", "node-b", true);
+    let migration = Scheduler.migration(requested_result);
+    let requested_scheduler = Scheduler.migration_scheduler(requested_result);
+    let rollback_result = requested_scheduler.rollback_migration(migration, "snapshot failed");
+    let outcome = Scheduler.outcome(rollback_result);
+    let rolled_back_scheduler = Scheduler.outcome_scheduler(rollback_result);
+    let events = rolled_back_scheduler.events_after(0);
+    assert_equal("rolled_back", Scheduler.outcome_kind(outcome)) and assert_equal(1, Scheduler.outcome_sequence(outcome)) and assert_equal("snapshot failed", Scheduler.outcome_reason(outcome)) and assert_equal(2, events.length()).
+
+@test
+pub controlled_migration_aborts_with_reason(): Bool ->
+    let scheduler = Scheduler.new(active_nodes());
+    let requested_result = scheduler.request_migration("actor-a", "node-a", "node-b", false);
+    let migration = Scheduler.migration(requested_result);
+    let requested_scheduler = Scheduler.migration_scheduler(requested_result);
+    let abort_result = requested_scheduler.abort_migration(migration, "node evicted");
+    let outcome = Scheduler.outcome(abort_result);
+    assert_equal("aborted", Scheduler.outcome_kind(outcome)) and assert_equal(1, Scheduler.outcome_sequence(outcome)) and assert_equal("node evicted", Scheduler.outcome_reason(outcome)).

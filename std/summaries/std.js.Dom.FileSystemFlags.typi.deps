@@ -1,8 +1,8 @@
 module=std.js.Dom.FileSystemFlags
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5760332353324609457
-interface_hash=4473329003367531230
-interface_doc_hash=4473329003367531230
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=17495590062935241564
+interface_hash=2931083958313484192
+interface_doc_hash=2931083958313484192
 deps=0

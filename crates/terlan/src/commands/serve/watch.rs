@@ -1,10 +1,9 @@
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 use std::time::Duration;
 
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use tokio::sync::mpsc;
-use tokio::time;
 
 /// Shared reload subscriber registry.
 ///
@@ -17,7 +16,7 @@ use tokio::time;
 /// Transformation:
 /// - Gives the watcher backend a narrow broadcast target so future
 ///   filesystem watch integration independent from HTTP routing.
-pub(super) type ReloadHub = Arc<Mutex<Vec<mpsc::UnboundedSender<u64>>>>;
+pub(super) type ReloadHub = Arc<Mutex<Vec<mpsc::Sender<u64>>>>;
 
 /// Reload watch backend selected for `terlc serve`.
 ///
@@ -96,7 +95,7 @@ impl ReloadWatchBackend {
 /// - `reload_hub`: shared reload subscriber registry.
 ///
 /// Output:
-/// - Detached Tokio task handle.
+/// - Detached thread handle.
 ///
 /// Transformation:
 /// - Isolates maintained filesystem watcher setup behind one function so the
@@ -105,15 +104,13 @@ pub(super) fn spawn_reload_watcher(
     web_root: PathBuf,
     poll_ms: u64,
     reload_hub: ReloadHub,
-) -> tokio::task::JoinHandle<()> {
+) -> thread::JoinHandle<()> {
     let backend = ReloadWatchBackend::selected();
     let _policy = backend.policy();
     match backend {
-        ReloadWatchBackend::Notify => tokio::spawn(watch_web_package_for_reload(
-            web_root,
-            Duration::from_millis(poll_ms),
-            reload_hub,
-        )),
+        ReloadWatchBackend::Notify => thread::spawn(move || {
+            watch_web_package_for_reload(web_root, Duration::from_millis(poll_ms), reload_hub)
+        }),
     }
 }
 
@@ -131,12 +128,12 @@ pub(super) fn spawn_reload_watcher(
 /// - Uses the maintained `notify` watcher recursively over the generated web
 ///   package, coalesces event bursts, and emits monotonically increasing reload
 ///   versions to connected SSE clients.
-async fn watch_web_package_for_reload(
+fn watch_web_package_for_reload(
     web_root: PathBuf,
     debounce_interval: Duration,
     reload_hub: ReloadHub,
 ) {
-    let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+    let (event_tx, event_rx) = mpsc::channel();
     let mut watcher = match RecommendedWatcher::new(
         move |result: notify::Result<Event>| match result {
             Ok(event) if should_reload_for_event(&event) => {
@@ -164,8 +161,8 @@ async fn watch_web_package_for_reload(
     let mut version = 0_u64;
     let debounce_interval = debounce_interval.max(Duration::from_millis(1));
 
-    while event_rx.recv().await.is_some() {
-        time::sleep(debounce_interval).await;
+    while event_rx.recv().is_ok() {
+        thread::sleep(debounce_interval);
         while event_rx.try_recv().is_ok() {}
         version = version.saturating_add(1);
         broadcast_reload(&reload_hub, version);

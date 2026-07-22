@@ -1,0 +1,20 @@
+/**
+ * Legacy MD5 integrity compatibility.
+ *
+ * `std.encoding.Md5` delegates to RustCrypto through NativeBoundary. MD5 is not
+ * secure and must not be used for passwords, signatures, authentication, or
+ * any other security decision.
+ */
+module std.encoding.Md5.
+
+/**
+ * Returns the lowercase MD5 digest of UTF-8 text.
+ *
+ * Input: one UTF-8 `String`.
+ * Output: a 32-character lowercase hexadecimal digest.
+ * Transformation: hashes the exact UTF-8 bytes through the maintained
+ * RustCrypto implementation.
+ */
+@compiler.native {std.encoding.md5.digest}
+pub digest(text: String): String ->
+    native.

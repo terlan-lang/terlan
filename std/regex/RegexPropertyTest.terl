@@ -1,0 +1,28 @@
+/**
+ * Property coverage for portable regex helpers.
+ *
+ * `std.regex.RegexPropertyTest` validates generated literal strings through
+ * the public regex escape and match APIs on the VM default path.
+ */
+module std.regex.RegexPropertyTest.
+
+import std.core.Result.{Ok}.
+import std.regex.Regex.
+import std.test.Gen.{for_all, strings}.
+import std.test.Test.{assert}.
+
+/**
+ * Verifies escaped generated text matches as a literal pattern.
+ *
+ * Input: generated deterministic string samples.
+ * Output: `true` when every escaped sample compiles and matches the original
+ * text.
+ * Transformation: applies property generation to regex escaping so
+ * metacharacter handling stays delegated to the maintained Rust regex engine.
+ */
+@test
+pub generated_escaped_text_matches_literal_text(): Bool ->
+    for_all(strings(), (text) -> case Regex.compile(Regex.escape(text)) {
+        Ok(regex) -> assert(Regex.is_match(regex, text));
+        _ -> false
+    }).

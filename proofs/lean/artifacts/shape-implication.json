@@ -1,0 +1,50 @@
+{
+  "schema": "terlan.lean-proof-replay.v1",
+  "family": "shape-implication",
+  "theorem_names": [
+    "Terlan.Type.ShapeImplication.acceptedEvidenceIsWellFormed",
+    "Terlan.Type.ShapeImplication.requiredFieldProjectionIsSound",
+    "Terlan.Type.ShapeImplication.provenImplicationIsAccepted",
+    "Terlan.Type.ShapeImplication.unprovenImplicationIsRejected",
+    "Terlan.Type.ShapeImplication.privateFieldCannotProvePublic",
+    "Terlan.Type.ShapeImplication.evidenceProvenanceIsPreserved",
+    "Terlan.Type.ShapeImplication.scopedEvidenceCannotEscape",
+    "Terlan.Type.ShapeImplication.scopedRequiredFieldProjectionIsSound",
+    "Terlan.Type.ShapeImplication.implicationEvidenceDoesNotConvert",
+    "Terlan.Type.ShapeImplication.scopedEvidenceDoesNotConvert",
+    "Terlan.Type.ShapeImplication.implicationPreservesFunctionResult",
+    "Terlan.Type.ShapeImplication.implicationPreservesBranchResult"
+  ],
+  "manifest_fingerprints": {
+    "docs/compiler/TERLAN_CORE_TYPING_SPEC.md": "sha256:c2bb1bbd928950c419130bf236a3edbfe7f9ce65f2f3b79973ea40ea832a90cb",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:d0b585a7b8ec8d164e578c917988c413726f4b6849b1cae3a0063a844ab520fd"
+  },
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "source_digest": "sha256:2480453ade68213c794440f302323797f850b8c92d76e3886ffe66446355a36b",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "Terlan/Type/ShapeImplication.lean"
+  ],
+  "working_directory": "proofs/lean",
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "output_signature": {
+    "stdout_class": "empty",
+    "stderr_class": "empty",
+    "exit_class": "success"
+  },
+  "toolchain": {
+    "lean_version": "4.31.0",
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ]
+  }
+}

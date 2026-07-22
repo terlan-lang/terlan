@@ -504,7 +504,7 @@ pub(crate) fn parse_terlan_expr(raw: &str) -> ParseResult<Expr> {
 
     ensure_token_nesting_within_limit(&tokens)?;
 
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, LetBindingMode::Canonical);
     let expr = parser.parse_expr()?;
     if !parser.check(TokenKind::EOF) {
         return Err(ParseError {

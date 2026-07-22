@@ -1,8 +1,8 @@
 module=std.js.Dom.WebTransportError
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=7412830208961839276
-interface_hash=639013171592226822
-interface_doc_hash=639013171592226822
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10979357668923615738
+interface_hash=10414017834842700504
+interface_doc_hash=10414017834842700504
 deps=0

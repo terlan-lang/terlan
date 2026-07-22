@@ -1,21 +1,36 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DOMImplementation
  */
 module std.js.Dom.DOMImplementationTest.
 
-import type std.js.Dom.DOMImplementation.{DOMImplementation}.
-
+import type std.js.Dom.DOMImplementation.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub create_document_typechecks(receiver: DOMImplementation, namespace: Option[JsString], qualified_name: Option[JsString], doctype: Option[DocumentType]): XMLDocument ->
+pub create_document_typechecks(
+    receiver: DOMImplementation,
+    namespace: Option[JsString],
+    qualified_name: Option[JsString],
+    doctype: Option[DocumentType]
+): XMLDocument ->
     receiver.create_document(namespace, qualified_name, doctype).
 
-pub create_document_type_typechecks(receiver: DOMImplementation, name: JsString, public_id: JsString, system_id: JsString): DocumentType ->
+pub create_document_type_typechecks(
+    receiver: DOMImplementation,
+    name: JsString,
+    public_id: JsString,
+    system_id: JsString
+): DocumentType ->
     receiver.create_document_type(name, public_id, system_id).
 
 pub create_html_document_typechecks(receiver: DOMImplementation, title: JsString): Document ->

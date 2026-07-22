@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 
 use crate::terlan_quality::{render_failure, QualityResult};
 
-const FORBIDDEN_GENERATED_METADATA: &[&str] = &[
+const REQUIRED_GENERATED_METADATA: &[&str] = &[
+    "@generated true",
+    "@do-not-edit true",
     "@generator ",
     "@generator-version",
     "@generator-profile",
@@ -13,6 +15,7 @@ const FORBIDDEN_GENERATED_METADATA: &[&str] = &[
     "@source-input",
     "@source-interface",
 ];
+const MAX_RENDERED_DIAGNOSTICS: usize = 50;
 
 /// Summary produced by the generated std metadata check.
 ///
@@ -36,16 +39,13 @@ pub struct StdGeneratedMetadataSummary {
 /// - `root`: repository root containing `std/js` and `std/summaries`.
 ///
 /// Output:
-/// - Success when generated std JS sources and summaries only carry the
-///   ownership markers supported by the generator, and no generated JS
-///   `.terli` mirrors are committed.
-/// - Stable diagnostics listing redundant metadata tags found in committed
-///   generated artifacts.
+/// - Success when generated std JS sources, interfaces, tests, and summaries
+///   carry complete provenance with the correct artifact kind.
+/// - Stable diagnostics listing missing, duplicate, or mismatched metadata.
 ///
 /// Transformation:
-/// - Scans generated `.terl`, `.terli`, and `std.js*.typi` files and rejects
-///   redundant generated interface mirrors plus per-file provenance fields that
-///   already live in manifests.
+/// - Scans generated `.terl`, `.terli`, and `std.js*.typi` files and validates
+///   the generator-owned provenance contract used by drift and review gates.
 pub fn run_std_generated_metadata(root: &Path) -> QualityResult<StdGeneratedMetadataSummary> {
     let files = collect_generated_std_files(root)?;
     let mut diagnostics = Vec::new();
@@ -55,6 +55,11 @@ pub fn run_std_generated_metadata(root: &Path) -> QualityResult<StdGeneratedMeta
     }
 
     if !diagnostics.is_empty() {
+        let omitted = diagnostics.len().saturating_sub(MAX_RENDERED_DIAGNOSTICS);
+        diagnostics.truncate(MAX_RENDERED_DIAGNOSTICS);
+        if omitted > 0 {
+            diagnostics.push(format!("... {omitted} additional diagnostics omitted"));
+        }
         return Err(render_failure("std-generated-metadata", &diagnostics));
     }
 
@@ -129,28 +134,47 @@ fn check_generated_metadata(root: &Path, file: &Path) -> QualityResult<Vec<Strin
     let relative = file.strip_prefix(root).unwrap_or(file);
     let mut diagnostics = Vec::new();
 
-    if file
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| extension == "terli")
-    {
-        diagnostics.push(format!(
-            "{}: generated JS `.terli` mirror is redundant; use the generated `.typi` summary",
-            relative.display()
-        ));
-    }
-
-    for forbidden in FORBIDDEN_GENERATED_METADATA {
-        if content.contains(forbidden) {
+    for required in REQUIRED_GENERATED_METADATA {
+        let count = content.matches(required).count();
+        if count == 0 {
             diagnostics.push(format!(
-                "{}: redundant generated metadata `{}` is not allowed",
+                "{}: required generated metadata `{}` is missing",
                 relative.display(),
-                forbidden.trim()
+                required.trim()
+            ));
+        } else if count > 1 {
+            diagnostics.push(format!(
+                "{}: generated metadata `{}` appears {count} times",
+                relative.display(),
+                required.trim()
             ));
         }
     }
 
+    let expected_kind = expected_artifact_kind(file);
+    if !content.contains(&format!("@artifact-kind {expected_kind}")) {
+        diagnostics.push(format!(
+            "{}: generated artifact kind must be `{expected_kind}`",
+            relative.display()
+        ));
+    }
+
     Ok(diagnostics)
+}
+
+fn expected_artifact_kind(file: &Path) -> &'static str {
+    match file.extension().and_then(|extension| extension.to_str()) {
+        Some("terli") => "interface",
+        Some("typi") => "summary",
+        _ if file
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .is_some_and(|stem| stem.ends_with("Test")) =>
+        {
+            "test"
+        }
+        _ => "source",
+    }
 }
 
 #[cfg(test)]

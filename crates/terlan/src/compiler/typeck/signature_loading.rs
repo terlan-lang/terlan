@@ -1,5 +1,8 @@
 use super::*;
 
+mod struct_schemes;
+pub(super) use struct_schemes::{collect_imported_struct_schemes, collect_syntax_struct_schemes};
+
 /// Collects callable signatures declared by syntax output.
 ///
 /// Inputs:
@@ -142,7 +145,13 @@ pub(super) fn function_decl_to_scheme(
     );
     let ret = qualify_type_names(&ret, imported_type_names);
 
-    let bounds = parse_generic_bounds(generic_bounds, &vars, alias_names)
+    let mut parsed_bounds = parse_generic_bounds(generic_bounds, &vars, alias_names);
+    parsed_bounds.extend(parse_structural_implication_bounds(
+        generic_params,
+        &vars,
+        alias_names,
+    ));
+    let bounds = parsed_bounds
         .into_iter()
         .map(|bound| FunctionBound {
             trait_name: bound.trait_name,
@@ -168,6 +177,35 @@ pub(super) fn function_decl_to_scheme(
         generic_params: generic_params.to_vec(),
         bounds,
     }
+}
+
+/// Parses structural implications carried by generic parameter declarations.
+///
+/// Structural evidence uses the ordinary function-bound pipeline internally,
+/// but its reserved bound name cannot collide with a source trait. The first
+/// argument is the constrained type variable and the second is its required
+/// closed field shape.
+pub(super) fn parse_structural_implication_bounds(
+    generic_params: &[String],
+    vars: &HashMap<String, TypeVarId>,
+    alias_names: &HashSet<String>,
+) -> Vec<FunctionBound> {
+    generic_params
+        .iter()
+        .filter_map(|param| {
+            let (subject, target) = param.split_once("=>")?;
+            let subject = normalize_type_param_name(subject);
+            let subject = Type::Var(*vars.get(&subject)?);
+            let mut shape_vars = vars.clone();
+            let mut next_var = shape_vars.values().copied().max().map_or(0, |id| id + 1);
+            let shape =
+                parse_type_expr(target.trim(), alias_names, &mut shape_vars, &mut next_var)?;
+            matches!(shape, Type::Map(_)).then_some(FunctionBound {
+                trait_name: STRUCTURAL_IMPLICATION_BOUND.to_string(),
+                trait_args: vec![subject, shape],
+            })
+        })
+        .collect()
 }
 
 /// Parses source generic constraints into function bounds.

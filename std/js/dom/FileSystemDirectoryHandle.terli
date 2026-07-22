@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileSystemDirectoryHandle
+ */
+module std.js.Dom.FileSystemDirectoryHandle.
+
+import type std.js.String.{JsString}.
+import type std.js.{Promise}.
+
+/**
+ * The **`FileSystemDirectoryHandle`** interface of the File System API provides a handle to a file system directory.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle)
+ */
+pub opaque type FileSystemDirectoryHandle.
+
+/**
+ * The **`getDirectoryHandle()`** method of the within the directory handle on which the method is called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/getDirectoryHandle)
+ */
+pub (value: FileSystemDirectoryHandle) get_directory_handle(
+    name: JsString,
+    options: FileSystemGetDirectoryOptions
+): Promise[FileSystemDirectoryHandle].
+
+/**
+ * The **`getFileHandle()`** method of the directory the method is called.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/getFileHandle)
+ */
+pub (value: FileSystemDirectoryHandle) get_file_handle(
+    name: JsString,
+    options: FileSystemGetFileOptions
+): Promise[FileSystemFileHandle].
+
+/**
+ * The **`removeEntry()`** method of the directory handle contains a file or directory called the name specified.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/removeEntry)
+ */
+pub (value: FileSystemDirectoryHandle) remove_entry(name: JsString, options: FileSystemRemoveOptions): Promise[std.core.Unit].
+
+/**
+ * The **`resolve()`** method of the directory names from the parent handle to the specified child entry, with the name of the child entry as the last array item.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/resolve)
+ */
+pub (value: FileSystemDirectoryHandle) resolve(possible_descendant: FileSystemHandle): Promise[Option[std.js.Array[JsString]]].

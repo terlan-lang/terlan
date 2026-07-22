@@ -1,10 +1,10 @@
 use wasm_encoder::{
-    CodeSection, ExportKind, ExportSection, Function, FunctionSection, Instruction, Module,
-    TypeSection, ValType,
+    CodeSection, ExportKind, ExportSection, Function, FunctionSection, Ieee32, Ieee64, Instruction,
+    Module, TypeSection, ValType,
 };
 use wasmparser::{Validator, WasmFeatures};
 
-use super::backend_ir::{WasmFunctionBody, WasmModuleIr, WasmResultType};
+use super::backend_ir::{WasmFunctionBody, WasmInstruction, WasmModuleIr, WasmResultType};
 
 /// Wasm emission or validation failure.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,7 +51,14 @@ pub fn emit_module(module_ir: &WasmModuleIr) -> Result<Vec<u8>, WasmEmitError> {
 
     let mut types = TypeSection::new();
     for function in &module_ir.functions {
-        types.ty().function([], [result_val_type(function.result)]);
+        let params = function
+            .params
+            .iter()
+            .map(|param| result_val_type(param.ty))
+            .collect::<Vec<_>>();
+        types
+            .ty()
+            .function(params, [result_val_type(function.result)]);
     }
     module.section(&types);
 
@@ -72,10 +79,9 @@ pub fn emit_module(module_ir: &WasmModuleIr) -> Result<Vec<u8>, WasmEmitError> {
     let mut codes = CodeSection::new();
     for function in &module_ir.functions {
         let mut body = Function::new([]);
-        match function.body {
-            WasmFunctionBody::I32Const(value) => {
-                body.instruction(&Instruction::I32Const(value));
-            }
+        let WasmFunctionBody::Instructions(instructions) = &function.body;
+        for instruction in instructions {
+            emit_instruction(&mut body, *instruction);
         }
         body.instruction(&Instruction::End);
         codes.function(&body);
@@ -133,7 +139,68 @@ fn validate_ir(module_ir: &WasmModuleIr) -> Result<(), WasmEmitError> {
 fn result_val_type(result: WasmResultType) -> ValType {
     match result {
         WasmResultType::I32 => ValType::I32,
+        WasmResultType::I64 => ValType::I64,
+        WasmResultType::F32 => ValType::F32,
+        WasmResultType::F64 => ValType::F64,
     }
+}
+
+/// Emits one typed backend instruction into a Wasm function body.
+///
+/// Inputs:
+/// - `body`: mutable encoder function body.
+/// - `instruction`: typed Wasm backend instruction.
+///
+/// Output:
+/// - Appends the corresponding `wasm-encoder` instruction.
+///
+/// Transformation:
+/// - Maps the backend IR one-to-one into maintained encoder calls.
+fn emit_instruction(body: &mut Function, instruction: WasmInstruction) {
+    match instruction {
+        WasmInstruction::I32Const(value) => {
+            body.instruction(&Instruction::I32Const(value));
+        }
+        WasmInstruction::I64Const(value) => {
+            body.instruction(&Instruction::I64Const(value));
+        }
+        WasmInstruction::F32ConstBits(value) => {
+            body.instruction(&Instruction::F32Const(Ieee32::new(value)));
+        }
+        WasmInstruction::F64ConstBits(value) => {
+            body.instruction(&Instruction::F64Const(Ieee64::new(value)));
+        }
+        WasmInstruction::LocalGet(index) => {
+            body.instruction(&Instruction::LocalGet(index));
+        }
+        WasmInstruction::I32Add => {
+            body.instruction(&Instruction::I32Add);
+        }
+        WasmInstruction::I32Sub => {
+            body.instruction(&Instruction::I32Sub);
+        }
+        WasmInstruction::I32Mul => {
+            body.instruction(&Instruction::I32Mul);
+        }
+        WasmInstruction::I32Eq => {
+            body.instruction(&Instruction::I32Eq);
+        }
+        WasmInstruction::I32Ne => {
+            body.instruction(&Instruction::I32Ne);
+        }
+        WasmInstruction::I32LtS => {
+            body.instruction(&Instruction::I32LtS);
+        }
+        WasmInstruction::I32LeS => {
+            body.instruction(&Instruction::I32LeS);
+        }
+        WasmInstruction::I32GtS => {
+            body.instruction(&Instruction::I32GtS);
+        }
+        WasmInstruction::I32GeS => {
+            body.instruction(&Instruction::I32GeS);
+        }
+    };
 }
 
 #[cfg(test)]

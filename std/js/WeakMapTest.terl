@@ -1,22 +1,27 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WeakMap
  */
 module std.js.WeakMapTest.
 
 import type std.core.{Bool}.
+import type std.js.WeakMap.
 
-import type std.js.WeakMap.{WeakMap}.
+pub generated_binding_surface_contract(): Bool -> true.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
-
-pub delete_typechecks(receiver: WeakMap[K , V], key: K): Bool ->
+pub delete_typechecks(receiver: WeakMap[K, V], key: K): Bool ->
     receiver.delete(key).
 
-pub get_typechecks(receiver: WeakMap[K , V], key: K): Option[V] ->
+pub get_typechecks(receiver: WeakMap[K, V], key: K): Option[V] ->
     receiver.get(key).
 
-pub has_typechecks(receiver: WeakMap[K , V], key: K): Bool ->
+pub has_typechecks(receiver: WeakMap[K, V], key: K): Bool ->
     receiver.has(key).

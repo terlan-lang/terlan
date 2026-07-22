@@ -1,0 +1,41 @@
+/**
+ * Property-based Option invariants.
+ *
+ * `std.core.OptionPropertyTest` validates generated optional values against
+ * the public Option API so missing and present values are covered by the
+ * shared property-testing machinery.
+ */
+module std.core.OptionPropertyTest.
+
+import std.core.Option.{None, Some, is_none, is_some, with_default}.
+import std.test.Gen.{elements, for_all, option_of}.
+import std.test.Test.{each}.
+
+/**
+ * Verifies generated options are classified as exactly one shape.
+ *
+ * Input: generated optional integer values.
+ * Output: `true` when each value is either present or missing, but not both.
+ * Transformation: checks `is_some` and `is_none` against the Option shape.
+ */
+@test
+pub generated_options_are_classified_by_shape(): Bool ->
+    for_all(option_of(elements([1, 2, 3])), (value) -> case value {
+        None -> is_none(value) and is_some(value) == false;
+        Some(_) -> is_some(value) and is_none(value) == false
+    }).
+
+/**
+ * Verifies generated options use defaults only when missing.
+ *
+ * Input: generated optional integer values.
+ * Output: `true` when `None` returns the default and `Some(value)` returns the
+ * present value.
+ * Transformation: checks `with_default` over both generated Option shapes.
+ */
+@test
+pub generated_options_with_default_respects_shape(): Bool ->
+    for_all(option_of(elements([1, 2, 3])), (value) -> case value {
+        None -> with_default(value, 7) == 7;
+        Some(payload) -> with_default(value, 7) == payload
+    }).

@@ -1,7 +1,7 @@
 # Terlan Rust-backed std operation manifest.
 #
 # Inputs:
-# - Portable std modules whose first executable backend is Rust/SafeNative.
+# - Portable std modules whose first executable backend is Rust/NativeBoundary.
 # - `@compiler.native {operation}` annotations in those source modules.
 #
 # Output:
@@ -10,7 +10,7 @@
 #
 # Transformation:
 # - Maps each portable Terlan API operation to the Rust crate that must own the
-#   future SafeNative adapter implementation.
+#   future NativeBoundary adapter implementation.
 #
 # Format:
 # module<TAB>source<TAB>crate<TAB>operation<TAB>function<TAB>arity
@@ -38,6 +38,7 @@ std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode	e
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode	decode	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_url	encode_url	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_url	decode_url	1
+std.encoding.Md5	std/encoding/Md5.terl	md-5	std.encoding.md5.digest	digest	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.from_string	from_string	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.to_string	to_string	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.join	join	2
@@ -52,6 +53,24 @@ std.net.Uri	std/net/Uri.terl	url	std.net.uri.host	host	1
 std.net.Uri	std/net/Uri.terl	url	std.net.uri.path	path	1
 std.net.Uri	std/net/Uri.terl	url	std.net.uri.query	query	1
 std.net.Uri	std/net/Uri.terl	url	std.net.uri.fragment	fragment	1
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.seed	seed	1
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.entropy	entropy	0
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.int	int	1
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.bounded_int	bounded_int	3
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.float	float	1
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.bool	bool	1
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.choice	choice	2
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.shuffle	shuffle	2
+std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.sample	sample	3
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.compile	compile	1
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.is_match	is_match	2
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.find	find	2
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.find_all	find_all	2
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.capture	capture	3
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.named_capture	named_capture	3
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.replace	replace	3
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.split	split	2
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.escape	escape	1
 std.http.Request	std/http/Request.terl	std::http	std.http.request.method	method	1
 std.http.Request	std/http/Request.terl	std::http	std.http.request.path	path	1
 std.http.Request	std/http/Request.terl	std::http	std.http.request.param	param	2
@@ -75,28 +94,42 @@ std.http.Session	std/http/Session.terl	terlan-vm	std.http.session.delete	delete	
 std.http.Session	std/http/Session.terl	terlan-vm	std.http.session.rotate	rotate	1
 std.http.Session	std/http/Session.terl	terlan-vm	std.http.session.expire	expire	1
 std.http.Session	std/http/Session.terl	terlan-vm	std.http.session.with_response	with_response	2
+std.http.Sse	std/http/Sse.terl	terlan-vm	std.http.sse.data	data	1
+std.http.Sse	std/http/Sse.terl	terlan-vm	std.http.sse.with_id	with_id	2
+std.http.Sse	std/http/Sse.terl	terlan-vm	std.http.sse.with_name	with_name	2
+std.http.Sse	std/http/Sse.terl	terlan-vm	std.http.sse.with_retry_ms	with_retry_ms	2
+std.http.Sse	std/http/Sse.terl	terlan-vm	std.http.sse.response	response	2
+std.http.Sse	std/http/Sse.terl	terlan-vm	std.http.sse.endpoint	endpoint	2
+std.http.Sse	std/http/Sse.terl	terlan-vm	std.http.sse.endpoint_with_keep_alive	endpoint_with_keep_alive	3
+std.http.WebSocket	std/http/WebSocket.terl	terlan-vm	std.http.websocket.text	text	1
+std.http.WebSocket	std/http/WebSocket.terl	terlan-vm	std.http.websocket.ping	ping	1
+std.http.WebSocket	std/http/WebSocket.terl	terlan-vm	std.http.websocket.pong	pong	1
+std.http.WebSocket	std/http/WebSocket.terl	terlan-vm	std.http.websocket.close	close	0
+std.http.WebSocket	std/http/WebSocket.terl	terlan-vm	std.http.websocket.endpoint	endpoint	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.json	json	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.json_text	json_text	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.text	text	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.html	html	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.file	file	3
+std.http.Response	std/http/Response.terl	std::http	std.http.response.stream	stream	5
 std.http.Response	std/http/Response.terl	std::http	std.http.response.redirect	redirect	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.status	status	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.header	header	3
 std.http.Response	std/http/Response.terl	std::http	std.http.response.set_cookie_header	set_cookie_header	2
 std.http.Response	std/http/Response.terl	std::http	std.http.response.with_cookies	with_cookies	2
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.connect	connect	1
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.query	query	3
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.query_one	query_one	3
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.execute	execute	3
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.transaction	transaction	2
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.string	string	2
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.int	int	2
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.bool	bool	2
-std.db.Postgres	std/db/Postgres.terl	tokio-postgres	std.db.postgres.json	json	2
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.connect	connect	1
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.query	query	3
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.query_one	query_one	3
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.execute	execute	3
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.transaction	transaction	2
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.string	string	2
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.int	int	2
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.bool	bool	2
+std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.json	json	2
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.new	new	0
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.from_list	from_list	1
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.length	len	1
+std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.get	get_optional_values	2
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.get_at	get_at	2
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.set_at	set_at	3
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.swap	swap	3

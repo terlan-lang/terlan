@@ -1,20 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ElementInternals
  */
 module std.js.Dom.ElementInternalsTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.ElementInternals.{ElementInternals}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.ElementInternals.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub form_typechecks(receiver: ElementInternals): Option[HTMLFormElement] ->
     receiver.form().
@@ -43,8 +45,17 @@ pub check_validity_typechecks(receiver: ElementInternals): Bool ->
 pub report_validity_typechecks(receiver: ElementInternals): Bool ->
     receiver.report_validity().
 
-pub set_form_value_typechecks(receiver: ElementInternals, value: Option[File | FormData | JsString], state: Option[File | FormData | JsString]): Unit ->
+pub set_form_value_typechecks(
+    receiver: ElementInternals,
+    value: Option[File | FormData | JsString],
+    state: Option[File | FormData | JsString]
+): Unit ->
     receiver.set_form_value(value, state).
 
-pub set_validity_typechecks(receiver: ElementInternals, flags: ValidityStateFlags, message: JsString, anchor: HTMLElement): Unit ->
+pub set_validity_typechecks(
+    receiver: ElementInternals,
+    flags: ValidityStateFlags,
+    message: JsString,
+    anchor: HTMLElement
+): Unit ->
     receiver.set_validity(flags, message, anchor).

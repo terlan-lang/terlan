@@ -1,0 +1,111 @@
+//! Portable regular expression contract.
+//!
+//! `std.regex.Regex` exposes regex compilation, matching, capture, replacement,
+//! splitting, and literal escaping through a target-neutral Terlan API. The VM
+//! implementation delegates parsing and matching to the maintained Rust
+//! `regex` crate.
+
+module std.regex.Regex.
+
+/// Regex represents a compiled regular expression.
+///
+/// Input: no type parameter.
+/// Output: an opaque compiled regex value whose runtime representation is
+/// target-owned.
+/// Transformation: hides the selected target regex engine behind a stable
+/// portable API.
+
+pub opaque type Regex.
+
+/// RegexError is the portable error returned by regex compilation.
+///
+/// Input: includes the neutral `code` and `message` fields from
+/// `std.core.Error.Error` and adds the byte offset reported by the regex engine
+/// when available.
+/// Output: a typed error value usable anywhere `Error`-including values are
+/// accepted.
+/// Transformation: maps backend pattern parser failures into a portable data
+/// shape without exposing target-specific exception values.
+
+pub struct RegexError {
+    offset: Int
+}.
+
+/// Returns one positional capture group when present.
+///
+/// Input: one compiled regex, one UTF-8 text value, and a zero-based capture
+/// index.
+/// Output: `Some(capture)` when the capture exists in the first match,
+/// otherwise `None`.
+/// Transformation: validates capture presence without exposing backend capture
+/// storage.
+
+pub capture(regex: Regex, text: String, index: Int): Option[String].
+
+/// Compiles a regex pattern.
+///
+/// Input: one UTF-8 regex pattern.
+/// Output: `Ok(regex)` when compilation succeeds, otherwise `Err(RegexError)`.
+/// Transformation: delegates pattern compilation to the selected target regex
+/// engine and maps parser failures into `RegexError`.
+
+pub compile(pattern: String): Result[Regex, RegexError].
+
+/// Escapes literal text so it can be used as a regex pattern.
+///
+/// Input: one UTF-8 text value.
+/// Output: regex pattern text that matches the input literally.
+/// Transformation: delegates escaping to the selected target regex engine.
+
+pub escape(text: String): String.
+
+/// Returns the first regex match when present.
+///
+/// Input: one compiled regex and one UTF-8 text value.
+/// Output: `Some(match)` for the first match, otherwise `None`.
+/// Transformation: returns matched text without exposing backend span values.
+
+pub find(regex: Regex, text: String): Option[String].
+
+/// Returns all non-overlapping regex matches.
+///
+/// Input: one compiled regex and one UTF-8 text value.
+/// Output: a list of matched text values in source order.
+/// Transformation: materializes backend match iteration into a portable list.
+
+pub find_all(regex: Regex, text: String): List[String].
+
+/// Returns whether a regex matches text.
+///
+/// Input: one compiled regex and one UTF-8 text value.
+/// Output: `true` when the regex matches anywhere in the text.
+/// Transformation: delegates matching to the selected target regex engine.
+
+pub is_match(regex: Regex, text: String): Bool.
+
+/// Returns one named capture group when present.
+///
+/// Input: one compiled regex, one UTF-8 text value, and one capture name.
+/// Output: `Some(capture)` when the named capture exists in the first match,
+/// otherwise `None`.
+/// Transformation: resolves named capture storage through the selected target
+/// regex engine.
+
+pub named_capture(regex: Regex, text: String, name: String): Option[String].
+
+/// Replaces every regex match with replacement text.
+///
+/// Input: one compiled regex, one UTF-8 text value, and one replacement string.
+/// Output: text with every match replaced.
+/// Transformation: delegates replacement expansion to the selected target regex
+/// engine.
+
+pub replace(regex: Regex, text: String, replacement: String): String.
+
+/// Splits text around regex matches.
+///
+/// Input: one compiled regex and one UTF-8 text value.
+/// Output: list of split text segments.
+/// Transformation: materializes backend split iteration into a portable list.
+
+pub split(regex: Regex, text: String): List[String].

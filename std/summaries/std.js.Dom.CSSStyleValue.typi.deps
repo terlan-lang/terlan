@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSStyleValue
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12044700443695789749
-interface_hash=12549617140708981286
-interface_doc_hash=12549617140708981286
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10519256785975885734
+interface_hash=3273066431670767955
+interface_doc_hash=3273066431670767955
 deps=0

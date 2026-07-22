@@ -4,12 +4,12 @@
  * `std.core.Float` provides named operations used by stdlib trait/conformance
  * implementations for primitive `Float`.
  */
-
 module std.core.Float.
 
 import std.core.Option.{None, Some}.
-import type std.core.Option.
 import std.core.Ordering.{Eq, Gt, Lt}.
+
+import type std.core.Option.
 
 /**
  * Returns whether two finite `Float` values are equal.
@@ -47,11 +47,8 @@ pub equal(left: Float, right: Float): Bool ->
  */
 pub min(left: Float, right: Float): Float ->
     case left <= right {
-        true ->
-            left;
-
-        false ->
-            right
+        true -> left;
+        false -> right
     }.
 
 /**
@@ -72,11 +69,8 @@ pub min(left: Float, right: Float): Float ->
  */
 pub max(left: Float, right: Float): Float ->
     case left >= right {
-        true ->
-            left;
-
-        false ->
-            right
+        true -> left;
+        false -> right
     }.
 
 /**
@@ -95,12 +89,9 @@ pub max(left: Float, right: Float): Float ->
  * ```
  */
 pub abs(value: Float): Float ->
-    case value < 0.0 {
-        true ->
-            0.0 - value;
-
-        false ->
-            value
+    case value < 0 {
+        true -> 0 - value;
+        false -> value
     }.
 
 /**
@@ -126,16 +117,11 @@ pub abs(value: Float): Float ->
  */
 pub compare(left: Float, right: Float): std.core.Ordering.Comparison ->
     case left == right {
-        true ->
-            Eq;
-
+        true -> Eq;
         false ->
             case left < right {
-                true ->
-                    Lt;
-
-                false ->
-                    Gt
+                true -> Lt;
+                false -> Gt
             }
     }.
 
@@ -155,8 +141,7 @@ pub compare(left: Float, right: Float): std.core.Ordering.Comparison ->
  * ```
  */
 @compiler.intrinsic
-pub to_string(value: Float): String ->
-    "".
+pub to_string(value: Float): String -> "".
 
 /**
  * Parses a canonical UTF-8 `String` into `Float`.
@@ -177,3 +162,49 @@ pub to_string(value: Float): String ->
 @compiler.intrinsic
 pub from_string(value: String): Option[Float] ->
     None.
+
+/**
+ * Returns the greatest whole Float not greater than the input.
+ *
+ * Input: one finite `Float` value.
+ * Output: the mathematical floor represented as a `Float`.
+ * Transformation: delegates deterministic finite rounding to the VM-owned
+ * primitive intrinsic.
+ */
+@compiler.intrinsic
+pub floor(value: Float): Float -> 0.0.
+
+/**
+ * Returns the least whole Float not less than the input.
+ *
+ * Input: one finite `Float` value.
+ * Output: the mathematical ceiling represented as a `Float`.
+ * Transformation: delegates deterministic finite rounding to the VM-owned
+ * primitive intrinsic.
+ */
+@compiler.intrinsic
+pub ceil(value: Float): Float -> 0.0.
+
+/**
+ * Returns the natural logarithm of a positive finite Float.
+ *
+ * Input: one finite `Float` greater than zero.
+ * Output: the finite natural logarithm of the input.
+ * Transformation: delegates to the VM-owned binary64 logarithm primitive.
+ * Zero, negative, and non-finite runtime values fail with a stable domain
+ * diagnostic instead of terminating the runtime.
+ */
+@compiler.intrinsic
+pub log(value: Float): Float -> 0.0.
+
+/**
+ * Returns the nearest binary64 representation of pi.
+ */
+@compiler.intrinsic
+pub pi(): Float -> 3.141592653589793.
+
+/**
+ * Returns the nearest binary64 representation of tau.
+ */
+@compiler.intrinsic
+pub tau(): Float -> 6.283185307179586.

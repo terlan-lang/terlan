@@ -76,6 +76,30 @@ fn parse_init_args_accepts_static_profile() {
     assert_eq!(parsed.profile, InitProfile::Static);
 }
 
+/// Verifies `terlc init --profile mobile` selects the mobile shell scaffold.
+///
+/// Inputs:
+/// - Command-local init args with `--profile mobile`.
+///
+/// Output:
+/// - Parsed init args with `InitProfile::Mobile`.
+///
+/// Transformation:
+/// - Exercises profile parsing without touching the filesystem.
+#[test]
+fn parse_init_args_accepts_mobile_profile() {
+    let parsed = parse_init_args(&[
+        "--profile".to_string(),
+        "mobile".to_string(),
+        "mobile-app".to_string(),
+    ])
+    .expect("parse init args");
+
+    assert_eq!(parsed.target_dir, PathBuf::from("mobile-app"));
+    assert_eq!(parsed.package_name, "mobile-app");
+    assert_eq!(parsed.profile, InitProfile::Mobile);
+}
+
 #[test]
 fn parse_init_args_rejects_missing_project_name() {
     let err = parse_init_args(&[]).expect_err("missing project name");
@@ -106,7 +130,7 @@ fn parse_init_args_rejects_unknown_profile() {
 fn render_manifest_uses_release_project_contract() {
     assert_eq!(
             render_manifest("hello", InitProfile::Default),
-            "[package]\nname = \"hello\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n"
+            "[package]\nname = \"hello\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n"
         );
 }
 
@@ -114,7 +138,7 @@ fn render_manifest_uses_release_project_contract() {
 fn render_manifest_web_profile_includes_asset_contract() {
     assert_eq!(
             render_manifest("hello-web", InitProfile::Web),
-            "[package]\nname = \"hello-web\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[web.assets]\ndirectory = \"assets\"\n"
+            "[package]\nname = \"hello-web\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n\n[web.assets]\ndirectory = \"assets\"\n"
         );
 }
 
@@ -133,7 +157,26 @@ fn render_manifest_web_profile_includes_asset_contract() {
 fn render_manifest_static_profile_includes_asset_contract() {
     assert_eq!(
         render_manifest("docs-site", InitProfile::Static),
-        "[package]\nname = \"docs-site\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[web.assets]\ndirectory = \"assets\"\n"
+        "[package]\nname = \"docs-site\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n\n[web.assets]\ndirectory = \"assets\"\n"
+    );
+}
+
+/// Verifies mobile projects reuse the supported web asset manifest section.
+///
+/// Inputs:
+/// - Mobile profile manifest rendering request.
+///
+/// Output:
+/// - Manifest text with `[web.assets] directory = "assets"`.
+///
+/// Transformation:
+/// - Keeps mobile scaffolds compatible with the current project manifest parser
+///   while mobile-specific configuration lives in `mobile/shell.toml`.
+#[test]
+fn render_manifest_mobile_profile_includes_asset_contract() {
+    assert_eq!(
+        render_manifest("mobile-app", InitProfile::Mobile),
+        "[package]\nname = \"mobile-app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n\n[web.assets]\ndirectory = \"assets\"\n"
     );
 }
 
@@ -240,7 +283,7 @@ fn write_project_web_profile_creates_browser_and_http_modules() {
     assert!(compose.contains("image: postgres:16-alpine"));
     assert!(compose.contains("\"127.0.0.1:5432:5432\""));
     assert!(compose.contains("pg_isready -U terlan -d terlan_dev"));
-    crate::commands::serve::compose_check::validate_project_compose(&dir)
+    crate::commands::dev_dependencies::validate_project_compose(&dir)
         .expect("generated web compose validates");
     fs::remove_dir_all(dir).expect("cleanup");
 }
@@ -396,6 +439,60 @@ fn write_project_static_profile_creates_static_site_files() {
     fs::remove_dir_all(dir).expect("cleanup");
 }
 
+/// Verifies mobile profile scaffolding writes shell source and config files.
+///
+/// Inputs:
+/// - Mobile init args targeting an empty temporary directory.
+///
+/// Output:
+/// - Filesystem scaffold containing browser, HTTP, mobile shell, template,
+///   mobile config, assets, manifest, and the ordinary test module.
+///
+/// Transformation:
+/// - Exercises the mobile profile without requiring the later `mobile.shell`
+///   build target planning slice.
+#[test]
+fn write_project_mobile_profile_creates_mobile_shell_files() {
+    let dir = temp_dir("mobile_project");
+    let args = InitArgs {
+        target_dir: dir.clone(),
+        package_name: "mobile-app".to_string(),
+        profile: InitProfile::Mobile,
+    };
+
+    write_project(&args).expect("write mobile project");
+
+    assert_eq!(
+        fs::read_to_string(dir.join("terlan.toml")).expect("manifest"),
+        render_manifest("mobile-app", InitProfile::Mobile)
+    );
+    assert!(dir.join("assets").is_dir());
+    assert!(dir.join("templates").is_dir());
+    assert!(dir.join("mobile").is_dir());
+    assert_eq!(
+        fs::read_to_string(dir.join("src/mobile_app/Web.terl")).expect("web module"),
+        render_web_module("mobile_app")
+    );
+    assert_eq!(
+        fs::read_to_string(dir.join("src/mobile_app/Http.terl")).expect("http module"),
+        render_http_handler_module("mobile_app")
+    );
+    assert_eq!(
+        fs::read_to_string(dir.join("src/mobile_app/Mobile.terl")).expect("mobile module"),
+        render_mobile_module("mobile_app")
+    );
+    assert_eq!(
+        fs::read_to_string(dir.join("mobile/shell.toml")).expect("mobile config"),
+        render_mobile_shell_config("mobile_app", "mobile-app")
+    );
+    assert_eq!(
+        fs::read_to_string(dir.join("templates/page.terl.html")).expect("page template"),
+        render_web_page_template()
+    );
+    assert!(dir.join("tests/mobile_app/MainTest.terl").exists());
+    fs::remove_dir_all(dir).expect("cleanup");
+}
+
 /// Verifies static profile scaffolding emits a validated static site.
 ///
 /// Inputs:
@@ -494,6 +591,30 @@ fn next_steps_for_static_profile_emit_and_serve_static_site() {
                 .to_string(),
             "terlc static serve src/docs_site/Site.terl --out-dir _build/web --validate-output"
                 .to_string(),
+            "make test".to_string(),
+        ]
+    );
+}
+
+/// Verifies mobile profile next steps stay on implemented commands.
+///
+/// Inputs:
+/// - Mobile profile and hyphenated package name.
+///
+/// Output:
+/// - Commands that build/test current source without advertising the future
+///   mobile target profile before it exists.
+///
+/// Transformation:
+/// - Keeps generated user guidance honest while the shell profile is still a
+///   scaffold-only feature.
+#[test]
+fn next_steps_for_mobile_profile_build_current_targets() {
+    assert_eq!(
+        next_steps(InitProfile::Mobile, "mobile-app"),
+        vec![
+            "make".to_string(),
+            "terlc build --target js.browser".to_string(),
             "make test".to_string(),
         ]
     );

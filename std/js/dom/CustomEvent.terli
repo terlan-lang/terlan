@@ -1,0 +1,42 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CustomEvent
+ */
+module std.js.Dom.CustomEvent.
+
+import type std.core.{Bool}.
+
+/**
+ * The **`CustomEvent`** interface represents events initialized by an application for any purpose.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent)
+ */
+pub opaque type CustomEvent[T].
+
+/**
+ * The read-only **`detail`** property of the CustomEvent interface returns any data passed when initializing the event.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/detail)
+ */
+pub (value: CustomEvent[T]) detail(): T.
+
+/**
+ * The **`CustomEvent.initCustomEvent()`** method initializes a CustomEvent object.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/initCustomEvent)
+ */
+pub (value: CustomEvent[T]) init_custom_event(
+    type_: std.js.String.JsString,
+    bubbles: Bool,
+    cancelable: Bool,
+    detail: T
+): std.core.Unit.

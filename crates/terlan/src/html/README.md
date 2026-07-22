@@ -3,11 +3,12 @@
 This directory owns Terlan artifact-template target classification, typed
 template data, and the current HTML and Markdown template parsers. It converts `.terl.html` and
 `.terl.md` files into a small structured template model used by compiler
-packaging and static-site paths. JSON, TOML, YAML, and text template suffixes
-are recognized here so validators share one target contract. JSON structure
-validation is implemented with `serde_json`; TOML validation is implemented
-with `basic-toml`; text templates validate interpolation boundaries while
-leaving text content otherwise free-form.
+packaging and static-site paths. JSON, TOML, YAML, XML, and text template
+suffixes are recognized here so validators share one target contract. JSON
+structure validation is implemented with `serde_json`; TOML validation is
+implemented with `basic-toml`; XML validation uses `quick-xml` after masking
+typed interpolation positions; text templates validate interpolation
+boundaries while leaving text content otherwise free-form.
 
 ## Responsibilities
 
@@ -21,6 +22,8 @@ leaving text content otherwise free-form.
   interpolation islands.
 - Validate `.terl.yaml` and `.terl.yml` static structure while accounting for
   `${...}` interpolation islands.
+- Validate `.terl.xml` structure and interpolation boundaries with
+  `quick-xml`, rejecting DTDs and interpolation in element or attribute names.
 - Validate `.terl.txt` interpolation island boundaries.
 - Inject static-site `<base href>` metadata through the shared HTML boundary.
 - Escape generated HTML text nodes and attribute values through the shared HTML
@@ -34,7 +37,8 @@ leaving text content otherwise free-form.
 - `parse_html_template`: parses `.terl.html` templates.
 - `parse_markdown_template`: parses `.terl.md` templates.
 - `artifact_template_target_from_path`: classifies `.terl.html`, `.terl.md`,
-  `.terl.json`, `.terl.toml`, `.terl.yaml`, `.terl.yml`, and `.terl.txt`.
+  `.terl.json`, `.terl.toml`, `.terl.yaml`, `.terl.yml`, `.terl.xml`, and
+  `.terl.txt`.
 - `ArtifactTemplateTarget`: stable target enum for template discovery and
   diagnostics.
 - `inject_html_base_path`: injects static-site base metadata into generated
@@ -49,6 +53,8 @@ leaving text content otherwise free-form.
   masking interpolation islands.
 - `validate_yaml_template_structure`: validates `.terl.yaml` / `.terl.yml`
   structure after masking interpolation islands.
+- `validate_xml_template_structure`: validates `.terl.xml` structure after
+  masking text and quoted-attribute interpolation islands.
 - `validate_text_template_structure`: validates `.terl.txt` interpolation
   boundaries.
 - `HtmlTemplate`, `HtmlNode`, `HtmlElement`, and `HtmlSlot`: structured
@@ -78,14 +84,15 @@ For structure-only artifact validation:
 4. Delegate `.terl.toml` to `basic-toml` after interpolation masking.
 5. Delegate `.terl.yaml` / `.terl.yml` to `yaml-rust` after interpolation
    masking.
-6. Validate `.terl.txt` interpolation boundaries while accepting arbitrary
+6. Delegate `.terl.xml` to `quick-xml` after interpolation masking.
+7. Validate `.terl.txt` interpolation boundaries while accepting arbitrary
    surrounding text until expression-island typechecking is implemented.
 
 Important invariants:
 
 - HTML-tree template filenames must end in `.terl.html` or `.terl.md`.
 - Artifact-template discovery also recognizes `.terl.json`, `.terl.toml`,
-  `.terl.yaml`, `.terl.yml`, and `.terl.txt`.
+  `.terl.yaml`, `.terl.yml`, `.terl.xml`, and `.terl.txt`.
 - Template tag names are derived deterministically from file paths.
 - Parser diagnostics must not emit partial templates on failure.
 
@@ -97,6 +104,8 @@ Important invariants:
 - `serde_json`: validates JSON artifact-template structure.
 - `basic-toml`: validates TOML artifact-template structure.
 - `yaml-rust`: validates YAML artifact-template structure.
+- `quick-xml`: validates XML artifact-template structure without resolving
+  external entities.
 - CLI static-site/browser packaging code consumes parsed templates.
 
 ## File Layout

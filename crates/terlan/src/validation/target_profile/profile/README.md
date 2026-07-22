@@ -20,4 +20,4 @@ This directory owns target-profile shape validation helpers.
 ## Testing Notes
 
 - Add tests for every newly accepted or rejected CoreIR shape.
-- Keep JS, Erlang, native, and core-v0 profile expectations explicit.
+- Keep VM, JS, native, and retired core-v0 profile expectations explicit.

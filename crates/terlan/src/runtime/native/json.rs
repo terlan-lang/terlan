@@ -3,7 +3,7 @@
 //! This module owns the concrete Rust JSON behavior for the portable
 //! `std.data.Json` contract. It delegates parsing and rendering to
 //! `serde_json`, while exposing only stable Terlan-facing shapes to the
-//! SafeNative bridge.
+//! NativeBoundary bridge.
 
 use serde_json::{Map, Number, Value};
 

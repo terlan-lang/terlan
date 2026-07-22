@@ -97,6 +97,16 @@ function testRunCommandContribution() {
   const manifest = readJson("package.json");
   const commands = manifest.contributes.commands || [];
   const runCommand = commands.find((command) => command.command === "terlan.runMain");
+  const checkCommand = commands.find((command) => command.command === "terlan.runCheck");
+  const buildCommand = commands.find((command) => command.command === "terlan.runBuild");
+  const cleanCommand = commands.find((command) => command.command === "terlan.runClean");
+  const serveCommand = commands.find((command) => command.command === "terlan.runServe");
+  const watchCommand = commands.find((command) => command.command === "terlan.runWatch");
+  const doctorCommand = commands.find((command) => command.command === "terlan.runDoctor");
+  const debugCommand = commands.find((command) => command.command === "terlan.runDebug");
+  const debugAtCursorCommand = commands.find(
+    (command) => command.command === "terlan.runDebugAtCursor"
+  );
   const runTestFileCommand = commands.find(
     (command) => command.command === "terlan.runTestFile"
   );
@@ -106,9 +116,25 @@ function testRunCommandContribution() {
   const editorTitleMenus = manifest.contributes.menus["editor/title"] || [];
 
   assert.ok(runCommand, "missing Terlan run command");
+  assert.ok(checkCommand, "missing Terlan check command");
+  assert.ok(buildCommand, "missing Terlan build command");
+  assert.ok(cleanCommand, "missing Terlan clean command");
+  assert.ok(serveCommand, "missing Terlan serve command");
+  assert.ok(watchCommand, "missing Terlan watch command");
+  assert.ok(doctorCommand, "missing Terlan doctor command");
+  assert.ok(debugCommand, "missing Terlan debug command");
+  assert.ok(debugAtCursorCommand, "missing Terlan debug-at-cursor command");
   assert.ok(runTestFileCommand, "missing Terlan test-file command");
   assert.ok(runTestAtCursorCommand, "missing Terlan test-at-cursor command");
   assert.strictEqual(runCommand.title, "Run Terlan Main");
+  assert.strictEqual(checkCommand.title, "Check Terlan Workspace");
+  assert.strictEqual(buildCommand.title, "Build Terlan Workspace");
+  assert.strictEqual(cleanCommand.title, "Clean Terlan Workspace");
+  assert.strictEqual(serveCommand.title, "Serve Terlan Web");
+  assert.strictEqual(watchCommand.title, "Watch Terlan Web");
+  assert.strictEqual(doctorCommand.title, "Run Terlan Doctor");
+  assert.strictEqual(debugCommand.title, "Launch Terlan Debug");
+  assert.strictEqual(debugAtCursorCommand.title, "Debug Terlan at Cursor");
   assert.strictEqual(runTestFileCommand.title, "Run Terlan Test File");
   assert.strictEqual(runTestAtCursorCommand.title, "Run Terlan Test at Cursor");
   assert.ok(
@@ -118,6 +144,38 @@ function testRunCommandContribution() {
   assert.ok(
     manifest.activationEvents.includes("onCommand:terlan.runMain"),
     "missing run command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runCheck"),
+    "missing check command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runBuild"),
+    "missing build command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runClean"),
+    "missing clean command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runServe"),
+    "missing serve command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runWatch"),
+    "missing watch command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runDoctor"),
+    "missing doctor command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runDebug"),
+    "missing debug command activation"
+  );
+  assert.ok(
+    manifest.activationEvents.includes("onCommand:terlan.runDebugAtCursor"),
+    "missing debug-at-cursor command activation"
   );
   assert.ok(
     manifest.activationEvents.includes("onCommand:terlan.runTestFile"),
@@ -134,6 +192,38 @@ function testRunCommandContribution() {
   assert.ok(
     editorTitleMenus.some((menu) => menu.command === "terlan.runMain"),
     "missing editor title run button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runCheck"),
+    "missing editor title check button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runBuild"),
+    "missing editor title build button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runClean"),
+    "missing editor title clean button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runServe"),
+    "missing editor title serve button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runWatch"),
+    "missing editor title watch button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runDoctor"),
+    "missing editor title doctor button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runDebug"),
+    "missing editor title debug button"
+  );
+  assert.ok(
+    editorTitleMenus.some((menu) => menu.command === "terlan.runDebugAtCursor"),
+    "missing editor title debug-at-cursor button"
   );
   assert.ok(
     editorTitleMenus.some((menu) => menu.command === "terlan.runTestFile"),

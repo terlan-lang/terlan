@@ -1,5 +1,4 @@
 use super::*;
-pub(crate) use crate::terlan_syntax::unquote_single_quoted_atom;
 
 /// Reports whether a token kind can carry an identifier-like spelling.
 ///
@@ -13,33 +12,6 @@ pub(crate) use crate::terlan_syntax::unquote_single_quoted_atom;
 /// - Centralizes the parser's permissive identifier token set.
 pub(super) fn is_identifier_like_token(kind: &TokenKind) -> bool {
     matches!(kind, TokenKind::Atom | TokenKind::Ident | TokenKind::Var)
-}
-
-/// Combines ordered list-comprehension filters into one boolean guard.
-///
-/// Inputs:
-/// - `guard`: optional accumulated guard expression from earlier filters.
-/// - `filter`: next filter expression in source order.
-///
-/// Output:
-/// - Guard expression equivalent to all filters seen so far.
-///
-/// Transformation:
-/// - Folds comma-separated comprehension filters with `and`, preserving
-///   left-to-right source order while reusing the current single-guard parse tree
-///   representation.
-pub(super) fn combine_comprehension_filter_guard(
-    guard: Option<Box<Expr>>,
-    filter: Expr,
-) -> Box<Expr> {
-    match guard {
-        Some(previous) => Box::new(Expr::BinaryOp {
-            op: BinaryOp::And,
-            left: previous,
-            right: Box::new(filter),
-        }),
-        None => Box::new(filter),
-    }
 }
 
 /// Parses a lexer integer token into its signed integer value.
@@ -59,6 +31,31 @@ pub(super) fn parse_int_literal_token(token: &Token) -> ParseResult<i64> {
         message: "invalid integer literal".to_string(),
         span: token.span(),
     })
+}
+
+/// Parses one finite Float literal token.
+///
+/// Inputs:
+/// - `token`: decimal or scientific Float token emitted by the lexer.
+///
+/// Output:
+/// - Finite `f64` value, or a stable diagnostic anchored to the token.
+///
+/// Transformation:
+/// - Rejects malformed and overflowing literals instead of substituting zero
+///   or allowing host infinity into the typed syntax tree.
+pub(super) fn parse_float_literal_token(token: &Token) -> ParseResult<f64> {
+    let value = token.text.parse::<f64>().map_err(|_| ParseError {
+        message: "invalid float literal".to_string(),
+        span: token.span(),
+    })?;
+    if !value.is_finite() {
+        return Err(ParseError {
+            message: "float literal must be finite".to_string(),
+            span: token.span(),
+        });
+    }
+    Ok(value)
 }
 
 /// Parses the string token payload used by `Atom["name"]`.
@@ -171,11 +168,14 @@ pub(super) fn attach_docs(mut decl: Decl, docs: Vec<String>) -> Decl {
     }
 
     match &mut decl {
+        Decl::Constant(constant_decl) => constant_decl.docs = docs,
+        Decl::ConstFunction(function_decl) => function_decl.docs = docs,
         Decl::Type(type_decl) => type_decl.docs = docs,
         Decl::Struct(struct_decl) => struct_decl.docs = docs,
         Decl::Constructor(constructor_decl) => constructor_decl.docs = docs,
         Decl::Function(function_decl) => function_decl.docs = docs,
         Decl::Method(method_decl) => method_decl.docs = docs,
+        Decl::Shape(shape_decl) => shape_decl.docs = docs,
         Decl::Raw(raw_decl) => raw_decl.docs = docs,
         Decl::Trait(trait_decl) => trait_decl.docs = docs,
         Decl::TraitImpl(trait_impl_decl) => trait_impl_decl.docs = docs,
@@ -225,16 +225,25 @@ pub(super) fn join_parts(parts: &[String]) -> String {
             output.push('.');
         } else if output.ends_with('.') {
             output.push_str(part);
-        } else if part == "," || part == "|" || part == ":" || part == "->" || part == "|>" {
+        } else if part == "," {
+            output.push(',');
+        } else if part == ":" {
+            output.push(':');
+        } else if part == "|" || part == "->" || part == "|>" {
             output.push(' ');
             output.push_str(part);
         } else if output.ends_with('(')
             || output.ends_with('[')
             || output.ends_with('{')
             || part == "["
+            || part == ")"
             || part == "]"
+            || part == "}"
             || part == ","
         {
+            output.push_str(part);
+        } else if output.ends_with(',') {
+            output.push(' ');
             output.push_str(part);
         } else {
             output.push(' ');

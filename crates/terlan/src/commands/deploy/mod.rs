@@ -6,8 +6,8 @@ use serde::Serialize;
 
 use crate::commands::build::project_manifest::{
     read_project_manifest, ProjectArtifactKind, ProjectDependency, ProjectDependencyScope,
-    ProjectDependencySource, ProjectErlangPackageAdapter, ProjectManifest, ProjectServerTls,
-    ProjectServerTlsMode, ProjectServerTlsProvider, ProjectTarget, ProjectWebAssets,
+    ProjectDependencySource, ProjectManifest, ProjectServerTls, ProjectServerTlsMode,
+    ProjectServerTlsProvider, ProjectTarget, ProjectWebAssets,
 };
 use crate::{CliCommand, CliState};
 
@@ -168,7 +168,7 @@ fn print_deploy_usage() {
 fn write_deploy_plan(project_dir: &Path, out_dir: &Path) -> Result<PathBuf, String> {
     let manifest_path = project_dir.join(PROJECT_MANIFEST_FILE);
     let manifest = read_project_manifest(&manifest_path)?;
-    let plan = build_deploy_plan(&manifest);
+    let plan = build_deploy_plan(&manifest)?;
     let cloud_dir = out_dir.join("cloud");
     fs::create_dir_all(&cloud_dir).map_err(|err| {
         format!(
@@ -196,7 +196,9 @@ fn write_deploy_plan(project_dir: &Path, out_dir: &Path) -> Result<PathBuf, Stri
 /// - Converts compiler-owned project metadata into stable cloud schema fields
 ///   without resolving dependencies, building source code, or contacting any
 ///   external service.
-fn build_deploy_plan(manifest: &ProjectManifest) -> DeployPlan {
+fn build_deploy_plan(manifest: &ProjectManifest) -> Result<DeployPlan, String> {
+    validate_manifest_deployable(manifest)?;
+
     let mut capabilities = deploy_capabilities(manifest);
     capabilities.sort();
     capabilities.dedup();
@@ -212,7 +214,7 @@ fn build_deploy_plan(manifest: &ProjectManifest) -> DeployPlan {
             .then_with(|| left.alias.cmp(&right.alias))
     });
 
-    DeployPlan {
+    Ok(DeployPlan {
         schema: DEPLOY_PLAN_SCHEMA,
         generated_by: DeployPlanGenerator {
             tool: "terlc",
@@ -227,13 +229,32 @@ fn build_deploy_plan(manifest: &ProjectManifest) -> DeployPlan {
         build: DeployPlanBuild {
             artifact: manifest.artifact.as_str(),
             source_roots: manifest.source_roots.clone(),
-            erlang_package_adapter: manifest.erlang_package_adapter.map(erlang_adapter_name),
         },
         capabilities,
         web_assets: manifest.web_assets.as_ref().map(plan_web_assets),
         server_tls: manifest.server_tls.as_ref().map(plan_server_tls),
         dependencies,
-    }
+    })
+}
+
+/// Validates that the manifest can produce a 0.0.7 deploy plan.
+///
+/// Inputs:
+/// - `manifest`: parsed project manifest.
+///
+/// Output:
+/// - `Ok(())` when deploy planning can stay on current Terlan-owned runtime
+///   surfaces.
+/// - Stable error text for deploy-incompatible manifest metadata.
+///
+/// Transformation:
+/// - Keeps deploy planning on current Terlan-owned runtime surfaces.
+/// - Deploy planning does not support legacy `beam-thin` artifacts and does
+///   not support legacy [target.erlang.dependencies] metadata.
+/// - Audit marker: does not support legacy [target.erlang.dependencies] metadata.
+fn validate_manifest_deployable(manifest: &ProjectManifest) -> Result<(), String> {
+    let _ = manifest;
+    Ok(())
 }
 
 /// Derives capability labels from project manifest sections.
@@ -249,7 +270,7 @@ fn build_deploy_plan(manifest: &ProjectManifest) -> DeployPlan {
 ///   policy or dependency manager semantics.
 fn deploy_capabilities(manifest: &ProjectManifest) -> Vec<&'static str> {
     let mut capabilities = match manifest.artifact {
-        ProjectArtifactKind::BeamThin => vec!["runtime.beam"],
+        ProjectArtifactKind::TerlanVm => vec!["runtime.terlan-vm"],
         ProjectArtifactKind::Library => vec!["artifact.library"],
         ProjectArtifactKind::WasmCore => vec!["runtime.wasm.core"],
         ProjectArtifactKind::WasmBrowser => vec!["runtime.wasm.browser"],
@@ -272,15 +293,9 @@ fn deploy_capabilities(manifest: &ProjectManifest) -> Vec<&'static str> {
     if manifest.server_tls.is_some() {
         capabilities.push("http.tls");
     }
-    if manifest.erlang_package_adapter.is_some() {
-        capabilities.push("target.erlang.package");
-    }
     for dependency in &manifest.dependencies {
         match dependency.scope {
             ProjectDependencyScope::Local => capabilities.push("dependency.local"),
-            ProjectDependencyScope::Target(ProjectTarget::Erlang) => {
-                capabilities.push("dependency.target.erlang")
-            }
             ProjectDependencyScope::Target(ProjectTarget::Js) => {
                 capabilities.push("dependency.target.js")
             }
@@ -332,10 +347,6 @@ fn plan_dependency(dependency: &ProjectDependency) -> DeployPlanDependency {
                 url: url.clone(),
                 rev: rev.clone(),
             },
-            ProjectDependencySource::Hex { package, version } => DeployPlanDependencySource::Hex {
-                package: package.clone(),
-                version: version.clone(),
-            },
             ProjectDependencySource::Npm { package, version } => DeployPlanDependencySource::Npm {
                 package: package.clone(),
                 version: version.clone(),
@@ -361,20 +372,8 @@ fn plan_dependency(dependency: &ProjectDependency) -> DeployPlanDependency {
 fn dependency_scope_name(scope: ProjectDependencyScope) -> &'static str {
     match scope {
         ProjectDependencyScope::Local => "local",
-        ProjectDependencyScope::Target(ProjectTarget::Erlang) => "target.erlang",
         ProjectDependencyScope::Target(ProjectTarget::Js) => "target.js",
         ProjectDependencyScope::Target(ProjectTarget::Rust) => "target.rust",
-    }
-}
-
-/// Returns the deploy-plan spelling for an Erlang package adapter.
-///
-/// Inputs: typed Erlang adapter from project manifest parsing.
-/// Output: stable adapter label.
-/// Transformation: preserves the adapter contract without exposing enum names.
-fn erlang_adapter_name(adapter: ProjectErlangPackageAdapter) -> &'static str {
-    match adapter {
-        ProjectErlangPackageAdapter::Rebar3Compatible => "rebar3-compatible",
     }
 }
 
@@ -447,14 +446,13 @@ struct DeployPlanPackage {
 
 /// Build section of a deploy plan.
 ///
-/// Inputs: manifest build roots, artifact kind, and BEAM adapter.
+/// Inputs: manifest build roots and artifact kind.
 /// Output: JSON build contract.
 /// Transformation: converts filesystem-oriented source roots into strings.
 #[derive(Serialize)]
 struct DeployPlanBuild {
     artifact: &'static str,
     source_roots: Vec<String>,
-    erlang_package_adapter: Option<&'static str>,
 }
 
 /// Web asset section of a deploy plan.
@@ -508,7 +506,7 @@ struct DeployPlanDependency {
 ///
 /// Inputs: typed dependency source from project manifest parsing.
 /// Output: tagged JSON source payload.
-/// Transformation: preserves path, Git, Hex, npm, and Cargo-specific fields
+/// Transformation: preserves path, Git, npm, and Cargo-specific fields
 /// behind stable `kind` tags.
 #[derive(Serialize)]
 #[serde(tag = "kind")]
@@ -517,8 +515,6 @@ enum DeployPlanDependencySource {
     Path { path: String },
     #[serde(rename = "git")]
     Git { url: String, rev: String },
-    #[serde(rename = "hex")]
-    Hex { package: String, version: String },
     #[serde(rename = "npm")]
     Npm { package: String, version: String },
     #[serde(rename = "cargo")]

@@ -1,0 +1,77 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGFilterElement
+ */
+module std.js.Dom.SVGFilterElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFilterElement`** interface provides access to the properties of filter elements, as well as methods to manipulate them.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFilterElement)
+ */
+pub opaque type SVGFilterElement.
+
+/**
+ * The **`filterUnits`** read-only property of the SVGFilterElement interface reflects the filterUnits attribute of the given filter element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFilterElement/filterUnits)
+ */
+pub (value: SVGFilterElement) filter_units(): SVGAnimatedEnumeration.
+
+/**
+ * The **`height`** read-only property of the SVGFilterElement interface describes the vertical size of an SVG filter primitive as a SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFilterElement/height)
+ */
+pub (value: SVGFilterElement) height(): SVGAnimatedLength.
+
+/**
+ * The **`primitiveUnits`** read-only property of the SVGFilterElement interface reflects the primitiveUnits attribute of the given filter element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFilterElement/primitiveUnits)
+ */
+pub (value: SVGFilterElement) primitive_units(): SVGAnimatedEnumeration.
+
+/**
+ * The **`width`** read-only property of the SVGFilterElement interface describes the horizontal size of an SVG filter primitive as a SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFilterElement/width)
+ */
+pub (value: SVGFilterElement) width(): SVGAnimatedLength.
+
+/**
+ * The **`x`** read-only property of the SVGFilterElement interface describes the horizontal coordinate of the position of an SVG filter primitive as a SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFilterElement/x)
+ */
+pub (value: SVGFilterElement) x(): SVGAnimatedLength.
+
+/**
+ * The **`y`** read-only property of the SVGFilterElement interface describes the vertical coordinate of the position of an SVG filter primitive as a SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFilterElement/y)
+ */
+pub (value: SVGFilterElement) y(): SVGAnimatedLength.
+
+pub (value: SVGFilterElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SVGFilterElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

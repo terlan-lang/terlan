@@ -1,0 +1,29 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SpeechSynthesisUtteranceEventMap
+ */
+module std.js.Dom.SpeechSynthesisUtteranceEventMap.
+
+pub opaque type SpeechSynthesisUtteranceEventMap.
+
+pub (value: SpeechSynthesisUtteranceEventMap) boundary(): SpeechSynthesisEvent.
+
+pub (value: SpeechSynthesisUtteranceEventMap) end(): SpeechSynthesisEvent.
+
+pub (value: SpeechSynthesisUtteranceEventMap) error(): SpeechSynthesisErrorEvent.
+
+pub (value: SpeechSynthesisUtteranceEventMap) mark(): SpeechSynthesisEvent.
+
+pub (value: SpeechSynthesisUtteranceEventMap) pause(): SpeechSynthesisEvent.
+
+pub (value: SpeechSynthesisUtteranceEventMap) resume(): SpeechSynthesisEvent.
+
+pub (value: SpeechSynthesisUtteranceEventMap) start(): SpeechSynthesisEvent.

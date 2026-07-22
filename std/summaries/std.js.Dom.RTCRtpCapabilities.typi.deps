@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCRtpCapabilities
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=9422035010954643428
-interface_hash=15856008241570528272
-interface_doc_hash=15856008241570528272
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10591659602129796328
+interface_hash=13986011005713067527
+interface_doc_hash=13986011005713067527
 deps=0

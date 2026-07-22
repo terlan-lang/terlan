@@ -1,0 +1,15 @@
+[
+  {
+    "directory": ".",
+    "arguments": [
+      "clang++",
+      "--target=x86_64-unknown-linux-gnu",
+      "-std=c++17",
+      "-DTERLAN_CPP_EXTRACTOR_FIXTURE=1",
+      "-I.",
+      "-c",
+      "extractor_fixture.cpp"
+    ],
+    "file": "extractor_fixture.cpp"
+  }
+]

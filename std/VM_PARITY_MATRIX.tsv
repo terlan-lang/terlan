@@ -15,19 +15,24 @@
 # Format:
 # module_prefix<TAB>classification<TAB>owner<TAB>notes
 module_prefix	classification	owner	notes
+std.binary	vm-owned-value	terlan-vm	Binary descriptor values are inert compiler/VM-owned protocol contracts.
 std.collections	vm-owned-value	terlan-vm	Portable collection values must remain VM-owned values.
 std.core	vm-owned-value	terlan-vm	Core language values and traits must remain VM-owned portable contracts.
 std.data	native-boundary-capability	serde_json	Structured data helpers are Rust-owned NativeBoundary capabilities.
-std.db	native-boundary-capability	tokio-postgres	Database APIs are Rust-owned NativeBoundary capabilities.
+std.db	native-boundary-capability	postgres-native	Database APIs are Rust-owned NativeBoundary capabilities.
 std.encoding	native-boundary-capability	rust-crates	Encoding APIs use maintained Rust crates through NativeBoundary.
 std.http	native-boundary-capability	rust-http	Hyper/http/rustls-backed web APIs are runtime capabilities.
 std.io	native-boundary-capability	rust-std	Host IO is a NativeBoundary capability.
 std.js	js-target-surface	oxc-generated	Generated JavaScript and DOM bindings are JS-target surfaces.
-std.log	native-boundary-capability	rust-tracing	Logging is a host/runtime capability.
-std.native	native-boundary-capability	safenative	Explicit native modules expose resource handles through NativeBoundary.
+std.log.Log	native-boundary-capability	rust-tracing	Logging is a host/runtime capability.
+std.native	native-boundary-capability	native_boundary	Explicit native modules expose resource handles through NativeBoundary.
 std.net	native-boundary-capability	url	Network parsing helpers use maintained Rust crates.
+std.random	native-boundary-capability	rand	Random generation uses maintained Rust crates while generator state remains explicit.
+std.range	vm-owned-value	terlan-vm	Finite range values are portable VM-owned data contracts.
+std.regex	native-boundary-capability	regex	Regex compilation and matching use maintained Rust crates through NativeBoundary.
 std.sync	vm-runtime-surface	terlan-vm	Sync/resource abstractions are VM-owned runtime contracts.
 std.template	vm-owned-value	terlan-vm	Template values are compiler/VM-owned data contracts.
 std.test	tooling-only	terlc-test	Test assertions are tooling-owned release support.
 std.time	vm-owned-value	terlan-vm	Time value types are portable millisecond records with JS-compatible numeric payloads.
 std.vm	vm-runtime-surface	terlan-vm	VM process/runtime modules are source-facing VM contracts.
+std.wasm	wasm-target-surface	wasm-core	WebAssembly ABI aliases are target-surface contracts for wasm.core lowering.

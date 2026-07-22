@@ -1,15 +1,17 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
-
-use serde_json::json;
 
 use crate::commands::artifacts::{fingerprint, DependencyManifest};
 use crate::validation::phase_manifest::current_syntax_contract_identity;
 
+use super::ts_angular_facade::angular_namespace_facade_files;
+use super::ts_dom_manifest::{render_binding_manifest, render_skipped_manifest};
 use super::ts_dom_module_mapping::{
-    map_ts_declarations_to_dom_modules, DomMemberPlan, DomMethodPlan, DomModuleMapping,
-    DomModulePlan, DomParamPlan, DomPropertyPlan, DomSkippedDeclaration,
+    map_ts_declarations_to_dom_modules, terlan_type_name, DomMemberPlan, DomMethodPlan,
+    DomModuleMapping, DomModulePlan, DomParamPlan, DomPropertyPlan,
 };
+use super::ts_generated_artifact::{canonicalize, sha256_hex, GeneratedBindingFileHash};
 use super::ts_input_manifest::{load_ts_input_manifest, safe_repo_relative_path, TsInputManifest};
 use super::ts_parser_adapter::{parse_ts_declaration_file, TsDeclaration, TsDeclarationFile};
 
@@ -118,13 +120,39 @@ fn parse_manifest_inputs(
 fn declaration_with_namespace(declaration: TsDeclaration, namespace: &str) -> TsDeclaration {
     match declaration {
         TsDeclaration::Interface(mut interface) => {
-            interface.namespace = namespace.to_string();
+            interface.namespace = qualified_input_namespace(namespace, &interface.namespace);
             TsDeclaration::Interface(interface)
+        }
+        TsDeclaration::TypeAlias(mut alias) => {
+            alias.namespace = qualified_input_namespace(namespace, &alias.namespace);
+            TsDeclaration::TypeAlias(alias)
         }
         TsDeclaration::Unsupported(mut unsupported) => {
             unsupported.source = format!("{namespace}.{}", unsupported.source);
             TsDeclaration::Unsupported(unsupported)
         }
+    }
+}
+
+/// Combines manifest namespace and source-local namespace metadata.
+///
+/// Inputs:
+/// - `manifest_namespace`: namespace declared by the TypeScript input manifest.
+/// - `source_namespace`: namespace found inside the `.d.ts` source.
+///
+/// Output:
+/// - Manifest namespace alone for top-level declarations, or both namespaces
+///   joined for nested TypeScript namespace declarations.
+///
+/// Transformation:
+/// - Preserves Angular's real `ng` namespace under the generated Terlan package
+///   namespace instead of flattening or overwriting it.
+fn qualified_input_namespace(manifest_namespace: &str, source_namespace: &str) -> String {
+    match (manifest_namespace.is_empty(), source_namespace.is_empty()) {
+        (true, true) => String::new(),
+        (true, false) => source_namespace.to_string(),
+        (false, true) => manifest_namespace.to_string(),
+        (false, false) => format!("{manifest_namespace}.{source_namespace}"),
     }
 }
 
@@ -149,13 +177,28 @@ fn generated_files(
     mapping: &DomModuleMapping,
 ) -> Result<Vec<GeneratedBindingFile>, String> {
     let mut files = Vec::new();
+    let mut manifest_mapping = mapping.clone();
     for module in &mapping.modules {
-        let source = render_module_source(module, manifest, manifest_path);
+        let source = canonicalize(
+            &module.source_path,
+            render_module_source(module, manifest, manifest_path),
+        )?;
+        let interface = canonicalize(
+            &module.interface_path,
+            render_module_interface(module, manifest, manifest_path),
+        )?;
         let summary = render_module_summary(module, manifest, manifest_path);
-        let test = render_module_test(module, manifest, manifest_path);
+        let test = canonicalize(
+            &module.test_path,
+            render_module_test(module, manifest, manifest_path),
+        )?;
         files.push(GeneratedBindingFile {
             path: module.source_path.clone(),
             contents: source.clone(),
+        });
+        files.push(GeneratedBindingFile {
+            path: module.interface_path.clone(),
+            contents: interface,
         });
         files.push(GeneratedBindingFile {
             path: module.summary_path.clone(),
@@ -170,15 +213,107 @@ fn generated_files(
             contents: test,
         });
     }
+    if let Some(facade) = angular_namespace_facade_files(mapping) {
+        let source = render_facade_artifact(
+            &facade.plan,
+            manifest,
+            manifest_path,
+            "source",
+            &facade.source,
+        );
+        let source = canonicalize(&facade.plan.source_path, source)?;
+        let interface = render_facade_artifact(
+            &facade.plan,
+            manifest,
+            manifest_path,
+            "interface",
+            &facade.summary,
+        );
+        let interface = canonicalize(&facade.plan.interface_path, interface)?;
+        let summary = render_facade_artifact(
+            &facade.plan,
+            manifest,
+            manifest_path,
+            "summary",
+            &facade.summary,
+        );
+        let test =
+            render_facade_artifact(&facade.plan, manifest, manifest_path, "test", &facade.test);
+        let test = canonicalize(&facade.plan.test_path, test)?;
+        files.push(GeneratedBindingFile {
+            path: facade.plan.source_path.clone(),
+            contents: source.clone(),
+        });
+        files.push(GeneratedBindingFile {
+            path: facade.plan.interface_path.clone(),
+            contents: interface,
+        });
+        files.push(GeneratedBindingFile {
+            path: facade.plan.summary_path.clone(),
+            contents: summary.clone(),
+        });
+        files.push(GeneratedBindingFile {
+            path: format!("{}.deps", facade.plan.summary_path),
+            contents: render_module_summary_deps(&facade.plan, &source, &summary)?,
+        });
+        files.push(GeneratedBindingFile {
+            path: facade.plan.test_path.clone(),
+            contents: test,
+        });
+        manifest_mapping.modules.push(facade.plan);
+    }
+    let generated_file_hashes = generated_file_hashes(&files)?;
     files.push(GeneratedBindingFile {
         path: "std/js/manifests/std_js_bindings.json".to_string(),
-        contents: render_binding_manifest(manifest, manifest_path, mapping)?,
+        contents: render_binding_manifest(
+            manifest,
+            manifest_path,
+            &manifest_mapping,
+            &generated_file_hashes,
+        )?,
     });
     files.push(GeneratedBindingFile {
         path: "std/js/manifests/std_js_skipped.json".to_string(),
         contents: render_skipped_manifest(manifest, manifest_path, mapping)?,
     });
     Ok(files)
+}
+
+/// Computes stable content hashes for generated binding files.
+///
+/// Inputs:
+/// - `files`: generated files rendered before manifest emission.
+///
+/// Output:
+/// - One hash row per generated non-manifest file.
+///
+/// Transformation:
+/// - Sorts by path so JSON output is deterministic even if generation order
+///   changes later.
+fn generated_file_hashes(
+    files: &[GeneratedBindingFile],
+) -> Result<Vec<GeneratedBindingFileHash>, String> {
+    let mut hashes_by_path = BTreeMap::new();
+    for file in files
+        .iter()
+        .filter(|file| !file.path.starts_with("std/js/manifests/"))
+    {
+        let sha256 = sha256_hex(file.contents.as_bytes());
+        if let Some(existing) = hashes_by_path.get(&file.path) {
+            if existing != &sha256 {
+                return Err(format!(
+                    "ts_bindgen.generated_file_hash_conflict: `{}` was rendered with different contents",
+                    file.path
+                ));
+            }
+            continue;
+        }
+        hashes_by_path.insert(file.path.clone(), sha256);
+    }
+    Ok(hashes_by_path
+        .into_iter()
+        .map(|(path, sha256)| GeneratedBindingFileHash { path, sha256 })
+        .collect())
 }
 
 /// Renders generated summary dependency metadata for one module.
@@ -224,13 +359,22 @@ fn render_module_summary_deps(
 ///
 /// Transformation:
 /// - Emits a deterministic generated header, module declaration, opaque default
-///   type, and receiver signatures for planned members.
+///   type or type alias, and receiver signatures for planned members.
 fn render_module_source(
     module: &DomModulePlan,
     manifest: &TsInputManifest,
     manifest_path: &Path,
 ) -> String {
     render_module_contract(module, manifest, manifest_path, "source", true)
+}
+
+/// Renders generated interface text for one DOM module.
+fn render_module_interface(
+    module: &DomModulePlan,
+    manifest: &TsInputManifest,
+    manifest_path: &Path,
+) -> String {
+    render_module_contract(module, manifest, manifest_path, "interface", false)
 }
 
 /// Renders generated summary text for one DOM module.
@@ -265,20 +409,22 @@ fn render_module_summary(
 /// - Generated `.terl` test source text.
 ///
 /// Transformation:
-/// - Emits deterministic API-shape tests that compile once the generated
-///   `std.js` support types are available, without executing browser APIs.
+/// - Emits deterministic executable API-shape contract tests once the
+///   generated `std.js` support types are available. These prove binding
+///   surface availability without claiming browser behavior coverage.
 fn render_module_test(
     module: &DomModulePlan,
     manifest: &TsInputManifest,
-    _manifest_path: &Path,
+    manifest_path: &Path,
 ) -> String {
-    let mut output = render_module_header(manifest);
+    let mut output = render_module_header(module, manifest, manifest_path, "test");
     output.push_str(&format!("module {}Test.\n\n", module.module_path));
     output.push_str(&format!(
         "import type {}.{{{}}}.\n\n",
-        module.module_path, module.type_name
+        module.module_path,
+        render_type_name(&module.type_name, &[])
     ));
-    output.push_str("@test\npub generated_binding_surface_exists(): Bool ->\n    true.\n");
+    output.push_str("pub generated_binding_surface_contract(): Bool ->\n    true.\n");
     for member in &module.members {
         output.push('\n');
         output.push_str(&render_member_test(module, member));
@@ -304,24 +450,41 @@ fn render_module_test(
 fn render_module_contract(
     module: &DomModulePlan,
     manifest: &TsInputManifest,
-    _manifest_path: &Path,
-    _kind: &str,
+    manifest_path: &Path,
+    kind: &str,
     include_bodies: bool,
 ) -> String {
-    let mut output = render_module_header(manifest);
+    let mut output = render_module_header(module, manifest, manifest_path, kind);
     output.push_str(&format!("module {}.\n\n", module.module_path));
     if let Some(doc) = &module.doc {
         output.push_str(&render_doc_block(doc));
     }
-    output.push_str(&format!(
-        "pub opaque type {}.\n",
-        render_type_declaration_name(module)
-    ));
+    output.push_str(&render_type_declaration(module));
     for member in &module.members {
         output.push('\n');
         output.push_str(&render_member(module, member, include_bodies));
     }
     output
+}
+
+/// Renders the generated module's primary type declaration.
+///
+/// Inputs:
+/// - `module`: generated TypeScript binding module plan.
+///
+/// Output:
+/// - Terlan opaque type declaration for interfaces or `pub type` alias for
+///   TypeScript aliases.
+///
+/// Transformation:
+/// - Keeps namespace type aliases first-class so real declaration files such as
+///   Angular's `ng` namespace can be generated and checked.
+fn render_type_declaration(module: &DomModulePlan) -> String {
+    let type_name = render_type_declaration_name(module);
+    match &module.alias_target {
+        Some(alias_target) => format!("pub type {type_name} =\n    {alias_target}.\n"),
+        None => format!("pub opaque type {type_name}.\n"),
+    }
 }
 
 /// Renders the generated ownership header for one module artifact.
@@ -335,13 +498,61 @@ fn render_module_contract(
 /// Transformation:
 /// - Marks generated files without duplicating source provenance that already
 ///   lives in checked manifests and summary manifests.
-fn render_module_header(_manifest: &TsInputManifest) -> String {
+fn render_module_header(
+    module: &DomModulePlan,
+    manifest: &TsInputManifest,
+    manifest_path: &Path,
+    kind: &str,
+) -> String {
     let mut output = String::new();
     output.push_str("/**\n");
     output.push_str(" * @generated true\n");
     output.push_str(" * @do-not-edit true\n");
+    output.push_str(&format!(" * @generator {}\n", manifest.generator.name));
+    output.push_str(&format!(
+        " * @generator-version {}\n",
+        manifest.generator.version
+    ));
+    output.push_str(&format!(
+        " * @generator-profile {}\n",
+        manifest.generator.profile
+    ));
+    output.push_str(&format!(" * @artifact-kind {kind}\n"));
+    output.push_str(&format!(" * @input-manifest {}\n", manifest_path.display()));
+    output.push_str(&format!(
+        " * @source-package {}@{}\n",
+        manifest.source_package.name, manifest.source_package.version
+    ));
+    output.push_str(&format!(
+        " * @source-input {}\n",
+        manifest
+            .inputs
+            .iter()
+            .map(|input| input.path.as_str())
+            .collect::<Vec<_>>()
+            .join(",")
+    ));
+    output.push_str(&format!(
+        " * @source-interface {}\n",
+        module.source_interface
+    ));
     output.push_str(" */\n\n");
     output
+}
+
+/// Prepends the shared provenance header to a specialized generated facade.
+fn render_facade_artifact(
+    module: &DomModulePlan,
+    manifest: &TsInputManifest,
+    manifest_path: &Path,
+    kind: &str,
+    body: &str,
+) -> String {
+    format!(
+        "{}{}",
+        render_module_header(module, manifest, manifest_path, kind),
+        body
+    )
 }
 
 /// Renders one DOM module member declaration.
@@ -492,11 +703,12 @@ fn render_type_reference_name(module: &DomModulePlan) -> String {
 /// Transformation:
 /// - Applies Terlan generic syntax without interpreting TypeScript constraints
 ///   or defaults.
-fn render_type_name(name: &str, type_params: &[String]) -> String {
+pub(super) fn render_type_name(name: &str, type_params: &[String]) -> String {
+    let normalized_name = terlan_type_name(name);
     if type_params.is_empty() {
-        name.to_string()
+        normalized_name
     } else {
-        format!("{name}[{}]", type_params.join(", "))
+        format!("{normalized_name}[{}]", type_params.join(", "))
     }
 }
 
@@ -660,125 +872,6 @@ fn render_params(params: &[DomParamPlan]) -> String {
         .map(|param| format!("{}: {}", param.terlan_name, param.terlan_type))
         .collect::<Vec<_>>()
         .join(", ")
-}
-
-/// Renders the generated binding manifest.
-///
-/// Inputs:
-/// - `manifest`: validated TypeScript input manifest.
-/// - `manifest_path`: user-supplied manifest path used for provenance.
-/// - `mapping`: DOM module mapping result.
-///
-/// Output:
-/// - Pretty JSON generated binding manifest.
-///
-/// Transformation:
-/// - Records pinned inputs, generated outputs, target profile, generator
-///   version, and skipped declarations in the roadmap-defined shape.
-fn render_binding_manifest(
-    manifest: &TsInputManifest,
-    manifest_path: &Path,
-    mapping: &DomModuleMapping,
-) -> Result<String, String> {
-    let outputs = mapping
-        .modules
-        .iter()
-        .map(|module| {
-            json!({
-                "module": module.module_path,
-                "source": module.source_path,
-                "summary": module.summary_path,
-                "test": module.test_path,
-            })
-        })
-        .collect::<Vec<_>>();
-    let skipped = mapping
-        .skipped
-        .iter()
-        .map(skipped_manifest_entry)
-        .collect::<Vec<_>>();
-    let inputs = manifest
-        .inputs
-        .iter()
-        .map(|input| {
-            json!({
-                "package": manifest.source_package.name,
-                "package_version": manifest.source_package.version,
-                "path": input.path,
-                "sha256": input.sha256,
-                "kind": input.kind,
-                "namespace": input.namespace,
-            })
-        })
-        .collect::<Vec<_>>();
-
-    serde_json::to_string_pretty(&json!({
-        "schema": "terlan.std.js.bindings.v1",
-        "generator": manifest.generator.name,
-        "generator_version": manifest.generator.version,
-        "generator_profile": manifest.generator.profile,
-        "input_manifest": manifest_path.display().to_string(),
-        "target_profile": manifest.target_profile,
-        "inputs": inputs,
-        "outputs": outputs,
-        "skipped_manifest": "std/js/manifests/std_js_skipped.json",
-        "skipped": skipped,
-    }))
-    .map(|json| format!("{json}\n"))
-    .map_err(|err| format!("ts_bindgen.binding_manifest_render_failed: {err}"))
-}
-
-/// Renders the skipped-declarations manifest.
-///
-/// Inputs:
-/// - `manifest`: validated TypeScript input manifest.
-/// - `manifest_path`: user-supplied manifest path used for provenance.
-/// - `mapping`: DOM module mapping result.
-///
-/// Output:
-/// - Pretty JSON skipped-declarations manifest.
-///
-/// Transformation:
-/// - Emits a standalone review artifact for skipped declarations even when the
-///   current fixture has no skipped declarations.
-fn render_skipped_manifest(
-    manifest: &TsInputManifest,
-    manifest_path: &Path,
-    mapping: &DomModuleMapping,
-) -> Result<String, String> {
-    let skipped = mapping
-        .skipped
-        .iter()
-        .map(skipped_manifest_entry)
-        .collect::<Vec<_>>();
-    serde_json::to_string_pretty(&json!({
-        "schema": "terlan.std.js.skipped-declarations.v1",
-        "generator": manifest.generator.name,
-        "generator_version": manifest.generator.version,
-        "input_manifest": manifest_path.display().to_string(),
-        "target_profile": manifest.target_profile,
-        "skipped": skipped,
-    }))
-    .map(|json| format!("{json}\n"))
-    .map_err(|err| format!("ts_bindgen.skipped_manifest_render_failed: {err}"))
-}
-
-/// Converts a skipped declaration into JSON.
-///
-/// Inputs:
-/// - `skipped`: skipped DOM declaration diagnostic.
-///
-/// Output:
-/// - JSON value suitable for the generated binding manifest.
-///
-/// Transformation:
-/// - Preserves source, reason, and detail fields exactly.
-fn skipped_manifest_entry(skipped: &DomSkippedDeclaration) -> serde_json::Value {
-    json!({
-        "source": skipped.source,
-        "reason": skipped.reason,
-        "detail": skipped.detail,
-    })
 }
 
 /// Writes generated files into an empty output directory.

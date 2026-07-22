@@ -14,7 +14,7 @@ module std.sync.Resource.
 /// while leaving runtime delivery and replay outside this module.
 
 pub type Change[T] =
-    {Atom["change"], kind : ChangeKind, value : T}.
+    {Atom["change"], kind: ChangeKind, value: T}.
 
 /// ChangeKind represents the portable model-change category carrier.
 ///
@@ -87,6 +87,7 @@ pub inserted(value: T): Change[T].
 /// Output: `true` when the event kind is `Deleted`.
 /// Transformation: compares the event kind against the portable singleton.
 
+@pure
 pub is_deleted(change: Change[T]): Bool.
 
 /// Returns whether the event is an insertion.
@@ -95,6 +96,7 @@ pub is_deleted(change: Change[T]): Bool.
 /// Output: `true` when the event kind is `Inserted`.
 /// Transformation: compares the event kind against the portable singleton.
 
+@pure
 pub is_inserted(change: Change[T]): Bool.
 
 /// Returns whether the event is an update.
@@ -103,6 +105,7 @@ pub is_inserted(change: Change[T]): Bool.
 /// Output: `true` when the event kind is `Updated`.
 /// Transformation: compares the event kind against the portable singleton.
 
+@pure
 pub is_updated(change: Change[T]): Bool.
 
 /// Returns the change kind.
@@ -112,6 +115,7 @@ pub is_updated(change: Change[T]): Bool.
 /// Transformation: pattern matches the portable change tuple and returns the
 /// classification field.
 
+@pure
 pub kind(change: Change[T]): ChangeKind.
 
 /// Builds an updated change event.
@@ -129,4 +133,5 @@ pub updated(value: T): Change[T].
 /// Transformation: pattern matches the portable change tuple and returns the
 /// typed value field.
 
+@pure
 pub value(change: Change[T]): T.

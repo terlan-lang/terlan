@@ -1,0 +1,31 @@
+module compiler_big_e_parity.
+
+import std.core.Option.{None, Option, Some}.
+import std.vm.Message.
+import type std.vm.Message.{Message}.
+
+pub struct R {
+    a: Int,
+    b: Int
+}.
+
+pub f(record: R): Option[Int] ->
+    let selected = Message.wrap[Int](record.b);
+    selected_value(record, selected).
+
+selected_value(record: R, message: Message[Int]): Option[Int] ->
+    let received = Message.unwrap[Int](message);
+    let extracted = record.a;
+    let rec0 = extracted + extracted;
+    case received == record.b {
+        true -> Some(rec0);
+        false -> None
+    }.
+
+pub miss(record: R): Option[Int] ->
+    let _message = Message.wrap[Int](record.b + 1);
+    None.
+
+pub run(): Bool ->
+    let record = R(a = 21, b = 7);
+    f(record) == Some(42) and miss(record) == None.

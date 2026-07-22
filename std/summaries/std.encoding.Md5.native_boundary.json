@@ -1,0 +1,13 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "digest",
+      "operation": "std.encoding.md5.digest"
+    }
+  ],
+  "module": "std_encoding_md5_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.encoding.Md5"
+}

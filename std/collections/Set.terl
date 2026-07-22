@@ -3,12 +3,12 @@
  *
  * `std.collections.Set` is the portable unique-value collection surface.
  */
-
 module std.collections.Set.
 
+import std.collections.Iterator.
+import std.core.Unit.
+
 import type std.collections.List.
-import std.core.Unit.{Unit}.
-import std.collections.Iterator.{Iterator}.
 
 /**
  * Set represents a collection of unique values.
@@ -44,7 +44,7 @@ pub constructor Set[T] {
  */
 @compiler.intrinsic
 pub new[T](): Set[T] ->
-    [].
+    Set().
 
 /**
  * Creates a set from list values.
@@ -63,13 +63,13 @@ pub from_list[T](values: List[T]): Set[T] ->
  * Returns whether a set contains no values.
  *
  * Input: one `Set[T]`.
- * Output: `true` when the set is empty; otherwise `false`.
+ * Output: `true` when the set is empty;
+ * otherwise `false`.
  * Transformation: lowers through the compiler-owned `core.set.is_empty`
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (set: Set[T]) is_empty(): Bool ->
-    true.
+pub (set: Set[T]) is_empty(): Bool -> true.
 
 /**
  * Returns the number of unique values in a set.
@@ -80,20 +80,19 @@ pub (set: Set[T]) is_empty(): Bool ->
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (set: Set[T]) size(): Int ->
-    0.
+pub (set: Set[T]) size(): Int -> 0.
 
 /**
  * Returns whether a value exists in a set.
  *
  * Input: one `Set[T]` receiver and one value of type `T`.
- * Output: `true` when the value exists; otherwise `false`.
+ * Output: `true` when the value exists;
+ * otherwise `false`.
  * Transformation: lowers through the compiler-owned `core.set.contains`
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (set: Set[T]) contains(value: T): Bool ->
-    false.
+pub (set: Set[T]) contains(value: T): Bool -> false.
 
 /**
  * Creates an iterator over set values.

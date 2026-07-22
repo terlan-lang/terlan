@@ -5,7 +5,6 @@
  * Terlan HTTP servers. Runtime certificate loading, ACME, rustls integration,
  * and certificate cache state remain target-owned implementation details.
  */
-
 module std.http.Tls.
 
 import type std.collections.List.
@@ -19,8 +18,7 @@ import type std.core.Option.
  * Transformation: gives configuration code a stable typed mode without
  * exposing ACME provider internals.
  */
-pub type Auto =
-    Atom["auto"].
+pub type Auto.
 
 /**
  * Manual represents explicit certificate and key file configuration.
@@ -30,8 +28,7 @@ pub type Auto =
  * Transformation: gives configuration code a stable typed mode for
  * user-managed certificate files.
  */
-pub type Manual =
-    Atom["manual"].
+pub type Manual.
 
 /**
  * Internal represents local/internal development certificate management.
@@ -41,8 +38,7 @@ pub type Manual =
  * Transformation: gives configuration code a stable typed mode for local
  * trust roots and internal CAs.
  */
-pub type Internal =
-    Atom["internal"].
+pub type Internal.
 
 /**
  * Mode represents the supported TLS configuration modes.
@@ -52,10 +48,7 @@ pub type Internal =
  * Transformation: narrows server TLS configuration to the roadmap-approved
  * modes before target-specific validation runs.
  */
-pub type Mode =
-      Auto
-    | Manual
-    | Internal.
+pub type Mode = Auto | Manual | Internal.
 
 /**
  * LetsEncrypt represents the Let's Encrypt ACME provider.
@@ -65,8 +58,7 @@ pub type Mode =
  * Transformation: records provider intent without binding source code to one
  * ACME client implementation.
  */
-pub type LetsEncrypt =
-    Atom["letsencrypt"].
+pub type LetsEncrypt = Atom["letsencrypt"].
 
 /**
  * ZeroSsl represents the ZeroSSL ACME provider.
@@ -76,8 +68,7 @@ pub type LetsEncrypt =
  * Transformation: records fallback provider intent without binding source
  * code to one ACME client implementation.
  */
-pub type ZeroSsl =
-    Atom["zerossl"].
+pub type ZeroSsl = Atom["zerossl"].
 
 /**
  * Provider represents the public ACME providers supported by 0.0.5 planning.
@@ -87,9 +78,7 @@ pub type ZeroSsl =
  * Transformation: narrows provider names before manifest and runtime
  * validation choose the concrete Rust ACME integration.
  */
-pub type Provider =
-      LetsEncrypt
-    | ZeroSsl.
+pub type Provider = LetsEncrypt | ZeroSsl.
 
 /**
  * Config represents declarative HTTP TLS configuration.
@@ -101,19 +90,20 @@ pub type Provider =
  * validation can enforce mode-specific requirements without changing the
  * source-visible TLS model.
  */
-pub type Config = {
-    mode: Mode,
-    domains: List[String],
-    email: Option[String],
-    primary_provider: Option[Provider],
-    fallback_provider: Option[Provider],
-    cert: Option[String],
-    key: Option[String],
-    passphrase_env: Option[String],
-    ca: Option[String],
-    server_name: Option[String],
-    trust_local: Bool
-}.
+pub type Config =
+      {
+          mode: Mode,
+          domains: List[String],
+          email: Option[String],
+          primary_provider: Option[Provider],
+          fallback_provider: Option[Provider],
+          cert: Option[String],
+          key: Option[String],
+          passphrase_env: Option[String],
+          ca: Option[String],
+          server_name: Option[String],
+          trust_local: Bool
+      }.
 
 /**
  * Builds automatic public TLS configuration.

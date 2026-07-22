@@ -1,8 +1,8 @@
 module=std.js.Dom.PeriodicWave
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12402585115990343880
-interface_hash=12402585115990343880
-interface_doc_hash=12402585115990343880
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6988281323772893514
+interface_hash=17074314600570838487
+interface_doc_hash=17074314600570838487
 deps=0

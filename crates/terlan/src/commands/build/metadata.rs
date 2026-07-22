@@ -1,54 +1,11 @@
+#![allow(dead_code)]
+
 use std::path::PathBuf;
 
 use serde::Serialize;
 
 use super::wasm_model::{BuildWasiTargetMetadata, BuildWasmTargetMetadata};
-use super::{
-    package_layout::source_package_module_prefix, project_manifest, BUILD_PACKAGE_METADATA_SCHEMA,
-};
-
-/// Serializable source-to-artifact debug map for one build invocation.
-///
-/// Inputs:
-/// - Produced from successfully compiled build module entries.
-///
-/// Output:
-/// - JSON-ready metadata written to the build output directory.
-///
-/// Transformation:
-/// - Groups backend artifact paths under a stable schema so debuggers,
-///   release tools, and future backend runners can trace generated artifacts
-///   back to Terlan source and CoreIR identity.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct BuildDebugMap {
-    pub(super) schema: &'static str,
-    pub(super) target: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) project: Option<BuildDebugProject>,
-    pub(super) modules: Vec<BuildDebugModuleEntry>,
-}
-
-/// Serializable project metadata for a manifest-backed build invocation.
-///
-/// Inputs:
-/// - Produced from parsed `terlan.toml` metadata.
-///
-/// Output:
-/// - Optional project entry inside `terlan-debug-map.json`.
-///
-/// Transformation:
-/// - Records package identity, manifest source roots, and selected artifact
-///   kind so project-level build artifacts can be traced back to package
-///   metadata as well as source files.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct BuildDebugProject {
-    pub(super) package: String,
-    pub(super) version: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) namespace: Option<String>,
-    pub(super) source_roots: Vec<String>,
-    pub(super) artifact: String,
-}
+use super::{project_manifest, BUILD_PACKAGE_METADATA_SCHEMA};
 
 /// Serializable package/build metadata for a manifest-backed build.
 ///
@@ -68,11 +25,11 @@ pub(super) struct BuildPackageMetadata {
     pub(super) target: &'static str,
     pub(super) package: BuildPackageIdentity,
     pub(super) artifact: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) executable: Option<BuildPackageExecutable>,
     pub(super) source_roots: Vec<String>,
     pub(super) dependencies: Vec<BuildPackageDependency>,
     pub(super) adapters: Vec<BuildPackageAdapter>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) executable: Option<BuildPackageExecutable>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) wasm: Option<BuildWasmTargetMetadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -98,44 +55,16 @@ pub(super) struct BuildPackageIdentity {
     pub(super) version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) namespace: Option<String>,
-}
-
-/// Serializable single executable artifact metadata.
-///
-/// Inputs:
-/// - Produced from the selected package artifact mode and package identity.
-///
-/// Output:
-/// - Executable artifact entry inside `terlan-package-build.json`.
-///
-/// Transformation:
-/// - Records the user-facing executable path and runtime expectation while
-///   keeping backend `.erl` and `.beam` files classified as intermediate
-///   compiler artifacts.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct BuildPackageExecutable {
-    pub(super) mode: String,
-    pub(super) path: String,
-    pub(super) runtime: String,
-    pub(super) entrypoint: BuildPackageEntrypoint,
-}
-
-/// Serializable entrypoint metadata inside executable build metadata.
-///
-/// Inputs:
-/// - Produced from the manifest package name and selected artifact mode.
-///
-/// Output:
-/// - Stable package entrypoint module/function/arity payload.
-///
-/// Transformation:
-/// - Converts the package-root convention into metadata consumed by the
-///   launcher writer and future release/debug tools.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct BuildPackageEntrypoint {
-    pub(super) module: String,
-    pub(super) function: String,
-    pub(super) arity: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) license: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) repository: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) compiler: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) links: Vec<String>,
 }
 
 /// Serializable dependency metadata inside build metadata.
@@ -185,6 +114,26 @@ pub(super) struct BuildPackageAdapter {
     pub(super) adapter: String,
 }
 
+/// Serializable executable package metadata.
+///
+/// Inputs:
+/// - Produced by executable artifact builders after launcher emission.
+///
+/// Output:
+/// - Stable launcher, native image, VM runtime, and native worker paths
+///   relative to the package build output directory.
+///
+/// Transformation:
+/// - Keeps package consumers independent from target-specific output layout
+///   by recording every executable member selected during build.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(super) struct BuildPackageExecutable {
+    pub(super) path: String,
+    pub(super) image: String,
+    pub(super) runtime: String,
+    pub(super) native_worker: String,
+}
+
 /// Serializable native runtime metadata inside build metadata.
 ///
 /// Inputs:
@@ -202,6 +151,17 @@ pub(super) struct BuildPackageNative {
     pub(super) rust: Option<BuildPackageRustNative>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) rust_dependencies: Vec<BuildPackageRustNativeDependency>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) artifact_environment: Vec<BuildPackageArtifactEnvironment>,
+}
+
+/// Serializable runtime environment binding supplied by a cached artifact.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(super) struct BuildPackageArtifactEnvironment {
+    /// Environment variable consumed by the packaged runtime.
+    pub(super) name: String,
+    /// Absolute verified executable path in the immutable artifact cache.
+    pub(super) path: String,
 }
 
 /// Serializable Rust native helper metadata.
@@ -225,6 +185,8 @@ pub(super) struct BuildPackageRustNative {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) features: Vec<String>,
     pub(super) package_dir: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) target_dir: Option<String>,
 }
 
 /// Serializable Rust native helper metadata for a local dependency.
@@ -265,6 +227,7 @@ pub(super) struct BuildPackageRustNativeDependency {
 pub(super) struct ProjectBuildRoots {
     pub(super) source_roots: Vec<ProjectSourceRoot>,
     pub(super) native_rust_dependencies: Vec<ProjectNativeRustDependency>,
+    pub(super) native_artifact_environment: Vec<(String, PathBuf)>,
 }
 
 /// Resolved source root with package identity.
@@ -302,85 +265,23 @@ pub(super) struct ProjectNativeRustDependency {
     pub(super) package: project_manifest::ProjectPackage,
     pub(super) package_dir: PathBuf,
     pub(super) native: project_manifest::ProjectNativeRust,
+    pub(super) origin: ProjectDependencyOrigin,
 }
 
-/// Serializable debug metadata for one compiled module.
-///
-/// Inputs:
-/// - Produced after Erlang source and BEAM artifact generation succeeds.
-///
-/// Output:
-/// - One module entry inside `terlan-debug-map.json`.
-///
-/// Transformation:
-/// - Records the source path, CoreIR hash, generated Erlang source path, and
-///   generated BEAM path for source-to-artifact debugging.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct BuildDebugModuleEntry {
-    pub(super) module: String,
-    pub(super) source_path: String,
-    pub(super) core_ir_hash: u64,
-    pub(super) erl_path: String,
-    pub(super) beam_path: String,
+/// Source kind used to resolve one Terlan package dependency.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum ProjectDependencyOrigin {
+    Path,
+    Git,
 }
 
-/// Built module artifact plus entrypoint-relevant CoreIR summary.
-///
-/// Inputs:
-/// - Produced after one source file has compiled to Erlang and BEAM artifacts.
-///
-/// Output:
-/// - Debug-map entry plus public/private function summaries used by package
-///   executable validation.
-///
-/// Transformation:
-/// - Keeps executable entrypoint validation on CoreIR facts without adding
-///   function signatures to the public debug-map JSON schema.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct BuildModuleArtifact {
-    pub(super) debug_entry: BuildDebugModuleEntry,
-    pub(super) functions: Vec<BuildEntrypointFunction>,
-}
-
-/// Entrypoint-relevant function summary for one built module.
-///
-/// Inputs:
-/// - Extracted from `CoreFunction` after the formal compiler path succeeds.
-///
-/// Output:
-/// - Minimal name/arity/visibility/return-type payload for launcher contract
-///   validation.
-///
-/// Transformation:
-/// - Projects CoreIR function declarations into a build-local summary so the
-///   executable gate does not depend on backend syntax.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct BuildEntrypointFunction {
-    pub(super) name: String,
-    pub(super) arity: usize,
-    pub(super) public: bool,
-    pub(super) return_type: String,
-}
-
-/// Validated executable entrypoint for a package build.
-///
-/// Inputs:
-/// - Produced by checking manifest-derived executable metadata against built
-///   module CoreIR summaries.
-///
-/// Output:
-/// - Terlan module/function identity and backend Erlang module/function names.
-///
-/// Transformation:
-/// - Bridges the target-neutral package entrypoint convention to the concrete
-///   BEAM invocation owned by the `beam-thin` launcher.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct BuildEntrypoint {
-    pub(super) module: String,
-    pub(super) function: String,
-    pub(super) arity: usize,
-    pub(super) erlang_module: String,
-    pub(super) erlang_function: String,
+impl ProjectDependencyOrigin {
+    pub(super) fn diagnostic_name(self) -> &'static str {
+        match self {
+            Self::Path => "local dependency",
+            Self::Git => "Git dependency",
+        }
+    }
 }
 
 /// Builds deterministic package metadata from a parsed project manifest.
@@ -398,6 +299,16 @@ pub(super) fn build_package_metadata(
     project_dir: &std::path::Path,
     manifest: &project_manifest::ProjectManifest,
     native_rust_dependencies: &[ProjectNativeRustDependency],
+) -> BuildPackageMetadata {
+    build_package_metadata_with_artifacts(project_dir, manifest, native_rust_dependencies, &[])
+}
+
+/// Builds package metadata including prebuilt target artifact bindings.
+pub(super) fn build_package_metadata_with_artifacts(
+    project_dir: &std::path::Path,
+    manifest: &project_manifest::ProjectManifest,
+    native_rust_dependencies: &[ProjectNativeRustDependency],
+    native_artifact_environment: &[(String, PathBuf)],
 ) -> BuildPackageMetadata {
     let mut dependencies = manifest
         .dependencies
@@ -425,20 +336,54 @@ pub(super) fn build_package_metadata(
 
     BuildPackageMetadata {
         schema: BUILD_PACKAGE_METADATA_SCHEMA,
-        target: "erlang",
+        target: build_package_target_metadata(manifest.artifact),
         package: BuildPackageIdentity {
             name: manifest.package.name.clone(),
             version: manifest.package.version.clone(),
             namespace: manifest.package.namespace.clone(),
+            description: manifest.package.description.clone(),
+            license: manifest.package.license.clone(),
+            repository: manifest.package.repository.clone(),
+            compiler: manifest.package.compiler.clone(),
+            links: manifest.package.links.clone(),
         },
         artifact: manifest.artifact.as_str().to_string(),
-        executable: build_package_executable_metadata(manifest),
         source_roots: manifest.source_roots.clone(),
         dependencies,
         adapters: build_package_adapter_metadata(manifest),
+        executable: None,
         wasm: build_wasm_target_metadata(manifest),
         wasi: build_wasi_target_metadata(manifest),
-        native: build_package_native_metadata(project_dir, manifest, native_rust_dependencies),
+        native: build_package_native_metadata(
+            project_dir,
+            manifest,
+            native_rust_dependencies,
+            native_artifact_environment,
+        ),
+    }
+}
+
+/// Returns the package metadata target family for one manifest artifact.
+///
+/// Inputs:
+/// - `artifact`: parsed manifest artifact kind.
+///
+/// Output:
+/// - Stable target-family spelling written into `terlan-package-build.json`.
+///
+/// Transformation:
+/// - Keeps the default VM artifact in the Terlan VM target family while
+///   preserving reserved future target metadata.
+fn build_package_target_metadata(artifact: project_manifest::ProjectArtifactKind) -> &'static str {
+    match artifact {
+        project_manifest::ProjectArtifactKind::TerlanVm => "terlan-vm",
+        project_manifest::ProjectArtifactKind::Library => "library",
+        project_manifest::ProjectArtifactKind::WasmCore
+        | project_manifest::ProjectArtifactKind::WasmBrowser
+        | project_manifest::ProjectArtifactKind::WasmComponent => "wasm",
+        project_manifest::ProjectArtifactKind::WasiCli
+        | project_manifest::ProjectArtifactKind::WasiHttp
+        | project_manifest::ProjectArtifactKind::WasiWorker => "wasi",
     }
 }
 
@@ -494,42 +439,6 @@ fn build_wasi_target_metadata(
         })
 }
 
-/// Builds deterministic executable artifact metadata when the artifact is runnable.
-///
-/// Inputs:
-/// - `manifest`: parsed root project manifest.
-///
-/// Output:
-/// - Serializable executable artifact metadata for runnable artifact modes.
-/// - `None` for library artifact modes.
-///
-/// Transformation:
-/// - Converts `beam-thin` into launcher metadata and treats `library` as a
-///   non-executable package artifact.
-fn build_package_executable_metadata(
-    manifest: &project_manifest::ProjectManifest,
-) -> Option<BuildPackageExecutable> {
-    match manifest.artifact {
-        project_manifest::ProjectArtifactKind::BeamThin => Some(BuildPackageExecutable {
-            mode: "beam-thin".to_string(),
-            path: format!("bin/{}", manifest.package.name),
-            runtime: "external-erts".to_string(),
-            entrypoint: BuildPackageEntrypoint {
-                module: format!("{}.Main", source_package_module_prefix(&manifest.package)),
-                function: "main".to_string(),
-                arity: 0,
-            },
-        }),
-        project_manifest::ProjectArtifactKind::Library
-        | project_manifest::ProjectArtifactKind::WasmCore
-        | project_manifest::ProjectArtifactKind::WasmBrowser
-        | project_manifest::ProjectArtifactKind::WasmComponent
-        | project_manifest::ProjectArtifactKind::WasiCli
-        | project_manifest::ProjectArtifactKind::WasiHttp
-        | project_manifest::ProjectArtifactKind::WasiWorker => None,
-    }
-}
-
 /// Builds deterministic target package-adapter metadata.
 ///
 /// Inputs:
@@ -542,16 +451,9 @@ fn build_package_executable_metadata(
 /// - Preserves supported target adapter reservations as metadata only; it does
 ///   not generate Rebar3 files, package-manager manifests, or release configs.
 fn build_package_adapter_metadata(
-    manifest: &project_manifest::ProjectManifest,
+    _manifest: &project_manifest::ProjectManifest,
 ) -> Vec<BuildPackageAdapter> {
-    manifest
-        .erlang_package_adapter
-        .map(|adapter| BuildPackageAdapter {
-            target: "erlang".to_string(),
-            adapter: adapter.as_str().to_string(),
-        })
-        .into_iter()
-        .collect()
+    Vec::new()
 }
 
 /// Builds deterministic native runtime metadata.
@@ -569,6 +471,7 @@ fn build_package_native_metadata(
     project_dir: &std::path::Path,
     manifest: &project_manifest::ProjectManifest,
     native_rust_dependencies: &[ProjectNativeRustDependency],
+    native_artifact_environment: &[(String, PathBuf)],
 ) -> Option<BuildPackageNative> {
     let rust = manifest
         .native_rust
@@ -598,10 +501,25 @@ fn build_package_native_metadata(
             ))
     });
 
-    (rust.is_some() || !rust_dependencies.is_empty()).then_some(BuildPackageNative {
-        rust,
-        rust_dependencies,
-    })
+    let mut artifact_environment = native_artifact_environment
+        .iter()
+        .map(|(name, path)| BuildPackageArtifactEnvironment {
+            name: name.clone(),
+            path: path.display().to_string(),
+        })
+        .collect::<Vec<_>>();
+    artifact_environment.sort_by(|left, right| {
+        (left.name.as_str(), left.path.as_str()).cmp(&(right.name.as_str(), right.path.as_str()))
+    });
+    artifact_environment.dedup();
+
+    (rust.is_some() || !rust_dependencies.is_empty() || !artifact_environment.is_empty()).then_some(
+        BuildPackageNative {
+            rust,
+            rust_dependencies,
+            artifact_environment,
+        },
+    )
 }
 
 /// Converts parsed Rust native metadata into package build metadata.
@@ -627,7 +545,18 @@ fn build_package_rust_native(
         helper_env: native.helper_env.clone(),
         features: native.features.clone(),
         package_dir: package_dir.display().to_string(),
+        target_dir: git_cache_native_target_dir(package_dir).map(|path| path.display().to_string()),
     }
+}
+
+/// Keeps Cargo artifacts outside immutable Git source checkouts.
+fn git_cache_native_target_dir(package_dir: &std::path::Path) -> Option<PathBuf> {
+    let git_dir = package_dir.parent()?;
+    if git_dir.file_name().and_then(|name| name.to_str()) != Some("git") {
+        return None;
+    }
+    let revision = package_dir.file_name()?;
+    Some(git_dir.parent()?.join("native-targets").join(revision))
 }
 
 /// Builds one deterministic dependency metadata entry.
@@ -667,19 +596,6 @@ fn build_package_dependency_metadata(
             version: None,
             features: None,
         },
-        project_manifest::ProjectDependencySource::Hex { package, version } => {
-            BuildPackageDependency {
-                alias: dependency.alias.clone(),
-                scope: package_dependency_scope(&dependency.scope).to_string(),
-                source: "hex".to_string(),
-                path: None,
-                url: None,
-                rev: None,
-                package: Some(package.clone()),
-                version: Some(version.clone()),
-                features: None,
-            }
-        }
         project_manifest::ProjectDependencySource::Npm { package, version } => {
             BuildPackageDependency {
                 alias: dependency.alias.clone(),
@@ -725,9 +641,6 @@ fn build_package_dependency_metadata(
 fn package_dependency_scope(scope: &project_manifest::ProjectDependencyScope) -> &'static str {
     match scope {
         project_manifest::ProjectDependencyScope::Local => "local",
-        project_manifest::ProjectDependencyScope::Target(
-            project_manifest::ProjectTarget::Erlang,
-        ) => "target.erlang",
         project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Js) => {
             "target.js"
         }

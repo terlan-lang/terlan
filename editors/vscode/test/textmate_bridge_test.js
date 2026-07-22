@@ -100,6 +100,24 @@ function keywordPattern(grammar, scope) {
 }
 
 /**
+ * Returns the TextMate operator pattern.
+ *
+ * @param {*} grammar Parsed TextMate grammar JSON.
+ * @returns {*} TextMate operator pattern object.
+ *
+ * @description
+ * Finds the operator pattern used by the temporary VS Code bridge so tests can
+ * keep comprehension and pipe operator highlighting aligned with Tree-sitter.
+ */
+function operatorPattern(grammar) {
+  const pattern = grammar.repository.operators.patterns.find(
+    (candidate) => candidate.name === "keyword.operator.terlan"
+  );
+  assert.ok(pattern, "missing TextMate operator scope");
+  return pattern;
+}
+
+/**
  * Verifies TextMate keyword coverage follows Tree-sitter keywords.
  *
  * @returns {void}
@@ -151,13 +169,59 @@ function testInterpolationBridgeCoverage() {
 }
 
 /**
+ * Verifies TextMate operator coverage follows Tree-sitter operators.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Locks `<-` and pipe highlighting in the temporary TextMate bridge against
+ * the Tree-sitter query contract used by the multi-editor grammar package.
+ */
+function testOperatorBridgeCoverage() {
+  const grammar = readTextMateGrammar();
+  const query = readTreeSitterHighlights();
+  const operators = keywordsForCapture(query, "@operator");
+  const pattern = operatorPattern(grammar);
+  const operatorRegex = new RegExp(pattern.match);
+
+  for (const operator of operators) {
+    assert.ok(
+      operatorRegex.test(operator),
+      `TextMate operators missing ${operator}`
+    );
+  }
+}
+
+/**
+ * Verifies VS Code's temporary TextMate bridge recognizes canonical binary
+ * layout constructors, policies, and descriptors.
+ *
+ * @returns {void}
+ */
+function testBinaryLayoutBridgeCoverage() {
+  const grammar = readTextMateGrammar();
+  const query = readTreeSitterHighlights();
+  const binaryLayout = grammar.repository["binary-layouts"].patterns[0];
+  const descriptor = binaryLayout.patterns[0];
+
+  assert.ok(query.includes("binary_layout_expression"));
+  assert.ok(query.includes("binary_layout_pattern"));
+  assert.ok(binaryLayout.begin.includes("Binary"));
+  assert.ok(binaryLayout.begin.includes("big|little"));
+  for (const name of ["UInt", "IntBits", "Bytes", "Bits", "Utf8", "Rest"]) {
+    assert.ok(descriptor.match.includes(name), `TextMate binary descriptors missing ${name}`);
+  }
+}
+
+/**
  * Verifies `.terl.html` highlighting embeds HTML and Terlan expressions.
  *
  * @returns {void}
  *
  * @description
  * Locks the VS Code grammar choice that treats template HTML as HTML first,
- * while still highlighting `${...}` as embedded Terlan source.
+ * while still highlighting `${...}` and HTML-native `{...}` as embedded
+ * Terlan source.
  */
 function testTemplateHtmlGrammarEmbedsHtmlAndTerlan() {
   const grammar = readTemplateHtmlGrammar();
@@ -166,13 +230,15 @@ function testTemplateHtmlGrammarEmbedsHtmlAndTerlan() {
 
   assert.strictEqual(grammar.scopeName, "text.html.terlan");
   assert.ok(includes.includes("text.html.basic"));
-  assert.strictEqual(interpolation.begin, "\\$\\{");
+  assert.strictEqual(interpolation.begin, "\\$?\\{");
   assert.strictEqual(interpolation.contentName, "source.terlan.embedded");
   assert.deepStrictEqual(interpolation.patterns, [{ include: "source.terlan" }]);
 }
 
 testKeywordBridgeCoverage();
 testInterpolationBridgeCoverage();
+testOperatorBridgeCoverage();
+testBinaryLayoutBridgeCoverage();
 testTemplateHtmlGrammarEmbedsHtmlAndTerlan();
 
 console.log("terlan vscode TextMate bridge tests passed");

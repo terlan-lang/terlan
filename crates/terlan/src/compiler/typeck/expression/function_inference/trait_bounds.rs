@@ -120,37 +120,82 @@ pub(crate) fn check_function_bounds(
     ctx: &ExprInferContext<'_>,
     subst: &HashMap<TypeVarId, Type>,
 ) -> Result<(), String> {
+    check_function_bounds_with_structural_subst(scheme, function_name, ctx, subst, subst)
+}
+
+/// Checks function bounds at a call site while retaining concrete structural
+/// evidence that ordinary dynamic unification intentionally does not bind.
+pub(crate) fn check_function_call_bounds(
+    scheme: &FunctionScheme,
+    function_name: Option<&str>,
+    args: &[Type],
+    ctx: &ExprInferContext<'_>,
+    subst: &HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    let structural_subst = structural_call_subst(scheme, args, subst);
+    check_function_bounds_with_structural_subst(
+        scheme,
+        function_name,
+        ctx,
+        subst,
+        &structural_subst,
+    )
+}
+
+fn check_function_bounds_with_structural_subst(
+    scheme: &FunctionScheme,
+    function_name: Option<&str>,
+    ctx: &ExprInferContext<'_>,
+    subst: &HashMap<TypeVarId, Type>,
+    structural_subst: &HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
     if scheme.bounds.is_empty() {
         return Ok(());
     }
 
     for bound in &scheme.bounds {
+        let bound_subst = if bound.trait_name == STRUCTURAL_IMPLICATION_BOUND {
+            structural_subst
+        } else {
+            subst
+        };
         let resolved_args = bound
             .trait_args
             .iter()
             .map(|arg| {
-                let arg = apply_subst(arg, subst);
+                let arg = apply_subst(arg, bound_subst);
                 expand_type_aliases(&arg, ctx.aliases)
             })
             .collect::<Vec<_>>();
         let resolved_args = canonicalize_trait_lookup_types(&resolved_args);
+        let trait_description = if resolved_args.is_empty() {
+            bound.trait_name.clone()
+        } else {
+            format!(
+                "{}[{}]",
+                bound.trait_name,
+                resolved_args
+                    .iter()
+                    .map(pretty_type)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            )
+        };
+        let context = function_name.unwrap_or("expression");
+
+        if bound.trait_name == STRUCTURAL_IMPLICATION_BOUND {
+            check_structural_implication_bound(&resolved_args, context, ctx, structural_subst)?;
+            continue;
+        }
+
+        if trait_bound_is_explicitly_denied(&bound.trait_name, &resolved_args, ctx) {
+            return Err(format!(
+                "at `{}` call site: trait bound `{}` is explicitly denied",
+                context, trait_description
+            ));
+        }
 
         if !trait_has_bound_implementation(&bound.trait_name, &resolved_args, ctx) {
-            let trait_description = if resolved_args.is_empty() {
-                bound.trait_name.clone()
-            } else {
-                format!(
-                    "{}[{}]",
-                    bound.trait_name,
-                    resolved_args
-                        .iter()
-                        .map(pretty_type)
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                )
-            };
-
-            let context = function_name.unwrap_or("expression");
             return Err(format!(
                 "at `{}` call site: expected trait bound `{}`",
                 context, trait_description
@@ -159,6 +204,274 @@ pub(crate) fn check_function_bounds(
     }
 
     Ok(())
+}
+
+/// Extends call substitutions only for direct generic parameters constrained
+/// by structural implications. Dynamic remains a wildcard for ordinary type
+/// inference, but cannot masquerade as unresolved implication evidence.
+fn structural_call_subst(
+    scheme: &FunctionScheme,
+    args: &[Type],
+    subst: &HashMap<TypeVarId, Type>,
+) -> HashMap<TypeVarId, Type> {
+    let mut structural_subst = subst.clone();
+
+    for bound in &scheme.bounds {
+        if bound.trait_name != STRUCTURAL_IMPLICATION_BOUND {
+            continue;
+        }
+        let [Type::Var(subject), Type::Map(_)] = bound.trait_args.as_slice() else {
+            continue;
+        };
+        if !matches!(apply_subst(&Type::Var(*subject), subst), Type::Var(_)) {
+            continue;
+        }
+
+        if let Some((_, actual)) = scheme
+            .params
+            .iter()
+            .zip(args)
+            .find(|(expected, _)| apply_subst(expected, subst) == Type::Var(*subject))
+        {
+            structural_subst.insert(*subject, apply_subst(actual, subst));
+        }
+    }
+
+    structural_subst
+}
+
+/// Returns a field type supplied by active structural implication evidence.
+///
+/// `None` means no structural evidence applies to the receiver. A matched
+/// implication without the requested field returns a stable fail-closed error.
+pub(crate) fn structural_implication_field_type(
+    receiver: &Type,
+    field: &str,
+    ctx: &ExprInferContext<'_>,
+    subst: &HashMap<TypeVarId, Type>,
+) -> Option<Result<Type, String>> {
+    let mut matched_subject = false;
+    for bound in ctx
+        .current_bounds
+        .iter()
+        .filter(|bound| bound.trait_name == STRUCTURAL_IMPLICATION_BOUND)
+    {
+        let [subject, Type::Map(fields)] = bound.trait_args.as_slice() else {
+            continue;
+        };
+        if apply_subst(subject, subst) != *receiver {
+            continue;
+        }
+        matched_subject = true;
+        if let Some(required) = fields.iter().find(|required| required.key == field) {
+            return Some(Ok(apply_subst(&required.value, subst)));
+        }
+    }
+
+    matched_subject.then(|| {
+        Err(format!(
+            "implication_scope_error: structural evidence for {} does not include field `{field}`",
+            pretty_type(receiver)
+        ))
+    })
+}
+
+/// Validates one instantiated structural implication at a declaration or call
+/// boundary.
+fn check_structural_implication_bound(
+    args: &[Type],
+    context: &str,
+    ctx: &ExprInferContext<'_>,
+    subst: &HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    let [subject, Type::Map(required_fields)] = args else {
+        return Err(format!(
+            "unproven_implication: malformed structural evidence at `{context}`"
+        ));
+    };
+
+    if matches!(subject, Type::Var(_)) {
+        let entailed = ctx.current_bounds.iter().any(|bound| {
+            let [candidate_subject, Type::Map(candidate_fields)] = bound.trait_args.as_slice()
+            else {
+                return false;
+            };
+            bound.trait_name == STRUCTURAL_IMPLICATION_BOUND
+                && apply_subst(candidate_subject, subst) == *subject
+                && structural_fields_entail(candidate_fields, required_fields, ctx)
+        });
+        return entailed.then_some(()).ok_or_else(|| {
+            format!(
+                "unproven_implication: `{context}` requires {} => {}",
+                pretty_type(subject),
+                pretty_type(&Type::Map(required_fields.clone()))
+            )
+        });
+    }
+
+    check_concrete_structural_shape(subject, required_fields, context, ctx)
+}
+
+/// Checks whether one evidence shape includes every field required by another.
+fn structural_fields_entail(
+    available: &[MapFieldType],
+    required: &[MapFieldType],
+    ctx: &ExprInferContext<'_>,
+) -> bool {
+    required.iter().all(|required_field| {
+        available
+            .iter()
+            .find(|field| field.key == required_field.key)
+            .is_some_and(|available_field| {
+                structural_field_type_satisfies(
+                    &available_field.value,
+                    &required_field.value,
+                    "structural evidence",
+                    ctx,
+                )
+                .is_ok()
+            })
+    })
+}
+
+/// Validates a concrete closed struct or typed map against a required shape.
+fn check_concrete_structural_shape(
+    subject: &Type,
+    required_fields: &[MapFieldType],
+    context: &str,
+    ctx: &ExprInferContext<'_>,
+) -> Result<(), String> {
+    match subject {
+        Type::Named { name, .. } => {
+            let Some(available) = ctx.struct_fields.get(name) else {
+                return Err(format!(
+                    "unproven_implication: `{context}` requires closed structural evidence for {}, but the type has no visible struct shape",
+                    pretty_type(subject)
+                ));
+            };
+            for required in required_fields {
+                let Some(actual) = available.get(&required.key) else {
+                    return Err(format!(
+                        "unproven_implication: `{context}` requires field `{}` on {}",
+                        required.key,
+                        pretty_type(subject)
+                    ));
+                };
+                let is_private = ctx
+                    .struct_field_visibility
+                    .get(name)
+                    .and_then(|fields| fields.get(&required.key))
+                    .is_some_and(|visibility| visibility.is_private);
+                if is_private {
+                    return Err(format!(
+                        "unproven_implication: `{context}` cannot use private field `{}` as structural evidence for {}",
+                        required.key,
+                        pretty_type(subject)
+                    ));
+                }
+                structural_field_type_satisfies(actual, &required.value, context, ctx)?;
+            }
+            Ok(())
+        }
+        Type::Map(available) if !available.is_empty() => {
+            for required in required_fields {
+                let Some(actual) = available.iter().find(|field| field.key == required.key) else {
+                    return Err(format!(
+                        "unproven_implication: `{context}` requires field `{}` on {}",
+                        required.key,
+                        pretty_type(subject)
+                    ));
+                };
+                structural_field_type_satisfies(&actual.value, &required.value, context, ctx)?;
+            }
+            Ok(())
+        }
+        _ => Err(format!(
+            "unproven_implication: `{context}` requires closed structural evidence, found {}",
+            pretty_type(subject)
+        )),
+    }
+}
+
+/// Checks one concrete field type, recursively validating nested shapes.
+fn structural_field_type_satisfies(
+    actual: &Type,
+    required: &Type,
+    context: &str,
+    ctx: &ExprInferContext<'_>,
+) -> Result<(), String> {
+    if let Type::Map(required_fields) = required {
+        return check_concrete_structural_shape(actual, required_fields, context, ctx);
+    }
+
+    let actual = expand_type_aliases(actual, ctx.aliases);
+    let required = expand_type_aliases(required, ctx.aliases);
+    if is_subtype_with_aliases(&actual, &required, ctx.aliases) {
+        Ok(())
+    } else {
+        Err(format!(
+            "unproven_implication: `{context}` requires field type {}, found {}",
+            pretty_type(&required),
+            pretty_type(&actual)
+        ))
+    }
+}
+
+/// Checks concrete trait arguments against visible explicit denials.
+fn trait_bound_is_explicitly_denied(
+    trait_name: &str,
+    bound_args: &[Type],
+    ctx: &ExprInferContext<'_>,
+) -> bool {
+    if bound_args
+        .iter()
+        .any(|arg| !trait_bound_type_is_concrete(arg))
+    {
+        return false;
+    }
+    let Some(candidates) = ctx.negative_trait_impl_type_args.get(trait_name) else {
+        return false;
+    };
+    candidates.iter().any(|candidate| {
+        let expanded = candidate
+            .iter()
+            .map(|arg| expand_type_aliases(arg, ctx.aliases))
+            .collect::<Vec<_>>();
+        types_unify_with_renaming(bound_args, &expanded).is_ok()
+    })
+}
+
+/// Returns whether a bound argument is resolved enough for denial matching.
+fn trait_bound_type_is_concrete(ty: &Type) -> bool {
+    match ty {
+        Type::Var(_) | Type::Apply { .. } | Type::Placeholder | Type::Existential { .. } => false,
+        Type::Named { args, .. } => args.iter().all(trait_bound_type_is_concrete),
+        Type::List(inner) => trait_bound_type_is_concrete(inner),
+        Type::FixedArray { size, elem } => {
+            matches!(size, crate::terlan_typeck::types::FixedArraySize::Known(_))
+                && trait_bound_type_is_concrete(elem)
+        }
+        Type::Tuple(items) | Type::Union(items) => items.iter().all(trait_bound_type_is_concrete),
+        Type::Map(fields) => fields
+            .iter()
+            .all(|field| trait_bound_type_is_concrete(&field.value)),
+        Type::Function { params, ret } => params
+            .iter()
+            .chain(std::iter::once(ret.as_ref()))
+            .all(trait_bound_type_is_concrete),
+        Type::Int
+        | Type::Float
+        | Type::Number
+        | Type::Binary
+        | Type::Atom
+        | Type::Bool
+        | Type::Term
+        | Type::Dynamic
+        | Type::Never
+        | Type::LiteralAtom(_)
+        | Type::LiteralInt(_)
+        | Type::LiteralBool(_) => true,
+    }
 }
 
 /// Infers a trait method call using the active callable's generic bounds.

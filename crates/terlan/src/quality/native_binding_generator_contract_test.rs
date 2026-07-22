@@ -49,6 +49,39 @@ fn native_binding_generator_contract_rejects_missing_supported_inputs() {
     );
 }
 
+/// Verifies Python-style wrapper examples are part of the contract.
+///
+/// Inputs:
+/// - Contract text with the broad curated-wrapper term removed from the
+///   concrete Python ecosystem examples.
+///
+/// Output:
+/// - Diagnostic requiring `pybind11`.
+///
+/// Transformation:
+/// - Keeps native binding generation aligned with the Python-extension model:
+///   curated wrapper contracts first, direct arbitrary native API exposure
+///   never.
+#[test]
+fn native_binding_generator_contract_requires_python_style_wrapper_terms() {
+    let text = REQUIRED_TERMS
+        .iter()
+        .copied()
+        .filter(|term| !matches!(*term, "CPython extensions" | "pybind11" | "Cython" | "SWIG"))
+        .chain(REQUIRED_REJECTION_TERMS.iter().copied())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let diagnostics = validate_native_binding_generator_contract_text(&text);
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("pybind11")),
+        "expected Python-style wrapper diagnostic: {diagnostics:?}"
+    );
+}
+
 /// Verifies rejected native shapes are required.
 ///
 /// Inputs:

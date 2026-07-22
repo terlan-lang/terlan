@@ -1,8 +1,8 @@
 module=std.core.Error
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=9042039880395646992
-interface_hash=16335401487784876941
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=4057451190351762172
+interface_hash=1244151485527378485
 interface_doc_hash=8210072354932417225
 deps=0

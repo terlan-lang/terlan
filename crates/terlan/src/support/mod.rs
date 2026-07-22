@@ -4,11 +4,97 @@ use std::io::IsTerminal;
 use std::path::Path;
 use std::process::Command;
 
+use serde::de::DeserializeOwned;
+
+#[cfg(test)]
+#[path = "bad_encoding_parity_test.rs"]
+mod bad_encoding_parity_test;
+#[cfg(test)]
+#[path = "col_utf8_parity_test.rs"]
+mod col_utf8_parity_test;
+#[cfg(test)]
+#[path = "deep_json_test.rs"]
+mod deep_json_test;
+#[cfg(test)]
+#[path = "latin1_source_policy_test.rs"]
+mod latin1_source_policy_test;
+#[cfg(test)]
+#[path = "line_pt_parity_test.rs"]
+mod line_pt_parity_test;
 #[cfg(test)]
 pub(crate) mod test_fs;
 
 use crate::commands::json::json_string;
 use crate::{ColorChoice, DiagnosticFormat};
+
+/// Maximum JSON container nesting accepted by compiler-owned artifacts.
+pub(crate) const MAX_JSON_NESTING_DEPTH: usize = 256;
+
+/// Deserializes JSON while permitting valid deep artifacts and bounding abuse.
+///
+/// Inputs:
+/// - `bytes`: complete UTF-8 JSON artifact bytes.
+///
+/// Output:
+/// - Fully deserialized value, or a stable malformed/depth error.
+///
+/// Transformation:
+/// - Scans string-aware container depth before disabling serde_json's smaller
+///   recursion limit, then requires the typed value to consume all input.
+pub(crate) fn deserialize_json_with_depth_limit<T: DeserializeOwned>(
+    bytes: &[u8],
+) -> Result<T, String> {
+    validate_json_nesting_depth(bytes)?;
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    deserializer.disable_recursion_limit();
+    let value = T::deserialize(&mut deserializer).map_err(|error| error.to_string())?;
+    deserializer.end().map_err(|error| error.to_string())?;
+    Ok(value)
+}
+
+/// Rejects JSON whose container nesting exceeds the compiler artifact limit.
+///
+/// Inputs:
+/// - `bytes`: candidate JSON bytes before typed deserialization.
+///
+/// Output:
+/// - Success within the depth ceiling or a stable limit diagnostic.
+///
+/// Transformation:
+/// - Counts object and array delimiters outside escaped JSON strings without
+///   interpreting payload values; the JSON parser remains responsible for
+///   syntax and delimiter-balance validation.
+fn validate_json_nesting_depth(bytes: &[u8]) -> Result<(), String> {
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    for byte in bytes {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if *byte == b'\\' {
+                escaped = true;
+            } else if *byte == b'"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match byte {
+            b'"' => in_string = true,
+            b'{' | b'[' => {
+                depth += 1;
+                if depth > MAX_JSON_NESTING_DEPTH {
+                    return Err(format!(
+                        "JSON nesting exceeds compiler limit of {MAX_JSON_NESTING_DEPTH}"
+                    ));
+                }
+            }
+            b'}' | b']' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    Ok(())
+}
 
 /// Selects the effective color policy for diagnostic rendering.
 ///
@@ -147,6 +233,7 @@ fn render_text_diagnostic(
                 ));
                 out.push_str(&format!("{} | ", colors.gutter("   ")));
                 out.push_str(&colors.error(&caret_underline(
+                    &source,
                     line_text,
                     column,
                     display_start,
@@ -504,17 +591,20 @@ fn expected_found(message: &str) -> Option<(&str, &str)> {
 /// - Walks character indices so line starts account for UTF-8 boundaries.
 fn line_column(source: &str, offset: usize) -> (usize, usize) {
     let mut line = 1usize;
-    let mut line_start = 0usize;
+    let mut column = 1usize;
+    let offset = offset.min(source.len());
     for (index, ch) in source.char_indices() {
         if index >= offset {
             break;
         }
         if ch == '\n' {
             line += 1;
-            line_start = index + ch.len_utf8();
+            column = 1;
+        } else {
+            column += 1;
         }
     }
-    (line, offset.saturating_sub(line_start) + 1)
+    (line, column)
 }
 
 /// Builds the caret underline for a source diagnostic.
@@ -529,13 +619,28 @@ fn line_column(source: &str, offset: usize) -> (usize, usize) {
 /// - Underline text with leading spaces and one or more carets.
 ///
 /// Transformation:
-/// - Converts byte-span width into a bounded underline for the displayed line.
-fn caret_underline(line_text: &str, column: usize, start: usize, end: usize) -> String {
+/// - Converts the UTF-8 byte span into a bounded character-width underline for
+///   the displayed line.
+fn caret_underline(
+    source: &str,
+    line_text: &str,
+    column: usize,
+    start: usize,
+    end: usize,
+) -> String {
     let prefix_len = column.saturating_sub(1);
-    let mut underline = String::new();
-    underline.push_str(&" ".repeat(prefix_len));
-    let width = if end > start { end - start } else { 1 };
-    let remaining = line_text.len().saturating_sub(prefix_len);
+    let mut underline = line_text
+        .chars()
+        .take(prefix_len)
+        .map(|ch| if ch == '\t' { '\t' } else { ' ' })
+        .collect::<String>();
+    let width = source
+        .char_indices()
+        .skip_while(|(index, _)| *index < start)
+        .take_while(|(index, ch)| *index < end && *ch != '\n')
+        .count()
+        .max(1);
+    let remaining = line_text.chars().count().saturating_sub(prefix_len);
     underline.push_str(&"^".repeat(width.min(remaining).max(1)));
     underline
 }
@@ -549,12 +654,31 @@ fn caret_underline(line_text: &str, column: usize, start: usize, end: usize) -> 
 /// - File contents, or a user-facing error string.
 ///
 /// Transformation:
-/// - Reads the file as text and normalizes IO errors into CLI diagnostics.
+/// - Reads bytes once, validates UTF-8 explicitly, and normalizes IO and
+///   encoding failures into stable CLI diagnostics.
 pub(crate) fn read_file(path: &str) -> Result<String, String> {
-    match fs::read_to_string(Path::new(path)) {
-        Ok(contents) => Ok(contents),
-        Err(err) => Err(format!("failed to read {}: {}", path, err)),
-    }
+    let bytes = fs::read(Path::new(path)).map_err(|err| format!("failed to read {path}: {err}"))?;
+    String::from_utf8(bytes).map_err(|err| {
+        let valid_up_to = err.utf8_error().valid_up_to();
+        let (line, column) = invalid_utf8_location(err.as_bytes(), valid_up_to);
+        format!(
+            "failed to read {path}: Terlan source files must be UTF-8; invalid byte sequence starts at byte {valid_up_to} (line {line}, column {column})"
+        )
+    })
+}
+
+/// Locates the first invalid UTF-8 byte within an otherwise valid prefix.
+fn invalid_utf8_location(bytes: &[u8], valid_up_to: usize) -> (usize, usize) {
+    let valid_prefix = std::str::from_utf8(&bytes[..valid_up_to])
+        .expect("UTF-8 error valid_up_to prefix must be valid");
+    let line = valid_prefix.chars().filter(|ch| *ch == '\n').count() + 1;
+    let column = valid_prefix
+        .rsplit_once('\n')
+        .map_or(valid_prefix, |(_, suffix)| suffix)
+        .chars()
+        .count()
+        + 1;
+    (line, column)
 }
 
 /// Writes bytes while preserving incremental no-op behavior.
@@ -634,19 +758,4 @@ pub(crate) fn sha256sum_file(path: &Path) -> Result<String, String> {
         return Err(format!("sha256sum output was not SHA-256 hex: `{hash}`"));
     }
     Ok(hash.to_string())
-}
-
-/// Converts a Terlan module name into an Erlang output file stem.
-///
-/// Inputs:
-/// - `module_name`: resolved Terlan module name.
-///
-/// Output:
-/// - Erlang-compatible output stem.
-///
-/// Transformation:
-/// - Replaces module namespace dots with underscores and lowercases the result
-///   for Erlang module/file compatibility.
-pub(crate) fn erlang_output_stem(module_name: &str) -> String {
-    module_name.replace('.', "_").to_ascii_lowercase()
 }

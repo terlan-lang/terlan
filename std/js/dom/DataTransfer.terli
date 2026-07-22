@@ -1,0 +1,73 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DataTransfer
+ */
+module std.js.Dom.DataTransfer.
+
+import type std.core.{Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`DataTransfer`** object is used to hold any data transferred between contexts, such as a drag and drop operation, or clipboard read/write.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer)
+ */
+pub opaque type DataTransfer.
+
+/**
+ * The **`files`** read-only property of `DataTransfer` objects is a list of the files in the drag operation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/files)
+ */
+pub (value: DataTransfer) files(): FileList.
+
+/**
+ * The read-only `items` property of the DataTransfer interface is a A DataTransferItemList object containing DataTransferItem objects representing the items being dragged in a drag operation, one list item for each object being dragged.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/items)
+ */
+pub (value: DataTransfer) items(): DataTransferItemList.
+
+/**
+ * The **`DataTransfer.types`** read-only property returns the available types that exist in the DataTransfer.items.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/types)
+ */
+pub (value: DataTransfer) types(): std.js.Array[JsString].
+
+/**
+ * The **`DataTransfer.clearData()`** method removes the drag operation's drag data for the given type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/clearData)
+ */
+pub (value: DataTransfer) clear_data(format: JsString): Unit.
+
+/**
+ * The **`DataTransfer.getData()`** method retrieves drag data (as a string) for the specified type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/getData)
+ */
+pub (value: DataTransfer) get_data(format: JsString): JsString.
+
+/**
+ * The **`DataTransfer.setData()`** method sets the drag operation's drag data to the specified data and type.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setData)
+ */
+pub (value: DataTransfer) set_data(format: JsString, data: JsString): Unit.
+
+/**
+ * When a drag occurs, a translucent image is generated from the drag target (the element the HTMLElement/dragstart_event event is fired at), and follows the mouse pointer during the drag.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setDragImage)
+ */
+pub (value: DataTransfer) set_drag_image(image: Element, x: JsNumber, y: JsNumber): Unit.

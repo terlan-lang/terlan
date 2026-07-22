@@ -1,15 +1,34 @@
+#![forbid(unsafe_code)]
+
 use std::process::ExitCode;
 
+#[path = "../database_schema.rs"]
+pub(crate) mod database_schema;
+#[path = "../mobile/mobile_bridge.rs"]
+pub(crate) mod mobile_bridge;
+#[path = "../mobile/mobile_debug_identity.rs"]
+pub(crate) mod mobile_debug_identity;
 #[path = "../compiler/hir/mod.rs"]
 pub mod terlan_hir;
 #[path = "../html/mod.rs"]
 pub mod terlan_html;
 #[path = "mod.rs"]
 pub mod terlan_lsp;
+#[path = "../compiler/purity.rs"]
+pub(crate) mod terlan_purity;
 #[path = "../compiler/syntax/mod.rs"]
 pub mod terlan_syntax;
 #[path = "../compiler/typeck/mod.rs"]
 pub mod terlan_typeck;
+#[path = "../compiler/value_lifecycle.rs"]
+pub(crate) mod value_lifecycle;
+
+/// Minimal mobile namespace required by standalone LSP typechecking.
+pub mod mobile {
+    pub(crate) use crate::mobile_bridge;
+    #[cfg(test)]
+    pub(crate) use crate::mobile_debug_identity;
+}
 
 /// Prints `terlan-lsp` command usage.
 ///

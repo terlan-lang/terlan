@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PerformanceNavigation
+ */
+module std.js.Dom.PerformanceNavigation.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The legacy **`PerformanceNavigation`** interface represents information about how the navigation to the current document was done.
+ * @deprecated This interface is deprecated in the Navigation Timing Level 2 specification. Please use the PerformanceNavigationTiming interface instead.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigation)
+ */
+pub opaque type PerformanceNavigation.
+
+/**
+ * The legacy **`PerformanceNavigation.redirectCount`** read-only property returns an `unsigned short` representing the number of REDIRECTs done before reaching the page.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigation/redirectCount)
+ */
+pub (value: PerformanceNavigation) redirect_count(): JsNumber.
+
+/**
+ * The legacy **`PerformanceNavigation.type`** read-only property returns an `unsigned short` containing a constant describing how the navigation to this page was done.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigation/type)
+ */
+pub (value: PerformanceNavigation) type_(): JsNumber.

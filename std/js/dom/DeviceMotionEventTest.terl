@@ -1,19 +1,27 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DeviceMotionEvent
  */
 module std.js.Dom.DeviceMotionEventTest.
 
-import type std.js.Dom.DeviceMotionEvent.{DeviceMotionEvent}.
+import type std.js.Dom.DeviceMotionEvent.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub acceleration_typechecks(receiver: DeviceMotionEvent): Option[DeviceMotionEventAcceleration] ->
     receiver.acceleration().
 
-pub acceleration_including_gravity_typechecks(receiver: DeviceMotionEvent): Option[DeviceMotionEventAcceleration] ->
+pub acceleration_including_gravity_typechecks(
+    receiver: DeviceMotionEvent
+): Option[DeviceMotionEventAcceleration] ->
     receiver.acceleration_including_gravity().
 
 pub interval_typechecks(receiver: DeviceMotionEvent): std.js.Number.JsNumber ->

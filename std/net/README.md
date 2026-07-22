@@ -35,7 +35,7 @@ Important invariants:
 ## Integration Points
 
 - `std.http`: can use URI helpers for request routing and parsing later.
-- `terlan_safenative`: may own Rust-backed URI implementation.
+- `terlan_native_boundary`: may own Rust-backed URI implementation.
 - Web/cloud packaging: may use URI validation in manifests.
 
 ## Edge Cases

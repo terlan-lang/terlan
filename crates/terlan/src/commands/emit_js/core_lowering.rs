@@ -1,6 +1,6 @@
 use crate::terlan_typeck::{
     CoreCaseClause, CoreExpr, CoreFunction, CoreIfClause, CoreIntrinsicCall, CoreIntrinsicId,
-    CoreModule, CorePattern, CorePrimitiveIntrinsic,
+    CoreModule, CorePattern, CorePrimitiveIntrinsic, COMPLETED_GUARD_RESULT_TAG,
 };
 
 use super::cast_semantics::cast_can_lower_as_js_identity;
@@ -113,7 +113,7 @@ fn core_clause_patterns_match_function_params(
 /// Transformation:
 /// - Recursively lowers portable value, collection, unary, and binary CoreIR
 ///   expressions without reading source syntax summaries.
-fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
+pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
     match expr {
         CoreExpr::Int(value) => Some(value.to_string()),
         CoreExpr::Float(value) => js_float_literal(value),
@@ -132,10 +132,13 @@ fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
         }
         CoreExpr::ListComprehension {
             expr,
-            pattern,
-            source,
-            guard,
-        } => core_list_comprehension_expr_to_js(expr, pattern, source, guard.as_deref()),
+            generators,
+            guards,
+            lift,
+        } => lift
+            .is_none()
+            .then(|| core_list_comprehension_expr_to_js(expr, generators, guards))
+            .flatten(),
         CoreExpr::ListCons { head, tail } => Some(format!(
             "[{}, ...{}]",
             core_expr_to_js(head)?,
@@ -274,7 +277,7 @@ fn core_call_expr_to_js(function: &str, args: &[CoreExpr]) -> Option<String> {
 ///
 /// Transformation:
 /// - Emits `(callee)(arg1, arg2, ...)`, preserving Terlan's dedicated
-///   `f.(args)` source semantics without reclassifying it as a named call.
+///   `f(args)` source semantics without reclassifying it as a named call.
 fn core_function_call_expr_to_js(callee: &CoreExpr, args: &[CoreExpr]) -> Option<String> {
     let callee = core_expr_to_js(callee)?;
     let args = args
@@ -298,7 +301,7 @@ fn core_function_call_expr_to_js(callee: &CoreExpr, args: &[CoreExpr]) -> Option
 ///   expression remains outside the current JS subset.
 ///
 /// Transformation:
-/// - Converts `left |> f(extra)` into `f(left, extra)` and `left |> f.(extra)`
+/// - Converts `left |> f(extra)` into `f(left, extra)` and `left |> f(extra)`
 ///   into `(f)(left, extra)`.
 fn core_pipe_forward_expr_to_js(left: &CoreExpr, right: &CoreExpr) -> Option<String> {
     match right {
@@ -354,37 +357,51 @@ fn core_integer_division_expr_to_js(left: &CoreExpr, right: &CoreExpr) -> Option
     ))
 }
 
-/// Lowers a simple CoreIR list comprehension into a JavaScript `map` call.
+/// Lowers a simple CoreIR list comprehension into JavaScript collection calls.
 ///
 /// Inputs:
 /// - `expr`: yielded CoreIR expression.
-/// - `pattern`: generator pattern bound for each source element.
-/// - `source`: CoreIR source-list expression.
+/// - `generators`: ordered CoreIR generator patterns and sources.
 /// - `guard`: optional CoreIR guard expression.
 ///
 /// Output:
-/// - JavaScript expression text for a single-generator, variable-pattern,
-///   unguarded list comprehension.
-/// - `None` for guarded comprehensions, destructuring patterns, unsupported
-///   parameter names, or unsupported yield/source expressions.
+/// - JavaScript expression text for an ordered, lowerable list comprehension.
+/// - `None` for destructuring patterns, unsupported parameter names, or
+///   unsupported yield/source/guard expressions.
 ///
 /// Transformation:
 /// - Converts `[yield | value <- source]` into
-///   `(source).map((value) => yield)`. This preserves the current list-valued
-///   artifact shape without introducing filter semantics or pattern dispatch.
+///   `(source).map((value) => yield)`.
+/// - Converts `[yield | value <- source, guard]` into
+///   `(source).filter((value) => guard).map((value) => yield)`.
+/// - Keeps destructuring outside this slice so pattern dispatch is introduced
+///   deliberately instead of being approximated in JavaScript.
 fn core_list_comprehension_expr_to_js(
     expr: &CoreExpr,
-    pattern: &CorePattern,
-    source: &CoreExpr,
-    guard: Option<&CoreExpr>,
+    generators: &[crate::terlan_typeck::CoreListComprehensionGenerator],
+    guards: &[CoreExpr],
 ) -> Option<String> {
-    if guard.is_some() {
-        return None;
+    let (generator, remaining) = generators.split_first()?;
+    let param = core_lam_param_to_js(&generator.pattern)?;
+    let mut collection = format!("({})", core_expr_to_js(&generator.source)?);
+    if !remaining.is_empty() {
+        return Some(format!(
+            "{collection}.flatMap(({param}) => {})",
+            core_list_comprehension_expr_to_js(expr, remaining, guards)?
+        ));
     }
-    let param = core_lam_param_to_js(pattern)?;
+    for guard in guards {
+        let guard = core_expr_to_js(guard)?;
+        collection = format!(
+            "{collection}.filter(({param}) => ((__terlan_comprehension_guard_result) => \
+             __terlan_comprehension_guard_result === true || \
+             (Array.isArray(__terlan_comprehension_guard_result) && \
+             __terlan_comprehension_guard_result[0] === \"{COMPLETED_GUARD_RESULT_TAG}\" && \
+             __terlan_comprehension_guard_result[1] === true))({guard}))"
+        );
+    }
     Some(format!(
-        "({}).map(({param}) => {})",
-        core_expr_to_js(source)?,
+        "{collection}.map(({param}) => {})",
         core_expr_to_js(expr)?
     ))
 }
@@ -404,7 +421,7 @@ fn core_list_comprehension_expr_to_js(
 /// Transformation:
 /// - Converts Terlan `(patterns) -> Expr` lambda values into parenthesized
 ///   JavaScript arrow functions. This only lowers the function value;
-///   callable-value invocation is handled by the dedicated `f.(args)` syntax.
+///   callable-value invocation is handled by the dedicated `f(args)` syntax.
 fn core_lam_expr_to_js(params: &[CorePattern], body: &CoreExpr) -> Option<String> {
     let params = params
         .iter()
@@ -414,23 +431,53 @@ fn core_lam_expr_to_js(params: &[CorePattern], body: &CoreExpr) -> Option<String
     Some(format!("(({params}) => {})", core_expr_to_js(body)?))
 }
 
-/// Converts one CoreIR lambda parameter pattern into a JavaScript parameter name.
+/// Converts one CoreIR lambda parameter pattern into a JavaScript parameter.
 ///
 /// Inputs:
 /// - `param`: CoreIR lambda parameter pattern.
 ///
 /// Output:
 /// - JavaScript identifier text for direct variable patterns.
-/// - `None` for every non-variable pattern or unsupported identifier.
+/// - JavaScript array-destructuring text for tuple/list patterns containing
+///   lowerable child patterns.
+/// - `None` for unsupported identifiers or patterns.
 ///
 /// Transformation:
-/// - Keeps this JS slice limited to non-destructuring anonymous functions and
-///   reuses the backend's conservative JavaScript identifier policy.
+/// - Reuses the backend's conservative JavaScript identifier policy and lowers
+///   tuple/list patterns to array destructuring because Terlan tuples and lists
+///   are represented as JavaScript arrays in this backend.
 fn core_lam_param_to_js(param: &CorePattern) -> Option<String> {
-    let CorePattern::Var(name) = param else {
-        return None;
-    };
-    is_js_identifier(name).then(|| name.clone())
+    match param {
+        CorePattern::Var(name) => is_js_identifier(name).then(|| name.clone()),
+        CorePattern::Tuple(items) | CorePattern::List(items) => Some(format!(
+            "[{}]",
+            items
+                .iter()
+                .map(core_destructuring_param_to_js)
+                .collect::<Option<Vec<_>>>()?
+                .join(", ")
+        )),
+        _ => None,
+    }
+}
+
+/// Converts one child destructuring pattern into JavaScript binding text.
+///
+/// Inputs:
+/// - `param`: CoreIR pattern nested inside a tuple/list lambda parameter.
+///
+/// Output:
+/// - JavaScript binding text, an empty string for an array hole, or `None` for
+///   unsupported child patterns.
+///
+/// Transformation:
+/// - Maps Terlan wildcard children to JavaScript array holes so destructuring
+///   does not introduce fake runtime bindings.
+fn core_destructuring_param_to_js(param: &CorePattern) -> Option<String> {
+    match param {
+        CorePattern::Wildcard => Some(String::new()),
+        _ => core_lam_param_to_js(param),
+    }
 }
 
 /// Lowers a total literal-pattern CoreIR case expression into JavaScript.
@@ -508,6 +555,9 @@ fn core_case_literal_pattern_condition_to_js(
         CorePattern::Float(value) => {
             let float = js_float_literal(value)?;
             Some(format!("{scrutinee_name} === {float}"))
+        }
+        CorePattern::String(value) => {
+            Some(format!("{scrutinee_name} === {}", js_string_literal(value)))
         }
         _ => None,
     }

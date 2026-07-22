@@ -1,9 +1,9 @@
 module=std.http.Router
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12557429134118634545
-interface_hash=8800844542938311187
-interface_doc_hash=10760440440284209890
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=6863704366983368615
+interface_hash=16217950028583205604
+interface_doc_hash=15551602861624652028
 deps=1
-std.http.Error=11837237277039401105
+std.http.Error=10678806214723408090

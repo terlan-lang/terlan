@@ -1,8 +1,8 @@
 module=std.js.Dom.NavigatorBadge
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8416491962662060898
-interface_hash=7713782059696123410
-interface_doc_hash=7713782059696123410
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=17384295887800104030
+interface_hash=5253297802173185045
+interface_doc_hash=5253297802173185045
 deps=0

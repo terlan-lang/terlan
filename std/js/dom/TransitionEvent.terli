@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface TransitionEvent
+ */
+module std.js.Dom.TransitionEvent.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`TransitionEvent`** interface represents events providing information related to transitions.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransitionEvent)
+ */
+pub opaque type TransitionEvent.
+
+/**
+ * The **`TransitionEvent.elapsedTime`** read-only property is a `float` giving the amount of time the animation has been running, in seconds, when this event fired.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransitionEvent/elapsedTime)
+ */
+pub (value: TransitionEvent) elapsed_time(): std.js.Number.JsNumber.
+
+/**
+ * The **`propertyName`** read-only property of TransitionEvent objects is a string containing the name of the CSS property associated with the transition.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransitionEvent/propertyName)
+ */
+pub (value: TransitionEvent) property_name(): JsString.
+
+/**
+ * The **`TransitionEvent.pseudoElement`** read-only property is a string, starting with `'::'`, containing the name of the pseudo-element the animation runs on.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransitionEvent/pseudoElement)
+ */
+pub (value: TransitionEvent) pseudo_element(): JsString.

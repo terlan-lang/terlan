@@ -1,0 +1,2 @@
+schema = "terlan.lean-proof-gap-policy.v1"
+max_blocker_age_days = 30

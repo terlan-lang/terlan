@@ -234,6 +234,8 @@ pub(crate) fn decl_span(declaration: &Decl) -> Span {
     match declaration {
         Decl::Import(decl) => decl.span,
         Decl::Export(decl) => decl.span,
+        Decl::Constant(decl) => decl.span,
+        Decl::ConstFunction(decl) => decl.span,
         Decl::Type(decl) => decl.span,
         Decl::Struct(decl) => decl.span,
         Decl::Constructor(decl) => decl.span,
@@ -243,6 +245,7 @@ pub(crate) fn decl_span(declaration: &Decl) -> Span {
         Decl::TraitImpl(decl) => decl.span,
         Decl::AnnotationSchema(decl) => decl.span,
         Decl::Template(decl) => decl.span,
+        Decl::Shape(decl) => decl.span,
         Decl::Raw(decl) => decl.span,
     }
 }
@@ -263,6 +266,8 @@ pub(crate) fn contract_decl_class(declaration: &Decl) -> &'static str {
     match declaration {
         Decl::Import(_) => "ImportDecl",
         Decl::Export(_) => "ExportDecl",
+        Decl::Constant(_) => "ConstantDecl",
+        Decl::ConstFunction(_) => "ConstFunctionDecl",
         Decl::Type(ty) if ty.is_opaque => "OpaqueTypeDecl",
         Decl::Type(_) => "TypeDecl",
         Decl::Struct(_) => "StructDecl",
@@ -273,6 +278,7 @@ pub(crate) fn contract_decl_class(declaration: &Decl) -> &'static str {
         Decl::TraitImpl(_) => "TraitImplDecl",
         Decl::AnnotationSchema(_) => "AnnotationSchemaDecl",
         Decl::Template(_) => "TemplateDecl",
+        Decl::Shape(_) => "ShapeDecl",
         Decl::Raw(raw) if is_config_decl_kind(&raw.kind) => "ConfigDecl",
         Decl::Raw(_) => "RawDecl",
     }

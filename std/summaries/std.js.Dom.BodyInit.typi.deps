@@ -1,0 +1,8 @@
+module=std.js.Dom.BodyInit
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=11140810263636761721
+interface_hash=341903110849270771
+interface_doc_hash=341903110849270771
+deps=0

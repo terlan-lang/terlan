@@ -1,0 +1,46 @@
+/**
+ * Property coverage for portable random helpers.
+ *
+ * `std.random.RandomPropertyTest` validates generated random inputs through
+ * public random APIs on the VM default path.
+ */
+module std.random.RandomPropertyTest.
+
+import std.core.Result.{Ok, is_err}.
+import std.random.Random.
+import std.test.Gen.{for_all, int_range}.
+import std.test.Test.{assert}.
+
+/**
+ * Verifies generated bounds constrain bounded integer draws.
+ *
+ * Input: generated deterministic seeds and lower bounds.
+ * Output: `true` when every draw stays inside `[min, max)`.
+ * Transformation: uses generated values to drive the maintained native random
+ * adapter without relying on hidden global RNG state.
+ */
+@test
+pub generated_bounds_keep_bounded_int_inside_range(): Bool ->
+    for_all(int_range(0, 5), (offset) -> case Random.seed(offset) {
+        Ok(generator) ->
+            case Random.bounded_int(generator, offset, offset + 10) {
+                Ok({_next, value}) -> assert(value >= offset and value < offset + 10);
+                _ -> false
+            };
+        _ -> false
+    }).
+
+/**
+ * Verifies generated invalid bounds return typed errors.
+ *
+ * Input: generated deterministic seeds and equal min/max bounds.
+ * Output: `true` when every invalid bound pair returns an error.
+ * Transformation: applies property generation to the invalid-bound diagnostic
+ * path instead of checking only one hand-picked row.
+ */
+@test
+pub generated_equal_bounds_return_typed_errors(): Bool ->
+    for_all(int_range(0, 5), (value) -> case Random.seed(value) {
+        Ok(generator) -> assert(is_err(Random.bounded_int(generator, value, value)));
+        _ -> false
+    }).

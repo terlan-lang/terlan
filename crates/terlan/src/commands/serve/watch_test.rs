@@ -2,9 +2,7 @@ use super::*;
 use crate::support::test_fs;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-
-use tokio::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 
 /// Creates a unique temporary watcher test directory.
 ///
@@ -76,8 +74,8 @@ fn should_reload_for_event_accepts_artifact_changes() {
 #[test]
 fn broadcast_reload_removes_disconnected_subscribers() {
     let hub = Arc::new(Mutex::new(Vec::new()));
-    let (connected_tx, mut connected_rx) = mpsc::unbounded_channel();
-    let (dropped_tx, dropped_rx) = mpsc::unbounded_channel::<u64>();
+    let (connected_tx, connected_rx) = mpsc::channel();
+    let (dropped_tx, dropped_rx) = mpsc::channel::<u64>();
     drop(dropped_rx);
     hub.lock().expect("hub").push(connected_tx);
     hub.lock().expect("hub").push(dropped_tx);

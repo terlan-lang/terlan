@@ -64,6 +64,7 @@ pub append_text(path: String, content: String): Result[Unit, FileError].
 /// Transformation: reads the included `code` field without exposing backend
 /// filesystem reason values.
 
+@pure
 pub code(error: FileError): Atom.
 
 /// Deletes a file.
@@ -91,6 +92,7 @@ pub exists(path: String): Bool.
 /// Output: human-readable UTF-8 message.
 /// Transformation: reads the included `message` field.
 
+@pure
 pub message(error: FileError): String.
 
 /// Builds a portable file error.
@@ -108,6 +110,7 @@ pub new(code: Atom, message: String, path: String): FileError.
 /// Output: the UTF-8 path supplied to the file operation.
 /// Transformation: reads the file-specific `path` field.
 
+@pure
 pub path(error: FileError): String.
 
 /// Reads a UTF-8 text file.

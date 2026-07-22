@@ -1,3 +1,4 @@
+mod annotation_schemas;
 mod annotations;
 mod config;
 mod declarations;
@@ -7,6 +8,7 @@ mod imports;
 mod model;
 mod modules;
 mod patterns;
+mod shapes;
 mod text;
 mod types;
 
@@ -25,17 +27,22 @@ pub use html::{
     SyntaxHtmlAttrOutput, SyntaxHtmlAttrValueOutput, SyntaxHtmlElementOutput,
     SyntaxHtmlNamedSlotOutput, SyntaxHtmlNodeOutput,
 };
-pub use imports::{SyntaxExportItem, SyntaxImportItem, SyntaxImportKind};
+pub use imports::{
+    syntax_module_import_identity, SyntaxExportItem, SyntaxImportItem, SyntaxImportKind,
+};
 pub use model::{
     SyntaxAnnotationEntryOutput, SyntaxAnnotationKeyOptionOutput, SyntaxAnnotationOutput,
     SyntaxAnnotationSchemaEntryOutput, SyntaxAnnotationValueOutput, SyntaxConstructorClauseOutput,
     SyntaxConstructorParamOutput, SyntaxDeclarationOutput, SyntaxDeclarationPayload,
-    SyntaxFunctionClauseOutput, SyntaxImplMethodOutput, SyntaxStructFieldOutput,
-    SyntaxTemplatePropOutput, SyntaxTraitMethodOutput,
+    SyntaxFunctionClauseOutput, SyntaxImplConstOutput, SyntaxImplMethodOutput,
+    SyntaxStructFieldOutput, SyntaxTemplatePropOutput, SyntaxTraitConstOutput,
+    SyntaxTraitMethodOutput, SyntaxValuedUnionArmOutput,
 };
 pub use modules::{SyntaxModuleOutput, SyntaxSourceKind, SYNTAX_MODULE_OUTPUT_SCHEMA};
 use patterns::pattern_output;
 pub use patterns::{SyntaxPatternFieldOutput, SyntaxPatternKind, SyntaxPatternOutput};
+use shapes::expand_local_shape_synonyms;
+pub use shapes::{expand_shape_imports, SyntaxShapeImport};
 pub(crate) use text::binary_op_text;
 use text::{expr_to_output_text, type_expr_output, unary_op_text};
 pub use types::{SyntaxParamOutput, SyntaxTypeOutput};
@@ -45,8 +52,9 @@ use crate::terlan_syntax::{
     lexer::lex,
     parse_tree::{
         Annotation, AnnotationEntry, AnnotationKeyOption, AnnotationSchemaEntry, AnnotationValue,
-        CaseClause, ConstructorClause, ConstructorParam, Decl, Expr, FunctionClause, FunctionDecl,
-        IfClause, MapExprField, Module, Param, TraitMethodDecl, TypeExpr,
+        BinaryLayoutField, CaseClause, ConstructorClause, ConstructorParam, Decl, Expr,
+        FunctionClause, FunctionDecl, IfClause, MapExprField, Module, Param, Pattern,
+        TraitMethodDecl, TypeExpr,
     },
     parser::{parse_interface_module, parse_module},
     parser_contract::{contract_decl_class, decl_span, module_as_contract},
@@ -62,7 +70,39 @@ use crate::terlan_syntax::{
 pub fn parse_module_as_syntax_output(input: &str) -> EbnfCompileResult<SyntaxModuleOutput> {
     let module =
         parse_module(input).map_err(|err| EbnfCompileError::Parse(err.message, err.span))?;
-    module_as_syntax_output(&module, SyntaxSourceKind::Module)
+    let mut output = module_as_syntax_output(&module, SyntaxSourceKind::Module)?;
+    expand_local_shape_synonyms(&module, &mut output.declarations)?;
+    Ok(output)
+}
+
+/// Collects canonical provider identities for module imports.
+///
+/// Inputs:
+/// - `module`: parsed syntax-output module.
+///
+/// Output:
+/// - Sorted, deduplicated provider module identities.
+///
+/// Transformation:
+/// - Excludes asset imports and canonicalizes both default and selected module
+///   imports through `syntax_module_import_identity`.
+pub fn syntax_module_import_identities(module: &SyntaxModuleOutput) -> Vec<String> {
+    let mut imports = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Import {
+                import_kind: SyntaxImportKind::Module,
+                module_name,
+                items,
+                ..
+            } => Some(syntax_module_import_identity(module_name, items)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    imports.sort_unstable();
+    imports.dedup();
+    imports
 }
 
 /// Parses a Terlan interface module into syntax-output form.
@@ -266,31 +306,41 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
         ),
         Expr::ListComprehension {
             expr,
-            pattern,
-            source,
-            guard,
+            generators,
+            guards,
         } => {
-            let mut children = vec![
-                expr_output_with_span(expr, span),
-                expr_output_with_span(source, span),
-            ];
-            if let Some(guard) = guard {
-                children.push(expr_output_with_span(guard, span));
-            }
+            let mut children = vec![expr_output_with_span(expr, span)];
+            children.extend(
+                generators
+                    .iter()
+                    .map(|generator| expr_output_with_span(&generator.source, span)),
+            );
+            children.extend(
+                guards
+                    .iter()
+                    .map(|guard| expr_output_with_span(guard, span)),
+            );
             expr_node(
                 SyntaxExprKind::ListComprehension,
                 None,
                 None,
                 None,
                 children,
-                vec![pattern_output(pattern)],
+                generators
+                    .iter()
+                    .map(|generator| pattern_output(&generator.pattern))
+                    .collect(),
                 Vec::new(),
                 Vec::new(),
                 span,
             )
-            .with_arity(3 + usize::from(guard.is_some()))
+            .with_arity(1 + generators.len() + guards.len())
         }
-        Expr::Let { bindings, body } => {
+        Expr::Let {
+            bindings,
+            else_clauses,
+            body,
+        } => {
             let mut children = bindings
                 .iter()
                 .map(|binding| expr_output_with_span(&binding.value, span))
@@ -310,7 +360,10 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
                     .map(|binding| pattern_output(&binding.pattern))
                     .collect(),
                 Vec::new(),
-                Vec::new(),
+                else_clauses
+                    .iter()
+                    .map(|clause| case_clause_output(clause, span))
+                    .collect(),
                 span,
             )
             .with_arity(bindings.len())
@@ -527,6 +580,20 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
+        Expr::BinaryLayout { endian, fields } => expr_node(
+            SyntaxExprKind::BinaryLayout,
+            Some(endian.clone()),
+            None,
+            None,
+            Vec::new(),
+            Vec::new(),
+            fields
+                .iter()
+                .map(|field| binary_layout_expr_field_output(field, span))
+                .collect(),
+            Vec::new(),
+            span,
+        ),
         Expr::ConstructorChain { base, record } => expr_node(
             SyntaxExprKind::ConstructorChain,
             None,
@@ -716,12 +783,14 @@ fn expr_node(
         text,
         span,
         raw: None,
+        comprehension_lift: None,
         type_args: Vec::new(),
         operator,
         remote,
         arg_names: Vec::new(),
         children,
         patterns,
+        let_guards: Vec::new(),
         fields,
         clauses,
         catch_clauses: Vec::new(),
@@ -787,6 +856,22 @@ fn expr_field_output_with_span(
     }
 }
 
+/// Converts a binary layout descriptor field to syntax output.
+fn binary_layout_expr_field_output(
+    field: &BinaryLayoutField,
+    span: EbnfSourceSpan,
+) -> SyntaxExprFieldOutput {
+    SyntaxExprFieldOutput {
+        key: field.name.clone(),
+        required: true,
+        value: Box::new(expr_leaf_with_span(
+            SyntaxExprKind::Var,
+            Some(field.descriptor.text.clone()),
+            span,
+        )),
+    }
+}
+
 /// Converts a case clause to syntax output.
 ///
 /// Inputs: parsed case clause and span. Output: syntax-output clause.
@@ -848,3 +933,19 @@ mod syntax_output_html_test;
 #[cfg(test)]
 #[path = "syntax_output_pattern_test.rs"]
 mod syntax_output_pattern_test;
+
+#[cfg(test)]
+#[path = "syntax_output/shapes_test.rs"]
+mod shapes_test;
+
+#[cfg(test)]
+#[path = "syntax_output/shapes/overlap_predicate_implication_test.rs"]
+mod shape_overlap_predicate_implication_test;
+
+#[cfg(test)]
+#[path = "syntax_output/shapes/overlap_relation_transitive_test.rs"]
+mod shape_overlap_relation_transitive_test;
+
+#[cfg(test)]
+#[path = "syntax_output/shapes/overlap_test.rs"]
+mod shape_overlap_test;

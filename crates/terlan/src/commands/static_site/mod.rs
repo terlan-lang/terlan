@@ -20,7 +20,6 @@ use crate::{CliCommand, CliState};
 
 mod command;
 mod filters;
-mod html_usage;
 mod render;
 mod render_lookup;
 mod render_markdown;
@@ -28,7 +27,6 @@ mod render_values;
 mod routes;
 pub(crate) use command::run;
 pub(crate) use filters::AssetFilters;
-pub(crate) use html_usage::*;
 pub(crate) use render::{render_syntax_static_entrypoint, StaticSyntaxRenderError};
 pub(crate) use render_markdown::render_syntax_static_markdown_layout;
 pub(crate) use routes::*;
@@ -825,6 +823,38 @@ fn copy_syntax_static_asset_imports(
                 err
             )
         })?;
+        if crate::terlan_html::is_terlan_artifact_template_path(&import.resolved_path) {
+            let source = std::str::from_utf8(&import.bytes).map_err(|error| {
+                format!(
+                    "error[template_backend_encoding]: {}: {error}",
+                    import.resolved_path.display()
+                )
+            })?;
+            let telemetry =
+                crate::terlan_html::structured_template_telemetry(source, &import.resolved_path)?;
+            let file_name = target
+                .file_name()
+                .and_then(|name| name.to_str())
+                .ok_or_else(|| {
+                    format!(
+                        "error[template_backend_telemetry_path]: {} has no UTF-8 filename",
+                        target.display()
+                    )
+                })?;
+            let telemetry_path = target.with_file_name(format!("{file_name}.telemetry.json"));
+            let telemetry_json = serde_json::to_vec_pretty(&telemetry).map_err(|error| {
+                format!(
+                    "error[template_backend_telemetry_encode]: {}: {error}",
+                    import.resolved_path.display()
+                )
+            })?;
+            fs::write(&telemetry_path, telemetry_json).map_err(|error| {
+                format!(
+                    "error[template_backend_telemetry_write]: {}: {error}",
+                    telemetry_path.display()
+                )
+            })?;
+        }
         if import.kind == SyntaxImportKind::Css {
             copied_css_outputs.push(target);
         }

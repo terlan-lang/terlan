@@ -1,14 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PeriodicWaveConstraints
  */
 module std.js.Dom.PeriodicWaveConstraintsTest.
 
-import type std.js.Dom.PeriodicWaveConstraints.{PeriodicWaveConstraints}.
+import type std.js.Dom.PeriodicWaveConstraints.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub disable_normalization_typechecks(receiver: PeriodicWaveConstraints): std.core.Bool ->
     receiver.disable_normalization().

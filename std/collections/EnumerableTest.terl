@@ -1,0 +1,124 @@
+module std.collections.EnumerableTest.
+
+import std.collections.{Enumerable, KeyedEnumerable, List, Map, Set}.
+import std.core.Option.{None, Option, Some}.
+import std.core.Unit.
+import std.test.Test.{assert_equal}.
+
+import type std.collections.{List, Map, Set}.
+
+value_of(entry: {Binary, Int}): Int ->
+    case entry {
+        {_key, value} -> value
+    }.
+
+ignore_int(_value: Int): Unit ->
+    Unit.
+
+ignore_entry(_entry: {Binary, Int}): Unit ->
+    Unit.
+
+square_int(value: Int): Int ->
+    value * value.
+
+greater_than_one(value: Int): Bool ->
+    value > 1.
+
+sum_int(sum: Int, value: Int): Int ->
+    sum + value.
+
+add_ten(value: Int): Int ->
+    value + 10.
+
+entry_value_is_two(entry: {Binary, Int}): Bool ->
+    value_of(entry) == 2.
+
+sum_entry(sum: Int, entry: {Binary, Int}): Int ->
+    sum + value_of(entry).
+
+first_or_zero(values: std.collections.List.List[Int]): Int ->
+    case values.first() {
+        Some(value) -> value;
+        None -> 0
+    }.
+
+get_bob_or_zero(values: std.collections.Map.Map[Binary, Int]): Int ->
+    case values.get("bob") {
+        Some(value) -> value;
+        None -> 0
+    }.
+
+@test
+pub list_each_visits_values(): Bool ->
+    assert_equal(Unit, 1 |> List(2) |> Enumerable[List].each(ignore_int)).
+
+@test
+pub list_map_transforms_values(): Bool ->
+    let mapped =
+        1
+        |> List(2)
+        |> Enumerable[List].map(square_int);
+    assert_equal(1, first_or_zero(mapped)).
+
+@test
+pub list_filter_keeps_matching_values(): Bool ->
+    let filtered =
+        1
+        |> List(2, 3)
+        |> Enumerable[List].filter(greater_than_one);
+    assert_equal(2, filtered.length()).
+
+@test
+pub list_fold_accumulates_values(): Bool ->
+    assert_equal(6, 1 |> List(2, 3) |> Enumerable[List].fold(0, sum_int)).
+
+@test
+pub list_receiver_map_uses_enumerable_trait(): Bool ->
+    let mapped = [1, 2].map(square_int);
+    assert_equal(2, mapped.length()).
+
+@test
+pub map_each_visits_entries(): Bool ->
+    let users = Map({"alice", 1}, {"bob", 2});
+    assert_equal(Unit, KeyedEnumerable[Map].each(users, ignore_entry)).
+
+@test
+pub map_map_transforms_entries(): Bool ->
+    let users = Map({"alice", 1}, {"bob", 2});
+    let values = KeyedEnumerable[Map].map(users, add_ten);
+    assert_equal(12, get_bob_or_zero(values)).
+
+@test
+pub map_filter_keeps_matching_entries(): Bool ->
+    let users = Map({"alice", 1}, {"bob", 2});
+    let filtered = KeyedEnumerable[Map].filter(users, entry_value_is_two);
+    assert_equal(1, filtered.size()).
+
+@test
+pub map_fold_accumulates_entries(): Bool ->
+    let users = Map({"alice", 1}, {"bob", 2});
+    assert_equal(3, KeyedEnumerable[Map].fold(users, 0, sum_entry)).
+
+@test
+pub set_each_visits_values(): Bool ->
+    assert_equal(Unit, 1 |> Set(2) |> Enumerable[Set].each(ignore_int)).
+
+@test
+pub set_map_transforms_values(): Bool ->
+    let mapped =
+        1
+        |> Set(2)
+        |> Enumerable[Set].map(square_int);
+    assert_equal(2, mapped.size()).
+
+@test
+pub set_filter_keeps_matching_values(): Bool ->
+    let filtered =
+        1
+        |> Set(2, 3)
+        |> Enumerable[Set].filter(greater_than_one);
+    assert_equal(2, filtered.size()).
+
+@test
+pub set_fold_accumulates_values(): Bool ->
+    assert_equal(6, 1 |> Set(2, 3) |> Enumerable[Set].fold(0, sum_int)).

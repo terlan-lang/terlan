@@ -1,0 +1,57 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface EncodedAudioChunk
+ */
+module std.js.Dom.EncodedAudioChunk.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`EncodedAudioChunk`** interface of the WebCodecs API represents a chunk of encoded audio data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk)
+ */
+pub opaque type EncodedAudioChunk.
+
+/**
+ * The **`byteLength`** read-only property of the EncodedAudioChunk interface returns the length in bytes of the encoded audio data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/byteLength)
+ */
+pub (value: EncodedAudioChunk) byte_length(): JsNumber.
+
+/**
+ * The **`duration`** read-only property of the EncodedAudioChunk interface returns an integer indicating the duration of the audio in microseconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/duration)
+ */
+pub (value: EncodedAudioChunk) duration(): Option[JsNumber].
+
+/**
+ * The **`timestamp`** read-only property of the EncodedAudioChunk interface returns an integer indicating the timestamp of the audio in microseconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/timestamp)
+ */
+pub (value: EncodedAudioChunk) timestamp(): JsNumber.
+
+/**
+ * The **`type`** read-only property of the EncodedAudioChunk interface returns a value indicating whether the audio chunk is a key chunk, which does not relying on other frames for decoding.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/type)
+ */
+pub (value: EncodedAudioChunk) type_(): EncodedAudioChunkType.
+
+/**
+ * The **`copyTo()`** method of the EncodedAudioChunk interface copies the encoded chunk of audio data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/copyTo)
+ */
+pub (value: EncodedAudioChunk) copy_to(destination: AllowSharedBufferSource): std.core.Unit.

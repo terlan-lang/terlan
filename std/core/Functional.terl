@@ -6,14 +6,13 @@
  * portable function shapes that targets must preserve without imposing a
  * specific runtime representation.
  */
-
 module std.core.Functional.
 
-import std.collections.Iterator.
-import std.collections.List.
-import type std.collections.List.
+import std.collections.{Iterator, List}.
 import std.core.Option.{None, Option, Some}.
 import std.core.Result.{Err, Ok, Result}.
+
+import type std.collections.List.
 
 /**
  * Functor describes values that can map over one contained type parameter.
@@ -89,11 +88,8 @@ pub trait ResultMonad[F[_, _]] extends ResultFunctor[F] {
 pub impl Functor[Option] for Option {
     map(value: Option[A], f: (A) -> B): Option[B] ->
         case value {
-            None ->
-                None;
-
-            Some(x) ->
-                Some(f(x))
+            None -> None;
+            Some(x) -> Some(f(x))
         }.
 }.
 
@@ -108,28 +104,18 @@ pub impl Functor[Option] for Option {
 pub impl Applicative[Option] for Option {
     map(value: Option[A], f: (A) -> B): Option[B] ->
         case value {
-            None ->
-                None;
-
-            Some(x) ->
-                Some(f(x))
+            None -> None;
+            Some(x) -> Some(f(x))
         }.
-
     pure(value: A): Option[A] ->
         Some(value).
-
     apply(f: Option[(A) -> B], value: Option[A]): Option[B] ->
         case f {
-            None ->
-                None;
-
+            None -> None;
             Some(unwrapped) ->
                 case value {
-                    None ->
-                        None;
-
-                    Some(x) ->
-                        Some(unwrapped(x))
+                    None -> None;
+                    Some(x) -> Some(unwrapped(x))
                 }
         }.
 }.
@@ -144,38 +130,24 @@ pub impl Applicative[Option] for Option {
 pub impl Monad[Option] for Option {
     map(value: Option[A], f: (A) -> B): Option[B] ->
         case value {
-            None ->
-                None;
-
-            Some(x) ->
-                Some(f(x))
+            None -> None;
+            Some(x) -> Some(f(x))
         }.
-
     pure(value: A): Option[A] ->
         Some(value).
-
     apply(f: Option[(A) -> B], value: Option[A]): Option[B] ->
         case f {
-            None ->
-                None;
-
+            None -> None;
             Some(unwrapped) ->
                 case value {
-                    None ->
-                        None;
-
-                    Some(x) ->
-                        Some(unwrapped(x))
+                    None -> None;
+                    Some(x) -> Some(unwrapped(x))
                 }
         }.
-
     flat_map(value: Option[A], f: (A) -> Option[B]): Option[B] ->
         case value {
-            None ->
-                None;
-
-            Some(x) ->
-                f(x)
+            None -> None;
+            Some(x) -> f(x)
         }.
 }.
 
@@ -203,10 +175,8 @@ pub impl Functor[List] for List {
 pub impl Applicative[List] for List {
     map(value: List[A], f: (A) -> B): List[B] ->
         map_list(value, f).
-
     pure(value: A): List[A] ->
         List(value).
-
     apply(f: List[(A) -> B], value: List[A]): List[B] ->
         apply_list(f, value).
 }.
@@ -222,13 +192,10 @@ pub impl Applicative[List] for List {
 pub impl Monad[List] for List {
     map(value: List[A], f: (A) -> B): List[B] ->
         map_list(value, f).
-
     pure(value: A): List[A] ->
         List(value).
-
     apply(f: List[(A) -> B], value: List[A]): List[B] ->
         apply_list(f, value).
-
     flat_map(value: List[A], f: (A) -> List[B]): List[B] ->
         flat_map_list(value, f).
 }.
@@ -244,20 +211,13 @@ pub impl Monad[List] for List {
 pub impl ResultFunctor[Result] for Result {
     map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
         case value {
-            Ok(x) ->
-                Ok(f(x));
-
-            Err(reason) ->
-                Err(reason)
+            Ok(x) -> Ok(f(x));
+            Err(reason) -> Err(reason)
         }.
-
     map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
         case value {
-            Ok(x) ->
-                Ok(x);
-
-            Err(reason) ->
-                Err(f(reason))
+            Ok(x) -> Ok(x);
+            Err(reason) -> Err(f(reason))
         }.
 }.
 
@@ -272,29 +232,18 @@ pub impl ResultFunctor[Result] for Result {
 pub impl ResultMonad[Result] for Result {
     map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
         case value {
-            Ok(x) ->
-                Ok(f(x));
-
-            Err(reason) ->
-                Err(reason)
+            Ok(x) -> Ok(f(x));
+            Err(reason) -> Err(reason)
         }.
-
     map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
         case value {
-            Ok(x) ->
-                Ok(x);
-
-            Err(reason) ->
-                Err(f(reason))
+            Ok(x) -> Ok(x);
+            Err(reason) -> Err(f(reason))
         }.
-
     flat_map(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
         case value {
-            Ok(x) ->
-                f(x);
-
-            Err(reason) ->
-                Err(reason)
+            Ok(x) -> f(x);
+            Err(reason) -> Err(reason)
         }.
 }.
 
@@ -340,11 +289,8 @@ flat_map_list[A, B](value: List[A], f: (A) -> List[B]): List[B] ->
  */
 map_iterator[A, B](iterator: Iterator[A], f: (A) -> B): List[B] ->
     case Iterator.next(iterator) {
-        Some({value: value, next: next}) ->
-            [f.(value) | map_iterator(next, f)];
-
-        None ->
-            []
+        Some({value: value, next: next}) -> [f(value) | map_iterator(next, f)];
+        None -> []
     }.
 
 /**
@@ -357,11 +303,8 @@ map_iterator[A, B](iterator: Iterator[A], f: (A) -> B): List[B] ->
  */
 flat_map_iterator[A, B](iterator: Iterator[A], f: (A) -> List[B]): List[B] ->
     case Iterator.next(iterator) {
-        Some({value: value, next: next}) ->
-            append_list(f.(value), flat_map_iterator(next, f));
-
-        None ->
-            []
+        Some({value: value, next: next}) -> append_list(f(value), flat_map_iterator(next, f));
+        None -> []
     }.
 
 /**
@@ -386,9 +329,6 @@ append_list[A](left: List[A], right: List[A]): List[A] ->
  */
 append_iterator[A](iterator: Iterator[A], tail: List[A]): List[A] ->
     case Iterator.next(iterator) {
-        Some({value: value, next: next}) ->
-            [value | append_iterator(next, tail)];
-
-        None ->
-            tail
+        Some({value: value, next: next}) -> [value | append_iterator(next, tail)];
+        None -> tail
     }.

@@ -132,7 +132,7 @@ pub(crate) const fn contract_baselines() -> &'static [ContractBaseline] {
         ContractBaseline {
             module_name: "phase_tuple_literal",
             required_snippets: &[
-                "return={Int , Int } return_core=Tuple(Int,Int)",
+                "return={Int, Int} return_core=Tuple(Int,Int)",
                 "body=Tuple:core=Tuple(Int(1),Int(2)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Tuple(Int(1),Int(2))):proof=lean-covered",
                 "children=[Int:core=Int(1):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Int(1)):proof=lean-covered:text=1:arity=0;Int:core=Int(2):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Int(2)):proof=lean-covered:text=2:arity=0]",
                 "metadata=functions:1 types:0 constructors:0 proof_readiness:lean-covered",

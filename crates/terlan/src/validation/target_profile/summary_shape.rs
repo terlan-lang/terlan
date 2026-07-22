@@ -39,7 +39,7 @@ impl ProfileExprShapeExtensions for TargetProfile {
     ///
     /// Transformation:
     /// - Gates dedicated function-value invocation syntax so earlier successor
-    ///   profiles do not inherit `f.(args)` merely because it lowers to the
+    ///   profiles do not inherit `f(args)` merely because it lowers to the
     ///   same backend call payload as local named calls.
     fn allows_expr_summary_kind(self, summary: &CoreExprSummary) -> bool {
         if summary.kind != "FunctionCall" {
@@ -48,16 +48,18 @@ impl ProfileExprShapeExtensions for TargetProfile {
 
         matches!(
             self,
-            Self::Erlang
+            Self::Vm
                 | Self::JsShared
                 | Self::JsBrowser
                 | Self::JsWorker
-                | Self::A016Erlang
-                | Self::A017Erlang
-                | Self::A018Erlang
-                | Self::A019Erlang
-                | Self::A020Erlang
-                | Self::A021Erlang
+                | Self::WasmCore
+                | Self::CoreV0
+                | Self::A016Vm
+                | Self::A017Vm
+                | Self::A018Vm
+                | Self::A019Vm
+                | Self::A020Vm
+                | Self::A021Vm
         )
     }
 
@@ -79,34 +81,35 @@ impl ProfileExprShapeExtensions for TargetProfile {
             return true;
         }
 
-        if summary.kind == "Call" && matches!(self, Self::A020Erlang | Self::A021Erlang) {
+        if summary.kind == "Call" && matches!(self, Self::A020Vm | Self::A021Vm) {
             return true;
         }
 
         match self {
-            Self::Erlang | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
-            Self::A0Erlang
-            | Self::A01Erlang
-            | Self::A02Erlang
-            | Self::A03Erlang
-            | Self::A04Erlang
-            | Self::A05Erlang
-            | Self::A06Erlang
-            | Self::A07Erlang
-            | Self::A08Erlang
-            | Self::A09Erlang
-            | Self::A010Erlang
-            | Self::A011Erlang
-            | Self::A012Erlang
-            | Self::A013Erlang
-            | Self::A014Erlang
-            | Self::A015Erlang
-            | Self::A016Erlang
-            | Self::A017Erlang
-            | Self::A018Erlang
-            | Self::A019Erlang
-            | Self::A020Erlang
-            | Self::A021Erlang => summary.core_expr.is_some(),
+            Self::Vm | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
+            Self::WasmCore => summary.core_expr.is_some(),
+            Self::A0Vm
+            | Self::A01Vm
+            | Self::A02Vm
+            | Self::A03Vm
+            | Self::A04Vm
+            | Self::A05Vm
+            | Self::A06Vm
+            | Self::A07Vm
+            | Self::A08Vm
+            | Self::A09Vm
+            | Self::A010Vm
+            | Self::A011Vm
+            | Self::A012Vm
+            | Self::A013Vm
+            | Self::A014Vm
+            | Self::A015Vm
+            | Self::A016Vm
+            | Self::A017Vm
+            | Self::A018Vm
+            | Self::A019Vm
+            | Self::A020Vm
+            | Self::A021Vm => summary.core_expr.is_some(),
             Self::CoreV0 => summary.core_expr.is_some(),
         }
     }

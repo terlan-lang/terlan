@@ -2,7 +2,7 @@ use super::{
     mask_json_interpolations, mask_plain_interpolations, mask_toml_interpolations,
     validate_artifact_template_structure, validate_json_template_structure,
     validate_text_template_structure, validate_toml_template_structure,
-    validate_yaml_template_structure,
+    validate_xml_template_structure, validate_yaml_template_structure,
 };
 use std::path::Path;
 
@@ -124,6 +124,126 @@ fn validate_artifact_template_structure_rejects_unknown_suffix() {
         diagnostics[0].message,
         "unknown Terlan artifact-template suffix"
     );
+}
+
+/// Dispatches XML templates to the XML structure validator.
+///
+/// Inputs:
+/// - `.terl.xml` source and path.
+///
+/// Output:
+/// - Test passes when target-aware validation accepts XML interpolation.
+///
+/// Transformation:
+/// - Verifies callers validate XML through the common entrypoint.
+#[test]
+fn validate_artifact_template_structure_accepts_xml_template() {
+    assert!(validate_artifact_template_structure(
+        "<feed version=\"${version}\">${items}</feed>",
+        "templates/feed.terl.xml",
+    )
+    .is_ok());
+}
+
+#[test]
+fn validate_xml_template_structure_accepts_namespaces_and_interpolation() {
+    assert!(validate_xml_template_structure(
+        "<?xml version=\"1.0\"?><feed xmlns=\"urn:feed\"><item id=\"${id}\">${title}</item></feed>",
+        "templates/feed.terl.xml",
+    )
+    .is_ok());
+}
+
+#[test]
+fn validate_xml_template_structure_rejects_mismatched_elements() {
+    let diagnostics =
+        validate_xml_template_structure("<feed><item></feed>", "templates/feed.terl.xml")
+            .expect_err("mismatched XML elements should fail");
+
+    assert!(diagnostics[0]
+        .message
+        .starts_with("invalid XML template structure:"));
+}
+
+#[test]
+fn validate_xml_template_structure_rejects_duplicate_attributes() {
+    let diagnostics =
+        validate_xml_template_structure("<feed id=\"one\" id=\"two\"/>", "templates/feed.terl.xml")
+            .expect_err("duplicate XML attributes should fail");
+
+    assert!(diagnostics[0]
+        .message
+        .starts_with("invalid XML template structure:"));
+}
+
+#[test]
+fn validate_xml_template_structure_rejects_dynamic_names() {
+    for source in ["<${tag}/>", "<feed ${attribute}=\"value\"/>"] {
+        let diagnostics = validate_xml_template_structure(source, "templates/feed.terl.xml")
+            .expect_err("dynamic XML names should fail");
+        assert!(diagnostics[0]
+            .message
+            .starts_with("invalid XML template structure:"));
+    }
+}
+
+#[test]
+fn validate_xml_template_structure_rejects_invalid_interpolation() {
+    for (source, expected) in [
+        ("<feed>${ }</feed>", "empty XML template interpolation"),
+        (
+            "<feed version=\"${version\"></feed>",
+            "unterminated XML template interpolation",
+        ),
+    ] {
+        let diagnostics = validate_xml_template_structure(source, "templates/feed.terl.xml")
+            .expect_err("invalid XML interpolation should fail");
+        assert_eq!(diagnostics[0].message, expected);
+    }
+}
+
+#[test]
+fn validate_xml_template_structure_rejects_multiple_roots_and_dtds() {
+    for (source, expected) in [
+        (
+            "<one/><two/>",
+            "document contains more than one root element",
+        ),
+        (
+            "<!DOCTYPE feed [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><feed>&xxe;</feed>",
+            "document type declarations are not supported",
+        ),
+    ] {
+        let diagnostics = validate_xml_template_structure(source, "templates/feed.terl.xml")
+            .expect_err("unsupported XML document structure should fail");
+        assert_eq!(
+            diagnostics[0].message,
+            format!("invalid XML template structure: {expected}")
+        );
+    }
+}
+
+#[test]
+fn validate_xml_template_structure_rejects_undeclared_entities_and_late_declarations() {
+    for (source, expected) in [
+        (
+            "<feed>&unknown;</feed>",
+            "undeclared entity reference `unknown`",
+        ),
+        ("<feed id=\"&unknown;\"/>", "unrecognized entity `unknown`"),
+        (
+            "<feed/><?xml version=\"1.0\"?>",
+            "XML declaration must appear once before the document root",
+        ),
+    ] {
+        let diagnostics = validate_xml_template_structure(source, "templates/feed.terl.xml")
+            .expect_err("invalid XML references or declarations should fail");
+        assert!(
+            diagnostics[0].message.contains(expected),
+            "unexpected XML diagnostic: {}",
+            diagnostics[0].message
+        );
+    }
 }
 
 /// Verifies oversized empty structured-template interpolations fail early.

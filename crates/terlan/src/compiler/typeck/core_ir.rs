@@ -9,7 +9,11 @@ pub use intrinsics::{
     CoreRuntimeCapability,
 };
 pub use module::{CoreModule, CoreModuleMetadata};
-pub use patterns::{CoreMapPatternField, CorePattern, CoreRecordPatternField};
+pub use patterns::{
+    CoreBinaryPatternDescriptor, CoreBinaryPatternEndian, CoreBinaryPatternField,
+    CoreMapPatternField, CorePattern, CoreRecordPatternField, CoreStringPatternCapture,
+    CoreStringPatternSegment,
+};
 pub use proof_payloads::{
     CoreCheckedPreservationEvidence, CoreCheckedPreservationEvidenceKind, CoreProofCoverage,
     CoreProofReadiness, CoreSubstitutionFreshnessEvidence,
@@ -22,14 +26,67 @@ pub use types::{CoreMapTypeField, CoreStructTypeField, CoreTupleTypeElem, CoreTy
 
 pub const CORE_IR_SCHEMA: &str = "terlan.core_ir.v1";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// One checked property accepted by an external template render plan.
+///
+/// Inputs: syntax-output template declaration metadata after typechecking.
+/// Output: canonical prop name, CoreIR type, and optional lowered default.
+/// Transformation: removes parser-owned type/default wrappers before backend
+/// admission while preserving declaration order.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreTemplateProp {
+    /// Source-visible property name.
+    pub name: String,
+    /// Checked backend-neutral property type.
+    pub ty: CoreType,
+    /// Optional default expression lowered into CoreIR.
+    pub default: Option<CoreExpr>,
+}
+
+/// One validated expression island retained by an external template plan.
+///
+/// Inputs: a non-path interpolation accepted by template typechecking.
+/// Output: source identity, lowered CoreIR expression, and checked result type.
+/// Transformation: removes template parser context while preserving the exact
+/// executable expression and scalar rendering contract.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreTemplateExpression {
+    /// Canonical expression source used by parsed template slots.
+    pub source: String,
+    /// Backend-neutral checked expression body.
+    pub expr: CoreExpr,
+    /// Checked scalar result type used to select rendering operations.
+    pub ty: CoreType,
+}
+
+/// Validated external template tree retained at the CoreIR boundary.
+///
+/// Inputs: one checked template declaration and its parsed external file.
+/// Output: immutable render plan consumed by target-specific lowering.
+/// Transformation: binds declaration props to a parser-independent template
+/// tree so backends never reopen or parse source templates at runtime.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreTemplateRenderPlan {
+    /// Local template declaration name used by `TemplateInstantiate`.
+    pub name: String,
+    /// Source-relative template path retained for deterministic diagnostics.
+    pub source_path: String,
+    /// Declaration-order checked property contracts.
+    pub props: Vec<CoreTemplateProp>,
+    /// Deterministically ordered checked expression islands.
+    pub expressions: Vec<CoreTemplateExpression>,
+    /// Validated parsed HTML tree.
+    pub template: crate::terlan_html::HtmlTemplate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Source identity attached to a CoreIR module.
 ///
-/// Inputs: typed phase source metadata. Output: stable source-kind and syntax
-/// fingerprint fields. Transformation: carries provenance into CoreIR without
-/// embedding parser or backend state.
+/// Inputs: typed phase source metadata. Output: stable source-kind, optional
+/// path, and syntax fingerprint fields. Transformation: carries provenance
+/// into CoreIR without embedding parser or backend state.
 pub struct CoreSourceIdentity {
     pub source_kind: String,
+    pub source_path: Option<String>,
     pub syntax_contract_fingerprint: Option<String>,
 }
 
@@ -45,7 +102,7 @@ pub struct CoreSourceIdentity {
 /// Transformation:
 /// - Distinguishes normal module imports from asset imports without carrying
 ///   backend resolver state into CoreIR.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CoreImportKind {
     Module,
     TypeModule,
@@ -54,7 +111,7 @@ pub enum CoreImportKind {
     Markdown,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Import preserved at the backend-neutral CoreIR boundary.
 ///
 /// Inputs: resolved import metadata. Output: module name plus import kind.
@@ -64,7 +121,7 @@ pub struct CoreImport {
     pub kind: CoreImportKind,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Export preserved in CoreIR.
 ///
 /// Inputs: resolved public declaration metadata. Output: export name and kind.
@@ -75,7 +132,7 @@ pub struct CoreExport {
     pub kind: CoreExportKind,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Kind of exported Core declaration.
 ///
 /// Inputs: resolved declaration shape. Output: function, type, or constructor
@@ -87,7 +144,7 @@ pub enum CoreExportKind {
     Constructor { min_arity: usize },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Type declaration summarized in CoreIR.
 ///
 /// Inputs: resolved type declaration. Output: source type text and optional
@@ -101,7 +158,7 @@ pub struct CoreTypeDecl {
     pub core_body: Option<CoreType>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core visibility for declarations.
 ///
 /// Inputs: source visibility and opacity modifiers. Output: public/private/
@@ -112,7 +169,7 @@ pub enum CoreVisibility {
     Opaque,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Function declaration summarized in CoreIR.
 ///
 /// Inputs: resolved function signature and clauses. Output: typed function
@@ -122,13 +179,17 @@ pub struct CoreFunction {
     pub name: String,
     pub arity: usize,
     pub public: bool,
+    /// Source-declared generic parameters retained for exact AOT monomorphization.
+    pub generic_params: Vec<String>,
+    /// Explicit package/native operation selected by `@compiler.native`.
+    pub native_operation: Option<String>,
     pub params: Vec<CoreParam>,
     pub return_type: String,
     pub core_return_type: Option<CoreType>,
     pub clauses: Vec<CoreFunctionClause>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Function or constructor parameter summarized in CoreIR.
 ///
 /// Inputs: source parameter name and type annotation. Output: textual and typed
@@ -161,7 +222,7 @@ fn core_param_contract_text(param: &CoreParam) -> String {
     )
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// One function clause summarized in CoreIR.
 ///
 /// Inputs: pattern list, optional guard, and body expression. Output:
@@ -176,7 +237,7 @@ pub struct CoreFunctionClause {
     pub body: CoreExprSummary,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Expression summary carried through CoreIR.
 ///
 /// Inputs: typed or partially typed expression lowering result. Output: summary
@@ -200,7 +261,7 @@ pub struct CoreExprSummary {
 /// Output: structured expression tree. Transformation: removes parser-specific
 /// detail while preserving semantics needed by proof, validation, and backend
 /// emitters.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CoreExpr {
     Int(i64),
     Float(String),
@@ -220,9 +281,9 @@ pub enum CoreExpr {
     },
     ListComprehension {
         expr: Box<CoreExpr>,
-        pattern: CorePattern,
-        source: Box<CoreExpr>,
-        guard: Option<Box<CoreExpr>>,
+        generators: Vec<CoreListComprehensionGenerator>,
+        guards: Vec<CoreExpr>,
+        lift: Option<String>,
     },
     Let {
         bindings: Vec<CoreLetBinding>,
@@ -294,7 +355,9 @@ pub enum CoreExpr {
     SqlQuery {
         row_type: String,
         bound_sql: String,
-        parameter_count: usize,
+        parameters: Vec<CoreExpr>,
+        query_kind: String,
+        transaction_requirement: String,
         cardinality: String,
         result_type: String,
         projection_fields: Vec<String>,
@@ -327,7 +390,7 @@ pub enum CoreExpr {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core map expression field.
 ///
 /// Inputs: map field key/operator/value. Output: typed map field. Transformation:
@@ -339,7 +402,7 @@ pub struct CoreMapExprField {
     pub value: CoreExpr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core let binding.
 ///
 /// Inputs: binding pattern and value expression. Output: one local binding.
@@ -350,7 +413,14 @@ pub struct CoreLetBinding {
     pub value: CoreExpr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// One ordered generator in a CoreIR list comprehension.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreListComprehensionGenerator {
+    pub pattern: CorePattern,
+    pub source: CoreExpr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core record or template field expression.
 ///
 /// Inputs: field key/operator/value. Output: typed field payload.
@@ -362,7 +432,7 @@ pub struct CoreRecordExprField {
     pub value: CoreExpr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core case-like branch.
 ///
 /// Inputs: pattern, optional guard, and body expression. Output: typed branch.
@@ -374,7 +444,7 @@ pub struct CoreCaseClause {
     pub body: CoreExpr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core if branch.
 ///
 /// Inputs: condition and body expressions. Output: typed if clause.
@@ -384,7 +454,7 @@ pub struct CoreIfClause {
     pub body: CoreExpr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core try cleanup branch.
 ///
 /// Inputs: cleanup trigger and body expressions. Output: typed after branch.
@@ -449,24 +519,40 @@ impl CoreExpr {
             }
             CoreExpr::ListComprehension {
                 expr,
-                pattern,
-                source,
-                guard,
-            } => match guard {
-                Some(guard) => format!(
-                    "ListComprehension({}|{}<-{} when {})",
-                    expr.contract_text(),
-                    pattern.contract_text(),
-                    source.contract_text(),
-                    guard.contract_text()
-                ),
-                None => format!(
-                    "ListComprehension({}|{}<-{})",
-                    expr.contract_text(),
-                    pattern.contract_text(),
-                    source.contract_text()
-                ),
-            },
+                generators,
+                guards,
+                lift,
+            } => {
+                let generators = generators
+                    .iter()
+                    .map(|generator| {
+                        format!(
+                            "{}<-{}",
+                            generator.pattern.contract_text(),
+                            generator.source.contract_text()
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let lift = lift
+                    .as_ref()
+                    .map(|container| format!(" lift {container}"))
+                    .unwrap_or_default();
+                if guards.is_empty() {
+                    format!("ListComprehension({}|{}{lift})", expr.contract_text(), generators)
+                } else {
+                    format!(
+                        "ListComprehension({}|{} if {}{lift})",
+                        expr.contract_text(),
+                        generators,
+                        guards
+                            .iter()
+                            .map(CoreExpr::contract_text)
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
+                }
+            }
             CoreExpr::Let { bindings, body } => format!(
                 "Let({};{})",
                 bindings
@@ -613,12 +699,19 @@ impl CoreExpr {
             CoreExpr::SqlQuery {
                 row_type,
                 bound_sql,
-                parameter_count,
+                parameters,
+                query_kind,
+                transaction_requirement,
                 cardinality,
                 result_type,
                 projection_fields,
             } => format!(
-                "SqlQuery(row_type={row_type};params={parameter_count};cardinality={cardinality};result={result_type};projection={};sql={bound_sql})",
+                "SqlQuery(row_type={row_type};params=[{}];kind={query_kind};transaction={transaction_requirement};cardinality={cardinality};result={result_type};projection={};sql={bound_sql})",
+                parameters
+                    .iter()
+                    .map(CoreExpr::contract_text)
+                    .collect::<Vec<_>>()
+                    .join(","),
                 projection_fields.join(",")
             ),
             CoreExpr::Case { scrutinee, clauses } => format!(
@@ -768,7 +861,7 @@ impl CoreCaseClause {
         let body = self.body.contract_text();
         match &self.guard {
             Some(guard) => format!(
-                "{} when {}=>{}",
+                "{} where {}=>{}",
                 self.pattern.contract_text(),
                 guard.contract_text(),
                 body
@@ -820,7 +913,7 @@ impl CoreTryAfter {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Constructor declaration summarized in CoreIR.
 ///
 /// Inputs: resolved constructor declaration. Output: constructor signature.
@@ -847,7 +940,7 @@ pub struct CoreConstructorDecl {
 /// Transformation:
 /// - Classifies source syntax without choosing a backend representation for
 ///   trait dictionaries, receiver methods, or adapter functions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CoreTraitConformanceSource {
     Implements,
     ExplicitImpl,
@@ -868,7 +961,7 @@ pub enum CoreTraitConformanceSource {
 ///   visibility without lowering to target-specific runtime dictionaries.
 ///   Struct `includes` clauses are intentionally excluded because they expand
 ///   struct shape, not trait conformance.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CoreTraitConformance {
     pub trait_ref: String,
     pub for_type: String,

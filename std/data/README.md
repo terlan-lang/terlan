@@ -3,7 +3,7 @@
 This directory owns portable data value modules. The 0.0.4 release surface is
 centered on `std.data.Json`, which provides a target-neutral JSON value API
 while delegating concrete parsing, rendering, and storage to Rust-native
-SafeNative operations.
+NativeBoundary operations.
 
 ## Responsibilities
 
@@ -26,7 +26,7 @@ SafeNative operations.
 
 The source language sees JSON as an opaque value with explicit builder and
 accessor functions. The selected backend owns the actual JSON representation.
-In 0.0.4, pure JSON operations lower to Rust-native SafeNative calls backed by
+In 0.0.4, pure JSON operations lower to Rust-native NativeBoundary calls backed by
 `serde_json`.
 
 The main flow is:
@@ -47,7 +47,7 @@ Important invariants:
 
 - `std.http.Response`: accepts `Json` for explicit JSON responses.
 - `std.http.Request`: parses request bodies into `Json`.
-- `terlan_safenative`: owns Rust-native JSON operation implementations.
+- `terlan_native_boundary`: owns Rust-native JSON operation implementations.
 - `std/RUST_BACKED_MANIFEST.tsv`: records native operation ownership.
 
 ## Edge Cases

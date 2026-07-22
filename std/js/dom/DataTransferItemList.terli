@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DataTransferItemList
+ */
+module std.js.Dom.DataTransferItemList.
+
+import type std.core.{Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`DataTransferItemList`** object is a list of DataTransferItem objects representing items being dragged.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList)
+ */
+pub opaque type DataTransferItemList.
+
+/**
+ * The read-only **`length`** property of the the drag item list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/length)
+ */
+pub (value: DataTransferItemList) length(): JsNumber.
+
+/**
+ * The **`DataTransferItemList.add()`** method creates a new list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/add)
+ */
+pub (value: DataTransferItemList) add(data: JsString, type_: JsString): Option[DataTransferItem].
+
+pub (value: DataTransferItemList) add(data: File): Option[DataTransferItem].
+
+/**
+ * The DataTransferItemList method **`clear()`** removes all DataTransferItem objects from the drag data items list, leaving the list empty.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/clear)
+ */
+pub (value: DataTransferItemList) clear(): Unit.
+
+/**
+ * The **`DataTransferItemList.remove()`** method removes the less than zero or greater than one less than the length of the list, the list will not be changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/remove)
+ */
+pub (value: DataTransferItemList) remove(index: JsNumber): Unit.

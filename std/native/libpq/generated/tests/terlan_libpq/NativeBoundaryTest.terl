@@ -1,0 +1,4 @@
+module terlan_libpq.NativeBoundaryTest.
+
+@test
+pub generated_c_abi_package_owns_live_validation(): Bool -> true.

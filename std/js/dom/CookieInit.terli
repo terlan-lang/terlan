@@ -1,0 +1,31 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CookieInit
+ */
+module std.js.Dom.CookieInit.
+
+import type std.js.String.{JsString}.
+
+pub opaque type CookieInit.
+
+pub (value: CookieInit) domain(): Option[JsString].
+
+pub (value: CookieInit) expires(): Option[DOMHighResTimeStamp].
+
+pub (value: CookieInit) name(): JsString.
+
+pub (value: CookieInit) partitioned(): std.core.Bool.
+
+pub (value: CookieInit) path(): JsString.
+
+pub (value: CookieInit) same_site(): CookieSameSite.
+
+pub (value: CookieInit) value(): JsString.

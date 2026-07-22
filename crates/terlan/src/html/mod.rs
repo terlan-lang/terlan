@@ -1,22 +1,31 @@
 use std::path::{Path, PathBuf};
 
 mod artifact;
+mod attribute;
 mod base_path;
 mod escaping;
 mod header;
+mod interpolation;
 mod metadata;
 mod parser;
 mod structured;
+mod structured_render;
 
 pub use artifact::{
     artifact_template_target_from_filename, artifact_template_target_from_path,
     is_terlan_artifact_template_path, ArtifactTemplateTarget, TERLAN_HTML_TEMPLATE_SUFFIX,
     TERLAN_JSON_TEMPLATE_SUFFIX, TERLAN_MARKDOWN_TEMPLATE_SUFFIX, TERLAN_TEMPLATE_SUFFIX,
-    TERLAN_TEXT_TEMPLATE_SUFFIX, TERLAN_TOML_TEMPLATE_SUFFIX, TERLAN_YAML_TEMPLATE_SUFFIX,
-    TERLAN_YML_TEMPLATE_SUFFIX,
+    TERLAN_TEXT_TEMPLATE_SUFFIX, TERLAN_TOML_TEMPLATE_SUFFIX, TERLAN_XML_TEMPLATE_SUFFIX,
+    TERLAN_YAML_TEMPLATE_SUFFIX, TERLAN_YML_TEMPLATE_SUFFIX,
 };
+pub use attribute::{render_template_attribute, TemplateAttributeValue};
 pub use base_path::inject_html_base_path;
 pub use escaping::{escape_html_attr, escape_html_text};
+pub use interpolation::{
+    format_template_interpolations, scan_template_interpolations, template_attribute_slot_kind,
+    template_interpolation_at_offset, TemplateAttributeSlotKind, TemplateInterpolationContext,
+    TemplateInterpolationError, TemplateInterpolationRegion,
+};
 pub use metadata::{
     extract_page_metadata, extract_template_metadata, PageMetadata, TemplateMetadata,
     TemplateParamMetadata,
@@ -28,10 +37,15 @@ pub use parser::{
 pub use structured::{
     validate_artifact_template_structure, validate_json_template_structure,
     validate_text_template_structure, validate_toml_template_structure,
-    validate_yaml_template_structure,
+    validate_xml_template_structure, validate_yaml_template_structure,
+};
+pub use structured_render::{
+    emit_structured_template_browser_renderer, render_structured_template,
+    structured_template_telemetry, structured_template_telemetry_for_target,
+    StructuredTemplateRender, StructuredTemplateSlotTelemetry, StructuredTemplateTelemetry,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Parsed Terlan template with source metadata.
 ///
 /// Inputs: template source text and path. Output: a reusable template tree.
@@ -74,7 +88,7 @@ impl HtmlTemplate {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Template node produced by the HTML and Markdown parsers.
 ///
 /// Inputs: HTML tokenizer events or Markdown-rendered HTML. Output: typed node
@@ -88,7 +102,7 @@ pub enum HtmlNode {
     Slot(HtmlSlot),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Parsed HTML element node.
 ///
 /// Inputs: start/end tag tokens and nested children. Output: element name,
@@ -100,7 +114,7 @@ pub struct HtmlElement {
     pub children: Vec<HtmlNode>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Parsed HTML attribute.
 ///
 /// Inputs: tokenizer attribute name/value. Output: typed attribute with an
@@ -111,7 +125,7 @@ pub struct HtmlAttr {
     pub value: Option<HtmlAttrValue>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Parsed HTML attribute value.
 ///
 /// Inputs: raw attribute value text. Output: static text or interpolation slot.
@@ -122,7 +136,7 @@ pub enum HtmlAttrValue {
     Slot(HtmlSlot),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Terlan template interpolation slot.
 ///
 /// Inputs: `${expr}` source. Output: original expression text, dotted path
@@ -135,7 +149,7 @@ pub struct HtmlSlot {
     pub span: Option<HtmlSpan>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Source span for a template interpolation slot.
 ///
 /// Inputs: HTML tokenizer line and byte offsets. Output: line/start/end span.
@@ -147,7 +161,7 @@ pub struct HtmlSpan {
     pub end: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Parsed Markdown document and rendered HTML representation.
 ///
 /// Inputs: Markdown source and path. Output: raw Markdown, rendered HTML, and
@@ -188,7 +202,7 @@ impl HtmlSlot {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// HTML/template diagnostic.
 ///
 /// Inputs: optional source path and message. Output: diagnostic consumed by
@@ -197,6 +211,7 @@ impl HtmlSlot {
 pub struct HtmlDiagnostic {
     pub path: Option<PathBuf>,
     pub message: String,
+    pub span: Option<HtmlSpan>,
 }
 
 impl HtmlDiagnostic {
@@ -208,7 +223,14 @@ impl HtmlDiagnostic {
         Self {
             path,
             message: message.into(),
+            span: None,
         }
+    }
+
+    /// Attaches a source-local line/column span to this diagnostic.
+    pub fn with_span(mut self, span: HtmlSpan) -> Self {
+        self.span = Some(span);
+        self
     }
 }
 

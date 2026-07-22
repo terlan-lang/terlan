@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DOMQuad
+ */
+module std.js.Dom.DOMQuad.
+
+/**
+ * A `DOMQuad` is a collection of four `DOMPoint`s defining the corners of an arbitrary quadrilateral.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad)
+ */
+pub opaque type DOMQuad.
+
+/**
+ * The **`DOMQuad`** interface's **`p1`** property holds the DOMPoint object that represents one of the four corners of the `DOMQuad`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p1)
+ */
+pub (value: DOMQuad) p1(): DOMPoint.
+
+/**
+ * The **`DOMQuad`** interface's **`p2`** property holds the DOMPoint object that represents one of the four corners of the `DOMQuad`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p2)
+ */
+pub (value: DOMQuad) p2(): DOMPoint.
+
+/**
+ * The **`DOMQuad`** interface's **`p3`** property holds the DOMPoint object that represents one of the four corners of the `DOMQuad`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p3)
+ */
+pub (value: DOMQuad) p3(): DOMPoint.
+
+/**
+ * The **`DOMQuad`** interface's **`p4`** property holds the DOMPoint object that represents one of the four corners of the `DOMQuad`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p4)
+ */
+pub (value: DOMQuad) p4(): DOMPoint.
+
+/**
+ * The DOMQuad method `getBounds()` returns a DOMRect object representing the smallest rectangle that fully contains the `DOMQuad` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/getBounds)
+ */
+pub (value: DOMQuad) get_bounds(): DOMRect.

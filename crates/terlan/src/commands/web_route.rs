@@ -134,8 +134,8 @@ pub(crate) fn validate_route_pattern(route: &str) -> Result<(), String> {
 /// - `true` for route parameter types with implemented local serve decoding.
 ///
 /// Transformation:
-/// - Keeps route pattern validation aligned with the BEAM handler bridge so
-///   manifests cannot claim typed route params that `terlc serve` cannot
+/// - Keeps route pattern validation aligned with the VM handler route manifest
+///   so manifests cannot claim typed route params that `terlc serve` cannot
 ///   convert.
 pub(crate) fn is_supported_route_param_type(type_name: &str) -> bool {
     matches!(type_name, "String" | "Int" | "Bool")

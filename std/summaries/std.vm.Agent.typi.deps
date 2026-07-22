@@ -1,11 +1,8 @@
 module=std.vm.Agent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=13478319429515322564
-interface_hash=3046127212966183952
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=17175285713058187097
+interface_hash=11914059190550547770
 interface_doc_hash=8661048941775083411
-deps=3
-std.core.Error=16335401487784876941
-std.core.Result=10647882371445179146
-std.core.Unit=2105912563953161831
+deps=0

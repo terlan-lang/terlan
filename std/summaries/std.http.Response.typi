@@ -6,6 +6,47 @@
 
 module std.http.Response.
 
+/// Deny represents the strict frame-ancestor policy for secure responses.
+///
+/// Input: no value input.
+/// Output: atom-backed frame option marker.
+/// Transformation: gives security-header policies a typed source-level value
+/// instead of requiring raw `X-Frame-Options` text.
+
+pub type Deny =
+    Atom["deny"].
+
+/// FrameOptions represents the supported `X-Frame-Options` policy values.
+///
+/// Input: no type parameter.
+/// Output: one of the supported frame option markers.
+/// Transformation: prevents handlers from spelling frame protection headers by
+/// hand while keeping the emitted HTTP header predictable.
+
+pub type FrameOptions =
+    Deny
+  | SameOrigin.
+
+/// NoReferrer represents the strictest referrer policy.
+///
+/// Input: no value input.
+/// Output: atom-backed referrer policy marker.
+/// Transformation: makes referrer policy composition a typed choice instead of
+/// a raw header string.
+
+pub type NoReferrer =
+    Atom["no_referrer"].
+
+/// ReferrerPolicy represents supported `Referrer-Policy` values.
+///
+/// Input: no type parameter.
+/// Output: one of the supported referrer policy markers.
+/// Transformation: narrows response security policy before header emission.
+
+pub type ReferrerPolicy =
+    NoReferrer
+  | StrictOriginWhenCrossOrigin.
+
 /// Response represents one HTTP response returned by a Terlan handler.
 ///
 /// Input: no type parameter.
@@ -15,6 +56,42 @@ module std.http.Response.
 /// stable typed return value for handler functions.
 
 pub opaque type Response.
+
+/// SameOrigin represents the same-origin frame-ancestor policy.
+///
+/// Input: no value input.
+/// Output: atom-backed frame option marker.
+/// Transformation: narrows frame embedding policy before it is serialized as a
+/// response header.
+
+pub type SameOrigin =
+    Atom["same_origin"].
+
+/// SecurityHeaders represents the typed secure-header policy for a response.
+///
+/// Input: no type parameter.
+/// Output: typed response security policy.
+/// Transformation: groups the current response security headers so middleware,
+/// handlers, and future route manifests can compose one value instead of raw
+/// header mutations.
+
+pub struct SecurityHeaders {
+    content_type_options: Bool,
+    frame_options: FrameOptions,
+    referrer_policy: ReferrerPolicy,
+    hsts_max_age: Int,
+    hsts_include_subdomains: Bool
+}.
+
+/// StrictOriginWhenCrossOrigin represents the modern practical referrer policy.
+///
+/// Input: no value input.
+/// Output: atom-backed referrer policy marker.
+/// Transformation: records the source-level policy in a stable value that is
+/// later serialized to the HTTP header vocabulary.
+
+pub type StrictOriginWhenCrossOrigin =
+    Atom["strict_origin_when_cross_origin"].
 
 /// Adds a validated `Set-Cookie` header.
 ///
@@ -38,6 +115,16 @@ pub (mut response: Response) cookie(name: String, value: String, path: String = 
 /// response metadata path.
 
 pub (mut response: Response) cookie_with_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): Unit.
+
+/// Returns the conservative development security-header policy.
+///
+/// Input: no value input.
+/// Output: `SecurityHeaders` without HSTS.
+/// Transformation: enables secure defaults for local HTTP without emitting HSTS
+/// on non-TLS development origins.
+
+@pure
+pub default_security_headers(): SecurityHeaders.
 
 /// Adds a validated cookie deletion header.
 ///
@@ -114,6 +201,20 @@ pub json(value: Json, status: Int = 200): Response.
 
 pub json_text(value: String, status: Int = 200): Response.
 
+pub (mut response: Response) optional_content_type_options_header(enabled: Bool): Response.
+
+pub (mut response: Response) optional_hsts_header(max_age: Int, include_subdomains: Bool): Response.
+
+/// Returns the production security-header policy.
+///
+/// Input: no value input.
+/// Output: `SecurityHeaders` with a one-year HSTS policy.
+/// Transformation: gives production routes one typed policy value that can be
+/// composed through handlers and future route manifests.
+
+@pure
+pub production_security_headers(): SecurityHeaders.
+
 /// Creates a redirect response.
 ///
 /// Input: one redirect location string and an optional HTTP redirect status.
@@ -122,6 +223,15 @@ pub json_text(value: String, status: Int = 200): Response.
 /// server capability without exposing backend response buffers.
 
 pub redirect(location: String, status: Int = 302): Response.
+
+/// Applies typed secure response headers.
+///
+/// Input: one mutable `Response` receiver and one `SecurityHeaders` policy.
+/// Output: `Unit`.
+/// Transformation: serializes typed policy values into validated response
+/// headers through the normal response metadata path.
+
+pub (mut response: Response) security_headers(policy: SecurityHeaders): Response.
 
 /// Adds a `Set-Cookie` header value.
 ///
@@ -137,11 +247,33 @@ pub (mut response: Response) set_cookie_header(value: String): Unit.
 /// Sets the response status.
 ///
 /// Input: one mutable `Response` receiver and one HTTP status code.
-/// Output: `Unit`.
+/// Output: the same `Response` value after secure-header metadata is appended.
 /// Transformation: updates the target-owned response metadata through the
 /// mutable receiver ABI.
 
 pub (mut response: Response) status(code: Int): Unit.
+
+/// Creates a bounded streaming response with conservative defaults.
+///
+/// Input: ordered UTF-8 chunks.
+/// Output: a `200 application/octet-stream` response with a 16 KiB emitted
+/// chunk limit and at most 128 pending writes.
+/// Transformation: delegates to the explicit bounded overload so the compact
+/// VM descriptor never has to infer omitted integer argument roles.
+
+pub stream(chunks: List[String]): Response.
+
+/// Creates a bounded streaming response from available text chunks.
+///
+/// Input: ordered UTF-8 chunks, HTTP status, content type, maximum emitted
+/// chunk size, and maximum pending write count.
+/// Output: a `Response` whose body is emitted through the VM-owned response
+/// stream and HTTP transport path.
+/// Transformation: records source chunks and explicit queue limits in a typed
+/// descriptor; the VM validates the limits, preserves chunk order, applies
+/// backpressure, and owns response completion.
+
+pub stream(chunks: List[String], status: Int, content_type: String, chunk_size: Int, max_pending_writes: Int): Response.
 
 /// Creates a text response.
 ///
@@ -205,6 +337,15 @@ pub (mut response: Response) with_deleted_cookie(name: String, path: String = "/
 
 pub (mut response: Response) with_header(name: String, value: String): Response.
 
+/// Returns a response after applying typed secure response headers.
+///
+/// Input: one mutable `Response` receiver and one `SecurityHeaders` policy.
+/// Output: the same `Response` value after secure-header metadata is appended.
+/// Transformation: keeps expression-style handlers on the typed policy path
+/// instead of forcing raw header calls.
+
+pub (mut response: Response) with_security_headers(policy: SecurityHeaders): Response.
+
 /// Returns a response after setting its status.
 ///
 /// Input: one mutable `Response` receiver and one HTTP status code.
@@ -214,3 +355,16 @@ pub (mut response: Response) with_header(name: String, value: String): Response.
 /// target-owned mutation path.
 
 pub (mut response: Response) with_status(code: Int): Response.
+
+/// Constructs a typed secure-header policy.
+///
+/// Input: content sniffing flag, frame policy, referrer policy, HSTS max-age,
+/// and HSTS subdomain flag.
+/// Output: `SecurityHeaders`.
+/// Transformation: centralizes public construction so response policy values
+/// remain explicit and route-manifest-friendly.
+
+pub constructor SecurityHeaders {
+    (content_type_options: Bool, frame_options: FrameOptions, referrer_policy: ReferrerPolicy, hsts_max_age: Int, hsts_include_subdomains: Bool): SecurityHeaders ->
+        SecurityHeaders {content_type_options: content_type_options, frame_options: frame_options, referrer_policy: referrer_policy, hsts_max_age: hsts_max_age, hsts_include_subdomains: hsts_include_subdomains}
+}.

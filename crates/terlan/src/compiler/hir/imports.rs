@@ -17,6 +17,7 @@ pub(crate) fn resolve_syntax_import(
     interfaces: &HashMap<String, ModuleInterface>,
     imported_types: &mut HashMap<String, ImportedItem>,
     imported_traits: &mut HashMap<String, ImportedItem>,
+    imported_constants: &mut HashMap<String, ImportedItem>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let iface = interfaces.get(module_name);
@@ -30,6 +31,7 @@ pub(crate) fn resolve_syntax_import(
                     iface,
                     imported_types,
                     imported_traits,
+                    imported_constants,
                     diagnostics,
                 ),
                 None if is_type => diagnostics.push(Diagnostic {
@@ -52,6 +54,15 @@ pub(crate) fn resolve_syntax_import(
             continue;
         }
 
+        if let Some(default_import) = resolve_default_trait_import(module_name, item, interfaces) {
+            if let Err(diagnostic) =
+                insert_imported_trait(default_import, item.span.into(), imported_traits)
+            {
+                diagnostics.push(diagnostic);
+            }
+            continue;
+        }
+
         let local_name = item.as_alias.clone().unwrap_or_else(|| item.name.clone());
 
         match iface {
@@ -63,6 +74,7 @@ pub(crate) fn resolve_syntax_import(
                     .get(&item.name)
                     .is_some_and(|signatures| signatures.iter().any(|signature| signature.public));
                 let has_public_trait = iface.traits.contains_key(&item.name);
+                let has_public_constant = iface.constants.contains_key(&item.name);
 
                 if iface.private_types.contains(&item.name) {
                     diagnostics.push(Diagnostic {
@@ -83,8 +95,40 @@ pub(crate) fn resolve_syntax_import(
                         });
                         continue;
                     }
-                } else if !has_public_type && !has_public_constructor && !has_public_trait {
+                } else if !has_public_type
+                    && !has_public_constructor
+                    && !has_public_trait
+                    && !has_public_constant
+                {
                     continue;
+                }
+
+                if !is_type && has_public_constant {
+                    if !is_screaming_snake_case(&local_name) {
+                        diagnostics.push(Diagnostic {
+                            span: item.span.into(),
+                            message: format!(
+                                "imported constant alias `{local_name}` must use SCREAMING_SNAKE_CASE"
+                            ),
+                        });
+                        continue;
+                    }
+                    let imported = ImportedItem {
+                        local_name: local_name.clone(),
+                        source_module: module_name.to_string(),
+                        source_name: item.name.clone(),
+                        visibility: TypeVisibility::Public,
+                        span: item.span.into(),
+                    };
+                    if imported_constants
+                        .insert(local_name.clone(), imported)
+                        .is_some()
+                    {
+                        diagnostics.push(Diagnostic {
+                            span: item.span.into(),
+                            message: format!("duplicate imported constant `{local_name}`"),
+                        });
+                    }
                 }
 
                 if has_public_type {
@@ -104,31 +148,19 @@ pub(crate) fn resolve_syntax_import(
                 }
 
                 if has_public_trait {
-                    if let Some(existing) = imported_traits.get(&local_name) {
-                        if existing.source_module == module_name
-                            && existing.source_name == item.name
-                        {
-                            continue;
-                        }
-                        diagnostics.push(Diagnostic {
-                            span: item.span.into(),
-                            message: format!(
-                                "duplicate imported trait name '{}', already imported from {}",
-                                local_name, existing.source_module
-                            ),
-                        });
+                    let imported = ImportedItem {
+                        local_name: local_name.clone(),
+                        source_module: module_name.to_string(),
+                        source_name: item.name.clone(),
+                        visibility: TypeVisibility::Public,
+                        span: item.span.into(),
+                    };
+                    if let Err(diagnostic) =
+                        insert_imported_trait(imported, item.span.into(), imported_traits)
+                    {
+                        diagnostics.push(diagnostic);
                         continue;
                     }
-                    imported_traits.insert(
-                        local_name.clone(),
-                        ImportedItem {
-                            local_name: local_name.clone(),
-                            source_module: module_name.to_string(),
-                            source_name: item.name.clone(),
-                            visibility: TypeVisibility::Public,
-                            span: item.span.into(),
-                        },
-                    );
                 }
 
                 if !is_type && has_public_constructor && !has_public_type && !has_public_trait {
@@ -159,6 +191,17 @@ pub(crate) fn resolve_syntax_import(
     }
 }
 
+fn is_screaming_snake_case(name: &str) -> bool {
+    !name.is_empty()
+        && !name.starts_with('_')
+        && !name.ends_with('_')
+        && !name.contains("__")
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_')
+        && name.bytes().any(|byte| byte.is_ascii_uppercase())
+}
+
 /// Expands one wildcard import through a loaded module interface.
 ///
 /// Inputs:
@@ -182,6 +225,7 @@ fn resolve_wildcard_import(
     iface: &ModuleInterface,
     imported_types: &mut HashMap<String, ImportedItem>,
     imported_traits: &mut HashMap<String, ImportedItem>,
+    imported_constants: &mut HashMap<String, ImportedItem>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let mut type_names = BTreeSet::new();
@@ -203,33 +247,33 @@ fn resolve_wildcard_import(
 
     let trait_names = iface.traits.keys().cloned().collect::<BTreeSet<_>>();
     for name in trait_names {
-        if let Some(existing) = imported_traits.get(&name) {
-            if existing.source_module == module_name && existing.source_name == name {
-                continue;
-            }
-            diagnostics.push(Diagnostic {
-                span: item.span.into(),
-                message: format!(
-                    "duplicate imported trait name '{}', already imported from {}",
-                    name, existing.source_module
-                ),
-            });
-            continue;
+        let imported = ImportedItem {
+            local_name: name.clone(),
+            source_module: module_name.to_string(),
+            source_name: name,
+            visibility: TypeVisibility::Public,
+            span: item.span.into(),
+        };
+        if let Err(diagnostic) = insert_imported_trait(imported, item.span.into(), imported_traits)
+        {
+            diagnostics.push(diagnostic);
         }
-        imported_traits.insert(
-            name.clone(),
-            ImportedItem {
-                local_name: name.clone(),
-                source_module: module_name.to_string(),
-                source_name: name,
-                visibility: TypeVisibility::Public,
-                span: item.span.into(),
-            },
-        );
     }
 
     if is_type {
         return;
+    }
+
+    for name in iface.constants.keys() {
+        imported_constants
+            .entry(name.clone())
+            .or_insert_with(|| ImportedItem {
+                local_name: name.clone(),
+                source_module: module_name.to_string(),
+                source_name: name.clone(),
+                visibility: TypeVisibility::Public,
+                span: item.span.into(),
+            });
     }
 
     let constructor_names = iface.constructors.keys().cloned().collect::<BTreeSet<_>>();
@@ -318,6 +362,41 @@ fn resolve_default_type_import(
     })
 }
 
+/// Resolves a selected default trait import through a child module interface.
+///
+/// Inputs:
+/// - `module_name`: parser module prefix such as `std.collections`.
+/// - `item`: selected import item such as `Enumerable`.
+/// - `interfaces`: loaded provider interfaces.
+///
+/// Output:
+/// - Imported trait metadata for `std.collections.Enumerable.Enumerable` when
+///   that child module exists and exposes the selected trait.
+///
+/// Transformation:
+/// - Mirrors default type import resolution for collapsed formatter output such
+///   as `import std.collections.{Enumerable}.`.
+fn resolve_default_trait_import(
+    module_name: &str,
+    item: &SyntaxImportItem,
+    interfaces: &HashMap<String, ModuleInterface>,
+) -> Option<ImportedItem> {
+    let default_module = default_type_import_module_name(module_name, &item.name)?;
+    let iface = interfaces.get(&default_module)?;
+    if !iface.traits.contains_key(&item.name) {
+        return None;
+    }
+
+    let local_name = item.as_alias.clone().unwrap_or_else(|| item.name.clone());
+    Some(ImportedItem {
+        local_name,
+        source_module: default_module,
+        source_name: item.name.clone(),
+        visibility: TypeVisibility::Public,
+        span: item.span.into(),
+    })
+}
+
 /// Builds the candidate module path for a default type import.
 ///
 /// Inputs:
@@ -372,5 +451,32 @@ fn insert_imported_type(
     }
 
     imported_types.insert(imported.local_name.clone(), imported);
+    Ok(())
+}
+
+fn insert_imported_trait(
+    imported: ImportedItem,
+    span: Span,
+    imported_traits: &mut HashMap<String, ImportedItem>,
+) -> Result<(), Diagnostic> {
+    if let Some(existing) = imported_traits.get(&imported.local_name) {
+        if existing.source_module == imported.source_module
+            && existing.source_name == imported.source_name
+        {
+            return Ok(());
+        }
+        return Err(Diagnostic {
+            span,
+            message: format!(
+                "ambiguous imported trait alias '{}': {}.{} conflicts with {}.{}",
+                imported.local_name,
+                existing.source_module,
+                existing.source_name,
+                imported.source_module,
+                imported.source_name
+            ),
+        });
+    }
+    imported_traits.insert(imported.local_name.clone(), imported);
     Ok(())
 }

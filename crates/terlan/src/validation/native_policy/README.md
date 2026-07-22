@@ -17,7 +17,7 @@ metadata emission.
 - `NativePolicy`: command state value describing native-code allowance.
 - `NativePolicy::as_str`: stable string spelling for metadata output.
 - `validate_native_policy`: policy gate used before checking or compiling source.
-- `source_uses_native`: detects safe-native markers for command branching.
+- `source_uses_native`: detects native-boundary markers for command branching.
 - `source_contains_unsafe_native`: detects unsafe-native markers for rejection.
 
 ## Core Model
@@ -37,7 +37,7 @@ Important invariants:
 
 - Native-policy validation does not parse CLI flags.
 - Native-policy validation does not print or exit directly.
-- Unsafe-native markers are rejected even when safe-native policy is enabled.
+- Unnative-boundary markers are rejected even when native-boundary policy is enabled.
 - Every function, including private helpers, documents its inputs, output, and
   transformation behavior.
 
@@ -50,7 +50,7 @@ Important invariants:
 
 ## Edge Cases
 
-- A source that declares `target erlang with safe_native` counts as native usage.
+- A source that declares `target vm with native_boundary` counts as native usage.
 - Lines whose trimmed text starts with `native ` count as native declarations.
 - Unsafe spelling variants are rejected by substring scan before parsing.
 

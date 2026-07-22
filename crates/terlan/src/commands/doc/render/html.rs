@@ -4,10 +4,14 @@ use crate::terlan_syntax::{
     SyntaxTraitMethodOutput,
 };
 
+use crate::terlan_purity::{infer_body_available_pure_callables, CallableIdentity};
+
+use super::support::{declaration_is_compiler_pure, sanitize_html_text};
 use super::{
     render_constructor_signature, render_function_signature, render_method_signature,
-    render_struct_signature, render_syntax_param_signature, render_syntax_trait_method_signature,
-    render_trait_impl_signature, render_trait_signature, render_type_signature, sanitize_html_text,
+    render_purity_marked_signature, render_raw_shape_signature, render_struct_signature,
+    render_syntax_param_signature, render_syntax_trait_method_signature,
+    render_trait_impl_signature, render_trait_signature, render_type_signature,
 };
 
 /// Renders syntax-output module documentation as a static HTML reference page.
@@ -23,10 +27,11 @@ use super::{
 ///   with source-shaped signatures, declaration sections, and rendered
 ///   documentation blocks.
 pub(crate) fn render_syntax_module_docs_html(module: &SyntaxModuleOutput) -> String {
+    let known_pure = infer_body_available_pure_callables(module);
     let title = format!("{} documentation", module.module_name);
     let module_docs = render_doc_lines_html(&module.docs);
-    let table_of_contents = render_syntax_module_html_toc(module);
-    let sections = render_syntax_module_html_sections(module);
+    let table_of_contents = render_syntax_module_html_toc(module, &known_pure);
+    let sections = render_syntax_module_html_sections(module, &known_pure);
     format!(
         "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>\n{}\n</style>\n</head>\n<body>\n<header class=\"doc-header\"><a class=\"doc-index-link\" href=\"index.html\">Index</a><p class=\"doc-kicker\">Terlan module</p><h1>{}</h1>{}</header>\n<main class=\"doc-layout\"><aside class=\"doc-nav\"><h2>Contents</h2>{}</aside><section class=\"doc-content\">{}</section></main>\n</body>\n</html>\n",
         sanitize_html_text(&title),
@@ -50,11 +55,14 @@ pub(crate) fn render_syntax_module_docs_html(module: &SyntaxModuleOutput) -> Str
 /// Transformation:
 /// - Reads public declarations in source order and emits stable anchor links
 ///   grouped only by their visible declaration text.
-fn render_syntax_module_html_toc(module: &SyntaxModuleOutput) -> String {
+fn render_syntax_module_html_toc(
+    module: &SyntaxModuleOutput,
+    known_pure: &std::collections::HashSet<CallableIdentity>,
+) -> String {
     let items = module
         .declarations
         .iter()
-        .filter_map(public_doc_item)
+        .filter_map(|declaration| public_doc_item(declaration, known_pure))
         .map(|item| {
             format!(
                 "<li><a href=\"#{}\"><span>{}</span><code>{}</code></a></li>",
@@ -83,24 +91,40 @@ fn render_syntax_module_html_toc(module: &SyntaxModuleOutput) -> String {
 /// Transformation:
 /// - Groups public declarations by API category while preserving source order
 ///   inside each category.
-fn render_syntax_module_html_sections(module: &SyntaxModuleOutput) -> String {
+fn render_syntax_module_html_sections(
+    module: &SyntaxModuleOutput,
+    known_pure: &std::collections::HashSet<CallableIdentity>,
+) -> String {
     let mut out = String::new();
+    push_html_section(&mut out, module, "Constants", |decl| match &decl.payload {
+        SyntaxDeclarationPayload::Constant { .. }
+        | SyntaxDeclarationPayload::ConstFunction { .. } => {
+            render_declaration_html_card(decl, known_pure)
+        }
+        _ => None,
+    });
     push_html_section(&mut out, module, "Types", |decl| match &decl.payload {
-        SyntaxDeclarationPayload::Type { .. } => render_declaration_html_card(decl),
+        SyntaxDeclarationPayload::Type { .. } => render_declaration_html_card(decl, known_pure),
         _ => None,
     });
     push_html_section(&mut out, module, "Structs", |decl| match &decl.payload {
-        SyntaxDeclarationPayload::Struct { .. } => render_declaration_html_card(decl),
+        SyntaxDeclarationPayload::Struct { .. } => render_declaration_html_card(decl, known_pure),
+        _ => None,
+    });
+    push_html_section(&mut out, module, "Shapes", |decl| match &decl.payload {
+        SyntaxDeclarationPayload::Raw { .. } => render_declaration_html_card(decl, known_pure),
         _ => None,
     });
     push_html_section(&mut out, module, "Constructors", |decl| {
         match &decl.payload {
-            SyntaxDeclarationPayload::Constructor { .. } => render_declaration_html_card(decl),
+            SyntaxDeclarationPayload::Constructor { .. } => {
+                render_declaration_html_card(decl, known_pure)
+            }
             _ => None,
         }
     });
     push_html_section(&mut out, module, "Traits", |decl| match &decl.payload {
-        SyntaxDeclarationPayload::Trait { .. } => render_declaration_html_card(decl),
+        SyntaxDeclarationPayload::Trait { .. } => render_declaration_html_card(decl, known_pure),
         _ => None,
     });
     push_html_section(
@@ -108,17 +132,21 @@ fn render_syntax_module_html_sections(module: &SyntaxModuleOutput) -> String {
         module,
         "Trait Implementations",
         |decl| match &decl.payload {
-            SyntaxDeclarationPayload::TraitImpl { .. } => render_declaration_html_card(decl),
+            SyntaxDeclarationPayload::TraitImpl { .. } => {
+                render_declaration_html_card(decl, known_pure)
+            }
             _ => None,
         },
     );
     push_html_section(&mut out, module, "Functions", |decl| match &decl.payload {
-        SyntaxDeclarationPayload::Function { .. } => render_declaration_html_card(decl),
+        SyntaxDeclarationPayload::Function { .. } => render_declaration_html_card(decl, known_pure),
         _ => None,
     });
     push_html_section(&mut out, module, "Receiver Methods", |decl| {
         match &decl.payload {
-            SyntaxDeclarationPayload::Method { .. } => render_declaration_html_card(decl),
+            SyntaxDeclarationPayload::Method { .. } => {
+                render_declaration_html_card(decl, known_pure)
+            }
             _ => None,
         }
     });
@@ -190,19 +218,64 @@ struct PublicDocItem<'a> {
 /// Transformation:
 /// - Maps each public declaration variant to a visible kind, stable name,
 ///   source-shaped signature, attached docs, and category-specific details.
-fn public_doc_item(declaration: &SyntaxDeclarationOutput) -> Option<PublicDocItem<'_>> {
+fn public_doc_item<'a>(
+    declaration: &'a SyntaxDeclarationOutput,
+    known_pure: &std::collections::HashSet<CallableIdentity>,
+) -> Option<PublicDocItem<'a>> {
     match &declaration.payload {
+        SyntaxDeclarationPayload::Constant {
+            name,
+            annotation,
+            value,
+            is_public: true,
+        } => Some(PublicDocItem {
+            kind: "constant".to_string(),
+            name: name.clone(),
+            signature: format!(
+                "pub const {name}: {} = {}.",
+                annotation.text,
+                super::render_const_expr_text(value)
+            ),
+            docs: &declaration.docs,
+            detail_html: String::new(),
+        }),
+        SyntaxDeclarationPayload::ConstFunction {
+            name,
+            params,
+            return_type,
+            is_public: true,
+            ..
+        } => Some(PublicDocItem {
+            kind: "const function".to_string(),
+            name: format!("{}/{}", name, params.len()),
+            signature: format!(
+                "pub const {}",
+                render_function_signature(name, params, return_type, false, false)
+            ),
+            docs: &declaration.docs,
+            detail_html: String::new(),
+        }),
         SyntaxDeclarationPayload::Type {
             name,
             params,
             is_public,
             is_opaque,
             variants,
+            representation,
+            valued_arms,
             ..
         } if *is_public => Some(PublicDocItem {
             kind: "type".to_string(),
             name: name.clone(),
-            signature: render_type_signature(name, params, *is_public, *is_opaque, variants),
+            signature: render_type_signature(
+                name,
+                params,
+                *is_public,
+                *is_opaque,
+                variants,
+                representation.as_ref(),
+                valued_arms,
+            ),
             docs: &declaration.docs,
             detail_html: String::new(),
         }),
@@ -240,7 +313,10 @@ fn public_doc_item(declaration: &SyntaxDeclarationOutput) -> Option<PublicDocIte
         } if *is_public => Some(PublicDocItem {
             kind: "function".to_string(),
             name: format!("{}/{}", name, params.len()),
-            signature: render_function_signature(name, params, return_type, *is_public, *is_macro),
+            signature: render_purity_marked_signature(
+                declaration_is_compiler_pure(declaration, known_pure),
+                render_function_signature(name, params, return_type, *is_public, *is_macro),
+            ),
             docs: &declaration.docs,
             detail_html: String::new(),
         }),
@@ -254,7 +330,10 @@ fn public_doc_item(declaration: &SyntaxDeclarationOutput) -> Option<PublicDocIte
         } if *is_public => Some(PublicDocItem {
             kind: "method".to_string(),
             name: format!("{}.{}({})", receiver.annotation.text, name, params.len()),
-            signature: render_method_signature(receiver, name, params, return_type, *is_public),
+            signature: render_purity_marked_signature(
+                declaration_is_compiler_pure(declaration, known_pure),
+                render_method_signature(receiver, name, params, return_type, *is_public),
+            ),
             docs: &declaration.docs,
             detail_html: String::new(),
         }),
@@ -264,6 +343,7 @@ fn public_doc_item(declaration: &SyntaxDeclarationOutput) -> Option<PublicDocIte
             super_traits,
             is_public,
             methods,
+            ..
         } if *is_public => Some(PublicDocItem {
             kind: "trait".to_string(),
             name: name.clone(),
@@ -273,16 +353,47 @@ fn public_doc_item(declaration: &SyntaxDeclarationOutput) -> Option<PublicDocIte
         }),
         SyntaxDeclarationPayload::TraitImpl {
             trait_ref,
+            generic_params,
             for_type,
+            is_negative,
             is_public,
             methods,
+            ..
         } if *is_public => Some(PublicDocItem {
             kind: "impl".to_string(),
-            name: format!("{} for {}", trait_ref.text, for_type.text),
-            signature: render_trait_impl_signature(trait_ref, for_type, *is_public),
+            name: if *is_negative {
+                format!("not {}[{}]", trait_ref.text, for_type.text)
+            } else {
+                format!(
+                    "{} for {}",
+                    crate::terlan_syntax::render_trait_impl_ref(&trait_ref.text, generic_params),
+                    for_type.text
+                )
+            },
+            signature: render_trait_impl_signature(
+                trait_ref,
+                generic_params,
+                for_type,
+                *is_negative,
+                *is_public,
+            ),
             docs: &declaration.docs,
-            detail_html: render_impl_methods_html(methods),
+            detail_html: if *is_negative {
+                String::new()
+            } else {
+                render_impl_methods_html(methods)
+            },
         }),
+        SyntaxDeclarationPayload::Raw { raw_kind, text } => {
+            let (name, is_public, signature) = render_raw_shape_signature(raw_kind, text)?;
+            is_public.then_some(PublicDocItem {
+                kind: "shape".to_string(),
+                name,
+                signature,
+                docs: &declaration.docs,
+                detail_html: String::new(),
+            })
+        }
         _ => None,
     }
 }
@@ -298,8 +409,11 @@ fn public_doc_item(declaration: &SyntaxDeclarationOutput) -> Option<PublicDocIte
 ///
 /// Transformation:
 /// - Converts normalized declaration metadata into stable, linkable HTML.
-fn render_declaration_html_card(declaration: &SyntaxDeclarationOutput) -> Option<String> {
-    let item = public_doc_item(declaration)?;
+fn render_declaration_html_card(
+    declaration: &SyntaxDeclarationOutput,
+    known_pure: &std::collections::HashSet<CallableIdentity>,
+) -> Option<String> {
+    let item = public_doc_item(declaration, known_pure)?;
     let anchor = doc_anchor_id(&item.kind, &item.name);
     Some(format!(
         "<article class=\"doc-card\" id=\"{}\"><header><span class=\"doc-kind\">{}</span><h3>{}</h3></header>{}<pre class=\"doc-signature\"><code class=\"language-terlan\">{}</code></pre>{}</article>",

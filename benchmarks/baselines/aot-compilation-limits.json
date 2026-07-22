@@ -1,0 +1,26 @@
+{
+  "schema": "terlan-aot-compilation-limits-v1",
+  "required_sample_count": 7,
+  "cold_scenarios": [
+    "small_cold_development",
+    "multi_cold_development",
+    "cold_release"
+  ],
+  "maximum_cold_median_ratio": 5.0,
+  "maximum_cold_p95_ratio": 5.0,
+  "incremental_scenarios": [
+    "one_package_edit",
+    "no_op_development",
+    "package_relink"
+  ],
+  "maximum_incremental_median_ratio": 5.0,
+  "maximum_incremental_p95_ratio": 5.0,
+  "warm_p95_scenarios": [
+    "one_package_edit",
+    "no_op_development",
+    "package_relink",
+    "changed_repl",
+    "unchanged_repl"
+  ],
+  "maximum_warm_p95_ns": 1000000000
+}

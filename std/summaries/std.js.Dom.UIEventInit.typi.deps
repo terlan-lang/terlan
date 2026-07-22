@@ -1,8 +1,8 @@
 module=std.js.Dom.UIEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12717432598717455595
-interface_hash=225400932635277515
-interface_doc_hash=225400932635277515
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4236320838401389916
+interface_hash=12900533853669633239
+interface_doc_hash=12900533853669633239
 deps=0

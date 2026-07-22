@@ -1,0 +1,33 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "text",
+      "operation": "std.http.websocket.text"
+    },
+    {
+      "arity": 1,
+      "name": "ping",
+      "operation": "std.http.websocket.ping"
+    },
+    {
+      "arity": 1,
+      "name": "pong",
+      "operation": "std.http.websocket.pong"
+    },
+    {
+      "arity": 0,
+      "name": "close",
+      "operation": "std.http.websocket.close"
+    },
+    {
+      "arity": 2,
+      "name": "endpoint",
+      "operation": "std.http.websocket.endpoint"
+    }
+  ],
+  "module": "std_http_web_socket_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.http.WebSocket"
+}

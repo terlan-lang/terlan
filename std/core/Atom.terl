@@ -9,7 +9,6 @@
  * new atoms. Dynamic input should remain `String` or be matched through an
  * explicit finite table that returns `Result` for unknown values.
  */
-
 module std.core.Atom.
 
 /**
@@ -52,5 +51,4 @@ pub equal[T](left: T, right: T): Bool ->
  * ```
  */
 @compiler.intrinsic
-pub to_string(value: Atom): String ->
-    "".
+pub to_string(value: Atom): String -> "".

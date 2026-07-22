@@ -14,7 +14,7 @@ module std.db.Postgres.
 /// while leaving pool tuning and TLS options for later explicit fields.
 
 pub type Config =
-    {url : String}.
+    {url: String}.
 
 /// Connection represents one transaction-scoped Postgres connection.
 ///
@@ -63,12 +63,13 @@ pub connect(config: Config): Result[Pool, Error].
 
 /// Runs a SQL command and returns the affected row count.
 ///
-/// Input: one pool, SQL text, and JSON-encoded parameter values.
+/// Input: one pool or transaction connection, SQL text, and JSON-encoded
+/// parameter values.
 /// Output: `Ok(count)` when the command succeeds, otherwise `Err(Error)`.
 /// Transformation: delegates command execution to the adapter and exposes only
 /// the portable affected-row count.
 
-pub execute(pool: Pool, sql: String, params: List[Json]): Result[Int, Error].
+pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[Int, Error].
 
 /// Reads an integer column by name.
 ///
@@ -91,21 +92,23 @@ pub (row: Row) json(name: String): Result[Json, Error].
 
 /// Runs a SQL query and returns all rows.
 ///
-/// Input: one pool, SQL text, and JSON-encoded parameter values.
+/// Input: one pool or transaction connection, SQL text, and JSON-encoded
+/// parameter values.
 /// Output: `Ok(rows)` when the query succeeds, otherwise `Err(Error)`.
 /// Transformation: delegates SQL execution and row decoding to the Postgres
 /// adapter while preserving a portable row handle surface.
 
-pub query(pool: Pool, sql: String, params: List[Json]): Result[List[Row], Error].
+pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[List[Row], Error].
 
 /// Runs a SQL query and returns at most one row.
 ///
-/// Input: one pool, SQL text, and JSON-encoded parameter values.
+/// Input: one pool or transaction connection, SQL text, and JSON-encoded
+/// parameter values.
 /// Output: `Ok(Some(row))`, `Ok(None)`, or `Err(Error)`.
 /// Transformation: delegates SQL execution to the adapter and normalizes the
 /// single-row result shape into `Option`.
 
-pub query_one(pool: Pool, sql: String, params: List[Json]): Result[Option[Row], Error].
+pub query_one(target: Pool | Connection, sql: String, params: List[Json]): Result[Option[Row], Error].
 
 /// Reads a string column by name.
 ///
@@ -124,4 +127,4 @@ pub (row: Row) string(name: String): Result[String, Error].
 /// Transformation: lets source code own the transaction boundary while the
 /// adapter owns begin, commit, rollback, and connection lifecycle details.
 
-pub transaction[T](pool: Pool, body: (Connection ) -> Result[T, Error]): Result[T, Error].
+pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error]): Result[T, Error].

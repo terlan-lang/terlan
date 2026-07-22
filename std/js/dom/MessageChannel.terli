@@ -1,0 +1,34 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MessageChannel
+ */
+module std.js.Dom.MessageChannel.
+
+/**
+ * The **`MessageChannel`** interface of the Channel Messaging API allows us to create a new message channel and send data through it via its two MessagePort properties.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageChannel)
+ */
+pub opaque type MessageChannel.
+
+/**
+ * The **`port1`** read-only property of the the port attached to the context that originated the channel.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageChannel/port1)
+ */
+pub (value: MessageChannel) port1(): MessagePort.
+
+/**
+ * The **`port2`** read-only property of the the port attached to the context at the other end of the channel, which the message is initially sent to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageChannel/port2)
+ */
+pub (value: MessageChannel) port2(): MessagePort.

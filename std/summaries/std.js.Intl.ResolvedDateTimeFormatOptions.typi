@@ -1,0 +1,44 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ResolvedDateTimeFormatOptions
+ */
+
+module std.js.Intl.ResolvedDateTimeFormatOptions.
+
+pub opaque type ResolvedDateTimeFormatOptions.
+
+pub (value: ResolvedDateTimeFormatOptions) locale(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) calendar(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) numbering_system(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) time_zone(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) hour12(): std.core.Bool.
+
+pub (value: ResolvedDateTimeFormatOptions) weekday(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) era(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) year(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) month(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) day(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) hour(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) minute(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) second(): std.js.String.JsString.
+
+pub (value: ResolvedDateTimeFormatOptions) time_zone_name(): std.js.String.JsString.

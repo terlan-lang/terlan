@@ -1,24 +1,26 @@
 module std.collections.ListTest.
 
 import std.collections.List.
+import std.core.Functional.{Functor, Monad}.
 import std.core.Option.{None, Option, Some}.
+import std.test.Test.{assert, assert_equal}.
 
 @test
 pub new_starts_empty(): Bool ->
     let values = List.new();
-    std.test.Test.assert(values.is_empty()).
+    assert(values.is_empty()).
 
 @test
 pub constructor_packs_values(): Bool ->
     let values = List(1, 2);
-    std.test.Test.assert_equal(2, values.length()).
+    assert_equal(2, values.length()).
 
 @test
 pub push_updates_length(): Bool ->
     let values = List.new();
     values.push(1);
     values.push(2);
-    std.test.Test.assert_equal(2, values.length()).
+    assert_equal(2, values.length()).
 
 @test
 pub first_returns_present_value(): Bool ->
@@ -26,44 +28,102 @@ pub first_returns_present_value(): Bool ->
     values.push(1);
     values.push(2);
     case values.first() {
-        Some(value) ->
-            std.test.Test.assert_equal(1, value);
-        None ->
-            false
-    }.
+    Some(value) -> assert_equal(1, value);
+    None -> false
+}.
 
 @test
 pub first_returns_none_for_empty_list(): Bool ->
     let values = List.new();
     case values.first() {
-        None ->
-            true;
-        Some(_value) ->
-            false
+        None -> true;
+        Some(_value) -> false
     }.
 
 @test
+pub rest_preserves_empty_and_singleton_boundaries(): Bool ->
+    case List.new[Int]().rest() {
+        None ->
+            case List(1).rest() {
+                Some(tail) -> tail.is_empty();
+                None -> false
+            };
+        Some(_) -> false
+    }.
+
+@test
+pub rest_returns_ordered_tail(): Bool ->
+    case List(1, 2, 3).rest() {
+        Some(tail) ->
+            case tail.first() {
+                Some(first) -> tail.length() == 2 and first == 2;
+                None -> false
+            };
+        None -> false
+    }.
+
+@test
+pub concat_preserves_order_and_inputs(): Bool ->
+    let left = List(1, 2);
+    let right = List(3, 4);
+    let combined = left.concat(right);
+    case combined.first() {
+        Some(first) ->
+            combined.length() == 4 and first == 1 and left.length() == 2 and right.length() == 2;
+        None -> false
+    }.
+
+@test
+pub subtract_removes_first_occurrence_per_value(): Bool ->
+    let values = List(1, 2, 1, 3);
+    let result = values.subtract(List(1, 3));
+    case {result.first(), values.first()} {
+        {Some(result_first), Some(source_first)} ->
+            result.length() == 2 and result_first == 2 and values.length() == 4 and source_first == 1;
+        _ -> false
+    }.
+
+@test
+pub subtract_ignores_missing_values_and_handles_empty_lists(): Bool ->
+    List(1).subtract(List(2)).length() == 1 and List.new[Int]().subtract(List(1)).is_empty() and List(1).subtract(List.new[Int]()).length() == 1.
+
+@test
 pub enumerable_map_transforms_values(): Bool ->
-    true.
+    let values = List(1, 2);
+    let mapped = Functor[List].map(values, increment);
+    case mapped.first() {
+        Some(value) -> assert_equal(2, value);
+        None -> false
+    }.
 
 @test
 pub enumerable_filter_keeps_matching_values(): Bool ->
-    true.
+    let values = List(1, 2);
+    let mapped = Functor[List].map(values, increment);
+    assert_equal(2, mapped.length()).
 
 @test
 pub enumerable_fold_accumulates_values(): Bool ->
-    true.
+    let values = List(1, 2);
+    let flattened = Monad[List].flat_map(values, duplicate);
+    assert_equal(4, flattened.length()).
 
 @test
 pub enumerable_each_returns_unit(): Bool ->
     let values = List.new();
     values.push(1);
     values.push(2);
-    std.test.Test.assert_equal(Unit, values.each((_value) -> Unit)).
+    assert_equal(Unit, values.each((_value) -> Unit)).
 
 @test
 pub clear_removes_values(): Bool ->
     let values = List.new();
     values.push(1);
     values.clear();
-    std.test.Test.assert(values.is_empty()).
+    assert(values.is_empty()).
+
+increment(value: Int): Int ->
+    value + 1.
+
+duplicate(value: Int): List[Int] ->
+    List(value, value + 10).

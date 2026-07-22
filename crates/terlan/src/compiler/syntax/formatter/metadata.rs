@@ -197,17 +197,7 @@ pub(super) fn format_import(import: &ImportDecl) -> String {
         return out;
     }
 
-    if import.is_type && import.is_selected && import.items.len() == 1 {
-        out.push('{');
-        out.push_str(&format_import_item(&import.items[0]));
-        out.push('}');
-    } else if import.is_type && import.items.len() == 1 {
-        out.push_str(&format_import_item(&import.items[0]));
-    } else if import.items.len() == 1 {
-        out.push(' ');
-        out.push_str(&format_import_item(&import.items[0]));
-    } else {
-        out.push(' ');
+    if import.is_selected || import.items.len() > 1 {
         out.push('{');
         out.push_str(
             &import
@@ -217,6 +207,11 @@ pub(super) fn format_import(import: &ImportDecl) -> String {
                 .collect::<Vec<_>>()
                 .join(", "),
         );
+        out.push('}');
+    } else if import.items.len() == 1 {
+        out.push_str(&format_import_item(&import.items[0]));
+    } else {
+        out.push('{');
         out.push('}');
     }
 

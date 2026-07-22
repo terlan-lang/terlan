@@ -1,0 +1,43 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "from_string",
+      "operation": "std.io.path.from_string"
+    },
+    {
+      "arity": 1,
+      "name": "to_string",
+      "operation": "std.io.path.to_string"
+    },
+    {
+      "arity": 2,
+      "name": "join",
+      "operation": "std.io.path.join"
+    },
+    {
+      "arity": 1,
+      "name": "file_name",
+      "operation": "std.io.path.file_name"
+    },
+    {
+      "arity": 1,
+      "name": "extension",
+      "operation": "std.io.path.extension"
+    },
+    {
+      "arity": 1,
+      "name": "parent",
+      "operation": "std.io.path.parent"
+    },
+    {
+      "arity": 1,
+      "name": "is_absolute",
+      "operation": "std.io.path.is_absolute"
+    }
+  ],
+  "module": "std_io_path_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.io.Path"
+}

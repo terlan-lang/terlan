@@ -1,0 +1,9 @@
+path	classification	owner	notes
+crates/terlan/src/runtime/vm/acme_worker.rs	handle-registry	vm-acme	Worker handle table; iteration must not define externally visible wake ordering.
+crates/terlan/src/runtime/vm/debugger_transport.rs	transport-registry	vm-debugger	Debugger session handle table; lookup by opaque session id only.
+crates/terlan/src/runtime/vm/http_static.rs	lookup-table	vm-http	Static asset route lookup; response ordering must come from explicit manifests.
+crates/terlan/src/runtime/vm/package_transport.rs	transport-registry	vm-packages	Package download handle table; lookup by generated download id only.
+crates/terlan/src/runtime/vm/tcp.rs	transport-registry	vm-io	TCP listener and stream registries are lookup by numeric handle; scheduling order must be explicit.
+crates/terlan/src/runtime/vm/tls.rs	lookup-table	vm-tls	TLS plan registries are lookup by name/listener; exported plan order must be sorted if exposed.
+crates/terlan/src/runtime/vm/udp.rs	transport-registry	vm-io	UDP socket and address registries are lookup tables; receive ordering lives in explicit queues.
+crates/terlan/src/runtime/vm/websocket.rs	transport-registry	vm-http	WebSocket sessions are lookup by session id; broadcast and close order must be explicit.

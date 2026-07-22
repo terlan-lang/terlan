@@ -1,0 +1,33 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ArrayBuffer
+ */
+module std.js.ArrayBuffer.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * Represents a raw buffer of binary data, which is used to store data for the
+ * different typed arrays. ArrayBuffers cannot be read from or written to directly,
+ * but can be passed to a typed array or DataView Object to interpret the raw
+ * buffer as needed.
+ */
+pub opaque type ArrayBuffer.
+
+/**
+ * Read-only. The length of the ArrayBuffer (in bytes).
+ */
+pub (value: ArrayBuffer) byte_length(): JsNumber.
+
+/**
+ * Returns a section of an ArrayBuffer.
+ */
+pub (value: ArrayBuffer) slice(begin: JsNumber, end: JsNumber): ArrayBuffer.

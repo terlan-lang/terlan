@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGAnimatedInteger
+ */
+module std.js.Dom.SVGAnimatedInteger.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SVGAnimatedInteger`** interface is used for attributes of basic type \<integer> which can be animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedInteger)
+ */
+pub opaque type SVGAnimatedInteger.
+
+/**
+ * The **`animVal`** property of the SVGAnimatedInteger interface represents the animated value of an `<integer>`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedInteger/animVal)
+ */
+pub (value: SVGAnimatedInteger) anim_val(): JsNumber.
+
+/**
+ * The **`baseVal`** property of the SVGAnimatedInteger interface represents the base (non-animated) value of an animatable `<integer>`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedInteger/baseVal)
+ */
+pub (value: SVGAnimatedInteger) base_val(): JsNumber.

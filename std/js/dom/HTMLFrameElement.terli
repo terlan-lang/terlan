@@ -1,0 +1,83 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLFrameElement
+ */
+module std.js.Dom.HTMLFrameElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * @deprecated
+ */
+pub opaque type HTMLFrameElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) content_document(): Option[Document].
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) content_window(): Option[WindowProxy].
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) frame_border(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) long_desc(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) margin_height(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) margin_width(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) name(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) no_resize(): Bool.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) scrolling(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLFrameElement) src(): JsString.
+
+pub (value: HTMLFrameElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLFrameElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

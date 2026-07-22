@@ -1,0 +1,594 @@
+{
+  "schema": "terlan.operator-coverage.v1",
+  "positive_test_files": [
+    "tests/operator/OperatorCoverageTest.terl",
+    "tests/comparison/ComparisonTest.terl"
+  ],
+  "operators": [
+    {
+      "id": "add",
+      "spelling": "+",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "arithmetic_addition_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Add",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Add",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"+\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "sub",
+      "spelling": "-",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "arithmetic_subtraction_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Sub",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Sub",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"-\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "mul",
+      "spelling": "*",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "arithmetic_multiplication_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Mul",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Mul",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"*\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "slash_div",
+      "spelling": "/",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "arithmetic_division_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Div",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Div",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"/\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "div_keyword",
+      "spelling": "div",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "arithmetic_div_keyword_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parser/expressions.rs::TokenKind::DivRem",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"div\" | \"rem\"",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"div\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "rem_keyword",
+      "spelling": "rem",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-gated",
+      "vm": "unsupported",
+      "js": "unsupported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_rem_operator_preserves_distinct_binary_op",
+        "crates/terlan/src/runtime/vm_test.rs::evaluator_executes_direct_coreir_call_and_control_flow_edges"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Rem",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"div\" | \"rem\""
+      ]
+    },
+    {
+      "id": "eq",
+      "spelling": "==",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_equality_compares_values",
+        "string_equality_compares_values",
+        "bool_equality_compares_values",
+        "atom_equality_compares_values",
+        "tuple_equality_compares_structure",
+        "list_equality_compares_structure",
+        "map_equality_compares_structure"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::EqEq",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::EqEq",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"==\", left, right) => Ok(ReplValue::Bool(left == right))"
+      ]
+    },
+    {
+      "id": "not_eq",
+      "spelling": "!=",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_inequality_accepts_different_values",
+        "string_inequality_compares_values",
+        "bool_inequality_compares_values",
+        "atom_inequality_compares_values",
+        "tuple_inequality_compares_structure",
+        "list_inequality_compares_structure",
+        "map_inequality_compares_structure"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::NotEq",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::NotEq",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"!=\", left, right) => Ok(ReplValue::Bool(left != right))"
+      ]
+    },
+    {
+      "id": "lt",
+      "spelling": "<",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_less_than_compares_order",
+        "float_less_than_compares_order",
+        "mixed_numeric_less_than_promotes_to_float_comparison"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Lt",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Lt",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"<\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "gt",
+      "spelling": ">",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_greater_than_compares_order",
+        "integer_bindings_compare_without_literal_type_mismatch",
+        "mixed_numeric_greater_than_promotes_to_float_comparison"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Gt",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Gt",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\">\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "lte",
+      "spelling": "<=",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_less_than_or_equal_accepts_equal_boundary",
+        "integer_less_than_or_equal_rejects_larger_left"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::LtEq",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::LtEq",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"<=\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "gte",
+      "spelling": ">=",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_greater_than_or_equal_accepts_equal_boundary",
+        "integer_greater_than_or_equal_rejects_smaller_left",
+        "float_greater_than_or_equal_accepts_equal_boundary"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::GtEq",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::GtEq",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\">=\", ReplValue::Int(left), ReplValue::Int(right))"
+      ]
+    },
+    {
+      "id": "and_keyword",
+      "spelling": "and",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "boolean_and_keyword_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::And",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"and\" | \"&&\"",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"and\" | \"&&\", ReplValue::Bool(left), ReplValue::Bool(right))"
+      ]
+    },
+    {
+      "id": "or_keyword",
+      "spelling": "or",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "boolean_or_keyword_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Or",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"or\" | \"||\"",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"or\" | \"||\", ReplValue::Bool(left), ReplValue::Bool(right))"
+      ]
+    },
+    {
+      "id": "and_symbols",
+      "spelling": "&&",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "boolean_and_symbols_execute"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::And",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"and\" | \"&&\"",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"and\" | \"&&\", ReplValue::Bool(left), ReplValue::Bool(right))"
+      ]
+    },
+    {
+      "id": "or_symbols",
+      "spelling": "||",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "boolean_or_symbols_execute"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Or",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"or\" | \"||\"",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"or\" | \"||\", ReplValue::Bool(left), ReplValue::Bool(right))"
+      ]
+    },
+    {
+      "id": "unary_neg",
+      "spelling": "-",
+      "kind": "unary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "unary_negation_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Neg",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"-\" =>",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"-\", ReplValue::Int(value))"
+      ]
+    },
+    {
+      "id": "not_keyword",
+      "spelling": "not",
+      "kind": "unary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "unary_not_keyword_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Not",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"not\" | \"!\"",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"not\", ReplValue::Bool(value))"
+      ]
+    },
+    {
+      "id": "bang_not",
+      "spelling": "!",
+      "kind": "unary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-gated",
+      "vm": "unsupported",
+      "js": "supported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Bang",
+        "crates/terlan/src/runtime/vm_test.rs::evaluator_executes_direct_coreir_call_and_control_flow_edges"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Bang",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"not\" | \"!\""
+      ]
+    },
+    {
+      "id": "string_concat",
+      "spelling": "+",
+      "kind": "binary-string",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "string_concat_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::is_string_concat_pair",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::String"
+      ]
+    },
+    {
+      "id": "pipe_forward",
+      "spelling": "|>",
+      "kind": "binary",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "partial",
+      "target_profile": "vm-gated",
+      "vm": "unsupported",
+      "js": "supported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/typeck/expression_test.rs::syntax_output_infers_pipe_forward_on_formal_path",
+        "crates/terlan/src/compiler/typeck/expression/calls/pipe.rs::right side of |> must be a function call"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::PipeForward",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::PipeForward"
+      ]
+    },
+    {
+      "id": "index_access",
+      "spelling": "collection[index]",
+      "kind": "postfix",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-gated",
+      "vm": "unsupported",
+      "js": "unsupported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/typeck/core_expr_test.rs::syntax_output_lowering_to_core_index_expr_uses_index_get_call",
+        "crates/terlan/src/compiler/typeck/expression/indexing.rs::IndexGet.get_at"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/typeck/expression/indexing.rs::IndexGet.get_at",
+        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::IndexGet.get_at"
+      ]
+    },
+    {
+      "id": "index_assignment",
+      "spelling": "collection[index] = value",
+      "kind": "assignment",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-gated",
+      "vm": "unsupported",
+      "js": "unsupported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/typeck/core_expr_test.rs::syntax_output_lowering_to_core_index_assignment_uses_index_set_call",
+        "crates/terlan/src/compiler/typeck/expression/indexing.rs::IndexSet.set_at"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::IndexAssign",
+        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::IndexSet.set_at"
+      ]
+    },
+    {
+      "id": "deprecated_strict_eq",
+      "spelling": "=:=",
+      "kind": "deprecated-binary",
+      "parse": "rejected",
+      "format": "not-applicable",
+      "typecheck": "not-applicable",
+      "core_ir": "not-applicable",
+      "target_profile": "not-applicable",
+      "vm": "not-applicable",
+      "js": "compatibility-only",
+      "diagnostic": "parse_error",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parser/expressions.rs::deprecated equality operator '=:=', use '=='"
+      ]
+    },
+    {
+      "id": "deprecated_slash_not_eq",
+      "spelling": "/=",
+      "kind": "deprecated-binary",
+      "parse": "rejected",
+      "format": "not-applicable",
+      "typecheck": "not-applicable",
+      "core_ir": "not-applicable",
+      "target_profile": "not-applicable",
+      "vm": "not-applicable",
+      "js": "compatibility-only",
+      "diagnostic": "parse_error",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parser/expressions.rs::deprecated inequality operator '/=', use '!='"
+      ]
+    },
+    {
+      "id": "deprecated_exact_not_eq",
+      "spelling": "=/=",
+      "kind": "deprecated-binary",
+      "parse": "rejected",
+      "format": "not-applicable",
+      "typecheck": "not-applicable",
+      "core_ir": "not-applicable",
+      "target_profile": "not-applicable",
+      "vm": "not-applicable",
+      "js": "compatibility-only",
+      "diagnostic": "parse_error",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected",
+        "crates/terlan/src/compiler/syntax/lexer_test.rs::exact_inequality_is_one_token"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parser/expressions.rs::deprecated inequality operator '=/=', use '!='"
+      ]
+    }
+  ]
+}

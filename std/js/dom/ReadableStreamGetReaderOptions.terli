@@ -1,0 +1,22 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableStreamGetReaderOptions
+ */
+module std.js.Dom.ReadableStreamGetReaderOptions.
+
+pub opaque type ReadableStreamGetReaderOptions.
+
+/**
+ * Creates a ReadableStreamBYOBReader and locks the stream to the new reader.
+ *
+ * This call behaves the same way as the no-argument variant, except that it only works on readable byte streams, i.e. streams which were constructed specifically with the ability to handle "bring your own buffer" reading. The returned BYOB reader provides the ability to directly read individual chunks from the stream via its read() method, into developer-supplied buffers, allowing more precise control over allocation.
+ */
+pub (value: ReadableStreamGetReaderOptions) mode(): ReadableStreamReaderMode.

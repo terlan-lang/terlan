@@ -1,22 +1,32 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PerformanceNavigationTiming
  */
 module std.js.Dom.PerformanceNavigationTimingTest.
 
-import type std.js.Dom.PerformanceNavigationTiming.{PerformanceNavigationTiming}.
+import type std.js.Dom.PerformanceNavigationTiming.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub dom_complete_typechecks(receiver: PerformanceNavigationTiming): DOMHighResTimeStamp ->
     receiver.dom_complete().
 
-pub dom_content_loaded_event_end_typechecks(receiver: PerformanceNavigationTiming): DOMHighResTimeStamp ->
+pub dom_content_loaded_event_end_typechecks(
+    receiver: PerformanceNavigationTiming
+): DOMHighResTimeStamp ->
     receiver.dom_content_loaded_event_end().
 
-pub dom_content_loaded_event_start_typechecks(receiver: PerformanceNavigationTiming): DOMHighResTimeStamp ->
+pub dom_content_loaded_event_start_typechecks(
+    receiver: PerformanceNavigationTiming
+): DOMHighResTimeStamp ->
     receiver.dom_content_loaded_event_start().
 
 pub dom_interactive_typechecks(receiver: PerformanceNavigationTiming): DOMHighResTimeStamp ->

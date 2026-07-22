@@ -1,0 +1,45 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface EventModifierInit
+ */
+module std.js.Dom.EventModifierInit.
+
+import type std.core.{Bool}.
+
+pub opaque type EventModifierInit.
+
+pub (value: EventModifierInit) alt_key(): Bool.
+
+pub (value: EventModifierInit) ctrl_key(): Bool.
+
+pub (value: EventModifierInit) meta_key(): Bool.
+
+pub (value: EventModifierInit) modifier_alt_graph(): Bool.
+
+pub (value: EventModifierInit) modifier_caps_lock(): Bool.
+
+pub (value: EventModifierInit) modifier_fn(): Bool.
+
+pub (value: EventModifierInit) modifier_fn_lock(): Bool.
+
+pub (value: EventModifierInit) modifier_hyper(): Bool.
+
+pub (value: EventModifierInit) modifier_num_lock(): Bool.
+
+pub (value: EventModifierInit) modifier_scroll_lock(): Bool.
+
+pub (value: EventModifierInit) modifier_super(): Bool.
+
+pub (value: EventModifierInit) modifier_symbol(): Bool.
+
+pub (value: EventModifierInit) modifier_symbol_lock(): Bool.
+
+pub (value: EventModifierInit) shift_key(): Bool.

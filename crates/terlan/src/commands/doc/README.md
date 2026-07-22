@@ -19,6 +19,10 @@ and read as a stdlib reference.
 - Extract and validate REPL prompt examples from `@example` documentation
   blocks for the REPL-backed doctest path.
 - Render a compiler-owned JSON documentation model for downstream tools.
+- Surface typed template render-mode names in documentation/editor parity
+  checks so generated docs, VS Code template links, and release quality reports
+  explain the same static HTML, documentation example, and structured artifact
+  classifications.
 - Preserve existing output and exit-code behavior.
 
 ## Public Surface
@@ -67,6 +71,9 @@ Important invariants:
   as the default `doc` invocation.
 - Documentation rendering includes public APIs only. Private
   declaration docs are preserved by syntax output but not emitted.
+- Render Mode Parity: generated documentation and editor integration must use
+  the same stable render-mode names (`staticHtml`, `documentationExample`,
+  `structuredArtifact`) as the typed-template render-mode quality report.
 - `doctest` accepts exactly one source file path.
 - `@example` blocks can contain REPL-style prompt examples using `>` input
   lines and following expected-output lines. `@example ignore`,

@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioBuffer
  */
 module std.js.Dom.AudioBufferTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.AudioBuffer.{AudioBuffer}.
-
+import type std.js.Dom.AudioBuffer.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub duration_typechecks(receiver: AudioBuffer): JsNumber ->
     receiver.duration().
@@ -26,10 +30,20 @@ pub number_of_channels_typechecks(receiver: AudioBuffer): JsNumber ->
 pub sample_rate_typechecks(receiver: AudioBuffer): JsNumber ->
     receiver.sample_rate().
 
-pub copy_from_channel_typechecks(receiver: AudioBuffer, destination: Float32Array[ArrayBuffer], channel_number: JsNumber, buffer_offset: JsNumber): Unit ->
+pub copy_from_channel_typechecks(
+    receiver: AudioBuffer,
+    destination: Float32Array[ArrayBuffer],
+    channel_number: JsNumber,
+    buffer_offset: JsNumber
+): Unit ->
     receiver.copy_from_channel(destination, channel_number, buffer_offset).
 
-pub copy_to_channel_typechecks(receiver: AudioBuffer, source: Float32Array[ArrayBuffer], channel_number: JsNumber, buffer_offset: JsNumber): Unit ->
+pub copy_to_channel_typechecks(
+    receiver: AudioBuffer,
+    source: Float32Array[ArrayBuffer],
+    channel_number: JsNumber,
+    buffer_offset: JsNumber
+): Unit ->
     receiver.copy_to_channel(source, channel_number, buffer_offset).
 
 pub get_channel_data_typechecks(receiver: AudioBuffer, channel: JsNumber): Float32Array[ArrayBuffer] ->

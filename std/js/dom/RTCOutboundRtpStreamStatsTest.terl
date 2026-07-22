@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCOutboundRtpStreamStats
  */
 module std.js.Dom.RTCOutboundRtpStreamStatsTest.
 
-import type std.js.Dom.RTCOutboundRtpStreamStats.{RTCOutboundRtpStreamStats}.
-
+import type std.js.Dom.RTCOutboundRtpStreamStats.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub active_typechecks(receiver: RTCOutboundRtpStreamStats): std.core.Bool ->
     receiver.active().
@@ -59,10 +63,14 @@ pub pli_count_typechecks(receiver: RTCOutboundRtpStreamStats): JsNumber ->
 pub qp_sum_typechecks(receiver: RTCOutboundRtpStreamStats): JsNumber ->
     receiver.qp_sum().
 
-pub quality_limitation_durations_typechecks(receiver: RTCOutboundRtpStreamStats): Record[JsString , JsNumber] ->
+pub quality_limitation_durations_typechecks(
+    receiver: RTCOutboundRtpStreamStats
+): Record[JsString, JsNumber] ->
     receiver.quality_limitation_durations().
 
-pub quality_limitation_reason_typechecks(receiver: RTCOutboundRtpStreamStats): RTCQualityLimitationReason ->
+pub quality_limitation_reason_typechecks(
+    receiver: RTCOutboundRtpStreamStats
+): RTCQualityLimitationReason ->
     receiver.quality_limitation_reason().
 
 pub quality_limitation_resolution_changes_typechecks(receiver: RTCOutboundRtpStreamStats): JsNumber ->

@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FontFaceSet
  */
 module std.js.Dom.FontFaceSetTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.FontFaceSet.{FontFaceSet}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.FontFaceSet.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub ready_typechecks(receiver: FontFaceSet): Promise[FontFaceSet] ->
     receiver.ready().
@@ -27,11 +28,25 @@ pub status_typechecks(receiver: FontFaceSet): FontFaceSetLoadStatus ->
 pub check_typechecks(receiver: FontFaceSet, font: JsString, text: JsString): Bool ->
     receiver.check(font, text).
 
-pub load_typechecks(receiver: FontFaceSet, font: JsString, text: JsString): Promise[std.js.Array[FontFace]] ->
+pub load_typechecks(
+    receiver: FontFaceSet,
+    font: JsString,
+    text: JsString
+): Promise[std.js.Array[FontFace]] ->
     receiver.load(font, text).
 
-pub add_event_listener_typechecks(receiver: FontFaceSet, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: FontFaceSet,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: FontFaceSet, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: FontFaceSet,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

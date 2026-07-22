@@ -1,4 +1,4 @@
-# SafeNative HTTP Internals
+# NativeBoundary HTTP Internals
 
 This directory owns native HTTP runtime support. The implementation is centered
 on Rust HTTP crates rather than custom protocol code. Its most important
@@ -33,7 +33,7 @@ Important invariants:
 
 ## Integration Points
 
-- SafeNative dispatch: exposes HTTP runtime operations.
+- NativeBoundary dispatch: exposes HTTP runtime operations.
 - CLI serve/build commands: consume HTTP runtime behavior.
 
 ## Testing Notes

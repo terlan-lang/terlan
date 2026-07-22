@@ -193,7 +193,7 @@ pub(super) fn apply_router_handler_arities(
 /// - `signatures`: local function signature map.
 ///
 /// Output:
-/// - `Ok(())` when the middleware has `Request -> Response` shape.
+/// - `Ok(())` when the middleware has `Request -> MiddlewareResult` shape.
 /// - Stable `error[web_router]` diagnostic otherwise.
 ///
 /// Transformation:
@@ -225,9 +225,46 @@ pub(super) fn validate_router_middleware(
             "error[web_router]: middleware `{middleware}` must accept Request, got `{request_type}`"
         ));
     }
+    if !is_middleware_result_type(&signature.return_type) {
+        return Err(format!(
+            "error[web_router]: middleware `{middleware}` must return MiddlewareResult, got `{}`",
+            signature.return_type
+        ));
+    }
+    Ok(())
+}
+
+/// Validates one router response-middleware callback reference.
+pub(super) fn validate_router_response_middleware(
+    module_name: &str,
+    middleware: &str,
+    signatures: &HashMap<String, RouterHandlerSignature>,
+) -> Result<(), String> {
+    let Some(signature) = signatures.get(middleware) else {
+        return Err(format!(
+            "error[web_router]: response middleware `{middleware}` is not defined in module `{module_name}`"
+        ));
+    };
+    if signature.arity != 2 {
+        return Err(format!(
+            "error[web_router]: response middleware `{middleware}` must accept Request and Response, got arity {}",
+            signature.arity
+        ));
+    }
+    let [request_type, response_type] = signature.param_types.as_slice() else {
+        return Err(format!(
+            "error[web_router]: response middleware `{middleware}` must accept Request and Response"
+        ));
+    };
+    if !is_request_type(request_type) || !is_response_type(response_type) {
+        return Err(format!(
+            "error[web_router]: response middleware `{middleware}` must accept Request and Response, got `({}, {})`",
+            request_type, response_type
+        ));
+    }
     if !is_response_type(&signature.return_type) {
         return Err(format!(
-            "error[web_router]: middleware `{middleware}` must return Response, got `{}`",
+            "error[web_router]: response middleware `{middleware}` must return Response, got `{}`",
             signature.return_type
         ));
     }
@@ -315,6 +352,11 @@ pub(super) fn validate_discovered_web_routes(rows: &WebRouteManifestRows) -> Res
                 .iter()
                 .map(|websocket| ("GET", websocket.route.as_str(), "websocket route")),
         )
+        .chain(
+            rows.sse
+                .iter()
+                .map(|endpoint| ("GET", endpoint.route.as_str(), "SSE route")),
+        )
         .chain(rows.static_responses.iter().map(|response| {
             (
                 response.method.as_str(),
@@ -363,6 +405,7 @@ pub(super) fn validate_discovered_web_handler_routes(
     validate_discovered_web_routes(&WebRouteManifestRows {
         handlers: handlers.to_vec(),
         websockets: Vec::new(),
+        sse: Vec::new(),
         static_responses: Vec::new(),
         file_responses: Vec::new(),
     })

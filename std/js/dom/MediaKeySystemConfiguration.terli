@@ -1,0 +1,32 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaKeySystemConfiguration
+ */
+module std.js.Dom.MediaKeySystemConfiguration.
+
+import type std.js.String.{JsString}.
+import type std.js.{Array}.
+
+pub opaque type MediaKeySystemConfiguration.
+
+pub (value: MediaKeySystemConfiguration) audio_capabilities(): Array[MediaKeySystemMediaCapability].
+
+pub (value: MediaKeySystemConfiguration) distinctive_identifier(): MediaKeysRequirement.
+
+pub (value: MediaKeySystemConfiguration) init_data_types(): Array[JsString].
+
+pub (value: MediaKeySystemConfiguration) label(): JsString.
+
+pub (value: MediaKeySystemConfiguration) persistent_state(): MediaKeysRequirement.
+
+pub (value: MediaKeySystemConfiguration) session_types(): Array[JsString].
+
+pub (value: MediaKeySystemConfiguration) video_capabilities(): Array[MediaKeySystemMediaCapability].

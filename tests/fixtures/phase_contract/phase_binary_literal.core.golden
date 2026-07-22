@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_binary_literal
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
 export=value/0
 function=value/0 public=true params= return=Binary return_core=Binary
 function_clause=value/0#0 patterns= core_patterns= pattern_proof= pattern_preservation= guard=none body=Binary:core=Binary("hello"):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Binary("hello")):proof=lean-covered:text="hello":arity=0

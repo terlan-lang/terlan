@@ -1,0 +1,74 @@
+module tests.binary.BinaryConstructionTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.BitString.{from_bytes}.
+import std.vm.Bytes.{from_list}.
+
+@test
+pub fixed_integer_layout_constructs_big_endian_bitstring(): Bool ->
+    let source_port = 258;
+    let delta = -2;
+    let packet = Binary[big] {
+        source_port: UInt[16],
+        delta: IntBits[8]
+    };
+    assert_equal(24, packet.bit_length());
+    assert_equal([1, 2, 254], packet.to_bytes().to_list()).
+
+@test
+pub fixed_integer_layout_constructs_little_endian_bitstring(): Bool ->
+    let source_port = 4660;
+    let packet = Binary[little] { source_port: UInt[16] };
+    assert_equal([52, 18], packet.to_bytes().to_list()).
+
+@test
+pub exact_bytes_layout_preserves_raw_bytes(): Bool ->
+    let prefix = from_list([10, 20]);
+    let marker = 255;
+    let packet = Binary[big] {
+        prefix: Bytes[2],
+        marker: UInt[8]
+    };
+    assert_equal(24, packet.bit_length());
+    assert_equal([10, 20, 255], packet.to_bytes().to_list()).
+
+@test
+pub exact_bits_layout_preserves_unaligned_bits(): Bool ->
+    let prefix = from_bytes(from_list([160]), 3);
+    let marker = 19;
+    let packet = Binary[big] {
+        prefix: Bits[3],
+        marker: UInt[5]
+    };
+    assert_equal(8, packet.bit_length());
+    assert_equal([179], packet.to_bytes().to_list()).
+
+@test
+pub terminal_rest_layout_appends_complete_body(): Bool ->
+    let marker = 255;
+    let body = from_list([10, 20]);
+    let packet = Binary[big] {
+        marker: UInt[8],
+        body: Rest
+    };
+    assert_equal(24, packet.bit_length());
+    assert_equal([255, 10, 20], packet.to_bytes().to_list()).
+
+@test
+pub utf8_layout_encodes_one_unicode_scalar(): Bool ->
+    let scalar = 8364;
+    let packet = Binary[big] { scalar: Utf8 };
+    assert_equal(24, packet.bit_length());
+    assert_equal([226, 130, 172], packet.to_bytes().to_list()).
+
+@test
+pub utf16_and_utf32_layouts_follow_the_declared_wire_order(): Bool ->
+    let scalar = 128512;
+    let utf16_be = Binary[big] { scalar: Utf16 };
+    let utf16_le = Binary[little] { scalar: Utf16 };
+    let utf32_be = Binary[big] { scalar: Utf32 };
+    let utf32_le = Binary[little] { scalar: Utf32 };
+    assert_equal([216, 61, 222, 0], utf16_be.to_bytes().to_list());
+    assert_equal([61, 216, 0, 222], utf16_le.to_bytes().to_list());
+    assert_equal([0, 1, 246, 0], utf32_be.to_bytes().to_list());
+    assert_equal([0, 246, 1, 0], utf32_le.to_bytes().to_list()).

@@ -1,15 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IDBIndex
  */
 module std.js.Dom.IDBIndex.
 
 import type std.core.{Bool}.
-
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
 /**
@@ -72,7 +77,10 @@ pub (value: IDBIndex) count(query: IDBKeyRange | IDBValidKey): IDBRequest[JsNumb
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getAllKeys)
  */
-pub (value: IDBIndex) get_all_keys(query: Option[IDBKeyRange | IDBValidKey], count: JsNumber): IDBRequest[Array[IDBValidKey]] ->
+pub (value: IDBIndex) get_all_keys(
+    query: Option[IDBKeyRange | IDBValidKey],
+    count: JsNumber
+): IDBRequest[Array[IDBValidKey]] ->
     native.
 
 /**
@@ -88,7 +96,10 @@ pub (value: IDBIndex) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Opti
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openCursor)
  */
-pub (value: IDBIndex) open_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+pub (value: IDBIndex) open_cursor(
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursorWithValue]] ->
     native.
 
 /**
@@ -96,5 +107,8 @@ pub (value: IDBIndex) open_cursor(query: Option[IDBKeyRange | IDBValidKey], dire
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openKeyCursor)
  */
-pub (value: IDBIndex) open_key_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+pub (value: IDBIndex) open_key_cursor(
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursor]] ->
     native.

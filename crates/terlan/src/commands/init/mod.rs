@@ -38,6 +38,7 @@ enum InitProfile {
     Default,
     Web,
     Static,
+    Mobile,
 }
 
 impl InitProfile {
@@ -61,8 +62,11 @@ impl InitProfile {
         if value == "static" {
             return Ok(Self::Static);
         }
+        if value == "mobile" {
+            return Ok(Self::Mobile);
+        }
         Err(format!(
-            "unsupported init profile `{value}`; supported profiles: default, web, static"
+            "unsupported init profile `{value}`; supported profiles: default, web, static, mobile"
         ))
     }
 }
@@ -277,9 +281,16 @@ fn write_project(args: &InitArgs) -> Result<(), String> {
         .join("src")
         .join(&source_root)
         .join("Site.terl");
+    let mobile_path = args
+        .target_dir
+        .join("src")
+        .join(&source_root)
+        .join("Mobile.terl");
     let assets_path = args.target_dir.join("assets");
     let templates_path = args.target_dir.join("templates");
     let content_path = args.target_dir.join("content");
+    let mobile_config_dir = args.target_dir.join("mobile");
+    let mobile_config_path = mobile_config_dir.join("shell.toml");
     let docker_compose_path = args.target_dir.join("docker-compose.yml");
 
     refuse_existing_project_dir(&args.target_dir)?;
@@ -320,7 +331,10 @@ fn write_project(args: &InitArgs) -> Result<(), String> {
         .map_err(|err| format!("cannot write {}: {err}", main_path.display()))?;
     fs::write(&test_path, render_test_module(&source_root))
         .map_err(|err| format!("cannot write {}: {err}", test_path.display()))?;
-    if matches!(args.profile, InitProfile::Web | InitProfile::Static) {
+    if matches!(
+        args.profile,
+        InitProfile::Web | InitProfile::Static | InitProfile::Mobile
+    ) {
         fs::create_dir_all(&assets_path).map_err(|err| {
             format!(
                 "cannot create asset directory {}: {err}",
@@ -328,7 +342,7 @@ fn write_project(args: &InitArgs) -> Result<(), String> {
             )
         })?;
     }
-    if args.profile == InitProfile::Web {
+    if matches!(args.profile, InitProfile::Web | InitProfile::Mobile) {
         fs::create_dir_all(&templates_path).map_err(|err| {
             format!(
                 "cannot create template directory {}: {err}",
@@ -346,6 +360,21 @@ fn write_project(args: &InitArgs) -> Result<(), String> {
         .map_err(|err| format!("cannot write web page template: {err}"))?;
         fs::write(&docker_compose_path, render_web_docker_compose())
             .map_err(|err| format!("cannot write {}: {err}", docker_compose_path.display()))?;
+    }
+    if args.profile == InitProfile::Mobile {
+        fs::create_dir_all(&mobile_config_dir).map_err(|err| {
+            format!(
+                "cannot create mobile directory {}: {err}",
+                mobile_config_dir.display()
+            )
+        })?;
+        fs::write(&mobile_path, render_mobile_module(&source_root))
+            .map_err(|err| format!("cannot write {}: {err}", mobile_path.display()))?;
+        fs::write(
+            &mobile_config_path,
+            render_mobile_shell_config(&source_root, &args.package_name),
+        )
+        .map_err(|err| format!("cannot write {}: {err}", mobile_config_path.display()))?;
     }
     if args.profile == InitProfile::Static {
         fs::create_dir_all(&templates_path).map_err(|err| {
@@ -407,13 +436,16 @@ fn refuse_existing_project_dir(path: &Path) -> Result<(), String> {
 /// - Complete `terlan.toml` text.
 ///
 /// Transformation:
-/// - Formats the minimal manifest-backed `beam-thin` project contract and adds
+/// - Formats the minimal manifest-backed Terlan VM project contract and adds
 ///   the Terlan-owned web asset section for profiles that package assets.
 fn render_manifest(package_name: &str, profile: InitProfile) -> String {
     let mut manifest = format!(
-        "[package]\nname = \"{package_name}\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n"
+        "[package]\nname = \"{package_name}\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n"
     );
-    if matches!(profile, InitProfile::Web | InitProfile::Static) {
+    if matches!(
+        profile,
+        InitProfile::Web | InitProfile::Static | InitProfile::Mobile
+    ) {
         manifest.push_str("\n[web.assets]\ndirectory = \"assets\"\n");
     }
     manifest
@@ -483,7 +515,7 @@ fn render_web_module(source_root: &str) -> String {
     )
 }
 
-/// Renders the BEAM-backed HTTP handler module for the web profile.
+/// Renders the HTTP handler module for the web profile.
 ///
 /// Inputs:
 /// - `source_root`: source package root after package-name normalization.
@@ -514,6 +546,41 @@ fn render_http_handler_module(source_root: &str) -> String {
 ///   template file before response-template integration lands.
 fn render_web_page_template() -> &'static str {
     "<main><h1>${title}</h1></main>\n"
+}
+
+/// Renders the mobile shell seed module for the mobile profile.
+///
+/// Inputs:
+/// - `source_root`: source package root after package-name normalization.
+///
+/// Output:
+/// - Complete `src/<package_root>/Mobile.terl` text.
+///
+/// Transformation:
+/// - Emits a minimal typed source module that names the default shell route
+///   without requiring the not-yet-implemented mobile target profile.
+fn render_mobile_module(source_root: &str) -> String {
+    format!(
+        "module {source_root}.Mobile.\n\npub start_route(): String ->\n    \"/\".\n\npub shell_title(): String ->\n    \"Terlan Mobile\".\n"
+    )
+}
+
+/// Renders the mobile shell configuration stub.
+///
+/// Inputs:
+/// - `source_root`: source package root after package-name normalization.
+/// - `package_name`: manifest package name.
+///
+/// Output:
+/// - Complete `mobile/shell.toml` text.
+///
+/// Transformation:
+/// - Records the future mobile-shell entrypoints in project-owned TOML without
+///   adding unsupported fields to `terlan.toml`.
+fn render_mobile_shell_config(source_root: &str, package_name: &str) -> String {
+    format!(
+        "name = \"{package_name}\"\nprofile = \"mobile.shell\"\nweb_entry = \"src/{source_root}/Web.terl\"\nshell_entry = \"src/{source_root}/Mobile.terl\"\nstart_route = \"/\"\n"
+    )
 }
 
 /// Renders the web-profile Docker Compose development services file.
@@ -625,7 +692,7 @@ fn render_test_module(source_root: &str) -> String {
 /// - Ordered CLI commands to print after successful initialization.
 ///
 /// Transformation:
-/// - Keeps default projects focused on BEAM executable output and web projects
+/// - Keeps default projects focused on VM executable output and web projects
 ///   focused on the browser package plus local server loop.
 fn next_steps(profile: InitProfile, package_name: &str) -> Vec<String> {
     match profile {
@@ -649,6 +716,11 @@ fn next_steps(profile: InitProfile, package_name: &str) -> Vec<String> {
                 "terlc static serve src/{}/Site.terl --out-dir _build/web --validate-output",
                 source_package_root(package_name)
             ),
+            "make test".to_string(),
+        ],
+        InitProfile::Mobile => vec![
+            "make".to_string(),
+            "terlc build --target js.browser".to_string(),
             "make test".to_string(),
         ],
     }

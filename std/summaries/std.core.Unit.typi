@@ -39,6 +39,7 @@ pub type Unit =
 ///    std.core.Unit.compare(Unit, Unit).
 /// ```
 
+@pure
 pub compare(_left: Unit, _right: Unit): std.core.Ordering.Comparison.
 
 /// Returns whether two `Unit` values are equal.
@@ -55,6 +56,7 @@ pub compare(_left: Unit, _right: Unit): std.core.Ordering.Comparison.
 ///     std.core.Unit.equal(Unit, Unit).
 /// ```
 
+@pure
 pub equal(_left: Unit, _right: Unit): Bool.
 
 /// Parses a canonical UTF-8 `String` into `Unit`.
@@ -88,4 +90,5 @@ pub from_string(value: String): Option[Unit].
 ///    std.core.Unit.to_string(Unit).
 /// ```
 
+@pure
 pub to_string(value: Unit): String.

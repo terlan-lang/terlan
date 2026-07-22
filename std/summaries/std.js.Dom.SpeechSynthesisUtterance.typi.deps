@@ -1,8 +1,8 @@
 module=std.js.Dom.SpeechSynthesisUtterance
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12733192749266613089
-interface_hash=1559656179176186795
-interface_doc_hash=1559656179176186795
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10206960022192326092
+interface_hash=17853783763462585223
+interface_doc_hash=17853783763462585223
 deps=0

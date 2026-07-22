@@ -1,0 +1,287 @@
+/**
+ * Deterministic property-test shrinkers.
+ *
+ * `std.test.Shrink` owns the first source-level shrinker surface for
+ * property-style tests. Shrinkers return finite candidate lists in stable order
+ * so failing cases can become smaller without hidden randomness.
+ */
+module std.test.Shrink.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import type std.collections.List.
+
+/**
+ * Returns smaller integer candidates.
+ *
+ * Input: one integer value.
+ * Output: `[0]` for non-zero values and `[]` for zero.
+ * Transformation: establishes the first deterministic integer shrink rule
+ * without claiming full minimal counterexample search yet.
+ */
+pub shrink_int(value: Int): List[Int] ->
+    if {
+    value == 0 -> [];
+    true -> [0]
+    }.
+
+/**
+ * Returns smaller float candidates.
+ *
+ * Input: one finite float value.
+ * Output: `[0.0]` for non-zero values and `[]` for zero.
+ * Transformation: establishes the first deterministic float shrink rule
+ * without claiming full decimal minimization yet.
+ */
+pub shrink_float(value: Float): List[Float] ->
+    if {
+    value == 0.0 -> [];
+    true -> [0.0]
+    }.
+
+/**
+ * Returns simpler boolean candidates.
+ *
+ * Input: one boolean value.
+ * Output: `[false]` for `true` and `[]` for `false`.
+ * Transformation: treats `false` as the simplest boolean value.
+ */
+pub shrink_bool(value: Bool): List[Bool] ->
+    if {
+    value -> [false];
+    true -> []
+    }.
+
+/**
+ * Returns simpler string candidates.
+ *
+ * Input: one string value.
+ * Output: `[""]` for non-empty strings and `[]` for the empty string.
+ * Transformation: establishes the first deterministic string shrink rule
+ * before later slices add prefix and substring shrinking.
+ */
+pub shrink_string(value: String): List[String] ->
+    if {
+    value == "" -> [];
+    true -> [""]
+    }.
+
+/**
+ * Returns simpler optional-value candidates.
+ *
+ * Input: one optional value.
+ * Output: `[]` for `None` and `[None]` for `Some(value)`.
+ * Transformation: treats missing values as simpler than present values while
+ * leaving payload-specific shrinking to later recursive shrinker work.
+ */
+pub shrink_option(value: Option[T]): List[Option[T]] ->
+    case value {
+        None -> [];
+        Some(_value) -> [None]
+    }.
+
+/**
+ * Returns simpler result-value candidates.
+ *
+ * Input: one result value, one success-payload shrinker, and one error-payload
+ * shrinker.
+ * Output: `Ok` values with smaller success payloads, or `Err` values with
+ * smaller error payloads.
+ * Transformation: keeps success and error channels explicit while delegating
+ * payload-specific shrinking to caller-provided deterministic shrinkers.
+ */
+pub shrink_result(
+    value: Result[T, E],
+    shrink_ok: (T) -> List[T],
+    shrink_err: (E) -> List[E]
+): List[Result[T, E]] ->
+    case value {
+        Ok(ok_value) -> ok_result_values(shrink_ok(ok_value));
+        Err(err_value) -> err_result_values(shrink_err(err_value))
+    }.
+
+/**
+ * Returns simpler list candidates.
+ *
+ * Input: one list value.
+ * Output: `[]` for an empty list and `[[]]` for a non-empty list.
+ * Transformation: establishes the first deterministic list shrink rule:
+ * remove all elements before later slices add prefix/tail/payload shrinking.
+ */
+pub shrink_list(value: List[T]): List[List[T]] ->
+    case value {
+        [] -> [];
+        [_head | _tail] -> [List.new[T]()]
+    }.
+
+/**
+ * Returns simpler pair candidates.
+ *
+ * Input: one `{left, right}` pair and shrinkers for each side.
+ * Output: pairs with smaller left candidates followed by pairs with smaller
+ * right candidates.
+ * Transformation: shrinks one side at a time while preserving deterministic
+ * source order and leaving tuple-specific payload rules to caller-provided
+ * shrinkers.
+ */
+pub shrink_pair(
+    value: {A, B},
+    shrink_left: (A) -> List[A],
+    shrink_right: (B) -> List[B]
+): List[{A, B}] ->
+    let {left, right} = value;
+    append(shrink_left_pairs(shrink_left(left), right), shrink_right_pairs(left, shrink_right(right))).
+
+/**
+ * Returns simpler map candidates.
+ *
+ * Input: one map value and the typed empty map value.
+ * Output: `[]` for an empty map and `[empty]` for a non-empty map.
+ * Transformation: establishes the first deterministic map shrink rule without
+ * coupling the generic shrinker interface to a specific map representation.
+ */
+pub shrink_map(value: T, empty_value: T): List[T] ->
+    if {
+    value == empty_value -> [];
+    true -> [empty_value]
+    }.
+
+/**
+ * Returns simpler object candidates.
+ *
+ * Input: one dynamic object value and the typed empty object value.
+ * Output: `[]` for an empty object and `[empty]` for a non-empty object.
+ * Transformation: mirrors `shrink_map` for JSON-like values while preserving
+ * type safety through caller-supplied object values.
+ */
+pub shrink_object(value: T, empty_value: T): List[T] ->
+    if {
+    value == empty_value -> [];
+    true -> [empty_value]
+    }.
+
+/**
+ * Removes shrink candidates equal to the original value.
+ *
+ * Input: original value and candidate shrink values.
+ * Output: only candidates that differ from the original value.
+ * Transformation: lets custom shrinkers guard against self-shrink loops before
+ * richer runner diagnostics reject invalid shrink paths directly.
+ */
+pub guard_self(original: T, candidates: List[T]): List[T] ->
+    case candidates {
+        [] -> [];
+        [head | tail] ->
+            if {
+            head == original -> guard_self(original, tail);
+            true -> [head | guard_self(original, tail)]
+            }
+    }.
+
+/**
+ * Limits shrink candidates to a deterministic maximum count.
+ *
+ * Input: maximum candidate count and candidate shrink values.
+ * Output: at most `max` candidates in original source order.
+ * Transformation: bounds shrink work without changing candidate ordering.
+ */
+pub limit(max: Int, candidates: List[T]): List[T] ->
+    if {
+    max <= 0 -> [];
+    true -> case candidates {
+            [] -> [];
+            [head | tail] -> [head | limit(max - 1, tail)]
+        }
+    }.
+
+/**
+ * Wraps success shrink candidates as `Ok` result values.
+ *
+ * Input: success payload shrink candidates.
+ * Output: candidates wrapped with `Ok`.
+ * Transformation: public implementation helper for VM std execution paths
+ * that currently load public std functions only.
+ */
+pub ok_result_values(values: List[T]): List[Result[T, E]] ->
+    case values {
+        [] -> [];
+        [head | tail] -> [ok_result_value(head) | ok_result_values(tail)]
+    }.
+
+/**
+ * Wraps error shrink candidates as `Err` result values.
+ *
+ * Input: error payload shrink candidates.
+ * Output: candidates wrapped with `Err`.
+ * Transformation: public implementation helper for VM std execution paths
+ * that currently load public std functions only.
+ */
+pub err_result_values(values: List[E]): List[Result[T, E]] ->
+    case values {
+        [] -> [];
+        [head | tail] -> [err_result_value(head) | err_result_values(tail)]
+    }.
+
+/**
+ * Wraps one success shrink candidate as `Ok`.
+ *
+ * Input: one success payload.
+ * Output: `Ok(value)` as `Result[T, E]`.
+ * Transformation: gives generic list construction an explicit result type.
+ */
+pub ok_result_value(value: T): Result[T, E] ->
+    Ok(value).
+
+/**
+ * Wraps one error shrink candidate as `Err`.
+ *
+ * Input: one error payload.
+ * Output: `Err(value)` as `Result[T, E]`.
+ * Transformation: gives generic list construction an explicit result type.
+ */
+pub err_result_value(value: E): Result[T, E] ->
+    Err(value).
+
+/**
+ * Wraps left-side shrink candidates as pair candidates.
+ *
+ * Input: left-side shrink candidates and the original right value.
+ * Output: pair candidates preserving the right value.
+ * Transformation: public implementation helper for VM std execution paths
+ * that currently load public std functions only.
+ */
+pub shrink_left_pairs(values: List[A], right: B): List[{A, B}] ->
+    case values {
+        [] -> [];
+        [head | tail] -> [{head, right} | shrink_left_pairs(tail, right)]
+    }.
+
+/**
+ * Wraps right-side shrink candidates as pair candidates.
+ *
+ * Input: original left value and right-side shrink candidates.
+ * Output: pair candidates preserving the left value.
+ * Transformation: public implementation helper for VM std execution paths
+ * that currently load public std functions only.
+ */
+pub shrink_right_pairs(left: A, values: List[B]): List[{A, B}] ->
+    case values {
+        [] -> [];
+        [head | tail] -> [{left, head} | shrink_right_pairs(left, tail)]
+    }.
+
+/**
+ * Appends shrink candidate lists.
+ *
+ * Input: left and right candidate lists.
+ * Output: left candidates followed by right candidates.
+ * Transformation: public implementation helper for VM std execution paths
+ * that currently load public std functions only.
+ */
+pub append(left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [head | tail] -> [head | append(tail, right)]
+    }.

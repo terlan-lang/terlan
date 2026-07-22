@@ -17,6 +17,36 @@ pub fn parse_interface_file(path: &Path) -> Option<(String, ModuleInterface)> {
     Some((module_name, interface))
 }
 
+/// Parses dependency entries from an interface dependency manifest.
+///
+/// Inputs:
+/// - `contents`: line-oriented `.typi.deps` manifest text.
+///
+/// Output:
+/// - Ordered module/hash entries, or `None` when the count or an entry is
+///   malformed.
+///
+/// Transformation:
+/// - Locates the declared dependency count and decodes exactly that many
+///   structured `module=hash` entries.
+pub fn parse_interface_dependency_entries(contents: &str) -> Option<Vec<(String, u64)>> {
+    let mut lines = contents.lines();
+    let count = lines
+        .by_ref()
+        .find_map(|line| line.strip_prefix("deps="))?
+        .parse::<usize>()
+        .ok()?;
+    let entries = lines
+        .by_ref()
+        .take(count)
+        .map(|line| {
+            let (module_name, hash) = line.split_once('=')?;
+            Some((module_name.to_string(), hash.parse::<u64>().ok()?))
+        })
+        .collect::<Option<Vec<_>>>()?;
+    (entries.len() == count).then_some(entries)
+}
+
 /// Loads interface summaries from one directory.
 ///
 /// Inputs: directory path and accumulator. Output: accumulator is updated.

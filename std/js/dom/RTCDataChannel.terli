@@ -1,0 +1,133 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCDataChannel
+ */
+module std.js.Dom.RTCDataChannel.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`RTCDataChannel`** interface represents a network channel which can be used for bidirectional peer-to-peer transfers of arbitrary data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel)
+ */
+pub opaque type RTCDataChannel.
+
+/**
+ * The property **`binaryType`** on the the type of object which should be used to represent binary data received on the RTCDataChannel.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/binaryType)
+ */
+pub (value: RTCDataChannel) binary_type(): BinaryType.
+
+/**
+ * The read-only `RTCDataChannel` property **`bufferedAmount`** returns the number of bytes of data currently queued to be sent over the data channel.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/bufferedAmount)
+ */
+pub (value: RTCDataChannel) buffered_amount(): JsNumber.
+
+/**
+ * The `RTCDataChannel` property **`bufferedAmountLowThreshold`** is used to specify the number of bytes of buffered outgoing data that is considered 'low.' The default value is 0\.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/bufferedAmountLowThreshold)
+ */
+pub (value: RTCDataChannel) buffered_amount_low_threshold(): JsNumber.
+
+/**
+ * The read-only `RTCDataChannel` property **`id`** returns an ID number (between 0 and 65,534) which uniquely identifies the RTCDataChannel.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/id)
+ */
+pub (value: RTCDataChannel) id(): Option[JsNumber].
+
+/**
+ * The read-only `RTCDataChannel` property **`label`** returns a string containing a name describing the data channel.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/label)
+ */
+pub (value: RTCDataChannel) label(): JsString.
+
+/**
+ * The read-only `RTCDataChannel` property **`maxPacketLifeTime`** returns the amount of time, in milliseconds, the browser is allowed to take to attempt to transmit a message, as set when the data channel was created, or `null`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/maxPacketLifeTime)
+ */
+pub (value: RTCDataChannel) max_packet_life_time(): Option[JsNumber].
+
+/**
+ * The read-only `RTCDataChannel` property **`maxRetransmits`** returns the maximum number of times the browser should try to retransmit a message before giving up, as set when the data channel was created, or `null`, which indicates that there is no maximum.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/maxRetransmits)
+ */
+pub (value: RTCDataChannel) max_retransmits(): Option[JsNumber].
+
+/**
+ * The read-only `RTCDataChannel` property **`negotiated`** indicates whether the (`true`) or by the WebRTC layer (`false`).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/negotiated)
+ */
+pub (value: RTCDataChannel) negotiated(): Bool.
+
+/**
+ * The read-only `RTCDataChannel` property **`ordered`** indicates whether or not the data channel guarantees in-order delivery of messages; the default is `true`, which indicates that the data channel is indeed ordered.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/ordered)
+ */
+pub (value: RTCDataChannel) ordered(): Bool.
+
+/**
+ * The read-only `RTCDataChannel` property **`protocol`** returns a string containing the name of the subprotocol in use.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/protocol)
+ */
+pub (value: RTCDataChannel) protocol(): JsString.
+
+/**
+ * The read-only `RTCDataChannel` property **`readyState`** returns a string which indicates the state of the data channel's underlying data connection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/readyState)
+ */
+pub (value: RTCDataChannel) ready_state(): RTCDataChannelState.
+
+/**
+ * The **`RTCDataChannel.close()`** method closes the closure of the channel.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/close)
+ */
+pub (value: RTCDataChannel) close(): Unit.
+
+/**
+ * The **`send()`** method of the remote peer.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send)
+ */
+pub (value: RTCDataChannel) send(data: JsString): Unit.
+
+pub (value: RTCDataChannel) send(data: Blob): Unit.
+
+pub (value: RTCDataChannel) send(data: ArrayBuffer): Unit.
+
+pub (value: RTCDataChannel) send(data: ArrayBufferView[ArrayBuffer]): Unit.
+
+pub (value: RTCDataChannel) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: RTCDataChannel) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

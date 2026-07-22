@@ -4,7 +4,7 @@ use super::*;
 ///
 /// Inputs:
 /// - Representative template paths for HTML, Markdown, JSON, TOML, YAML, YML,
-///   and text.
+///   XML, and text.
 ///
 /// Output:
 /// - Test passes when every Terlan artifact-template suffix is recognized and
@@ -26,6 +26,7 @@ fn detects_all_terlan_artifact_template_paths() {
     assert!(is_terlan_artifact_template_path(
         "templates/deploy.terl.yml"
     ));
+    assert!(is_terlan_artifact_template_path("templates/feed.terl.xml"));
     assert!(is_terlan_artifact_template_path("templates/notes.terl.txt"));
     assert!(!is_terlan_artifact_template_path("templates/page.html"));
 }
@@ -68,6 +69,10 @@ fn classifies_artifact_template_targets() {
         Some(ArtifactTemplateTarget::Yaml)
     );
     assert_eq!(
+        artifact_template_target_from_filename("feed.terl.xml"),
+        Some(ArtifactTemplateTarget::Xml)
+    );
+    assert_eq!(
         artifact_template_target_from_filename("notes.terl.txt"),
         Some(ArtifactTemplateTarget::Text)
     );
@@ -90,6 +95,9 @@ fn identifies_targets_that_parse_to_html_tree() {
     assert!(ArtifactTemplateTarget::Html.parses_to_html_tree());
     assert!(ArtifactTemplateTarget::Markdown.parses_to_html_tree());
     assert!(!ArtifactTemplateTarget::Json.parses_to_html_tree());
+    assert!(!ArtifactTemplateTarget::Xml.parses_to_html_tree());
     assert_eq!(ArtifactTemplateTarget::Yaml.name(), "yaml");
     assert_eq!(ArtifactTemplateTarget::Yaml.suffix(), ".terl.yaml");
+    assert_eq!(ArtifactTemplateTarget::Xml.name(), "xml");
+    assert_eq!(ArtifactTemplateTarget::Xml.suffix(), ".terl.xml");
 }

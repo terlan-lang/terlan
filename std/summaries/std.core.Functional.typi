@@ -16,7 +16,7 @@ module std.core.Functional.
 /// inside `F` to values inside `F`.
 
 pub trait Applicative[F[_]] extends Functor[F] {
-    apply[A, B](f: F[(A ) -> B], value: F[A]): F[B].
+    apply[A, B](f: F[(A) -> B], value: F[A]): F[B].
     pure[A](value: A): F[A].
 }.
 
@@ -28,7 +28,7 @@ pub trait Applicative[F[_]] extends Functor[F] {
 /// present value according to the concrete implementation.
 
 pub trait Functor[F[_]] {
-    map[A, B](value: F[A], f: (A ) -> B): F[B].
+    map[A, B](value: F[A], f: (A) -> B): F[B].
 }.
 
 /// Monad describes applicatives that can sequence dependent computations.
@@ -39,7 +39,7 @@ pub trait Functor[F[_]] {
 /// same context constructor.
 
 pub trait Monad[F[_]] extends Applicative[F] {
-    flat_map[A, B](value: F[A], f: (A ) -> F[B]): F[B].
+    flat_map[A, B](value: F[A], f: (A) -> F[B]): F[B].
 }.
 
 /// ResultFunctor describes success/error containers with two type parameters.
@@ -51,8 +51,8 @@ pub trait Monad[F[_]] extends Applicative[F] {
 /// type lambdas can express `Result[E, _]` as a unary `Monad`.
 
 pub trait ResultFunctor[F[_, _]] {
-    map[A, B, E](value: F[A, E], f: (A ) -> B): F[B, E].
-    map_error[A, E, G](value: F[A, E], f: (E ) -> G): F[A, G].
+    map[A, B, E](value: F[A, E], f: (A) -> B): F[B, E].
+    map_error[A, E, G](value: F[A, E], f: (E) -> G): F[A, G].
 }.
 
 /// ResultMonad describes sequencing for success/error containers.
@@ -63,29 +63,29 @@ pub trait ResultFunctor[F[_, _]] {
 /// computation while preserving errors unchanged.
 
 pub trait ResultMonad[F[_, _]] extends ResultFunctor[F] {
-    flat_map[A, B, E](value: F[A, E], f: (A ) -> F[B, E]): F[B, E].
+    flat_map[A, B, E](value: F[A, E], f: (A) -> F[B, E]): F[B, E].
+}.
+
+pub impl Applicative[Option] for Option {
 }.
 
 pub impl Applicative[std.collections.List.List] for std.collections.List.List {
 }.
 
-pub impl Applicative[std.core.Option.Option] for std.core.Option.Option {
+pub impl Functor[Option] for Option {
 }.
 
 pub impl Functor[std.collections.List.List] for std.collections.List.List {
 }.
 
-pub impl Functor[std.core.Option.Option] for std.core.Option.Option {
+pub impl Monad[Option] for Option {
 }.
 
 pub impl Monad[std.collections.List.List] for std.collections.List.List {
 }.
 
-pub impl Monad[std.core.Option.Option] for std.core.Option.Option {
+pub impl ResultFunctor[Result] for Result {
 }.
 
-pub impl ResultFunctor[std.core.Result.Result] for std.core.Result.Result {
-}.
-
-pub impl ResultMonad[std.core.Result.Result] for std.core.Result.Result {
+pub impl ResultMonad[Result] for Result {
 }.

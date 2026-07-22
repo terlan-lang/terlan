@@ -1,0 +1,62 @@
+/**
+ * Property-based Bool invariants.
+ *
+ * `std.core.BoolPropertyTest` validates generated boolean values against the
+ * public Bool API so core truth-value behavior is covered by the shared
+ * property-testing machinery.
+ */
+module std.core.BoolPropertyTest.
+
+import std.core.Bool.{compare, equal, from_string, is_false, is_true, to_string}.
+import std.core.Option.{Some}.
+import std.core.Ordering.{Eq}.
+import std.test.Gen.{booleans, for_all}.
+import std.test.Test.{each}.
+
+/**
+ * Verifies equality is reflexive for generated boolean values.
+ *
+ * Input: generated boolean values.
+ * Output: `true` when every generated value equals itself.
+ * Transformation: checks the public Bool equality helper over generated input.
+ */
+@test
+pub generated_bools_equal_is_reflexive(): Bool ->
+    for_all(booleans(), (value) -> equal(value, value)).
+
+/**
+ * Verifies predicate helpers classify generated boolean values correctly.
+ *
+ * Input: generated boolean values.
+ * Output: `true` when `is_true` and `is_false` agree with the boolean domain.
+ * Transformation: checks both predicate helpers over the closed Bool domain.
+ */
+@test
+pub generated_bools_predicates_classify_domain(): Bool ->
+    for_all(booleans(), (value) -> case value {
+        true -> is_true(value) and is_false(value) == false;
+        false -> is_false(value) and is_true(value) == false
+    }).
+
+/**
+ * Verifies comparing a generated boolean value to itself returns equality.
+ *
+ * Input: generated boolean values.
+ * Output: `true` when each generated self-comparison returns `Eq`.
+ * Transformation: checks the public Bool comparison helper over generated
+ * input.
+ */
+@test
+pub generated_bools_compare_self_as_equal(): Bool ->
+    for_all(booleans(), (value) -> compare(value, value) == Eq).
+
+/**
+ * Verifies generated boolean values survive canonical string roundtrips.
+ *
+ * Input: generated boolean values.
+ * Output: `true` when `to_string -> from_string` returns the original value.
+ * Transformation: checks parse/render consistency through the public Bool API.
+ */
+@test
+pub generated_bools_string_round_trip(): Bool ->
+    for_all(booleans(), (value) -> from_string(to_string(value)) == Some(value)).

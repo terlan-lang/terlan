@@ -1,8 +1,8 @@
 module=std.js.Dom.WebGLShaderPrecisionFormat
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=4051589710823009400
-interface_hash=7844563788055419227
-interface_doc_hash=7844563788055419227
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6121733111935361673
+interface_hash=6620338669784530562
+interface_doc_hash=6620338669784530562
 deps=0

@@ -1,0 +1,99 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaSource
+ */
+module std.js.Dom.MediaSource.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`MediaSource`** interface of the Media Source Extensions API represents a source of media data for an HTMLMediaElement object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource)
+ */
+pub opaque type MediaSource.
+
+/**
+ * The **`activeSourceBuffers`** read-only property of the containing a subset of the SourceBuffer objects contained within providing the selected video track, enabled audio tracks, and shown/hidden text tracks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/activeSourceBuffers)
+ */
+pub (value: MediaSource) active_source_buffers(): SourceBufferList.
+
+/**
+ * The **`duration`** property of the MediaSource interface gets and sets the duration of the current media being presented.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/duration)
+ */
+pub (value: MediaSource) duration(): JsNumber.
+
+/**
+ * The **`readyState`** read-only property of the current `MediaSource`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/readyState)
+ */
+pub (value: MediaSource) ready_state(): ReadyState.
+
+/**
+ * The **`sourceBuffers`** read-only property of the containing the list of SourceBuffer objects associated with this `MediaSource`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/sourceBuffers)
+ */
+pub (value: MediaSource) source_buffers(): SourceBufferList.
+
+/**
+ * The **`addSourceBuffer()`** method of the given MIME type and adds it to the `MediaSource`'s `SourceBuffer` is also returned.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/addSourceBuffer)
+ */
+pub (value: MediaSource) add_source_buffer(type_: JsString): SourceBuffer.
+
+/**
+ * The **`clearLiveSeekableRange()`** method of the to MediaSource.setLiveSeekableRange().
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/clearLiveSeekableRange)
+ */
+pub (value: MediaSource) clear_live_seekable_range(): Unit.
+
+/**
+ * The **`endOfStream()`** method of the ```js-nolint endOfStream() endOfStream(endOfStreamError) ``` - `endOfStreamError` MISSING: optional_inline] - : A string representing an error to throw when the end of the stream is reached.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/endOfStream)
+ */
+pub (value: MediaSource) end_of_stream(error: EndOfStreamError): Unit.
+
+/**
+ * The **`removeSourceBuffer()`** method of the MediaSource interface removes the given SourceBuffer from the SourceBufferList associated with this `MediaSource` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/removeSourceBuffer)
+ */
+pub (value: MediaSource) remove_source_buffer(source_buffer: SourceBuffer): Unit.
+
+/**
+ * The **`setLiveSeekableRange()`** method of the media element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/setLiveSeekableRange)
+ */
+pub (value: MediaSource) set_live_seekable_range(start: JsNumber, end: JsNumber): Unit.
+
+pub (value: MediaSource) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: MediaSource) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

@@ -1,11 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasTransform
  */
 module std.js.Dom.CanvasTransform.
 
 import type std.core.{Unit}.
-
 import type std.js.Number.{JsNumber}.
 
 pub opaque type CanvasTransform.
@@ -37,7 +44,14 @@ pub (value: CanvasTransform) scale(x: JsNumber, y: JsNumber): Unit ->
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setTransform)
  */
-pub (value: CanvasTransform) set_transform(a: JsNumber, b: JsNumber, c: JsNumber, d: JsNumber, e: JsNumber, f: JsNumber): Unit ->
+pub (value: CanvasTransform) set_transform(
+    a: JsNumber,
+    b: JsNumber,
+    c: JsNumber,
+    d: JsNumber,
+    e: JsNumber,
+    f: JsNumber
+): Unit ->
     native.
 
 pub (value: CanvasTransform) set_transform(transform: DOMMatrix2DInit): Unit ->

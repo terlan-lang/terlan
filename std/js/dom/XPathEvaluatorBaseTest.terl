@@ -1,22 +1,38 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface XPathEvaluatorBase
  */
 module std.js.Dom.XPathEvaluatorBaseTest.
 
-import type std.js.Dom.XPathEvaluatorBase.{XPathEvaluatorBase}.
-
+import type std.js.Dom.XPathEvaluatorBase.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub create_expression_typechecks(receiver: XPathEvaluatorBase, expression: JsString, resolver: Option[XPathNSResolver]): XPathExpression ->
+pub create_expression_typechecks(
+    receiver: XPathEvaluatorBase,
+    expression: JsString,
+    resolver: Option[XPathNSResolver]
+): XPathExpression ->
     receiver.create_expression(expression, resolver).
 
 pub create_ns_resolver_typechecks(receiver: XPathEvaluatorBase, node_resolver: Node): Node ->
     receiver.create_ns_resolver(node_resolver).
 
-pub evaluate_typechecks(receiver: XPathEvaluatorBase, expression: JsString, context_node: Node, resolver: Option[XPathNSResolver], type_: std.js.Number.JsNumber, result: Option[XPathResult]): XPathResult ->
+pub evaluate_typechecks(
+    receiver: XPathEvaluatorBase,
+    expression: JsString,
+    context_node: Node,
+    resolver: Option[XPathNSResolver],
+    type_: std.js.Number.JsNumber,
+    result: Option[XPathResult]
+): XPathResult ->
     receiver.evaluate(expression, context_node, resolver, type_, result).

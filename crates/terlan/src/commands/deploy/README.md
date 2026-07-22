@@ -22,7 +22,7 @@ infrastructure directly.
 
 The command converts a project manifest into a JSON deploy plan containing
 package identity, source roots, artifact kind, web assets, TLS configuration,
-targets, dependencies, and Erlang package adapter metadata.
+targets, and dependency metadata.
 
 The main flow is:
 

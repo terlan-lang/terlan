@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PageRevealEvent
+ */
+module std.js.Dom.PageRevealEvent.
+
+/**
+ * The **`PageRevealEvent`** event object is made available inside handler functions for the Window.pagereveal_event event.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageRevealEvent)
+ */
+pub opaque type PageRevealEvent.
+
+/**
+ * The **`viewTransition`** read-only property of the PageRevealEvent interface contains a ViewTransition object representing the active view transition for the cross-document navigation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageRevealEvent/viewTransition)
+ */
+pub (value: PageRevealEvent) view_transition(): Option[ViewTransition].

@@ -1,10 +1,10 @@
 module=std.core.Bool
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=326226581541175892
-interface_hash=9761131216133613822
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=17783992965818753769
+interface_hash=10697393956993211887
 interface_doc_hash=16251355119081510898
 deps=2
-std.core.Option=7710729503108467427
-std.core.Ordering=10254878026608542301
+std.core.Option=11539230284316612175
+std.core.Ordering=17520538994048696212

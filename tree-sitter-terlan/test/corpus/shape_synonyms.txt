@@ -1,0 +1,136 @@
+==================
+shape synonym declarations and ordinary pattern uses
+==================
+
+module app.ShapeParity.
+
+pub shape OkResponse(body) =
+  {status, body} where status >= 200 and status < 300.
+
+shape UserAsset(id) = "users/${id: Int}.json".
+
+pub status(OkResponse(body): Dynamic): Int -> body.
+
+pub asset_id(value: String): Int ->
+  case value {
+    UserAsset(id) -> id;
+    _ -> 0
+  }.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (shape_declaration
+    (pub_keyword)
+    (type_identifier)
+    (shape_parameters
+      (identifier))
+    (shape_pattern
+      (pattern
+        (tuple_pattern
+          (pattern
+            (identifier))
+          (pattern
+            (identifier)))))
+    (shape_guard_clause
+      (shape_guard_expression
+        (shape_guard_binary_expression
+          (shape_guard_expression
+            (shape_guard_binary_expression
+              (shape_guard_expression
+                (shape_guard_binary_expression
+                  (shape_guard_expression
+                    (identifier))
+                  (shape_guard_expression
+                    (number))))
+              (shape_guard_expression
+                (identifier))))
+          (shape_guard_expression
+            (number))))))
+  (shape_declaration
+    (type_identifier)
+    (shape_parameters
+      (identifier))
+    (shape_pattern
+      (pattern
+        (string_pattern))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (parameter_pattern
+          (constructor_pattern
+            (type_identifier)
+            (pattern
+              (identifier))))
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (identifier)))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (case_expression
+        (expression
+          (identifier))
+        (case_arm
+          (pattern
+            (constructor_pattern
+              (type_identifier)
+              (pattern
+                (identifier))))
+          (expression
+            (identifier)))
+        (case_arm
+          (pattern)
+          (expression
+            (number)))))))
+
+==================
+binary layout shape synonym
+==================
+
+module app.PacketShapes.
+
+pub shape Packet(port, body) =
+  Binary[big] {
+    port: UInt[16],
+    body: Rest
+  }.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (shape_declaration
+    (pub_keyword)
+    (type_identifier)
+    (shape_parameters
+      (identifier)
+      (identifier))
+    (shape_pattern
+      (pattern
+        (binary_layout_pattern
+          (binary_layout_endian)
+          (binary_layout_field
+            (identifier)
+            (binary_layout_descriptor
+              (binary_layout_descriptor_kind)
+              (binary_layout_width)))
+          (binary_layout_field
+            (identifier)
+            (binary_layout_descriptor)))))))

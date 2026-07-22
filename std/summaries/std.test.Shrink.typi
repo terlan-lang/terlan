@@ -1,0 +1,190 @@
+//! Deterministic property-test shrinkers.
+//!
+//! `std.test.Shrink` owns the first source-level shrinker surface for
+//! property-style tests. Shrinkers return finite candidate lists in stable order
+//! so failing cases can become smaller without hidden randomness.
+
+module std.test.Shrink.
+
+/// Appends shrink candidate lists.
+///
+/// Input: left and right candidate lists.
+/// Output: left candidates followed by right candidates.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub append(left: List[T], right: List[T]): List[T].
+
+/// Wraps one error shrink candidate as `Err`.
+///
+/// Input: one error payload.
+/// Output: `Err(value)` as `Result[T, E]`.
+/// Transformation: gives generic list construction an explicit result type.
+
+pub err_result_value(value: E): Result[T, E].
+
+/// Wraps error shrink candidates as `Err` result values.
+///
+/// Input: error payload shrink candidates.
+/// Output: candidates wrapped with `Err`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub err_result_values(values: List[E]): List[Result[T, E]].
+
+/// Removes shrink candidates equal to the original value.
+///
+/// Input: original value and candidate shrink values.
+/// Output: only candidates that differ from the original value.
+/// Transformation: lets custom shrinkers guard against self-shrink loops before
+/// richer runner diagnostics reject invalid shrink paths directly.
+
+@pure
+pub guard_self(original: T, candidates: List[T]): List[T].
+
+/// Limits shrink candidates to a deterministic maximum count.
+///
+/// Input: maximum candidate count and candidate shrink values.
+/// Output: at most `max` candidates in original source order.
+/// Transformation: bounds shrink work without changing candidate ordering.
+
+@pure
+pub limit(max: Int, candidates: List[T]): List[T].
+
+/// Wraps one success shrink candidate as `Ok`.
+///
+/// Input: one success payload.
+/// Output: `Ok(value)` as `Result[T, E]`.
+/// Transformation: gives generic list construction an explicit result type.
+
+pub ok_result_value(value: T): Result[T, E].
+
+/// Wraps success shrink candidates as `Ok` result values.
+///
+/// Input: success payload shrink candidates.
+/// Output: candidates wrapped with `Ok`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub ok_result_values(values: List[T]): List[Result[T, E]].
+
+/// Returns simpler boolean candidates.
+///
+/// Input: one boolean value.
+/// Output: `[false]` for `true` and `[]` for `false`.
+/// Transformation: treats `false` as the simplest boolean value.
+
+@pure
+pub shrink_bool(value: Bool): List[Bool].
+
+/// Returns smaller float candidates.
+///
+/// Input: one finite float value.
+/// Output: `[0.0]` for non-zero values and `[]` for zero.
+/// Transformation: establishes the first deterministic float shrink rule
+/// without claiming full decimal minimization yet.
+
+@pure
+pub shrink_float(value: Float): List[Float].
+
+/// Returns smaller integer candidates.
+///
+/// Input: one integer value.
+/// Output: `[0]` for non-zero values and `[]` for zero.
+/// Transformation: establishes the first deterministic integer shrink rule
+/// without claiming full minimal counterexample search yet.
+
+@pure
+pub shrink_int(value: Int): List[Int].
+
+/// Wraps left-side shrink candidates as pair candidates.
+///
+/// Input: left-side shrink candidates and the original right value.
+/// Output: pair candidates preserving the right value.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub shrink_left_pairs(values: List[A], right: B): List[{A, B}].
+
+/// Returns simpler list candidates.
+///
+/// Input: one list value.
+/// Output: `[]` for an empty list and `[[]]` for a non-empty list.
+/// Transformation: establishes the first deterministic list shrink rule:
+/// remove all elements before later slices add prefix/tail/payload shrinking.
+
+pub shrink_list(value: List[T]): List[List[T]].
+
+/// Returns simpler map candidates.
+///
+/// Input: one map value and the typed empty map value.
+/// Output: `[]` for an empty map and `[empty]` for a non-empty map.
+/// Transformation: establishes the first deterministic map shrink rule without
+/// coupling the generic shrinker interface to a specific map representation.
+
+@pure
+pub shrink_map(value: T, empty_value: T): List[T].
+
+/// Returns simpler object candidates.
+///
+/// Input: one dynamic object value and the typed empty object value.
+/// Output: `[]` for an empty object and `[empty]` for a non-empty object.
+/// Transformation: mirrors `shrink_map` for JSON-like values while preserving
+/// type safety through caller-supplied object values.
+
+@pure
+pub shrink_object(value: T, empty_value: T): List[T].
+
+/// Returns simpler optional-value candidates.
+///
+/// Input: one optional value.
+/// Output: `[]` for `None` and `[None]` for `Some(value)`.
+/// Transformation: treats missing values as simpler than present values while
+/// leaving payload-specific shrinking to later recursive shrinker work.
+
+@pure
+pub shrink_option(value: Option[T]): List[Option[T]].
+
+/// Returns simpler pair candidates.
+///
+/// Input: one `{left, right}` pair and shrinkers for each side.
+/// Output: pairs with smaller left candidates followed by pairs with smaller
+/// right candidates.
+/// Transformation: shrinks one side at a time while preserving deterministic
+/// source order and leaving tuple-specific payload rules to caller-provided
+/// shrinkers.
+
+pub shrink_pair(value: {A, B}, shrink_left: (A) -> List[A], shrink_right: (B) -> List[B]): List[{A, B}].
+
+/// Returns simpler result-value candidates.
+///
+/// Input: one result value, one success-payload shrinker, and one error-payload
+/// shrinker.
+/// Output: `Ok` values with smaller success payloads, or `Err` values with
+/// smaller error payloads.
+/// Transformation: keeps success and error channels explicit while delegating
+/// payload-specific shrinking to caller-provided deterministic shrinkers.
+
+pub shrink_result(value: Result[T, E], shrink_ok: (T) -> List[T], shrink_err: (E) -> List[E]): List[Result[T, E]].
+
+/// Wraps right-side shrink candidates as pair candidates.
+///
+/// Input: original left value and right-side shrink candidates.
+/// Output: pair candidates preserving the left value.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub shrink_right_pairs(left: A, values: List[B]): List[{A, B}].
+
+/// Returns simpler string candidates.
+///
+/// Input: one string value.
+/// Output: `[""]` for non-empty strings and `[]` for the empty string.
+/// Transformation: establishes the first deterministic string shrink rule
+/// before later slices add prefix and substring shrinking.
+
+@pure
+pub shrink_string(value: String): List[String].

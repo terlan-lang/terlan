@@ -4,12 +4,13 @@ use std::path::Path;
 use serde::Deserialize;
 
 use crate::commands::build::project_manifest::{self, ProjectServerTls, ProjectServerTlsMode};
+use crate::commands::dev_dependencies;
 
-use super::compose_check;
 use super::handler::{
     validate_error_handler, validate_file_response, validate_handler, validate_handler_routes,
-    validate_static_response, validate_websocket, WebPackageErrorHandler, WebPackageFileResponse,
-    WebPackageHandler, WebPackageStaticResponse, WebPackageWebSocket,
+    validate_sse, validate_static_response, validate_websocket, WebPackageErrorHandler,
+    WebPackageFileResponse, WebPackageHandler, WebPackageSse, WebPackageStaticResponse,
+    WebPackageWebSocket,
 };
 use super::package_relative_path;
 
@@ -27,7 +28,9 @@ use super::package_relative_path;
 #[derive(Debug, Deserialize)]
 pub(super) struct WebPackageManifest {
     schema: String,
+    target_profile: String,
     #[serde(default = "default_build_id")]
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(super) build_id: String,
     index: String,
     assets: Vec<WebPackageAsset>,
@@ -35,6 +38,8 @@ pub(super) struct WebPackageManifest {
     pub(super) handlers: Vec<WebPackageHandler>,
     #[serde(default)]
     pub(super) websockets: Vec<WebPackageWebSocket>,
+    #[serde(default)]
+    pub(super) sse: Vec<WebPackageSse>,
     #[serde(default)]
     pub(super) static_responses: Vec<WebPackageStaticResponse>,
     #[serde(default)]
@@ -104,6 +109,12 @@ pub(crate) fn validate_web_package(web_root: &Path) -> Result<(), String> {
             manifest.schema
         ));
     }
+    if manifest.target_profile != "js.browser" {
+        return Err(format!(
+            "error[serve_package]: browser package target profile must be `js.browser`, found `{}`",
+            manifest.target_profile
+        ));
+    }
 
     let index_path = package_relative_path(web_root, &manifest.index).ok_or_else(|| {
         format!(
@@ -140,6 +151,9 @@ pub(crate) fn validate_web_package(web_root: &Path) -> Result<(), String> {
     for websocket in &manifest.websockets {
         validate_websocket(websocket)?;
     }
+    for endpoint in &manifest.sse {
+        validate_sse(endpoint)?;
+    }
     for response in &manifest.static_responses {
         validate_static_response(response)?;
     }
@@ -163,17 +177,46 @@ pub(crate) fn validate_web_package(web_root: &Path) -> Result<(), String> {
     }
     validate_handler_routes(&manifest.handlers)?;
     validate_websocket_routes(&manifest.websockets)?;
+    validate_sse_routes(&manifest.sse)?;
     validate_static_response_routes(&manifest.static_responses)?;
     validate_file_response_routes(&manifest.file_responses)?;
     validate_manifest_route_namespace(
         &manifest.handlers,
         &manifest.websockets,
+        &manifest.sse,
         &manifest.static_responses,
         &manifest.file_responses,
     )?;
     validate_adjacent_project_manifest(web_root)?;
 
     Ok(())
+}
+
+/// Returns whether a browser package contains dynamic handler rows.
+///
+/// Inputs:
+/// - `web_root`: package root that should contain `manifest.json`.
+///
+/// Output:
+/// - `Ok(true)` when route handlers or an error handler require handler
+///   runtime dispatch.
+/// - `Ok(false)` for static, websocket, cached-response, and file-response
+///   packages.
+/// - Stable `error[serve_package]` diagnostic when the manifest cannot be read.
+///
+/// Transformation:
+/// - Reads the same manifest consumed by validation and narrows it to the
+///   handler-runtime decision so `terlc serve` does not infer legacy runtime
+///   dispatch from package contents.
+pub(crate) fn web_package_requires_handler_runtime(web_root: &Path) -> Result<bool, String> {
+    let manifest_path = web_root.join("manifest.json");
+    let manifest = read_web_manifest(web_root).map_err(|message| {
+        format!(
+            "error[serve_package]: cannot read browser package manifest `{}`: {message}",
+            manifest_path.display(),
+        )
+    })?;
+    Ok(!manifest.handlers.is_empty() || manifest.error_handler.is_some())
 }
 
 /// Validates project metadata that belongs to a packaged web root.
@@ -200,7 +243,7 @@ fn validate_adjacent_project_manifest(web_root: &Path) -> Result<(), String> {
         })?;
         if let Some(project_root) = path.parent() {
             validate_manual_tls_file_references(project_root, &manifest)?;
-            compose_check::validate_project_compose(project_root)?;
+            dev_dependencies::validate_project_compose(project_root)?;
         }
     }
     Ok(())
@@ -404,6 +447,7 @@ pub(super) fn read_web_manifest(web_root: &Path) -> Result<WebPackageManifest, S
 /// Transformation:
 /// - Keeps request logging best-effort so a manifest read failure does not hide
 ///   the primary request handling diagnostic.
+#[cfg(test)]
 pub(super) fn manifest_build_id(web_root: &Path) -> String {
     read_web_manifest(web_root)
         .map(|manifest| manifest.build_id)
@@ -460,7 +504,12 @@ pub(super) fn manifest_static_file_for_request(
 ///   static files.
 fn validate_asset_kind(kind: &str) -> Result<(), String> {
     match kind {
-        "javascript-module" | "asset-file" | "asset-css" | "asset-markdown" | "static-asset"
+        "javascript-module"
+        | "javascript-source-map"
+        | "asset-file"
+        | "asset-css"
+        | "asset-markdown"
+        | "static-asset"
         | "css" => Ok(()),
         other => Err(format!(
             "error[serve_package]: unsupported browser package asset kind `{other}`"
@@ -552,10 +601,25 @@ fn validate_websocket_routes(websockets: &[WebPackageWebSocket]) -> Result<(), S
     Ok(())
 }
 
+/// Rejects duplicate or ambiguous SSE route shapes.
+fn validate_sse_routes(endpoints: &[WebPackageSse]) -> Result<(), String> {
+    let mut seen = std::collections::BTreeSet::new();
+    for endpoint in endpoints {
+        let key = crate::commands::web_route::route_ambiguity_key(&endpoint.route)?;
+        if !seen.insert(key) {
+            return Err(format!(
+                "error[serve_package]: duplicate or ambiguous SSE route `{}`",
+                endpoint.route
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Validates the combined dynamic/static route namespace.
 ///
 /// Inputs:
-/// - `handlers`: dynamic BEAM-backed handler routes.
+/// - `handlers`: dynamic VM handler routes.
 /// - `websockets`: WebSocket upgrade routes.
 /// - `responses`: manifest-cached static response routes.
 /// - `file_responses`: manifest file response routes.
@@ -570,6 +634,7 @@ fn validate_websocket_routes(websockets: &[WebPackageWebSocket]) -> Result<(), S
 fn validate_manifest_route_namespace(
     handlers: &[WebPackageHandler],
     websockets: &[WebPackageWebSocket],
+    sse: &[WebPackageSse],
     responses: &[WebPackageStaticResponse],
     file_responses: &[WebPackageFileResponse],
 ) -> Result<(), String> {
@@ -596,6 +661,19 @@ fn validate_manifest_route_namespace(
             ));
         }
         seen.insert(key, format!("websocket route `GET` `{}`", websocket.route));
+    }
+    for endpoint in sse {
+        let key = (
+            "GET",
+            crate::commands::web_route::route_ambiguity_key(&endpoint.route)?,
+        );
+        if let Some(existing) = seen.get(&key) {
+            return Err(format!(
+                "error[serve_package]: SSE route `GET` `{}` conflicts with {existing}",
+                endpoint.route
+            ));
+        }
+        seen.insert(key, format!("SSE route `GET` `{}`", endpoint.route));
     }
     for response in responses {
         let key = (

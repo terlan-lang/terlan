@@ -1,8 +1,8 @@
 module=std.js.Dom.MessageChannel
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=1770323758219166823
-interface_hash=5202340425301171614
-interface_doc_hash=5202340425301171614
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10323454467477920617
+interface_hash=7360522289051466405
+interface_doc_hash=7360522289051466405
 deps=0

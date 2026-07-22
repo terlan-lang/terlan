@@ -207,7 +207,14 @@ pub(super) fn max_type_var(ty: &Type) -> Option<TypeVarId> {
             .filter_map(max_type_var)
             .chain(std::iter::once(Some(*constructor)).flatten())
             .max(),
-        Type::List(inner) | Type::FixedArray { elem: inner, .. } => max_type_var(inner),
+        Type::List(inner) => max_type_var(inner),
+        Type::FixedArray { size, elem } => {
+            let size_var = match size {
+                crate::terlan_typeck::types::FixedArraySize::Known(_) => None,
+                crate::terlan_typeck::types::FixedArraySize::Param(id) => Some(*id),
+            };
+            size_var.into_iter().chain(max_type_var(elem)).max()
+        }
         Type::Tuple(items) | Type::Union(items) => items.iter().filter_map(max_type_var).max(),
         Type::Map(fields) => fields
             .iter()
@@ -275,7 +282,12 @@ where
             ret: Box::new(remap_type(ret, remap)),
         },
         Type::FixedArray { size, elem } => Type::FixedArray {
-            size: *size,
+            size: match size {
+                crate::terlan_typeck::types::FixedArraySize::Known(_) => *size,
+                crate::terlan_typeck::types::FixedArraySize::Param(id) => {
+                    crate::terlan_typeck::types::FixedArraySize::Param(remap(id))
+                }
+            },
             elem: Box::new(remap_type(elem, remap)),
         },
         other => other.clone(),

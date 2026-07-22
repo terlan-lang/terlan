@@ -1,12 +1,14 @@
 /**
- * Release API surface checks for `std.data.Json`.
+ * Executable release checks for `std.data.Json`.
  *
- * These tests keep JSON public type shapes visible to the release manifest
- * without executing Rust-backed native JSON operations through the Terlan test
- * runner.
+ * These tests keep JSON public type shapes visible to the release manifest and
+ * execute representative Rust-backed JSON behavior through the VM test runner.
  */
-
 module std.data.JsonTest.
+
+import std.core.Result.{Err, Ok, is_err, with_default}.
+import std.data.Json.
+import std.test.Test.{assert, assert_equal}.
 
 import type std.core.Result.
 import type std.data.Json.{Json, JsonError}.
@@ -87,14 +89,32 @@ pub accepts_float_result(value: Result[Float, JsonError]): Result[Float, JsonErr
 pub accepts_bool_result(value: Result[Bool, JsonError]): Result[Bool, JsonError] ->
     value.
 
-/**
- * Marks the JSON release surface as declared.
- *
- * Input: no runtime input.
- * Output: `true` for the std release API manifest.
- * Transformation: gives every JSON API row a nearby annotated release-test
- * marker without executing native JSON operations in this surface test.
- */
 @test
-pub json_surface_is_declared(): Bool ->
-    true.
+pub stringify_renders_json_string_values(): Bool ->
+    assert_equal("\"Ada\"", with_default(Json.stringify(Json.string("Ada")), "")).
+
+@test
+pub stringify_renders_json_scalar_values(): Bool ->
+    assert_equal("true", with_default(Json.stringify(Json.bool(true)), "")).
+
+@test
+pub parse_reads_json_string_values(): Bool ->
+    case Json.parse("\"Ada\"") {
+        Ok(value) -> assert_equal("Ada", with_default(value.as_string(), ""));
+        Err(_reason) -> false
+    }.
+
+@test
+pub parse_object_get_reads_member_values(): Bool ->
+    case Json.parse("{\"name\":\"Ada\"}") {
+        Ok(value) ->
+            case value.get("name") {
+                Ok(name) -> assert_equal("Ada", with_default(name.as_string(), ""));
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub parse_reports_invalid_json(): Bool ->
+    assert(is_err(Json.parse("{bad"))).

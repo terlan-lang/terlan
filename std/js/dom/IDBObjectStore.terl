@@ -1,13 +1,19 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IDBObjectStore
  */
 module std.js.Dom.IDBObjectStore.
 
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
 /**
@@ -70,7 +76,11 @@ pub (value: IDBObjectStore) count(query: IDBKeyRange | IDBValidKey): IDBRequest[
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/createIndex)
  */
-pub (value: IDBObjectStore) create_index(name: JsString, key_path: Array[JsString] | JsString, options: IDBIndexParameters): IDBIndex ->
+pub (value: IDBObjectStore) create_index(
+    name: JsString,
+    key_path: Array[JsString] | JsString,
+    options: IDBIndexParameters
+): IDBIndex ->
     native.
 
 /**
@@ -86,7 +96,10 @@ pub (value: IDBObjectStore) delete_index(name: JsString): std.core.Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/getAllKeys)
  */
-pub (value: IDBObjectStore) get_all_keys(query: Option[IDBKeyRange | IDBValidKey], count: JsNumber): IDBRequest[Array[IDBValidKey]] ->
+pub (value: IDBObjectStore) get_all_keys(
+    query: Option[IDBKeyRange | IDBValidKey],
+    count: JsNumber
+): IDBRequest[Array[IDBValidKey]] ->
     native.
 
 /**
@@ -110,7 +123,10 @@ pub (value: IDBObjectStore) index(name: JsString): IDBIndex ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openCursor)
  */
-pub (value: IDBObjectStore) open_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+pub (value: IDBObjectStore) open_cursor(
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursorWithValue]] ->
     native.
 
 /**
@@ -118,5 +134,8 @@ pub (value: IDBObjectStore) open_cursor(query: Option[IDBKeyRange | IDBValidKey]
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openKeyCursor)
  */
-pub (value: IDBObjectStore) open_key_cursor(query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+pub (value: IDBObjectStore) open_key_cursor(
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursor]] ->
     native.

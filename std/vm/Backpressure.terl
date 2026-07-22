@@ -5,10 +5,9 @@
  * supervised native bridges. The implementation is target-owned; Terlan source
  * only depends on the typed trait contract.
  */
-
 module std.vm.Backpressure.
 
-import std.core.Unit.{Unit}.
+import std.core.Unit.
 
 /**
  * Credit represents available work capacity.

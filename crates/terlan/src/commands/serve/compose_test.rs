@@ -456,7 +456,7 @@ fn validate_project_compose_rejects_malformed_yaml() {
 ///
 /// Output:
 /// - Test passes when the rendered command is exactly
-///   `docker compose -f <file> up -d postgres`.
+///   `docker compose -f <file> up -d --no-recreate --wait --wait-timeout 60 postgres`.
 ///
 /// Transformation:
 /// - Checks command construction without requiring Docker or starting a
@@ -466,6 +466,7 @@ fn docker_compose_up_command_targets_postgres_service_only() {
     let path = PathBuf::from("/tmp/demo/docker-compose.yml");
 
     let command = docker_compose_up_command(&path);
+    let logs_command = docker_compose_logs_command(&path);
 
     assert_eq!(command.program, "docker");
     assert_eq!(
@@ -476,9 +477,120 @@ fn docker_compose_up_command_targets_postgres_service_only() {
             "/tmp/demo/docker-compose.yml",
             "up",
             "-d",
+            "--no-recreate",
+            "--wait",
+            "--wait-timeout",
+            "60",
             "postgres"
         ]
     );
+    assert_eq!(logs_command.program, "docker");
+    assert_eq!(
+        logs_command.args,
+        vec![
+            "compose",
+            "-f",
+            "/tmp/demo/docker-compose.yml",
+            "logs",
+            "--no-color",
+            "--tail",
+            "200",
+            "postgres"
+        ]
+    );
+}
+
+#[test]
+fn docker_compose_ownership_commands_are_narrow_and_project_scoped() {
+    let path = PathBuf::from("/tmp/demo/docker-compose.yml");
+
+    let inspect = docker_compose_inspect_command(&path);
+    let remove = docker_compose_remove_command(&path);
+
+    assert_eq!(
+        inspect.args,
+        vec![
+            "compose",
+            "-f",
+            "/tmp/demo/docker-compose.yml",
+            "ps",
+            "--all",
+            "--quiet",
+            "postgres"
+        ]
+    );
+    assert_eq!(
+        remove.args,
+        vec![
+            "compose",
+            "-f",
+            "/tmp/demo/docker-compose.yml",
+            "rm",
+            "--stop",
+            "--force",
+            "postgres"
+        ]
+    );
+}
+
+#[test]
+fn compose_container_identity_rejects_empty_and_accepts_nonempty_output() {
+    assert!(!compose_container_exists(b"\n  \r\n"));
+    assert!(compose_container_exists(b"\nabc123\n"));
+}
+
+#[test]
+fn external_dependency_session_never_produces_shutdown_command() {
+    let session = DevDependencySession::external();
+
+    assert_eq!(session.ownership, DependencyOwnership::External);
+    assert_eq!(session.shutdown_command(), None);
+}
+
+#[test]
+fn owned_dependency_session_removes_only_its_postgres_container() {
+    let path = PathBuf::from("/tmp/demo/docker-compose.yml");
+    let session = DevDependencySession::owned(path);
+
+    let command = session
+        .shutdown_command()
+        .expect("owned dependency must have shutdown command");
+
+    assert_eq!(
+        command,
+        docker_compose_remove_command(Path::new("/tmp/demo/docker-compose.yml"))
+    );
+    std::mem::forget(session);
+}
+
+#[test]
+fn external_dependency_finalization_preserves_success() {
+    let outcome = finish_dependency_session(
+        Some(DevDependencySession::external()),
+        std::process::ExitCode::SUCCESS,
+    );
+
+    assert_eq!(outcome, std::process::ExitCode::SUCCESS);
+}
+
+#[test]
+fn owned_dependency_removal_failure_is_typed_and_redacted() {
+    let command = docker_compose_remove_command(Path::new("/tmp/demo/docker-compose.yml"));
+
+    let error = run_compose_remove_with(&command, |_command| {
+        Ok(ComposeCommandOutput {
+            success: false,
+            status: "exit status: 17".to_string(),
+            stdout: b"POSTGRES_PASSWORD=hunter2".to_vec(),
+            stderr: b"/private/project/compose.yml".to_vec(),
+        })
+    })
+    .expect_err("owned dependency removal must fail closed");
+
+    assert!(error.starts_with("error[dev_dependency.stop_failed]:"));
+    assert!(error.contains("exit status: 17"));
+    assert!(!error.contains("hunter2"));
+    assert!(!error.contains("/private/project"));
 }
 
 /// Verifies dependency startup is optional for standalone web packages.
@@ -493,11 +605,119 @@ fn docker_compose_up_command_targets_postgres_service_only() {
 /// - Locks the rule that Docker-aware serving only applies to projects that
 ///   declare a Compose dependency contract.
 #[test]
-fn start_project_compose_dependencies_ignores_missing_compose() {
+fn start_project_dependencies_ignores_missing_compose() {
     let dir = temp_dir("no_compose_startup");
     fs::create_dir_all(&dir).expect("create temp project");
 
-    start_project_compose_dependencies(&dir).expect("missing compose is a no-op");
+    start_project_dependencies(&dir).expect("missing compose is a no-op");
 
     fs::remove_dir_all(dir).expect("cleanup");
+}
+
+#[test]
+fn project_root_for_path_finds_nearest_manifest_from_migrations() {
+    let root = temp_dir("project_root_from_migrations");
+    let migrations = root.join("db/migrations");
+    fs::create_dir_all(&migrations).expect("create migrations");
+    fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n",
+    )
+    .expect("write manifest");
+
+    assert_eq!(
+        project_root_for_path(&migrations).expect("project discovery"),
+        Some(root.clone())
+    );
+
+    fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[test]
+fn run_compose_up_reports_missing_docker_with_typed_diagnostic() {
+    let command = ComposeCommand {
+        program: "/definitely/missing/terlan-docker".to_string(),
+        args: Vec::new(),
+    };
+    let logs_command = ComposeCommand {
+        program: "docker".to_string(),
+        args: Vec::new(),
+    };
+
+    let error = run_compose_up(&command, &logs_command).expect_err("missing Docker must fail");
+
+    assert!(error.starts_with("error[dev_dependency.docker_missing]:"));
+    assert!(!error.contains("/definitely/missing/terlan-docker"));
+}
+
+#[test]
+fn run_compose_up_collects_bounded_redacted_service_logs() {
+    let compose_path = PathBuf::from("/tmp/demo/docker-compose.yml");
+    let up_command = docker_compose_up_command(&compose_path);
+    let logs_command = docker_compose_logs_command(&compose_path);
+    let long_line = "x".repeat(MAX_COMPOSE_LOG_EXCERPT_CHARS + 100);
+    let mut calls = 0;
+
+    let error = run_compose_up_with(&up_command, &logs_command, |command| {
+        calls += 1;
+        if command.args.contains(&"up".to_string()) {
+            Ok(ComposeCommandOutput {
+                success: false,
+                status: "exit status: 1".to_string(),
+                stdout: Vec::new(),
+                stderr: b"TOKEN=up-secret".to_vec(),
+            })
+        } else {
+            Ok(ComposeCommandOutput {
+                success: true,
+                status: "exit status: 0".to_string(),
+                stdout: format!(
+                    "database is starting\nPOSTGRES_PASSWORD=hunter2\nunsafe\x1bcontrol\n{long_line}"
+                )
+                .into_bytes(),
+                stderr: Vec::new(),
+            })
+        }
+    })
+    .expect_err("failed readiness must collect logs");
+
+    assert_eq!(calls, 2);
+    assert!(error.starts_with("error[dev_dependency.readiness_failed]:"));
+    assert!(error.contains("database is starting"));
+    assert!(error.contains("[redacted sensitive log line]"));
+    assert!(error.contains("[redacted control-bearing log line]"));
+    assert!(error.contains("[truncated]"));
+    assert!(!error.contains("up-secret"));
+    assert!(!error.contains("hunter2"));
+}
+
+#[test]
+fn run_compose_up_preserves_primary_failure_when_logs_are_unavailable() {
+    let compose_path = PathBuf::from("/tmp/demo/docker-compose.yml");
+    let up_command = docker_compose_up_command(&compose_path);
+    let logs_command = docker_compose_logs_command(&compose_path);
+    let mut calls = 0;
+
+    let error = run_compose_up_with(&up_command, &logs_command, |_command| {
+        calls += 1;
+        if calls == 1 {
+            Ok(ComposeCommandOutput {
+                success: false,
+                status: "exit status: 1".to_string(),
+                stdout: b"healthcheck failed".to_vec(),
+                stderr: Vec::new(),
+            })
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "logs denied",
+            ))
+        }
+    })
+    .expect_err("readiness failure must remain primary");
+
+    assert_eq!(calls, 2);
+    assert!(error.contains("healthcheck failed"));
+    assert!(error.contains("(service logs unavailable)"));
+    assert!(!error.contains("logs denied"));
 }

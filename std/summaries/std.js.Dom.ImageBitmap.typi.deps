@@ -1,8 +1,8 @@
 module=std.js.Dom.ImageBitmap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=4816735061912550991
-interface_hash=15508425369068622383
-interface_doc_hash=15508425369068622383
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4665467134684978487
+interface_hash=5599899339896784822
+interface_doc_hash=5599899339896784822
 deps=0

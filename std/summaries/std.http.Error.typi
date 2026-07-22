@@ -27,6 +27,7 @@ pub struct HttpError {
 /// Transformation: reads the included `code` field without exposing backend
 /// server error values.
 
+@pure
 pub (error: HttpError) code(): Atom.
 
 /// Returns the portable HTTP error message.
@@ -35,6 +36,7 @@ pub (error: HttpError) code(): Atom.
 /// Output: human-readable UTF-8 message.
 /// Transformation: reads the included `message` field.
 
+@pure
 pub (error: HttpError) message(): String.
 
 /// Creates a portable HTTP error.
@@ -53,4 +55,5 @@ pub new(code: Atom, message: String, status: Int): HttpError.
 /// Output: numeric HTTP status code.
 /// Transformation: reads the HTTP-specific `status` field.
 
+@pure
 pub (error: HttpError) status(): Int.

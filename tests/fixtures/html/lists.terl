@@ -1,7 +1,7 @@
 module html_lists.
 
 pub type User =
-    {name, Text}.
+      {name, Text}.
 
 pub user_name(User: User): Text ->
     case User {
@@ -11,8 +11,10 @@ pub user_name(User: User): Text ->
 pub body(Users: List[User]): Html[none] ->
     html {
         <ul>
-            {for User <- Users {
-                <li>{user_name(User)}</li>
-            }}
+            {[html {
+    <li>
+        {user_name(User)}
+    </li>
+} || User <- Users]}
         </ul>
     }.

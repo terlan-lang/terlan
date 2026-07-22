@@ -1,0 +1,34 @@
+module tests.pattern.StringPatternLongTailTest.
+
+import std.test.Test.{assert_equal}.
+
+pub route_target(value: String): String.
+route_target("GET /users/${id: Int}") where id > 0 ->
+    "user";
+route_target(_value) ->
+    "missing".
+
+@test
+pub route_like_case_capture_matches_request_path(): Bool ->
+    case "GET /users/42" {
+        "GET /users/${id: Int}" where id > 0 -> assert_equal(43, id + 1);
+        _ -> false
+    }.
+
+@test
+pub path_like_let_capture_binds_file_parts(): Bool ->
+    let "assets/${bucket}/${file}.txt" = "assets/docs/readme.txt";
+    assert_equal("docs/readme", bucket + "/" + file).
+
+@test
+pub function_head_capture_clause_matches_route_shape(): Bool ->
+    assert_equal("user", route_target("GET /users/7")).
+
+@test
+pub function_head_capture_clause_falls_through(): Bool ->
+    assert_equal("missing", route_target("GET /users/not-int")).
+
+@test
+pub lambda_capture_parameter_matches_path_shape(): Bool ->
+    let render = (("docs/${section}/${slug}.html") -> section + "/" + slug);
+    assert_equal("api/http", render("docs/api/http.html")).

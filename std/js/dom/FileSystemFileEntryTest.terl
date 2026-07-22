@@ -1,14 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileSystemFileEntry
  */
 module std.js.Dom.FileSystemFileEntryTest.
 
-import type std.js.Dom.FileSystemFileEntry.{FileSystemFileEntry}.
+import type std.js.Dom.FileSystemFileEntry.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub file__typechecks(receiver: FileSystemFileEntry, success_callback: FileCallback, error_callback: ErrorCallback): std.core.Unit ->
+pub file__typechecks(
+    receiver: FileSystemFileEntry,
+    success_callback: FileCallback,
+    error_callback: ErrorCallback
+): std.core.Unit ->
     receiver.file_(success_callback, error_callback).

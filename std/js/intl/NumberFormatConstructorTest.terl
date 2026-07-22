@@ -1,0 +1,29 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface NumberFormatConstructor
+ */
+module std.js.Intl.NumberFormatConstructorTest.
+
+import type std.js.Intl.NumberFormatConstructor.
+import type std.js.String.{JsString}.
+import type std.js.{Array}.
+
+pub generated_binding_surface_contract(): Bool -> true.
+
+pub supported_locales_of_typechecks(
+    receiver: NumberFormatConstructor,
+    locales: Array[JsString] | JsString,
+    options: NumberFormatOptions
+): Array[JsString] ->
+    receiver.supported_locales_of(locales, options).
+
+pub prototype_typechecks(receiver: NumberFormatConstructor): NumberFormat ->
+    receiver.prototype().

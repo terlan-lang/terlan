@@ -6,7 +6,7 @@ This directory owns Postgres helper modules for the Rust-native adapter.
 
 - Keep Postgres config and row decoding logic separate from pool execution.
 - Use maintained Rust Postgres crates rather than hand-rolled wire protocol.
-- Preserve typed error conversion for SafeNative dispatch.
+- Preserve typed error conversion for NativeBoundary dispatch.
 
 ## Public Surface
 
@@ -17,7 +17,7 @@ This directory owns Postgres helper modules for the Rust-native adapter.
 
 - `runtime::native::postgres`: owns pool, query, transaction, and execution
   functions.
-- `runtime::safenative::dispatch`: exposes Postgres operations to generated
+- `runtime::native_boundary::dispatch`: exposes Postgres operations to generated
   Terlan runtime calls.
 
 ## Testing Notes

@@ -1,0 +1,85 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioDecoder
+ */
+module std.js.Dom.AudioDecoder.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`AudioDecoder`** interface of the WebCodecs API decodes chunks of audio.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder)
+ */
+pub opaque type AudioDecoder.
+
+/**
+ * The **`decodeQueueSize`** read-only property of the AudioDecoder interface returns the number of pending decode requests in the queue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder/decodeQueueSize)
+ */
+pub (value: AudioDecoder) decode_queue_size(): std.js.Number.JsNumber.
+
+/**
+ * The **`state`** read-only property of the AudioDecoder interface returns the current state of the underlying codec.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder/state)
+ */
+pub (value: AudioDecoder) state(): CodecState.
+
+/**
+ * The **`close()`** method of the AudioDecoder interface ends all pending work and releases system resources.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder/close)
+ */
+pub (value: AudioDecoder) close(): Unit.
+
+/**
+ * The **`configure()`** method of the AudioDecoder interface enqueues a control message to configure the audio decoder for decoding chunks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder/configure)
+ */
+pub (value: AudioDecoder) configure(config: AudioDecoderConfig): Unit.
+
+/**
+ * The **`decode()`** method of the AudioDecoder interface enqueues a control message to decode a given chunk of audio.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder/decode)
+ */
+pub (value: AudioDecoder) decode(chunk: EncodedAudioChunk): Unit.
+
+/**
+ * The **`flush()`** method of the AudioDecoder interface returns a Promise that resolves once all pending messages in the queue have been completed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder/flush)
+ */
+pub (value: AudioDecoder) flush(): std.js.Promise[Unit].
+
+/**
+ * The **`reset()`** method of the AudioDecoder interface resets all states including configuration, control messages in the control message queue, and all pending callbacks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioDecoder/reset)
+ */
+pub (value: AudioDecoder) reset(): Unit.
+
+pub (value: AudioDecoder) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: AudioDecoder) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

@@ -11,6 +11,12 @@ pub(crate) const DEFAULT_SERVE_PORT: u16 = 3000;
 /// Default live-reload polling interval in milliseconds.
 pub(crate) const DEFAULT_POLL_MS: u64 = 500;
 
+/// Dynamic handler runtime selected for `terlc serve`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ServeHandlerRuntime {
+    Static,
+}
+
 /// Parsed `terlc serve` arguments.
 ///
 /// Inputs:
@@ -28,6 +34,7 @@ pub(crate) struct ServeArgs {
     pub(crate) host: String,
     pub(crate) port: u16,
     pub(crate) poll_ms: u64,
+    pub(crate) handler_runtime: ServeHandlerRuntime,
     pub(crate) check_only: bool,
 }
 
@@ -42,13 +49,14 @@ pub(crate) struct ServeArgs {
 ///
 /// Transformation:
 /// - Accepts at most one package directory, parses `--host`, `--port`,
-///   `--poll-ms`, and `--check`, and preserves unknown option failures as
-///   stable CLI errors.
+///   `--poll-ms`, `--handler-runtime`, and `--check`, and preserves unknown
+///   option failures as stable CLI errors.
 pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<ServeArgs, String> {
     let mut web_root = None;
     let mut host = DEFAULT_SERVE_HOST.to_string();
     let mut port = DEFAULT_SERVE_PORT;
     let mut poll_ms = DEFAULT_POLL_MS;
+    let mut handler_runtime = ServeHandlerRuntime::Static;
     let mut check_only = false;
     let mut index = 0;
 
@@ -82,7 +90,27 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
                     return Err("terlc serve --poll-ms must be greater than 0".to_string());
                 }
             }
-            "--check" => {
+            "--handler-runtime" => {
+                index += 1;
+                let Some(value) = args.get(index) else {
+                    return Err("terlc serve --handler-runtime requires a value".to_string());
+                };
+                handler_runtime = match value.as_str() {
+                    "static" => ServeHandlerRuntime::Static,
+                    "beam" => {
+                        return Err(
+                            "handler runtime `beam` was removed from the public CLI; use `static`"
+                                .to_string(),
+                        );
+                    }
+                    _ => {
+                        return Err(format!(
+                            "terlc serve --handler-runtime expects static, got `{value}`"
+                        ));
+                    }
+                };
+            }
+            "--check" | "--check-config" => {
                 check_only = true;
             }
             option if option.starts_with('-') => {
@@ -103,6 +131,7 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
         host,
         port,
         poll_ms,
+        handler_runtime,
         check_only,
     })
 }

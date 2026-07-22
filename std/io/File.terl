@@ -5,42 +5,37 @@
  * runtime calls needed to implement these operations and must map backend
  * errors into the neutral `FileError` values defined here.
  */
-
 module std.io.File.
 
 import std.core.Result.{Err}.
-import type std.core.Error.
-import type std.core.Result.
-import std.core.Unit.{Unit}.
+import std.core.Unit.
+
+import type std.core.{Error, Result}.
 
 /**
  * The file path did not resolve to an existing file.
  */
-pub type NotFound = Atom["not_found"].
+pub type NotFound.
 
 /**
  * The selected target denied access to the file.
  */
-pub type PermissionDenied = Atom["permission_denied"].
+pub type PermissionDenied.
 
 /**
  * The supplied path cannot be represented by the selected target.
  */
-pub type InvalidPath = Atom["invalid_path"].
+pub type InvalidPath.
 
 /**
  * The selected target reported an unclassified filesystem failure.
  */
-pub type Unknown = Atom["unknown"].
+pub type Unknown.
 
 /**
  * Portable file error codes returned by `std.io.File`.
  */
-pub type FileErrorCode =
-      NotFound
-    | PermissionDenied
-    | InvalidPath
-    | Unknown.
+pub type FileErrorCode = NotFound | PermissionDenied | InvalidPath | Unknown.
 
 /**
  * Portable file error returned by `std.io.File`.
@@ -65,11 +60,7 @@ pub struct FileError includes Error {
  * `std.core.Error.Error` plus file-specific path context.
  */
 pub new(code: Atom, message: String, path: String): FileError ->
-    FileError(
-        code = code,
-        message = message,
-        path = path
-    ).
+    FileError(code = code, message = message, path = path).
 
 /**
  * Returns the portable file error code.
@@ -111,8 +102,7 @@ pub path(error: FileError): String ->
  * capability and keeps backend path checks behind the portable API.
  */
 @compiler.intrinsic
-pub exists(path: String): Bool ->
-    false.
+pub exists(path: String): Bool -> false.
 
 /**
  * Reads a UTF-8 text file.

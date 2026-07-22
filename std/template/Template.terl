@@ -6,7 +6,6 @@
  * generated render functions; this module gives source code stable names for
  * trusted HTML fragments and explicit fragment composition.
  */
-
 module std.template.Template.
 
 import type std.collections.List.

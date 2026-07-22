@@ -1,0 +1,73 @@
+/**
+ * Property-based List collection invariants.
+ *
+ * `std.collections.ListPropertyTest` validates generated value sequences
+ * against the public List API so ordered collection behavior is covered by the
+ * shared property-testing machinery.
+ */
+module std.collections.ListPropertyTest.
+
+import std.core.Option.{None, Option, Some}.
+import std.test.Gen.{elements, for_all}.
+
+/**
+ * Verifies generated values can be pushed and read back from the front.
+ *
+ * Input: generated integer values.
+ * Output: `true` when each generated value is present as the first value and
+ * the list has one visible entry after insertion.
+ * Transformation: checks the push/first/length invariant over generated input.
+ */
+@test
+pub generated_value_push_updates_first_and_length(): Bool ->
+    for_all(elements([1, 2, 3]), (value) -> push_updates_first_and_length(value)).
+
+/**
+ * Verifies clearing generated list state restores the empty invariant.
+ *
+ * Input: generated integer values.
+ * Output: `true` when the list is empty after clearing a pushed generated
+ * value.
+ * Transformation: checks the push/clear/is_empty/length invariant over
+ * generated input.
+ */
+@test
+pub generated_value_clear_restores_empty_state(): Bool ->
+    for_all(elements([1, 2, 3]), (value) -> clear_restores_empty_state(value)).
+
+/**
+ * Verifies concatenation and subtraction retain persistent source values.
+ *
+ * Input: generated integer values.
+ * Output: `true` when concatenation preserves order, subtraction removes one
+ * duplicate, and the original list remains unchanged.
+ * Transformation: checks immutable list-operation invariants over generated
+ * input.
+ */
+@test
+pub generated_value_persistent_operations_preserve_sources(): Bool ->
+    for_all(elements([1, 2, 3]), (value) -> persistent_operations_preserve_sources(value)).
+
+pub push_updates_first_and_length(value: Int): Bool ->
+    let state = [];
+    state.push(value);
+    case state.first() {
+    Some(first) -> first == value and state.length() == 1;
+    None -> false
+}.
+
+pub clear_restores_empty_state(value: Int): Bool ->
+    let state = [];
+    state.push(value);
+    state.clear();
+    state.is_empty() and state.length() == 0.
+
+pub persistent_operations_preserve_sources(value: Int): Bool ->
+    let source = [value, value];
+    let combined = source.concat([value + 1]);
+    let reduced = source.subtract([value]);
+    case {source.first(), combined.first(), reduced.first()} {
+        {Some(source_first), Some(combined_first), Some(reduced_first)} ->
+            source.length() == 2 and combined.length() == 3 and reduced.length() == 1 and source_first == value and combined_first == value and reduced_first == value;
+        _ -> false
+    }.

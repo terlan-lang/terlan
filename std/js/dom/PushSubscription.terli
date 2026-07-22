@@ -1,0 +1,63 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PushSubscription
+ */
+module std.js.Dom.PushSubscription.
+
+/**
+ * The `PushSubscription` interface of the Push API provides a subscription's URL endpoint along with the public key and secrets that should be used for encrypting push messages to this subscription.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription)
+ */
+pub opaque type PushSubscription.
+
+/**
+ * The **`endpoint`** read-only property of the the endpoint associated with the push subscription.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/endpoint)
+ */
+pub (value: PushSubscription) endpoint(): std.js.String.JsString.
+
+/**
+ * The **`expirationTime`** read-only property of the of the subscription expiration time associated with the push subscription, if there is one, or `null` otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/expirationTime)
+ */
+pub (value: PushSubscription) expiration_time(): Option[EpochTimeStamp].
+
+/**
+ * The **`options`** read-only property of the PushSubscription interface is an object containing the options used to create the subscription.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/options)
+ */
+pub (value: PushSubscription) options(): PushSubscriptionOptions.
+
+/**
+ * The `getKey()` method of the PushSubscription interface returns an ArrayBuffer representing a client public key, which can then be sent to a server and used in encrypting push message data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/getKey)
+ */
+pub (value: PushSubscription) get_key(name: PushEncryptionKeyName): Option[ArrayBuffer].
+
+/**
+ * The `toJSON()` method of the PushSubscription interface is a standard serializer: it returns a JSON representation of the subscription properties, providing a useful shortcut.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/toJSON)
+ */
+pub (value: PushSubscription) to_json(): PushSubscriptionJSON.
+
+/**
+ * The `unsubscribe()` method of the PushSubscription interface returns a Promise that resolves to a boolean value when the current subscription is successfully unsubscribed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/unsubscribe)
+ */
+pub (value: PushSubscription) unsubscribe(): std.js.Promise[std.core.Bool].

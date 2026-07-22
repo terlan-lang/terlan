@@ -1,0 +1,111 @@
+/**
+ * Core keyed enumerable trait.
+ *
+ * `std.collections.KeyedEnumerable` is the portable contract for key-value
+ * collection transformations that preserve the key channel.
+ */
+module std.collections.KeyedEnumerable.
+
+import std.collections.{Iterator, List, Map}.
+import std.core.Option.{None, Some}.
+import std.core.Unit.
+
+import type std.collections.{List, Map}.
+
+/**
+ * KeyedEnumerable connects a binary key-value collection constructor `C[_, _]`
+ * to collection-preserving transformations.
+ *
+ * Input: key-value collection constructor `C[_, _]`.
+ * Output: a trait requiring effectful consumption and value transformation
+ * methods that preserve the key channel.
+ * Transformation: maps `C[K, V]` to `C[K, U]` and filters back to `C[K, V]`,
+ * avoiding lossy `List` fallback behavior for keyed collections.
+ */
+pub trait KeyedEnumerable[C[_, _]] {
+    each[K, V](collection: C[K, V], cb: ({K, V}) -> Unit): Unit.
+    map[K, V, U](collection: C[K, V], cb: (V) -> U): C[K, U].
+    filter[K, V](collection: C[K, V], predicate: ({K, V}) -> Bool): C[K, V].
+    fold[K, V, U](collection: C[K, V], initial: U, reducer: (U, {K, V}) -> U): U.
+}.
+
+/**
+ * Connects the portable Map type to keyed enumerable consumption.
+ *
+ * Input: one `Map[K, V]` and callbacks over values or `{K, V}` pairs.
+ * Output: `Unit` for `each`, a transformed `Map[K, U]` for `map`, a filtered
+ * `Map[K, V]` for `filter`, or a folded accumulator for `fold`.
+ * Transformation: delegates traversal to `Map.iterator(collection)` so the map
+ * representation and traversal order remain backend-owned.
+ */
+pub impl KeyedEnumerable[std.collections.Map.Map] for std.collections.Map.Map {
+    each(collection: Map[K, V], cb: ({K, V}) -> Unit): Unit ->
+        collection
+        |> Map.iterator()
+        |> Iterator.each(cb).
+    map[U](collection: Map[K, V], cb: (V) -> U): Map[K, U] ->
+        collection
+        |> Map.iterator()
+        |> map_keyed_iterator(cb)
+        |> Map.from_entries().
+    filter(collection: Map[K, V], predicate: ({K, V}) -> Bool): Map[K, V] ->
+        collection
+        |> Map.iterator()
+        |> filter_keyed_iterator(predicate)
+        |> Map.from_entries().
+    fold[U](collection: Map[K, V], initial: U, reducer: (U, {K, V}) -> U): U ->
+        collection
+        |> Map.iterator()
+        |> fold_iterator(initial, reducer).
+}.
+
+/**
+ * Maps map iterator entries while preserving their keys.
+ *
+ * Input: one `Iterator[{K, V}]` and a callback from `V` to `U`.
+ * Output: a `List[{K, U}]` containing transformed values with original keys.
+ * Transformation: recursively consumes explicit iterator state and rebuilds
+ * entries for `Map.from_entries`.
+ */
+map_keyed_iterator[K, V, U](iterator: Iterator[{K, V}], cb: (V) -> U): List[{K, U}] ->
+    case Iterator.next(iterator) {
+        Some({value: {key, value}, next: next}) ->
+            [{key, cb(value)} | map_keyed_iterator(next, cb)];
+        None -> []
+    }.
+
+/**
+ * Filters map iterator entries while preserving their key-value shape.
+ *
+ * Input: one `Iterator[{K, V}]` and a predicate over map entries.
+ * Output: a `List[{K, V}]` containing entries whose predicate result is `true`.
+ * Transformation: recursively consumes explicit iterator state and rebuilds
+ * entries for `Map.from_entries`.
+ */
+filter_keyed_iterator[K, V](
+    iterator: Iterator[{K, V}],
+    predicate: ({K, V}) -> Bool
+): List[{K, V}] ->
+    case Iterator.next(iterator) {
+        Some({value: value, next: next}) ->
+            case predicate(value) {
+                true -> [value | filter_keyed_iterator(next, predicate)];
+                false -> filter_keyed_iterator(next, predicate)
+            };
+        None -> []
+    }.
+
+/**
+ * Folds iterator values with an explicit accumulator.
+ *
+ * Input: one `Iterator[T]`, an initial accumulator `U`, and a reducer from
+ * `(U, T)` to `U`.
+ * Output: the final accumulator.
+ * Transformation: recursively consumes explicit iterator state and applies the
+ * reducer in source order using Terlan's accumulator-first callback convention.
+ */
+fold_iterator[T, U](iterator: Iterator[T], acc: U, reducer: (U, T) -> U): U ->
+    case Iterator.next(iterator) {
+        Some({value: value, next: next}) -> fold_iterator(next, reducer(acc, value), reducer);
+        None -> acc
+    }.

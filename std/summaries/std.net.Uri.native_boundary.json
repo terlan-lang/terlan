@@ -1,0 +1,43 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "parse",
+      "operation": "std.net.uri.parse"
+    },
+    {
+      "arity": 1,
+      "name": "to_string",
+      "operation": "std.net.uri.to_string"
+    },
+    {
+      "arity": 1,
+      "name": "scheme",
+      "operation": "std.net.uri.scheme"
+    },
+    {
+      "arity": 1,
+      "name": "host",
+      "operation": "std.net.uri.host"
+    },
+    {
+      "arity": 1,
+      "name": "path",
+      "operation": "std.net.uri.path"
+    },
+    {
+      "arity": 1,
+      "name": "query",
+      "operation": "std.net.uri.query"
+    },
+    {
+      "arity": 1,
+      "name": "fragment",
+      "operation": "std.net.uri.fragment"
+    }
+  ],
+  "module": "std_net_uri_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.net.Uri"
+}

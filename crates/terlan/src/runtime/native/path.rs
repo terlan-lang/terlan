@@ -1,19 +1,19 @@
 //! Lexical path adapter operations for `std.io.Path`.
 //!
-//! This module is a concrete Rust/SafeNative runtime slice for the portable
+//! This module is a concrete Rust/NativeBoundary runtime slice for the portable
 //! `std.io.Path` contract. It uses Rust `std::path` for target path semantics
 //! and intentionally performs no filesystem IO.
 
 use std::path::{Path as StdPath, PathBuf};
 
-/// Lexical path value owned by the SafeNative adapter.
+/// Lexical path value owned by the NativeBoundary adapter.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Path {
     value: PathBuf,
 }
 
 impl Path {
-    /// Builds a SafeNative path value from a Rust path buffer.
+    /// Builds a NativeBoundary path value from a Rust path buffer.
     ///
     /// Inputs:
     /// - `value`: backend lexical path value.
@@ -31,7 +31,7 @@ impl Path {
     /// Returns the wrapped Rust path by shared reference.
     ///
     /// Inputs:
-    /// - `self`: SafeNative path wrapper.
+    /// - `self`: NativeBoundary path wrapper.
     ///
     /// Output:
     /// - Shared reference to the backend path value.
@@ -43,7 +43,7 @@ impl Path {
     }
 }
 
-/// Portable path error returned by SafeNative path operations.
+/// Portable path error returned by NativeBoundary path operations.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PathError {
     code: &'static str,
@@ -121,7 +121,7 @@ impl PathError {
 /// - `text`: path source text.
 ///
 /// Output:
-/// - `Ok(Path)` when the path is accepted by the SafeNative lexical policy.
+/// - `Ok(Path)` when the path is accepted by the NativeBoundary lexical policy.
 /// - `Err(PathError)` when the text contains a rejected null byte.
 ///
 /// Transformation:
@@ -135,7 +135,7 @@ pub fn from_string(text: &str) -> Result<Path, PathError> {
 /// Renders a lexical path value as UTF-8 text.
 ///
 /// Inputs:
-/// - `path`: SafeNative path value.
+/// - `path`: NativeBoundary path value.
 ///
 /// Output:
 /// - Path text rendered with Rust target path semantics.
@@ -166,7 +166,7 @@ pub fn join(path: &Path, child: &str) -> Result<Path, PathError> {
 /// Returns the final lexical path component.
 ///
 /// Inputs:
-/// - `path`: SafeNative path value.
+/// - `path`: NativeBoundary path value.
 ///
 /// Output:
 /// - `Some(String)` when the path has a UTF-8 final component.
@@ -183,7 +183,7 @@ pub fn file_name(path: &Path) -> Option<String> {
 /// Returns the final lexical path extension.
 ///
 /// Inputs:
-/// - `path`: SafeNative path value.
+/// - `path`: NativeBoundary path value.
 ///
 /// Output:
 /// - `Some(String)` when the final component has a UTF-8 extension.
@@ -200,7 +200,7 @@ pub fn extension(path: &Path) -> Option<String> {
 /// Returns the lexical parent path.
 ///
 /// Inputs:
-/// - `path`: SafeNative path value.
+/// - `path`: NativeBoundary path value.
 ///
 /// Output:
 /// - `Some(Path)` when the path has a parent component.
@@ -217,7 +217,7 @@ pub fn parent(path: &Path) -> Option<Path> {
 /// Returns whether a lexical path is absolute.
 ///
 /// Inputs:
-/// - `path`: SafeNative path value.
+/// - `path`: NativeBoundary path value.
 ///
 /// Output:
 /// - `true` when the path is absolute for the Rust target, otherwise `false`.

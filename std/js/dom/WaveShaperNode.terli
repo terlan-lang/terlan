@@ -1,0 +1,34 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WaveShaperNode
+ */
+module std.js.Dom.WaveShaperNode.
+
+/**
+ * The **`WaveShaperNode`** interface represents a non-linear distorter.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode)
+ */
+pub opaque type WaveShaperNode.
+
+/**
+ * The `curve` property of the WaveShaperNode interface is a Float32Array of numbers describing the distortion to apply.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode/curve)
+ */
+pub (value: WaveShaperNode) curve(): Option[Float32Array[ArrayBuffer]].
+
+/**
+ * The `oversample` property of the WaveShaperNode interface is an enumerated value indicating if oversampling must be used.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode/oversample)
+ */
+pub (value: WaveShaperNode) oversample(): OverSampleType.

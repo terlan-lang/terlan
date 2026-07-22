@@ -1,0 +1,48 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "encode",
+      "operation": "std.encoding.base64.encode"
+    },
+    {
+      "arity": 1,
+      "name": "decode",
+      "operation": "std.encoding.base64.decode"
+    },
+    {
+      "arity": 1,
+      "name": "encode_url",
+      "operation": "std.encoding.base64.encode_url"
+    },
+    {
+      "arity": 1,
+      "name": "decode_url",
+      "operation": "std.encoding.base64.decode_url"
+    },
+    {
+      "arity": 1,
+      "name": "encode_bytes",
+      "operation": "std.encoding.base64.encode_bytes"
+    },
+    {
+      "arity": 1,
+      "name": "decode_bytes",
+      "operation": "std.encoding.base64.decode_bytes"
+    },
+    {
+      "arity": 1,
+      "name": "encode_url_bytes",
+      "operation": "std.encoding.base64.encode_url_bytes"
+    },
+    {
+      "arity": 1,
+      "name": "decode_url_bytes",
+      "operation": "std.encoding.base64.decode_url_bytes"
+    }
+  ],
+  "module": "std_encoding_base64_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.encoding.Base64"
+}

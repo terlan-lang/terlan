@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGAnimatedAngle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8090248868243053005
-interface_hash=11329138343338173507
-interface_doc_hash=11329138343338173507
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=1661525044437816017
+interface_hash=3705885634125921351
+interface_doc_hash=3705885634125921351
 deps=0

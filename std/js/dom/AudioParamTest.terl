@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioParam
  */
 module std.js.Dom.AudioParamTest.
 
-import type std.js.Dom.AudioParam.{AudioParam}.
-
+import type std.js.Dom.AudioParam.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub automation_rate_typechecks(receiver: AudioParam): AutomationRate ->
     receiver.automation_rate().
@@ -33,17 +38,39 @@ pub cancel_and_hold_at_time_typechecks(receiver: AudioParam, cancel_time: JsNumb
 pub cancel_scheduled_values_typechecks(receiver: AudioParam, cancel_time: JsNumber): AudioParam ->
     receiver.cancel_scheduled_values(cancel_time).
 
-pub exponential_ramp_to_value_at_time_typechecks(receiver: AudioParam, value: JsNumber, end_time: JsNumber): AudioParam ->
+pub exponential_ramp_to_value_at_time_typechecks(
+    receiver: AudioParam,
+    value: JsNumber,
+    end_time: JsNumber
+): AudioParam ->
     receiver.exponential_ramp_to_value_at_time(value, end_time).
 
-pub linear_ramp_to_value_at_time_typechecks(receiver: AudioParam, value: JsNumber, end_time: JsNumber): AudioParam ->
+pub linear_ramp_to_value_at_time_typechecks(
+    receiver: AudioParam,
+    value: JsNumber,
+    end_time: JsNumber
+): AudioParam ->
     receiver.linear_ramp_to_value_at_time(value, end_time).
 
-pub set_target_at_time_typechecks(receiver: AudioParam, target_: JsNumber, start_time: JsNumber, time_constant: JsNumber): AudioParam ->
+pub set_target_at_time_typechecks(
+    receiver: AudioParam,
+    target_: JsNumber,
+    start_time: JsNumber,
+    time_constant: JsNumber
+): AudioParam ->
     receiver.set_target_at_time(target_, start_time, time_constant).
 
-pub set_value_at_time_typechecks(receiver: AudioParam, value: JsNumber, start_time: JsNumber): AudioParam ->
+pub set_value_at_time_typechecks(
+    receiver: AudioParam,
+    value: JsNumber,
+    start_time: JsNumber
+): AudioParam ->
     receiver.set_value_at_time(value, start_time).
 
-pub set_value_curve_at_time_typechecks(receiver: AudioParam, values: Float32Array | std.js.Array[JsNumber], start_time: JsNumber, duration: JsNumber): AudioParam ->
+pub set_value_curve_at_time_typechecks(
+    receiver: AudioParam,
+    values: Float32Array | std.js.Array[JsNumber],
+    start_time: JsNumber,
+    duration: JsNumber
+): AudioParam ->
     receiver.set_value_curve_at_time(values, start_time, duration).

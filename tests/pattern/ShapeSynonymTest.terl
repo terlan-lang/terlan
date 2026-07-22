@@ -1,0 +1,215 @@
+module tests.pattern.ShapeSynonymTest.
+
+import std.test.Test.{assert_equal}.
+
+shape Pair(value) =
+    {Atom["pair"], value}.
+
+shape Wrapped(value) =
+    {Atom["wrapped"], Pair(value)}.
+
+shape NonEmpty(head, tail) =
+    [head | tail].
+
+shape Success(body) =
+    {status, body} where status >= 200 and status < 300.
+
+shape Positive(value) =
+    value where value > 0.
+
+shape Selected(value) =
+    value where is_selected(value).
+
+shape TaggedPositive(value) =
+    {Atom["positive"], Positive(value)}.
+
+shape UserAsset(id) =
+    "users/${id: Int}.json".
+
+shape PositiveAsset(_marker) =
+    "assets/${asset_id: Int}.json" where asset_id > 0.
+
+shape Route(method, path) =
+    {method, path}.
+
+constructor Ready {
+    (): Dynamic -> Atom["ready"]
+}.
+
+shape ReadyValue() =
+    Ready().
+
+pub unwrap(Wrapped(value): Dynamic): Int -> value.
+
+pub read_pair(value: Dynamic): Int ->
+    case value {
+        Pair(number) -> number;
+        _ -> 0
+    }.
+
+pub first_or_zero(value: List[Int]): Int ->
+    case value {
+        NonEmpty(head, _tail) -> head;
+        _ -> 0
+    }.
+
+pub success_body(value: Dynamic): Int ->
+    case value {
+        Success(body) where body > 0 -> body;
+        _ -> 0
+    }.
+
+pub tagged_positive(value: Dynamic): Int ->
+    case value {
+        TaggedPositive(found) -> found;
+        _ -> 0
+    }.
+
+pub unwrap_positive(Positive(value): Dynamic): Int -> value.
+
+pub assert_positive(input: Int): Int ->
+    let Positive(value) = input;
+    value.
+
+pub is_selected(value: Int): Bool -> value == 2 or value == 4.
+
+pub selected_values(values: List[Int]): List[Int] ->
+    [value | Selected(value) <- values].
+
+pub positive_below_ten(values: List[Int]): List[Int] ->
+    [value | Positive(value) <- values, value < 10].
+
+pub success_with_external_status(value: Dynamic, status: Int): Int ->
+    case value {
+        Success(body) where status == 500 -> body;
+        _ -> 0
+    }.
+
+pub two_successes(left: Dynamic, right: Dynamic): Int ->
+    case {left, right} {
+        {Success(first), Success(second)} -> first + second;
+        _ -> 0
+    }.
+
+pub user_asset_id(path: String): Int ->
+    case path {
+        UserAsset(id) -> id;
+        _ -> 0
+    }.
+
+pub positive_asset_with_external_id(path: String, asset_id: Int): Bool ->
+    case path {
+        PositiveAsset(_) where asset_id == 500 -> true;
+        _ -> false
+    }.
+
+pub positive_asset(path: String): Bool ->
+    case path {
+        PositiveAsset(_) -> true;
+        _ -> false
+    }.
+
+pub is_ready(value: Dynamic): Bool ->
+    case value {
+        ReadyValue() -> true;
+        _ -> false
+    }.
+
+pub add_positive(left: Int, right: Int): Int ->
+    let {
+        Positive(first) <- left;
+        Positive(second) <- right
+    } else {
+        _ -> 0
+    };
+    first + second.
+
+pub user_route_id(request: Dynamic): Int ->
+    case request {
+        Route("GET", "/users/${id: Int}") -> id;
+        _ -> -1
+    }.
+
+@test
+pub local_shape_executes_through_case(): Bool ->
+    assert_equal(42, read_pair({Atom["pair"], 42})).
+
+@test
+pub nested_shape_executes_through_function_head(): Bool ->
+    assert_equal(42, unwrap({Atom["wrapped"], {Atom["pair"], 42}})).
+
+@test
+pub collection_shape_executes_and_falls_back(): Bool ->
+    assert_equal(7, first_or_zero([7, 8])) and
+        assert_equal(0, first_or_zero([])).
+
+@test
+pub guarded_shape_composes_with_clause_guard(): Bool ->
+    assert_equal(42, success_body({204, 42})) and
+        assert_equal(0, success_body({500, 42})) and
+        assert_equal(0, success_body({204, -1})).
+
+@test
+pub nested_guarded_shape_executes_through_case(): Bool ->
+    assert_equal(7, tagged_positive({Atom["positive"], 7})) and
+        assert_equal(0, tagged_positive({Atom["positive"], -1})).
+
+@test
+pub guarded_shape_executes_through_function_head(): Bool ->
+    assert_equal(9, unwrap_positive(9)).
+
+@test
+pub guarded_shape_executes_through_let_assertion(): Bool ->
+    assert_equal(9, assert_positive(9)).
+
+@test
+pub guarded_shape_composes_with_comprehension_filter(): Bool ->
+    assert_equal([1, 9], positive_below_ten([-2, 0, 1, 9, 10, 20])).
+
+@test
+pub inferred_pure_helper_executes_in_shape_guard(): Bool ->
+    assert_equal([2, 4], selected_values([1, 2, 3, 4, 5])).
+
+@test
+pub private_shape_guard_binding_does_not_shadow_user_variable(): Bool ->
+    assert_equal(42, success_with_external_status({204, 42}, 500)) and
+        assert_equal(0, success_with_external_status({500, 42}, 500)).
+
+@test
+pub private_shape_guard_bindings_do_not_collide_across_expansions(): Bool ->
+    assert_equal(3, two_successes({204, 1}, {205, 2})) and
+        assert_equal(0, two_successes({500, 1}, {205, 2})).
+
+@test
+pub string_capture_shape_substitutes_call_site_binding(): Bool ->
+    assert_equal(42, user_asset_id("users/42.json")) and
+        assert_equal(0, user_asset_id("users/not-an-int.json")).
+
+@test
+pub private_string_capture_does_not_shadow_user_variable(): Bool ->
+    positive_asset_with_external_id("assets/7.json", 500).
+
+@test
+pub private_string_capture_guard_accepts_positive_value(): Bool ->
+    positive_asset("assets/7.json").
+
+@test
+pub private_string_capture_guard_rejects_nonpositive_value(): Bool ->
+    not positive_asset_with_external_id("assets/-1.json", 500).
+
+@test
+pub zero_arity_constructor_shape_executes_in_vm(): Bool ->
+    is_ready(Ready()) and not is_ready(Atom["waiting"]).
+
+@test
+pub guarded_shapes_short_circuit_grouped_let(): Bool ->
+    assert_equal(5, add_positive(2, 3)) and
+        assert_equal(0, add_positive(-1, 3)) and
+        assert_equal(0, add_positive(2, -1)).
+
+@test
+pub route_shape_uses_ordinary_typed_pattern_matching(): Bool ->
+    assert_equal(42, user_route_id({"GET", "/users/42"})) and
+        assert_equal(-1, user_route_id({"POST", "/users/42"})) and
+        assert_equal(-1, user_route_id({"GET", "/users/not-an-int"})) and
+        assert_equal(-1, user_route_id({"GET", "/users/42/details"})).

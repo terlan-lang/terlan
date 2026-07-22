@@ -1,0 +1,14 @@
+subject_type	subject	owner_bucket	feature_slices	required_gates	next_action	exception_token	exception_expiry
+inventory	proofs/lean/Terlan/Core/Arithmetic.lean	cli	Slice 1	lean-proof-track-check	Keep the CoreIR arithmetic proof executable and synchronized with its targeted type contracts.	none	none
+inventory	proofs/lean/Terlan/FeatureCull/LegacyBoundaries.lean	cli	Slice 21	lean-proof-feature-cull-check;lean-proof-track-check	Keep retired-feature rejection theorems synchronized with the machine-readable cull map and replacement gates.	none	none
+inventory	proofs/lean/Terlan/Runtime/NativeBoundary.lean	runtime	Slice 42	lean-proof-track-check;native-boundary-security-check;vm-native-boundary-contract-check	Keep NativeBoundary admission, ownership, and credit theorems synchronized with fingerprinted runtime contracts.	none	none
+inventory	proofs/lean/Terlan/Type/ShapeImplication.lean	cli	Shape Implications	lean-proof-track-check;shape-implications-check	Keep structural implication evidence, lexical scope, result preservation, and non-conversion theorems synchronized with the canonical type specification and EBNF.	none	none
+inventory	proofs/lean/lakefile.lean	cli	Slice 2	lean-proof-track-check	Keep Lake configuration synchronized with replay dependency hashes.	none	none
+gap	EBNF syntax preservation	cli	Slice 1	lean-proof-track-check	Restore syntax preservation proofs against the current EBNF and parser contracts.	none	none
+gap	typed CoreIR preservation	cli	Slice 1	core-typing-spec-check;lean-proof-track-check	Restore CoreIR preservation proofs against the current type specification.	none	none
+gap	target-profile inference	cli	Slice 1	target-inference-contract-check;lean-proof-track-check	Restore target-inference proofs for the default VM profile.	none	none
+gap	VM execution subset	vm	Slice 1	vm-runtime-semantics-check;lean-proof-track-check	Restore VM execution subset proofs once VM semantics are stable.	none	none
+gap	pattern and operator coverage	cli	Slice 1	language-feature-coverage-100-check;lean-proof-track-check	Restore pattern and operator proof coverage from the coverage matrices.	none	none
+gap	native-boundary contracts	runtime	Slice 1	native-boundary-security-check;lean-proof-track-check	Refine the fingerprinted NativeBoundary admission, ownership, and credit model against the Rust implementation through Aeneas.	none	none
+gap	Wasm CoreIR lowering	cli	Slice 1	wasm-coreir-lowering-check;lean-proof-track-check	Restore portable Wasm lowering proof obligations.	none	none
+gap	Aeneas Rust verification bridge	runtime	Slice 1	lean-proof-track-check	Restore the bridge artifact that connects Rust verification to Terlan semantics.	none	none

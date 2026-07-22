@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DecompressionStream
+ */
+module std.js.Dom.DecompressionStream.
+
+/**
+ * The **`DecompressionStream`** interface of the Compression Streams API is an API for decompressing a stream of data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DecompressionStream)
+ */
+pub opaque type DecompressionStream.
+
+pub (value: DecompressionStream) readable(): ReadableStream[Uint8Array[ArrayBuffer]].
+
+pub (value: DecompressionStream) writable(): WritableStream[BufferSource].

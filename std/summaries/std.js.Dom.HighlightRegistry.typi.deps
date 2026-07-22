@@ -1,8 +1,8 @@
 module=std.js.Dom.HighlightRegistry
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=4661901380231474271
-interface_hash=4661901380231474271
-interface_doc_hash=4661901380231474271
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=7503592335704386979
+interface_hash=8587758198185232627
+interface_doc_hash=8587758198185232627
 deps=0

@@ -1,13 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IDBDatabase
  */
 module std.js.Dom.IDBDatabase.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
+import type std.core.{Bool, Unit}.
 import type std.js.String.{JsString}.
 
 /**
@@ -70,11 +75,23 @@ pub (value: IDBDatabase) delete_object_store(name: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/transaction)
  */
-pub (value: IDBDatabase) transaction(store_names: std.js.Array[JsString] | JsString, mode: IDBTransactionMode, options: IDBTransactionOptions): IDBTransaction ->
+pub (value: IDBDatabase) transaction(
+    store_names: std.js.Array[JsString] | JsString,
+    mode: IDBTransactionMode,
+    options: IDBTransactionOptions
+): IDBTransaction ->
     native.
 
-pub (value: IDBDatabase) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub (value: IDBDatabase) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     native.
 
-pub (value: IDBDatabase) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub (value: IDBDatabase) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     native.

@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use super::model::{
-    ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider, ProjectWebAssets,
+    ProjectServerProfile, ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
+    ProjectWebAssets,
 };
 use super::strings::parse_string;
 
@@ -341,6 +342,39 @@ pub(super) fn parse_server_tls_mode(
         "internal" => Ok(ProjectServerTlsMode::Internal),
         other => Err(format!(
             "{}:{}: unsupported [server.tls] mode `{}`; supported modes: auto, manual, internal",
+            path.display(),
+            line_no,
+            other
+        )),
+    }
+}
+
+/// Parses a supported server deployment profile.
+///
+/// Inputs:
+/// - `value`: trimmed manifest value text.
+/// - `path`: manifest path used in diagnostics.
+/// - `line_no`: 1-based line number used in diagnostics.
+///
+/// Output:
+/// - Supported server profile.
+///
+/// Transformation:
+/// - Parses a manifest string and admits only explicit lifecycle profiles so
+///   production safety checks are typed before runtime configuration exists.
+pub(super) fn parse_server_profile(
+    value: &str,
+    path: &Path,
+    line_no: usize,
+) -> Result<ProjectServerProfile, String> {
+    let parsed = parse_string(value, path, line_no)?;
+    match parsed.as_str() {
+        "development" => Ok(ProjectServerProfile::Development),
+        "test" => Ok(ProjectServerProfile::Test),
+        "staging" => Ok(ProjectServerProfile::Staging),
+        "production" => Ok(ProjectServerProfile::Production),
+        other => Err(format!(
+            "{}:{}: unsupported [server] profile `{}`; supported profiles: development, test, staging, production",
             path.display(),
             line_no,
             other

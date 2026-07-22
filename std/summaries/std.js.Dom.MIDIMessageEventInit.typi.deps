@@ -1,8 +1,8 @@
 module=std.js.Dom.MIDIMessageEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8155897845360966390
-interface_hash=14310511794673563870
-interface_doc_hash=14310511794673563870
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3800069814897296829
+interface_hash=11945514784056496140
+interface_doc_hash=11945514784056496140
 deps=0

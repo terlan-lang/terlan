@@ -1,8 +1,8 @@
 module=std.js.Dom.PushSubscriptionJSON
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=15318741713928564992
-interface_hash=13278036172973436736
-interface_doc_hash=13278036172973436736
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=14188832057435343475
+interface_hash=5716014626553826994
+interface_doc_hash=5716014626553826994
 deps=0

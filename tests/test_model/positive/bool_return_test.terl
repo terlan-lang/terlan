@@ -1,5 +1,4 @@
 module tests.test_model.BoolReturnTest.
 
 @test
-pub bool_return(): Bool ->
-    true.
+pub bool_return(): Bool -> true.

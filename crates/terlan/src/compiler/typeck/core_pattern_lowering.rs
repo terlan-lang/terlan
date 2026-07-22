@@ -19,15 +19,19 @@ pub(crate) fn core_pattern_is_lean_modeled(pattern: &CorePattern) -> bool {
         CorePattern::Wildcard
         | CorePattern::Var(_)
         | CorePattern::Int(_)
+        | CorePattern::String(_)
         | CorePattern::Atom(_) => true,
         CorePattern::Tuple(items) | CorePattern::List(items) => {
             items.iter().all(core_pattern_is_lean_modeled)
         }
+        CorePattern::Alias { pattern, .. } => core_pattern_is_lean_modeled(pattern),
         CorePattern::Constructor { args, .. } => args.iter().all(core_pattern_is_lean_modeled),
         CorePattern::Float(_)
+        | CorePattern::StringPattern(_)
         | CorePattern::ListCons { .. }
         | CorePattern::Map(_)
-        | CorePattern::Record { .. } => false,
+        | CorePattern::Record { .. }
+        | CorePattern::BinaryLayout { .. } => false,
     }
 }
 
@@ -54,8 +58,10 @@ pub(crate) fn core_pattern_proof_coverage(
         SyntaxPatternKind::Wildcard
         | SyntaxPatternKind::Var
         | SyntaxPatternKind::Int
+        | SyntaxPatternKind::String
         | SyntaxPatternKind::Atom
         | SyntaxPatternKind::Tuple
+        | SyntaxPatternKind::Alias
         | SyntaxPatternKind::List
         | SyntaxPatternKind::Constructor
         | SyntaxPatternKind::Ignore
@@ -70,7 +76,10 @@ pub(crate) fn core_pattern_proof_coverage(
         | SyntaxPatternKind::ListCons
         | SyntaxPatternKind::Map
         | SyntaxPatternKind::Record
-        | SyntaxPatternKind::MapField => CoreProofCoverage::ProofModelRequired,
+        | SyntaxPatternKind::MapField
+        | SyntaxPatternKind::StringPattern
+        | SyntaxPatternKind::BinaryLayout
+        | SyntaxPatternKind::StringCapture => CoreProofCoverage::ProofModelRequired,
     }
 }
 
@@ -99,13 +108,25 @@ pub(crate) fn core_pattern_from_syntax(pattern: &SyntaxPatternOutput) -> Option<
             .and_then(|value| value.parse::<i64>().ok())
             .map(CorePattern::Int),
         SyntaxPatternKind::Atom => pattern.text.clone().map(CorePattern::Atom),
+        SyntaxPatternKind::String => pattern.text.clone().map(CorePattern::String),
+        SyntaxPatternKind::StringPattern => core_string_pattern_from_syntax(pattern),
+        SyntaxPatternKind::StringCapture => None,
         SyntaxPatternKind::Tuple => {
             core_patterns_from_syntax_children(pattern).map(CorePattern::Tuple)
         }
+        SyntaxPatternKind::Alias => core_alias_pattern_from_syntax(pattern),
         SyntaxPatternKind::List => {
             core_patterns_from_syntax_children(pattern).map(CorePattern::List)
         }
         SyntaxPatternKind::ListCons => core_list_cons_pattern_from_syntax(pattern),
+        SyntaxPatternKind::Constructor
+            if pattern
+                .text
+                .as_deref()
+                .is_some_and(|name| name.starts_with("$const:")) =>
+        {
+            pattern.children.first().and_then(core_pattern_from_syntax)
+        }
         SyntaxPatternKind::Constructor => pattern.text.as_ref().and_then(|name| {
             core_patterns_from_syntax_children(pattern).map(|args| CorePattern::Constructor {
                 name: name.clone(),
@@ -118,8 +139,111 @@ pub(crate) fn core_pattern_from_syntax(pattern: &SyntaxPatternOutput) -> Option<
             core_map_pattern_fields_from_syntax(pattern).map(CorePattern::Map)
         }
         SyntaxPatternKind::Record => core_record_pattern_from_syntax(pattern),
+        SyntaxPatternKind::BinaryLayout => core_binary_layout_pattern_from_syntax(pattern),
         SyntaxPatternKind::MapField => None,
     }
+}
+
+/// Converts a syntax-output alias pattern into typed Core.
+///
+/// Inputs:
+/// - `pattern`: syntax alias node with alias text and one nested child pattern.
+///
+/// Output:
+/// - Core alias pattern when both alias name and nested pattern are valid.
+///
+/// Transformation:
+/// - Preserves the source alias as a binding over the same matched value while
+///   recursively lowering the structural child pattern.
+fn core_alias_pattern_from_syntax(pattern: &SyntaxPatternOutput) -> Option<CorePattern> {
+    if pattern.kind != SyntaxPatternKind::Alias || pattern.children.len() != 1 {
+        return None;
+    }
+    let alias = pattern.text.clone()?;
+    let child = core_pattern_from_syntax(&pattern.children[0])?;
+    Some(CorePattern::Alias {
+        alias,
+        pattern: Box::new(child),
+    })
+}
+
+/// Converts a syntax-output string pattern into typed Core.
+///
+/// Inputs:
+/// - `pattern`: syntax-output string-pattern node with canonical `${...}` text.
+///
+/// Output:
+/// - `Some(CorePattern::StringPattern)` when the canonical text can be split
+///   into ordered literal/capture segments.
+/// - `None` for malformed or non-string-pattern input.
+///
+/// Transformation:
+/// - Reconstructs a backend-neutral segment payload from syntax-output text,
+///   leaving runtime matching and capture conversion to the VM pattern planner.
+fn core_string_pattern_from_syntax(pattern: &SyntaxPatternOutput) -> Option<CorePattern> {
+    if pattern.kind != SyntaxPatternKind::StringPattern {
+        return None;
+    }
+    let text = pattern.text.as_deref()?;
+    core_string_pattern_segments(text).map(CorePattern::StringPattern)
+}
+
+/// Splits canonical string-pattern text into CoreIR segments.
+///
+/// Inputs:
+/// - `text`: syntax-output string-pattern text containing `${...}` captures.
+///
+/// Output:
+/// - Ordered CoreIR literal and capture segments.
+///
+/// Transformation:
+/// - Uses the canonical syntax-output spelling only; parser diagnostics own
+///   malformed source recovery before this function runs.
+fn core_string_pattern_segments(text: &str) -> Option<Vec<CoreStringPatternSegment>> {
+    let mut segments = Vec::new();
+    let mut rest = text;
+
+    while let Some(start) = rest.find("${") {
+        let literal = &rest[..start];
+        if !literal.is_empty() {
+            segments.push(CoreStringPatternSegment::Literal(literal.to_string()));
+        }
+        let after_start = &rest[start + 2..];
+        let end = after_start.find('}')?;
+        let capture = core_string_pattern_capture(&after_start[..end])?;
+        segments.push(CoreStringPatternSegment::Capture(capture));
+        rest = &after_start[end + 1..];
+    }
+
+    if !rest.is_empty() {
+        segments.push(CoreStringPatternSegment::Literal(rest.to_string()));
+    }
+    (!segments.is_empty()).then_some(segments)
+}
+
+/// Converts one canonical capture slot into a CoreIR capture payload.
+///
+/// Inputs:
+/// - `slot`: text inside `${...}`.
+///
+/// Output:
+/// - Capture name plus optional type annotation text.
+///
+/// Transformation:
+/// - Splits on the first `:` and trims whitespace introduced by source
+///   formatting; parser/typechecker validation owns legality of the slot.
+fn core_string_pattern_capture(slot: &str) -> Option<CoreStringPatternCapture> {
+    let (name, type_annotation) = match slot.split_once(':') {
+        Some((name, annotation)) => (name.trim(), Some(annotation.trim().to_string())),
+        None => (slot.trim(), None),
+    };
+    if name.is_empty() {
+        return None;
+    }
+    Some(CoreStringPatternCapture {
+        name: name.to_string(),
+        type_annotation,
+    })
 }
 
 /// Converts a syntax-output list-cons pattern into typed Core.

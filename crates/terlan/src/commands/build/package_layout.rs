@@ -22,20 +22,6 @@ pub(super) fn source_package_path(package: &project_manifest::ProjectPackage) ->
         .unwrap_or_else(|| vec![source_package_root(&package.name)])
 }
 
-/// Converts a package identity into a dotted source module prefix.
-///
-/// Inputs:
-/// - `package`: manifest `[package]` identity.
-///
-/// Output:
-/// - Dotted module prefix used for executable entrypoint conventions.
-///
-/// Transformation:
-/// - Joins `source_package_path` using Terlan module path dots.
-pub(super) fn source_package_module_prefix(package: &project_manifest::ProjectPackage) -> String {
-    source_package_path(package).join(".")
-}
-
 /// Converts a package name into the default source module root spelling.
 ///
 /// Inputs:

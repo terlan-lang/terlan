@@ -3,11 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use crate::terlan_syntax::cached_canonical_terlan_syntax_contract_identity;
-use crate::terlan_typeck::{CoreExpr, CoreModule};
-use crate::validation::native_policy::NativePolicy;
-use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions};
 use crate::CliCommand;
-use crate::DiagnosticFormat;
 
 const MANIFEST_FILE: &str = "terlan.toml";
 const GENERATED_OUTPUTS: &[&str] = &["_build/src", "_build/ebin"];
@@ -163,50 +159,11 @@ fn scan_manifest(root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<(), S
 }
 
 /// Builds an exact fix for retired manifest artifact metadata.
-fn retired_manifest_artifact_fix(root: &Path, manifest_text: &str) -> String {
+fn retired_manifest_artifact_fix(root: &Path, _manifest_text: &str) -> String {
     let project = root.display();
-    if is_battleship_project(root, manifest_text) {
-        return format!(
-            "edit terlan.toml: replace `artifact = \"beam-thin\"` with `artifact = \"terlan-vm\"`; run `terlc clean {project}`; rerun `terlc doctor {project}` before `terlc build {project}`"
-        );
-    }
     format!(
         "edit terlan.toml: replace `artifact = \"beam-thin\"` with `artifact = \"terlan-vm\"`; run `terlc clean {project}` and `terlc build {project}`"
     )
-}
-
-/// Returns whether the project should receive Battleship migration wording.
-fn is_battleship_project(root: &Path, manifest_text: &str) -> bool {
-    root.file_name().and_then(|name| name.to_str()) == Some("battleship")
-        || manifest_package_name(manifest_text).as_deref() == Some("battleship")
-}
-
-/// Extracts `[package].name` from a small Terlan manifest.
-fn manifest_package_name(manifest_text: &str) -> Option<String> {
-    let mut in_package = false;
-    for line in manifest_text.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with('[') && trimmed.ends_with(']') {
-            in_package = trimmed == "[package]";
-            continue;
-        }
-        if in_package {
-            let Some(value) = trimmed.strip_prefix("name") else {
-                continue;
-            };
-            let Some(value) = value.trim_start().strip_prefix('=') else {
-                continue;
-            };
-            let value = value.trim();
-            if let Some(name) = value
-                .strip_prefix('"')
-                .and_then(|text| text.strip_suffix('"'))
-            {
-                return Some(name.to_string());
-            }
-        }
-    }
-    None
 }
 
 /// Scans generated output directories that should be removed during migration.
@@ -272,151 +229,7 @@ fn scan_source_file(
             fix: "replace `std.beam.*` imports with the matching `std.vm.*` module".to_string(),
         });
     }
-    scan_vm_execution_support(root, path, &text, findings);
     Ok(())
-}
-
-/// Scans checked source for bodies unsupported by current VM execution.
-fn scan_vm_execution_support(
-    root: &Path,
-    path: &Path,
-    source: &str,
-    findings: &mut Vec<DoctorFinding>,
-) {
-    let path_text = path.to_string_lossy();
-    let compiled =
-        crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
-            &path_text,
-            source,
-            DiagnosticFormat::default(),
-            None,
-            NativePolicy::SafeNativeOptional,
-            TargetProfile::CoreV0,
-            TargetProfileCheckOptions {
-                allow_asset_imports: true,
-                allow_rust_backed_std_modules: true,
-            },
-        );
-    let Ok(compiled) = compiled else {
-        scan_vm_execution_support_fallback(root, path, source, findings);
-        return;
-    };
-
-    for unsupported in unsupported_vm_ir_functions(&compiled.core) {
-        findings.push(DoctorFinding {
-            path: relative_path(root, path),
-            code: "doctor_vm_execution_gap",
-            message: format!(
-                "function `{}/{}` uses CoreIR `{}` that current VM execution cannot run yet",
-                unsupported.name, unsupported.arity, unsupported.body_kind
-            ),
-            fix: "keep this source behind a migration task until VM execution supports that CoreIR shape"
-                .to_string(),
-        });
-    }
-}
-
-/// Conservatively reports known VM execution gaps when CoreIR checking fails.
-fn scan_vm_execution_support_fallback(
-    root: &Path,
-    path: &Path,
-    source: &str,
-    findings: &mut Vec<DoctorFinding>,
-) {
-    if !source.contains("case ") {
-        return;
-    }
-    findings.push(DoctorFinding {
-        path: relative_path(root, path),
-        code: "doctor_vm_execution_gap",
-        message: "source uses `case`, which current VM execution cannot run yet".to_string(),
-        fix: "keep this source behind a migration task until VM execution supports that CoreIR shape"
-            .to_string(),
-    });
-}
-
-/// VM execution gap found by the migration doctor.
-struct UnsupportedVmIrFunction {
-    name: String,
-    arity: usize,
-    body_kind: &'static str,
-}
-
-/// Returns functions that current VM execution cannot run.
-fn unsupported_vm_ir_functions(core: &CoreModule) -> Vec<UnsupportedVmIrFunction> {
-    core.functions
-        .iter()
-        .filter_map(|function| {
-            let body = function
-                .clauses
-                .first()
-                .and_then(|clause| clause.body.core_expr.as_ref())?;
-            if doctor_vm_expr_is_supported(body) {
-                return None;
-            }
-            Some(UnsupportedVmIrFunction {
-                name: function.name.clone(),
-                arity: function.arity,
-                body_kind: doctor_core_expr_kind(body),
-            })
-        })
-        .collect()
-}
-
-/// Returns whether a checked CoreIR expression is in the current VM subset.
-fn doctor_vm_expr_is_supported(expr: &CoreExpr) -> bool {
-    match expr {
-        CoreExpr::Int(_)
-        | CoreExpr::Float(_)
-        | CoreExpr::Binary(_)
-        | CoreExpr::Atom(_)
-        | CoreExpr::Var(_) => true,
-        CoreExpr::Call { args, .. } => args.iter().all(doctor_vm_expr_is_supported),
-        CoreExpr::BinaryOp { left, right, .. } => {
-            doctor_vm_expr_is_supported(left) && doctor_vm_expr_is_supported(right)
-        }
-        _ => false,
-    }
-}
-
-/// Returns a stable CoreIR expression label for doctor diagnostics.
-fn doctor_core_expr_kind(expr: &CoreExpr) -> &'static str {
-    match expr {
-        CoreExpr::Int(_) => "Int",
-        CoreExpr::Float(_) => "Float",
-        CoreExpr::Binary(_) => "Binary",
-        CoreExpr::Atom(_) => "Atom",
-        CoreExpr::Var(_) => "Var",
-        CoreExpr::Tuple(_) => "Tuple",
-        CoreExpr::List(_) => "List",
-        CoreExpr::ListCons { .. } => "ListCons",
-        CoreExpr::FixedArray(_) => "FixedArray",
-        CoreExpr::Index { .. } => "Index",
-        CoreExpr::ListComprehension { .. } => "ListComprehension",
-        CoreExpr::Let { .. } => "Let",
-        CoreExpr::Map(_) => "Map",
-        CoreExpr::RecordConstruct { .. } => "RecordConstruct",
-        CoreExpr::FieldAccess { .. } => "FieldAccess",
-        CoreExpr::RecordAccess { .. } => "RecordAccess",
-        CoreExpr::RecordUpdate { .. } => "RecordUpdate",
-        CoreExpr::TemplateInstantiate { .. } => "TemplateInstantiate",
-        CoreExpr::ConstructorChain { .. } => "ConstructorChain",
-        CoreExpr::RemoteFunRef { .. } => "RemoteFunRef",
-        CoreExpr::RemoteCall { .. } => "RemoteCall",
-        CoreExpr::ConstructorCall { .. } => "ConstructorCall",
-        CoreExpr::Call { .. } => "Call",
-        CoreExpr::MutableReceiverCall { .. } => "MutableReceiverCall",
-        CoreExpr::FunctionCall { .. } => "FunctionCall",
-        CoreExpr::Cast { .. } => "Cast",
-        CoreExpr::Intrinsic(_) => "Intrinsic",
-        CoreExpr::SqlQuery { .. } => "SqlQuery",
-        CoreExpr::Case { .. } => "Case",
-        CoreExpr::Try { .. } => "Try",
-        CoreExpr::If { .. } => "If",
-        CoreExpr::Lam { .. } => "Lam",
-        CoreExpr::UnaryOp { .. } => "UnaryOp",
-        CoreExpr::BinaryOp { .. } => "BinaryOp",
-    }
 }
 
 /// Scans generated summary artifacts that should not survive app migration.

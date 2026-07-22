@@ -1,0 +1,32 @@
+/**
+ * Property coverage for portable lexical paths.
+ *
+ * `std.io.PathPropertyTest` validates generated lexical path samples through
+ * the public Path parse/render API on the VM default path.
+ */
+module std.io.PathPropertyTest.
+
+import std.core.Result.{Ok}.
+import std.io.Path.
+import std.test.Gen.{elements, for_all}.
+import std.test.Test.{assert_equal}.
+
+/**
+ * Verifies generated lexical path text reaches a stable rendered form.
+ *
+ * Input: generated deterministic lexical path samples.
+ * Output: `true` when every sample renders idempotently after parsing.
+ * Transformation: checks the maintained Path bridge through the public
+ * `from_string` and `to_string` API while allowing target-owned path
+ * normalization.
+ */
+@test
+pub generated_paths_render_idempotently_after_parse(): Bool ->
+    for_all(elements(["src/main.terl", "std/io/Path.terl", "docs/roadmap/ROADMAP_0_0_7.md", "/tmp/terlan", "/tmp/terlan/std/io"]), (text) -> case Path.from_string(text) {
+        Ok(path) ->
+            case Path.from_string(path.to_string()) {
+                Ok(roundtrip) -> assert_equal(path.to_string(), roundtrip.to_string());
+                _ -> false
+            };
+        _ -> false
+    }).

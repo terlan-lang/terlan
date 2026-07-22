@@ -5,19 +5,31 @@ const {
   buildTestFileCommandLine,
   buildTestNameCommandLine,
   buildRunCommandLine,
+  buildBuildCommandLine,
+  buildCheckCommandLine,
+  buildCleanCommandLine,
+  buildDebugBreakpointCommandLine,
+  buildDebugCommandLine,
+  buildDoctorCommandLine,
+  buildServeCommandLine,
+  buildTerminalLaunchDescriptor,
+  buildWatchCommandLine,
   discoverRunnableEntries,
   discoverTestRanges,
   findQualifiedModuleReferenceAtLine,
   findModuleReferencePrefixAtPosition,
   findTestNameAtLine,
+  hasRunnableTestName,
   hasModuleImport,
   importInsertionLine,
+  isProjectScriptFilePath,
   isTerlanTestFilePath,
   moduleLeafName,
   parseModuleDeclaration,
+  redactLaunchTargetPath,
+  resolveRunTargetPath,
   resolveRunWorkspaceFolder,
-  shellQuote,
-  withShellCommandCacheRefresh
+  shellQuote
 } = require("../src/run_command");
 
 /**
@@ -66,35 +78,179 @@ function testBuildRunCommandLine() {
 }
 
 /**
- * Verifies POSIX terminal commands refresh shell command hashes.
+ * Verifies workspace check terminal command construction.
  *
  * @returns {void}
  *
  * @description
- * Locks the extension behavior that reused integrated terminals pick up a
- * newly installed `terlc` binary instead of a stale shell-hashed path.
+ * Confirms the editor command delegates package validation to `terlc check`.
  */
-function testWithShellCommandCacheRefreshOnPosix() {
+function testBuildCheckCommandLine() {
   assert.strictEqual(
-    withShellCommandCacheRefresh("'terlc' test 'file.terl'", "linux"),
-    "hash -r 2>/dev/null || true; 'terlc' test 'file.terl'"
+    buildCheckCommandLine("terlc", "/tmp/hello-terlan", "linux"),
+    "'terlc' check '/tmp/hello-terlan'"
   );
 }
 
 /**
- * Verifies Windows terminal commands are not prefixed with POSIX shell syntax.
+ * Verifies workspace build terminal command construction.
  *
  * @returns {void}
  *
  * @description
- * Keeps command-cache refresh portable by leaving Windows terminal commands
- * unchanged.
+ * Confirms the editor command delegates artifact generation to `terlc build`.
  */
-function testWithShellCommandCacheRefreshOnWindows() {
+function testBuildBuildCommandLine() {
   assert.strictEqual(
-    withShellCommandCacheRefresh("\"terlc\" test \"file.terl\"", "win32"),
-    "\"terlc\" test \"file.terl\""
+    buildBuildCommandLine("terlc", "/tmp/hello-terlan", "linux"),
+    "'terlc' build '/tmp/hello-terlan'"
   );
+}
+
+/**
+ * Verifies workspace clean terminal command construction.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Confirms the editor command delegates artifact cleanup to `terlc clean`.
+ */
+function testBuildCleanCommandLine() {
+  assert.strictEqual(
+    buildCleanCommandLine("terlc", "/tmp/hello-terlan", "linux"),
+    "'terlc' clean '/tmp/hello-terlan'"
+  );
+}
+
+/**
+ * Verifies web serve terminal command construction.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Confirms the editor command delegates local web serving to `terlc serve`.
+ */
+function testBuildServeCommandLine() {
+  assert.strictEqual(
+    buildServeCommandLine("terlc", "/tmp/hello-terlan", "linux"),
+    "'terlc' serve '/tmp/hello-terlan'"
+  );
+}
+
+/**
+ * Verifies live-reload watch terminal command construction.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Confirms the editor command uses the compiler-owned serve watcher instead of
+ * creating an editor-side filesystem watcher.
+ */
+function testBuildWatchCommandLine() {
+  assert.strictEqual(
+    buildWatchCommandLine("terlc", "/tmp/hello-terlan", "linux"),
+    "'terlc' serve '/tmp/hello-terlan' --poll-ms 250"
+  );
+}
+
+/**
+ * Verifies support diagnostics terminal command construction.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Confirms the editor command delegates project diagnostics to `terlc doctor`.
+ */
+function testBuildDoctorCommandLine() {
+  assert.strictEqual(
+    buildDoctorCommandLine("terlc", "/tmp/hello-terlan", "linux"),
+    "'terlc' doctor '/tmp/hello-terlan'"
+  );
+}
+
+/**
+ * Verifies debugger launch terminal command construction.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Confirms the editor command delegates debugger launch to `terlc debug` while
+ * preserving the JSON event stream used by debugger tooling.
+ */
+function testBuildDebugCommandLine() {
+  assert.strictEqual(
+    buildDebugCommandLine("terlc", "/tmp/hello-terlan", "linux"),
+    "'terlc' debug '/tmp/hello-terlan' --json-events"
+  );
+}
+
+/**
+ * Verifies debugger cursor-breakpoint command construction.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Confirms the editor cursor action delegates breakpoint parsing to
+ * `terlc debug --break`.
+ */
+function testBuildDebugBreakpointCommandLine() {
+  assert.strictEqual(
+    buildDebugBreakpointCommandLine("terlc", "/tmp/app/Main.terl", 42, "linux"),
+    "'terlc' debug '/tmp/app/Main.terl' --break '/tmp/app/Main.terl:42' --json-events"
+  );
+}
+
+/**
+ * Verifies launch descriptors preserve exact reproduction commands.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Ensures user-facing reproduction commands and integrated-terminal commands
+ * stay aligned so the visible terminal command is copyable.
+ */
+function testBuildTerminalLaunchDescriptor() {
+  assert.deepStrictEqual(
+    buildTerminalLaunchDescriptor(
+      "test",
+      "/tmp/hello app/MainTest.terl",
+      "'terlc' test '/tmp/hello app/MainTest.terl'",
+      "linux",
+      "/tmp"
+    ),
+    {
+      kind: "test",
+      targetPath: "/tmp/hello app/MainTest.terl",
+      displayTargetPath: "${workspace}/hello app/MainTest.terl",
+      commandLine: "'terlc' test '/tmp/hello app/MainTest.terl'",
+      reproductionCommand: "'terlc' test '/tmp/hello app/MainTest.terl'",
+      terminalCommandLine: "'terlc' test '/tmp/hello app/MainTest.terl'",
+      outputMode: "integrated-terminal-pass-through",
+      colorPreservation: "compiler-owned"
+    }
+  );
+}
+
+/**
+ * Verifies launch-report path redaction stays workspace-bounded.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Keeps support-facing launch metadata from leaking workspace absolute paths
+ * while preserving external paths that cannot be safely rewritten.
+ */
+function testRedactLaunchTargetPath() {
+  assert.strictEqual(
+    redactLaunchTargetPath("/workspace/apps/chat/src/Main.terl", "/workspace"),
+    "${workspace}/apps/chat/src/Main.terl"
+  );
+  assert.strictEqual(redactLaunchTargetPath("/workspace", "/workspace"), "${workspace}");
+  assert.strictEqual(
+    redactLaunchTargetPath("/outside/apps/chat/src/Main.terl", "/workspace"),
+    "/outside/apps/chat/src/Main.terl"
+  );
+  assert.strictEqual(redactLaunchTargetPath(undefined, "/workspace"), undefined);
 }
 
 /**
@@ -206,6 +362,26 @@ function testFindTestNameAtLine() {
   assert.strictEqual(findTestNameAtLine(source, 2), "first");
   assert.strictEqual(findTestNameAtLine(source, 5), "second");
   assert.strictEqual(findTestNameAtLine(source, 20), undefined);
+}
+
+/**
+ * Verifies stale named-test arguments are detected from current source text.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Covers the helper used by CodeLens command execution to reject a renamed or
+ * deleted test before launching `terlc test --name`.
+ */
+function testHasRunnableTestName() {
+  const source = [
+    "@test",
+    "pub current_case(): Bool ->",
+    "    true."
+  ].join("\n");
+
+  assert.strictEqual(hasRunnableTestName(source, "current_case"), true);
+  assert.strictEqual(hasRunnableTestName(source, "old_case"), false);
 }
 
 /**
@@ -421,16 +597,109 @@ function testResolveRunWorkspaceFolderFallsBackToFirstFolder() {
   assert.strictEqual(resolveRunWorkspaceFolder(workspace, undefined), fallback);
 }
 
+/**
+ * Verifies package target resolution prefers the nearest Terlan manifest.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Ensures workspace-level editor commands run nested package roots when an
+ * active source file lives below a package-local `terlan.toml`.
+ */
+function testResolveRunTargetPathUsesNearestPackageManifest() {
+  const workspace = {
+    workspaceFolders: [{ uri: { fsPath: "/workspace" } }],
+    getWorkspaceFolder() {
+      return { uri: { fsPath: "/workspace" } };
+    }
+  };
+  const activeEditor = {
+    document: {
+      uri: {
+        fsPath: "/workspace/apps/hello/src/app/Main.terl"
+      }
+    }
+  };
+
+  assert.strictEqual(
+    resolveRunTargetPath(
+      workspace,
+      activeEditor,
+      (filePath) => filePath === "/workspace/apps/hello/terlan.toml"
+    ),
+    "/workspace/apps/hello"
+  );
+}
+
+/**
+ * Verifies package target resolution never walks above the workspace.
+ *
+ * @returns {void}
+ *
+ * @description
+ * Keeps workspace-level editor commands deterministic when the active document
+ * has no package-local `terlan.toml`.
+ */
+function testResolveRunTargetPathFallsBackToWorkspaceRoot() {
+  const workspace = {
+    workspaceFolders: [{ uri: { fsPath: "/workspace" } }],
+    getWorkspaceFolder() {
+      return { uri: { fsPath: "/workspace" } };
+    }
+  };
+  const activeEditor = {
+    document: {
+      uri: {
+        fsPath: "/workspace/apps/hello/src/app/Main.terl"
+      }
+    }
+  };
+
+  assert.strictEqual(
+    resolveRunTargetPath(workspace, activeEditor, () => false),
+    "/workspace"
+  );
+}
+
+/** Verifies the run action distinguishes project scripts from package source. */
+function testIsProjectScriptFilePath() {
+  assert.strictEqual(
+    isProjectScriptFilePath("/workspace/hello/scripts/test.terl", "/workspace/hello"),
+    true
+  );
+  assert.strictEqual(
+    isProjectScriptFilePath("/workspace/hello/scripts/db/Reset.terl", "/workspace/hello"),
+    true
+  );
+  assert.strictEqual(
+    isProjectScriptFilePath("/workspace/hello/src/hello/Main.terl", "/workspace/hello"),
+    false
+  );
+  assert.strictEqual(
+    isProjectScriptFilePath("/workspace/other/scripts/test.terl", "/workspace/hello"),
+    false
+  );
+}
+
 testPosixShellQuote();
 testWindowsShellQuote();
 testBuildRunCommandLine();
-testWithShellCommandCacheRefreshOnPosix();
-testWithShellCommandCacheRefreshOnWindows();
+testBuildCheckCommandLine();
+testBuildBuildCommandLine();
+testBuildCleanCommandLine();
+testBuildServeCommandLine();
+testBuildWatchCommandLine();
+testBuildDoctorCommandLine();
+testBuildDebugCommandLine();
+testBuildDebugBreakpointCommandLine();
+testBuildTerminalLaunchDescriptor();
+testRedactLaunchTargetPath();
 testBuildTestFileCommandLine();
 testBuildTestNameCommandLine();
 testIsTerlanTestFilePath();
 testDiscoverTestRanges();
 testFindTestNameAtLine();
+testHasRunnableTestName();
 testDiscoverRunnableEntries();
 testFindQualifiedModuleReferenceAtLine();
 testFindModuleReferencePrefixAtPosition();
@@ -440,5 +709,8 @@ testImportInsertionLine();
 testHasModuleImport();
 testResolveRunWorkspaceFolderUsesActiveDocument();
 testResolveRunWorkspaceFolderFallsBackToFirstFolder();
+testResolveRunTargetPathUsesNearestPackageManifest();
+testResolveRunTargetPathFallsBackToWorkspaceRoot();
+testIsProjectScriptFilePath();
 
 console.log("terlan vscode run command tests passed");

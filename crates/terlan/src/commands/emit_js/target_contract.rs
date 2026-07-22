@@ -105,7 +105,7 @@ pub(crate) fn parse_js_build_target_profile(value: &str) -> Option<TargetProfile
 ///
 /// Output:
 /// - `Some(JsTargetContract)` for JS profiles.
-/// - `None` for Erlang, CoreIR, native, or future non-JS profiles.
+/// - `None` for Vm, CoreIR, native, or future non-JS profiles.
 ///
 /// Transformation:
 /// - Converts the normalized profile into a stable artifact-layout contract.

@@ -1,8 +1,8 @@
 module=std.js.Set
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=3411022148039040184
-interface_hash=12049531093345508481
-interface_doc_hash=12049531093345508481
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=16803166153096331083
+interface_hash=1243661175733017948
+interface_doc_hash=1243661175733017948
 deps=0

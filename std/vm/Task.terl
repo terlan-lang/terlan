@@ -6,12 +6,9 @@
  * contract: this module is explicitly tied to runtime process ownership and is
  * resolved only by VM-capable target profiles.
  */
-
 module std.vm.Task.
 
-import std.core.Error.{Error}.
-import std.core.Result.{Result}.
-import std.core.Unit.{Unit}.
+import std.core.{Error, Result, Unit}.
 
 /**
  * Task represents a supervised runtime work process.

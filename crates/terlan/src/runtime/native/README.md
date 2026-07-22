@@ -6,7 +6,7 @@ standard-library modules.
 ## Responsibilities
 
 - Own Rust-backed resource behavior such as `std.native.collections.Vector`.
-- Keep concrete storage details out of SafeNative bridge policy modules.
+- Keep concrete storage details out of NativeBoundary bridge policy modules.
 - Preserve documented, tested, panic-free functions for future verification.
 - Keep tests adjacent in separate `*_test.rs` files.
 
@@ -17,21 +17,21 @@ standard-library modules.
 - `http.rs`: Rust-backed HTTP request/response/cookie adapter.
 - `json.rs`: Rust-backed JSON value, parser, and encoder adapter.
 - `path.rs`: Rust-backed lexical path adapter.
-- `postgres.rs`: Rust/Tokio Postgres pool, query, transaction, and row adapter.
+- `postgres.rs`: Rust Postgres pool, query, transaction, and row adapter.
 - `uri.rs`: Rust-backed URI parser and renderer adapter.
-- `vector.rs`: Rust-owned indexed vector resource used through SafeNative
+- `vector.rs`: Rust-owned indexed vector resource used through NativeBoundary
   handles.
 
 ## Integration Points
 
-- `runtime/safenative/dispatch.rs` calls native adapters after validating bridge
+- `runtime/native_boundary/dispatch.rs` calls native adapters after validating bridge
   operation ids and argument shapes.
-- `runtime/safenative/resource.rs` stores native adapter resources behind opaque
+- `runtime/native_boundary/resource.rs` stores native adapter resources behind opaque
   handles.
 - Compiler lowering emits bridge calls that eventually reach these adapters.
 
 ## Testing Notes
 
 - Add one adjacent `*_test.rs` file per implementation module.
-- Test adapter behavior directly and through SafeNative dispatch when bridge
+- Test adapter behavior directly and through NativeBoundary dispatch when bridge
   behavior is involved.

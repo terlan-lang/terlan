@@ -1,14 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DOMParser
  */
 module std.js.Dom.DOMParserTest.
 
-import type std.js.Dom.DOMParser.{DOMParser}.
+import type std.js.Dom.DOMParser.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub parse_from_string_typechecks(receiver: DOMParser, string: std.js.String.JsString, type_: DOMParserSupportedType): Document ->
+pub parse_from_string_typechecks(
+    receiver: DOMParser,
+    string: std.js.String.JsString,
+    type_: DOMParserSupportedType
+): Document ->
     receiver.parse_from_string(string, type_).

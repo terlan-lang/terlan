@@ -1,22 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IDBIndex
  */
 module std.js.Dom.IDBIndexTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.IDBIndex.{IDBIndex}.
-
+import type std.js.Dom.IDBIndex.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub key_path_typechecks(receiver: IDBIndex): Array[JsString] | JsString ->
     receiver.key_path().
@@ -36,14 +38,29 @@ pub unique_typechecks(receiver: IDBIndex): Bool ->
 pub count_typechecks(receiver: IDBIndex, query: IDBKeyRange | IDBValidKey): IDBRequest[JsNumber] ->
     receiver.count(query).
 
-pub get_all_keys_typechecks(receiver: IDBIndex, query: Option[IDBKeyRange | IDBValidKey], count: JsNumber): IDBRequest[Array[IDBValidKey]] ->
+pub get_all_keys_typechecks(
+    receiver: IDBIndex,
+    query: Option[IDBKeyRange | IDBValidKey],
+    count: JsNumber
+): IDBRequest[Array[IDBValidKey]] ->
     receiver.get_all_keys(query, count).
 
-pub get_key_typechecks(receiver: IDBIndex, query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
+pub get_key_typechecks(
+    receiver: IDBIndex,
+    query: IDBKeyRange | IDBValidKey
+): IDBRequest[Option[IDBValidKey]] ->
     receiver.get_key(query).
 
-pub open_cursor_typechecks(receiver: IDBIndex, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+pub open_cursor_typechecks(
+    receiver: IDBIndex,
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursorWithValue]] ->
     receiver.open_cursor(query, direction).
 
-pub open_key_cursor_typechecks(receiver: IDBIndex, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+pub open_key_cursor_typechecks(
+    receiver: IDBIndex,
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursor]] ->
     receiver.open_key_cursor(query, direction).

@@ -1,0 +1,56 @@
+/**
+ * Property-based Object invariants.
+ *
+ * `std.core.ObjectPropertyTest` validates generated string-keyed objects
+ * against the public Object API so dynamic object behavior is covered by the
+ * shared property-testing machinery.
+ */
+module std.core.ObjectPropertyTest.
+
+import std.core.Object.
+import std.test.Gen.{elements, for_all, object_of}.
+import std.test.Test.{each}.
+
+/**
+ * Verifies generated objects report empty and member states consistently.
+ *
+ * Input: generated string-keyed integer objects.
+ * Output: `true` when empty objects have no generated key and populated
+ * objects report that key as present.
+ * Transformation: checks `is_empty`, `size`, and `contains_key` against the
+ * generated object shape.
+ */
+@test
+pub generated_objects_report_empty_or_member_state(): Bool ->
+    for_all(object_of(elements(["status"]), elements([1, 2])), (object) -> if {
+    object.is_empty() -> object.size() == 0 and object.contains_key("status") == false;
+    true -> object.size() >= 1 and object.contains_key("status")
+    }).
+
+/**
+ * Verifies inserting a generated key makes it present.
+ *
+ * Input: generated string keys.
+ * Output: `true` when `put` makes each key present and keeps the expected
+ * object size.
+ * Transformation: inserts a fixed integer value into a fresh object.
+ */
+@test
+pub generated_object_keys_are_present_after_put(): Bool ->
+    for_all(elements(["status", "mode"]), (key) -> let object = Object({"seed", 0});
+    object.remove("seed");
+    object.put(key, 7);
+    object.contains_key(key) and object.size() == 1).
+
+/**
+ * Verifies clear removes generated object members.
+ *
+ * Input: generated string-keyed integer objects.
+ * Output: `true` when clearing each object produces an empty object.
+ * Transformation: delegates to the mutable `clear` receiver and checks the
+ * public empty-state helpers.
+ */
+@test
+pub generated_objects_clear_to_empty(): Bool ->
+    for_all(object_of(elements(["status", "mode"]), elements([1])), (object) -> object.clear();
+    object.is_empty() and object.size() == 0).

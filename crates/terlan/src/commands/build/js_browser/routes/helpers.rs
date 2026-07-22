@@ -170,6 +170,18 @@ fn line_column_for_offset(source: &str, offset: usize) -> (usize, usize) {
 /// - Reads direct local function references from static or receiver-style
 ///   middleware registration calls without evaluating router values.
 pub(super) fn router_middleware_from_expr(expr: &SyntaxExprOutput) -> Option<&str> {
+    router_callback_from_expr(expr, "use")
+}
+
+/// Extracts a response middleware function from `Router.map_response`.
+pub(super) fn router_response_middleware_from_expr(expr: &SyntaxExprOutput) -> Option<&str> {
+    router_callback_from_expr(expr, "map_response")
+}
+
+fn router_callback_from_expr<'a>(
+    expr: &'a SyntaxExprOutput,
+    expected_method: &str,
+) -> Option<&'a str> {
     if expr.kind != SyntaxExprKind::Call {
         return None;
     }
@@ -183,7 +195,7 @@ pub(super) fn router_middleware_from_expr(expr: &SyntaxExprOutput) -> Option<&st
         }
         (method_name, 1)
     };
-    if method_name != "use" {
+    if method_name != expected_method {
         return None;
     }
     router_handler_name(expr.children.get(middleware_index)?)
@@ -224,9 +236,14 @@ pub(super) fn is_router_builder_receiver(receiver: &SyntaxExprOutput) -> bool {
                         | "delete"
                         | "head"
                         | "options"
+                        | "sse"
+                        | "websocket"
                         | "use"
+                        | "map_response"
                         | "fallback"
                         | "error"
+                        | "overload"
+                        | "lifecycle"
                         | "group"
                 )
             });
@@ -301,6 +318,9 @@ pub(super) fn prefix_web_route_manifest_rows(prefix: &str, rows: &mut WebRouteMa
     }
     for websocket in &mut rows.websockets {
         websocket.route = prefixed_router_route(prefix, &websocket.route);
+    }
+    for endpoint in &mut rows.sse {
+        endpoint.route = prefixed_router_route(prefix, &endpoint.route);
     }
     for response in &mut rows.static_responses {
         response.route = prefixed_router_route(prefix, &response.route);
@@ -419,6 +439,24 @@ pub(super) fn is_response_type(type_text: &str) -> bool {
     matches!(
         type_text,
         "Response" | "std.http.Response.Response" | "Response.Response"
+    )
+}
+
+/// Returns whether a return type denotes `std.http.Router.MiddlewareResult`.
+///
+/// Inputs:
+/// - `type_text`: source-like type annotation text.
+///
+/// Output:
+/// - `true` for simple or qualified middleware-result aliases.
+///
+/// Transformation:
+/// - Conservatively recognizes the closed continuation/response union until
+///   route extraction consumes fully resolved type identities.
+pub(super) fn is_middleware_result_type(type_text: &str) -> bool {
+    matches!(
+        type_text,
+        "MiddlewareResult" | "std.http.Router.MiddlewareResult" | "Router.MiddlewareResult"
     )
 }
 

@@ -2,7 +2,7 @@
 
 This directory owns the `terlc repl` command runtime. The implementation is
 centered on interactive session state, source-compatible entry parsing, seed
-module/project loading, CoreIR evaluator execution, and structured REPL events.
+module/project loading, native-image execution, and structured REPL events.
 
 ## Responsibilities
 
@@ -21,10 +21,13 @@ Public methods or values exposed to callers include `run`.
 
 ## Core Model
 
-The REPL maintains in-memory accumulated declarations and persistent value
-bindings. It evaluates expressions by generating a temporary Terlan module,
-compiling it through the formal compiler phases, then executing the generated
-CoreIR function through the compiler-owned evaluator in `evaluator.rs`.
+The REPL maintains accumulated declarations, persistent value bindings, and one
+persistent native compiler/runtime service. Each expression produces a
+synthetic Terlan module, compiles through the formal pipeline into one admitted
+native image, and executes on `PureNativeExecutionShard`. Scalar and managed
+values use the same path; executable CoreIR is never retained by the session.
+An unchanged source digest reuses the active shard, while changed source
+replaces its image through the supervised generation lifecycle.
 
 The main flow is:
 
@@ -34,7 +37,10 @@ The main flow is:
 4. Read one interactive line at a time.
 5. Dispatch REPL control commands, declarations, imports, or expression
    execution.
-6. Remove the temporary session directory when the session exits.
+6. Compile changed expression state into an admitted native image, or reuse the
+   active generation when its complete source digest is unchanged.
+7. Execute the selected export through the persistent native shard.
+8. Remove the temporary session directory when the session exits.
 
 Important invariants:
 
@@ -42,7 +48,8 @@ Important invariants:
 - `:load path` accepts one `.terl` file or a project directory with
   `terlan.toml`; project directories load only manifest-declared source roots.
 - Expressions are compiled through the same formal compiler path as files and
-  executed through the CoreIR evaluator.
+  must produce an admitted native image. Missing images or exports fail loudly.
+- The public command has no runtime selector or evaluator mode.
 - REPL-only value entries use `let name = expr.` and persist as ordinary
   generated Terlan `let` bindings for later expression evaluation.
 - Source-level type introspection uses implicit `type_of(value)` and
@@ -74,13 +81,14 @@ the lifetime of the interactive loop.
 
 ## Integration Points
 
-- `main.rs`: routes the command and currently owns shared compiler helper
-  functions.
+- `main.rs`: routes the command.
 - `terlan_syntax`: parses declarations, expressions, and formats generated
   modules.
-- Formal compiler phases: compile generated REPL modules before evaluation.
-- CoreIR evaluator: executes selected CoreIR expression and std effect hooks
-  without invoking a target runtime.
+- Formal compiler phases: compile generated REPL modules before image emission.
+- Native-image compiler: emits the generation's `.tvm` application image.
+- `PureNativeExecutionShard`: admits, executes, and replaces native REPL
+  generations.
+- `VmCodeServer`: records source generation publication and retirement events.
 
 ## Edge Cases
 
@@ -111,6 +119,20 @@ Declaration vector
 Value-binding vector
 : REPL-only session state entered with `let name = expr.` and lowered into
 ordinary Terlan `let` expressions for subsequent evaluation.
+
+`ReplCompilerService`
+: Session-owned native generation state containing at most one active admitted
+image and its execution shard.
+
+`ActiveReplGeneration`
+: Source digest, module/export identity, and the directly owned native shard.
+
+## Native-Only Gate
+
+`make tvm-aot-repl-consumer-check` executes scalar, floating-point, managed,
+unchanged-generation, and changed-generation fixtures. It also rejects runtime
+selectors, evaluator variants, serialized runtime artifacts, and worker-backed
+application execution from production REPL sources.
 
 ## Testing Notes
 

@@ -29,6 +29,9 @@ pub(super) fn static_response_from_handler(
     let body = signatures.get(&handler.function)?.body.as_ref()?;
     let response = constant_response_from_expr(body)?;
     Some(WebStaticResponseArtifact {
+        module: handler.module.clone(),
+        function: handler.function.clone(),
+        arity: handler.arity,
         method: handler.method.clone(),
         route: handler.route.clone(),
         status: response.status,

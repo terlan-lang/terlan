@@ -1,26 +1,41 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasText
  */
 module std.js.Dom.CanvasTextTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.CanvasText.{CanvasText}.
-
+import type std.js.Dom.CanvasText.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub fill_text_typechecks(receiver: CanvasText, text: JsString, x: JsNumber, y: JsNumber, max_width: JsNumber): Unit ->
+pub fill_text_typechecks(
+    receiver: CanvasText,
+    text: JsString,
+    x: JsNumber,
+    y: JsNumber,
+    max_width: JsNumber
+): Unit ->
     receiver.fill_text(text, x, y, max_width).
 
 pub measure_text_typechecks(receiver: CanvasText, text: JsString): TextMetrics ->
     receiver.measure_text(text).
 
-pub stroke_text_typechecks(receiver: CanvasText, text: JsString, x: JsNumber, y: JsNumber, max_width: JsNumber): Unit ->
+pub stroke_text_typechecks(
+    receiver: CanvasText,
+    text: JsString,
+    x: JsNumber,
+    y: JsNumber,
+    max_width: JsNumber
+): Unit ->
     receiver.stroke_text(text, x, y, max_width).

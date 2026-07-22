@@ -1,8 +1,8 @@
 module=std.js.Dom.UnderlyingSinkAbortCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=15741025753970608940
-interface_hash=15741025753970608940
-interface_doc_hash=15741025753970608940
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=14018882170681324099
+interface_hash=12678368196598998153
+interface_doc_hash=12678368196598998153
 deps=0

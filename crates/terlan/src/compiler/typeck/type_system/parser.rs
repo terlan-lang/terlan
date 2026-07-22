@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_syntax::unquote_single_quoted_atom;
+use crate::terlan_typeck::types::FixedArraySize;
 use crate::terlan_typeck::{atom_type_literal_payload, MapFieldType, Type, TypeAlias, TypeVarId};
 
 use super::text::{
@@ -61,6 +62,12 @@ pub(crate) fn parse_type_expr(
     }
     if src == "_" {
         return Some(Type::Placeholder);
+    }
+    if src == "true" {
+        return Some(Type::LiteralBool(true));
+    }
+    if src == "false" {
+        return Some(Type::LiteralBool(false));
     }
     if let Some(inner) = strip_wrapping_parens(&src) {
         return parse_type_expr(inner.trim(), aliases, vars, next_var);
@@ -126,16 +133,18 @@ pub(crate) fn parse_type_expr(
             }
 
             let size = parse_type_expr(first.trim(), aliases, vars, next_var)?;
-            if let Type::LiteralInt(size_value) = size {
-                let size = usize::try_from(size_value).ok()?;
-                let elem = parse_type_expr(second.trim(), aliases, vars, next_var)?;
-                return Some(Type::FixedArray {
-                    size,
-                    elem: Box::new(elem),
-                });
-            }
-
-            return None;
+            let size = match size {
+                Type::LiteralInt(size_value) => {
+                    FixedArraySize::Known(usize::try_from(size_value).ok()?)
+                }
+                Type::Var(id) => FixedArraySize::Param(id),
+                _ => return None,
+            };
+            let elem = parse_type_expr(second.trim(), aliases, vars, next_var)?;
+            return Some(Type::FixedArray {
+                size,
+                elem: Box::new(elem),
+            });
         }
 
         let args = split_top_level_csv(&args)
@@ -378,8 +387,8 @@ pub(crate) fn split_named_tuple_type_elem(input: &str) -> Option<(&str, &str)> {
 /// - Atom payload without source delimiters when the spelling is valid.
 ///
 /// Transformation:
-/// - Accepts canonical `Atom["name"]`, shorthand `:name`, and quoted
-///   interop atoms while rejecting empty or invalid constructor names.
+/// - Accepts canonical `Atom["name"]` plus legacy colon-prefixed spellings;
+///   syntax lowering canonicalizes the latter before interface emission.
 pub(crate) fn parse_type_atom_literal(input: &str) -> Option<String> {
     if let Some(atom) = atom_type_literal_payload(input) {
         return Some(atom);

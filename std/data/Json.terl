@@ -2,14 +2,12 @@
  * Portable JSON value contract.
  *
  * `std.data.Json` exposes JSON parsing, rendering, and typed accessors through
- * a target-neutral Terlan API. Its first backend is Rust/SafeNative with
+ * a target-neutral Terlan API. Its first backend is Rust/NativeBoundary with
  * `serde_json`, but source code sees only `Json`, `JsonError`, and `Result`.
  */
-
 module std.data.Json.
 
-import type std.core.Error.
-import type std.core.Result.
+import type std.core.{Error, Result}.
 
 /**
  * Json represents a parsed JSON value.

@@ -1,0 +1,80 @@
+//! Portable WebSocket channel contract.
+//!
+//! `std.http.WebSocket` exposes typed frame and endpoint builders for
+//! VM-owned WebSocket channels. The runtime owns socket lifecycle, frame
+//! parsing, backpressure, cancellation, and handler scheduling.
+
+module std.http.WebSocket.
+
+/// Endpoint represents one WebSocket route policy.
+///
+/// Input: inbound queue and frame-size settings.
+/// Output: an opaque endpoint plan consumed by router/runtime lowering.
+/// Transformation: keeps live connection state out of source values while
+/// allowing route declarations to install explicit WebSocket limits.
+
+pub opaque type Endpoint.
+
+/// Frame represents one outbound WebSocket data or control frame.
+///
+/// Input: typed text or control-frame metadata.
+/// Output: an opaque frame descriptor owned by the HTTP runtime.
+/// Transformation: hides raw WebSocket frame bytes while preserving typed
+/// handler code that can later be lowered into VM channel sends.
+
+pub opaque type Frame.
+
+/// Installs the complete generated callback set for an endpoint.
+///
+/// Input: one endpoint and static callbacks for open, inbound frame, writable,
+/// graceful close, and cancellation lifecycle events.
+/// Output: the endpoint with one callback set attached.
+/// Transformation: keeps callback identities in compiler-owned route metadata
+/// while the VM owns invocation, suspension, resumption, and cleanup.
+
+pub (endpoint: Endpoint) callbacks(open: () -> Unit, inbound: (String) -> Unit, writable: () -> Unit, close: () -> Unit, cancellation: (String) -> Unit): Endpoint.
+
+/// Creates an outbound close control frame.
+///
+/// Input: none.
+/// Output: a `Frame` with close control semantics.
+/// Transformation: records deterministic close intent while stream shutdown and
+/// cleanup remain VM-owned runtime behavior.
+
+pub close(): Frame.
+
+/// Creates a WebSocket endpoint plan.
+///
+/// Input: maximum pending inbound frame count and maximum accepted frame bytes.
+/// Output: an `Endpoint` plan for router lowering.
+/// Transformation: records explicit channel bounds for the VM HTTP runtime
+/// without allocating a live socket at source evaluation time.
+
+pub endpoint(max_pending_frames: Int = 128, max_frame_bytes: Int = 65536): Endpoint.
+
+/// Creates an outbound ping control frame.
+///
+/// Input: one UTF-8 ping payload.
+/// Output: a `Frame` with ping control semantics.
+/// Transformation: records typed ping intent while the VM runtime owns wire
+/// encoding and payload-size validation.
+
+pub ping(value: String): Frame.
+
+/// Creates an outbound pong control frame.
+///
+/// Input: one UTF-8 pong payload.
+/// Output: a `Frame` with pong control semantics.
+/// Transformation: records typed pong intent for heartbeat handlers without
+/// exposing protocol bytes.
+
+pub pong(value: String): Frame.
+
+/// Creates an outbound text frame.
+///
+/// Input: one UTF-8 text payload.
+/// Output: a `Frame` with text payload semantics.
+/// Transformation: delegates target frame construction to the VM WebSocket
+/// runtime without exposing raw opcode or masking details.
+
+pub text(value: String): Frame.

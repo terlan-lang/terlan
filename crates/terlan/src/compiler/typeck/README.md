@@ -9,6 +9,8 @@ compiler-path artifacts.
 
 - Validate expression, pattern, declaration, trait, constructor, and receiver
   method semantics.
+- Validate typed mobile bridge declarations before bridge metadata can be
+  emitted.
 - Load imported signatures and type aliases from module interfaces.
 - Enforce primitive surface and target-neutral type rules.
 - Lower checked modules toward CoreIR and proof-track artifacts.
@@ -16,6 +18,8 @@ compiler-path artifacts.
 ## Public Surface
 
 - `type_check_syntax_module_output`: type-checks a syntax module.
+- `mobile_bridge_validation`: adapts typed mobile bridge declarations into
+  typechecker diagnostics and validated bridge metadata.
 - CoreIR exports from `core_ir`.
 - Diagnostic, type, and pretty-printing exports from `types`.
 - Raw macro and unsupported raw declaration diagnostics.
@@ -40,6 +44,7 @@ Important invariants:
 - Target/backend-specific emission does not happen here.
 - Traits and receiver methods must remain coherent across imports and local
   declarations.
+- Mobile bridge metadata must be generated only after typechecker validation.
 
 Type-system layout:
 
@@ -77,7 +82,7 @@ Expression layout:
 
 - `terlan_syntax`: supplies source syntax output.
 - `terlan_hir`: supplies resolved symbols and module interfaces.
-- `terlan_erlang` and JS emitters: consume checked/CoreIR artifacts.
+- VM, JS, and native-boundary emitters: consume checked/CoreIR artifacts.
 - CLI commands: run type checking for check, build, test, and REPL paths.
 
 ## Edge Cases

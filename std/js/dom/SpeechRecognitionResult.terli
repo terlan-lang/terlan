@@ -1,0 +1,44 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SpeechRecognitionResult
+ */
+module std.js.Dom.SpeechRecognitionResult.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SpeechRecognitionResult`** interface of the Web Speech API represents a single recognition match, which may contain multiple SpeechRecognitionAlternative objects.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult)
+ */
+pub opaque type SpeechRecognitionResult.
+
+/**
+ * The **`isFinal`** read-only property of the whether this result is final (`true`) or not (`false`) — if so, then this is the final time this result will be returned; if not, then this result is an interim result, and may be updated later on.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult/isFinal)
+ */
+pub (value: SpeechRecognitionResult) is_final(): std.core.Bool.
+
+/**
+ * The **`length`** read-only property of the — the number of SpeechRecognitionAlternative objects contained in the result (also referred to as 'n-best alternatives'.) The number of alternatives contained in the result depends on what the recognition was first initiated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult/length)
+ */
+pub (value: SpeechRecognitionResult) length(): JsNumber.
+
+/**
+ * The **`item`** getter of the array syntax.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult/item)
+ */
+pub (value: SpeechRecognitionResult) item(index: JsNumber): SpeechRecognitionAlternative.

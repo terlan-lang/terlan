@@ -145,7 +145,7 @@ pub(super) fn validation_pass_report(tests: &[DiscoveredTest]) -> TestRunReport 
 /// - Human-readable test status lines written to stdout.
 ///
 /// Transformation:
-/// - Renders the same compact shape as the Erlang runner while adding
+/// - Renders the same compact shape as the Vm runner while adding
 ///   `(validated)` to make the non-runtime status explicit.
 pub(super) fn print_validation_pass_report(report: &TestRunReport, style: TestOutputStyle) {
     println!("running {} tests", report.results.len());
@@ -161,97 +161,6 @@ pub(super) fn print_validation_pass_report(report: &TestRunReport, style: TestOu
         style.success("ok"),
         report.passed
     );
-}
-
-/// Builds a report for literal boolean tests.
-///
-/// Inputs:
-/// - `tests`: discovered tests whose bodies were classified as literal bools.
-///
-/// Output:
-/// - `TestRunReport` with `true` tests passed and `false` tests failed.
-///
-/// Transformation:
-/// - Converts syntax-known literal results into the same report shape used by
-///   runtime backends, without compiling target artifacts.
-pub(super) fn literal_bool_report(tests: &[DiscoveredTest]) -> TestRunReport {
-    let mut passed = 0usize;
-    let mut failed = 0usize;
-    let mut results = Vec::new();
-    for test in tests {
-        let did_pass = test.literal_bool_result.unwrap_or(false);
-        if did_pass {
-            passed += 1;
-            results.push(TestRunResult {
-                name: test.name.clone(),
-                status: TestRunStatus::Passed,
-                message: Some("validated literal true without backend execution".to_string()),
-                span_start: test.span_start,
-                span_end: test.span_end,
-            });
-        } else {
-            failed += 1;
-            results.push(TestRunResult {
-                name: test.name.clone(),
-                status: TestRunStatus::Failed,
-                message: Some("literal false".to_string()),
-                span_start: test.span_start,
-                span_end: test.span_end,
-            });
-        }
-    }
-    TestRunReport {
-        passed,
-        failed,
-        results,
-    }
-}
-
-/// Prints a validation-only literal boolean report.
-///
-/// Inputs:
-/// - `report`: completed literal bool report.
-/// - `style`: terminal color policy for pass/fail labels.
-///
-/// Output:
-/// - Human-readable test runner output on stdout.
-///
-/// Transformation:
-/// - Mirrors runtime runner output while marking passing tests as validated
-///   instead of target-executed.
-pub(super) fn print_literal_bool_report(report: &TestRunReport, style: TestOutputStyle) {
-    println!("running {} tests", report.results.len());
-    for result in &report.results {
-        match result.status {
-            TestRunStatus::Passed => {
-                println!(
-                    "test {} ... {} (validated)",
-                    result.name,
-                    style.success("ok")
-                );
-            }
-            TestRunStatus::Failed => {
-                println!("test {} ... {}", result.name, style.failure("FAILED"));
-                if let Some(message) = result.message.as_deref() {
-                    println!("  {message}");
-                }
-            }
-        }
-    }
-    if report.failed == 0 {
-        println!(
-            "test result: {}. {} passed; 0 failed",
-            style.success("ok"),
-            report.passed
-        );
-    } else {
-        println!(
-            "test result: {}. {} passed; {} failed",
-            style.failure("FAILED"),
-            report.passed,
-            report.failed
-        );
-    }
 }
 
 /// Writes a source-level test manifest.
@@ -323,7 +232,7 @@ pub(super) fn write_test_manifest(
 /// - `module_name`: parsed Terlan module name.
 /// - `target`: selected test runner target.
 /// - `target_profile`: selected compiler target profile.
-/// - `report`: direct BEAM execution report.
+/// - `report`: direct VM execution report.
 ///
 /// Output:
 /// - `Ok(())` when deterministic JSON is written.

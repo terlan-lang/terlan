@@ -1,8 +1,8 @@
 module=std.js.Dom.OffscreenCanvasEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12209393290973783699
-interface_hash=11873599074715085723
-interface_doc_hash=11873599074715085723
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=12967919209146671968
+interface_hash=8683298941748201702
+interface_doc_hash=8683298941748201702
 deps=0

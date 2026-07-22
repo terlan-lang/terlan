@@ -18,6 +18,26 @@ pub(super) struct ParsedFieldKey {
 }
 
 impl Parser {
+    /// Decodes a map field key into its runtime string identity.
+    ///
+    /// Inputs:
+    /// - `token`: lower-case identifier or quoted string accepted as a map key.
+    ///
+    /// Output:
+    /// - The identifier spelling or decoded string payload.
+    ///
+    /// Transformation:
+    /// - Removes string delimiters and decodes escapes once at the parser
+    ///   boundary so map expressions, patterns, and runtime string keys share
+    ///   one canonical identity.
+    pub(super) fn map_field_key_text(token: &Token) -> Option<String> {
+        match token.kind {
+            TokenKind::Atom => Some(token.text.clone()),
+            TokenKind::String => parse_string_token_payload(&token.text),
+            _ => None,
+        }
+    }
+
     /// Parses a struct or record field key.
     ///
     /// Inputs:

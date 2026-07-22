@@ -389,6 +389,16 @@ fn formal_static_emit_copies_valid_json_artifact_template_asset() {
         fs::read_to_string(out_dir.join("data.terl.json")).expect("read copied json artifact"),
         "{ \"title\": \"Hello ${name}\", \"count\": 1 }\n"
     );
+    let telemetry: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(out_dir.join("data.terl.json.telemetry.json"))
+            .expect("read JSON artifact-template telemetry"),
+    )
+    .expect("decode JSON artifact-template telemetry");
+    assert_eq!(telemetry["target"], "json");
+    assert_eq!(telemetry["slots"][0]["expression"], "name");
+    assert_eq!(telemetry["slots"][0]["context"], "json-string");
+    assert_eq!(telemetry["slots"][0]["expected"], "scalar-text");
+    assert_eq!(telemetry["slots"][0]["line"], 1);
 }
 
 /// Verifies static emit rejects malformed JSON artifact-template imports.

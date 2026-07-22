@@ -1,0 +1,90 @@
+{
+  "schema": "terlan.binary-descriptor.v1",
+  "module": "std.binary.Binary",
+  "stage": "protocol-encoding",
+  "descriptors": [
+    {
+      "id": "uint",
+      "type": "UInt",
+      "canonical_example": "UInt[16]",
+      "runtime": "inert-descriptor",
+      "positive_tests": ["uint_descriptor_records_width"],
+      "adversarial_tests": ["zero_width_descriptor_is_rejected", "negative_width_descriptor_is_rejected"]
+    },
+    {
+      "id": "int_bits",
+      "type": "IntBits",
+      "canonical_example": "IntBits[32]",
+      "runtime": "inert-descriptor",
+      "positive_tests": ["int_bits_descriptor_records_width"],
+      "adversarial_tests": ["zero_width_descriptor_is_rejected", "negative_width_descriptor_is_rejected"]
+    },
+    {
+      "id": "bytes",
+      "type": "Bytes",
+      "canonical_example": "Bytes[4]",
+      "runtime": "inert-descriptor",
+      "positive_tests": ["bytes_descriptor_records_width"],
+      "adversarial_tests": ["zero_width_descriptor_is_rejected"]
+    },
+    {
+      "id": "bits",
+      "type": "Bits",
+      "canonical_example": "Bits[3]",
+      "runtime": "inert-descriptor",
+      "positive_tests": ["bits_descriptor_records_width", "decode_prefixed_body_decodes_adjacent_bit_spans", "encode_exact_roundtrips_adjacent_bit_spans"],
+      "adversarial_tests": ["negative_width_descriptor_is_rejected", "decode_prefixed_body_rejects_truncated_oversized_and_unaligned_fields", "encode_rejects_bitstring_width_mismatch_and_unaligned_output"]
+    },
+    {
+      "id": "rest",
+      "type": "Rest",
+      "canonical_example": "Rest",
+      "runtime": "terminal-inert-descriptor",
+      "positive_tests": ["rest_descriptor_is_terminal", "rest_descriptor_width_is_zero"],
+      "adversarial_tests": ["rest_descriptor_requires_zero_width", "rest_descriptor_must_be_terminal"]
+    },
+    {
+      "id": "protocol_field",
+      "type": "ProtocolField",
+      "canonical_example": "protocol_field(\"source_port\", make_uint(16))",
+      "runtime": "metadata-only",
+      "positive_tests": ["tcp_header_first_field_is_source_port_uint16", "custom_protocol_shape_preserves_declared_fields", "decode_prefixed_body_decodes_big_endian_scalars_and_body", "decode_prefixed_body_decodes_little_endian_signed_scalars", "decode_prefixed_body_decodes_fixed_byte_fields", "encode_exact_applies_little_endian_and_fixed_bytes"],
+      "adversarial_tests": ["protocol_shape_rejects_duplicate_field_names", "decode_prefixed_body_rejects_truncated_oversized_and_unaligned_fields", "encode_rejects_invalid_values_and_bit_value_types", "encode_rejects_bitstring_width_mismatch_and_unaligned_output"]
+    },
+    {
+      "id": "protocol_shape",
+      "type": "ProtocolShape",
+      "canonical_example": "protocol_shape(\"tcp_header\", BigEndian, fields, false)",
+      "runtime": "metadata-only",
+      "positive_tests": ["tcp_header_shape_records_expected_metadata", "compact_frame_shape_records_terminal_payload", "custom_protocol_shape_preserves_declared_fields", "protocol_shape_set_resolves_direct_and_alias_names", "protocol_shape_set_decodes_direct_and_alias_names", "protocol_shape_set_encodes_exact_alias_and_decodes_roundtrip", "compose_header_body_preserves_shape_metadata", "split_protocol_header_uses_fixed_shape_width", "split_protocol_header_stops_before_terminal_rest", "split_protocol_header_counts_byte_descriptors", "encode_exact_roundtrips_compact_frame", "encode_prefix_omits_terminal_body"],
+      "adversarial_tests": ["protocol_shape_rejects_multiple_rest_fields", "protocol_shape_rejects_non_terminal_rest_field", "protocol_shape_set_resolves_prefix_collisions_exactly", "compose_header_body_rejects_terminal_rest_header", "compose_header_body_rejects_mixed_endian_shapes", "split_protocol_header_rejects_unaligned_shapes", "split_protocol_header_rejects_short_frames", "split_protocol_header_rejects_invalid_shapes_before_slicing", "encode_rejects_invalid_values_and_bit_value_types", "encode_rejects_bitstring_width_mismatch_and_unaligned_output"]
+    },
+    {
+      "id": "protocol_shape_alias",
+      "type": "ProtocolShapeAlias",
+      "canonical_example": "protocol_shape_alias(\"current\", \"compact_frame\")",
+      "runtime": "metadata-only",
+      "positive_tests": ["protocol_shape_set_preserves_declaration_order", "protocol_shape_set_resolves_direct_and_alias_names"],
+      "adversarial_tests": ["protocol_shape_set_rejects_duplicate_and_colliding_aliases", "protocol_shape_set_rejects_invalid_alias_metadata", "protocol_shape_set_rejects_alias_chains_and_missing_targets"]
+    },
+    {
+      "id": "protocol_shape_set",
+      "type": "ProtocolShapeSet",
+      "canonical_example": "protocol_shape_set(\"wire\", shapes, aliases)",
+      "runtime": "metadata-only",
+      "positive_tests": ["protocol_shape_set_preserves_declaration_order", "protocol_shape_set_resolves_direct_and_alias_names", "protocol_shape_set_resolves_prefix_collisions_exactly", "protocol_shape_set_decodes_direct_and_alias_names", "protocol_shape_set_encodes_exact_alias_and_decodes_roundtrip", "protocol_shape_set_encodes_prefix_for_direct_and_alias_names"],
+      "adversarial_tests": ["protocol_shape_set_rejects_missing_metadata", "protocol_shape_set_rejects_duplicate_direct_names", "protocol_shape_set_reports_unknown_resolution", "protocol_shape_set_codecs_reject_unknown_names"]
+    }
+  ],
+  "unsupported_runtime_tests": [
+    "decode_exact_returns_typed_unsupported_runtime",
+    "decode_prefix_returns_typed_unsupported_runtime",
+    "construct_returns_typed_unsupported_runtime"
+  ],
+  "coverage_inventories": [
+    "std/RELEASE_MANIFEST.tsv",
+    "tests/std/RELEASE_API_TESTS.tsv",
+    "std/summaries/std.binary.Binary.typi"
+  ],
+  "gate": "binary-descriptor-check"
+}

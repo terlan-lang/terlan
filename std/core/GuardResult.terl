@@ -1,0 +1,116 @@
+/**
+ * Core comprehension guard-result contract value.
+ *
+ * `std.core.GuardResult` defines the opt-in contract used by effectful
+ * comprehension filters. `Bool` and `Pure` remain built-in completed results;
+ * every deferred result declares the unary container that lifts the complete
+ * comprehension.
+ */
+module std.core.GuardResult.
+
+import std.core.Effect.
+
+/**
+ * Pure represents a completed guard decision.
+ *
+ * Input: one boolean guard decision.
+ * Output: a tagged guard-result descriptor.
+ * Transformation: records whether a comprehension candidate should be kept
+ * without scheduling runtime work.
+ */
+pub type Pure = {Atom["guard_result"], value: Bool}.
+
+/**
+ * GuardResult represents a completed pure guard decision.
+ *
+ * Input: none beyond the boolean carried by `Pure`.
+ * Output: source-facing guard-result contract value.
+ * Transformation: keeps the current 0.0.7 surface pure while reserving the
+ * same module for later effectful guard-result adapters.
+ */
+pub type Completed = Pure.
+
+/**
+ * GuardResult declares how a deferred guard result lifts a comprehension.
+ *
+ * Input: result type `R` and unary lift container `F`.
+ * Output: one `F[Bool]` decision consumed by the VM scheduler.
+ * Transformation: makes effectful filtering an ordinary trait opt-in instead
+ * of giving `Effect[Bool]` or any other container privileged syntax.
+ */
+pub trait GuardResult[R, F[_]] {
+    into_guard(result: R): F[Bool].
+}.
+
+/**
+ * The standard effect descriptor explicitly opts into comprehension guards.
+ */
+pub impl GuardResult[Effect[Bool], std.core.Effect.Effect] for Effect[Bool] {
+    into_guard(result: Effect[Bool]): Effect[Bool] ->
+        result.
+}.
+
+/**
+ * Converts a boolean into a guard-result value.
+ *
+ * Input: one boolean guard decision.
+ * Output: completed guard-result descriptor.
+ * Transformation: wraps the decision without changing its truth value.
+ */
+pub from_bool(value: Bool): Completed ->
+    {Atom["guard_result"], value}.
+
+/**
+ * Creates an accepting guard result.
+ *
+ * Input: none.
+ * Output: completed guard-result descriptor whose value is `true`.
+ * Transformation: records that the current comprehension candidate should be
+ * kept.
+ */
+pub accept(): Completed -> {Atom["guard_result"], true}.
+
+/**
+ * Creates a rejecting guard result.
+ *
+ * Input: none.
+ * Output: completed guard-result descriptor whose value is `false`.
+ * Transformation: records that the current comprehension candidate should be
+ * filtered out.
+ */
+pub reject(): Completed -> {Atom["guard_result"], false}.
+
+/**
+ * Reads the boolean decision from a completed guard result.
+ *
+ * Input: one completed guard-result descriptor.
+ * Output: contained boolean decision.
+ * Transformation: unwraps the descriptor without crossing a runtime execution
+ * boundary.
+ */
+pub value(result: Completed): Bool ->
+    case result {
+        {Atom["guard_result"], decision} -> decision
+    }.
+
+/**
+ * Combines two completed guard results with boolean conjunction.
+ *
+ * Input: two completed guard-result descriptors.
+ * Output: completed descriptor that accepts only when both inputs accept.
+ * Transformation: preserves ordinary comprehension filter ordering for pure
+ * guard decisions.
+ */
+pub both(left: Completed, right: Completed): Completed ->
+    {Atom["guard_result"], value(left) and value(right)}.
+
+/**
+ * Combines two completed guard results with boolean disjunction.
+ *
+ * Input: two completed guard-result descriptors.
+ * Output: completed descriptor that accepts when either input accepts.
+ * Transformation: preserves ordinary boolean guard composition inside the
+ * guard-result contract.
+ */
+pub either(left: Completed, right: Completed): Completed ->
+    {Atom["guard_result"], value(left) or value(right)}.

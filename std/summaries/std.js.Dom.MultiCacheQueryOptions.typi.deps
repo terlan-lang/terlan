@@ -1,8 +1,8 @@
 module=std.js.Dom.MultiCacheQueryOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=9515288016291263189
-interface_hash=11602302541232727413
-interface_doc_hash=11602302541232727413
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4476413118515181101
+interface_hash=10294363537153566391
+interface_doc_hash=10294363537153566391
 deps=0

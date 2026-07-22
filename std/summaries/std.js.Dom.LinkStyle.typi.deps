@@ -1,8 +1,8 @@
 module=std.js.Dom.LinkStyle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=6207738656434913440
-interface_hash=10086992274072504874
-interface_doc_hash=10086992274072504874
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3631269563760825989
+interface_hash=1191167042352192080
+interface_doc_hash=1191167042352192080
 deps=0

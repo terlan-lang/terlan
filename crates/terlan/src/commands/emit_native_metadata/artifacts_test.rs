@@ -9,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// - None.
 ///
 /// Output:
-/// - Static SafeNative metadata with one native function signature.
+/// - Static NativeBoundary metadata with one native function signature.
 ///
 /// Transformation:
 /// - Constructs the smallest metadata object that exercises function-list
@@ -17,9 +17,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 fn sample_metadata() -> NativeMetadata {
     NativeMetadata {
         source_module: "app.Native".to_string(),
-        native_module: "app_native_safe_native".to_string(),
+        native_module: "app_native_native_boundary".to_string(),
         scheduler: "dirty_cpu".to_string(),
-        native_policy: NativePolicy::SafeNativeOptional,
+        native_policy: NativePolicy::NativeBoundaryOptional,
         functions: vec![NativeFunctionSignature {
             name: "work".to_string(),
             arity: 1,
@@ -45,7 +45,7 @@ fn temp_output_dir(name: &str) -> std::path::PathBuf {
         .map(|duration| duration.as_nanos())
         .unwrap_or(0);
     std::env::temp_dir().join(format!(
-        "terlan_safe_native_{name}_{}_{}",
+        "terlan_native_boundary_{name}_{}_{}",
         std::process::id(),
         now
     ))
@@ -63,7 +63,7 @@ fn temp_output_dir(name: &str) -> std::path::PathBuf {
 /// - Embeds the real std module so metadata tests cover the release
 ///   contract instead of a synthetic duplicate.
 fn json_std_source() -> &'static str {
-    include_str!("../../../../../std/data/json.terl")
+    include_str!("../../../../../std/data/Json.terl")
 }
 
 /// Returns the Rust-backed Base64 std source contract.
@@ -75,10 +75,10 @@ fn json_std_source() -> &'static str {
 /// - Static source text for `std.encoding.Base64`.
 ///
 /// Transformation:
-/// - Embeds the real std module so SafeNative metadata extraction is
+/// - Embeds the real std module so NativeBoundary metadata extraction is
 ///   checked against the release-owned source.
 fn base64_std_source() -> &'static str {
-    include_str!("../../../../../std/encoding/base64.terl")
+    include_str!("../../../../../std/encoding/Base64.terl")
 }
 
 /// Returns the Rust-backed Path std source contract.
@@ -93,7 +93,7 @@ fn base64_std_source() -> &'static str {
 /// - Embeds the real std module so receiver-method operation arities are
 ///   checked against the release-owned source.
 fn path_std_source() -> &'static str {
-    include_str!("../../../../../std/io/path.terl")
+    include_str!("../../../../../std/io/Path.terl")
 }
 
 /// Returns the Rust-backed URI std source contract.
@@ -105,10 +105,10 @@ fn path_std_source() -> &'static str {
 /// - Static source text for `std.net.Uri`.
 ///
 /// Transformation:
-/// - Embeds the real std module so SafeNative metadata extraction is
+/// - Embeds the real std module so NativeBoundary metadata extraction is
 ///   checked against the release-owned source.
 fn uri_std_source() -> &'static str {
-    include_str!("../../../../../std/net/uri.terl")
+    include_str!("../../../../../std/net/Uri.terl")
 }
 
 /// Returns the Rust-backed HTTP request std source contract.
@@ -120,10 +120,10 @@ fn uri_std_source() -> &'static str {
 /// - Static source text for `std.http.Request`.
 ///
 /// Transformation:
-/// - Embeds the real std module so SafeNative metadata extraction is checked
+/// - Embeds the real std module so NativeBoundary metadata extraction is checked
 ///   against the release-owned request helper source.
 fn http_request_std_source() -> &'static str {
-    include_str!("../../../../../std/http/request.terl")
+    include_str!("../../../../../std/http/Request.terl")
 }
 
 /// Returns the Rust-backed HTTP cookies std source contract.
@@ -135,10 +135,10 @@ fn http_request_std_source() -> &'static str {
 /// - Static source text for `std.http.Cookies`.
 ///
 /// Transformation:
-/// - Embeds the real std module so SafeNative metadata extraction is checked
+/// - Embeds the real std module so NativeBoundary metadata extraction is checked
 ///   against the release-owned cookie helper source.
 fn http_cookies_std_source() -> &'static str {
-    include_str!("../../../../../std/http/cookies.terl")
+    include_str!("../../../../../std/http/Cookies.terl")
 }
 
 /// Returns the Rust-backed HTTP response std source contract.
@@ -150,10 +150,10 @@ fn http_cookies_std_source() -> &'static str {
 /// - Static source text for `std.http.Response`.
 ///
 /// Transformation:
-/// - Embeds the real std module so SafeNative metadata extraction is checked
+/// - Embeds the real std module so NativeBoundary metadata extraction is checked
 ///   against the release-owned response helper source.
 fn http_response_std_source() -> &'static str {
-    include_str!("../../../../../std/http/response.terl")
+    include_str!("../../../../../std/http/Response.terl")
 }
 
 /// Returns the Rust-backed Postgres std source contract.
@@ -165,16 +165,16 @@ fn http_response_std_source() -> &'static str {
 /// - Static source text for `std.db.Postgres`.
 ///
 /// Transformation:
-/// - Embeds the real std module so SafeNative metadata extraction is checked
+/// - Embeds the real std module so NativeBoundary metadata extraction is checked
 ///   against the release-owned database helper source.
 fn postgres_std_source() -> &'static str {
-    include_str!("../../../../../std/db/postgres.terl")
+    include_str!("../../../../../std/db/Postgres.terl")
 }
 
 /// Asserts that metadata contains one native operation signature.
 ///
 /// Inputs:
-/// - `metadata`: extracted SafeNative metadata.
+/// - `metadata`: extracted NativeBoundary metadata.
 /// - `name`: expected Terlan function or method name.
 /// - `arity`: expected backend arity, including receiver when present.
 /// - `operation`: expected compiler-native operation id.
@@ -216,13 +216,13 @@ native core module NativeArray {
     length[T](items: List[T]): Int.
 }
 "#;
-    let err = extract_native_metadata(source, NativePolicy::SafeNativeOptional)
+    let err = extract_native_metadata(source, NativePolicy::NativeBoundaryOptional)
         .expect_err("native core module should not be a CLI artifact input");
 
     assert!(err.contains("@compiler.native"));
 }
 
-/// Verifies compiler-native annotations produce SafeNative metadata.
+/// Verifies compiler-native annotations produce NativeBoundary metadata.
 ///
 /// Inputs:
 /// - Real `std.data.Json` source text.
@@ -240,9 +240,9 @@ fn compiler_native_metadata_extracts_std_json_operations() {
         extract_native_metadata(json_std_source(), NativePolicy::Pure).expect("metadata");
 
     assert_eq!(metadata.source_module, "std.data.Json");
-    assert_eq!(metadata.native_module, "std_data_json_safe_native");
+    assert_eq!(metadata.native_module, "std_data_json_native_boundary");
     assert_eq!(metadata.scheduler, "normal");
-    assert_eq!(metadata.native_policy, NativePolicy::SafeNativeOptional);
+    assert_eq!(metadata.native_policy, NativePolicy::NativeBoundaryOptional);
     assert_eq!(metadata.functions.len(), 19);
     assert!(metadata.functions.contains(&NativeFunctionSignature {
         name: "parse".to_string(),
@@ -281,7 +281,7 @@ fn compiler_native_metadata_extracts_std_json_operations() {
 /// - Extracted metadata with one deduplicated operation signature.
 ///
 /// Transformation:
-/// - Exercises SafeNative metadata extraction before JSON/Rust rendering so
+/// - Exercises NativeBoundary metadata extraction before JSON/Rust rendering so
 ///   overloaded source APIs do not produce duplicate backend dispatch arms.
 #[test]
 fn compiler_native_metadata_deduplicates_identical_overload_operations() {
@@ -309,7 +309,7 @@ pub html(value: Html, status: Int = 200): Response ->\n\
     );
 }
 
-/// Verifies every Rust-backed std module enters SafeNative metadata.
+/// Verifies every Rust-backed std module enters NativeBoundary metadata.
 ///
 /// Inputs:
 /// - Real source contracts for JSON, Base64, Path, URI, and HTTP.
@@ -326,7 +326,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         (
             "std.data.Json",
             json_std_source(),
-            "std_data_json_safe_native",
+            "std_data_json_native_boundary",
             19,
             &[
                 ("null", 0, "std.data.json.null"),
@@ -353,19 +353,31 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         (
             "std.encoding.Base64",
             base64_std_source(),
-            "std_encoding_base64_safe_native",
-            4,
+            "std_encoding_base64_native_boundary",
+            8,
             &[
                 ("encode", 1, "std.encoding.base64.encode"),
                 ("decode", 1, "std.encoding.base64.decode"),
                 ("encode_url", 1, "std.encoding.base64.encode_url"),
                 ("decode_url", 1, "std.encoding.base64.decode_url"),
+                ("encode_bytes", 1, "std.encoding.base64.encode_bytes"),
+                ("decode_bytes", 1, "std.encoding.base64.decode_bytes"),
+                (
+                    "encode_url_bytes",
+                    1,
+                    "std.encoding.base64.encode_url_bytes",
+                ),
+                (
+                    "decode_url_bytes",
+                    1,
+                    "std.encoding.base64.decode_url_bytes",
+                ),
             ],
         ),
         (
             "std.io.Path",
             path_std_source(),
-            "std_io_path_safe_native",
+            "std_io_path_native_boundary",
             7,
             &[
                 ("from_string", 1, "std.io.path.from_string"),
@@ -380,7 +392,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         (
             "std.net.Uri",
             uri_std_source(),
-            "std_net_uri_safe_native",
+            "std_net_uri_native_boundary",
             7,
             &[
                 ("parse", 1, "std.net.uri.parse"),
@@ -395,7 +407,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         (
             "std.http.Request",
             http_request_std_source(),
-            "std_http_request_safe_native",
+            "std_http_request_native_boundary",
             10,
             &[
                 ("method", 1, "std.http.request.method"),
@@ -413,7 +425,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         (
             "std.http.Cookies",
             http_cookies_std_source(),
-            "std_http_cookies_safe_native",
+            "std_http_cookies_native_boundary",
             6,
             &[
                 ("get", 2, "std.http.cookies.get"),
@@ -431,14 +443,15 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         (
             "std.http.Response",
             http_response_std_source(),
-            "std_http_response_safe_native",
-            9,
+            "std_http_response_native_boundary",
+            11,
             &[
                 ("json", 2, "std.http.response.json"),
                 ("json_text", 2, "std.http.response.json_text"),
                 ("text", 2, "std.http.response.text"),
                 ("html", 2, "std.http.response.html"),
                 ("file", 3, "std.http.response.file"),
+                ("stream", 5, "std.http.response.stream"),
                 ("redirect", 2, "std.http.response.redirect"),
                 ("status", 2, "std.http.response.status"),
                 ("header", 3, "std.http.response.header"),
@@ -447,12 +460,13 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                     2,
                     "std.http.response.set_cookie_header",
                 ),
+                ("with_cookies", 2, "std.http.response.with_cookies"),
             ],
         ),
         (
             "std.db.Postgres",
             postgres_std_source(),
-            "std_db_postgres_safe_native",
+            "std_db_postgres_native_boundary",
             9,
             &[
                 ("connect", 1, "std.db.postgres.connect"),
@@ -473,7 +487,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         assert_eq!(metadata.source_module, source_module);
         assert_eq!(metadata.native_module, native_module);
         assert_eq!(metadata.scheduler, "normal");
-        assert_eq!(metadata.native_policy, NativePolicy::SafeNativeOptional);
+        assert_eq!(metadata.native_policy, NativePolicy::NativeBoundaryOptional);
         assert_eq!(metadata.functions.len(), operation_count);
         for (name, arity, operation) in operations {
             assert_operation(&metadata, name, *arity, operation);
@@ -490,7 +504,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
 /// - Filesystem and metadata assertions.
 ///
 /// Transformation:
-/// - Emits SafeNative artifacts from compiler-native annotations and checks
+/// - Emits NativeBoundary artifacts from compiler-native annotations and checks
 ///   that the generated JSON and Rust stub preserve operation ids.
 #[test]
 fn emit_native_artifacts_writes_compiler_native_std_files() {
@@ -499,13 +513,13 @@ fn emit_native_artifacts_writes_compiler_native_std_files() {
     emit_native_artifacts(
         json_std_source(),
         &out_dir,
-        NativePolicy::SafeNativeOptional,
+        NativePolicy::NativeBoundaryOptional,
         false,
     )
-    .expect("compiler-native safe native artifacts should emit");
+    .expect("compiler-native native boundary artifacts should emit");
 
-    let metadata_path = out_dir.join("std.data.Json.safe_native.json");
-    let rust_stub_path = out_dir.join("std_data_json_safe_native.safe_native.rs");
+    let metadata_path = out_dir.join("std.data.Json.native_boundary.json");
+    let rust_stub_path = out_dir.join("std_data_json_native_boundary.native_boundary.rs");
     assert!(metadata_path.exists());
     assert!(rust_stub_path.exists());
 
@@ -530,14 +544,14 @@ fn emit_native_artifacts_writes_compiler_native_std_files() {
 ///
 /// Transformation:
 /// - Guards against regressions to hand-built JSON string interpolation in
-///   SafeNative metadata.
+///   NativeBoundary metadata.
 #[test]
 fn native_metadata_to_json_round_trips_escaped_strings() {
     let metadata = NativeMetadata {
         source_module: "std.data.Json\nSource".to_string(),
         native_module: "std.data.Json\"Native".to_string(),
         scheduler: "safe\\native".to_string(),
-        native_policy: NativePolicy::SafeNativeOptional,
+        native_policy: NativePolicy::NativeBoundaryOptional,
         functions: vec![NativeFunctionSignature {
             name: "parse\tvalue".to_string(),
             arity: 1,
@@ -558,7 +572,7 @@ fn native_metadata_to_json_round_trips_escaped_strings() {
     );
 }
 
-/// Verifies the generated Rust SafeNative stub carries the bridge contract.
+/// Verifies the generated Rust NativeBoundary stub carries the bridge contract.
 ///
 /// Inputs:
 /// - Representative native metadata.
@@ -571,26 +585,26 @@ fn native_metadata_to_json_round_trips_escaped_strings() {
 ///   request ids, credit reporting, explicit disposal, and stale-handle
 ///   errors.
 #[test]
-fn safe_native_rust_stub_contains_actor_bridge_contract() {
-    let stub = emit_safe_native_rust_stub(&sample_metadata());
+fn native_boundary_rust_stub_contains_actor_bridge_contract() {
+    let stub = emit_native_boundary_rust_stub(&sample_metadata());
 
-    assert!(stub.contains("pub struct SafeNativeHandle"));
-    assert!(stub.contains("pub struct SafeNativeReply"));
-    assert!(stub.contains("pub struct SafeNativeWorker"));
+    assert!(stub.contains("pub struct NativeBoundaryHandle"));
+    assert!(stub.contains("pub struct NativeBoundaryReply"));
+    assert!(stub.contains("pub struct NativeBoundaryWorker"));
     assert!(stub.contains("Text(String)"));
     assert!(stub.contains("Int(i64)"));
     assert!(stub.contains("Float(f64)"));
     assert!(stub.contains("Bool(bool)"));
     assert!(stub.contains("OptionalText(Option<String>)"));
-    assert!(stub.contains("OptionalHandle(Option<SafeNativeHandle>)"));
+    assert!(stub.contains("OptionalHandle(Option<NativeBoundaryHandle>)"));
     assert!(stub.contains("request_id: u64"));
     assert!(stub.contains("credits: usize"));
     assert!(stub.contains("offset: usize"));
     assert!(stub.contains("Register { request_id"));
     assert!(stub.contains("Call { request_id"));
-    assert!(stub.contains("args: Vec<SafeNativeValue>"));
+    assert!(stub.contains("args: Vec<NativeBoundaryValue>"));
     assert!(stub.contains("validate_args(&resources, &args)"));
-    assert!(stub.contains("SafeNativeValue::OptionalHandle(Some(handle))"));
+    assert!(stub.contains("NativeBoundaryValue::OptionalHandle(Some(handle))"));
     assert!(stub.contains("native_operation_unimplemented"));
     assert!(stub.contains("native_operation_unknown"));
     assert!(stub.contains("\"work\" => native_unimplemented_operation(operation)"));
@@ -599,7 +613,7 @@ fn safe_native_rust_stub_contains_actor_bridge_contract() {
     assert!(stub.contains("DEFAULT_CREDIT_WINDOW"));
 }
 
-/// Verifies the generated Rust SafeNative stub passes unsafe-pattern checks.
+/// Verifies the generated Rust NativeBoundary stub passes unsafe-pattern checks.
 ///
 /// Inputs:
 /// - Representative native metadata.
@@ -609,15 +623,15 @@ fn safe_native_rust_stub_contains_actor_bridge_contract() {
 ///
 /// Transformation:
 /// - Renders the same stub used by artifact emission and runs the
-///   conservative SafeNative unsafe-pattern scanner.
+///   conservative NativeBoundary unsafe-pattern scanner.
 #[test]
-fn safe_native_rust_stub_satisfies_validator() {
-    let stub = emit_safe_native_rust_stub(&sample_metadata());
+fn native_boundary_rust_stub_satisfies_validator() {
+    let stub = emit_native_boundary_rust_stub(&sample_metadata());
 
-    validate_safe_native_rust_stub(&stub).expect("generated stub should satisfy validator");
+    validate_native_boundary_rust_stub(&stub).expect("generated stub should satisfy validator");
 }
 
-/// Verifies the generated Rust SafeNative stub compiles as a library.
+/// Verifies the generated Rust NativeBoundary stub compiles as a library.
 ///
 /// Inputs:
 /// - Representative native metadata and a temporary Rust source path.
@@ -629,13 +643,16 @@ fn safe_native_rust_stub_satisfies_validator() {
 /// - Writes the generated stub to a temporary `.rs` file, compiles it with
 ///   an explicit crate name, and reports compiler stderr on failure.
 #[test]
-fn safe_native_rust_stub_compiles_as_library() {
-    let out_dir = temp_output_dir("safe_native_rust_stub_compile");
-    let stub_path = out_dir.join("safe_native_stub.rs");
-    let output_path = out_dir.join("safe_native_stub.rlib");
+fn native_boundary_rust_stub_compiles_as_library() {
+    let out_dir = temp_output_dir("native_boundary_rust_stub_compile");
+    let stub_path = out_dir.join("native_boundary_stub.rs");
+    let output_path = out_dir.join("native_boundary_stub.rlib");
     fs::create_dir_all(&out_dir).expect("create generated rustc test directory");
-    fs::write(&stub_path, emit_safe_native_rust_stub(&sample_metadata()))
-        .expect("write generated safe native rust stub");
+    fs::write(
+        &stub_path,
+        emit_native_boundary_rust_stub(&sample_metadata()),
+    )
+    .expect("write generated native boundary rust stub");
 
     let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| std::ffi::OsString::from("rustc"));
     let output = Command::new(rustc)
@@ -643,185 +660,24 @@ fn safe_native_rust_stub_compiles_as_library() {
             "--crate-type",
             "lib",
             "--crate-name",
-            "safe_native_stub_check",
+            "native_boundary_stub_check",
         ])
         .arg(&stub_path)
         .arg("-o")
         .arg(&output_path)
         .output()
-        .expect("run rustc for generated safe native rust stub");
+        .expect("run rustc for generated native boundary rust stub");
 
     assert!(
         output.status.success(),
-        "rustc failed for generated SafeNative stub:\n{}",
+        "rustc failed for generated NativeBoundary stub:\n{}",
         String::from_utf8_lossy(&output.stderr)
     );
 
     fs::remove_dir_all(out_dir).expect("remove generated rustc test directory");
 }
 
-/// Verifies the generated Erlang loader uses the neutral SafeNative path.
-///
-/// Inputs:
-/// - Representative native metadata.
-///
-/// Output:
-/// - Test assertions over generated Erlang source text.
-///
-/// Transformation:
-/// - Renders the BEAM loader stub and confirms the public environment
-///   variable uses SafeNative naming rather than NIF-specific naming.
-#[test]
-fn safe_native_erl_stub_uses_neutral_loader_env_var() {
-    let stub = emit_safe_native_erl_stub(&sample_metadata());
-
-    assert!(stub.contains("TERLAN_SAFE_NATIVE_PATH"));
-    assert!(!stub.contains("TERLAN_SAFE_NIF_PATH"));
-    assert!(!stub.contains("erlang:load_nif"));
-    assert!(!stub.contains("erlang:nif_error"));
-    assert!(!stub.contains("nif_not_loaded"));
-}
-
-/// Verifies the generated Erlang loader exposes the worker transport ABI.
-///
-/// Inputs:
-/// - Representative native metadata.
-///
-/// Output:
-/// - Test assertions over generated Erlang source text.
-///
-/// Transformation:
-/// - Renders the BEAM loader stub and checks for stable metadata,
-///   operation inventory, and worker command placeholder exports.
-#[test]
-fn safe_native_erl_stub_contains_worker_transport_contract() {
-    let stub = emit_safe_native_erl_stub(&sample_metadata());
-
-    assert!(stub.contains("-export([load/0, metadata/0, operations/0])."));
-    assert!(
-        stub.contains("-export([start_worker/1, call_worker/3, dispose_worker/2, stop_worker/1]).")
-    );
-    assert!(stub.contains("metadata() ->"));
-    assert!(stub.contains("source_module => <<\"app.Native\">>"));
-    assert!(stub.contains("native_module => <<\"app_native_safe_native\">>"));
-    assert!(stub.contains("operations() ->"));
-    assert!(stub.contains("{<<\"work\">>, <<\"work\">>, 1}"));
-    assert!(stub.contains("start_worker(Options) ->"));
-    assert!(stub.contains("call_worker(RequestId, Operation, Args)"));
-    assert!(stub.contains("dispose_worker(RequestId, _Handle)"));
-    assert!(stub.contains("stop_worker(_Bridge) ->"));
-    assert!(stub.contains("safe_native_not_loaded_error() ->"));
-    assert!(stub.contains("safe_native.not_loaded"));
-    assert!(stub.contains("work(A1) ->\n    call_operation(<<\"work\">>, [A1])."));
-    assert!(stub.contains("{safe_native_reply, RequestId, {error, Error}, 0}"));
-    assert!(stub.contains("[<<\"result_ok_string\">>, Value]"));
-    assert!(stub.contains("[<<\"result_ok_int\">>, Value]"));
-}
-
-/// Verifies the generated Erlang SafeNative loader compiles.
-///
-/// Inputs:
-/// - Representative native metadata and a temporary Erlang source path.
-///
-/// Output:
-/// - Test passes when `erlc` accepts the generated loader module.
-///
-/// Transformation:
-/// - Writes the generated loader to a temporary `.erl` file, compiles it
-///   into the same directory, and reports compiler output on failure.
-#[test]
-fn safe_native_erl_stub_compiles_as_module() {
-    let metadata = sample_metadata();
-    let out_dir = temp_output_dir("safe_native_erl_stub_compile");
-    fs::create_dir_all(&out_dir).expect("create generated erlc test directory");
-    let stub_path = out_dir.join(format!("{}.erl", metadata.native_module));
-    fs::write(&stub_path, emit_safe_native_erl_stub(&metadata))
-        .expect("write generated safe native erlang stub");
-
-    let erlc = std::env::var_os("ERLC").unwrap_or_else(|| std::ffi::OsString::from("erlc"));
-    let output = Command::new(erlc)
-        .arg("-o")
-        .arg(&out_dir)
-        .arg(&stub_path)
-        .output()
-        .expect("run erlc for generated safe native erlang stub");
-
-    assert!(
-        output.status.success(),
-        "erlc failed for generated SafeNative stub:\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    fs::remove_dir_all(out_dir).expect("remove generated erlc test directory");
-}
-
-/// Verifies the generated Erlang loader metadata runs without a native path.
-///
-/// Inputs:
-/// - Representative native metadata and a temporary Erlang build directory.
-///
-/// Output:
-/// - Test passes when `erl` can call `metadata/0` and `operations/0`.
-///
-/// Transformation:
-/// - Compiles the generated loader, removes the SafeNative library path
-///   environment variable, loads the BEAM module in a VM, and checks the
-///   runtime output for the expected metadata and operation inventory.
-#[test]
-fn safe_native_erl_stub_metadata_runs_without_native_library() {
-    let metadata = sample_metadata();
-    let out_dir = temp_output_dir("safe_native_erl_stub_runtime");
-    fs::create_dir_all(&out_dir).expect("create generated erl runtime test directory");
-    let stub_path = out_dir.join(format!("{}.erl", metadata.native_module));
-    fs::write(&stub_path, emit_safe_native_erl_stub(&metadata))
-        .expect("write generated safe native erlang stub");
-
-    let erlc = std::env::var_os("ERLC").unwrap_or_else(|| std::ffi::OsString::from("erlc"));
-    let compile_output = Command::new(erlc)
-        .arg("-o")
-        .arg(&out_dir)
-        .arg(&stub_path)
-        .output()
-        .expect("run erlc for generated safe native erlang stub");
-    assert!(
-        compile_output.status.success(),
-        "erlc failed for generated SafeNative stub:\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&compile_output.stdout),
-        String::from_utf8_lossy(&compile_output.stderr)
-    );
-
-    let eval = format!(
-            "M = {}:metadata(), Ops = {}:operations(), Reply = {}:call_worker(7, <<\"work\">>, []), io:format(\"~p~n~p~n~p~n\", [M, Ops, Reply]), halt().",
-            metadata.native_module, metadata.native_module, metadata.native_module
-        );
-    let erl = std::env::var_os("ERL").unwrap_or_else(|| std::ffi::OsString::from("erl"));
-    let runtime_output = Command::new(erl)
-        .arg("-noshell")
-        .arg("-pa")
-        .arg(&out_dir)
-        .arg("-eval")
-        .arg(eval)
-        .env_remove("TERLAN_SAFE_NATIVE_PATH")
-        .output()
-        .expect("run erl for generated safe native erlang stub");
-    assert!(
-        runtime_output.status.success(),
-        "erl failed for generated SafeNative stub:\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&runtime_output.stdout),
-        String::from_utf8_lossy(&runtime_output.stderr)
-    );
-    let stdout = String::from_utf8_lossy(&runtime_output.stdout);
-    assert!(stdout.contains("source_module => <<\"app.Native\">>"));
-    assert!(stdout.contains("native_module => <<\"app_native_safe_native\">>"));
-    assert!(stdout.contains("{<<\"work\">>,<<\"work\">>,1}"));
-    assert!(stdout.contains("{safe_native_reply,7"));
-    assert!(stdout.contains("safe_native_not_loaded"));
-
-    fs::remove_dir_all(out_dir).expect("remove generated erl runtime test directory");
-}
-
-/// Verifies emitted SafeNative files use the neutral artifact names.
+/// Verifies emitted NativeBoundary files use the neutral artifact names.
 ///
 /// Inputs:
 /// - Real `std.data.Json` source and a temporary output directory.
@@ -833,24 +689,24 @@ fn safe_native_erl_stub_metadata_runs_without_native_library() {
 /// - Emits artifacts directly and confirms generated filenames no longer
 ///   expose the older NIF-specific `safe_nif` label.
 #[test]
-fn emit_native_artifacts_writes_safe_native_filenames() {
+fn emit_native_artifacts_writes_native_boundary_filenames() {
     let out_dir = temp_output_dir("filenames");
 
     emit_native_artifacts(
         json_std_source(),
         &out_dir,
-        NativePolicy::SafeNativeOptional,
+        NativePolicy::NativeBoundaryOptional,
         false,
     )
-    .expect("safe native artifacts should emit");
+    .expect("native boundary artifacts should emit");
 
-    assert!(out_dir.join("std.data.Json.safe_native.json").exists());
+    assert!(out_dir.join("std.data.Json.native_boundary.json").exists());
     assert!(out_dir
-        .join("std_data_json_safe_native.safe_native.rs")
+        .join("std_data_json_native_boundary.native_boundary.rs")
         .exists());
     assert!(!out_dir.join("std.data.Json.safe_nif.json").exists());
     assert!(!out_dir
-        .join("std_data_json_safe_native.safe_nif.rs")
+        .join("std_data_json_native_boundary.safe_nif.rs")
         .exists());
 
     fs::remove_dir_all(out_dir).expect("remove emitted artifacts");

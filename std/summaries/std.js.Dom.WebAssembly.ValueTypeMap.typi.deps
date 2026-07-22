@@ -1,0 +1,8 @@
+module=std.js.Dom.WebAssembly.ValueTypeMap
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=7208082686069517379
+interface_hash=9530122521076678769
+interface_doc_hash=9530122521076678769
+deps=0

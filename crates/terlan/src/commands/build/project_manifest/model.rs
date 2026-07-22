@@ -14,13 +14,14 @@ pub(crate) struct ProjectManifest {
     pub(crate) package: ProjectPackage,
     pub(crate) source_roots: Vec<String>,
     pub(crate) artifact: ProjectArtifactKind,
+    pub(crate) scripts: Vec<ProjectScript>,
     pub(crate) wasm_target: Option<ProjectWasmTarget>,
     pub(crate) wasi_target: Option<ProjectWasiTarget>,
     pub(crate) web_assets: Option<ProjectWebAssets>,
+    pub(crate) server_profile: Option<ProjectServerProfile>,
     pub(crate) server_tls: Option<ProjectServerTls>,
     pub(crate) native_rust: Option<ProjectNativeRust>,
     pub(crate) dependencies: Vec<ProjectDependency>,
-    pub(crate) erlang_package_adapter: Option<ProjectErlangPackageAdapter>,
 }
 
 /// Parsed package metadata from `[package]`.
@@ -39,6 +40,30 @@ pub(crate) struct ProjectPackage {
     pub(crate) name: String,
     pub(crate) version: String,
     pub(crate) namespace: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) license: Option<String>,
+    pub(crate) repository: Option<String>,
+    pub(crate) compiler: Option<String>,
+    pub(crate) links: Vec<String>,
+}
+
+/// Parsed project-local runnable script alias.
+///
+/// Inputs:
+/// - Produced from `[scripts] alias = "scripts/Name.terl"` entries.
+///
+/// Output:
+/// - Stable alias and package-relative source path used by script discovery
+///   and `terlc run script <alias>`.
+///
+/// Transformation:
+/// - Keeps script naming metadata separate from build source roots so small
+///   runnable files can be discovered without becoming production startup
+///   entrypoints.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProjectScript {
+    pub(crate) name: String,
+    pub(crate) path: String,
 }
 
 /// Parsed executable artifact kind from `[build]`.
@@ -54,7 +79,7 @@ pub(crate) struct ProjectPackage {
 ///   current 0.0.1 package contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ProjectArtifactKind {
-    BeamThin,
+    TerlanVm,
     Library,
     WasmCore,
     WasmBrowser,
@@ -78,7 +103,7 @@ impl ProjectArtifactKind {
     ///   and build metadata.
     pub(crate) fn as_str(self) -> &'static str {
         match self {
-            ProjectArtifactKind::BeamThin => "beam-thin",
+            ProjectArtifactKind::TerlanVm => "terlan-vm",
             ProjectArtifactKind::Library => "library",
             ProjectArtifactKind::WasmCore => "wasm-core",
             ProjectArtifactKind::WasmBrowser => "wasm-browser",
@@ -197,6 +222,25 @@ pub(crate) struct ProjectWebAssets {
     pub(crate) rsbuild_config: Option<String>,
 }
 
+/// Parsed server deployment profile from `[server]`.
+///
+/// Inputs:
+/// - Produced from user-authored `terlan.toml`.
+///
+/// Output:
+/// - Stable deployment profile for validating production-unsafe defaults.
+///
+/// Transformation:
+/// - Narrows profile text to explicit lifecycle environments so production
+///   checks do not depend on unchecked strings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProjectServerProfile {
+    Development,
+    Test,
+    Staging,
+    Production,
+}
+
 /// Parsed Terlan-owned HTTP server TLS configuration from `[server.tls]`.
 ///
 /// Inputs:
@@ -232,7 +276,7 @@ pub(crate) struct ProjectServerTls {
 /// - Stable helper discovery metadata for package build artifacts.
 ///
 /// Transformation:
-/// - Records the Rust crate directory and BEAM helper executable contract
+/// - Records the Rust crate directory and VM helper executable contract
 ///   without building Cargo targets or mutating the host environment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ProjectNativeRust {
@@ -276,41 +320,6 @@ pub(crate) enum ProjectServerTlsMode {
 pub(crate) enum ProjectServerTlsProvider {
     LetsEncrypt,
     ZeroSsl,
-}
-
-/// Parsed Erlang target packaging adapter reservation.
-///
-/// Inputs:
-/// - Produced from `[target.erlang.package] adapter`.
-///
-/// Output:
-/// - Stable adapter marker for downstream Erlang packaging metadata.
-///
-/// Transformation:
-/// - Narrows manifest text to the adapter metadata admitted by A0.42.6 without
-///   generating Rebar3 files or requiring Rebar3 during normal builds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProjectErlangPackageAdapter {
-    Rebar3Compatible,
-}
-
-impl ProjectErlangPackageAdapter {
-    /// Returns the manifest spelling for the Erlang package adapter.
-    ///
-    /// Inputs:
-    /// - `self`: parsed Erlang package adapter.
-    ///
-    /// Output:
-    /// - Static manifest spelling.
-    ///
-    /// Transformation:
-    /// - Converts the enum to the package metadata string used by build
-    ///   artifacts and diagnostics.
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            ProjectErlangPackageAdapter::Rebar3Compatible => "rebar3-compatible",
-        }
-    }
 }
 
 /// Parsed project dependency metadata.
@@ -363,7 +372,6 @@ pub(crate) enum ProjectDependencyScope {
 ///   recognized by the compiler roadmap.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ProjectTarget {
-    Erlang,
     Js,
     Rust,
 }
@@ -377,7 +385,7 @@ pub(crate) enum ProjectTarget {
 /// - Source-specific dependency metadata.
 ///
 /// Transformation:
-/// - Preserves `path`, `git`, `hex`, `npm`, and `cargo` dependency source
+/// - Preserves `path`, `git`, `npm`, and `cargo` dependency source
 ///   kinds without performing dependency resolution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ProjectDependencySource {
@@ -387,10 +395,6 @@ pub(crate) enum ProjectDependencySource {
     Git {
         url: String,
         rev: String,
-    },
-    Hex {
-        package: String,
-        version: String,
     },
     Npm {
         package: String,

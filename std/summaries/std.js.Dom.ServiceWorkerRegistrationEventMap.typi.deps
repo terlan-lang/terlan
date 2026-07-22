@@ -1,8 +1,8 @@
 module=std.js.Dom.ServiceWorkerRegistrationEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5247181565619400823
-interface_hash=8636598376265829830
-interface_doc_hash=8636598376265829830
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=2770844360873847043
+interface_hash=4333634190719765726
+interface_doc_hash=4333634190719765726
 deps=0

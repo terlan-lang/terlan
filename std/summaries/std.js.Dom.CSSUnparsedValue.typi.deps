@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSUnparsedValue
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=17329794101762538538
-interface_hash=10078663812565028900
-interface_doc_hash=10078663812565028900
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=14069314832938351987
+interface_hash=11384843070981545022
+interface_doc_hash=11384843070981545022
 deps=0

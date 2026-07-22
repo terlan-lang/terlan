@@ -1,48 +1,6 @@
 use crate::validation::target_profile::{
-    target_profile_std_module_import_error_with_options, TargetFamily, TargetProfile,
-    TargetProfileCheckOptions,
+    target_profile_std_module_import_error_with_options, TargetProfile, TargetProfileCheckOptions,
 };
-
-/// Returns whether a target profile can produce Erlang artifacts.
-///
-/// Inputs:
-/// - `profile`: globally selected target-profile gate.
-///
-/// Output:
-/// - `true` when the profile is Erlang-compatible.
-///
-/// Transformation:
-/// - Treats the general `erlang` profile and release-slice `*-erlang` profiles
-///   as valid build gates, while rejecting backend-agnostic profiles such as
-///   `core-v0`.
-pub(super) fn target_profile_supports_erlang_backend(profile: TargetProfile) -> bool {
-    profile.family() == TargetFamily::Beam
-}
-
-/// Rejects native package module source on the Erlang backend.
-///
-/// Inputs:
-/// - `path`: source path used for diagnostics.
-/// - `source`: Terlan source text to inspect before formal lowering.
-///
-/// Output:
-/// - `Ok(())` when the source does not declare a `std.native.*` module.
-/// - `Err(String)` with a stable target-capability diagnostic when a native
-///   package module declaration is present.
-///
-/// Transformation:
-/// - Performs a conservative textual boundary check before Erlang emission so
-///   native package implementation modules do not compile as ordinary BEAM
-///   modules. Native imports are target-profile checked separately because
-///   selected native APIs can be reached through SafeNative boundary modules.
-pub(super) fn reject_erlang_native_package_source(path: &str, source: &str) -> Result<(), String> {
-    if source.contains("module std.native.") {
-        return Err(format!(
-            "terlc build --target erlang cannot compile native package module `{path}`; `std.native` packages require the Rust/native target capability"
-        ));
-    }
-    Ok(())
-}
 
 /// Rejects std imports that the selected target profile cannot execute.
 ///

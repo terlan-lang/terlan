@@ -1,8 +1,8 @@
 module=std.js.Dom.ReportingObserverOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=4489589004413496800
-interface_hash=4504675385914192421
-interface_doc_hash=4504675385914192421
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=12907770707794423888
+interface_hash=8770834348424578118
+interface_doc_hash=8770834348424578118
 deps=0

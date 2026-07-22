@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaTrackSupportedConstraints
+ */
+module std.js.Dom.MediaTrackSupportedConstraints.
+
+import type std.core.{Bool}.
+
+pub opaque type MediaTrackSupportedConstraints.
+
+pub (value: MediaTrackSupportedConstraints) aspect_ratio(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) auto_gain_control(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) background_blur(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) channel_count(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) device_id(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) display_surface(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) echo_cancellation(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) facing_mode(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) frame_rate(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) group_id(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) height(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) noise_suppression(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) sample_rate(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) sample_size(): Bool.
+
+pub (value: MediaTrackSupportedConstraints) width(): Bool.

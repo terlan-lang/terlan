@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableStreamIteratorOptions
+ */
+module std.js.Dom.ReadableStreamIteratorOptions.
+
+pub opaque type ReadableStreamIteratorOptions.
+
+/**
+ * Asynchronously iterates over the chunks in the stream's internal queue.
+ *
+ * Asynchronously iterating over the stream will lock it, preventing any other consumer from acquiring a reader. The lock will be released if the async iterator's return() method is called, e.g. by breaking out of the loop.
+ *
+ * By default, calling the async iterator's return() method will also cancel the stream. To prevent this, use the stream's values() method, passing true for the preventCancel option.
+ */
+pub (value: ReadableStreamIteratorOptions) prevent_cancel(): std.core.Bool.

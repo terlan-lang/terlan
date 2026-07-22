@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DOMMatrix
  */
 module std.js.Dom.DOMMatrix.
 
@@ -198,7 +206,12 @@ pub (value: DOMMatrix) rotate_self(rot_x: JsNumber, rot_y: JsNumber, rot_z: JsNu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/scale3dSelf)
  */
-pub (value: DOMMatrix) scale3d_self(scale: JsNumber, origin_x: JsNumber, origin_y: JsNumber, origin_z: JsNumber): DOMMatrix ->
+pub (value: DOMMatrix) scale3d_self(
+    scale: JsNumber,
+    origin_x: JsNumber,
+    origin_y: JsNumber,
+    origin_z: JsNumber
+): DOMMatrix ->
     native.
 
 /**
@@ -206,7 +219,14 @@ pub (value: DOMMatrix) scale3d_self(scale: JsNumber, origin_x: JsNumber, origin_
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/scaleSelf)
  */
-pub (value: DOMMatrix) scale_self(scale_x: JsNumber, scale_y: JsNumber, scale_z: JsNumber, origin_x: JsNumber, origin_y: JsNumber, origin_z: JsNumber): DOMMatrix ->
+pub (value: DOMMatrix) scale_self(
+    scale_x: JsNumber,
+    scale_y: JsNumber,
+    scale_z: JsNumber,
+    origin_x: JsNumber,
+    origin_y: JsNumber,
+    origin_z: JsNumber
+): DOMMatrix ->
     native.
 
 /**

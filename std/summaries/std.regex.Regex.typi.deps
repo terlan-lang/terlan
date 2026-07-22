@@ -1,0 +1,8 @@
+module=std.regex.Regex
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=12655554675829185101
+interface_hash=14118775322153810618
+interface_doc_hash=5327044067589751792
+deps=0

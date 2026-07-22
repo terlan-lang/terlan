@@ -1,0 +1,88 @@
+/**
+ * Executable release checks for `std.net.Uri`.
+ *
+ * These tests exercise the VM-owned URI std bridge over the Rust `url` adapter
+ * and keep the public Result/Error/opaque-value shapes visible to release
+ * coverage.
+ */
+module std.net.UriTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, is_err}.
+import std.net.Uri.
+import std.test.Test.{assert, assert_equal}.
+
+import type std.core.{Option, Result}.
+import type std.net.Uri.{Uri, UriError}.
+
+/**
+ * Accepts one URI value and returns it unchanged.
+ *
+ * Input: one opaque `Uri`.
+ * Output: the same URI value.
+ * Transformation: proves the public URI type is importable and usable in
+ * signatures without exposing native adapter internals.
+ */
+pub accepts_uri(value: Uri): Uri ->
+    value.
+
+/**
+ * Accepts one URI error value and returns it unchanged.
+ *
+ * Input: one portable `UriError`.
+ * Output: the same error value.
+ * Transformation: proves the public URI error shape is importable and usable
+ * in signatures without exposing native adapter internals.
+ */
+pub accepts_uri_error(value: UriError): UriError ->
+    value.
+
+/**
+ * Accepts one URI parse result and returns it unchanged.
+ *
+ * Input: one `Result[Uri, UriError]`.
+ * Output: the same result value.
+ * Transformation: proves URI parsing exposes the expected portable result
+ * shape.
+ */
+pub accepts_uri_result(value: Result[Uri, UriError]): Result[Uri, UriError] ->
+    value.
+
+pub option_equals(value: Option[String], expected: String): Bool ->
+    case value {
+        Some(text) -> assert_equal(expected, text);
+        None -> false
+    }.
+
+pub option_is_none(value: Option[String]): Bool ->
+    case value {
+        None -> true;
+        Some(_text) -> false
+    }.
+
+@test
+pub parse_and_to_string_roundtrip_normalized_uri(): Bool ->
+    case accepts_uri_result(Uri.parse("https://example.com/docs?q=terlan#intro")) {
+        Ok(uri) ->
+            assert_equal("https://example.com/docs?q=terlan#intro", accepts_uri(uri).to_string());
+        Err(_reason) -> false
+    }.
+
+@test
+pub component_accessors_read_expected_parts(): Bool ->
+    case Uri.parse("https://example.com/docs?q=terlan#intro") {
+        Ok(uri) ->
+            assert_equal("https", uri.scheme()) and option_equals(uri.host(), "example.com") and assert_equal("/docs", uri.path()) and option_equals(uri.query(), "q=terlan") and option_equals(uri.fragment(), "intro");
+        Err(_reason) -> false
+    }.
+
+@test
+pub optional_components_return_none_when_absent(): Bool ->
+    case Uri.parse("https://example.com/docs") {
+        Ok(uri) -> option_is_none(uri.query()) and option_is_none(uri.fragment());
+        Err(_reason) -> false
+    }.
+
+@test
+pub parse_reports_invalid_uri_text(): Bool ->
+    assert(is_err(Uri.parse("not a uri"))).

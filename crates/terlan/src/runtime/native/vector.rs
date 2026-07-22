@@ -2,15 +2,15 @@
 //!
 //! This module owns the target-native storage semantics for Terlan vectors
 //! before a NIF or worker transport is attached. Values are stored in the
-//! bridge-neutral term shape so BEAM handlers can keep opaque handles while the
+//! bridge-neutral term shape so VM handlers can keep opaque handles while the
 //! Rust side owns indexed mutation.
 
-use crate::terlan_safenative::dispatch::SafeNativeBridgeValue;
+use crate::terlan_native_boundary::dispatch::NativeBoundaryBridgeValue;
 
 /// Rust-owned indexed collection behind `std.native.collections.Vector`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NativeVector {
-    values: Vec<SafeNativeBridgeValue>,
+    values: Vec<NativeBoundaryBridgeValue>,
 }
 
 impl NativeVector {
@@ -32,14 +32,14 @@ impl NativeVector {
     /// Builds a native vector from bridge-neutral values.
     ///
     /// Inputs:
-    /// - `values`: values decoded by the SafeNative bridge.
+    /// - `values`: values decoded by the NativeBoundary bridge.
     ///
     /// Output:
     /// - `NativeVector` containing the values in the same order.
     ///
     /// Transformation:
     /// - Moves the bridge values into Rust-owned indexed storage.
-    pub fn from_values(values: Vec<SafeNativeBridgeValue>) -> Self {
+    pub fn from_values(values: Vec<NativeBoundaryBridgeValue>) -> Self {
         Self { values }
     }
 
@@ -75,12 +75,32 @@ impl NativeVector {
     /// Transformation:
     /// - Converts the Terlan index to a Rust `usize` and clones the selected
     ///   bridge-neutral value for return across the runtime boundary.
-    pub fn get_at(&self, index: i64) -> Result<SafeNativeBridgeValue, VectorError> {
+    pub fn get_at(&self, index: i64) -> Result<NativeBoundaryBridgeValue, VectorError> {
         let index = checked_index(index)?;
         self.values
             .get(index)
             .cloned()
             .ok_or_else(|| index_error(index, self.values.len()))
+    }
+
+    /// Safely returns the value at an index.
+    ///
+    /// Inputs:
+    /// - `self`: native vector resource.
+    /// - `index`: Terlan `Int` index.
+    ///
+    /// Output:
+    /// - `Some(value)` for a valid non-negative index.
+    /// - `None` for a negative or out-of-range index.
+    ///
+    /// Transformation:
+    /// - Performs one checked lookup without converting expected absence into
+    ///   a native error.
+    pub fn get(&self, index: i64) -> Option<NativeBoundaryBridgeValue> {
+        usize::try_from(index)
+            .ok()
+            .and_then(|index| self.values.get(index))
+            .cloned()
     }
 
     /// Replaces the value at an index.
@@ -97,7 +117,11 @@ impl NativeVector {
     /// Transformation:
     /// - Mutates the Rust-owned vector slot in place while preserving the same
     ///   outer resource handle.
-    pub fn set_at(&mut self, index: i64, value: SafeNativeBridgeValue) -> Result<(), VectorError> {
+    pub fn set_at(
+        &mut self,
+        index: i64,
+        value: NativeBoundaryBridgeValue,
+    ) -> Result<(), VectorError> {
         let index = checked_index(index)?;
         let len = self.values.len();
         match self.values.get_mut(index) {
@@ -147,7 +171,7 @@ impl NativeVector {
     ///
     /// Transformation:
     /// - Pushes the value into Rust-owned indexed storage.
-    pub fn push(&mut self, value: SafeNativeBridgeValue) {
+    pub fn push(&mut self, value: NativeBoundaryBridgeValue) {
         self.values.push(value);
     }
 
@@ -162,7 +186,7 @@ impl NativeVector {
     /// Transformation:
     /// - Copies bridge-neutral values out of Rust storage for list conversion
     ///   without exposing the vector allocation itself.
-    pub fn to_values(&self) -> Vec<SafeNativeBridgeValue> {
+    pub fn to_values(&self) -> Vec<NativeBoundaryBridgeValue> {
         self.values.clone()
     }
 }
@@ -176,7 +200,7 @@ impl NativeVector {
 /// - Empty `NativeVector`.
 ///
 /// Transformation:
-/// - Delegates to `NativeVector::new` as the manifest-visible SafeNative
+/// - Delegates to `NativeVector::new` as the manifest-visible NativeBoundary
 ///   adapter function for `std.native.collections.vector.new`.
 pub fn new() -> NativeVector {
     NativeVector::new()
@@ -192,8 +216,8 @@ pub fn new() -> NativeVector {
 ///
 /// Transformation:
 /// - Delegates to `NativeVector::from_values` as the manifest-visible
-///   SafeNative adapter function for `std.native.collections.vector.from_list`.
-pub fn from_list(values: Vec<SafeNativeBridgeValue>) -> NativeVector {
+///   NativeBoundary adapter function for `std.native.collections.vector.from_list`.
+pub fn from_list(values: Vec<NativeBoundaryBridgeValue>) -> NativeVector {
     NativeVector::from_values(values)
 }
 
@@ -207,7 +231,7 @@ pub fn from_list(values: Vec<SafeNativeBridgeValue>) -> NativeVector {
 /// - `VectorError` if the length cannot fit into Terlan `Int`.
 ///
 /// Transformation:
-/// - Delegates to the resource method as the manifest-visible SafeNative
+/// - Delegates to the resource method as the manifest-visible NativeBoundary
 ///   adapter function for `std.native.collections.vector.length`.
 pub fn length(vector: &NativeVector) -> Result<i64, VectorError> {
     vector.length()
@@ -240,10 +264,27 @@ pub fn len(vector: &NativeVector) -> Result<i64, VectorError> {
 /// - `VectorError` for invalid indexes.
 ///
 /// Transformation:
-/// - Delegates to the resource method as the manifest-visible SafeNative
+/// - Delegates to the resource method as the manifest-visible NativeBoundary
 ///   adapter function for `std.native.collections.vector.get_at`.
-pub fn get_at(vector: &NativeVector, index: i64) -> Result<SafeNativeBridgeValue, VectorError> {
+pub fn get_at(vector: &NativeVector, index: i64) -> Result<NativeBoundaryBridgeValue, VectorError> {
     vector.get_at(index)
+}
+
+/// Safely returns a vector value by index.
+///
+/// Inputs:
+/// - `vector`: native vector resource.
+/// - `index`: Terlan `Int` index.
+///
+/// Output:
+/// - A singleton bridge list for a valid index.
+/// - An empty bridge list for a negative or out-of-range index.
+///
+/// Transformation:
+/// - Encodes a generic optional value as a zero-or-one list for the stable
+///   NativeBoundary term contract.
+pub fn get_optional_values(vector: &NativeVector, index: i64) -> Vec<NativeBoundaryBridgeValue> {
+    vector.get(index).into_iter().collect()
 }
 
 /// Replaces a vector value by index.
@@ -258,12 +299,12 @@ pub fn get_at(vector: &NativeVector, index: i64) -> Result<SafeNativeBridgeValue
 /// - `VectorError` for invalid indexes.
 ///
 /// Transformation:
-/// - Delegates to the resource method as the manifest-visible SafeNative
+/// - Delegates to the resource method as the manifest-visible NativeBoundary
 ///   adapter function for `std.native.collections.vector.set_at`.
 pub fn set_at(
     vector: &mut NativeVector,
     index: i64,
-    value: SafeNativeBridgeValue,
+    value: NativeBoundaryBridgeValue,
 ) -> Result<(), VectorError> {
     vector.set_at(index, value)
 }
@@ -280,7 +321,7 @@ pub fn set_at(
 /// - `VectorError` for invalid indexes.
 ///
 /// Transformation:
-/// - Delegates to the resource method as the manifest-visible SafeNative
+/// - Delegates to the resource method as the manifest-visible NativeBoundary
 ///   adapter function for `std.native.collections.vector.swap`.
 pub fn swap(vector: &mut NativeVector, left: i64, right: i64) -> Result<(), VectorError> {
     vector.swap(left, right)
@@ -296,9 +337,9 @@ pub fn swap(vector: &mut NativeVector, left: i64, right: i64) -> Result<(), Vect
 /// - None.
 ///
 /// Transformation:
-/// - Delegates to the resource method as the manifest-visible SafeNative
+/// - Delegates to the resource method as the manifest-visible NativeBoundary
 ///   adapter function for `std.native.collections.vector.push`.
-pub fn push(vector: &mut NativeVector, value: SafeNativeBridgeValue) {
+pub fn push(vector: &mut NativeVector, value: NativeBoundaryBridgeValue) {
     vector.push(value);
 }
 
@@ -311,9 +352,9 @@ pub fn push(vector: &mut NativeVector, value: SafeNativeBridgeValue) {
 /// - Cloned values in vector order.
 ///
 /// Transformation:
-/// - Delegates to the resource method as the manifest-visible SafeNative
+/// - Delegates to the resource method as the manifest-visible NativeBoundary
 ///   adapter function for `std.native.collections.vector.to_list`.
-pub fn to_list(vector: &NativeVector) -> Vec<SafeNativeBridgeValue> {
+pub fn to_list(vector: &NativeVector) -> Vec<NativeBoundaryBridgeValue> {
     vector.to_values()
 }
 
@@ -332,7 +373,7 @@ impl VectorError {
     /// - `message`: human-readable diagnostic text.
     ///
     /// Output:
-    /// - `VectorError` suitable for SafeNative dispatch.
+    /// - `VectorError` suitable for NativeBoundary dispatch.
     ///
     /// Transformation:
     /// - Stores stable fields without exposing Rust collection internals.
@@ -402,7 +443,7 @@ fn checked_index(index: i64) -> Result<usize, VectorError> {
 /// - `VectorError` with stable code `vector.index_out_of_bounds`.
 ///
 /// Transformation:
-/// - Converts failed indexed access into stable SafeNative diagnostics.
+/// - Converts failed indexed access into stable NativeBoundary diagnostics.
 fn index_error(index: usize, len: usize) -> VectorError {
     VectorError::new(
         "vector.index_out_of_bounds",

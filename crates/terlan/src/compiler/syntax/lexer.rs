@@ -223,6 +223,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                     let kind = match text.as_str() {
                         "module" => TokenKind::Module,
                         "pub" => TokenKind::Pub,
+                        "const" => TokenKind::Const,
                         "macro" => TokenKind::Macro,
                         "constructor" => TokenKind::Constructor,
                         "export" => TokenKind::Export,
@@ -248,6 +249,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                         "when" => TokenKind::When,
                         "with" => TokenKind::With,
                         "and" => TokenKind::And,
+                        "in" => TokenKind::In,
                         "or" => TokenKind::Or,
                         "div" => TokenKind::DivRem,
                         "rem" => TokenKind::Rem,
@@ -297,8 +299,8 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
 ///
 /// Transformation:
 /// - Recognizes canonical prefixed integer forms `0b...`, `0x...`, and
-///   `0o...` as integer tokens, and otherwise applies the existing decimal
-///   integer/float scan.
+///   `0o...` as integer tokens, and otherwise scans decimal integers and
+///   finite-float candidates with optional scientific exponents.
 fn lex_number_token(chars: &[char], start: usize) -> (TokenKind, String, usize) {
     if let Some(end) = prefixed_integer_literal_end(chars, start) {
         return (
@@ -310,27 +312,62 @@ fn lex_number_token(chars: &[char], start: usize) -> (TokenKind, String, usize) 
 
     let mut end = start + 1;
     let mut has_dot = false;
-    while end < chars.len() {
-        if chars[end].is_ascii_digit() {
+    while end < chars.len() && chars[end].is_ascii_digit() {
+        end += 1;
+    }
+    if end + 1 < chars.len()
+        && chars[end] == '.'
+        && chars[end + 1] != '.'
+        && chars[end + 1].is_ascii_digit()
+    {
+        has_dot = true;
+        end += 2;
+        while end < chars.len() && chars[end].is_ascii_digit() {
             end += 1;
-        } else if chars[end] == '.'
-            && !has_dot
-            && end + 1 < chars.len()
-            && chars[end + 1].is_ascii_digit()
-        {
-            has_dot = true;
-            end += 1;
-        } else {
-            break;
         }
     }
 
-    let kind = if has_dot {
+    let exponent_end = scientific_exponent_end(chars, end);
+    let has_exponent = exponent_end.is_some();
+    if let Some(exponent_end) = exponent_end {
+        end = exponent_end;
+    }
+
+    let kind = if has_dot || has_exponent {
         TokenKind::Float
     } else {
         TokenKind::Int
     };
     (kind, chars[start..end].iter().collect::<String>(), end)
+}
+
+/// Finds a complete scientific exponent immediately after a decimal literal.
+///
+/// Inputs:
+/// - `chars`: complete source as characters.
+/// - `start`: candidate `e` or `E` position.
+///
+/// Output:
+/// - Exclusive exponent end when at least one exponent digit is present.
+///
+/// Transformation:
+/// - Accepts an optional sign but leaves malformed exponent prefixes
+///   unconsumed so the parser reports the trailing source rather than silently
+///   changing the numeric value.
+fn scientific_exponent_end(chars: &[char], start: usize) -> Option<usize> {
+    if !matches!(chars.get(start), Some('e' | 'E')) {
+        return None;
+    }
+
+    let mut end = start + 1;
+    if matches!(chars.get(end), Some('+' | '-')) {
+        end += 1;
+    }
+    let first_digit = end;
+    while end < chars.len() && chars[end].is_ascii_digit() {
+        end += 1;
+    }
+    (end > first_digit).then_some(end)
 }
 
 /// Finds the exclusive end of a prefixed integer literal.
@@ -387,6 +424,7 @@ fn match_two_char_token(chars: &[char], i: usize) -> Option<(TokenKind, String, 
     }
 
     match (chars[i], chars[i + 1]) {
+        ('.', '.') => Some((TokenKind::DotDot, "..".to_string(), i + 2)),
         ('-', '>') => Some((TokenKind::Arrow, "->".to_string(), i + 2)),
         ('=', '>') => Some((TokenKind::FatArrow, "=>".to_string(), i + 2)),
         (':', '=') => Some((TokenKind::Equals, ":=".to_string(), i + 2)),

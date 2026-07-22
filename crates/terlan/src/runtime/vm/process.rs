@@ -19,9 +19,30 @@ use super::ReplValue;
 pub(crate) struct VmProcessId(u64);
 
 impl VmProcessId {
+    /// Returns the reserved process id used by VM-owned runtime workers.
+    pub(crate) fn system_runtime_worker() -> Self {
+        Self(0)
+    }
+
     /// Returns the numeric process id.
     pub(crate) fn as_u64(self) -> u64 {
         self.0
+    }
+
+    /// Resolves a nonzero native control-frame owner to VM process identity.
+    pub(crate) fn from_native_owner(value: u64) -> Result<Self, String> {
+        if value == 0 {
+            return Err("native continuation owner identity must be nonzero".to_string());
+        }
+        Ok(Self(value))
+    }
+
+    /// Resolves a nonzero native transition argument to a VM process identity.
+    pub(crate) fn from_native_recipient(value: u64) -> Result<Self, String> {
+        if value == 0 {
+            return Err("native send recipient identity must be nonzero".to_string());
+        }
+        Ok(Self(value))
     }
 
     /// Creates a process id for adversarial VM runtime tests.
@@ -36,7 +57,15 @@ impl VmProcessId {
 pub(crate) enum VmProcessState {
     Runnable,
     Blocked,
+    Suspended(VmProcessResumeState),
     Exited(VmExitReason),
+}
+
+/// Process state restored when an explicit suspension ends.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum VmProcessResumeState {
+    Runnable,
+    Blocked,
 }
 
 /// Stable reason recorded when a VM process exits.
@@ -45,6 +74,30 @@ pub(crate) enum VmExitReason {
     Normal,
     Error(String),
     Killed,
+    ShutdownTimeout {
+        timeout_ms: u64,
+    },
+    MemoryLimitExceeded {
+        requested_bytes: usize,
+        previous_bytes: usize,
+        projected_bytes: usize,
+    },
+}
+
+/// Stable process name registry error.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum VmProcessRegistryError {
+    EmptyName,
+    NameNotRegistered(String),
+    MissingProcess(VmProcessId),
+    ExitedProcess(VmProcessId),
+    Conflict { name: String, existing: VmProcessId },
+}
+
+/// Stable process inspection error.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum VmProcessInspectionError {
+    MissingProcess(VmProcessId),
 }
 
 /// Source identity for runtime inspection and diagnostics.
@@ -53,6 +106,14 @@ pub(crate) struct VmProcessSource {
     pub(crate) module: String,
     pub(crate) function: String,
     pub(crate) arity: usize,
+    pub(crate) source_path: Option<String>,
+}
+
+/// Current VM execution location retained for inspection and debugging.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VmProcessLocation {
+    pub(crate) source: VmProcessSource,
+    pub(crate) instruction_offset: usize,
 }
 
 impl VmProcessSource {
@@ -66,8 +127,37 @@ impl VmProcessSource {
             module: module.into(),
             function: function.into(),
             arity,
+            source_path: None,
         }
     }
+
+    /// Attaches an explicit source path to runtime-owned source metadata.
+    pub(crate) fn with_source_path(mut self, source_path: impl Into<String>) -> Self {
+        self.source_path = Some(source_path.into());
+        self
+    }
+}
+
+impl VmProcessLocation {
+    /// Renders one stable source-facing VM stack frame.
+    pub(crate) fn render(&self) -> String {
+        let identity = format!(
+            "{}.{}/{}",
+            self.source.module, self.source.function, self.source.arity
+        );
+        match &self.source.source_path {
+            Some(path) => format!(
+                "{identity} [{}] @vm:{}",
+                escape_source_path(path),
+                self.instruction_offset
+            ),
+            None => format!("{identity} @vm:{}", self.instruction_offset),
+        }
+    }
+}
+
+fn escape_source_path(path: &str) -> String {
+    path.chars().flat_map(char::escape_debug).collect()
 }
 
 /// Message stored in a VM process mailbox.
@@ -76,6 +166,80 @@ pub(crate) struct VmMessage {
     pub(crate) id: u64,
     pub(crate) sender: VmProcessId,
     pub(crate) payload: ReplValue,
+    /// Exact native boundary identity for typed AOT mailbox traffic.
+    pub(crate) boundary_type: Option<crate::runtime::native_image::TvmBoundaryType>,
+    /// Opaque receiver-owned graph token retained without public materialization.
+    pub(crate) managed_fragment: Option<VmManagedMailboxToken>,
+    pub(crate) accounted_bytes: usize,
+    pub(crate) priority: VmMessagePriority,
+}
+
+/// VM mailbox handle for one precise graph owned by the managed shard runtime.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct VmManagedMailboxToken {
+    /// Nonzero shard-local fragment identity.
+    fragment_id: u32,
+    /// Actor that initiated graph transfer.
+    sender: u64,
+    /// Actor that exclusively owns the registered graph.
+    receiver: u64,
+    /// Receiver graph bytes plus fixed VM mailbox-token storage.
+    accounted_bytes: usize,
+}
+
+impl VmManagedMailboxToken {
+    /// Creates one validated token with checked mailbox accounting.
+    pub(crate) fn new(
+        fragment_id: u32,
+        sender: u64,
+        receiver: u64,
+        receiver_heap_bytes: usize,
+    ) -> Result<Self, String> {
+        if fragment_id == 0 || sender == 0 || receiver == 0 {
+            return Err(
+                "error[vm_managed_mailbox_token]: fragment and actor identities must be nonzero"
+                    .to_string(),
+            );
+        }
+        let accounted_bytes = receiver_heap_bytes
+            .checked_add(std::mem::size_of::<Self>())
+            .ok_or_else(|| {
+                "error[vm_managed_mailbox_token]: mailbox accounting exceeds usize".to_string()
+            })?;
+        Ok(Self {
+            fragment_id,
+            sender,
+            receiver,
+            accounted_bytes,
+        })
+    }
+
+    /// Returns the shard-local managed fragment identity.
+    pub(crate) fn fragment_id(self) -> u32 {
+        self.fragment_id
+    }
+
+    /// Returns the actor that initiated graph transfer.
+    pub(crate) fn sender(self) -> u64 {
+        self.sender
+    }
+
+    /// Returns the actor that exclusively owns the graph.
+    pub(crate) fn receiver(self) -> u64 {
+        self.receiver
+    }
+
+    /// Returns the logical mailbox charge for this token and graph.
+    pub(crate) fn accounted_bytes(self) -> usize {
+        self.accounted_bytes
+    }
+}
+
+/// Ordering lane used by one VM mailbox message.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum VmMessagePriority {
+    Ordinary,
+    Priority,
 }
 
 /// VM-owned local process record.
@@ -100,13 +264,85 @@ pub(crate) struct VmProcess {
     pub(crate) heap_bytes: usize,
     pub(crate) cancellation_requested: bool,
     pub(crate) resource_handles: Vec<String>,
+    execution_stack: Vec<VmProcessLocation>,
     mailbox: VecDeque<VmMessage>,
 }
 
 impl VmProcess {
+    /// Returns the current VM execution location.
+    pub(crate) fn current_location(&self) -> &VmProcessLocation {
+        self.execution_stack
+            .last()
+            .expect("every process retains a root execution frame")
+    }
+
+    /// Updates the current source frame and VM instruction offset.
+    pub(crate) fn set_current_location(
+        &mut self,
+        source: VmProcessSource,
+        instruction_offset: usize,
+    ) {
+        *self
+            .execution_stack
+            .last_mut()
+            .expect("every process retains a root execution frame") = VmProcessLocation {
+            source,
+            instruction_offset,
+        };
+    }
+
+    /// Enters a called function and records the caller continuation atomically.
+    pub(crate) fn enter_execution_frame(
+        &mut self,
+        source: VmProcessSource,
+        instruction_offset: usize,
+        return_instruction_offset: usize,
+    ) -> Result<(), String> {
+        if matches!(self.state, VmProcessState::Exited(_)) {
+            return Err("cannot enter an execution frame for an exited process".to_string());
+        }
+        self.execution_stack
+            .last_mut()
+            .expect("every process retains a root execution frame")
+            .instruction_offset = return_instruction_offset;
+        self.execution_stack.push(VmProcessLocation {
+            source,
+            instruction_offset,
+        });
+        Ok(())
+    }
+
+    /// Returns from the current function while preserving the root frame.
+    pub(crate) fn pop_execution_frame(&mut self) -> Result<VmProcessLocation, String> {
+        if self.execution_stack.len() == 1 {
+            return Err("cannot pop the root process execution frame".to_string());
+        }
+        Ok(self
+            .execution_stack
+            .pop()
+            .expect("non-root execution stack contains a frame"))
+    }
+
+    /// Returns current-first execution frames for diagnostics.
+    pub(crate) fn current_stacktrace(&self) -> Vec<VmProcessLocation> {
+        self.execution_stack.iter().rev().cloned().collect()
+    }
+
     /// Returns the number of queued mailbox messages.
     pub(crate) fn mailbox_len(&self) -> usize {
         self.mailbox.len()
+    }
+
+    /// Returns logical bytes retained by messages currently in the mailbox.
+    pub(crate) fn mailbox_accounted_bytes(&self) -> Result<usize, String> {
+        self.mailbox.iter().try_fold(0usize, |total, message| {
+            total.checked_add(message.accounted_bytes).ok_or_else(|| {
+                format!(
+                    "process {} mailbox accounted byte overflow",
+                    self.pid.as_u64()
+                )
+            })
+        })
     }
 
     /// Marks a runnable process as blocked.
@@ -118,9 +354,38 @@ impl VmProcess {
 
     /// Wakes a blocked process.
     pub(crate) fn wake(&mut self) {
-        if self.state == VmProcessState::Blocked {
-            self.state = VmProcessState::Runnable;
+        match self.state {
+            VmProcessState::Blocked => self.state = VmProcessState::Runnable,
+            VmProcessState::Suspended(VmProcessResumeState::Blocked) => {
+                self.state = VmProcessState::Suspended(VmProcessResumeState::Runnable);
+            }
+            VmProcessState::Runnable
+            | VmProcessState::Suspended(VmProcessResumeState::Runnable)
+            | VmProcessState::Exited(_) => {}
         }
+    }
+
+    /// Suspends a live process while retaining the state restored by resume.
+    pub(crate) fn suspend(&mut self) -> Result<(), String> {
+        self.state = match self.state {
+            VmProcessState::Runnable => VmProcessState::Suspended(VmProcessResumeState::Runnable),
+            VmProcessState::Blocked => VmProcessState::Suspended(VmProcessResumeState::Blocked),
+            VmProcessState::Suspended(resume_state) => VmProcessState::Suspended(resume_state),
+            VmProcessState::Exited(_) => return Err("cannot suspend exited process".to_string()),
+        };
+        Ok(())
+    }
+
+    /// Resumes a suspended process to its retained execution state.
+    pub(crate) fn resume(&mut self) -> Result<VmProcessResumeState, String> {
+        let VmProcessState::Suspended(resume_state) = self.state else {
+            return Err("process is not suspended".to_string());
+        };
+        self.state = match resume_state {
+            VmProcessResumeState::Runnable => VmProcessState::Runnable,
+            VmProcessResumeState::Blocked => VmProcessState::Blocked,
+        };
+        Ok(resume_state)
     }
 
     /// Requests cooperative cancellation for the process.
@@ -153,6 +418,7 @@ impl VmProcess {
     pub(crate) fn exit(&mut self, reason: VmExitReason) -> Vec<String> {
         self.state = VmProcessState::Exited(reason);
         self.mailbox.clear();
+        self.heap_bytes = 0;
         self.resource_handles.drain(..).collect()
     }
 
@@ -164,9 +430,9 @@ impl VmProcess {
     /// Receives the first mailbox message accepted by the predicate.
     pub(crate) fn selective_receive(
         &mut self,
-        mut predicate: impl FnMut(&VmMessage) -> bool,
+        predicate: impl FnMut(&VmMessage) -> bool,
     ) -> Option<VmMessage> {
-        let index = self.mailbox.iter().position(|message| predicate(message))?;
+        let index = self.mailbox.iter().position(predicate)?;
         self.mailbox.remove(index)
     }
 }
@@ -187,6 +453,35 @@ pub(crate) struct VmProcessTable {
     next_pid: u64,
     next_message_id: u64,
     processes: BTreeMap<VmProcessId, VmProcess>,
+    names: BTreeMap<String, VmProcessId>,
+}
+
+/// Aggregate process ownership retained by the local VM process table.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(crate) struct VmProcessTableMetrics {
+    pub(crate) total_processes: usize,
+    pub(crate) live_processes: usize,
+    pub(crate) exited_processes: usize,
+    pub(crate) mailbox_messages: usize,
+    pub(crate) heap_bytes: usize,
+    pub(crate) resource_handles: usize,
+}
+
+/// Read-only process state exposed to VM diagnostics and runtime tooling.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VmProcessSnapshot {
+    pub(crate) pid: VmProcessId,
+    pub(crate) parent: Option<VmProcessId>,
+    pub(crate) source: VmProcessSource,
+    pub(crate) state: VmProcessState,
+    pub(crate) reductions: u64,
+    pub(crate) heap_bytes: usize,
+    pub(crate) mailbox_messages: usize,
+    pub(crate) cancellation_requested: bool,
+    pub(crate) resource_handles: Vec<String>,
+    pub(crate) registered_names: Vec<String>,
+    pub(crate) current_location: VmProcessLocation,
+    pub(crate) current_stacktrace: Vec<VmProcessLocation>,
 }
 
 impl VmProcessTable {
@@ -201,8 +496,12 @@ impl VmProcessTable {
         parent: VmProcessId,
         source: VmProcessSource,
     ) -> Result<VmProcessId, String> {
-        if !self.processes.contains_key(&parent) {
-            return Err(format!("missing parent process {}", parent.as_u64()));
+        let parent_process = self
+            .processes
+            .get(&parent)
+            .ok_or_else(|| format!("missing parent process {}", parent.as_u64()))?;
+        if matches!(parent_process.state, VmProcessState::Exited(_)) {
+            return Err(format!("parent process {} has exited", parent.as_u64()));
         }
         Ok(self.spawn(Some(parent), source))
     }
@@ -217,6 +516,160 @@ impl VmProcessTable {
         self.processes.get_mut(&pid)
     }
 
+    /// Returns all live process ids in deterministic allocation order.
+    pub(crate) fn live_process_ids(&self) -> Vec<VmProcessId> {
+        self.processes
+            .iter()
+            .filter(|(_, process)| !matches!(process.state, VmProcessState::Exited(_)))
+            .map(|(pid, _)| *pid)
+            .collect()
+    }
+
+    /// Returns whether a process identity currently names a live process.
+    pub(crate) fn is_alive(&self, pid: VmProcessId) -> bool {
+        self.processes
+            .get(&pid)
+            .is_some_and(|process| !matches!(process.state, VmProcessState::Exited(_)))
+    }
+
+    /// Returns a stable read-only snapshot for runtime inspection.
+    pub(crate) fn snapshot(
+        &self,
+        pid: VmProcessId,
+    ) -> Result<VmProcessSnapshot, VmProcessInspectionError> {
+        let process = self
+            .processes
+            .get(&pid)
+            .ok_or(VmProcessInspectionError::MissingProcess(pid))?;
+        Ok(self.snapshot_process(process))
+    }
+
+    /// Returns the BEAM-facing process-info view for one live process.
+    ///
+    /// Missing and exited identities are intentionally indistinguishable at
+    /// this boundary. Internal diagnostics continue to use `snapshot` so a
+    /// completed process retains useful postmortem state.
+    pub(crate) fn live_snapshot(&self, pid: VmProcessId) -> Option<VmProcessSnapshot> {
+        let process = self.processes.get(&pid)?;
+        if matches!(process.state, VmProcessState::Exited(_)) {
+            return None;
+        }
+        Some(self.snapshot_process(process))
+    }
+
+    /// Returns every process snapshot in deterministic allocation order.
+    ///
+    /// Exited processes remain present so runtime inspection can explain a
+    /// completed failure cascade without racing lifecycle cleanup.
+    pub(crate) fn snapshots(&self) -> Vec<VmProcessSnapshot> {
+        self.processes
+            .values()
+            .map(|process| self.snapshot_process(process))
+            .collect()
+    }
+
+    fn snapshot_process(&self, process: &VmProcess) -> VmProcessSnapshot {
+        VmProcessSnapshot {
+            pid: process.pid,
+            parent: process.parent,
+            source: process.source.clone(),
+            state: process.state.clone(),
+            reductions: process.reductions,
+            heap_bytes: process.heap_bytes,
+            mailbox_messages: process.mailbox_len(),
+            cancellation_requested: process.cancellation_requested,
+            resource_handles: process.resource_handles.clone(),
+            registered_names: self.names_for_process(process.pid),
+            current_location: process.current_location().clone(),
+            current_stacktrace: process.current_stacktrace(),
+        }
+    }
+
+    /// Returns deterministic aggregate ownership for leak and soak checks.
+    pub(crate) fn metrics(&self) -> VmProcessTableMetrics {
+        let mut metrics = VmProcessTableMetrics {
+            total_processes: self.processes.len(),
+            ..VmProcessTableMetrics::default()
+        };
+        for process in self.processes.values() {
+            if matches!(process.state, VmProcessState::Exited(_)) {
+                metrics.exited_processes += 1;
+            } else {
+                metrics.live_processes += 1;
+            }
+            metrics.mailbox_messages += process.mailbox_len();
+            metrics.heap_bytes = metrics.heap_bytes.saturating_add(process.heap_bytes);
+            metrics.resource_handles += process.resource_handles.len();
+        }
+        metrics
+    }
+
+    /// Registers a stable process name.
+    pub(crate) fn register_name(
+        &mut self,
+        name: impl Into<String>,
+        pid: VmProcessId,
+    ) -> Result<(), VmProcessRegistryError> {
+        let name = name.into();
+        if name.trim().is_empty() {
+            return Err(VmProcessRegistryError::EmptyName);
+        }
+        self.ensure_live_process(pid)?;
+        match self.names.get(&name).copied() {
+            Some(existing) if existing == pid => Ok(()),
+            Some(existing) => Err(VmProcessRegistryError::Conflict { name, existing }),
+            None => {
+                self.names.insert(name, pid);
+                Ok(())
+            }
+        }
+    }
+
+    /// Looks up a registered process name.
+    pub(crate) fn lookup_name(&self, name: &str) -> Option<VmProcessId> {
+        self.names.get(name).copied()
+    }
+
+    /// Returns the number of registered process names.
+    pub(crate) fn registered_name_count(&self) -> usize {
+        self.names.len()
+    }
+
+    /// Returns all registered names in deterministic lexical order.
+    pub(crate) fn registered_names(&self) -> Vec<String> {
+        self.names.keys().cloned().collect()
+    }
+
+    /// Returns all names registered to one process in deterministic order.
+    pub(crate) fn names_for_process(&self, pid: VmProcessId) -> Vec<String> {
+        self.names
+            .iter()
+            .filter(|&(_, registered_pid)| *registered_pid == pid)
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
+
+    /// Removes one registered name and returns its process owner.
+    pub(crate) fn unregister_name(
+        &mut self,
+        name: &str,
+    ) -> Result<VmProcessId, VmProcessRegistryError> {
+        self.names
+            .remove(name)
+            .ok_or_else(|| VmProcessRegistryError::NameNotRegistered(name.to_string()))
+    }
+
+    /// Removes every registered name for one existing process.
+    pub(crate) fn unregister_process_names(
+        &mut self,
+        pid: VmProcessId,
+    ) -> Result<Vec<String>, VmProcessRegistryError> {
+        if !self.processes.contains_key(&pid) {
+            return Err(VmProcessRegistryError::MissingProcess(pid));
+        }
+        Ok(self.remove_registered_names(pid))
+    }
+
     /// Sends a message from one VM process to another.
     pub(crate) fn send(
         &mut self,
@@ -224,10 +677,163 @@ impl VmProcessTable {
         recipient: VmProcessId,
         payload: ReplValue,
     ) -> Result<u64, String> {
-        if !self.processes.contains_key(&sender) {
-            return Err(format!("missing sender process {}", sender.as_u64()));
-        }
+        self.send_accounted(sender, recipient, payload, 0)
+    }
 
+    /// Delivers a VM-owned system message from a known process identity.
+    ///
+    /// Failure signals may originate after the source process has transitioned
+    /// to exited state. User actor sends must continue to use `send`.
+    pub(crate) fn send_system_message(
+        &mut self,
+        origin: VmProcessId,
+        recipient: VmProcessId,
+        payload: ReplValue,
+    ) -> Result<u64, String> {
+        if !self.processes.contains_key(&origin) {
+            return Err(format!("missing system message origin {}", origin.as_u64()));
+        }
+        self.validate_recipient(recipient)?;
+        Ok(self.enqueue_message(
+            origin,
+            recipient,
+            payload,
+            None,
+            None,
+            0,
+            VmMessagePriority::Ordinary,
+        ))
+    }
+
+    /// Delivers a priority system message ahead of ordinary mailbox traffic.
+    pub(crate) fn send_priority_system_message(
+        &mut self,
+        origin: VmProcessId,
+        recipient: VmProcessId,
+        payload: ReplValue,
+    ) -> Result<u64, String> {
+        if !self.processes.contains_key(&origin) {
+            return Err(format!("missing system message origin {}", origin.as_u64()));
+        }
+        self.validate_recipient(recipient)?;
+        Ok(self.enqueue_message(
+            origin,
+            recipient,
+            payload,
+            None,
+            None,
+            0,
+            VmMessagePriority::Priority,
+        ))
+    }
+
+    /// Validates one local message route without mutating either process.
+    pub(crate) fn validate_send(
+        &self,
+        sender: VmProcessId,
+        recipient: VmProcessId,
+    ) -> Result<(), String> {
+        self.validate_sender(sender)?;
+        self.validate_recipient(recipient)
+    }
+
+    /// Validates a user-message sender before resolving its destination.
+    pub(crate) fn validate_sender(&self, sender: VmProcessId) -> Result<(), String> {
+        let sender_process = self
+            .processes
+            .get(&sender)
+            .ok_or_else(|| format!("missing sender process {}", sender.as_u64()))?;
+        if matches!(sender_process.state, VmProcessState::Exited(_)) {
+            return Err(format!("sender process {} has exited", sender.as_u64()));
+        }
+        Ok(())
+    }
+
+    /// Sends a message carrying an explicit VM logical-heap charge.
+    pub(crate) fn send_accounted(
+        &mut self,
+        sender: VmProcessId,
+        recipient: VmProcessId,
+        payload: ReplValue,
+        accounted_bytes: usize,
+    ) -> Result<u64, String> {
+        self.validate_send(sender, recipient)?;
+
+        Ok(self.enqueue_message(
+            sender,
+            recipient,
+            payload,
+            None,
+            None,
+            accounted_bytes,
+            VmMessagePriority::Ordinary,
+        ))
+    }
+
+    /// Sends an explicitly priority message carrying a logical-heap charge.
+    pub(crate) fn send_priority_accounted(
+        &mut self,
+        sender: VmProcessId,
+        recipient: VmProcessId,
+        payload: ReplValue,
+        accounted_bytes: usize,
+    ) -> Result<u64, String> {
+        self.validate_send(sender, recipient)?;
+
+        Ok(self.enqueue_message(
+            sender,
+            recipient,
+            payload,
+            None,
+            None,
+            accounted_bytes,
+            VmMessagePriority::Priority,
+        ))
+    }
+
+    /// Sends a mailbox value carrying an exact native boundary identity.
+    pub(crate) fn send_typed_accounted(
+        &mut self,
+        sender: VmProcessId,
+        recipient: VmProcessId,
+        payload: ReplValue,
+        boundary_type: crate::runtime::native_image::TvmBoundaryType,
+        accounted_bytes: usize,
+    ) -> Result<u64, String> {
+        self.validate_send(sender, recipient)?;
+        Ok(self.enqueue_message(
+            sender,
+            recipient,
+            payload,
+            Some(boundary_type),
+            None,
+            accounted_bytes,
+            VmMessagePriority::Ordinary,
+        ))
+    }
+
+    /// Sends one receiver-owned managed graph with exact native type identity.
+    pub(crate) fn send_typed_managed_accounted(
+        &mut self,
+        sender: VmProcessId,
+        recipient: VmProcessId,
+        fragment: VmManagedMailboxToken,
+        boundary_type: crate::runtime::native_image::TvmBoundaryType,
+        accounted_bytes: usize,
+    ) -> Result<u64, String> {
+        self.validate_send(sender, recipient)?;
+        Ok(self.enqueue_message(
+            sender,
+            recipient,
+            ReplValue::Unit,
+            Some(boundary_type),
+            Some(fragment),
+            accounted_bytes,
+            VmMessagePriority::Ordinary,
+        ))
+    }
+
+    fn validate_recipient(&self, recipient: VmProcessId) -> Result<(), String> {
         let recipient_process = self
             .processes
             .get(&recipient)
@@ -238,20 +844,47 @@ impl VmProcessTable {
                 recipient.as_u64()
             ));
         }
+        Ok(())
+    }
 
+    fn enqueue_message(
+        &mut self,
+        sender: VmProcessId,
+        recipient: VmProcessId,
+        payload: ReplValue,
+        boundary_type: Option<crate::runtime::native_image::TvmBoundaryType>,
+        managed_fragment: Option<VmManagedMailboxToken>,
+        accounted_bytes: usize,
+        priority: VmMessagePriority,
+    ) -> u64 {
         self.next_message_id = self.next_message_id.saturating_add(1);
         let message_id = self.next_message_id;
         let recipient_process = self
             .processes
             .get_mut(&recipient)
             .expect("recipient process was checked before message allocation");
-        recipient_process.mailbox.push_back(VmMessage {
+        let message = VmMessage {
             id: message_id,
             sender,
             payload,
-        });
+            boundary_type,
+            managed_fragment,
+            accounted_bytes,
+            priority,
+        };
+        match priority {
+            VmMessagePriority::Ordinary => recipient_process.mailbox.push_back(message),
+            VmMessagePriority::Priority => {
+                let insertion = recipient_process
+                    .mailbox
+                    .iter()
+                    .position(|queued| queued.priority == VmMessagePriority::Ordinary)
+                    .unwrap_or(recipient_process.mailbox.len());
+                recipient_process.mailbox.insert(insertion, message);
+            }
+        }
         recipient_process.wake();
-        Ok(message_id)
+        message_id
     }
 
     /// Exits a process and returns resources that must be cleaned up.
@@ -264,12 +897,37 @@ impl VmProcessTable {
             .processes
             .get_mut(&pid)
             .ok_or_else(|| format!("missing process {}", pid.as_u64()))?;
-        Ok(process.exit(reason))
+        let cleanup = process.exit(reason);
+        self.remove_registered_names(pid);
+        Ok(cleanup)
+    }
+
+    fn remove_registered_names(&mut self, pid: VmProcessId) -> Vec<String> {
+        let names = self.names_for_process(pid);
+        for name in &names {
+            self.names.remove(name);
+        }
+        names
+    }
+
+    fn ensure_live_process(&self, pid: VmProcessId) -> Result<(), VmProcessRegistryError> {
+        let process = self
+            .processes
+            .get(&pid)
+            .ok_or(VmProcessRegistryError::MissingProcess(pid))?;
+        if matches!(process.state, VmProcessState::Exited(_)) {
+            return Err(VmProcessRegistryError::ExitedProcess(pid));
+        }
+        Ok(())
     }
 
     fn spawn(&mut self, parent: Option<VmProcessId>, source: VmProcessSource) -> VmProcessId {
         self.next_pid = self.next_pid.saturating_add(1);
         let pid = VmProcessId(self.next_pid);
+        let root_location = VmProcessLocation {
+            source: source.clone(),
+            instruction_offset: 0,
+        };
         self.processes.insert(
             pid,
             VmProcess {
@@ -281,6 +939,7 @@ impl VmProcessTable {
                 heap_bytes: 0,
                 cancellation_requested: false,
                 resource_handles: Vec::new(),
+                execution_stack: vec![root_location],
                 mailbox: VecDeque::new(),
             },
         );
@@ -291,3 +950,27 @@ impl VmProcessTable {
 #[cfg(test)]
 #[path = "process_test.rs"]
 mod process_test;
+
+#[cfg(test)]
+#[path = "process_mailbox_storage_parity_test.rs"]
+mod process_mailbox_storage_parity_test;
+
+#[cfg(test)]
+#[path = "process_inspection_test.rs"]
+mod process_inspection_test;
+
+#[cfg(test)]
+#[path = "process_registry_test.rs"]
+mod process_registry_test;
+
+#[cfg(test)]
+#[path = "process_location_test.rs"]
+mod process_location_test;
+
+#[cfg(test)]
+#[path = "process_unicode_source_path_test.rs"]
+mod process_unicode_source_path_test;
+
+#[cfg(test)]
+#[path = "process_environment_parity_test.rs"]
+mod process_environment_parity_test;

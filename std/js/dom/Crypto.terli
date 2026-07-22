@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Crypto
+ */
+module std.js.Dom.Crypto.
+
+/**
+ * The **`Crypto`** interface represents basic cryptography features available in the current context.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto)
+ */
+pub opaque type Crypto.
+
+/**
+ * The **`Crypto.subtle`** read-only property returns a cryptographic operations.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/subtle)
+ */
+pub (value: Crypto) subtle(): SubtleCrypto.
+
+/**
+ * The **`Crypto.getRandomValues()`** method lets you get cryptographically strong random values.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/getRandomValues)
+ */
+pub (value: Crypto) get_random_values(array: T): T.

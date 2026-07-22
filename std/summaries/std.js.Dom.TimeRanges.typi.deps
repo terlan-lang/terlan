@@ -1,8 +1,8 @@
 module=std.js.Dom.TimeRanges
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=9493192263205484412
-interface_hash=13187346158234979650
-interface_doc_hash=13187346158234979650
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=16750881645551023766
+interface_hash=16267437154936791563
+interface_doc_hash=16267437154936791563
 deps=0

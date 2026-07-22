@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface TouchList
+ */
+module std.js.Dom.TouchList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`TouchList`** interface represents a list of contact points on a touch surface.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList)
+ */
+pub opaque type TouchList.
+
+/**
+ * The **`length`** read-only property indicates the number of items (touch points) in a given TouchList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/length)
+ */
+pub (value: TouchList) length(): JsNumber.
+
+/**
+ * The **`item()`** method returns the Touch object at the specified index in the TouchList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/item)
+ */
+pub (value: TouchList) item(index: JsNumber): Option[Touch].

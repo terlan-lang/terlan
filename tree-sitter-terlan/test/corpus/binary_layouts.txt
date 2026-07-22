@@ -1,0 +1,198 @@
+==================
+binary layout constructors and patterns
+==================
+
+module binary.Tooling.
+
+pub packet(port: Int, scalar: Int, body: Dynamic): Dynamic ->
+  Binary[big] { port: UInt[16], scalar: Utf8, body: Rest }.
+
+pub decode(value: Dynamic): Int ->
+  case value {
+    Binary[little] { port: UInt[16], delta: IntBits[8] } -> port + delta;
+    _ -> 0
+  }.
+
+pub decode_head(Binary[big] { port: UInt[16], body: Rest }): Int ->
+  port.
+
+pub decode_lambda(value: Dynamic): Int ->
+  let decode = ((Binary[big] { port: UInt[16], body: Rest }) -> port);
+  decode(value).
+
+pub decode_let(value: Dynamic): Int ->
+  let Binary[big] { prefix: Bytes[2], flags: Bits[3], body: Rest } = value;
+  flags.bit_length().
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier)))
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier)))
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (binary_layout_expression
+        (binary_layout_endian)
+        (binary_layout_field
+          (identifier)
+          (binary_layout_descriptor
+            (binary_layout_descriptor_kind)
+            (binary_layout_width)))
+        (binary_layout_field
+          (identifier)
+          (binary_layout_descriptor))
+        (binary_layout_field
+          (identifier)
+          (binary_layout_descriptor)))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (case_expression
+        (expression
+          (identifier))
+        (case_arm
+          (pattern
+            (binary_layout_pattern
+              (binary_layout_endian)
+              (binary_layout_field
+                (identifier)
+                (binary_layout_descriptor
+                  (binary_layout_descriptor_kind)
+                  (binary_layout_width)))
+              (binary_layout_field
+                (identifier)
+                (binary_layout_descriptor
+                  (binary_layout_descriptor_kind)
+                  (binary_layout_width)))))
+          (expression
+            (binary_expression
+              (expression
+                (identifier))
+              (expression
+                (identifier)))))
+        (case_arm
+          (pattern)
+          (expression
+            (number))))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (pattern
+          (binary_layout_pattern
+            (binary_layout_endian)
+            (binary_layout_field
+              (identifier)
+              (binary_layout_descriptor
+                (binary_layout_descriptor_kind)
+                (binary_layout_width)))
+            (binary_layout_field
+              (identifier)
+              (binary_layout_descriptor))))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (identifier)))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (let_expression
+        (let_binding
+          (pattern
+            (identifier))
+          (expression
+            (expression
+              (lambda_expression
+                (parameters
+                  (parameter
+                    (pattern
+                      (binary_layout_pattern
+                        (binary_layout_endian)
+                        (binary_layout_field
+                          (identifier)
+                          (binary_layout_descriptor
+                            (binary_layout_descriptor_kind)
+                            (binary_layout_width)))
+                        (binary_layout_field
+                          (identifier)
+                          (binary_layout_descriptor))))))
+                (expression
+                  (identifier))))))
+        (expression
+          (call_expression
+            (identifier)
+            (arguments
+              (argument
+                (expression
+                  (identifier)))))))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (let_expression
+        (let_binding
+          (pattern
+            (binary_layout_pattern
+              (binary_layout_endian)
+              (binary_layout_field
+                (identifier)
+                (binary_layout_descriptor
+                  (binary_layout_descriptor_kind)
+                  (binary_layout_width)))
+              (binary_layout_field
+                (identifier)
+                (binary_layout_descriptor
+                  (binary_layout_descriptor_kind)
+                  (binary_layout_width)))
+              (binary_layout_field
+                (identifier)
+                (binary_layout_descriptor))))
+          (expression
+            (identifier)))
+        (expression
+          (method_call_expression
+            (expression
+              (identifier))
+            (field_identifier)
+            (arguments)))))))

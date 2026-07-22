@@ -16,6 +16,7 @@
 # Format:
 # api_id<TAB>fixture<TAB>expected_diagnostic_substring
 std.io.Console.println.value_string	tests/std/negative/io/ConsolePrintlnRejectsIntTest.terl	type mismatch
+std.io.Console.println.no_device_argument	tests/std/negative/io/ConsolePrintlnRejectsDeviceArgumentTest.terl	module `std.io.Console` has no public function `println/2`
 std.io.File.exists.path_string	tests/std/negative/io/FileExistsRejectsIntPathTest.terl	type mismatch
 std.io.File.write_text.content_string	tests/std/negative/io/FileWriteTextRejectsIntContentTest.terl	type mismatch
 std.io.File.append_text.content_string	tests/std/negative/io/FileAppendTextRejectsIntContentTest.terl	type mismatch

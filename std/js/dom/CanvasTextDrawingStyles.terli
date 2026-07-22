@@ -1,0 +1,67 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasTextDrawingStyles
+ */
+module std.js.Dom.CanvasTextDrawingStyles.
+
+import type std.js.String.{JsString}.
+
+pub opaque type CanvasTextDrawingStyles.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/direction)
+ */
+pub (value: CanvasTextDrawingStyles) direction(): CanvasDirection.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/font)
+ */
+pub (value: CanvasTextDrawingStyles) font(): JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontKerning)
+ */
+pub (value: CanvasTextDrawingStyles) font_kerning(): CanvasFontKerning.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontStretch)
+ */
+pub (value: CanvasTextDrawingStyles) font_stretch(): CanvasFontStretch.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontVariantCaps)
+ */
+pub (value: CanvasTextDrawingStyles) font_variant_caps(): CanvasFontVariantCaps.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/letterSpacing)
+ */
+pub (value: CanvasTextDrawingStyles) letter_spacing(): JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textAlign)
+ */
+pub (value: CanvasTextDrawingStyles) text_align(): CanvasTextAlign.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textBaseline)
+ */
+pub (value: CanvasTextDrawingStyles) text_baseline(): CanvasTextBaseline.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textRendering)
+ */
+pub (value: CanvasTextDrawingStyles) text_rendering(): CanvasTextRendering.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/wordSpacing)
+ */
+pub (value: CanvasTextDrawingStyles) word_spacing(): JsString.

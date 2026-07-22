@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface GamepadHapticActuator
  */
 module std.js.Dom.GamepadHapticActuator.
 
@@ -18,7 +26,10 @@ pub opaque type GamepadHapticActuator.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadHapticActuator/playEffect)
  */
-pub (value: GamepadHapticActuator) play_effect(type_: GamepadHapticEffectType, params: GamepadEffectParameters): Promise[GamepadHapticsResult] ->
+pub (value: GamepadHapticActuator) play_effect(
+    type_: GamepadHapticEffectType,
+    params: GamepadEffectParameters
+): Promise[GamepadHapticsResult] ->
     native.
 
 /**

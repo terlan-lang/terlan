@@ -1,8 +1,8 @@
 module=std.js.Dom.RegistrationOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=7186110317295735786
-interface_hash=8535870713471382285
-interface_doc_hash=8535870713471382285
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=7033155139776774872
+interface_hash=11710888309887501228
+interface_doc_hash=11710888309887501228
 deps=0

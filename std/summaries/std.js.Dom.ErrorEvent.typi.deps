@@ -1,8 +1,8 @@
 module=std.js.Dom.ErrorEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5457943546213710412
-interface_hash=15941641733841161914
-interface_doc_hash=15941641733841161914
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6200116070694945856
+interface_hash=5125184847328840601
+interface_doc_hash=5125184847328840601
 deps=0

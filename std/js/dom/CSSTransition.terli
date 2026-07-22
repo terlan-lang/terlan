@@ -1,0 +1,42 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CSSTransition
+ */
+module std.js.Dom.CSSTransition.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`CSSTransition`** interface of the Web Animations API represents an Animation object used for a CSS Transition.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransition)
+ */
+pub opaque type CSSTransition.
+
+/**
+ * The **`transitionProperty`** property of the name** of the transition.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTransition/transitionProperty)
+ */
+pub (value: CSSTransition) transition_property(): JsString.
+
+pub (value: CSSTransition) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: CSSTransition) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

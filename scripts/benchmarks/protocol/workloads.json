@@ -1,0 +1,35 @@
+{
+  "schema": "terlan.protocol-benchmark-workloads.v1",
+  "deterministic_seed": 6072350160045604871,
+  "scale_points": [1, 10, 100, 1000],
+  "warm_sample_count": 3,
+  "source_workloads": [
+    {"id": "fixed_header", "class": "success", "covers": ["binary-construction", "binary-decode-roundtrip"]},
+    {"id": "composed_variable_body", "class": "success", "covers": ["protocol-shape-parse", "protocol-shape-recompose", "binary-decode-roundtrip"]},
+    {"id": "invalid_width", "class": "adversarial", "covers": ["impossible-widths"]},
+    {"id": "duplicate_capture", "class": "adversarial", "covers": ["duplicate-captures"]},
+    {"id": "unsupported_backend", "class": "adversarial", "covers": ["unsupported-backend-paths"]}
+  ],
+  "transport_workloads": [
+    {"id": "vm_tcp_length_prefixed_framing", "class": "success", "covers": ["tcp-framing-decode", "tcp-framing-encode"]},
+    {"id": "vm_tcp_truncated_framing", "class": "adversarial", "covers": ["truncated-payloads"]},
+    {"id": "vm_tcp_malformed_framing", "class": "adversarial", "covers": ["malformed-framing"]},
+    {"id": "vm_tcp_invalid_utf8", "class": "adversarial", "covers": ["invalid-utf8"]}
+  ],
+  "http_workloads": [
+    {"id": "vm-http-lifecycle-crud", "class": "success", "covers": ["vm-logical-streams", "bounded-concurrency", "http-method", "http-path", "http-headers", "http-body-read", "http-body-write", "http-lifecycle"]}
+  ],
+  "required_adversarial_coverage": [
+    "truncated-payloads",
+    "invalid-utf8",
+    "malformed-framing",
+    "impossible-widths",
+    "duplicate-captures",
+    "unsupported-backend-paths"
+  ],
+  "legacy_lanes": [
+    {"lane": "axum-tokio", "workload": "http-crud-host-socket-reference", "status": "comparable-cached", "scales": [100, 1000], "artifact": "benchmarks/results/http-vm-vs-rust.latest.json"},
+    {"lane": "erlang-otp", "workload": "binary-and-framing", "status": "unsupported", "reason": "The removed OTP lane has no identical VM-owned codec or in-memory framing fixture."},
+    {"lane": "axum-tokio", "workload": "adversarial-protocol", "status": "unsupported", "reason": "The cached HTTP framework report does not expose the same typed protocol failure taxonomy."}
+  ]
+}

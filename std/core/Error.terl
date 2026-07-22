@@ -6,7 +6,6 @@
  * struct and add context fields while preserving the common `code` and
  * `message` fields.
  */
-
 module std.core.Error.
 
 /**
@@ -43,10 +42,7 @@ pub struct Error {
  * ```
  */
 pub new(code: Atom, message: String): Error ->
-    Error(
-        code = code,
-        message = message
-    ).
+    Error(code = code, message = message).
 
 /**
  * Returns an error's symbolic code.

@@ -5,7 +5,6 @@
  * It is intentionally target-specific so daemon and socket tests can exchange
  * exact byte sequences without adding byte-array syntax to portable Terlan.
  */
-
 module std.vm.Bytes.
 
 import type std.collections.List.
@@ -78,4 +77,69 @@ pub (bytes: Bytes) length(): Int ->
  */
 @target.vm {process_mailbox: true}
 pub concat(left: Bytes, right: Bytes): Bytes ->
+    native.
+
+/**
+ * Extracts an immutable byte range.
+ *
+ * Input: a byte buffer, a zero-based start offset, and a byte length.
+ * Output: a new `Bytes` value containing exactly the selected octets.
+ * Transformation: validates the complete range before copying the selected
+ * bytes into VM-owned immutable storage.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) slice(start: Int, length: Int): Bytes ->
+    native.
+
+/**
+ * Reads one unsigned big-endian integer from an arbitrary bit range.
+ *
+ * Input: a byte buffer, a zero-based bit offset measured from the most
+ * significant bit of the first byte, and a bit width in `1..63`.
+ * Output: the selected bits as a non-negative Terlan `Int`.
+ * Transformation: validates the complete bit range before accumulating bits in
+ * network order without exposing host pointers or backend bit syntax.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) read_uint_be(bit_offset: Int, bit_width: Int): Int ->
+    native.
+
+/**
+ * Reads one signed big-endian integer from an arbitrary bit range.
+ *
+ * Input: a byte buffer, a zero-based bit offset measured from the most
+ * significant bit of the first byte, and a bit width in `1..63`.
+ * Output: the selected bits interpreted as a two's-complement Terlan `Int`.
+ * Transformation: validates and accumulates the complete bit range in network
+ * order before sign-extending the declared width.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) read_int_be(bit_offset: Int, bit_width: Int): Int ->
+    native.
+
+/**
+ * Reads one unsigned little-endian integer from an arbitrary bit range.
+ *
+ * Input: a byte buffer, a zero-based bit offset measured from the most
+ * significant bit of the first byte, and a bit width in `1..63`.
+ * Output: the selected bits as a non-negative Terlan `Int`.
+ * Transformation: reads network-order bits in groups of at most eight and
+ * assigns each successive group increasing numeric significance.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) read_uint_le(bit_offset: Int, bit_width: Int): Int ->
+    native.
+
+/**
+ * Reads one signed little-endian integer from an arbitrary bit range.
+ *
+ * Input: a byte buffer, a zero-based bit offset measured from the most
+ * significant bit of the first byte, and a bit width in `1..63`.
+ * Output: the selected little-endian groups interpreted as a two's-complement
+ * Terlan `Int`.
+ * Transformation: accumulates successive groups from least to most
+ * significant before sign-extending the declared width.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) read_int_le(bit_offset: Int, bit_width: Int): Int ->
     native.

@@ -4,10 +4,10 @@
  * `std.core.Ordering` defines the trait for values that can be ordered. The
  * closed comparison result is named `Comparison`.
  */
-
 module std.core.Ordering.
 
 import std.core.Option.{None, Some}.
+
 import type std.core.Option.
 
 /**
@@ -30,8 +30,7 @@ import type std.core.Option.
  *    Lt.
  * ```
  */
-pub type Lt =
-    Atom["lt"].
+pub type Lt.
 
 /**
  * Eq represents equal comparison.
@@ -43,8 +42,7 @@ pub type Lt =
  *    Eq.
  * ```
  */
-pub type Eq =
-    Atom["eq"].
+pub type Eq.
 
 /**
  * Gt represents greater-than comparison.
@@ -56,8 +54,7 @@ pub type Eq =
  *    Gt.
  * ```
  */
-pub type Gt =
-    Atom["gt"].
+pub type Gt.
 
 /**
  * Comparison is the closed result domain for total ordering.
@@ -72,10 +69,7 @@ pub type Gt =
  *    }.
  * ```
  */
-pub type Comparison =
-      Lt
-    | Eq
-    | Gt.
+pub type Comparison = Lt | Eq | Gt.
 
 /**
  * Compares two `Comparison` values using declaration order.
@@ -98,28 +92,17 @@ pub type Comparison =
  */
 pub compare(left: Comparison, right: Comparison): Comparison ->
     case left == right {
-        true ->
-            Eq;
-
+        true -> Eq;
         false ->
             case left {
-                Lt ->
-                    Lt;
-
+                Lt -> Lt;
                 Eq ->
                     case right {
-                        Lt ->
-                            Gt;
-
-                        Eq ->
-                            Eq;
-
-                        Gt ->
-                            Lt
+                        Lt -> Gt;
+                        Eq -> Eq;
+                        Gt -> Lt
                     };
-
-                Gt ->
-                    Gt
+                Gt -> Gt
             }
     }.
 
@@ -140,14 +123,9 @@ pub compare(left: Comparison, right: Comparison): Comparison ->
  */
 pub to_string(value: Comparison): String ->
     case value {
-        Lt ->
-            "lt";
-
-        Eq ->
-            "eq";
-
-        Gt ->
-            "gt"
+        Lt -> "lt";
+        Eq -> "eq";
+        Gt -> "gt"
     }.
 
 /**
@@ -168,21 +146,14 @@ pub to_string(value: Comparison): String ->
  */
 pub from_string(value: String): Option[Comparison] ->
     case value == "lt" {
-        true ->
-            Some(Lt);
-
+        true -> Some(Lt);
         false ->
             case value == "eq" {
-                true ->
-                    Some(Eq);
-
+                true -> Some(Eq);
                 false ->
                     case value == "gt" {
-                        true ->
-                            Some(Gt);
-
-                        false ->
-                            None
+                        true -> Some(Gt);
+                        false -> None
                     }
             }
     }.
@@ -218,16 +189,11 @@ pub trait Ordering[T] {
 pub impl Ordering[Bool] for Bool {
     compare(left: Bool, right: Bool): Comparison ->
         case left == right {
-            true ->
-                Eq;
-
+            true -> Eq;
             false ->
                 case left {
-                    false ->
-                        Lt;
-
-                    true ->
-                        Gt
+                    false -> Lt;
+                    true -> Gt
                 }
         }.
 }.
@@ -242,16 +208,11 @@ pub impl Ordering[Bool] for Bool {
 pub impl Ordering[Int] for Int {
     compare(left: Int, right: Int): Comparison ->
         case left == right {
-            true ->
-                Eq;
-
+            true -> Eq;
             false ->
                 case left < right {
-                    true ->
-                        Lt;
-
-                    false ->
-                        Gt
+                    true -> Lt;
+                    false -> Gt
                 }
         }.
 }.
@@ -266,16 +227,11 @@ pub impl Ordering[Int] for Int {
 pub impl Ordering[Float] for Float {
     compare(left: Float, right: Float): Comparison ->
         case left == right {
-            true ->
-                Eq;
-
+            true -> Eq;
             false ->
                 case left < right {
-                    true ->
-                        Lt;
-
-                    false ->
-                        Gt
+                    true -> Lt;
+                    false -> Gt
                 }
         }.
 }.
@@ -290,16 +246,11 @@ pub impl Ordering[Float] for Float {
 pub impl Ordering[String] for String {
     compare(left: String, right: String): Comparison ->
         case left == right {
-            true ->
-                Eq;
-
+            true -> Eq;
             false ->
                 case left < right {
-                    true ->
-                        Lt;
-
-                    false ->
-                        Gt
+                    true -> Lt;
+                    false -> Gt
                 }
         }.
 }.
@@ -329,28 +280,17 @@ pub impl Ordering[Unit] for Unit {
 pub impl Ordering[Comparison] for Comparison {
     compare(left: Comparison, right: Comparison): Comparison ->
         case left == right {
-            true ->
-                Eq;
-
+            true -> Eq;
             false ->
                 case left {
-                    Lt ->
-                        Lt;
-
+                    Lt -> Lt;
                     Eq ->
                         case right {
-                            Lt ->
-                                Gt;
-
-                            Eq ->
-                                Eq;
-
-                            Gt ->
-                                Lt
+                            Lt -> Gt;
+                            Eq -> Eq;
+                            Gt -> Lt
                         };
-
-                    Gt ->
-                        Gt
+                    Gt -> Gt
                 }
         }.
 }.

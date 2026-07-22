@@ -22,14 +22,14 @@ pub opaque type Iterator[T].
 /// level.
 
 pub type Step[T] =
-    {value : T, next : Iterator[T]}.
+    {value: T, next: Iterator[T]}.
 
 /// Applies a callback to each value yielded by an iterator.
 ///
 /// Input: one iterator state and one callback from `T` to `Unit`.
 /// Output: `Unit`.
 /// Transformation: repeatedly calls `next(iterator)`. When traversal is
-/// exhausted, returns `Unit`. When a value is yielded, calls `cb.(value)` for
+/// exhausted, returns `Unit`. When a value is yielded, calls `cb(value)` for
 /// its effect and continues with the returned next iterator state.
 ///
 /// ```terlan
@@ -45,12 +45,12 @@ pub type Step[T] =
 ///            Unit;
 ///
 ///        Some({value: value, next: rest}) ->
-///            let _done = cb.(value);
+///            let _done = cb(value);
 ///            each(rest, cb)
 ///    }.
 /// ```
 
-pub each(iterator: Iterator[T], cb: (T ) -> Unit): Unit.
+pub each(iterator: Iterator[T], cb: (T) -> Unit): Unit.
 
 /// Returns the next value and iterator state, or `None` when exhausted.
 ///
@@ -61,4 +61,5 @@ pub each(iterator: Iterator[T], cb: (T ) -> Unit): Unit.
 /// intrinsic and advances traversal by returning a new iterator state rather
 /// than mutating the current value.
 
+@pure
 pub next(iterator: Iterator[T]): Option[Step[T]].

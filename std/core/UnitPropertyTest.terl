@@ -1,0 +1,53 @@
+/**
+ * Property-based Unit invariants.
+ *
+ * `std.core.UnitPropertyTest` validates the singleton Unit domain against the
+ * public Unit API so no-information return values are covered by the shared
+ * property-testing machinery.
+ */
+module std.core.UnitPropertyTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Eq}.
+import std.core.Unit.{compare, equal, from_string, to_string}.
+import std.test.Gen.{constant, for_all}.
+import std.test.Test.{each}.
+
+import type std.core.Unit.
+
+/**
+ * Verifies equality is reflexive for generated Unit values.
+ *
+ * Input: generated singleton Unit values.
+ * Output: `true` when every generated value equals itself.
+ * Transformation: checks the public Unit equality helper over generated input.
+ */
+@test
+pub generated_units_equal_is_reflexive(): Bool ->
+    for_all(constant(Unit), (value) -> equal(value, value)).
+
+/**
+ * Verifies comparing a generated Unit value to itself returns equality.
+ *
+ * Input: generated singleton Unit values.
+ * Output: `true` when each generated self-comparison returns `Eq`.
+ * Transformation: checks the public Unit comparison helper over generated
+ * input.
+ */
+@test
+pub generated_units_compare_self_as_equal(): Bool ->
+    for_all(constant(Unit), (value) -> compare(value, value) == Eq).
+
+/**
+ * Verifies generated Unit values survive canonical string roundtrips.
+ *
+ * Input: generated singleton Unit values.
+ * Output: `true` when `to_string -> from_string` returns the original value.
+ * Transformation: checks parse/render consistency through the public Unit API.
+ */
+@test
+pub generated_units_string_round_trip(): Bool ->
+    for_all(constant(Unit), (value) -> case from_string(to_string(value)) {
+        Some(parsed) -> parsed == value;
+        None -> false
+    }).

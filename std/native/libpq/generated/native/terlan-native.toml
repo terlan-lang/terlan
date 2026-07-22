@@ -1,0 +1,199 @@
+[package]
+namespace = "terlan_libpq"
+adapter = "c-abi"
+crate = "terlan-libpq"
+
+[c_metadata]
+schema = "terlan.c.metadata.v1"
+producer = "terlan-curated-metadata"
+format = "reviewed-declaration-json"
+abi_version = 1
+
+[runtime]
+bridge = "native_boundary"
+ownership = "opaque_handles"
+raw_pointers_public = false
+raw_pointers_contained_in_adapter = true
+exceptions_cross_boundary = false
+
+[functions."terlan_libpq.Driver.start"]
+operation = "postgres.libpq.connection.start"
+arity = 1
+returns = "Connection"
+blocking = "fast"
+resource = "opaque_handle"
+
+[functions."terlan_libpq.Driver.dispose_connection"]
+operation = "postgres.libpq.connection.dispose"
+arity = 1
+returns = "Unit"
+blocking = "fast"
+resource = "dispose_handle"
+
+[functions."terlan_libpq.Driver.socket"]
+operation = "postgres.libpq.connection.socket"
+arity = 1
+returns = "Int"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.poll_connect"]
+operation = "postgres.libpq.connection.poll_connect"
+arity = 1
+returns = "Int"
+blocking = "async"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.error_length"]
+operation = "postgres.libpq.connection.error_length"
+arity = 1
+returns = "Int"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.error_bytes"]
+operation = "postgres.libpq.connection.error_bytes"
+arity = 1
+returns = "List[Int]"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.clear_parameters"]
+operation = "postgres.libpq.connection.clear_parameters"
+arity = 1
+returns = "Unit"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.push_null"]
+operation = "postgres.libpq.connection.push_null"
+arity = 1
+returns = "Unit"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.push_text"]
+operation = "postgres.libpq.connection.push_text"
+arity = 2
+returns = "Unit"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.send_query"]
+operation = "postgres.libpq.connection.send_query"
+arity = 2
+returns = "Unit"
+blocking = "async"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.send_batch"]
+operation = "postgres.libpq.connection.send_batch"
+arity = 2
+returns = "Unit"
+blocking = "async"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.consume_input"]
+operation = "postgres.libpq.connection.consume_input"
+arity = 1
+returns = "Unit"
+blocking = "async"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.is_busy"]
+operation = "postgres.libpq.connection.is_busy"
+arity = 1
+returns = "Bool"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.next_result"]
+operation = "postgres.libpq.connection.next_result"
+arity = 1
+returns = "QueryResult"
+blocking = "fast"
+resource = "transferable_handle"
+
+[functions."terlan_libpq.Driver.abort"]
+operation = "postgres.libpq.connection.abort"
+arity = 1
+returns = "Unit"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.dispose_result"]
+operation = "postgres.libpq.result.dispose"
+arity = 1
+returns = "Unit"
+blocking = "fast"
+resource = "dispose_handle"
+
+[functions."terlan_libpq.Driver.status"]
+operation = "postgres.libpq.result.status"
+arity = 1
+returns = "Int"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.row_count"]
+operation = "postgres.libpq.result.row_count"
+arity = 1
+returns = "Int"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.column_count"]
+operation = "postgres.libpq.result.column_count"
+arity = 1
+returns = "Int"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.select_column_name"]
+operation = "postgres.libpq.result.select_column_name"
+arity = 2
+returns = "Unit"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.column_oid"]
+operation = "postgres.libpq.result.column_oid"
+arity = 2
+returns = "Int"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.select_value"]
+operation = "postgres.libpq.result.select_value"
+arity = 3
+returns = "Unit"
+blocking = "fast"
+resource = "mutable_handle"
+
+[functions."terlan_libpq.Driver.value_length"]
+operation = "postgres.libpq.result.value_length"
+arity = 1
+returns = "Int"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.value_bytes"]
+operation = "postgres.libpq.result.value_bytes"
+arity = 1
+returns = "List[Int]"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.value_is_null"]
+operation = "postgres.libpq.result.value_is_null"
+arity = 1
+returns = "Bool"
+blocking = "fast"
+resource = "borrowed_handle"
+
+[functions."terlan_libpq.Driver.affected_rows"]
+operation = "postgres.libpq.result.affected_rows"
+arity = 1
+returns = "Int"
+blocking = "fast"
+resource = "borrowed_handle"

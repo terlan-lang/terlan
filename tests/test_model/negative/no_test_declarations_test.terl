@@ -1,4 +1,3 @@
 module tests.test_model.NoTestDeclarationsTest.
 
-pub helper(): Bool ->
-    true.
+pub helper(): Bool -> true.

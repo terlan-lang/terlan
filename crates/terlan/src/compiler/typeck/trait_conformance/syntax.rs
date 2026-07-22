@@ -946,6 +946,7 @@ fn first_private_local_type_name(
         | Type::Placeholder
         | Type::LiteralAtom(_)
         | Type::LiteralInt(_)
+        | Type::LiteralBool(_)
         | Type::Var(_) => None,
     }
 }

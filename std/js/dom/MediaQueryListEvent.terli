@@ -1,0 +1,34 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaQueryListEvent
+ */
+module std.js.Dom.MediaQueryListEvent.
+
+/**
+ * The `MediaQueryListEvent` object stores information on the changes that have happened to a MediaQueryList object — instances are available as the event object on a function referenced by a MediaQueryList.change_event event.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaQueryListEvent)
+ */
+pub opaque type MediaQueryListEvent.
+
+/**
+ * The **`matches`** read-only property of the `true` if the document currently matches the media query list, or `false` if not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaQueryListEvent/matches)
+ */
+pub (value: MediaQueryListEvent) matches(): std.core.Bool.
+
+/**
+ * The **`media`** read-only property of the a serialized media query.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaQueryListEvent/media)
+ */
+pub (value: MediaQueryListEvent) media(): std.js.String.JsString.

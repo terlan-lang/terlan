@@ -1,18 +1,27 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface GamepadHapticActuator
  */
 module std.js.Dom.GamepadHapticActuatorTest.
 
-import type std.js.Dom.GamepadHapticActuator.{GamepadHapticActuator}.
-
+import type std.js.Dom.GamepadHapticActuator.
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub play_effect_typechecks(receiver: GamepadHapticActuator, type_: GamepadHapticEffectType, params: GamepadEffectParameters): Promise[GamepadHapticsResult] ->
+pub play_effect_typechecks(
+    receiver: GamepadHapticActuator,
+    type_: GamepadHapticEffectType,
+    params: GamepadEffectParameters
+): Promise[GamepadHapticsResult] ->
     receiver.play_effect(type_, params).
 
 pub reset_typechecks(receiver: GamepadHapticActuator): Promise[GamepadHapticsResult] ->

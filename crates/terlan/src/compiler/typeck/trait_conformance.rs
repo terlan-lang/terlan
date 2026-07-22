@@ -1,9 +1,14 @@
 use super::*;
 
 mod impls;
+mod negative_impls;
 mod syntax;
 
 use impls::check_parsed_trait_impl_signature;
+pub(super) use negative_impls::{
+    check_syntax_negative_trait_impls, collect_visible_negative_trait_impl_type_args,
+    syntax_trait_impl_to_parsed,
+};
 pub(super) use syntax::{
     check_syntax_macro_decl_signatures, check_syntax_public_constructor_return_visibility,
     collect_syntax_kind_diagnostics,
@@ -414,53 +419,18 @@ pub(super) fn check_syntax_declared_implements(
 ///   and reports repeated keys. This enforces the greenfield rule that a type
 ///   must not declare `implements Trait[...]` and also provide an explicit
 ///   adapter impl for the same pair.
-pub(super) fn check_syntax_trait_impl_coherence(module: &SyntaxModuleOutput) -> Vec<Diagnostic> {
+pub(super) fn check_syntax_trait_impl_coherence(
+    module: &SyntaxModuleOutput,
+    imported_type_names: &HashMap<String, QualifiedTypeName>,
+) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     let mut seen: HashMap<String, Span> = HashMap::new();
+    let imported_type_refs = imported_type_text_refs(imported_type_names);
 
-    for declaration in &module.declarations {
-        if let Some((type_name, implements)) = syntax_declared_implements(declaration) {
-            for trait_ref in implements {
-                let Some(target) = parse_trait_instance_from_text(&trait_ref.text) else {
-                    continue;
-                };
-                let Some(key) = syntax_trait_impl_key(&target, type_name) else {
-                    continue;
-                };
-                if let Some(previous) = seen.get(&key) {
-                    diagnostics.push(Diagnostic {
-                        span: trait_ref.span.into(),
-                        message: format!(
-                            "coherent impl conflict for `{}`: duplicate visible conformance (first seen at {:?})",
-                            key, previous
-                        ),
-                        severity: DiagSeverity::Error,
-                    });
-                } else {
-                    seen.insert(key, trait_ref.span.into());
-                }
-            }
-            continue;
-        }
-
-        let SyntaxDeclarationPayload::TraitImpl {
-            trait_ref,
-            for_type,
-            ..
-        } = &declaration.payload
-        else {
-            continue;
-        };
-
-        let Some(target) = parse_trait_instance_from_text(&trait_ref.text) else {
-            continue;
-        };
-        let Some(key) = syntax_trait_impl_key(&target, &for_type.text) else {
-            continue;
-        };
+    for (key, span) in collect_syntax_positive_trait_impl_keys(module, &imported_type_refs) {
         if let Some(previous) = seen.get(&key) {
             diagnostics.push(Diagnostic {
-                span: declaration.span.into(),
+                span,
                 message: format!(
                     "coherent impl conflict for `{}`: duplicate visible conformance (first seen at {:?})",
                     key, previous
@@ -468,11 +438,62 @@ pub(super) fn check_syntax_trait_impl_coherence(module: &SyntaxModuleOutput) -> 
                 severity: DiagSeverity::Error,
             });
         } else {
-            seen.insert(key, declaration.span.into());
+            seen.insert(key, span);
         }
     }
 
     diagnostics
+}
+
+/// Collects canonical keys for every positive source-level conformance.
+fn collect_syntax_positive_trait_impl_keys(
+    module: &SyntaxModuleOutput,
+    imported_type_refs: &HashMap<String, String>,
+) -> Vec<(String, Span)> {
+    let mut keys = Vec::new();
+    for declaration in &module.declarations {
+        if let Some((type_name, implements)) = syntax_declared_implements(declaration) {
+            for trait_ref in implements {
+                let trait_ref_text = crate::terlan_hir::qualify_syntax_type_text(
+                    &trait_ref.text,
+                    imported_type_refs,
+                );
+                let for_type_text =
+                    crate::terlan_hir::qualify_syntax_type_text(type_name, imported_type_refs);
+                let Some(target) = parse_trait_instance_from_text(&trait_ref_text) else {
+                    continue;
+                };
+                let Some(key) = syntax_trait_impl_key(&target, &for_type_text) else {
+                    continue;
+                };
+                keys.push((key, trait_ref.span.into()));
+            }
+            continue;
+        }
+
+        let SyntaxDeclarationPayload::TraitImpl {
+            trait_ref,
+            for_type,
+            is_negative: false,
+            ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+
+        let trait_ref =
+            crate::terlan_hir::qualify_syntax_type_text(&trait_ref.text, imported_type_refs);
+        let for_type =
+            crate::terlan_hir::qualify_syntax_type_text(&for_type.text, imported_type_refs);
+        let Some(target) = parse_trait_instance_from_text(&trait_ref) else {
+            continue;
+        };
+        let Some(key) = syntax_trait_impl_key(&target, &for_type) else {
+            continue;
+        };
+        keys.push((key, declaration.span.into()));
+    }
+    keys
 }
 
 /// Validates structured explicit `impl Trait for Type` method signatures.
@@ -494,17 +515,24 @@ pub(super) fn check_syntax_trait_impl_coherence(module: &SyntaxModuleOutput) -> 
 pub(super) fn check_syntax_trait_impl_signatures(
     module: &SyntaxModuleOutput,
     trait_map: &HashMap<String, ParsedTraitSignature>,
+    imported_type_names: &HashMap<String, QualifiedTypeName>,
+    alias_names: &HashSet<String>,
+    aliases: &HashMap<String, TypeAlias>,
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     let mut inheritance_cache: HashMap<String, Option<HashMap<String, TraitMethodSignature>>> =
         HashMap::new();
+    let imported_type_refs = imported_type_text_refs(imported_type_names);
 
     for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::TraitImpl { .. } = &declaration.payload else {
+        let SyntaxDeclarationPayload::TraitImpl {
+            is_negative: false, ..
+        } = &declaration.payload
+        else {
             continue;
         };
 
-        let Some(impl_decl) = syntax_trait_impl_to_parsed(declaration) else {
+        let Some(impl_decl) = syntax_trait_impl_to_parsed(declaration, &imported_type_refs) else {
             diagnostics.push(Diagnostic {
                 span: declaration.span.into(),
                 message: "unable to parse trait impl declaration".to_string(),
@@ -518,6 +546,8 @@ pub(super) fn check_syntax_trait_impl_signatures(
             declaration.span.into(),
             trait_map,
             &mut inheritance_cache,
+            alias_names,
+            aliases,
             &mut diagnostics,
         );
     }
@@ -544,66 +574,21 @@ fn syntax_trait_impl_key(target: &ParsedTraitInstance, for_type: &str) -> Option
         .map(|trait_key| format!("{} for {}", trait_key, normalize_trait_type_text(for_type)))
 }
 
-/// Converts structured syntax-output impl declarations into checker summaries.
-///
-/// Inputs:
-/// - `declaration`: syntax-output declaration expected to hold a
-///   `TraitImpl` payload.
-///
-/// Output:
-/// - Parsed trait impl summary with target trait, owner type, and method
-///   signatures, or `None` when the payload is not a trait impl or its trait
-///   reference cannot be parsed.
-///
-/// Transformation:
-/// - Reads the structured `trait_ref`, `for_type`, and impl methods directly
-///   from syntax output, avoiding raw source reparsing for the formal compiler
-///   path.
-pub(super) fn syntax_trait_impl_to_parsed(
-    declaration: &SyntaxDeclarationOutput,
-) -> Option<ParsedTraitImpl> {
-    let SyntaxDeclarationPayload::TraitImpl {
-        trait_ref,
-        for_type,
-        methods,
-        ..
-    } = &declaration.payload
-    else {
-        return None;
-    };
-
-    let target = parse_trait_instance_from_text(&trait_ref.text)?;
-    Some(ParsedTraitImpl {
-        target,
-        for_type: Some(normalize_trait_type_text(&for_type.text)),
-        methods: methods.iter().map(syntax_impl_method_signature).collect(),
-    })
-}
-
-/// Converts one structured impl method into a comparable signature.
-///
-/// Inputs:
-/// - `method`: syntax-output impl method payload.
-///
-/// Output:
-/// - Parsed method signature containing name, parameter type texts, return
-///   type text, and source span.
-///
-/// Transformation:
-/// - Drops method bodies and keeps only the type-level information needed for
-///   conformance validation.
-fn syntax_impl_method_signature(method: &SyntaxImplMethodOutput) -> ParsedMethodSignature {
-    ParsedMethodSignature {
-        name: method.name.clone(),
-        params: method
-            .params
-            .iter()
-            .map(|param| normalize_trait_type_text(&param.annotation.text))
-            .collect(),
-        mutable_params: method.params.iter().map(|param| param.is_mutable).collect(),
-        return_type: normalize_trait_type_text(&method.return_type.text),
-        span: method.span.into(),
-    }
+/// Converts resolver-owned imported type identities into text qualification targets.
+pub(super) fn imported_type_text_refs(
+    imported_type_names: &HashMap<String, QualifiedTypeName>,
+) -> HashMap<String, String> {
+    let primitive_names = primitive_type_names();
+    imported_type_names
+        .iter()
+        .filter(|(local_name, _)| !primitive_names.contains(*local_name))
+        .map(|(local_name, qualified)| {
+            (
+                local_name.clone(),
+                format!("{}.{}", qualified.module, qualified.name),
+            )
+        })
+        .collect()
 }
 
 /// Returns a declaration's type name and `implements` list when present.

@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioNode
  */
 module std.js.Dom.AudioNodeTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.AudioNode.{AudioNode}.
-
+import type std.js.Dom.AudioNode.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub channel_count_typechecks(receiver: AudioNode): JsNumber ->
     receiver.channel_count().
@@ -32,7 +36,12 @@ pub number_of_inputs_typechecks(receiver: AudioNode): JsNumber ->
 pub number_of_outputs_typechecks(receiver: AudioNode): JsNumber ->
     receiver.number_of_outputs().
 
-pub connect_typechecks(receiver: AudioNode, destination_node: AudioNode, output: JsNumber, input: JsNumber): AudioNode ->
+pub connect_typechecks(
+    receiver: AudioNode,
+    destination_node: AudioNode,
+    output: JsNumber,
+    input: JsNumber
+): AudioNode ->
     receiver.connect(destination_node, output, input).
 
 pub connect_typechecks(receiver: AudioNode, destination_param: AudioParam, output: JsNumber): Unit ->
@@ -50,11 +59,20 @@ pub disconnect_typechecks(receiver: AudioNode, destination_node: AudioNode): Uni
 pub disconnect_typechecks(receiver: AudioNode, destination_node: AudioNode, output: JsNumber): Unit ->
     receiver.disconnect(destination_node, output).
 
-pub disconnect_typechecks(receiver: AudioNode, destination_node: AudioNode, output: JsNumber, input: JsNumber): Unit ->
+pub disconnect_typechecks(
+    receiver: AudioNode,
+    destination_node: AudioNode,
+    output: JsNumber,
+    input: JsNumber
+): Unit ->
     receiver.disconnect(destination_node, output, input).
 
 pub disconnect_typechecks(receiver: AudioNode, destination_param: AudioParam): Unit ->
     receiver.disconnect(destination_param).
 
-pub disconnect_typechecks(receiver: AudioNode, destination_param: AudioParam, output: JsNumber): Unit ->
+pub disconnect_typechecks(
+    receiver: AudioNode,
+    destination_param: AudioParam,
+    output: JsNumber
+): Unit ->
     receiver.disconnect(destination_param, output).

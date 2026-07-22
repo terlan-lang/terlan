@@ -1,0 +1,123 @@
+module tests.comparison.ComparisonTest.
+
+import std.test.Test.{assert_equal}.
+
+pub type Ready = Atom["ready"].
+
+pub type Done = Atom["done"].
+
+@test
+pub integer_equality_compares_values(): Bool ->
+    assert_equal(true, 2 == 2).
+
+@test
+pub integer_equality_rejects_different_values(): Bool ->
+    assert_equal(false, 2 == 3).
+
+@test
+pub integer_inequality_accepts_different_values(): Bool ->
+    assert_equal(true, 2 != 3).
+
+@test
+pub integer_inequality_rejects_matching_values(): Bool ->
+    assert_equal(false, 2 != 2).
+
+@test
+pub integer_less_than_compares_order(): Bool ->
+    assert_equal(true, 1 < 2).
+
+@test
+pub integer_less_than_rejects_equal_boundary(): Bool ->
+    assert_equal(false, 2 < 2).
+
+@test
+pub integer_less_than_or_equal_accepts_equal_boundary(): Bool ->
+    assert_equal(true, 2 <= 2).
+
+@test
+pub integer_less_than_or_equal_rejects_larger_left(): Bool ->
+    assert_equal(false, 3 <= 2).
+
+@test
+pub integer_greater_than_compares_order(): Bool ->
+    assert_equal(true, 3 > 2).
+
+@test
+pub integer_greater_than_rejects_equal_boundary(): Bool ->
+    assert_equal(false, 2 > 2).
+
+@test
+pub integer_greater_than_or_equal_accepts_equal_boundary(): Bool ->
+    assert_equal(true, 2 >= 2).
+
+@test
+pub integer_greater_than_or_equal_rejects_smaller_left(): Bool ->
+    assert_equal(false, 1 >= 2).
+
+@test
+pub integer_bindings_compare_without_literal_type_mismatch(): Bool ->
+    let a = 0; let b = 2; assert_equal(false, a > b).
+
+@test
+pub float_less_than_compares_order(): Bool ->
+    assert_equal(true, 0.1 < 0.2).
+
+@test
+pub float_greater_than_or_equal_accepts_equal_boundary(): Bool ->
+    assert_equal(true, 0.2 >= 0.2).
+
+@test
+pub mixed_numeric_less_than_promotes_to_float_comparison(): Bool ->
+    assert_equal(true, 1 < 1.5).
+
+@test
+pub mixed_numeric_greater_than_promotes_to_float_comparison(): Bool ->
+    assert_equal(true, 2 > 1.5).
+
+@test
+pub string_equality_compares_values(): Bool ->
+    assert_equal(true, "terlan" == "terlan").
+
+@test
+pub string_inequality_compares_values(): Bool ->
+    assert_equal(true, "terlan" != "erl").
+
+@test
+pub bool_equality_compares_values(): Bool ->
+    assert_equal(true, true == true).
+
+@test
+pub bool_inequality_compares_values(): Bool ->
+    assert_equal(true, true != false).
+
+@test
+pub atom_equality_compares_values(): Bool ->
+    assert_equal(true, Ready == Ready).
+
+@test
+pub atom_inequality_compares_values(): Bool ->
+    assert_equal(true, Ready != Done).
+
+@test
+pub tuple_equality_compares_structure(): Bool ->
+    assert_equal(true, {1, "a"} == {1, "a"}).
+
+@test
+pub tuple_inequality_compares_structure(): Bool ->
+    assert_equal(true, {1, "a"} != {2, "a"}).
+
+@test
+pub list_equality_compares_structure(): Bool ->
+    assert_equal(true, [1, 2] == [1, 2]).
+
+@test
+pub list_inequality_compares_structure(): Bool ->
+    assert_equal(true, [1, 2] != [1, 3]).
+
+@test
+pub map_equality_compares_structure(): Bool ->
+    assert_equal(true, {name: "Ada", age: 42} == {name: "Ada", age: 42}).
+
+@test
+pub map_inequality_compares_structure(): Bool ->
+    assert_equal(true, {name: "Ada", age: 42} != {name: "Ada", age: 43}).

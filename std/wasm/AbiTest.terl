@@ -1,0 +1,19 @@
+module std.wasm.AbiTest.
+
+import std.wasm.Abi.{F32, F64, I32, I64}.
+
+pub identity_i32(value: I32): I32 ->
+    value.
+
+pub identity_i64(value: I64): I64 ->
+    value.
+
+pub identity_f32(value: F32): F32 ->
+    value.
+
+pub identity_f64(value: F64): F64 ->
+    value.
+
+@test
+pub scalar_contract_executes(): Bool ->
+    20 + 22 == 42.

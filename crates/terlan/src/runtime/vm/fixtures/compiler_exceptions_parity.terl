@@ -1,0 +1,27 @@
+module compiler_exceptions_parity.
+
+pub type Ok.
+pub type Error.
+
+id(value: Dynamic): Dynamic -> value.
+
+wrong_line(): Bool ->
+    let {Ok, _value} = id({Error, 5});
+    true.
+
+pub catches_pattern_failure(): Bool ->
+    try wrong_line() {
+        value -> value
+    catch
+        _reason -> true
+    }.
+
+pub preserves_success(): Bool ->
+    try true {
+        value -> value
+    catch
+        _reason -> false
+    }.
+
+pub run(): Bool ->
+    catches_pattern_failure() and preserves_success().

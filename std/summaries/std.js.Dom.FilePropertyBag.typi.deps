@@ -1,8 +1,8 @@
 module=std.js.Dom.FilePropertyBag
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5133436092553781089
-interface_hash=17646631616952512127
-interface_doc_hash=17646631616952512127
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5493016928732181503
+interface_hash=3748177789420636745
+interface_doc_hash=3748177789420636745
 deps=0

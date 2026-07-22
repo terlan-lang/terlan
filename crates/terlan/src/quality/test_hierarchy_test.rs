@@ -60,7 +60,7 @@ fn script_invocations_from_text_keeps_makefile_locations() {
     let makefile = Path::new("Makefile");
     let text = "\
 check:\n\
-\t$(CARGO) test\n\
+\t$(RUST_TEST)\n\
 \t$(PYTHON) tools/check_policy.py\n\
 \t@bash scripts/check_release.sh\n";
 
@@ -94,6 +94,15 @@ fn is_allowed_script_accepts_release_owned_policy_scripts() {
     assert!(is_allowed_script(Path::new("tools/check_policy.py")));
     assert!(is_allowed_script(Path::new(
         "tools/package_release_artifact.py"
+    )));
+    assert!(is_allowed_script(Path::new(
+        "tools/release_promotion_pipeline.py"
+    )));
+    assert!(is_allowed_script(Path::new(
+        "scripts/run_exact_cargo_test.sh"
+    )));
+    assert!(is_allowed_script(Path::new(
+        "scripts/publish_release_from_dist.sh"
     )));
     assert!(is_allowed_script(Path::new("std/scripts/check_summary.py")));
     assert!(is_allowed_script(Path::new(

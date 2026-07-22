@@ -1,0 +1,671 @@
+//! Portable binary descriptor contract.
+//!
+//! `std.binary.Binary` defines inert type-level segment descriptors for future
+//! binary construction and matching. These descriptors do not enable runtime
+//! binary pattern execution; they give the compiler, VM, docs, and tests one
+//! canonical vocabulary before syntax sugar lands. VM-owned helpers validate
+//! shapes, split frames, and decode fields.
+//! VM-owned helpers provide descriptor-directed protocol encoding.
+//! The 0.0.7 baseline does not enable source-level binary pattern matching.
+//! Run `make binary-descriptor-check` to validate the contract.
+
+module std.binary.Binary.
+
+/// BigEndian marks network-order binary protocol fields.
+
+pub type BigEndian =
+    Atom["big"].
+
+/// BinaryConstructError is the typed error set for descriptor-directed construction.
+
+pub type BinaryConstructError =
+    InvalidWidth
+  | InvalidUtf8
+  | InvalidAlignment
+  | DuplicateField
+  | MultipleRest
+  | RestNotTerminal
+  | UnknownDescriptor
+  | InvalidShapeSet
+  | DuplicateShape
+  | InvalidShapeAlias
+  | UnknownShape
+  | UnsupportedTarget
+  | UnsupportedRuntime.
+
+/// BinaryDecodeError is the typed error set for descriptor-directed decoding.
+
+pub type BinaryDecodeError =
+    TruncatedPayload
+  | InvalidWidth
+  | InvalidUtf8
+  | InvalidAlignment
+  | DuplicateField
+  | MultipleRest
+  | RestNotTerminal
+  | UnknownDescriptor
+  | InvalidShapeSet
+  | DuplicateShape
+  | InvalidShapeAlias
+  | UnknownShape
+  | UnsupportedTarget
+  | UnsupportedRuntime.
+
+/// BinaryDescriptor stores inert descriptor metadata.
+///
+/// Input: descriptor kind, width in bits or bytes depending on kind, and
+/// terminal marker.
+/// Output: a source-level descriptor value.
+/// Transformation: keeps binary layout intent as ordinary Terlan data while
+/// runtime construction and matching remain explicitly unsupported.
+
+pub struct BinaryDescriptor {
+    kind: DescriptorKind,
+    width: Int,
+    terminal: Bool
+}.
+
+/// Bits describes a fixed-size bit segment with a compile-time width.
+
+pub type Bits[Width] =
+    BinaryDescriptor.
+
+/// BitsSegment marks a fixed-size bit segment descriptor.
+
+pub type BitsSegment =
+    Atom["bits"].
+
+/// Bytes describes a fixed-size byte segment with a compile-time length.
+
+pub type Bytes[Width] =
+    BinaryDescriptor.
+
+/// BytesSegment marks a fixed-size byte segment descriptor.
+
+pub type BytesSegment =
+    Atom["bytes"].
+
+/// DecodedField preserves one named decoded value in descriptor order.
+
+pub type DecodedField =
+    {String, DecodedValue}.
+
+/// DecodedProtocol stores ordered scalar fields and the remaining byte body.
+
+pub type DecodedProtocol =
+    {List[DecodedField], std.vm.Bytes.Bytes}.
+
+/// DecodedValue is the closed scalar result set supported by protocol decoding.
+
+pub type DecodedValue =
+    Int
+  | std.vm.BitString.BitString
+  | std.vm.Bytes.Bytes.
+
+/// DescriptorKind is the closed set of canonical binary descriptor categories.
+
+pub type DescriptorKind =
+    UIntSegment
+  | IntSegment
+  | BytesSegment
+  | BitsSegment
+  | RestSegment.
+
+/// DuplicateField reports a repeated field label in a binary layout.
+
+pub type DuplicateField =
+    Atom["duplicate_field"].
+
+/// DuplicateShape reports an ambiguous shape or alias name.
+
+pub type DuplicateShape =
+    Atom["duplicate_shape"].
+
+/// EndianPolicy is the explicit byte-order policy for a protocol shape.
+
+pub type EndianPolicy =
+    BigEndian
+  | LittleEndian.
+
+/// IntBits describes a signed integer segment with a compile-time width.
+
+pub type IntBits[Width] =
+    BinaryDescriptor.
+
+/// IntSegment marks a signed integer segment descriptor.
+
+pub type IntSegment =
+    Atom["int"].
+
+/// InvalidAlignment reports an invalid byte or bit alignment request.
+
+pub type InvalidAlignment =
+    Atom["invalid_alignment"].
+
+/// InvalidShapeAlias reports an alias with missing name or target metadata.
+
+pub type InvalidShapeAlias =
+    Atom["invalid_shape_alias"].
+
+/// InvalidShapeSet reports missing shape-set metadata.
+
+pub type InvalidShapeSet =
+    Atom["invalid_shape_set"].
+
+/// InvalidUtf8 reports a failed UTF-8 scalar or string segment decode.
+
+pub type InvalidUtf8 =
+    Atom["invalid_utf_8"].
+
+/// InvalidWidth reports an invalid or unsupported segment width.
+
+pub type InvalidWidth =
+    Atom["invalid_width"].
+
+/// LittleEndian marks little-endian binary protocol fields.
+
+pub type LittleEndian =
+    Atom["little"].
+
+/// MultipleRest reports more than one terminal rest capture.
+
+pub type MultipleRest =
+    Atom["multiple_rest"].
+
+/// ProtocolField stores one named binary descriptor in source order.
+///
+/// Input: field name and descriptor value.
+/// Output: one inert protocol field descriptor.
+/// Transformation: records packet layout intent without enabling binary
+/// construction or decoding.
+
+pub struct ProtocolField {
+    name: String,
+    descriptor: BinaryDescriptor
+}.
+
+/// ProtocolShape stores a named ordered protocol layout.
+///
+/// Input: layout name, endian policy, ordered fields, and terminal-rest marker.
+/// Output: one inert protocol shape descriptor.
+/// Transformation: keeps reusable packet layout metadata as ordinary Terlan
+/// data until VM binary execution lands.
+
+pub struct ProtocolShape {
+    name: String,
+    endian: EndianPolicy,
+    fields: List[ProtocolField],
+    terminal_rest: Bool
+}.
+
+/// ProtocolShapeAlias gives one exact alternate name to a protocol shape.
+///
+/// Alias targets must name a shape declared directly in the same shape set.
+/// Alias chains are intentionally rejected so resolution remains deterministic.
+
+pub struct ProtocolShapeAlias {
+    name: String,
+    target: String
+}.
+
+/// ProtocolShapeSet stores reusable named layouts and their exact aliases.
+///
+/// Shapes and aliases retain declaration order. Construction validates the
+/// entire set before exposing it to protocol decoders or encoders.
+
+pub struct ProtocolShapeSet {
+    name: String,
+    shapes: List[ProtocolShape],
+    aliases: List[ProtocolShapeAlias]
+}.
+
+/// Rest describes a terminal remainder segment.
+
+pub type Rest =
+    BinaryDescriptor.
+
+/// RestNotTerminal reports a rest capture that is not the final segment.
+
+pub type RestNotTerminal =
+    Atom["rest_not_terminal"].
+
+/// RestSegment marks a terminal remainder segment descriptor.
+
+pub type RestSegment =
+    Atom["rest"].
+
+/// TruncatedPayload reports that input ended before a descriptor was satisfied.
+
+pub type TruncatedPayload =
+    Atom["truncated_payload"].
+
+/// UInt describes an unsigned integer segment with a compile-time width.
+
+pub type UInt[Width] =
+    BinaryDescriptor.
+
+/// UIntSegment marks an unsigned integer segment descriptor.
+
+pub type UIntSegment =
+    Atom["uint"].
+
+/// UnknownDescriptor reports a segment descriptor that std.binary cannot resolve.
+
+pub type UnknownDescriptor =
+    Atom["unknown_descriptor"].
+
+/// UnknownShape reports a missing direct shape or alias target.
+
+pub type UnknownShape =
+    Atom["unknown_shape"].
+
+/// UnsupportedRuntime reports that runtime binary execution is not enabled yet.
+
+pub type UnsupportedRuntime =
+    Atom["unsupported_runtime"].
+
+/// UnsupportedTarget reports that the selected target cannot execute a binary API.
+
+pub type UnsupportedTarget =
+    Atom["unsupported_target"].
+
+/// Maps descriptor validation failures onto the construction error surface.
+
+@pure
+pub binary_construct_error(reason: BinaryDecodeError): BinaryConstructError.
+
+/// Returns a golden compact frame shape with a terminal payload.
+
+pub compact_frame_shape(): ProtocolShape.
+
+/// Composes validated header and body protocol shapes.
+///
+/// Input: one fixed header shape and one body shape using the same endian policy.
+/// Output: a validated shape whose fields preserve header-then-body order.
+/// Transformation: copies inert descriptor metadata only; no payload is decoded
+/// or constructed at runtime.
+
+pub compose_header_body(header: ProtocolShape, body: ProtocolShape): Result[ProtocolShape, BinaryConstructError].
+
+/// Validates the body and enforces shape-composition invariants.
+
+pub compose_valid_header_body(header: ProtocolShape, body: ProtocolShape): Result[ProtocolShape, BinaryConstructError].
+
+/// Builds one composed descriptor after both input shapes are validated.
+
+pub composed_protocol_shape(header: ProtocolShape, body: ProtocolShape): ProtocolShape.
+
+/// Reserves descriptor-directed binary construction.
+///
+/// Input: an inert descriptor and an opaque source value.
+/// Output: `Err(UnsupportedRuntime)` until VM binary construction exists.
+/// Transformation: lets user code typecheck against the future construction API
+/// while preserving explicit unsupported-runtime behavior.
+
+pub construct(descriptor: BinaryDescriptor, value: Dynamic): Result[Dynamic, BinaryConstructError].
+
+/// Copies protocol fields into a fresh ordered list.
+
+pub copy_protocol_fields(fields: Iterator[ProtocolField], output: List[ProtocolField]): List[ProtocolField].
+
+/// Reserves exact descriptor-directed binary decoding.
+///
+/// Input: an inert descriptor and an opaque payload value.
+/// Output: `Err(UnsupportedRuntime)` until VM binary decoding exists.
+/// Transformation: exposes the final typed Result shape without enabling binary
+/// execution or accepting raw host errors.
+
+pub decode_exact(descriptor: BinaryDescriptor, payload: Dynamic): Result[Dynamic, BinaryDecodeError].
+
+/// Decodes the fixed byte boundary of a protocol frame.
+///
+/// Input: one validated protocol shape and one VM-owned byte frame.
+/// Output: the descriptor-selected fixed header bytes and remaining body bytes.
+/// Transformation: delegates to the canonical protocol-header splitter when
+/// callers need the original encoded header rather than decoded field values.
+
+pub decode_fixed_header(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+
+/// Reserves prefix descriptor-directed binary decoding.
+///
+/// Input: an inert descriptor and an opaque payload value.
+/// Output: `Err(UnsupportedRuntime)` until VM binary decoding exists.
+/// Transformation: keeps future partial-decode callers on the same typed error
+/// surface as exact decoding.
+
+pub decode_prefix(descriptor: BinaryDescriptor, payload: Dynamic): Result[Dynamic, BinaryDecodeError].
+
+/// Decodes descriptor-directed scalar fields and returns the remaining body.
+///
+/// Input: one validated protocol shape and one VM-owned byte payload.
+/// Output: ordered named integer, bitstring, and byte field values plus the
+/// immutable terminal body.
+/// Transformation: walks fields in declaration order, applies the shape's
+/// endian policy to integer descriptors, slices byte descriptors, and preserves
+/// a byte-aligned suffix without exposing backend binary syntax.
+
+pub decode_prefixed_body(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): Result[DecodedProtocol, BinaryDecodeError].
+
+/// Decodes one exact-width immutable bitstring field.
+
+pub decode_protocol_bits(next: Iterator[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int): Result[DecodedProtocol, BinaryDecodeError].
+
+/// Decodes one byte-aligned fixed byte field.
+
+pub decode_protocol_bytes(next: Iterator[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int): Result[DecodedProtocol, BinaryDecodeError].
+
+/// Decodes ordered protocol fields into one mutable construction accumulator.
+
+pub decode_protocol_fields(fields: Iterator[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField]): Result[DecodedProtocol, BinaryDecodeError].
+
+/// Decodes one checked signed or unsigned integer field.
+
+pub decode_protocol_integer(next: Iterator[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int, signed: Bool): Result[DecodedProtocol, BinaryDecodeError].
+
+/// Returns one byte-aligned suffix after fixed field decoding.
+
+pub decode_protocol_tail(payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField]): Result[DecodedProtocol, BinaryDecodeError].
+
+/// Finds one decoded value without discarding declaration order.
+
+pub decode_protocol_value(fields: Iterator[DecodedField], name: String): Option[DecodedValue].
+
+/// Constructs one decoded field.
+
+@pure
+pub decoded_field(name: String, value: DecodedValue): DecodedField.
+
+/// Constructs one decoded protocol result.
+
+@pure
+pub decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol.
+
+/// Returns decoded protocol fields in declaration order.
+
+@pure
+pub decoded_protocol_fields(decoded: DecodedProtocol): List[DecodedField].
+
+/// Returns the immutable byte suffix after decoded fields.
+
+@pure
+pub decoded_protocol_remaining_bytes(decoded: DecodedProtocol): std.vm.Bytes.Bytes.
+
+/// Returns one named decoded value when present.
+
+pub decoded_protocol_value(decoded: DecodedProtocol, name: String): Option[DecodedValue].
+
+/// Returns whether the descriptor is terminal.
+
+@pure
+pub descriptor_is_terminal(descriptor: BinaryDescriptor): Bool.
+
+/// Returns the descriptor kind.
+
+@pure
+pub descriptor_kind(descriptor: BinaryDescriptor): DescriptorKind.
+
+/// Returns the descriptor width.
+
+@pure
+pub descriptor_width(descriptor: BinaryDescriptor): Int.
+
+/// Encodes every fixed protocol field and the declared terminal body.
+///
+/// Input: one protocol shape and its typed decoded values.
+/// Output: an immutable VM-owned byte frame or a typed construction error.
+/// Transformation: validates the complete shape and field set, packs integer
+/// segments under the shape endian policy, preserves fixed bytes, and appends
+/// the body only when the shape declares terminal `Rest`.
+
+pub encode_exact(shape: ProtocolShape, value: DecodedProtocol): Result[std.vm.Bytes.Bytes, BinaryConstructError].
+
+/// Encodes only the fixed prefix of a protocol shape.
+///
+/// Input: one protocol shape and its typed decoded values.
+/// Output: the immutable fixed header without a terminal `Rest` body.
+/// Transformation: applies the same checked field packing as `encode_exact`
+/// while deliberately omitting the decoded protocol body.
+
+pub encode_prefix(shape: ProtocolShape, value: DecodedProtocol): Result[std.vm.Bytes.Bytes, BinaryConstructError].
+
+/// Creates a fixed bit descriptor value.
+
+pub make_bit_span(width: Int): BinaryDescriptor.
+
+/// Creates a fixed byte descriptor value.
+
+pub make_byte_span(width: Int): BinaryDescriptor.
+
+/// Creates a signed integer descriptor value.
+
+pub make_int_bits(width: Int): BinaryDescriptor.
+
+/// Creates the terminal rest descriptor value.
+
+pub make_rest(): BinaryDescriptor.
+
+/// Creates an unsigned integer descriptor value.
+
+pub make_uint(width: Int): BinaryDescriptor.
+
+/// Creates a named protocol field descriptor.
+
+pub protocol_field(name: String, descriptor: BinaryDescriptor): ProtocolField.
+
+/// Returns the protocol field binary descriptor.
+
+@pure
+pub protocol_field_descriptor(field: ProtocolField): BinaryDescriptor.
+
+/// Returns the protocol field name.
+
+@pure
+pub protocol_field_name(field: ProtocolField): String.
+
+/// Returns the name of any closed protocol metadata value.
+///
+/// Input: a value whose public structural contract includes `name: String`.
+/// Output: the protocol metadata name.
+/// Transformation: uses compile-time structural implication evidence to share
+/// the field projection across fields, shapes, aliases, and shape sets without
+/// introducing a runtime wrapper or conversion.
+
+@pure
+pub protocol_name[T => {name: String}](value: T): String.
+
+/// Creates a named protocol shape descriptor.
+
+pub protocol_shape(name: String, endian: EndianPolicy, fields: List[ProtocolField], terminal_rest: Bool): ProtocolShape.
+
+/// Creates one exact protocol shape alias.
+
+pub protocol_shape_alias(name: String, target: String): ProtocolShapeAlias.
+
+/// Returns the protocol shape alias name.
+
+@pure
+pub protocol_shape_alias_name(alias: ProtocolShapeAlias): String.
+
+/// Returns the direct protocol shape targeted by an alias.
+
+@pure
+pub protocol_shape_alias_target(alias: ProtocolShapeAlias): String.
+
+/// Returns the protocol shape endian policy.
+
+@pure
+pub protocol_shape_endian(shape: ProtocolShape): EndianPolicy.
+
+/// Returns the protocol shape fields in source order.
+
+@pure
+pub protocol_shape_fields(shape: ProtocolShape): List[ProtocolField].
+
+/// Returns whether the protocol shape ends with a terminal rest field.
+
+@pure
+pub protocol_shape_has_terminal_rest(shape: ProtocolShape): Bool.
+
+/// Returns the protocol shape name.
+
+@pure
+pub protocol_shape_name(shape: ProtocolShape): String.
+
+/// Creates and validates a reusable protocol shape set.
+
+pub protocol_shape_set(name: String, shapes: List[ProtocolShape], aliases: List[ProtocolShapeAlias]): Result[ProtocolShapeSet, BinaryDecodeError].
+
+/// Returns protocol aliases in declaration order.
+
+@pure
+pub protocol_shape_set_aliases(set: ProtocolShapeSet): List[ProtocolShapeAlias].
+
+/// Decodes a frame through one direct or aliased shape-set name.
+///
+/// Resolution validates the complete set before the selected shape reaches the
+/// canonical descriptor decoder. Unknown names remain typed `UnknownShape`
+/// failures rather than falling back to a prefix or default layout.
+
+pub protocol_shape_set_decode(set: ProtocolShapeSet, name: String, payload: std.vm.Bytes.Bytes): Result[DecodedProtocol, BinaryDecodeError].
+
+/// Encodes a complete frame through one direct or aliased shape-set name.
+
+pub protocol_shape_set_encode_exact(set: ProtocolShapeSet, name: String, value: DecodedProtocol): Result[std.vm.Bytes.Bytes, BinaryConstructError].
+
+/// Encodes only the fixed prefix through one direct or aliased shape-set name.
+
+pub protocol_shape_set_encode_prefix(set: ProtocolShapeSet, name: String, value: DecodedProtocol): Result[std.vm.Bytes.Bytes, BinaryConstructError].
+
+/// Returns the protocol shape set name.
+
+@pure
+pub protocol_shape_set_name(set: ProtocolShapeSet): String.
+
+/// Resolves one exact direct name or alias from a validated shape set.
+
+pub protocol_shape_set_resolve(set: ProtocolShapeSet, name: String): Result[ProtocolShape, BinaryDecodeError].
+
+/// Returns direct protocol shapes in declaration order.
+
+@pure
+pub protocol_shape_set_shapes(set: ProtocolShapeSet): List[ProtocolShape].
+
+/// Resolves direct names before consulting aliases.
+
+pub resolve_direct_protocol_shape(shapes: Iterator[ProtocolShape], all_shapes: List[ProtocolShape], aliases: List[ProtocolShapeAlias], name: String): Result[ProtocolShape, BinaryDecodeError].
+
+/// Finds one validated direct shape without consulting aliases.
+
+pub resolve_named_protocol_shape(shapes: Iterator[ProtocolShape], name: String): Result[ProtocolShape, BinaryDecodeError].
+
+/// Resolves an exact alias and then looks up its direct target.
+
+pub resolve_protocol_shape_alias(aliases: Iterator[ProtocolShapeAlias], shapes: List[ProtocolShape], name: String): Result[ProtocolShape, BinaryDecodeError].
+
+/// Splits a VM byte frame into a fixed header and remaining body.
+///
+/// Input: one VM-owned byte frame and the required header length in bytes.
+/// Output: `Ok({header, body})` when the complete header is present, otherwise
+/// `InvalidWidth` for a negative length or `TruncatedPayload` for a short frame.
+/// Transformation: validates the complete range before creating two immutable
+/// VM-owned byte slices, preserving every input byte exactly once and in order.
+
+pub split_header_body(payload: std.vm.Bytes.Bytes, header_length: Int): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+
+/// Splits the fixed prefix described by a protocol shape from its body.
+///
+/// Input: one validated protocol shape and one VM-owned byte frame.
+/// Output: `Ok({header, body})` at the descriptor-derived byte boundary, or a
+/// typed shape, alignment, or truncation error.
+/// Transformation: totals ordered fixed segments in bits, stops before a
+/// terminal rest segment, requires byte alignment, and delegates slicing to the
+/// canonical checked byte splitter.
+
+pub split_protocol_header(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+
+/// Returns a golden TCP-like fixed header shape.
+
+pub tcp_header_shape(): ProtocolShape.
+
+/// Validates one inert descriptor.
+///
+/// Input: one descriptor value.
+/// Output: `Ok(descriptor)` when the kind, width, and terminal marker agree;
+/// otherwise a typed binary descriptor error.
+/// Transformation: enforces the std.binary descriptor invariant before runtime
+/// binary construction and matching are implemented.
+
+pub validate_descriptor(descriptor: BinaryDescriptor): Result[BinaryDescriptor, BinaryDecodeError].
+
+/// Validates one protocol field and continues traversal.
+
+pub validate_protocol_field(next: Iterator[ProtocolField], field: ProtocolField, seen: Map[String, Bool], has_rest: Bool): Result[Bool, BinaryDecodeError].
+
+/// Validates one field descriptor after duplicate and rest-order checks.
+
+pub validate_protocol_field_descriptor(next: Iterator[ProtocolField], name: String, descriptor: BinaryDescriptor, seen: Map[String, Bool]): Result[Bool, BinaryDecodeError].
+
+/// Validates protocol fields in declaration order.
+
+pub validate_protocol_fields(fields: Iterator[ProtocolField], seen: Map[String, Bool], has_rest: Bool): Result[Bool, BinaryDecodeError].
+
+/// Validates one protocol shape.
+///
+/// Input: one shape descriptor.
+/// Output: `Ok(shape)` when every field has a valid descriptor, names are unique,
+/// and terminal rest appears at most once at the end.
+/// Transformation: scans fields in declaration order with explicit iterator
+/// state so the metadata contract stays backend-neutral.
+
+pub validate_protocol_shape(shape: ProtocolShape): Result[ProtocolShape, BinaryDecodeError].
+
+/// Validates aliases against direct shape names.
+
+pub validate_protocol_shape_aliases(aliases: Iterator[ProtocolShapeAlias], shape_names: Map[String, Bool], alias_names: Map[String, Bool]): Result[Map[String, Bool], BinaryDecodeError].
+
+/// Validates a protocol shape set and all exact aliases.
+
+pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet, BinaryDecodeError].
+
+/// Validates direct shapes and records their exact names.
+
+pub validate_protocol_shapes(shapes: Iterator[ProtocolShape], names: Map[String, Bool]): Result[Map[String, Bool], BinaryDecodeError].
+
+/// Records one validated field and resumes protocol field validation.
+
+pub validate_remaining_protocol_fields(next: Iterator[ProtocolField], name: String, descriptor: BinaryDescriptor, seen: Map[String, Bool]): Result[Bool, BinaryDecodeError].
+
+/// Constructs a binary descriptor from explicit fields.
+
+pub constructor BinaryDescriptor {
+    (kind: DescriptorKind, width: Int, terminal: Bool): BinaryDescriptor ->
+        BinaryDescriptor {kind: kind, width: width, terminal: terminal}
+}.
+
+/// Constructs a protocol field descriptor from explicit fields.
+
+pub constructor ProtocolField {
+    (name: String, descriptor: BinaryDescriptor): ProtocolField ->
+        ProtocolField {name: name, descriptor: descriptor}
+}.
+
+/// Constructs a protocol shape descriptor from explicit fields.
+
+pub constructor ProtocolShape {
+    (name: String, endian: EndianPolicy, fields: List[ProtocolField], terminal_rest: Bool): ProtocolShape ->
+        ProtocolShape {name: name, endian: endian, fields: fields, terminal_rest: terminal_rest}
+}.
+
+/// Constructs a protocol shape alias from explicit fields.
+
+pub constructor ProtocolShapeAlias {
+    (name: String, target: String): ProtocolShapeAlias ->
+        ProtocolShapeAlias {name: name, target: target}
+}.
+
+/// Constructs a validated protocol shape set from explicit fields.
+
+pub constructor ProtocolShapeSet {
+    (name: String, shapes: List[ProtocolShape], aliases: List[ProtocolShapeAlias]): ProtocolShapeSet ->
+        ProtocolShapeSet {name: name, shapes: shapes, aliases: aliases}
+}.

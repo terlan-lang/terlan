@@ -1,4 +1,26 @@
 use super::test_support::*;
+use crate::terlan_syntax::parse_module_as_syntax_output;
+
+#[test]
+fn std_interface_fixture_scope_includes_only_direct_and_transitive_dependencies() {
+    let module = parse_module_as_syntax_output(
+        "module std_scope.\n\nimport std.collections.Enumerable.\n\npub main(): Int -> 1.\n",
+    )
+    .expect("parse std scope fixture");
+
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&module);
+    let mut modules = interfaces.keys().map(String::as_str).collect::<Vec<_>>();
+    modules.sort_unstable();
+
+    assert_eq!(
+        modules,
+        vec![
+            "std.collections.Enumerable",
+            "std.core.Option",
+            "std.core.Ordering"
+        ]
+    );
+}
 
 /// Verifies release core collection contracts typecheck on the formal path.
 ///
@@ -19,32 +41,52 @@ use super::test_support::*;
 #[ignore = "release-scale std collection sweep; run through make stdlib-release-contracts-check"]
 fn syntax_output_accepts_release_core_collection_contracts() {
     let contracts = [
-        include_str!("../../../../../std/collections/map.terl"),
-        include_str!("../../../../../std/collections/list.terl"),
-        include_str!("../../../../../std/collections/set.terl"),
-        include_str!("../../../../../std/collections/iterator.terl"),
-        include_str!("../../../../../std/collections/index.terl"),
-        include_str!("../../../../../std/collections/iterable.terl"),
-        include_str!("../../../../../std/collections/enumerable.terl"),
+        (
+            include_str!("../../../../../std/collections/Map.terl"),
+            "std/collections/Map.terl",
+        ),
+        (
+            include_str!("../../../../../std/collections/List.terl"),
+            "std/collections/List.terl",
+        ),
+        (
+            include_str!("../../../../../std/collections/Set.terl"),
+            "std/collections/Set.terl",
+        ),
+        (
+            include_str!("../../../../../std/collections/Iterator.terl"),
+            "std/collections/Iterator.terl",
+        ),
+        (
+            include_str!("../../../../../std/collections/Index.terl"),
+            "std/collections/Index.terl",
+        ),
+        (
+            include_str!("../../../../../std/collections/Iterable.terl"),
+            "std/collections/Iterable.terl",
+        ),
+        (
+            include_str!("../../../../../std/collections/Enumerable.terl"),
+            "std/collections/Enumerable.terl",
+        ),
     ];
 
-    for (source, std_relative_path) in contracts.into_iter().zip([
-        "std/collections/map.terl",
-        "std/collections/list.terl",
-        "std/collections/set.terl",
-        "std/collections/iterator.terl",
-        "std/collections/index.terl",
-        "std/collections/iterable.terl",
-        "std/collections/enumerable.terl",
-    ]) {
-        let diagnostics = check_syntax_output_with_std_interfaces(source, std_relative_path);
+    std::thread::scope(|scope| {
+        let checks = contracts
+            .into_iter()
+            .map(|(source, path)| {
+                scope.spawn(move || (path, check_syntax_output_with_std_interfaces(source, path)))
+            })
+            .collect::<Vec<_>>();
 
-        assert!(
-            diagnostics.is_empty(),
-            "unexpected release collection diagnostics in {:?}",
-            diagnostics
-        );
-    }
+        for check in checks {
+            let (path, diagnostics) = check.join().expect("collection contract typecheck");
+            assert!(
+                diagnostics.is_empty(),
+                "unexpected release collection diagnostics in {path}: {diagnostics:?}"
+            );
+        }
+    });
 }
 
 /// Verifies the release Task contract typechecks through std summaries.
@@ -76,7 +118,7 @@ pub join(task: Task[Int]): Result[Int, Error] ->\n\
 pub complete(): Task[Int] ->\n\
     Task.done(1).\n\
 ",
-        "std/core/task.terl",
+        "std/core/Task.terl",
     );
 
     assert!(
@@ -116,7 +158,7 @@ pub page(): Template.Html ->\n\
 pub home(): Response ->\n\
     Response.html(page()).\n\
 ",
-        "std/http/response.terl",
+        "std/http/Response.terl",
     );
 
     assert!(
@@ -152,7 +194,7 @@ import type std.http.Tls.Config.\n\
 pub config(domains: List[String]): Config ->\n\
     auto(domains, \"admin@example.com\").\n\
 ",
-        "std/http/tls.terl",
+        "std/http/Tls.terl",
     );
 
     assert!(

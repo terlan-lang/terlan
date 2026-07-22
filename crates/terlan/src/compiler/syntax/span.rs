@@ -10,7 +10,7 @@
 /// Transformation:
 /// - Keeps source location as byte offsets so each consumer can map to its own
 ///   display format without losing exact parser positions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

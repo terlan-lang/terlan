@@ -1,6 +1,10 @@
 use std::env;
 use std::process::ExitCode;
 
+use crate::runtime::vm::{
+    postgres::{VmPostgresDecodedValue, VmPostgresRow},
+    postgres_command::VmPostgresCommandClient,
+};
 use crate::terlan_native::json;
 use crate::terlan_native::postgres;
 use base64::engine::general_purpose::STANDARD;
@@ -9,18 +13,19 @@ use base64::Engine;
 /// Executes the private compiler SQL runtime helper.
 ///
 /// Inputs:
-/// - `args`: `operation sql_base64 params_json_base64 projection_base64`.
+/// - `args`: `operation transaction_requirement sql_base64 params_json_base64
+///   projection_base64`.
 ///
 /// Output:
-/// - Exit success with a line-oriented response consumed by
-///   `terlan_sql_runtime.erl`.
+/// - Exit success with a line-oriented response consumed by VM/native-boundary
+///   SQL callers.
 /// - Exit failure only for malformed helper invocation; database/query errors
-///   are encoded as runtime `err` responses so generated BEAM callers receive a
+///   are encoded as runtime `err` responses so generated VM callers receive a
 ///   normal `Result`.
 ///
 /// Transformation:
 /// - Decodes the private protocol, resolves the process database environment,
-///   delegates execution to the maintained SafeNative Postgres adapter, and
+///   delegates execution to the maintained NativeBoundary Postgres adapter, and
 ///   serializes typed projected row values without exposing this protocol as a
 ///   public Terlan API.
 pub(crate) fn run(args: &[String]) -> ExitCode {
@@ -43,45 +48,127 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
 /// - `args`: encoded helper arguments after the private subcommand name.
 ///
 /// Output:
-/// - Encoded success payload for BEAM or a runtime error message.
+/// - Encoded success payload for VM or a runtime error message.
 ///
 /// Transformation:
 /// - Decodes helper arguments, opens the configured Postgres pool, dispatches
 ///   the requested operation, and serializes the projected result.
 fn run_inner(args: &[String]) -> Result<String, String> {
-    let [operation, sql, params, projection] = args else {
+    let [operation, transaction_requirement, sql, params, projection] = args else {
         return Err(
-            "terlc __sql-runtime expects operation, sql, params, and projection arguments"
-                .to_string(),
+            "terlc __sql-runtime expects operation, transaction requirement, SQL, params, and projection arguments".to_string(),
         );
     };
+    let operation = SqlRuntimeOperation::parse(operation)?;
+    SqlRuntimeTransactionRequirement::parse(transaction_requirement)?.require_autocommit()?;
     let sql = decode_text(sql)?;
     let params = decode_params(params)?;
     let projection = decode_projection(projection)?;
     let config = database_config()?;
-    let pool = postgres::connect(&config).map_err(postgres_error)?;
-    match operation.as_str() {
-        "query_one" => {
-            let row = postgres::query_one(&pool, &sql, &params).map_err(postgres_error)?;
+    let mut client = VmPostgresCommandClient::connect(&config)?;
+    match operation {
+        SqlRuntimeOperation::QueryOne => {
+            let row = client.query_one(&sql, params)?;
             match row {
-                Some(row) => Ok(format!("ok_one\n{}\n", encode_row(&row, &projection)?)),
+                Some(row) => Ok(format!(
+                    "ok_one\n{}\n",
+                    encode_row(&mut client, row, &projection)?
+                )),
                 None => Ok("ok_none\n".to_string()),
             }
         }
-        "query" => {
-            let rows = postgres::query(&pool, &sql, &params).map_err(postgres_error)?;
+        SqlRuntimeOperation::Query => {
+            let rows = client.query(&sql, params)?;
             let mut output = String::from("ok_rows\n");
             for row in rows {
-                output.push_str(&encode_row(&row, &projection)?);
+                output.push_str(&encode_row(&mut client, row, &projection)?);
                 output.push('\n');
             }
             Ok(output)
         }
-        "execute" => {
-            let affected = postgres::execute(&pool, &sql, &params).map_err(postgres_error)?;
+        SqlRuntimeOperation::Execute => {
+            let affected = client.execute(&sql, params)?;
             Ok(format!("ok_int\n{affected}\n"))
         }
-        other => Err(format!("unsupported SQL runtime operation `{other}`")),
+    }
+}
+
+/// Transaction contract carried from CoreIR SQL metadata into runtime dispatch.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SqlRuntimeTransactionRequirement {
+    AutocommitAllowed,
+    ActiveTransactionRequired,
+    VmManagedControl,
+}
+
+impl SqlRuntimeTransactionRequirement {
+    fn parse(raw: &str) -> Result<Self, String> {
+        match raw {
+            "autocommit_allowed" => Ok(Self::AutocommitAllowed),
+            "active_transaction_required" => Ok(Self::ActiveTransactionRequired),
+            "vm_managed_control" => Ok(Self::VmManagedControl),
+            other => Err(format!(
+                "unsupported SQL runtime transaction requirement `{other}`"
+            )),
+        }
+    }
+
+    fn require_autocommit(self) -> Result<(), String> {
+        match self {
+            Self::AutocommitAllowed => Ok(()),
+            Self::ActiveTransactionRequired => Err(
+                "SQL operation requires an active typed VM transaction; autocommit dispatch is forbidden"
+                    .to_string(),
+            ),
+            Self::VmManagedControl => Err(
+                "SQL transaction control is VM-owned and cannot execute through the SQL runtime helper"
+                    .to_string(),
+            ),
+        }
+    }
+}
+
+/// SQL helper operations generated by compiler-owned SQL lowering.
+///
+/// Inputs:
+/// - Source-level SQL wrapper cardinality lowered by the compiler.
+///
+/// Output:
+/// - Closed operation enum for dispatch.
+///
+/// Transformation:
+/// - Keeps private helper dispatch finite and validates operation names before
+///   opening a database connection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SqlRuntimeOperation {
+    /// Query returning many rows.
+    Query,
+    /// Query returning at most one row.
+    QueryOne,
+    /// Command returning affected row count.
+    Execute,
+}
+
+impl SqlRuntimeOperation {
+    /// Parses a private SQL helper operation name.
+    ///
+    /// Inputs:
+    /// - `raw`: operation text from generated VM helper arguments.
+    ///
+    /// Output:
+    /// - Closed SQL operation enum.
+    /// - Stable error for unsupported operation names.
+    ///
+    /// Transformation:
+    /// - Rejects malformed helper invocations before runtime config lookup,
+    ///   connection setup, or SQL execution.
+    fn parse(raw: &str) -> Result<Self, String> {
+        match raw {
+            "query" => Ok(Self::Query),
+            "query_one" => Ok(Self::QueryOne),
+            "execute" => Ok(Self::Execute),
+            other => Err(format!("unsupported SQL runtime operation `{other}`")),
+        }
     }
 }
 
@@ -91,7 +178,7 @@ fn run_inner(args: &[String]) -> Result<String, String> {
 /// - `TERLAN_DATABASE_URL`, or the `POSTGRES_*` environment variable set.
 ///
 /// Output:
-/// - Validated SafeNative Postgres config.
+/// - Validated NativeBoundary Postgres config.
 ///
 /// Transformation:
 /// - Prefers a single URL and otherwise assembles a URL from conventional
@@ -120,14 +207,15 @@ fn database_config() -> Result<postgres::Config, String> {
 /// - `url`: Postgres connection URL.
 ///
 /// Output:
-/// - SafeNative Postgres config accepted by the adapter.
+/// - NativeBoundary Postgres config accepted by the adapter.
 ///
 /// Transformation:
 /// - Adds conservative pool limits and delegates URL validation to the
 ///   maintained Postgres adapter.
 fn validated_database_config(url: String) -> Result<postgres::Config, String> {
     let config = postgres::Config::new(url).with_pool_limits(1, 4);
-    postgres::validate_config(&config).map_err(postgres_error)?;
+    postgres::validate_config(&config)
+        .map_err(|error| format!("{}: {}", error.code(), error.message()))?;
     Ok(config)
 }
 
@@ -154,7 +242,7 @@ fn decode_text(encoded: &str) -> Result<String, String> {
 /// - `encoded`: base64-encoded JSON array.
 ///
 /// Output:
-/// - SafeNative JSON parameter list.
+/// - NativeBoundary JSON parameter list.
 ///
 /// Transformation:
 /// - Parses serde JSON and converts each value into the runtime JSON wrapper.
@@ -186,10 +274,10 @@ fn decode_projection(encoded: &str) -> Result<Vec<String>, String> {
     Ok(text.lines().map(str::to_string).collect())
 }
 
-/// Encodes one projected database row for the BEAM SQL runtime.
+/// Encodes one projected database row for the VM SQL runtime.
 ///
 /// Inputs:
-/// - `row`: SafeNative Postgres row.
+/// - `row`: NativeBoundary Postgres row.
 /// - `projection`: ordered projected field names.
 ///
 /// Output:
@@ -197,10 +285,14 @@ fn decode_projection(encoded: &str) -> Result<Vec<String>, String> {
 ///
 /// Transformation:
 /// - Encodes each requested field using typed prefixes.
-fn encode_row(row: &postgres::Row, projection: &[String]) -> Result<String, String> {
+fn encode_row(
+    client: &mut VmPostgresCommandClient,
+    row: VmPostgresRow,
+    projection: &[String],
+) -> Result<String, String> {
     projection
         .iter()
-        .map(|field| encode_field(row, field))
+        .map(|field| encode_field(client, row, field))
         .collect::<Result<Vec<_>, _>>()
         .map(|fields| fields.join("\t"))
 }
@@ -208,7 +300,7 @@ fn encode_row(row: &postgres::Row, projection: &[String]) -> Result<String, Stri
 /// Encodes one typed database field.
 ///
 /// Inputs:
-/// - `row`: SafeNative Postgres row.
+/// - `row`: NativeBoundary Postgres row.
 /// - `field`: projected column name.
 ///
 /// Output:
@@ -216,23 +308,27 @@ fn encode_row(row: &postgres::Row, projection: &[String]) -> Result<String, Stri
 ///
 /// Transformation:
 /// - Attempts supported scalar and JSON decoders in deterministic order.
-fn encode_field(row: &postgres::Row, field: &str) -> Result<String, String> {
-    if let Ok(value) = postgres::int(row, field) {
-        return Ok(format!("i:{value}"));
+fn encode_field(
+    client: &mut VmPostgresCommandClient,
+    row: VmPostgresRow,
+    field: &str,
+) -> Result<String, String> {
+    client
+        .decode_dynamic(row, field)
+        .map(encode_decoded_value)
+        .map_err(|error| {
+            format!("SQL runtime could not decode projected column `{field}`: {error}")
+        })
+}
+
+fn encode_decoded_value(value: VmPostgresDecodedValue) -> String {
+    match value {
+        VmPostgresDecodedValue::Null => "n:".to_string(),
+        VmPostgresDecodedValue::Int(value) => format!("i:{value}"),
+        VmPostgresDecodedValue::Bool(value) => format!("b:{value}"),
+        VmPostgresDecodedValue::String(value) => format!("s:{}", encode_text(&value)),
+        VmPostgresDecodedValue::Json(value) => format!("j:{}", encode_text(&value)),
     }
-    if let Ok(value) = postgres::r#bool(row, field) {
-        return Ok(format!("b:{value}"));
-    }
-    if let Ok(value) = postgres::string(row, field) {
-        return Ok(format!("s:{}", encode_text(&value)));
-    }
-    if let Ok(value) = postgres::json(row, field) {
-        let text = json::stringify(&value).map_err(|error| error.message().to_string())?;
-        return Ok(format!("j:{}", encode_text(&text)));
-    }
-    Err(format!(
-        "SQL runtime could not decode projected column `{field}`"
-    ))
 }
 
 /// Encodes text for the shell-safe SQL helper protocol.
@@ -247,21 +343,6 @@ fn encode_field(row: &postgres::Row, field: &str) -> Result<String, String> {
 /// - Converts UTF-8 bytes to base64 without adding separators.
 fn encode_text(value: &str) -> String {
     STANDARD.encode(value.as_bytes())
-}
-
-/// Formats a SafeNative Postgres error for BEAM callers.
-///
-/// Inputs:
-/// - `error`: adapter error from the maintained Postgres layer.
-///
-/// Output:
-/// - Stable `code: message` text.
-///
-/// Transformation:
-/// - Preserves adapter error codes while keeping the private helper protocol
-///   line-oriented.
-fn postgres_error(error: postgres::PostgresError) -> String {
-    format!("{}: {}", error.code(), error.message())
 }
 
 #[cfg(test)]

@@ -8,10 +8,9 @@ use crate::terlan_quality::QualityResult;
 /// Source roots where Oxc symbols are forbidden.
 const FORBIDDEN_SOURCE_ROOTS: &[&str] = &[
     "crates/terlan/src/compiler",
-    "crates/terlan/src/backends/erlang",
     "crates/terlan/src/html",
     "crates/terlan/src/lsp",
-    "crates/terlan/src/runtime/safenative",
+    "crates/terlan/src/runtime/native_boundary",
     "crates/terlan/src/validation",
 ];
 

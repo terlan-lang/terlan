@@ -5,12 +5,9 @@
  * It is a runtime process wrapper built on the same ordinary type and method
  * rules as the rest of Terlan; it is not a portable mutable reference.
  */
-
 module std.vm.Agent.
 
-import std.core.Result.{Result}.
-import std.core.Error.{Error}.
-import std.core.Unit.{Unit}.
+import std.core.{Error, Result, Unit}.
 
 /**
  * Agent represents a supervised typed state process.

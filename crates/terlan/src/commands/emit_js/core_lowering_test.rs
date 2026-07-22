@@ -5,6 +5,34 @@ use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::TargetProfile;
 use crate::DiagnosticFormat;
 
+/// Proves typed constants are eliminated before JavaScript target lowering.
+#[test]
+fn value_lifecycle_constants_are_substituted_for_js() {
+    let source = r#"
+module js.value_lifecycle.
+
+pub const ANSWER: Int = 40 + 2.
+
+pub answer(): Int -> ANSWER.
+"#;
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_value_lifecycle.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("compile typed constant for JS");
+
+    let js = core_lowering::emit_core_module_to_js(&artifacts.core);
+    assert!(js.contains("return 42;"), "{js}");
+    assert!(
+        !js.contains("ANSWER"),
+        "constants must have no JS runtime symbol: {js}"
+    );
+}
+
 /// Verifies that JS emission reads public functions and supported bodies
 /// from CoreIR instead of syntax declarations.
 ///
@@ -36,7 +64,7 @@ hidden(A: Int): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -74,7 +102,7 @@ pub quotient(A: Int, B: Int): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -115,7 +143,7 @@ pub piped(): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -157,7 +185,7 @@ pub classify(value: Int): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -198,7 +226,7 @@ pub classify(value: Float): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -206,6 +234,50 @@ pub classify(value: Float): Int ->
 
     assert!(js.contains("export function classify(value)"));
     assert!(js.contains("return (value === 1.5 ? 1 : 2);"), "{js}");
+}
+
+/// Verifies that bootstrap CoreIR-to-JS lowering handles total string
+/// literal case expressions.
+///
+/// Inputs:
+/// - A checked Terlan module with a public function matching a string
+///   scrutinee against a string literal and a wildcard fallback.
+///
+/// Output:
+/// - Assertions over bootstrap JavaScript source before Oxc reprinting.
+///
+/// Transformation:
+/// - Compiles source through the formal pipeline, emits JS from
+///   `CoreModule` through the bootstrap lowering helper, and checks that
+///   `CorePattern::String` becomes a JavaScript strict-equality test.
+#[test]
+fn emit_core_module_to_js_handles_string_literal_case_expr() {
+    let source = "\
+module js_core_surface_string_case.
+
+pub classify(value: String): Int ->
+    case value {
+        \"terlan\" -> 1;
+        _ -> 2
+    }.
+";
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_core_surface_string_case.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("compile source to CoreIR");
+
+    let js = core_lowering::emit_core_module_to_js(&artifacts.core);
+
+    assert!(js.contains("export function classify(value)"));
+    assert!(
+        js.contains("return (value === \"terlan\" ? 1 : 2);"),
+        "{js}"
+    );
 }
 
 /// Verifies that bootstrap CoreIR-to-JS lowering handles boolean literal
@@ -231,7 +303,7 @@ module js_core_surface_bool_case.
 
 pub classify(flag: Bool): Int ->
     case flag {
-        :true -> 1;
+        Atom[\"true\"] -> 1;
         _ -> 0
     }.
 ";
@@ -241,7 +313,7 @@ pub classify(flag: Bool): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -277,7 +349,7 @@ pub escaped(): String ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 

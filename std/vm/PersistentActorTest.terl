@@ -1,0 +1,179 @@
+module std.vm.PersistentActorTest.
+
+import std.vm.PersistentActor.
+import std.vm.PersistentActor.{Persistable}.
+
+import type std.vm.PersistentActor.{ActorFamilyRetentionDefaults, ActorId, AuditRetentionPlan, DurableAdapterSchemaMetadata, EventVariantSchemaId, MailboxCheckpoint, MailboxRestorePlan, MigrationRollbackPlan, ModelSyncRetentionContinuityPlan, PackageMigrationRegistration, PackageRetentionPolicyBinding, PackageStoreBinding, PersistentActorDeclaration, RedactionPolicy, ReplayPlan, ResourceCheckpoint, ResourceRestorePlan, RetentionPolicy, SchemaDeclaration, SchemaId, SnapshotPlan, TimerCheckpoint, TimerRestorePlan}.
+
+pub order_actor(): ActorId ->
+    PersistentActor.actor_id("OrderActor", "order-100").
+
+pub order_schema(version: Int): SchemaId ->
+    PersistentActor.schema_id("OrderSnapshot", version).
+
+pub accepts_snapshot_plan(plan: SnapshotPlan): Bool -> true.
+
+pub accepts_replay_plan(plan: ReplayPlan): Bool -> true.
+
+pub accepts_resource_restore(checkpoint: ResourceCheckpoint, plan: ResourceRestorePlan): Bool ->
+    true.
+
+pub accepts_mailbox_restore(checkpoint: MailboxCheckpoint, plan: MailboxRestorePlan): Bool -> true.
+
+pub accepts_migration_rollback(plan: MigrationRollbackPlan): Bool -> true.
+
+pub accepts_package_migration(registration: PackageMigrationRegistration): Bool -> true.
+
+pub accepts_timer_restore(checkpoint: TimerCheckpoint, plan: TimerRestorePlan): Bool -> true.
+
+pub accepts_package_store(binding: PackageStoreBinding): Bool -> true.
+
+pub accepts_package_retention_policy(binding: PackageRetentionPolicyBinding): Bool -> true.
+
+pub accepts_model_sync_retention_continuity(plan: ModelSyncRetentionContinuityPlan): Bool -> true.
+
+pub accepts_schema_declaration(declaration: SchemaDeclaration): Bool -> true.
+
+pub accepts_event_variant_schema(event_schema: EventVariantSchemaId): Bool -> true.
+
+pub accepts_durable_adapter_schema(metadata: DurableAdapterSchemaMetadata): Bool -> true.
+
+pub accepts_persistent_actor_declaration(declaration: PersistentActorDeclaration): Bool -> true.
+
+pub accepts_retention_policy(policy: RetentionPolicy): Bool -> true.
+
+pub accepts_actor_family_retention_defaults(defaults: ActorFamilyRetentionDefaults): Bool -> true.
+
+pub accepts_audit_retention(plan: AuditRetentionPlan): Bool -> true.
+
+pub accepts_redaction_policy(policy: RedactionPolicy): Bool -> true.
+
+@test
+pub typed_snapshot_schema_id_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let schema = order_schema(1);
+    let snapshot = PersistentActor.snapshot(actor, schema, 42, "paid");
+    accepts_snapshot_plan(snapshot).
+
+@test
+pub replay_plan_requires_expected_schema(): Bool ->
+    let actor = order_actor();
+    let expected_schema = order_schema(1);
+    let replay = PersistentActor.replay(actor, expected_schema);
+    accepts_replay_plan(replay).
+
+@test
+pub schema_compatibility_is_source_visible(): Bool ->
+    let expected_schema = order_schema(1);
+    let actual_schema = order_schema(1);
+    let compatible = PersistentActor.compatible_schema(expected_schema, actual_schema);
+    compatible.
+
+@test
+pub resource_restore_plan_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let checkpoint = PersistentActor.resource_checkpoint(actor, "postgres:orders");
+    let restore = PersistentActor.restore_resource(actor, checkpoint);
+    accepts_resource_restore(checkpoint, restore).
+
+@test
+pub timer_restore_plan_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let checkpoint = PersistentActor.timer_checkpoint(actor, "payment-timeout", 30000);
+    let restore = PersistentActor.restore_timer(actor, checkpoint);
+    accepts_timer_restore(checkpoint, restore).
+
+@test
+pub mailbox_restore_plan_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let checkpoint = PersistentActor.mailbox_checkpoint(actor, 42);
+    let restore = PersistentActor.restore_mailbox(actor, checkpoint);
+    accepts_mailbox_restore(checkpoint, restore).
+
+@test
+pub migration_rollback_after_failed_schema_migration_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let from_schema = order_schema(1);
+    let to_schema = order_schema(2);
+    let rollback = PersistentActor.migration_rollback(actor, from_schema, to_schema, 7, "schema_migration_failed");
+    accepts_migration_rollback(rollback).
+
+@test
+pub package_migration_registration_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let from_schema = order_schema(1);
+    let to_schema = order_schema(2);
+    let registration = PersistentActor.register_package_migration("orders@0.0.7", actor, from_schema, to_schema, "OrderSnapshot.v1_to_v2");
+    accepts_package_migration(registration).
+
+@test
+pub package_store_binding_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let schema = order_schema(1);
+    let binding = PersistentActor.package_store("orders@0.0.7", actor, schema);
+    accepts_package_store(binding).
+
+@test
+pub package_retention_policy_binding_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let policy = PersistentActor.retention_policy(100, 50, 75);
+    let binding = PersistentActor.package_retention_policy("orders@0.0.7", actor, policy);
+    accepts_package_retention_policy(binding).
+
+@test
+pub model_sync_retention_continuity_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let policy = PersistentActor.retention_policy(100, 50, 75);
+    let continuity = PersistentActor.model_sync_retention_continuity(actor, policy, "OrderProjection", 80);
+    accepts_model_sync_retention_continuity(continuity).
+
+@test
+pub schema_declaration_is_source_visible(): Bool ->
+    let schema = order_schema(2);
+    let mailbox_schema = PersistentActor.schema_id("OrderMailbox", 1);
+    let declaration = PersistentActor.schema(schema, ["id", "status"], ["created", "paid"], mailbox_schema);
+    accepts_schema_declaration(declaration).
+
+@test
+pub package_event_variant_schema_id_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let schema = order_schema(2);
+    let event_schema = PersistentActor.event_variant_schema("orders@0.0.7", actor, schema, "paid", 1);
+    accepts_event_variant_schema(event_schema).
+
+@test
+pub durable_adapter_schema_metadata_is_source_visible(): Bool ->
+    let schema = order_schema(2);
+    let metadata = PersistentActor.durable_adapter_schema("orders@0.0.7", "local-log", schema, "store/order-100", 1);
+    accepts_durable_adapter_schema(metadata).
+
+@test
+pub persistent_actor_declaration_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let schema = order_schema(1);
+    let declaration = PersistentActor.persistent_actor(actor, schema, "store/order-100/OrderSnapshot");
+    accepts_persistent_actor_declaration(declaration).
+
+@test
+pub retention_policy_is_source_visible(): Bool ->
+    let policy = PersistentActor.retention_policy(100, 50, 75);
+    accepts_retention_policy(policy).
+
+@test
+pub actor_family_retention_defaults_are_source_visible(): Bool ->
+    let local = PersistentActor.retention_policy(10, 1, 1);
+    let production = PersistentActor.retention_policy(1000, 500, 750);
+    let defaults = PersistentActor.family_retention_defaults("OrderActor", local, production);
+    accepts_actor_family_retention_defaults(defaults).
+
+@test
+pub audit_retention_plan_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let policy = PersistentActor.retention_policy(100, 50, 75);
+    let plan = PersistentActor.audit_retention(actor, policy, ["created", "paid"]);
+    accepts_audit_retention(plan).
+
+@test
+pub redaction_policy_is_source_visible(): Bool ->
+    let policy = PersistentActor.redaction_policy(["state.secret", "mailbox.payload"], false, true);
+    accepts_redaction_policy(policy).

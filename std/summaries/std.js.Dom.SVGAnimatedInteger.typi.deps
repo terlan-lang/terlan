@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGAnimatedInteger
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5409765395197122875
-interface_hash=8634659380778970211
-interface_doc_hash=8634659380778970211
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=13583227937090428441
+interface_hash=13218669615891301659
+interface_doc_hash=13218669615891301659
 deps=0

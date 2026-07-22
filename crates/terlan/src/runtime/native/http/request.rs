@@ -228,6 +228,21 @@ impl Request {
         find_named_value(&self.query, name)
     }
 
+    /// Returns decoded query pairs in request order.
+    ///
+    /// Inputs:
+    /// - `self`: request wrapper.
+    ///
+    /// Output:
+    /// - Borrowed query pairs captured by the server bridge.
+    ///
+    /// Transformation:
+    /// - Exposes metadata to runtime bridges without allowing mutation or
+    ///   exposing concrete server request storage.
+    pub fn query_pairs(&self) -> &[(String, String)] {
+        &self.query
+    }
+
     /// Returns the raw request query string.
     ///
     /// Inputs:
@@ -261,6 +276,21 @@ impl Request {
         find_header_value(&self.headers, name)
     }
 
+    /// Returns decoded header pairs in request order.
+    ///
+    /// Inputs:
+    /// - `self`: request wrapper.
+    ///
+    /// Output:
+    /// - Borrowed request header pairs captured by the server bridge.
+    ///
+    /// Transformation:
+    /// - Exposes normalized request metadata to runtime bridges without
+    ///   selecting a concrete HTTP server type.
+    pub fn header_pairs(&self) -> &[(String, String)] {
+        &self.headers
+    }
+
     /// Returns the first decoded request cookie value for a name.
     ///
     /// Inputs:
@@ -289,7 +319,7 @@ impl Request {
     /// Transformation:
     /// - Exposes cookie metadata only inside the HTTP adapter so the facade can
     ///   seed a mutable cookie jar without making request fields public.
-    pub(super) fn cookie_pairs(&self) -> &[(String, String)] {
+    pub fn cookie_pairs(&self) -> &[(String, String)] {
         &self.cookies
     }
 

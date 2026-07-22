@@ -2,5 +2,9 @@ module html_static.
 
 pub view(): Html[none] ->
     html {
-        <main><h1>Hello</h1></main>
+        <main>
+            <h1>
+                Hello
+            </h1>
+        </main>
     }.

@@ -1,0 +1,23 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DateTimeFormatOptions
+ */
+module std.js.Intl.DateTimeFormatOptionsTest.
+
+import type std.js.Intl.DateTimeFormatOptions.
+
+pub generated_binding_surface_contract(): Bool -> true.
+
+pub hour12_typechecks(receiver: DateTimeFormatOptions): Option[std.core.Bool] ->
+    receiver.hour12().
+
+pub time_zone_typechecks(receiver: DateTimeFormatOptions): Option[std.js.String.JsString] ->
+    receiver.time_zone().

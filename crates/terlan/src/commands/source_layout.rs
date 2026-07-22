@@ -54,3 +54,74 @@ pub(crate) fn expected_module_name_for_source_path(
     }
     Ok(segments.join("."))
 }
+
+/// Validates that a module declaration matches its source-root-relative path.
+///
+/// Inputs:
+/// - `root`: source root used for directory compilation.
+/// - `file`: implementation source path.
+/// - `module_name`: module declared by the source file.
+///
+/// Output:
+/// - Success for a matching declaration or a stable layout diagnostic.
+///
+/// Transformation:
+/// - Derives one canonical module identity from the source path and applies the
+///   same policy to check and build commands without backend-specific bypasses.
+pub(crate) fn validate_module_layout(
+    root: &Path,
+    file: &Path,
+    module_name: &str,
+) -> Result<(), String> {
+    let expected = expected_module_name_for_source_path(root, file)?;
+    if expected == module_name {
+        return Ok(());
+    }
+    Err(format!(
+        "module declaration `{module_name}` does not match source path `{}`; expected `module {expected}.`",
+        file.display()
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn module_layout_accepts_matching_source_path() {
+        assert_eq!(
+            validate_module_layout(Path::new("src"), Path::new("src/app/Main.terl"), "app.Main",),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn module_layout_rejects_filename_module_mismatch() {
+        let error = validate_module_layout(
+            Path::new("src"),
+            Path::new("src/wrong_module_name.terl"),
+            "arne",
+        )
+        .expect_err("mismatched module declaration must fail");
+
+        assert_eq!(
+            error,
+            "module declaration `arne` does not match source path `src/wrong_module_name.terl`; expected `module wrong_module_name.`"
+        );
+    }
+
+    #[test]
+    fn module_layout_rejects_nested_module_mismatch() {
+        let error = validate_module_layout(
+            Path::new("src"),
+            Path::new("src/app/Main.terl"),
+            "app.Wrong",
+        )
+        .expect_err("nested module mismatch must fail");
+
+        assert_eq!(
+            error,
+            "module declaration `app.Wrong` does not match source path `src/app/Main.terl`; expected `module app.Main.`"
+        );
+    }
+}

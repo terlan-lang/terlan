@@ -26,7 +26,7 @@ pub(in crate::commands::serve) struct WebPackageSourceSpan {
 ///
 /// Output:
 /// - Route method/path and Terlan module/function identity reserved for
-///   BEAM-backed handler dispatch.
+///   VM handler dispatch.
 ///
 /// Transformation:
 /// - Keeps dynamic routes declarative in the package manifest so the local
@@ -56,10 +56,20 @@ pub(in crate::commands::serve) struct WebPackageHandler {
 ///   the server owns protocol upgrade and connection lifecycle mechanics.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub(in crate::commands::serve) struct WebPackageWebSocket {
+    #[serde(default)]
+    pub(in crate::commands::serve) module: String,
     pub(in crate::commands::serve) route: String,
     pub(in crate::commands::serve) protocol: String,
     #[serde(default)]
     pub(in crate::commands::serve) source: Option<WebPackageSourceSpan>,
+}
+
+/// One source-owned SSE route entry inside the browser package manifest.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub(in crate::commands::serve) struct WebPackageSse {
+    pub(in crate::commands::serve) module: String,
+    pub(in crate::commands::serve) route: String,
+    pub(in crate::commands::serve) source: WebPackageSourceSpan,
 }
 
 /// Router-level error handler entry inside the browser package manifest.
@@ -108,10 +118,16 @@ pub(in crate::commands::serve) struct WebPackageResponseHeader {
 ///
 /// Transformation:
 /// - Represents compiler-discovered constant responses separately from dynamic
-///   BEAM-backed handlers so `terlc serve` can validate and later serve them
-///   without dispatching through generated BEAM code.
+///   handler rows while retaining optional source-router ownership for
+///   middleware-aware VM dispatch.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub(in crate::commands::serve) struct WebPackageStaticResponse {
+    #[serde(default)]
+    pub(in crate::commands::serve) module: String,
+    #[serde(default)]
+    pub(in crate::commands::serve) function: String,
+    #[serde(default)]
+    pub(in crate::commands::serve) arity: usize,
     pub(in crate::commands::serve) method: String,
     pub(in crate::commands::serve) route: String,
     pub(in crate::commands::serve) status: u16,
@@ -134,7 +150,7 @@ pub(in crate::commands::serve) struct WebPackageStaticResponse {
 /// Transformation:
 /// - Represents compiler-discovered file responses separately from generic
 ///   asset serving so typed routes can stream files through the Rust server
-///   without dispatching through BEAM handler code.
+///   without dispatching through dynamic handler code.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub(in crate::commands::serve) struct WebPackageFileResponse {
     pub(in crate::commands::serve) method: String,

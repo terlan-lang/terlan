@@ -1,30 +1,48 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CustomElementRegistry
  */
 module std.js.Dom.CustomElementRegistryTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.CustomElementRegistry.{CustomElementRegistry}.
-
+import type std.js.Dom.CustomElementRegistry.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub define_typechecks(receiver: CustomElementRegistry, name: JsString, constructor_: CustomElementConstructor, options: ElementDefinitionOptions): Unit ->
+pub define_typechecks(
+    receiver: CustomElementRegistry,
+    name: JsString,
+    constructor_: CustomElementConstructor,
+    options: ElementDefinitionOptions
+): Unit ->
     receiver.define(name, constructor_, options).
 
-pub get_typechecks(receiver: CustomElementRegistry, name: JsString): Option[CustomElementConstructor] ->
+pub get_typechecks(
+    receiver: CustomElementRegistry,
+    name: JsString
+): Option[CustomElementConstructor] ->
     receiver.get(name).
 
-pub get_name_typechecks(receiver: CustomElementRegistry, constructor_: CustomElementConstructor): Option[JsString] ->
+pub get_name_typechecks(
+    receiver: CustomElementRegistry,
+    constructor_: CustomElementConstructor
+): Option[JsString] ->
     receiver.get_name(constructor_).
 
 pub upgrade_typechecks(receiver: CustomElementRegistry, root: Node): Unit ->
     receiver.upgrade(root).
 
-pub when_defined_typechecks(receiver: CustomElementRegistry, name: JsString): std.js.Promise[CustomElementConstructor] ->
+pub when_defined_typechecks(
+    receiver: CustomElementRegistry,
+    name: JsString
+): std.js.Promise[CustomElementConstructor] ->
     receiver.when_defined(name).

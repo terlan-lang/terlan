@@ -1,0 +1,53 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "seed",
+      "operation": "std.random.random.seed"
+    },
+    {
+      "arity": 0,
+      "name": "entropy",
+      "operation": "std.random.random.entropy"
+    },
+    {
+      "arity": 1,
+      "name": "int",
+      "operation": "std.random.random.int"
+    },
+    {
+      "arity": 3,
+      "name": "bounded_int",
+      "operation": "std.random.random.bounded_int"
+    },
+    {
+      "arity": 1,
+      "name": "float",
+      "operation": "std.random.random.float"
+    },
+    {
+      "arity": 1,
+      "name": "bool",
+      "operation": "std.random.random.bool"
+    },
+    {
+      "arity": 2,
+      "name": "choice",
+      "operation": "std.random.random.choice"
+    },
+    {
+      "arity": 2,
+      "name": "shuffle",
+      "operation": "std.random.random.shuffle"
+    },
+    {
+      "arity": 3,
+      "name": "sample",
+      "operation": "std.random.random.sample"
+    }
+  ],
+  "module": "std_random_random_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.random.Random"
+}

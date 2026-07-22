@@ -138,6 +138,18 @@ mod value_test;
     assert!(!has_inline_test_marker(source));
 }
 
+/// Verifies adjacent test-support modules are not treated as inline-test debt.
+#[test]
+fn inline_test_marker_allows_adjacent_test_support_module() {
+    let source = r#"
+#[cfg(test)]
+#[path = "value_test_support.rs"]
+mod value_test_support;
+"#;
+
+    assert!(!has_inline_test_marker(source));
+}
+
 /// Verifies test-only imports are not treated as inline-test debt.
 ///
 /// Inputs:
@@ -179,6 +191,33 @@ fn inline_test_marker_allows_test_helper_modules() {
 pub(crate) mod test_fs;
 
 pub fn value() -> i32 { 1 }
+"#;
+
+    assert!(!has_inline_test_marker(source));
+}
+
+/// Verifies conditional test-support items are not treated as embedded tests.
+#[test]
+fn inline_test_marker_allows_conditional_support_items() {
+    let source = r#"
+enum Value {
+    Ready,
+    #[cfg(test)]
+    Fixture,
+}
+
+impl Value {
+    #[cfg(test)]
+    fn fixture() -> Self { Self::Fixture }
+}
+
+fn label(value: Value) -> &'static str {
+    match value {
+        Value::Ready => "ready",
+        #[cfg(test)]
+        Value::Fixture => "fixture",
+    }
+}
 "#;
 
     assert!(!has_inline_test_marker(source));
@@ -230,6 +269,33 @@ pub fn value() -> i32 { 1 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn value_is_one() {}
+}
+"#;
+
+    assert!(has_inline_test_marker(source));
+}
+
+/// Verifies a directly embedded test function is rejected.
+#[test]
+fn inline_test_marker_rejects_inline_test_function() {
+    let source = r#"
+#[cfg(test)]
+#[test]
+fn value_is_one() {}
+"#;
+
+    assert!(has_inline_test_marker(source));
+}
+
+/// Verifies brace-on-next-line inline test modules are rejected.
+#[test]
+fn inline_test_marker_rejects_split_inline_module() {
+    let source = r#"
+#[cfg(test)]
+mod tests
+{
     #[test]
     fn value_is_one() {}
 }
@@ -308,6 +374,83 @@ fn rust_quality_rejects_unbaselined_oversized_file() -> io::Result<()> {
     Ok(())
 }
 
+/// Verifies an oversized file passes only with its exact current line count.
+#[test]
+fn rust_quality_accepts_exact_size_baseline() -> io::Result<()> {
+    let repo = TestRepo::new("exact-size")?;
+    let source = (0..1001)
+        .map(|index| format!("pub fn value_{index}() -> i32 {{ {index} }}\n"))
+        .collect::<String>();
+    repo.write_source("crates/test/src/lib.rs", &source)?;
+    repo.write_baseline(
+        "rust_file_size_baseline.tsv",
+        "crates/test/src/lib.rs\t1001\n",
+    )?;
+
+    let summary = run_rust_quality(repo.root()).expect("exact baseline should pass");
+
+    assert_eq!(summary.oversized_count, 1);
+    Ok(())
+}
+
+/// Verifies an old higher baseline cannot hide new oversized-file growth.
+#[test]
+fn rust_quality_rejects_size_baseline_headroom() -> io::Result<()> {
+    let repo = TestRepo::new("size-headroom")?;
+    let source = (0..1001)
+        .map(|index| format!("pub fn value_{index}() -> i32 {{ {index} }}\n"))
+        .collect::<String>();
+    repo.write_source("crates/test/src/lib.rs", &source)?;
+    repo.write_baseline(
+        "rust_file_size_baseline.tsv",
+        "crates/test/src/lib.rs\t1100\n",
+    )?;
+
+    let error = run_rust_quality(repo.root()).expect_err("baseline headroom must fail");
+
+    assert!(error.contains(
+        "crates/test/src/lib.rs: baseline 1100 exceeds current 1001 lines; lower baseline"
+    ));
+    Ok(())
+}
+
+/// Verifies growth above an exact oversized baseline still fails closed.
+#[test]
+fn rust_quality_rejects_growth_above_size_baseline() -> io::Result<()> {
+    let repo = TestRepo::new("size-growth")?;
+    let source = (0..1002)
+        .map(|index| format!("pub fn value_{index}() -> i32 {{ {index} }}\n"))
+        .collect::<String>();
+    repo.write_source("crates/test/src/lib.rs", &source)?;
+    repo.write_baseline(
+        "rust_file_size_baseline.tsv",
+        "crates/test/src/lib.rs\t1001\n",
+    )?;
+
+    let error = run_rust_quality(repo.root()).expect_err("baseline growth must fail");
+
+    assert!(error.contains("crates/test/src/lib.rs: 1002 lines exceeds baseline 1001"));
+    Ok(())
+}
+
+/// Verifies baseline debt is removed after a file returns below its hard limit.
+#[test]
+fn rust_quality_rejects_obsolete_size_baseline_row() -> io::Result<()> {
+    let repo = TestRepo::new("obsolete-size")?;
+    repo.write_source("crates/test/src/lib.rs", "pub fn value() -> i32 { 1 }\n")?;
+    repo.write_baseline(
+        "rust_file_size_baseline.tsv",
+        "crates/test/src/lib.rs\t1001\n",
+    )?;
+
+    let error = run_rust_quality(repo.root()).expect_err("obsolete baseline must fail");
+
+    assert!(error.contains(
+        "crates/test/src/lib.rs: obsolete file-size baseline row; 1 lines is within limit 1000"
+    ));
+    Ok(())
+}
+
 /// Verifies stale baseline rows fail the Rust quality gate.
 ///
 /// Inputs:
@@ -366,6 +509,30 @@ mod tests {
     assert!(error.contains(
         "crates/test/src/lib.rs: new inline #[cfg(test)] block; move tests to adjacent *_test.rs"
     ));
+    Ok(())
+}
+
+/// Verifies include fragments retain the inline-test policy identity of their
+/// owning Rust module.
+#[test]
+fn rust_quality_attributes_part_inline_tests_to_wrapper() -> io::Result<()> {
+    let repo = TestRepo::new("inline-part-owner")?;
+    repo.write_source("crates/test/src/lib.rs", "include!(\"lib_part_001.rs\");\n")?;
+    repo.write_source(
+        "crates/test/src/lib_part_001.rs",
+        r#"
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn value_is_one() {}
+}
+"#,
+    )?;
+    repo.write_baseline("rust_inline_test_baseline.txt", "crates/test/src/lib.rs\n")?;
+
+    let summary = run_rust_quality(repo.root()).expect("fragment inherits wrapper policy");
+
+    assert_eq!(summary.inline_test_count, 1);
     Ok(())
 }
 

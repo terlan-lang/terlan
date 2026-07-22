@@ -87,6 +87,40 @@ fn request_from_parts_with_metadata_preserves_lookup_pairs() {
     assert_eq!(cookie(&request, "theme"), Some("dark".to_string()));
 }
 
+/// Verifies request metadata names remain text at the HTTP boundary.
+///
+/// Inputs:
+/// - Route, query, header, and cookie names that look like Vm atom
+///   construction functions.
+///
+/// Output:
+/// - Test passes when each lookup returns the associated text value.
+///
+/// Transformation:
+/// - Exercises request metadata storage without converting external names into
+///   atoms or runtime symbols.
+#[test]
+fn request_metadata_names_that_look_like_atom_builders_remain_strings() {
+    let request = Request::from_parts_with_raw_query_metadata(
+        "GET",
+        "/debug",
+        "",
+        vec![("binary_to_atom".to_string(), "route".to_string())],
+        "list_to_atom=query",
+        vec![("list_to_atom".to_string(), "query".to_string())],
+        vec![("Binary-To-Atom".to_string(), "header".to_string())],
+        vec![("list_to_atom".to_string(), "cookie".to_string())],
+    );
+
+    assert_eq!(param(&request, "binary_to_atom"), Some("route".to_string()));
+    assert_eq!(query(&request, "list_to_atom"), Some("query".to_string()));
+    assert_eq!(
+        request_header(&request, "binary-to-atom"),
+        Some("header".to_string())
+    );
+    assert_eq!(cookie(&request, "list_to_atom"), Some("cookie".to_string()));
+}
+
 /// Verifies request cookies can seed a mutable cookie jar.
 ///
 /// Inputs:
@@ -127,7 +161,7 @@ fn request_cookies_returns_mutable_cookie_jar() {
     );
 }
 
-/// Verifies request cookie headers parse through the SafeNative boundary.
+/// Verifies request cookie headers parse through the NativeBoundary boundary.
 ///
 /// Inputs:
 /// - A raw `Cookie` request header with optional whitespace and one malformed
@@ -137,7 +171,7 @@ fn request_cookies_returns_mutable_cookie_jar() {
 /// - Parsed cookie name/value pairs in header order.
 ///
 /// Transformation:
-/// - Pins the SafeNative-owned parser boundary used by the BEAM bridge while
+/// - Pins the NativeBoundary-owned parser boundary used by the VM bridge while
 ///   the actual cookie-pair parsing is delegated to a maintained crate.
 #[test]
 fn request_cookie_header_parser_splits_request_cookie_pairs() {
@@ -149,6 +183,61 @@ fn request_cookie_header_parser_splits_request_cookie_pairs() {
             ("session".to_string(), "abc".to_string()),
             ("theme".to_string(), "dark".to_string()),
             ("user".to_string(), "Ada".to_string()),
+        ]
+    );
+}
+
+/// Verifies request cookie parsing follows the maintained split-parser
+/// semantics for empty segments and malformed pairs.
+///
+/// Inputs:
+/// - A raw `Cookie` header containing leading/trailing separators, whitespace,
+///   empty values, malformed pairs, and values containing extra `=`.
+///
+/// Output:
+/// - Parsed valid pairs in source order.
+///
+/// Transformation:
+/// - Pins Terlan to the `cookie` crate's request-header parser behavior
+///   instead of a Terlan-owned tokenization path.
+#[test]
+fn request_cookie_header_parser_ignores_malformed_segments() {
+    let cookies = parse_request_cookie_header(" ; session=abc ; ; =bad ; empty= ; token=a== ");
+
+    assert_eq!(
+        cookies,
+        vec![
+            ("session".to_string(), "abc".to_string()),
+            ("empty".to_string(), "".to_string()),
+            ("token".to_string(), "a==".to_string()),
+        ]
+    );
+}
+
+/// Verifies request cookie parsing preserves source-visible parser semantics
+/// for quoted values and duplicate cookie names.
+///
+/// Inputs:
+/// - A raw `Cookie` header containing duplicate cookie names, a quoted value,
+///   and a normal value after the duplicate.
+///
+/// Output:
+/// - Parsed pairs in maintained parser order without collapsing duplicates or
+///   unquoting values at the boundary.
+///
+/// Transformation:
+/// - Keeps duplicate-cookie resolution outside the low-level parser so request
+///   lookup and jar construction can choose their own policy.
+#[test]
+fn request_cookie_header_parser_preserves_duplicates_and_quoted_values() {
+    let cookies = parse_request_cookie_header("theme=light; quoted=\"dark mode\"; theme=dark");
+
+    assert_eq!(
+        cookies,
+        vec![
+            ("theme".to_string(), "light".to_string()),
+            ("quoted".to_string(), "\"dark mode\"".to_string()),
+            ("theme".to_string(), "dark".to_string()),
         ]
     );
 }
@@ -276,6 +365,26 @@ fn file_response_preserves_path_status_and_content_type() {
     assert_eq!(response.file_path(), Some("downloads/report.txt"));
 }
 
+/// Verifies non-VM response adapters reject streaming explicitly.
+///
+/// Inputs:
+/// - One finite chunk and valid response stream policy.
+///
+/// Output:
+/// - Test passes when the adapter returns the stable VM-required error.
+///
+/// Transformation:
+/// - Prevents portable adapters from replacing VM backpressure with implicit
+///   concatenation or unbounded buffering.
+#[test]
+fn stream_response_requires_vm_runtime() {
+    let error = stream(&["ok".to_string()], 200, "text/plain", 16_384, 128)
+        .expect_err("non-VM streaming must fail");
+
+    assert_eq!(error.code(), "http.response.streaming_requires_vm");
+    assert_eq!(error.status(), 500);
+}
+
 /// Verifies browser runtime asset MIME lookup stays at the HTTP adapter boundary.
 ///
 /// Inputs:
@@ -285,7 +394,7 @@ fn file_response_preserves_path_status_and_content_type() {
 /// - Test passes when each path maps to the expected content type.
 ///
 /// Transformation:
-/// - Pins the SafeNative MIME boundary backed by `mime_guess`.
+/// - Pins the NativeBoundary MIME boundary backed by `mime_guess`.
 #[test]
 fn content_type_for_path_covers_browser_runtime_assets() {
     let cases = [
@@ -383,6 +492,43 @@ fn response_applies_cookie_jar_mutations_in_order() {
                 "theme=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT".to_string()
             )
         ]
+    );
+}
+
+/// Verifies response cookie composition can return the receiver value.
+///
+/// Inputs:
+/// - A request-scoped cookie jar with one response mutation.
+/// - A text response wrapper.
+///
+/// Output:
+/// - Test passes when `with_cookies` returns a response containing the
+///   serialized mutation header.
+///
+/// Transformation:
+/// - Pins the Rust-native function exported for `std.http.Response.with_cookies`.
+#[test]
+fn response_with_cookies_returns_response_with_cookie_mutations() {
+    let request = Request::from_parts_with_metadata(
+        "GET",
+        "/profile",
+        "",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    );
+    let mut jar = cookies(&request);
+    jar.set("session", "abc123", "/", true, false)
+        .expect("valid cookie set");
+
+    let response = with_cookies(text("ok", 200), &jar);
+
+    assert_eq!(
+        response.headers(),
+        &[(
+            "Set-Cookie".to_string(),
+            "session=abc123; HttpOnly; Path=/".to_string()
+        )]
     );
 }
 

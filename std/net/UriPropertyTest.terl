@@ -1,0 +1,82 @@
+/**
+ * Property coverage for portable URI helpers.
+ *
+ * `std.net.UriPropertyTest` validates generated valid URI samples through the
+ * public URI parse/render API on the VM default path.
+ */
+module std.net.UriPropertyTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok, is_err}.
+import std.net.Uri.{parse}.
+import std.test.Gen.{elements, for_all}.
+import std.test.Test.{assert_equal}.
+
+import type std.core.Option.
+
+pub option_text_equals(left: Option[String], right: Option[String]): Bool ->
+    case left {
+        None ->
+            case right {
+                None -> true;
+                Some(_right) -> false
+            };
+        Some(left_text) ->
+            case right {
+                None -> false;
+                Some(right_text) -> left_text == right_text
+            }
+    }.
+
+/**
+ * Verifies generated valid URI text reaches a stable rendered form.
+ *
+ * Input: generated deterministic valid URI samples.
+ * Output: `true` when every sample renders idempotently after parsing.
+ * Transformation: checks the maintained URI parser bridge through the public
+ * `parse` and `to_string` API while allowing parser-owned normalization.
+ */
+@test
+pub generated_valid_uris_render_idempotently_after_parse(): Bool ->
+    for_all(elements(["https://example.com", "https://EXAMPLE.com", "https://example.com/docs", "https://example.com/a/../docs", "https://example.com/docs?q=terlan", "https://example.com/docs?q=terlan#intro", "http://localhost:80/api/status", "http://localhost:8080/api/status"]), (text) -> case parse(text) {
+        Ok(uri) ->
+            case parse(uri.to_string()) {
+                Ok(roundtrip) -> assert_equal(uri.to_string(), roundtrip.to_string());
+                _ -> false
+            };
+        _ -> false
+    }).
+
+/**
+ * Verifies normalized rendering preserves every exposed URI component.
+ *
+ * Input: generated valid URIs that exercise host, path, query, fragment, and
+ * normalization boundaries.
+ * Output: `true` when parsing rendered text preserves every public component.
+ * Transformation: replaces OTP map recomposition properties with the opaque
+ * Terlan URI contract's parse/render/reparse invariant.
+ */
+@test
+pub generated_uri_components_survive_render_and_reparse(): Bool ->
+    for_all(elements(["https://example.com", "https://EXAMPLE.com/a/../docs", "https://example.com/docs?q=terlan", "https://example.com/docs?q=terlan#intro", "http://localhost:80/api/status"]), (text) -> case parse(text) {
+        Ok(uri) ->
+            case parse(uri.to_string()) {
+                Ok(roundtrip) ->
+                    uri.scheme() == roundtrip.scheme() and option_text_equals(uri.host(), roundtrip.host()) and uri.path() == roundtrip.path() and option_text_equals(uri.query(), roundtrip.query()) and option_text_equals(uri.fragment(), roundtrip.fragment());
+                _ -> false
+            };
+        _ -> false
+    }).
+
+/**
+ * Verifies malformed generated URI text is rejected deterministically.
+ *
+ * Input: malformed absolute URI samples spanning scheme, host, IPv6, and
+ * whitespace failures.
+ * Output: `true` when every sample produces the public typed parse error.
+ * Transformation: exercises parser rejection through the same property runner
+ * used for valid normalization samples.
+ */
+@test
+pub generated_malformed_uris_return_typed_errors(): Bool ->
+    for_all(elements(["not a uri", "://missing-scheme", "https://[::1", "https://exa mple.com", "http://"]), (text) -> is_err(parse(text))).

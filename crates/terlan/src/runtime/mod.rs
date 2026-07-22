@@ -4,16 +4,15 @@
 //! - Backend-emitted runtime requests and native adapter operations.
 //!
 //! Outputs:
-//! - SafeNative bridge responses and concrete Rust-native adapter behavior.
+//! - NativeBoundary bridge responses and concrete Rust-native adapter behavior.
 //!
 //! Transformation:
 //! - Keeps safety contracts separate from concrete native implementations
 //!   while both remain inside the single shipped compiler crate.
 
+#[path = "vm/map_layout.rs"]
+pub(crate) mod map_layout;
 pub mod native;
-pub mod safenative;
+pub mod native_boundary;
+pub mod native_image;
 pub mod vm;
-
-#[cfg(test)]
-#[path = "vm_test.rs"]
-mod vm_test;

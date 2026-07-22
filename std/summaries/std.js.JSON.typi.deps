@@ -1,8 +1,8 @@
 module=std.js.JSON
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=11664209522408985558
-interface_hash=11664209522408985558
-interface_doc_hash=11664209522408985558
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=12351942923116534273
+interface_hash=18303355977459042876
+interface_doc_hash=18303355977459042876
 deps=0

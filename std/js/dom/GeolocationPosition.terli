@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface GeolocationPosition
+ */
+module std.js.Dom.GeolocationPosition.
+
+/**
+ * The **`GeolocationPosition`** interface represents the position of the concerned device at a given time.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPosition)
+ */
+pub opaque type GeolocationPosition.
+
+/**
+ * The **`coords`** read-only property of the GeolocationPosition interface returns a GeolocationCoordinates object representing a geographic position.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPosition/coords)
+ */
+pub (value: GeolocationPosition) coords(): GeolocationCoordinates.
+
+/**
+ * The **`timestamp`** read-only property of the GeolocationPosition interface represents the date and time that the position was acquired by the device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPosition/timestamp)
+ */
+pub (value: GeolocationPosition) timestamp(): EpochTimeStamp.

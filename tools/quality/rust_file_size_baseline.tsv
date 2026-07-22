@@ -1,7 +1,2 @@
 # Repository-relative Rust files currently over the enforced size limits.
 # Format: path<TAB>current_line_count
-crates/terlan/src/backends/erlang/emit/syntax_emit_test.rs	2134
-crates/terlan/src/commands/bind/polars_probe_files.rs	1305
-crates/terlan/src/commands/serve/tls.rs	1021
-crates/terlan/src/compiler/typeck/expression_test.rs	2204
-crates/terlan/src/compiler/typeck/import_test.rs	2102

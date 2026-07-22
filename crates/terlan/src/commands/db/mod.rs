@@ -2,6 +2,7 @@ mod args;
 mod execution;
 mod history;
 pub(crate) mod migration;
+mod snapshot;
 mod status;
 
 use std::env;
@@ -10,14 +11,18 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use crate::commands::dev_dependencies;
 use crate::terlan_native::postgres;
 use args::{parse_db_command, DbCommand};
-use execution::{MigrationExecutionRequest, MigrationExecutor, SafeNativeMigrationExecutor};
+use execution::{MigrationExecutionRequest, MigrationExecutor, VmMigrationExecutor};
 use history::load_applied_migration_history;
 use migration::{
     discover_migration_files, load_migration_files, migration_engine_inputs, migration_status,
     parse_migration_file_name, pending_migration_engine_inputs, MigrationDiscoveryDiagnostic,
     MigrationEngineInput, MigrationLoadDiagnostic, MigrationStatusEntry, MigrationStatusState,
+};
+use snapshot::{
+    capture_schema_snapshot, check_schema_snapshot, default_snapshot_path, write_schema_snapshot,
 };
 use time::{format_description, OffsetDateTime};
 
@@ -49,6 +54,12 @@ pub(crate) fn run(cmd: CliCommand) -> ExitCode {
             directory,
             database_url,
         }) => run_status(directory, database_url),
+        Ok(DbCommand::Snapshot {
+            directory,
+            database_url,
+            output,
+            check,
+        }) => run_snapshot(directory, database_url, output, check),
         Ok(DbCommand::Migrate {
             directory,
             database_url,
@@ -56,13 +67,17 @@ pub(crate) fn run(cmd: CliCommand) -> ExitCode {
         Ok(DbCommand::Rebuild {
             directory,
             dev,
+            confirm,
             database_url,
-        }) => run_destructive_adapter_gated_command("rebuild", directory, dev, database_url),
+        }) => {
+            run_destructive_adapter_gated_command("rebuild", directory, dev, confirm, database_url)
+        }
         Ok(DbCommand::Reset {
             directory,
             dev,
+            confirm,
             database_url,
-        }) => run_destructive_adapter_gated_command("reset", directory, dev, database_url),
+        }) => run_destructive_adapter_gated_command("reset", directory, dev, confirm, database_url),
         Ok(DbCommand::Help) => {
             print_usage();
             ExitCode::SUCCESS
@@ -90,9 +105,10 @@ fn print_usage() {
     println!("terlc db new <name> [migrations-dir]");
     println!("terlc db validate [migrations-dir]");
     println!("terlc db status [--database-url URL] [migrations-dir]");
+    println!("terlc db snapshot [--check] [--output PATH] [--database-url URL] [migrations-dir]");
     println!("terlc db migrate [--database-url URL] [migrations-dir]");
-    println!("terlc db rebuild --dev [--database-url URL] [migrations-dir]");
-    println!("terlc db reset --dev [--database-url URL] [migrations-dir]");
+    println!("terlc db rebuild --dev --confirm [--database-url URL] [migrations-dir]");
+    println!("terlc db reset --dev --confirm [--database-url URL] [migrations-dir]");
 }
 
 /// Creates the migration directory.
@@ -214,6 +230,70 @@ fn run_validate(directory: PathBuf) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// Captures or verifies a deterministic database schema snapshot.
+fn run_snapshot(
+    directory: PathBuf,
+    database_url: Option<String>,
+    output: Option<PathBuf>,
+    check: bool,
+) -> ExitCode {
+    let migrations = match load_all_migration_inputs(&directory) {
+        Ok(migrations) => migrations,
+        Err(exit) => return exit,
+    };
+    let config = match resolve_required_database_config(database_url) {
+        Ok(config) => config,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(2);
+        }
+    };
+    let dependency_session = match prepare_local_database_dependencies(&directory, &config) {
+        Ok(session) => session,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
+    let mut client = match crate::runtime::vm::postgres_command::VmPostgresCommandClient::connect(
+        &config.config,
+    ) {
+        Ok(client) => client,
+        Err(message) => {
+            eprintln!("terlc db snapshot failed through VM Postgres: {message}");
+            return ExitCode::from(1);
+        }
+    };
+    let snapshot = match capture_schema_snapshot(&mut client, &migrations) {
+        Ok(snapshot) => snapshot,
+        Err(message) => {
+            eprintln!("terlc db snapshot failed through VM Postgres: {message}");
+            return ExitCode::from(1);
+        }
+    };
+    let path = output.unwrap_or_else(|| default_snapshot_path(&directory));
+    let result = if check {
+        check_schema_snapshot(&path, &snapshot)
+    } else {
+        write_schema_snapshot(&path, &snapshot)
+    };
+    let outcome = match result {
+        Ok(()) => {
+            println!(
+                "{} schema snapshot {}",
+                if check { "validated" } else { "wrote" },
+                path.display()
+            );
+            ExitCode::SUCCESS
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            ExitCode::from(1)
+        }
+    };
+    dev_dependencies::finish_dependency_session(dependency_session, outcome)
+}
+
 /// Reports migration status.
 ///
 /// Inputs:
@@ -243,15 +323,27 @@ fn run_status(directory: PathBuf, database_url: Option<String>) -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    let applied_history = match resolve_optional_database_config(database_url) {
-        Ok(Some(config)) => match load_applied_migration_history(&config) {
-            Ok(history) => history,
-            Err(message) => {
-                eprintln!("{message}");
-                return ExitCode::from(1);
-            }
-        },
-        Ok(None) => Vec::new(),
+    let (applied_history, dependency_session) = match resolve_optional_database_config(database_url)
+    {
+        Ok(Some(config)) => {
+            let dependency_session = match prepare_local_database_dependencies(&directory, &config)
+            {
+                Ok(session) => session,
+                Err(message) => {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            };
+            let history = match load_applied_migration_history(&config) {
+                Ok(history) => history,
+                Err(message) => {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            };
+            (history, dependency_session)
+        }
+        Ok(None) => (Vec::new(), None),
         Err(message) => {
             eprintln!("{message}");
             return ExitCode::from(2);
@@ -261,23 +353,26 @@ fn run_status(directory: PathBuf, database_url: Option<String>) -> ExitCode {
     let summary = MigrationStatusSummary::from_entries(&statuses);
 
     println!(
-        "migration status for {}: {} pending, {} applied, {} missing, {} divergent",
+        "migration status for {}: {} pending, {} applied, {} missing, {} out-of-order, {} checksum-mismatch, {} name-mismatch",
         directory.display(),
         summary.pending,
         summary.applied,
         summary.missing,
-        summary.divergent
+        summary.out_of_order,
+        summary.checksum_mismatch,
+        summary.name_mismatch
     );
     for status in statuses {
         println!(
-            "{} {} {} {}",
+            "{} {} {} {} {}",
             status.state.label(),
             status.version,
             status.name,
-            status.checksum
+            status.checksum,
+            status.applied_at.as_deref().unwrap_or("-")
         );
     }
-    ExitCode::SUCCESS
+    dev_dependencies::finish_dependency_session(dependency_session, ExitCode::SUCCESS)
 }
 
 /// Validates migrations and dispatches to the current database execution adapter.
@@ -307,6 +402,13 @@ fn run_adapter_gated_command(
             return ExitCode::from(2);
         }
     };
+    let dependency_session = match prepare_local_database_dependencies(&directory, &config) {
+        Ok(session) => session,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
     let applied_history = match load_applied_migration_history(&config) {
         Ok(history) => history,
         Err(message) => {
@@ -318,7 +420,8 @@ fn run_adapter_gated_command(
         Ok(pending) => pending,
         Err(exit) => return exit,
     };
-    execute_migration_request(command, &config, &pending, false)
+    let outcome = execute_migration_request(command, &config, &pending, false);
+    dev_dependencies::finish_dependency_session(dependency_session, outcome)
 }
 
 /// Validates destructive-command safety before dispatching to the adapter.
@@ -327,6 +430,7 @@ fn run_adapter_gated_command(
 /// - `command`: destructive database subcommand name.
 /// - `directory`: migration directory to validate when `--dev` is present.
 /// - `dev`: whether the command included the explicit development flag.
+/// - `confirm`: whether the command included the independent confirmation flag.
 /// - `database_url`: optional URL supplied through `--database-url`.
 ///
 /// Output:
@@ -341,16 +445,13 @@ fn run_destructive_adapter_gated_command(
     command: &str,
     directory: PathBuf,
     dev: bool,
+    confirm: bool,
     database_url: Option<String>,
 ) -> ExitCode {
     if !dev {
         eprintln!("terlc db {command} is destructive and requires --dev");
         return ExitCode::from(2);
     }
-    let pending = match load_pending_migration_inputs(&directory, &[]) {
-        Ok(pending) => pending,
-        Err(exit) => return exit,
-    };
     let config = match resolve_required_database_config(database_url) {
         Ok(config) => config,
         Err(message) => {
@@ -358,11 +459,23 @@ fn run_destructive_adapter_gated_command(
             return ExitCode::from(2);
         }
     };
-    if let Err(message) = validate_development_database_config(command, &config) {
+    if let Err(message) = validate_development_database_config(command, &config, confirm) {
         eprintln!("{message}");
         return ExitCode::from(2);
     }
-    execute_migration_request(command, &config, &pending, true)
+    let dependency_session = match prepare_local_database_dependencies(&directory, &config) {
+        Ok(session) => session,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
+    let pending = match load_pending_migration_inputs(&directory, &[]) {
+        Ok(pending) => pending,
+        Err(exit) => return exit,
+    };
+    let outcome = execute_migration_request(command, &config, &pending, true);
+    dev_dependencies::finish_dependency_session(dependency_session, outcome)
 }
 
 /// Loads pending migration execution inputs from one directory.
@@ -404,6 +517,19 @@ fn load_pending_migration_inputs(
     }
 }
 
+/// Loads every validated migration for schema snapshot identity.
+fn load_all_migration_inputs(directory: &Path) -> Result<Vec<MigrationEngineInput>, ExitCode> {
+    let files = discover_migration_files(directory).map_err(|diagnostic| {
+        eprintln!("{}", format_discovery_diagnostic(diagnostic));
+        ExitCode::from(1)
+    })?;
+    let loaded = load_migration_files(&files).map_err(|diagnostic| {
+        eprintln!("{}", format_load_diagnostic(diagnostic));
+        ExitCode::from(1)
+    })?;
+    Ok(migration_engine_inputs(&loaded))
+}
+
 /// Executes a validated migration request through the configured adapter.
 ///
 /// Inputs:
@@ -425,7 +551,7 @@ fn execute_migration_request(
     pending: &[MigrationEngineInput],
     destructive: bool,
 ) -> ExitCode {
-    let executor = SafeNativeMigrationExecutor;
+    let executor = VmMigrationExecutor;
     let request = MigrationExecutionRequest::new(command, config, pending, destructive);
     match executor.execute(request) {
         Ok(report) => {
@@ -442,6 +568,18 @@ fn execute_migration_request(
     }
 }
 
+/// Starts declared local dependencies before a loopback database command.
+fn prepare_local_database_dependencies(
+    directory: &Path,
+    config: &ResolvedDatabaseConfig,
+) -> Result<Option<dev_dependencies::DevDependencySession>, String> {
+    let target = parse_database_target(config.config.url())?;
+    if !is_local_database_host(&target.host) {
+        return Ok(None);
+    }
+    dev_dependencies::start_project_dependencies_for_path(directory).map(Some)
+}
+
 /// Counted summary of migration status rows.
 ///
 /// Inputs:
@@ -456,8 +594,10 @@ fn execute_migration_request(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct MigrationStatusSummary {
     applied: usize,
-    divergent: usize,
+    checksum_mismatch: usize,
     missing: usize,
+    name_mismatch: usize,
+    out_of_order: usize,
     pending: usize,
 }
 
@@ -514,22 +654,6 @@ impl ResolvedDatabaseConfig {
             Err(_) => "host=<invalid> database=<invalid>".to_string(),
         }
     }
-
-    /// Returns the validated Postgres config.
-    ///
-    /// Inputs:
-    /// - `self`: resolved database configuration.
-    ///
-    /// Output:
-    /// - Borrowed validated config.
-    ///
-    /// Transformation:
-    /// - Exposes config to future database adapters while keeping ownership in
-    ///   the command layer.
-    #[allow(dead_code)]
-    fn config(&self) -> &postgres::Config {
-        &self.config
-    }
 }
 
 /// Source of a database URL used by a live DB command.
@@ -548,12 +672,13 @@ enum DatabaseConfigSource {
 /// - Host and database name used for diagnostics and development safeguards.
 ///
 /// Transformation:
-/// - Drops credentials and connection options so command output can identify a
-///   target without leaking secrets.
+/// - Drops credentials and option values while retaining protected transport
+///   option names required by destructive-command safety checks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DatabaseTarget {
     host: String,
     database: String,
+    protected_transport_option: Option<String>,
 }
 
 impl DatabaseTarget {
@@ -577,9 +702,10 @@ impl DatabaseTarget {
 /// Inputs:
 /// - `command`: destructive command name.
 /// - `config`: resolved and scheme-validated Postgres configuration.
+/// - `confirmed`: independent destructive-action confirmation.
 ///
 /// Output:
-/// - `Ok(())` when the host or database name looks development-scoped.
+/// - `Ok(())` only for confirmed loopback targets without protected transport.
 /// - User-facing error when the target looks unsafe for destructive work.
 ///
 /// Transformation:
@@ -587,16 +713,29 @@ impl DatabaseTarget {
 fn validate_development_database_config(
     command: &str,
     config: &ResolvedDatabaseConfig,
+    confirmed: bool,
 ) -> Result<(), String> {
     let target = parse_database_target(config.config.url())?;
-    if is_development_database_target(&target) {
-        return Ok(());
+    if !is_local_database_host(&target.host) {
+        return Err(format!(
+            "terlc db {command} refuses non-local destructive database target {} from {}; use localhost, 127.0.0.1, or ::1",
+            target.summary(),
+            config.source_label()
+        ));
     }
-    Err(format!(
-        "terlc db {command} refuses destructive database target {} from {}; use localhost/127.0.0.1/::1 or a database name containing dev, test, or local",
-        target.summary(),
-        config.source_label()
-    ))
+    if let Some(option) = &target.protected_transport_option {
+        return Err(format!(
+            "terlc db {command} refuses destructive database target {} with protected transport option `{option}`",
+            target.summary()
+        ));
+    }
+    if !confirmed {
+        return Err(format!(
+            "terlc db {command} requires --confirm for destructive database target {}",
+            target.summary()
+        ));
+    }
+    Ok(())
 }
 
 /// Parses redacted target identity from a Postgres URL.
@@ -609,7 +748,7 @@ fn validate_development_database_config(
 ///
 /// Transformation:
 /// - Delegates URL parsing to the `url` crate and extracts only non-secret
-///   fields needed by diagnostics.
+///   fields plus protected transport option names needed by safety checks.
 fn parse_database_target(url: &str) -> Result<DatabaseTarget, String> {
     let parsed =
         url::Url::parse(url).map_err(|error| format!("invalid Postgres database URL: {error}"))?;
@@ -624,40 +763,38 @@ fn parse_database_target(url: &str) -> Result<DatabaseTarget, String> {
     Ok(DatabaseTarget {
         host: host.to_string(),
         database: database.to_string(),
+        protected_transport_option: protected_transport_option(&parsed),
     })
 }
 
-/// Returns whether a parsed target is development-scoped.
+/// Returns whether a database host is loopback-local.
 ///
 /// Inputs:
-/// - `target`: parsed database target.
+/// - `host`: normalized host extracted by the URL parser.
 ///
 /// Output:
-/// - `true` when the host or database name follows the development guard.
+/// - `true` only for explicit loopback host spellings.
 ///
 /// Transformation:
-/// - Allows local hosts and database names containing `dev`, `test`, or
-///   `local`, rejecting other remote-looking targets for destructive commands.
-fn is_development_database_target(target: &DatabaseTarget) -> bool {
-    matches!(
-        target.host.as_str(),
-        "localhost" | "127.0.0.1" | "::1" | "[::1]"
-    ) || is_development_database_name(&target.database)
+/// - Does not infer safety from a remote database name.
+fn is_local_database_host(host: &str) -> bool {
+    matches!(host, "localhost" | "127.0.0.1" | "::1" | "[::1]")
 }
 
-/// Returns whether a database name is development-scoped.
-///
-/// Inputs:
-/// - `name`: database name from the Postgres URL path.
-///
-/// Output:
-/// - `true` when the lowercase name contains a development marker.
-///
-/// Transformation:
-/// - Keeps the destructive-command guard simple and explainable.
-fn is_development_database_name(name: &str) -> bool {
-    let lowered = name.to_ascii_lowercase();
-    lowered.contains("dev") || lowered.contains("test") || lowered.contains("local")
+/// Returns the first TLS or certificate option that protects a target.
+fn protected_transport_option(url: &url::Url) -> Option<String> {
+    url.query_pairs().find_map(|(key, value)| {
+        let key = key.to_ascii_lowercase();
+        let value = value.to_ascii_lowercase();
+        let protected = matches!(
+            key.as_str(),
+            "sslcert" | "sslkey" | "sslrootcert" | "sslcrl" | "sslcrldir"
+        ) || (key == "sslmode"
+            && matches!(value.as_str(), "require" | "verify-ca" | "verify-full"))
+            || (matches!(key.as_str(), "ssl" | "tls")
+                && matches!(value.as_str(), "1" | "true" | "require"));
+        protected.then_some(key)
+    })
 }
 
 /// Resolves an optional database config from CLI or environment input.
@@ -672,7 +809,7 @@ fn is_development_database_name(name: &str) -> bool {
 ///
 /// Transformation:
 /// - Reads `TERLAN_DATABASE_URL`, prefers explicit CLI input, and validates the
-///   resulting URL through the shared SafeNative Postgres validator.
+///   resulting URL through the shared Postgres validator.
 fn resolve_optional_database_config(
     database_url: Option<String>,
 ) -> Result<Option<ResolvedDatabaseConfig>, String> {
@@ -752,16 +889,20 @@ impl MigrationStatusSummary {
     fn from_entries(entries: &[MigrationStatusEntry]) -> Self {
         let mut summary = Self {
             applied: 0,
-            divergent: 0,
+            checksum_mismatch: 0,
             missing: 0,
+            name_mismatch: 0,
+            out_of_order: 0,
             pending: 0,
         };
 
         for entry in entries {
             match entry.state {
                 MigrationStatusState::Applied => summary.applied += 1,
-                MigrationStatusState::Divergent => summary.divergent += 1,
+                MigrationStatusState::ChecksumMismatch => summary.checksum_mismatch += 1,
                 MigrationStatusState::Missing => summary.missing += 1,
+                MigrationStatusState::NameMismatch => summary.name_mismatch += 1,
+                MigrationStatusState::OutOfOrder => summary.out_of_order += 1,
                 MigrationStatusState::Pending => summary.pending += 1,
             }
         }
@@ -816,8 +957,9 @@ fn format_load_diagnostic(diagnostic: MigrationLoadDiagnostic) -> String {
 /// - Uses the `time` crate instead of hand-rolled calendar arithmetic so
 ///   generated migration filenames match the parser contract.
 fn current_migration_timestamp() -> Result<String, String> {
-    let format = format_description::parse("[year][month][day][hour][minute][second]")
-        .map_err(|error| format!("cannot create migration timestamp formatter: {error}"))?;
+    let format =
+        format_description::parse_borrowed::<2>("[year][month][day][hour][minute][second]")
+            .map_err(|error| format!("cannot create migration timestamp formatter: {error}"))?;
     OffsetDateTime::now_utc()
         .format(&format)
         .map_err(|error| format!("cannot format migration timestamp: {error}"))
@@ -839,8 +981,13 @@ fn migration_template(name: &str) -> String {
 }
 
 #[cfg(test)]
+#[path = "live_test.rs"]
+mod live_test;
+#[cfg(test)]
 #[path = "migration_test.rs"]
 mod migration_test;
 #[cfg(test)]
 #[path = "mod_test.rs"]
 mod mod_test;
+#[cfg(test)]
+mod test_support;

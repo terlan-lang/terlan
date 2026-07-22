@@ -5,11 +5,10 @@
  * modules. It exists so supervision and native bridges can be expressed as
  * ordinary annotated types and traits instead of source-level actor syntax.
  */
-
 module std.vm.Process.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.Unit.
+import type std.vm.Message.
 
 /**
  * Process represents a typed runtime process handle.
@@ -23,53 +22,434 @@ import type std.core.Unit.{Unit}.
 pub opaque type Process[T].
 
 /**
- * Starts a local VM process descriptor.
+ * Entry identifies one image-local process entry point.
  *
- * Input: a stable debug name.
- * Output: a local `Process[T]` handle.
- * Transformation: creates a VM-owned process descriptor that can receive typed
- * messages through ordinary function calls while the full scheduler-backed
- * actor runtime continues to grow underneath.
+ * Input: type parameter `T` describing the child mailbox payload.
+ * Output: an opaque image-owned entry identity.
+ * Transformation: prevents source code from confusing an executable entry
+ * identity with an arbitrary integer while retaining a fixed transition word.
  */
 @target.vm {process_mailbox: true}
-pub spawn[T](name: String): Process[T] ->
+pub opaque type Entry[T].
+
+/**
+ * Timer represents one validated delay owned by the VM clock.
+ *
+ * Input: a positive number of deterministic VM clock ticks.
+ * Output: an opaque timer descriptor.
+ * Transformation: keeps timer validation and wakeup ordering behind a typed
+ * source value without exposing scheduler timer rows.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Timer.
+
+/**
+ * Monitor represents one VM-owned process monitor reference.
+ *
+ * Input: type parameter `T` describing the monitored process mailbox.
+ * Output: an opaque monitor identity.
+ * Transformation: prevents numeric monitor references from entering source
+ * code while the VM owns DOWN delivery and cleanup.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Monitor[T].
+
+/**
+ * ResourceKind identifies one application-defined VM resource family.
+ *
+ * Input: phantom type `K` separating resource families at compile time.
+ * Output: an opaque resource-kind descriptor.
+ * Transformation: preserves the runtime kind tag without allowing resources
+ * from unrelated families to be mixed in source code.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ResourceKind[K].
+
+/**
+ * Resource represents one owner-bound VM resource.
+ *
+ * Input: phantom type `K` identifying the resource family.
+ * Output: an opaque resource identity.
+ * Transformation: keeps host pointers and numeric resource identities outside
+ * source code while retaining process-owned cleanup.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Resource[K].
+
+/**
+ * ExitReason represents one VM-owned abnormal process exit reason.
+ *
+ * Input: a positive application-defined failure code.
+ * Output: an opaque exit reason.
+ * Transformation: prevents failure codes from being confused with unrelated
+ * integers while preserving centralized link and monitor propagation.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ExitReason.
+
+/**
+ * SchedulingClass represents one supported scheduler queue class.
+ *
+ * Input: a compiler-owned class constructor.
+ * Output: an opaque scheduling class.
+ * Transformation: admits only priority, normal, and background scheduling
+ * classes instead of exposing scheduler tags to source code.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type SchedulingClass.
+
+/**
+ * ActorMessage marks payloads that may enter a local VM process mailbox.
+ *
+ * Input: actor message payload type `T`.
+ * Output: an identity proof method used by generic mailbox boundaries.
+ * Transformation: keeps local actor messages typed while allowing a concrete
+ * `impl not ActorMessage[LocalType]` to prohibit mailbox delivery at compile
+ * time.
+ */
+@target.vm {process_mailbox: true}
+pub trait ActorMessage[T] {
+    message(value: T): T.
+}.
+
+/**
+ * Provides actor-message evidence for payloads without a concrete denial.
+ *
+ * Input: any source value of type `T`.
+ * Output: the same typed value.
+ * Transformation: supplies compile-time evidence only; message wrapping,
+ * mailbox ownership, scheduling, and delivery remain VM-owned.
+ */
+@target.vm {process_mailbox: true}
+pub impl ActorMessage[T] for T {
+    message(value: T): T ->
+        value.
+}.
+
+/**
+ * Builds an image-local typed process entry.
+ *
+ * Input: a positive image entry tag and mailbox payload type `T`.
+ * Output: an opaque `Entry[T]` descriptor.
+ * Transformation: erases to the image entry identity after type checking so
+ * raw entry tags cannot reach lifecycle operations directly.
+ */
+@target.vm {process_mailbox: true}
+pub entry[T](tag: Int): Entry[T] ->
+    native.
+
+/**
+ * Starts a local VM process.
+ *
+ * Input: one image-local `Entry[T]` descriptor.
+ * Output: a VM-owned `Process[T]` handle.
+ * Transformation: spawns a scheduler-visible child without exposing its
+ * numeric process identity to source code.
+ */
+@target.vm {process_mailbox: true}
+pub spawn[T](entry: Entry[T]): Process[T] ->
     native.
 
 /**
  * Sends one typed message to a process descriptor.
  *
  * Input: one process handle and one VM message descriptor.
- * Output: an updated process handle with the message queued.
- * Transformation: models source-level mailbox delivery as a value
- * transformation so it remains explicit and testable before process handles
- * become runtime references.
+ * Output: `Unit` after the VM accepts ownership of the message.
+ * Transformation: transfers the typed payload into the recipient mailbox and
+ * never exposes its actor-local representation to the sender.
  */
 @target.vm {process_mailbox: true}
-pub send[T](process: Process[T], message: Dynamic): Process[T] ->
+pub send[T](process: Process[T], message: Message[T])[ActorMessage[T]]: Unit ->
     native.
 
 /**
  * Receives the oldest queued message.
  *
- * Input: one process handle.
- * Output: `Some(message)` when a message is queued or `None`.
- * Transformation: exposes FIFO mailbox receive behavior without adding
- * Terlan-specific receive syntax.
+ * Input: concrete mailbox payload type `T` selected at the call site.
+ * Output: the oldest matching `Message[T]` after the actor resumes.
+ * Transformation: receives only from the current actor mailbox, parks when no
+ * matching message exists, and resumes with a receiver-owned payload.
  */
 @target.vm {process_mailbox: true}
-pub receive[T](process: Process[T]): Option[Dynamic] ->
+pub receive[T](): Message[T] ->
     native.
 
 /**
  * Receives the first queued message accepted by a predicate.
  *
- * Input: one process handle and one predicate that accepts a message payload.
- * Output: `Some(message)` for the first matching message or `None`.
- * Transformation: exposes selective receive as an ordinary higher-order
- * function while keeping mailbox representation VM-owned.
+ * Input: one predicate that accepts a message payload.
+ * Output: the first matching message after the current actor resumes.
+ * Transformation: scans only the current actor mailbox, preserves skipped
+ * messages in order, and parks when no matching payload is available.
  */
 @target.vm {process_mailbox: true}
-pub receive_where[T](process: Process[T], predicate: (T) -> Bool): Option[Dynamic] ->
+pub receive_where[T](predicate: (T) -> Bool): Message[T] ->
+    native.
+
+/**
+ * Voluntarily yields the current process at an AOT continuation boundary.
+ *
+ * Input: no value.
+ * Output: `Unit` after the process is selected to resume.
+ * Transformation: parks only the current process and transfers a stable typed
+ * continuation to the VM scheduler; it never exposes a native stack address.
+ */
+@target.vm {process_mailbox: true}
+pub yield_now(): Unit ->
+    native.
+
+/**
+ * Sends one scalar Int through the direct-AOT transition boundary.
+ *
+ * Input: a positive VM process identity and an Int payload.
+ * Output: `Unit` after the VM owns and accounts the mailbox delivery.
+ * Transformation: exposes the bounded scalar bootstrap for compiled Send
+ * transitions while opaque typed Process and Message values remain the public
+ * high-level mailbox API.
+ */
+@target.vm {process_mailbox: true}
+pub send_int(recipient: Int, payload: Int): Unit ->
+    native.
+
+/**
+ * Receives the oldest scalar Int available to the current native process.
+ *
+ * Input: no value; the VM resolves the current process from transition ownership.
+ * Output: the received Int after VM-owned mailbox accounting.
+ * Transformation: exposes the bounded scalar bootstrap for compiled Receive
+ * transitions while opaque typed Process and Message values remain the public
+ * high-level mailbox API.
+ */
+@target.vm {process_mailbox: true}
+pub receive_int(): Int ->
+    native.
+
+/**
+ * Sends one immutable String through the typed direct-AOT mailbox boundary.
+ *
+ * Input: a positive VM process identity and an owned immutable String.
+ * Output: `Unit` after the VM has copied the value into mailbox ownership.
+ * Transformation: materializes the sender reference before publication so no
+ * actor-local heap reference crosses process ownership.
+ */
+@target.vm {process_mailbox: true}
+pub send_string(recipient: Int, payload: String): Unit ->
+    native.
+
+/**
+ * Receives the oldest typed String available to the current native process.
+ *
+ * Input: no value; transition ownership identifies the receiving process.
+ * Output: a String allocated in the receiver's actor-local managed heap.
+ * Transformation: preserves nonmatching mailbox entries and commits removal
+ * only after receiver-side allocation succeeds.
+ */
+@target.vm {process_mailbox: true}
+pub receive_string(): String ->
+    native.
+
+/**
+ * Sends immutable Bytes through the typed direct-AOT mailbox boundary.
+ *
+ * Input: a positive VM process identity and an owned Bytes value.
+ * Output: `Unit` after the VM has copied the value into mailbox ownership.
+ * Transformation: materializes the sender reference before publication so no
+ * actor-local heap reference crosses process ownership.
+ */
+@target.vm {process_mailbox: true}
+pub send_bytes(recipient: Int, payload: Bytes): Unit ->
+    native.
+
+/**
+ * Receives the oldest typed Bytes value available to the current native process.
+ *
+ * Input: no value; transition ownership identifies the receiving process.
+ * Output: Bytes allocated in the receiver's actor-local managed heap.
+ * Transformation: preserves nonmatching mailbox entries and commits removal
+ * only after receiver-side allocation succeeds.
+ */
+@target.vm {process_mailbox: true}
+pub receive_bytes(): Bytes ->
+    native.
+
+/**
+ * Sends an immutable Binary through the typed direct-AOT mailbox boundary.
+ *
+ * Input: a positive VM process identity and an owned Binary value.
+ * Output: `Unit` after the VM has copied the packed bits into mailbox ownership.
+ * Transformation: preserves the exact bit length while preventing an
+ * actor-local binary reference from crossing process ownership.
+ */
+@target.vm {process_mailbox: true}
+pub send_binary(recipient: Int, payload: Binary): Unit ->
+    native.
+
+/**
+ * Receives the oldest typed Binary available to the current native process.
+ *
+ * Input: no value; transition ownership identifies the receiving process.
+ * Output: a Binary allocated in the receiver's actor-local managed heap.
+ * Transformation: preserves packed bytes and the exact trailing bit length,
+ * committing mailbox removal only after receiver-side allocation succeeds.
+ */
+@target.vm {process_mailbox: true}
+pub receive_binary(): Binary ->
+    native.
+
+/**
+ * Sends one finite image-owned Atom through the typed direct-AOT mailbox boundary.
+ *
+ * Input: a positive VM process identity and an Atom admitted by the image table.
+ * Output: `Unit` after the VM has published the stable atom identity.
+ * Transformation: rejects dynamic atom creation and carries only the canonical
+ * finite-table index between processes.
+ */
+@target.vm {process_mailbox: true}
+pub send_atom(recipient: Int, payload: Atom): Unit ->
+    native.
+
+/**
+ * Receives the oldest typed Atom available to the current native process.
+ *
+ * Input: no value; transition ownership identifies the receiving process.
+ * Output: the finite image-owned Atom represented by the queued stable index.
+ * Transformation: preserves nonmatching mailbox entries and never interns an
+ * atom from mailbox data at runtime.
+ */
+@target.vm {process_mailbox: true}
+pub receive_atom(): Atom ->
+    native.
+
+/**
+ * Builds a VM timer descriptor.
+ *
+ * Input: a positive deterministic VM tick count.
+ * Output: an opaque `Timer`.
+ * Transformation: erases to the validated tick count after type checking.
+ */
+@target.vm {process_mailbox: true}
+pub timer(ticks: Int): Timer ->
+    native.
+
+/**
+ * Suspends the current process until a timer expires.
+ *
+ * Input: one typed VM timer descriptor.
+ * Output: `Unit` after the VM-owned one-shot timer reaches its deadline.
+ * Transformation: keeps clock ordering, parking, and continuation wakeup in
+ * the VM scheduler.
+ */
+@target.vm {process_mailbox: true}
+pub sleep(timer: Timer): Unit ->
+    native.
+
+/**
+ * Links the current process to one live peer.
+ *
+ * Input: a typed process handle.
+ * Output: `Unit` after the VM owns the symmetric failure relationship.
+ * Transformation: preserves link cleanup and abnormal-exit propagation in the
+ * VM without exposing numeric process identities.
+ */
+@target.vm {process_mailbox: true}
+pub link[T](peer: Process[T]): Unit ->
+    native.
+
+/**
+ * Monitors one live VM process from the current process.
+ *
+ * Input: a typed target process.
+ * Output: an opaque `Monitor[T]` reference.
+ * Transformation: keeps monitor identity, DOWN delivery, and cleanup in the VM
+ * failure runtime.
+ */
+@target.vm {process_mailbox: true}
+pub monitor[T](peer: Process[T]): Monitor[T] ->
+    native.
+
+/**
+ * Builds a typed application resource kind.
+ *
+ * Input: a positive application-defined kind tag and phantom family `K`.
+ * Output: an opaque `ResourceKind[K]`.
+ * Transformation: erases to the validated kind tag after type checking.
+ */
+@target.vm {process_mailbox: true}
+pub resource_kind[K](tag: Int): ResourceKind[K] ->
+    native.
+
+/**
+ * Acquires one owner-bound VM resource.
+ *
+ * Input: a typed resource-kind descriptor.
+ * Output: an opaque `Resource[K]` owned by the current process.
+ * Transformation: creates the VM resource row and cleanup handle without
+ * exposing a host pointer or numeric identity.
+ */
+@target.vm {process_mailbox: true}
+pub acquire[K](kind: ResourceKind[K]): Resource[K] ->
+    native.
+
+/**
+ * Requests cancellation of one live VM process.
+ *
+ * Input: a typed process handle.
+ * Output: `Unit` after the VM records the cancellation request.
+ * Transformation: keeps termination, cleanup, and pre-resume cancellation
+ * precedence in the VM scheduler.
+ */
+@target.vm {process_mailbox: true}
+pub cancel[T](target: Process[T]): Unit ->
+    native.
+
+/**
+ * Builds one abnormal process exit reason.
+ *
+ * Input: a positive application-defined failure code.
+ * Output: an opaque `ExitReason`.
+ * Transformation: erases to the validated failure code after type checking.
+ */
+@target.vm {process_mailbox: true}
+pub exit_reason(code: Int): ExitReason ->
+    native.
+
+/**
+ * Terminates the current process abnormally.
+ *
+ * Input: one typed exit reason.
+ * Output: no continuation resumes after the VM accepts the failure.
+ * Transformation: centralizes link propagation, monitor delivery, timer
+ * cleanup, resource cleanup, and supervision restart in the VM exit pipeline.
+ */
+@target.vm {process_mailbox: true}
+pub fail(reason: ExitReason): Unit ->
+    native.
+
+/** Returns the VM priority scheduling class. */
+@target.vm {process_mailbox: true}
+pub priority(): SchedulingClass ->
+    native.
+
+/** Returns the VM normal scheduling class. */
+@target.vm {process_mailbox: true}
+pub normal(): SchedulingClass ->
+    native.
+
+/** Returns the VM background scheduling class. */
+@target.vm {process_mailbox: true}
+pub background(): SchedulingClass ->
+    native.
+
+/**
+ * Changes the current process scheduling class.
+ *
+ * Input: one compiler-admitted scheduling class.
+ * Output: `Unit` after the VM reclassifies and requeues the process.
+ * Transformation: keeps queue ownership, weighted selection, and reduction
+ * accounting in the VM scheduler without exposing numeric class tags.
+ */
+@target.vm {process_mailbox: true}
+pub schedule(class: SchedulingClass): Unit ->
     native.
 
 /**
@@ -81,7 +461,7 @@ pub receive_where[T](process: Process[T], predicate: (T) -> Bool): Option[Dynami
  * instead of Terlan-specific process operators.
  */
 @target.vm {process_mailbox: true}
-pub trait ProcessLike[P, T] {
-    send(process: P, message: Dynamic): Unit.
+pub trait ProcessLike[P, T] extends ActorMessage[T] {
+    send(process: P, message: Message[T]): Unit.
     stop(process: P): Unit.
 }.

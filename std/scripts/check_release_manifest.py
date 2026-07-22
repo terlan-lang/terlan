@@ -416,9 +416,15 @@ def has_annotated_test(path: Path, function_name: str) -> bool:
     - Scans line-oriented Terlan source without parsing the full module.
     """
 
+    return source_has_annotated_test(path.read_text(encoding="utf-8"), function_name)
+
+
+def source_has_annotated_test(source: str, function_name: str) -> bool:
+    """Return whether source defines an annotated public test function."""
+
     pattern = re.compile(rf"^\s*pub\s+{re.escape(function_name)}\(")
     pending = False
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in source.splitlines():
         if re.match(r"^\s*@test\s*$", line):
             pending = True
             continue
@@ -428,6 +434,19 @@ def has_annotated_test(path: Path, function_name: str) -> bool:
             return True
         pending = False
     return False
+
+
+def has_public_function(path: Path, function_name: str) -> bool:
+    """Return whether a Terlan source file defines a named public function."""
+
+    pattern = re.compile(rf"^\s*pub\s+{re.escape(function_name)}\(")
+    return any(pattern.match(line) for line in path.read_text(encoding="utf-8").splitlines())
+
+
+def is_generated_surface_api(api_id: str) -> bool:
+    """Return whether an API row represents a generated JS surface contract."""
+
+    return api_id.startswith("std.js.") and api_id.endswith(".generated_surface")
 
 
 def check_api_coverage(rows: list[ManifestRow]) -> list[str]:
@@ -460,7 +479,17 @@ def check_api_coverage(rows: list[ManifestRow]) -> list[str]:
         if not test_path.is_file():
             diagnostics.append(f"{api_id}: missing test file `{test_file}`")
             continue
-        if not has_annotated_test(test_path, test_function):
+        if is_generated_surface_api(api_id):
+            if has_annotated_test(test_path, test_function):
+                diagnostics.append(
+                    f"{api_id}: generated contract `{test_function}` in `{test_file}` "
+                    "must not use @test"
+                )
+            elif not has_public_function(test_path, test_function):
+                diagnostics.append(
+                    f"{api_id}: missing generated contract `{test_function}` in `{test_file}`"
+                )
+        elif not has_annotated_test(test_path, test_function):
             diagnostics.append(
                 f"{api_id}: missing @test function `{test_function}` in `{test_file}`"
             )

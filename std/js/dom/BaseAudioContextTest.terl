@@ -1,24 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface BaseAudioContext
  */
 module std.js.Dom.BaseAudioContextTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.BaseAudioContext.{BaseAudioContext}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.BaseAudioContext.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub audio_worklet_typechecks(receiver: BaseAudioContext): AudioWorklet ->
     receiver.audio_worklet().
@@ -44,16 +44,27 @@ pub create_analyser_typechecks(receiver: BaseAudioContext): AnalyserNode ->
 pub create_biquad_filter_typechecks(receiver: BaseAudioContext): BiquadFilterNode ->
     receiver.create_biquad_filter().
 
-pub create_buffer_typechecks(receiver: BaseAudioContext, number_of_channels: JsNumber, length: JsNumber, sample_rate: JsNumber): AudioBuffer ->
+pub create_buffer_typechecks(
+    receiver: BaseAudioContext,
+    number_of_channels: JsNumber,
+    length: JsNumber,
+    sample_rate: JsNumber
+): AudioBuffer ->
     receiver.create_buffer(number_of_channels, length, sample_rate).
 
 pub create_buffer_source_typechecks(receiver: BaseAudioContext): AudioBufferSourceNode ->
     receiver.create_buffer_source().
 
-pub create_channel_merger_typechecks(receiver: BaseAudioContext, number_of_inputs: JsNumber): ChannelMergerNode ->
+pub create_channel_merger_typechecks(
+    receiver: BaseAudioContext,
+    number_of_inputs: JsNumber
+): ChannelMergerNode ->
     receiver.create_channel_merger(number_of_inputs).
 
-pub create_channel_splitter_typechecks(receiver: BaseAudioContext, number_of_outputs: JsNumber): ChannelSplitterNode ->
+pub create_channel_splitter_typechecks(
+    receiver: BaseAudioContext,
+    number_of_outputs: JsNumber
+): ChannelSplitterNode ->
     receiver.create_channel_splitter(number_of_outputs).
 
 pub create_constant_source_typechecks(receiver: BaseAudioContext): ConstantSourceNode ->
@@ -71,7 +82,11 @@ pub create_dynamics_compressor_typechecks(receiver: BaseAudioContext): DynamicsC
 pub create_gain_typechecks(receiver: BaseAudioContext): GainNode ->
     receiver.create_gain().
 
-pub create_iir_filter_typechecks(receiver: BaseAudioContext, feedforward: Array[JsNumber], feedback: Array[JsNumber]): IIRFilterNode ->
+pub create_iir_filter_typechecks(
+    receiver: BaseAudioContext,
+    feedforward: Array[JsNumber],
+    feedback: Array[JsNumber]
+): IIRFilterNode ->
     receiver.create_iir_filter(feedforward, feedback).
 
 pub create_oscillator_typechecks(receiver: BaseAudioContext): OscillatorNode ->
@@ -80,10 +95,20 @@ pub create_oscillator_typechecks(receiver: BaseAudioContext): OscillatorNode ->
 pub create_panner_typechecks(receiver: BaseAudioContext): PannerNode ->
     receiver.create_panner().
 
-pub create_periodic_wave_typechecks(receiver: BaseAudioContext, real: Float32Array | Array[JsNumber], imag: Float32Array | Array[JsNumber], constraints: PeriodicWaveConstraints): PeriodicWave ->
+pub create_periodic_wave_typechecks(
+    receiver: BaseAudioContext,
+    real: Float32Array | Array[JsNumber],
+    imag: Float32Array | Array[JsNumber],
+    constraints: PeriodicWaveConstraints
+): PeriodicWave ->
     receiver.create_periodic_wave(real, imag, constraints).
 
-pub create_script_processor_typechecks(receiver: BaseAudioContext, buffer_size: JsNumber, number_of_input_channels: JsNumber, number_of_output_channels: JsNumber): ScriptProcessorNode ->
+pub create_script_processor_typechecks(
+    receiver: BaseAudioContext,
+    buffer_size: JsNumber,
+    number_of_input_channels: JsNumber,
+    number_of_output_channels: JsNumber
+): ScriptProcessorNode ->
     receiver.create_script_processor(buffer_size, number_of_input_channels, number_of_output_channels).
 
 pub create_stereo_panner_typechecks(receiver: BaseAudioContext): StereoPannerNode ->
@@ -92,11 +117,26 @@ pub create_stereo_panner_typechecks(receiver: BaseAudioContext): StereoPannerNod
 pub create_wave_shaper_typechecks(receiver: BaseAudioContext): WaveShaperNode ->
     receiver.create_wave_shaper().
 
-pub decode_audio_data_typechecks(receiver: BaseAudioContext, audio_data: ArrayBuffer, success_callback: Option[DecodeSuccessCallback], error_callback: Option[DecodeErrorCallback]): std.js.Promise[AudioBuffer] ->
+pub decode_audio_data_typechecks(
+    receiver: BaseAudioContext,
+    audio_data: ArrayBuffer,
+    success_callback: Option[DecodeSuccessCallback],
+    error_callback: Option[DecodeErrorCallback]
+): std.js.Promise[AudioBuffer] ->
     receiver.decode_audio_data(audio_data, success_callback, error_callback).
 
-pub add_event_listener_typechecks(receiver: BaseAudioContext, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: BaseAudioContext,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: BaseAudioContext, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: BaseAudioContext,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

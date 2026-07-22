@@ -1,0 +1,53 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasPathDrawingStyles
+ */
+module std.js.Dom.CanvasPathDrawingStyles.
+
+import type std.js.Number.{JsNumber}.
+import type std.js.{Array}.
+
+pub opaque type CanvasPathDrawingStyles.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineCap)
+ */
+pub (value: CanvasPathDrawingStyles) line_cap(): CanvasLineCap.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineDashOffset)
+ */
+pub (value: CanvasPathDrawingStyles) line_dash_offset(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineJoin)
+ */
+pub (value: CanvasPathDrawingStyles) line_join(): CanvasLineJoin.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineWidth)
+ */
+pub (value: CanvasPathDrawingStyles) line_width(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/miterLimit)
+ */
+pub (value: CanvasPathDrawingStyles) miter_limit(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getLineDash)
+ */
+pub (value: CanvasPathDrawingStyles) get_line_dash(): Array[JsNumber].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setLineDash)
+ */
+pub (value: CanvasPathDrawingStyles) set_line_dash(segments: Array[JsNumber]): std.core.Unit.

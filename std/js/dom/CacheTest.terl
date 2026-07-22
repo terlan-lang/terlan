@@ -1,20 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Cache
  */
 module std.js.Dom.CacheTest.
 
 import type std.core.{Unit}.
+import type std.js.Dom.Cache.
+import type std.js.{Array, Promise}.
 
-import type std.js.Dom.Cache.{Cache}.
-
-import type std.js.{Array}.
-
-import type std.js.{Promise}.
-
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub add_typechecks(receiver: Cache, request: RequestInfo | URL): Promise[Unit] ->
     receiver.add(request).
@@ -22,16 +24,32 @@ pub add_typechecks(receiver: Cache, request: RequestInfo | URL): Promise[Unit] -
 pub add_all_typechecks(receiver: Cache, requests: Array[RequestInfo]): Promise[Unit] ->
     receiver.add_all(requests).
 
-pub delete_typechecks(receiver: Cache, request: RequestInfo | URL, options: CacheQueryOptions): Promise[std.core.Bool] ->
+pub delete_typechecks(
+    receiver: Cache,
+    request: RequestInfo | URL,
+    options: CacheQueryOptions
+): Promise[std.core.Bool] ->
     receiver.delete(request, options).
 
-pub keys_typechecks(receiver: Cache, request: RequestInfo | URL, options: CacheQueryOptions): Promise[Array[Request]] ->
+pub keys_typechecks(
+    receiver: Cache,
+    request: RequestInfo | URL,
+    options: CacheQueryOptions
+): Promise[Array[Request]] ->
     receiver.keys(request, options).
 
-pub match_typechecks(receiver: Cache, request: RequestInfo | URL, options: CacheQueryOptions): Promise[Option[Response]] ->
+pub match_typechecks(
+    receiver: Cache,
+    request: RequestInfo | URL,
+    options: CacheQueryOptions
+): Promise[Option[Response]] ->
     receiver.match(request, options).
 
-pub match_all_typechecks(receiver: Cache, request: RequestInfo | URL, options: CacheQueryOptions): Promise[Array[Response]] ->
+pub match_all_typechecks(
+    receiver: Cache,
+    request: RequestInfo | URL,
+    options: CacheQueryOptions
+): Promise[Array[Response]] ->
     receiver.match_all(request, options).
 
 pub put_typechecks(receiver: Cache, request: RequestInfo | URL, response: Response): Promise[Unit] ->

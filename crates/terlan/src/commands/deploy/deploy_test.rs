@@ -45,6 +45,27 @@ fn parse_deploy_args_rejects_extra_plan_operands() {
 }
 
 #[test]
+fn build_deploy_plan_defaults_to_terlan_vm_runtime_capability() {
+    let manifest = crate::commands::build::project_manifest::parse_project_manifest(
+        r#"[package]
+name = "demo"
+version = "0.0.1"
+"#,
+        &PathBuf::from("terlan.toml"),
+    )
+    .expect("parse manifest");
+
+    let plan = build_deploy_plan(&manifest).expect("build deploy plan");
+    let json = serde_json::to_value(&plan).expect("serialize deploy plan");
+
+    assert_eq!(json["build"]["artifact"], "terlan-vm");
+    assert_eq!(
+        json["capabilities"],
+        serde_json::json!(["runtime.terlan-vm"])
+    );
+}
+
+#[test]
 fn build_deploy_plan_projects_manifest_capabilities() {
     let manifest = crate::commands::build::project_manifest::parse_project_manifest(
         r#"[package]
@@ -54,7 +75,7 @@ namespace = "demo.cloud"
 
 [build]
 source_roots = ["src", "lib"]
-artifact = "beam-thin"
+artifact = "terlan-vm"
 
 [web.assets]
 directory = "assets"
@@ -71,23 +92,17 @@ server_name = "localhost"
 [dependencies]
 shared = { path = "../shared" }
 
-[target.erlang.dependencies]
-cowboy = { hex = "cowboy", version = "2.12.0" }
-
 [target.js.dependencies]
 zod = { npm = "zod", version = "3.25.0" }
 
 [target.rust.dependencies]
 serde = { cargo = "serde", version = "1.0.0", features = ["derive"] }
-
-[target.erlang.package]
-adapter = "rebar3-compatible"
 "#,
         &PathBuf::from("terlan.toml"),
     )
     .expect("parse manifest");
 
-    let plan = build_deploy_plan(&manifest);
+    let plan = build_deploy_plan(&manifest).expect("build deploy plan");
     let json = serde_json::to_value(&plan).expect("serialize deploy plan");
 
     assert_eq!(json["schema"], DEPLOY_PLAN_SCHEMA);
@@ -99,17 +114,19 @@ adapter = "rebar3-compatible"
         json["build"]["source_roots"],
         serde_json::json!(["src", "lib"])
     );
-    assert_eq!(json["build"]["erlang_package_adapter"], "rebar3-compatible");
+    assert!(json["build"]
+        .as_object()
+        .expect("build object")
+        .get("package_adapter")
+        .is_none());
     assert_eq!(
         json["capabilities"],
         serde_json::json!([
             "dependency.local",
-            "dependency.target.erlang",
             "dependency.target.js",
             "dependency.target.rust",
             "http.tls",
-            "runtime.beam",
-            "target.erlang.package",
+            "runtime.terlan-vm",
             "web.assets",
             "web.rsbuild"
         ])
@@ -118,11 +135,62 @@ adapter = "rebar3-compatible"
     assert_eq!(json["server_tls"]["mode"], "manual");
     assert_eq!(json["dependencies"][0]["alias"], "shared");
     assert_eq!(json["dependencies"][0]["source"]["kind"], "path");
-    assert_eq!(json["dependencies"][3]["alias"], "serde");
+    assert_eq!(json["dependencies"][2]["alias"], "serde");
     assert_eq!(
-        json["dependencies"][3]["source"]["features"],
+        json["dependencies"][2]["source"]["features"],
         serde_json::json!(["derive"])
     );
+}
+
+#[test]
+fn build_deploy_plan_rejects_legacy_beam_artifact() {
+    let err = crate::commands::build::project_manifest::parse_project_manifest(
+        r#"[package]
+name = "demo"
+version = "0.0.1"
+
+[build]
+artifact = "beam-thin"
+"#,
+        &PathBuf::from("terlan.toml"),
+    )
+    .expect_err("legacy beam artifact should fail while parsing manifest");
+
+    assert!(err.contains("unsupported [build] artifact `beam-thin`"));
+}
+
+#[test]
+fn build_deploy_plan_rejects_legacy_erlang_dependencies() {
+    let err = crate::commands::build::project_manifest::parse_project_manifest(
+        r#"[package]
+name = "demo"
+version = "0.0.1"
+
+[target.erlang.dependencies]
+cowboy = { hex = "cowboy", version = "2.12.0" }
+"#,
+        &PathBuf::from("terlan.toml"),
+    )
+    .expect_err("legacy erlang dependency should fail while parsing manifest");
+
+    assert!(err.contains("unsupported project manifest section `target.erlang.dependencies`"));
+}
+
+#[test]
+fn build_deploy_plan_rejects_legacy_target_package_metadata() {
+    let err = crate::commands::build::project_manifest::parse_project_manifest(
+        r#"[package]
+name = "demo"
+version = "0.0.1"
+
+[target.erlang.package]
+adapter = "rebar3-compatible"
+"#,
+        &PathBuf::from("terlan.toml"),
+    )
+    .expect_err("legacy erlang package should fail while parsing manifest");
+
+    assert!(err.contains("unsupported project manifest section `target.erlang.package`"));
 }
 
 #[test]
@@ -133,7 +201,7 @@ fn write_deploy_plan_writes_cloud_json_artifact() {
     fs::create_dir_all(&project_dir).expect("create project dir");
     fs::write(
         project_dir.join(PROJECT_MANIFEST_FILE),
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
     )
     .expect("write manifest");
 
@@ -144,7 +212,7 @@ fn write_deploy_plan_writes_cloud_json_artifact() {
         .expect("parse deploy plan");
     assert_eq!(json["schema"], DEPLOY_PLAN_SCHEMA);
     assert_eq!(json["package"]["name"], "demo");
-    assert_eq!(json["build"]["artifact"], "beam-thin");
+    assert_eq!(json["build"]["artifact"], "terlan-vm");
 
     fs::remove_dir_all(root).expect("remove test root");
 }

@@ -4,10 +4,9 @@
  * `std.io.Console` exposes target-neutral console operations. Backends own
  * the concrete runtime calls needed to implement these operations.
  */
-
 module std.io.Console.
 
-import std.core.Unit.{Unit}.
+import std.core.Unit.
 
 /**
  * Writes a string followed by one line terminator.

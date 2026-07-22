@@ -1,0 +1,10 @@
+module=std.binary.Binary
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=15491970983249179884
+interface_hash=12057701972836790613
+interface_doc_hash=7858260085372380806
+deps=2
+std.core.Option=11539230284316612175
+std.core.Result=11040488711914238385

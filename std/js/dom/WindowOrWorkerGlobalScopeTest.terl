@@ -1,24 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WindowOrWorkerGlobalScope
  */
 module std.js.Dom.WindowOrWorkerGlobalScopeTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.WindowOrWorkerGlobalScope.{WindowOrWorkerGlobalScope}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.WindowOrWorkerGlobalScope.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub caches_typechecks(receiver: WindowOrWorkerGlobalScope): CacheStorage ->
     receiver.caches().
@@ -53,23 +53,51 @@ pub clear_interval_typechecks(receiver: WindowOrWorkerGlobalScope, id: Option[Js
 pub clear_timeout_typechecks(receiver: WindowOrWorkerGlobalScope, id: Option[JsNumber]): Unit ->
     receiver.clear_timeout(id).
 
-pub create_image_bitmap_typechecks(receiver: WindowOrWorkerGlobalScope, image: ImageBitmapSource, options: ImageBitmapOptions): Promise[ImageBitmap] ->
+pub create_image_bitmap_typechecks(
+    receiver: WindowOrWorkerGlobalScope,
+    image: ImageBitmapSource,
+    options: ImageBitmapOptions
+): Promise[ImageBitmap] ->
     receiver.create_image_bitmap(image, options).
 
-pub create_image_bitmap_typechecks(receiver: WindowOrWorkerGlobalScope, image: ImageBitmapSource, sx: JsNumber, sy: JsNumber, sw: JsNumber, sh: JsNumber, options: ImageBitmapOptions): Promise[ImageBitmap] ->
+pub create_image_bitmap_typechecks(
+    receiver: WindowOrWorkerGlobalScope,
+    image: ImageBitmapSource,
+    sx: JsNumber,
+    sy: JsNumber,
+    sw: JsNumber,
+    sh: JsNumber,
+    options: ImageBitmapOptions
+): Promise[ImageBitmap] ->
     receiver.create_image_bitmap(image, sx, sy, sw, sh, options).
 
-pub fetch_typechecks(receiver: WindowOrWorkerGlobalScope, input: RequestInfo | URL, init: RequestInit): Promise[Response] ->
+pub fetch_typechecks(
+    receiver: WindowOrWorkerGlobalScope,
+    input: RequestInfo | URL,
+    init: RequestInit
+): Promise[Response] ->
     receiver.fetch(input, init).
 
 pub queue_microtask_typechecks(receiver: WindowOrWorkerGlobalScope, callback: VoidFunction): Unit ->
     receiver.queue_microtask(callback).
 
-pub set_interval_typechecks(receiver: WindowOrWorkerGlobalScope, handler: TimerHandler, timeout: JsNumber): JsNumber ->
+pub set_interval_typechecks(
+    receiver: WindowOrWorkerGlobalScope,
+    handler: TimerHandler,
+    timeout: JsNumber
+): JsNumber ->
     receiver.set_interval(handler, timeout).
 
-pub set_timeout_typechecks(receiver: WindowOrWorkerGlobalScope, handler: TimerHandler, timeout: JsNumber): JsNumber ->
+pub set_timeout_typechecks(
+    receiver: WindowOrWorkerGlobalScope,
+    handler: TimerHandler,
+    timeout: JsNumber
+): JsNumber ->
     receiver.set_timeout(handler, timeout).
 
-pub structured_clone_typechecks(receiver: WindowOrWorkerGlobalScope, value: T, options: StructuredSerializeOptions): T ->
+pub structured_clone_typechecks(
+    receiver: WindowOrWorkerGlobalScope,
+    value: T,
+    options: StructuredSerializeOptions
+): T ->
     receiver.structured_clone(value, options).

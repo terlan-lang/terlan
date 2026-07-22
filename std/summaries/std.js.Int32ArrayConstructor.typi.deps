@@ -1,8 +1,8 @@
 module=std.js.Int32ArrayConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=4656135811782744713
-interface_hash=17185991738021419693
-interface_doc_hash=17185991738021419693
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=9254070939910067963
+interface_hash=467780898342520447
+interface_doc_hash=467780898342520447
 deps=0

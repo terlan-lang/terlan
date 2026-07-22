@@ -1,11 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioBuffer
  */
 module std.js.Dom.AudioBuffer.
 
 import type std.core.{Unit}.
-
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -52,7 +59,11 @@ pub (value: AudioBuffer) sample_rate(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyFromChannel)
  */
-pub (value: AudioBuffer) copy_from_channel(destination: Float32Array[ArrayBuffer], channel_number: JsNumber, buffer_offset: JsNumber): Unit ->
+pub (value: AudioBuffer) copy_from_channel(
+    destination: Float32Array[ArrayBuffer],
+    channel_number: JsNumber,
+    buffer_offset: JsNumber
+): Unit ->
     native.
 
 /**
@@ -60,7 +71,11 @@ pub (value: AudioBuffer) copy_from_channel(destination: Float32Array[ArrayBuffer
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyToChannel)
  */
-pub (value: AudioBuffer) copy_to_channel(source: Float32Array[ArrayBuffer], channel_number: JsNumber, buffer_offset: JsNumber): Unit ->
+pub (value: AudioBuffer) copy_to_channel(
+    source: Float32Array[ArrayBuffer],
+    channel_number: JsNumber,
+    buffer_offset: JsNumber
+): Unit ->
     native.
 
 /**

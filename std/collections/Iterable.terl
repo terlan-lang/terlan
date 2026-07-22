@@ -3,16 +3,11 @@
  *
  * `std.collections.Iterable` is the portable contract used by collection traversal.
  */
-
 module std.collections.Iterable.
 
-import std.collections.Iterator.{Iterator}.
-import std.collections.List.
-import type std.collections.List.
-import std.collections.Map.
-import type std.collections.Map.
-import std.collections.Set.
-import type std.collections.Set.
+import std.collections.{Iterator, List, Map, Set}.
+
+import type std.collections.{List, Map, Set}.
 
 /**
  * Iterable connects a collection type `C` to the item type `T` it yields.
@@ -35,7 +30,7 @@ pub trait Iterable[C, T] {
  * receiver contract so trait dispatch and direct receiver dispatch share the
  * same backend-neutral traversal shape.
  */
-pub impl Iterable[List[T], T] for List[T] {
+pub impl Iterable[std.collections.List.List[T], T] for std.collections.List.List[T] {
     iterator(collection: List[T]): std.collections.Iterator.Iterator[T] ->
         List.iterator(collection).
 }.
@@ -49,7 +44,7 @@ pub impl Iterable[List[T], T] for List[T] {
  * receiver contract so trait dispatch and direct receiver dispatch share the
  * same backend-neutral traversal shape.
  */
-pub impl Iterable[Map[K, V], {K, V}] for Map[K, V] {
+pub impl Iterable[std.collections.Map.Map[K, V], {K, V}] for std.collections.Map.Map[K, V] {
     iterator(collection: Map[K, V]): std.collections.Iterator.Iterator[{K, V}] ->
         Map.iterator(collection).
 }.
@@ -63,7 +58,7 @@ pub impl Iterable[Map[K, V], {K, V}] for Map[K, V] {
  * receiver contract so trait dispatch and direct receiver dispatch share the
  * same backend-neutral traversal shape.
  */
-pub impl Iterable[Set[T], T] for Set[T] {
+pub impl Iterable[std.collections.Set.Set[T], T] for std.collections.Set.Set[T] {
     iterator(collection: Set[T]): std.collections.Iterator.Iterator[T] ->
         Set.iterator(collection).
 }.

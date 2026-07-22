@@ -9,7 +9,7 @@ use crate::commands::emit_js::target_contract::{
     JS_TARGET_PROFILE_FILE,
 };
 use crate::commands::emit_js::{
-    emit_core_module_to_typescript_declarations, emit_core_module_with_direct_oxc_ast,
+    emit_core_module_to_typescript_declarations, emit_core_module_with_template_runtime,
     validate_js_module_with_oxc,
 };
 use crate::formal_pipeline::CheckedSyntaxModuleArtifacts;
@@ -570,12 +570,17 @@ fn write_js_module_artifact(
 /// - Calls only the direct CoreIR-to-Oxc-AST path for release builds. The
 ///   bootstrap/fallback JS text emitter remains available to lower-level
 ///   backend probes, but build artifacts must come from the direct Oxc path.
-fn emit_release_js_module(
+pub(super) fn emit_release_js_module(
     source_path: &str,
     compiled: &CheckedSyntaxModuleArtifacts,
     contract: JsTargetContract,
 ) -> Result<String, String> {
-    emit_core_module_with_direct_oxc_ast(&compiled.core).ok_or_else(|| {
+    emit_core_module_with_template_runtime(
+        &compiled.core,
+        &compiled.syntax_output,
+        Path::new(source_path),
+    )?
+    .ok_or_else(|| {
         format!(
             "error[{}]: JavaScript target `{}` does not support every public body in module `{}` for gate J0.3; no JS artifact was written for {}",
             contract.unsupported_feature_code,

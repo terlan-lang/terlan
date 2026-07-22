@@ -199,6 +199,12 @@ fn check_source_name(root: &Path, source: &Path) -> Vec<String> {
             relative.display()
         )];
     };
+    if !is_std_module_segment_name(last_segment) {
+        return vec![format!(
+            "{}: std module final segment `{last_segment}` must start with an uppercase ASCII letter",
+            relative.display()
+        )];
+    }
     let expected = format!("{last_segment}.{extension}");
     let actual = source
         .file_name()
@@ -212,6 +218,24 @@ fn check_source_name(root: &Path, source: &Path) -> Vec<String> {
         "{}: source filename `{actual}` does not match module `{module}`; expected `{expected}`",
         relative.display()
     )]
+}
+
+/// Returns whether a std module final segment follows the source naming rule.
+///
+/// Inputs:
+/// - `segment`: final module segment from a `module std...` declaration.
+///
+/// Output:
+/// - `true` when the segment starts with an uppercase ASCII letter.
+///
+/// Transformation:
+/// - Allows generated foreign names such as `ANGLE_instanced_arrays` while
+///   rejecting lowercase std module names such as `float`.
+fn is_std_module_segment_name(segment: &str) -> bool {
+    segment
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_uppercase())
 }
 
 /// Reads the first module declaration from Terlan source text.

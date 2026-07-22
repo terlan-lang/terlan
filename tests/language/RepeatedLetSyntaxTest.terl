@@ -1,0 +1,35 @@
+module tests.language.RepeatedLetSyntaxTest.
+
+import std.core.Result.{Err, Ok, Result}.
+import std.test.Test.{assert_equal}.
+
+@test
+pub repeated_lets_preserve_order_and_scope(): Bool ->
+    let first = 2;
+    let second = first + 3;
+    let result = first * second;
+    assert_equal(10, result).
+
+pub resolve(
+    first: Result[Int, String],
+    second: Result[Int, String]
+): Result[Int, String] ->
+    let {
+        Ok(left) <- first;
+        Ok(right) <- second
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(left + right).
+
+@test
+pub grouped_let_else_runs_success_continuations(): Bool ->
+    assert_equal(Ok(5), resolve(Ok(2), Ok(3))).
+
+@test
+pub grouped_let_else_stops_at_first_mismatch(): Bool ->
+    assert_equal(Err("first"), resolve(Err("first"), Err("second"))).
+
+@test
+pub grouped_let_else_handles_later_mismatch(): Bool ->
+    assert_equal(Err("second"), resolve(Ok(2), Err("second"))).

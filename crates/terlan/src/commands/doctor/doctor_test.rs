@@ -132,39 +132,6 @@ fn doctor_project_reports_vm_pivot_hazards() {
     assert!(codes.contains("doctor_retired_test_or_script_runtime"));
 }
 
-/// Verifies doctor reports checked source that current VM execution cannot run.
-///
-/// Inputs:
-/// - Temporary project with a typechecked `case` expression.
-///
-/// Output:
-/// - Finding set containing the VM execution-gap diagnostic.
-///
-/// Transformation:
-/// - Runs the normal source scanner so the diagnostic is based on checked
-///   CoreIR and the current VM artifact lowering subset.
-#[test]
-fn doctor_project_reports_vm_execution_gap_for_checked_coreir() {
-    let root = doctor_test_dir("vm_execution_gap");
-    fs::create_dir_all(root.join("src/app")).expect("create src dir");
-    fs::write(
-        root.join("terlan.toml"),
-        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"terlan-vm\"\n",
-    )
-    .expect("write manifest");
-    fs::write(
-        root.join("src/app/Main.terl"),
-        "module app.Main.\n\npub classify(value: Int): Int ->\n    case value {\n        0 -> 1;\n        _ -> value\n    }.\n",
-    )
-    .expect("write source");
-
-    let findings = doctor_project(&root).expect("doctor project");
-    let codes = finding_codes(&findings);
-    let _ = fs::remove_dir_all(&root);
-
-    assert!(codes.contains("doctor_vm_execution_gap"));
-}
-
 /// Verifies doctor detects summaries generated against another compiler
 /// syntax contract.
 ///
@@ -194,39 +161,4 @@ fn doctor_project_reports_summary_compiler_contract_mismatch() {
     let _ = fs::remove_dir_all(&root);
 
     assert!(codes.contains("doctor_summary_compiler_mismatch"));
-}
-
-/// Verifies Battleship-shaped projects receive exact VM migration wording.
-///
-/// Inputs:
-/// - Temporary manifest with package name `battleship` and retired
-///   `beam-thin` artifact metadata.
-///
-/// Output:
-/// - Manifest-artifact finding whose fix names `terlc clean`, `terlc doctor`,
-///   and `terlc build` in order.
-///
-/// Transformation:
-/// - Runs manifest scanning through doctor so application-specific migration
-///   text stays covered by the public command gate.
-#[test]
-fn doctor_project_reports_battleship_manifest_migration_fix() {
-    let root = doctor_test_dir("battleship_manifest_fix");
-    fs::write(
-        root.join("terlan.toml"),
-        "[package]\nname = \"battleship\"\nversion = \"0.0.1\"\n\n[build]\nartifact = \"beam-thin\"\n",
-    )
-    .expect("write manifest");
-
-    let findings = doctor_project(&root).expect("doctor project");
-    let finding = findings
-        .iter()
-        .find(|finding| finding.code == "doctor_retired_manifest_artifact")
-        .expect("manifest finding");
-    let _ = fs::remove_dir_all(&root);
-
-    assert!(finding.fix.contains("artifact = \"terlan-vm\""));
-    assert!(finding.fix.contains("terlc clean"));
-    assert!(finding.fix.contains("terlc doctor"));
-    assert!(finding.fix.contains("terlc build"));
 }

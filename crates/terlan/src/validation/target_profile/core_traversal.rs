@@ -1,14 +1,18 @@
 use super::std_runtime::{
-    target_profile_supports_beam_agent_operation,
-    target_profile_supports_beam_gen_server_operation,
-    target_profile_supports_beam_native_bridge_operation,
-    target_profile_supports_beam_supervisor_operation, target_profile_supports_beam_task_operation,
-    target_profile_supports_task_operation, validate_std_runtime_operation_summary_support,
-    validate_std_runtime_operation_support, StdCallHeads,
+    target_profile_supports_task_operation, target_profile_supports_vm_agent_operation,
+    target_profile_supports_vm_gen_server_operation,
+    target_profile_supports_vm_native_bridge_operation,
+    target_profile_supports_vm_supervisor_operation, target_profile_supports_vm_task_operation,
+    validate_std_runtime_operation_summary_support, validate_std_runtime_operation_support,
+    StdCallHeads,
 };
 use super::summary_shape::ProfileExprShapeExtensions;
 use super::{TargetProfile, TargetProfileViolation};
 use crate::terlan_typeck::{CoreExpr, CoreExprSummary, CorePattern};
+
+mod vm_runtime;
+
+use vm_runtime::summary_allows_vm_owned_expr;
 
 /// Validates one expression summary and its recursive child summaries.
 ///
@@ -51,10 +55,10 @@ pub(super) fn validate_core_expr_summary(
         function_scope,
         location,
         summary,
-        &std_call_heads.beam_agent,
-        "BEAM Agent operation",
-        "std.beam.Agent",
-        target_profile_supports_beam_agent_operation,
+        &std_call_heads.vm_agent,
+        "VM Agent operation",
+        "std.vm.Agent",
+        target_profile_supports_vm_agent_operation,
         violations,
     );
     validate_std_runtime_operation_summary_support(
@@ -62,10 +66,10 @@ pub(super) fn validate_core_expr_summary(
         function_scope,
         location,
         summary,
-        &std_call_heads.beam_gen_server,
-        "BEAM GenServer operation",
-        "std.beam.GenServer",
-        target_profile_supports_beam_gen_server_operation,
+        &std_call_heads.vm_gen_server,
+        "VM GenServer operation",
+        "std.vm.GenServer",
+        target_profile_supports_vm_gen_server_operation,
         violations,
     );
     validate_std_runtime_operation_summary_support(
@@ -73,10 +77,10 @@ pub(super) fn validate_core_expr_summary(
         function_scope,
         location,
         summary,
-        &std_call_heads.beam_native_bridge,
-        "BEAM NativeBridge operation",
-        "std.beam.NativeBridge",
-        target_profile_supports_beam_native_bridge_operation,
+        &std_call_heads.vm_native_bridge,
+        "VM NativeBridge operation",
+        "std.vm.NativeBridge",
+        target_profile_supports_vm_native_bridge_operation,
         violations,
     );
     validate_std_runtime_operation_summary_support(
@@ -84,10 +88,10 @@ pub(super) fn validate_core_expr_summary(
         function_scope,
         location,
         summary,
-        &std_call_heads.beam_supervisor,
-        "BEAM Supervisor operation",
-        "std.beam.Supervisor",
-        target_profile_supports_beam_supervisor_operation,
+        &std_call_heads.vm_supervisor,
+        "VM Supervisor operation",
+        "std.vm.Supervisor",
+        target_profile_supports_vm_supervisor_operation,
         violations,
     );
     validate_std_runtime_operation_summary_support(
@@ -95,14 +99,16 @@ pub(super) fn validate_core_expr_summary(
         function_scope,
         location,
         summary,
-        &std_call_heads.beam_task,
-        "BEAM Task operation",
-        "std.beam.Task",
-        target_profile_supports_beam_task_operation,
+        &std_call_heads.vm_task,
+        "VM Task operation",
+        "std.vm.Task",
+        target_profile_supports_vm_task_operation,
         violations,
     );
 
-    if !profile.allows_expr_coverage(summary.proof_coverage) {
+    let vm_owned_expr = summary_allows_vm_owned_expr(profile, summary);
+
+    if !profile.allows_expr_coverage(summary.proof_coverage) && !vm_owned_expr {
         violations.push(TargetProfileViolation::unsupported(
             "expression coverage",
             profile,
@@ -111,7 +117,7 @@ pub(super) fn validate_core_expr_summary(
         ));
     }
 
-    if summary.remote.is_some() && !profile.allows_runtime_boundary() {
+    if summary.remote.is_some() && !profile.allows_runtime_boundary() && !vm_owned_expr {
         violations.push(TargetProfileViolation::unsupported(
             "runtime boundary",
             profile,
@@ -123,6 +129,7 @@ pub(super) fn validate_core_expr_summary(
     if profile.requires_checked_preservation_evidence()
         && summary.core_expr.is_some()
         && summary.checked_preservation_evidence.is_none()
+        && !vm_owned_expr
     {
         violations.push(TargetProfileViolation::missing_evidence(
             profile,
@@ -297,9 +304,9 @@ fn validate_core_expr(
         }
         CoreExpr::ListComprehension {
             expr,
-            pattern,
-            source,
-            guard,
+            generators,
+            guards,
+            ..
         } => {
             validate_core_expr(
                 profile,
@@ -309,16 +316,23 @@ fn validate_core_expr(
                 expr,
                 violations,
             );
-            validate_core_pattern(profile, pattern, "list comprehension pattern", violations);
-            validate_core_expr(
-                profile,
-                std_call_heads,
-                function_scope,
-                "list comprehension source",
-                source,
-                violations,
-            );
-            if let Some(guard) = guard {
+            for generator in generators {
+                validate_core_pattern(
+                    profile,
+                    &generator.pattern,
+                    "list comprehension pattern",
+                    violations,
+                );
+                validate_core_expr(
+                    profile,
+                    std_call_heads,
+                    function_scope,
+                    "list comprehension source",
+                    &generator.source,
+                    violations,
+                );
+            }
+            for guard in guards {
                 validate_core_expr(
                     profile,
                     std_call_heads,
@@ -446,7 +460,18 @@ fn validate_core_expr(
             );
         }
         CoreExpr::RemoteFunRef { .. } => {}
-        CoreExpr::SqlQuery { .. } => {}
+        CoreExpr::SqlQuery { parameters, .. } => {
+            for parameter in parameters {
+                validate_core_expr(
+                    profile,
+                    std_call_heads,
+                    function_scope,
+                    "SQL parameter",
+                    parameter,
+                    violations,
+                );
+            }
+        }
         CoreExpr::RemoteCall {
             module,
             function,
@@ -470,10 +495,10 @@ fn validate_core_expr(
                 location,
                 module,
                 function,
-                &std_call_heads.beam_agent,
-                "BEAM Agent operation",
-                "std.beam.Agent",
-                target_profile_supports_beam_agent_operation,
+                &std_call_heads.vm_agent,
+                "VM Agent operation",
+                "std.vm.Agent",
+                target_profile_supports_vm_agent_operation,
                 violations,
             );
             validate_std_runtime_operation_support(
@@ -482,10 +507,10 @@ fn validate_core_expr(
                 location,
                 module,
                 function,
-                &std_call_heads.beam_gen_server,
-                "BEAM GenServer operation",
-                "std.beam.GenServer",
-                target_profile_supports_beam_gen_server_operation,
+                &std_call_heads.vm_gen_server,
+                "VM GenServer operation",
+                "std.vm.GenServer",
+                target_profile_supports_vm_gen_server_operation,
                 violations,
             );
             validate_std_runtime_operation_support(
@@ -494,10 +519,10 @@ fn validate_core_expr(
                 location,
                 module,
                 function,
-                &std_call_heads.beam_native_bridge,
-                "BEAM NativeBridge operation",
-                "std.beam.NativeBridge",
-                target_profile_supports_beam_native_bridge_operation,
+                &std_call_heads.vm_native_bridge,
+                "VM NativeBridge operation",
+                "std.vm.NativeBridge",
+                target_profile_supports_vm_native_bridge_operation,
                 violations,
             );
             validate_std_runtime_operation_support(
@@ -506,10 +531,10 @@ fn validate_core_expr(
                 location,
                 module,
                 function,
-                &std_call_heads.beam_supervisor,
-                "BEAM Supervisor operation",
-                "std.beam.Supervisor",
-                target_profile_supports_beam_supervisor_operation,
+                &std_call_heads.vm_supervisor,
+                "VM Supervisor operation",
+                "std.vm.Supervisor",
+                target_profile_supports_vm_supervisor_operation,
                 violations,
             );
             validate_std_runtime_operation_support(
@@ -518,10 +543,10 @@ fn validate_core_expr(
                 location,
                 module,
                 function,
-                &std_call_heads.beam_task,
-                "BEAM Task operation",
-                "std.beam.Task",
-                target_profile_supports_beam_task_operation,
+                &std_call_heads.vm_task,
+                "VM Task operation",
+                "std.vm.Task",
+                target_profile_supports_vm_task_operation,
                 violations,
             );
             for arg in args {
@@ -900,11 +925,17 @@ pub(super) fn validate_core_pattern(
         CorePattern::Var(_) => {}
         CorePattern::Int(_) => {}
         CorePattern::Float(_) => {}
+        CorePattern::String(_) => {}
+        CorePattern::StringPattern(_) => {}
+        CorePattern::BinaryLayout { .. } => {}
         CorePattern::Atom(_) => {}
         CorePattern::Tuple(values) => {
             for value in values {
                 validate_core_pattern(profile, value, "tuple", violations);
             }
+        }
+        CorePattern::Alias { pattern, .. } => {
+            validate_core_pattern(profile, pattern, "alias", violations);
         }
         CorePattern::List(values) => {
             for value in values {

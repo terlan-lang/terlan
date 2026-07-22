@@ -1,26 +1,36 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CookieStoreManager
  */
 module std.js.Dom.CookieStoreManagerTest.
 
 import type std.core.{Unit}.
+import type std.js.Dom.CookieStoreManager.
+import type std.js.{Array, Promise}.
 
-import type std.js.Dom.CookieStoreManager.{CookieStoreManager}.
+pub generated_binding_surface_contract(): Bool -> true.
 
-import type std.js.{Array}.
-
-import type std.js.{Promise}.
-
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
-
-pub get_subscriptions_typechecks(receiver: CookieStoreManager): Promise[Array[CookieStoreGetOptions]] ->
+pub get_subscriptions_typechecks(
+    receiver: CookieStoreManager
+): Promise[Array[CookieStoreGetOptions]] ->
     receiver.get_subscriptions().
 
-pub subscribe_typechecks(receiver: CookieStoreManager, subscriptions: Array[CookieStoreGetOptions]): Promise[Unit] ->
+pub subscribe_typechecks(
+    receiver: CookieStoreManager,
+    subscriptions: Array[CookieStoreGetOptions]
+): Promise[Unit] ->
     receiver.subscribe(subscriptions).
 
-pub unsubscribe_typechecks(receiver: CookieStoreManager, subscriptions: Array[CookieStoreGetOptions]): Promise[Unit] ->
+pub unsubscribe_typechecks(
+    receiver: CookieStoreManager,
+    subscriptions: Array[CookieStoreGetOptions]
+): Promise[Unit] ->
     receiver.unsubscribe(subscriptions).

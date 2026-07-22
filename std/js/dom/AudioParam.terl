@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioParam
  */
 module std.js.Dom.AudioParam.
 
@@ -101,5 +109,9 @@ pub (value: AudioParam) set_value_at_time(value: JsNumber, start_time: JsNumber)
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setValueCurveAtTime)
  */
-pub (value: AudioParam) set_value_curve_at_time(values: Float32Array | std.js.Array[JsNumber], start_time: JsNumber, duration: JsNumber): AudioParam ->
+pub (value: AudioParam) set_value_curve_at_time(
+    values: Float32Array | std.js.Array[JsNumber],
+    start_time: JsNumber,
+    duration: JsNumber
+): AudioParam ->
     native.

@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface UserActivation
+ */
+module std.js.Dom.UserActivation.
+
+import type std.core.{Bool}.
+
+/**
+ * The **`UserActivation`** interface provides information about whether a user is currently interacting with the page, or has completed an interaction since page load.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UserActivation)
+ */
+pub opaque type UserActivation.
+
+/**
+ * The read-only **`hasBeenActive`** property of the UserActivation interface indicates whether the current window has sticky activation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UserActivation/hasBeenActive)
+ */
+pub (value: UserActivation) has_been_active(): Bool.
+
+/**
+ * The read-only **`isActive`** property of the UserActivation interface indicates whether the current window has transient activation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UserActivation/isActive)
+ */
+pub (value: UserActivation) is_active(): Bool.

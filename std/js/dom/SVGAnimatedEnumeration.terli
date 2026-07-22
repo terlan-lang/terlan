@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGAnimatedEnumeration
+ */
+module std.js.Dom.SVGAnimatedEnumeration.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SVGAnimatedEnumeration`** interface describes attribute values which are constants from a particular enumeration and which can be animated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedEnumeration)
+ */
+pub opaque type SVGAnimatedEnumeration.
+
+/**
+ * The **`animVal`** property of the SVGAnimatedEnumeration interface contains the current value of an SVG enumeration.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedEnumeration/animVal)
+ */
+pub (value: SVGAnimatedEnumeration) anim_val(): JsNumber.
+
+/**
+ * The **`baseVal`** property of the SVGAnimatedEnumeration interface contains the initial value of an SVG enumeration.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedEnumeration/baseVal)
+ */
+pub (value: SVGAnimatedEnumeration) base_val(): JsNumber.

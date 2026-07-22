@@ -41,7 +41,7 @@ fn path_round_trips_relative_text() {
 /// - Test passes when join, file name, extension, and parent are stable.
 ///
 /// Transformation:
-/// - Exercises Rust lexical path operations through the SafeNative wrapper.
+/// - Exercises Rust lexical path operations through the NativeBoundary wrapper.
 #[test]
 fn join_and_components_are_lexical() {
     let base = parsed_path("src");

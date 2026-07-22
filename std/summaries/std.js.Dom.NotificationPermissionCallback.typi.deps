@@ -1,8 +1,8 @@
 module=std.js.Dom.NotificationPermissionCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=3811104585849609466
-interface_hash=3811104585849609466
-interface_doc_hash=3811104585849609466
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=1515620498762756496
+interface_hash=227785525852130393
+interface_doc_hash=227785525852130393
 deps=0

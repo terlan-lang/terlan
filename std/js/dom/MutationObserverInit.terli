@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MutationObserverInit
+ */
+module std.js.Dom.MutationObserverInit.
+
+import type std.core.{Bool}.
+
+pub opaque type MutationObserverInit.
+
+/**
+ * Set to a list of attribute local names (without namespace) if not all attribute mutations need to be observed and attributes is true or omitted.
+ */
+pub (value: MutationObserverInit) attribute_filter(): std.js.Array[std.js.String.JsString].
+
+/**
+ * Set to true if attributes is true or omitted and target's attribute value before the mutation needs to be recorded.
+ */
+pub (value: MutationObserverInit) attribute_old_value(): Bool.
+
+/**
+ * Set to true if mutations to target's attributes are to be observed. Can be omitted if attributeOldValue or attributeFilter is specified.
+ */
+pub (value: MutationObserverInit) attributes(): Bool.
+
+/**
+ * Set to true if mutations to target's data are to be observed. Can be omitted if characterDataOldValue is specified.
+ */
+pub (value: MutationObserverInit) character_data(): Bool.
+
+/**
+ * Set to true if characterData is set to true or omitted and target's data before the mutation needs to be recorded.
+ */
+pub (value: MutationObserverInit) character_data_old_value(): Bool.
+
+/**
+ * Set to true if mutations to target's children are to be observed.
+ */
+pub (value: MutationObserverInit) child_list(): Bool.
+
+/**
+ * Set to true if mutations to not just target, but also target's descendants are to be observed.
+ */
+pub (value: MutationObserverInit) subtree(): Bool.

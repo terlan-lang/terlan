@@ -86,6 +86,7 @@ pub type Lt =
 ///    std.core.Ordering.compare(Lt, Gt).
 /// ```
 
+@pure
 pub compare(left: Comparison, right: Comparison): Comparison.
 
 /// Parses a canonical UTF-8 `String` into `Comparison`.
@@ -119,6 +120,7 @@ pub from_string(value: String): Option[Comparison].
 ///    std.core.Ordering.to_string(Lt).
 /// ```
 
+@pure
 pub to_string(value: Comparison): String.
 
 /// Describes values that have a total ordering.

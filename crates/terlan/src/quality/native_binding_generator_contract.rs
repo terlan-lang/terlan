@@ -7,6 +7,10 @@ const CONTRACT_DOC: &str = "docs/runtime/NATIVE_BINDING_GENERATOR_CONTRACT.md";
 
 const REQUIRED_TERMS: &[&str] = &[
     "curated wrapper surface",
+    "CPython extensions",
+    "pybind11",
+    "Cython",
+    "SWIG",
     "Terlan package",
     "NativeBoundary manifest",
     "Rust adapter",
@@ -56,6 +60,8 @@ const REQUIRED_REJECTION_TERMS: &[&str] = &[
 
 const FORBIDDEN_CLAIMS: &[&str] = &[
     "arbitrary c++ directly to source code is supported",
+    "native headers are enough",
+    "every native api is generated",
     "raw pointers may cross into terlan",
     "exceptions may cross the boundary",
     "thread affinity can be guessed",

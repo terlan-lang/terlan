@@ -1,0 +1,60 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ResolvedDateTimeFormatOptions
+ */
+module std.js.Intl.ResolvedDateTimeFormatOptionsTest.
+
+import type std.js.Intl.ResolvedDateTimeFormatOptions.
+import type std.js.String.{JsString}.
+
+pub generated_binding_surface_contract(): Bool -> true.
+
+pub locale_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.locale().
+
+pub calendar_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.calendar().
+
+pub numbering_system_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.numbering_system().
+
+pub time_zone_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.time_zone().
+
+pub hour12_typechecks(receiver: ResolvedDateTimeFormatOptions): std.core.Bool ->
+    receiver.hour12().
+
+pub weekday_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.weekday().
+
+pub era_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.era().
+
+pub year_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.year().
+
+pub month_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.month().
+
+pub day_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.day().
+
+pub hour_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.hour().
+
+pub minute_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.minute().
+
+pub second_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.second().
+
+pub time_zone_name_typechecks(receiver: ResolvedDateTimeFormatOptions): JsString ->
+    receiver.time_zone_name().

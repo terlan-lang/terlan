@@ -1,0 +1,114 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RegExpConstructor
+ */
+module std.js.RegExpConstructor.
+
+import type std.js.String.{JsString}.
+
+pub opaque type RegExpConstructor.
+
+pub (value: RegExpConstructor) prototype(): RegExp.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_1(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_2(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_3(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_4(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_5(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_6(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_7(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_8(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_9(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) input(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) last_match(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) last_paren(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) left_context(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) right_context(): JsString.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (value: RegExpConstructor) value_(): JsString.

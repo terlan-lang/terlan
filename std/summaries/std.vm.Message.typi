@@ -10,8 +10,8 @@ module std.vm.Message.
 ///
 /// Input: type parameter `T`.
 /// Output: an opaque message wrapper owned by the selected VM runtime.
-/// Transformation: keeps source-level message payloads typed while leaving the
-/// concrete mailbox representation to the VM backend.
+/// Transformation: keeps source-level message payloads typed while the VM owns
+/// the mailbox envelope and transfer metadata.
 
 pub opaque type Message[T].
 
@@ -19,8 +19,8 @@ pub opaque type Message[T].
 ///
 /// Input: one `Message[T]`.
 /// Output: the original payload value.
-/// Transformation: unwraps the runtime message descriptor after VM-owned
-/// receive logic has selected it.
+/// Transformation: projects the payload after VM-owned receive logic has
+/// selected and transferred the typed mailbox envelope.
 
 pub unwrap[T](message: Message[T]): T.
 
@@ -28,8 +28,8 @@ pub unwrap[T](message: Message[T]): T.
 ///
 /// Input: one payload value.
 /// Output: a `Message[T]` carrying that payload.
-/// Transformation: records the payload in a runtime-owned message wrapper
-/// without exposing mailbox internals in source code.
+/// Transformation: marks the payload for typed mailbox delivery without
+/// exposing mailbox internals or requiring a source-visible allocation.
 
 pub wrap[T](value: T): Message[T].
 

@@ -1,0 +1,57 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface InputEvent
+ */
+module std.js.Dom.InputEvent.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`InputEvent`** interface represents an event notifying the user of editable content changes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent)
+ */
+pub opaque type InputEvent.
+
+/**
+ * The **`data`** read-only property of the characters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/data)
+ */
+pub (value: InputEvent) data(): Option[JsString].
+
+/**
+ * The **`dataTransfer`** read-only property of the containing information about richtext or plaintext data being added to or removed from editable content.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/dataTransfer)
+ */
+pub (value: InputEvent) data_transfer(): Option[DataTransfer].
+
+/**
+ * The **`inputType`** read-only property of the Possible changes include for example inserting, deleting, and formatting text.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/inputType)
+ */
+pub (value: InputEvent) input_type(): JsString.
+
+/**
+ * The **`InputEvent.isComposing`** read-only property returns a boolean value indicating if the event is fired after A boolean.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/isComposing)
+ */
+pub (value: InputEvent) is_composing(): std.core.Bool.
+
+/**
+ * The **`getTargetRanges()`** method of the InputEvent interface returns an array of StaticRange objects that will be affected by a change to the DOM if the input event is not canceled.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/getTargetRanges)
+ */
+pub (value: InputEvent) get_target_ranges(): std.js.Array[StaticRange].

@@ -1,0 +1,25 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ElementCSSInlineStyle
+ */
+module std.js.Dom.ElementCSSInlineStyle.
+
+pub opaque type ElementCSSInlineStyle.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/attributeStyleMap)
+ */
+pub (value: ElementCSSInlineStyle) attribute_style_map(): StylePropertyMap.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/style)
+ */
+pub (value: ElementCSSInlineStyle) style(): CSSStyleDeclaration.

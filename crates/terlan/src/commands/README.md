@@ -16,6 +16,8 @@ on process entry, global argument parsing, and command routing.
 
 - `artifacts`: shared dependency manifest, fingerprint, and import-loading helpers.
 - `build`: executes `terlc build`.
+- `dev_dependencies`: shared typed Docker Compose discovery, validation, and
+  readiness startup for local VM commands.
 - `run`: executes `terlc run` by building a package and running its launcher.
 - `syntax_contract`: executes `terlc syntax-contract`.
 - `check`: executes `terlc check`.
@@ -31,7 +33,6 @@ on process entry, global argument parsing, and command routing.
 - `static_site`: executes `terlc static` and delegates to internal static
   emit/serve runners.
 - `doc`: executes `terlc doc` and `terlc doctest`.
-- `emit`: executes `terlc emit`.
 
 Command modules should expose a narrow `run` function for the top-level router.
 Additional helpers may be `pub(crate)` only when tests or neighboring modules

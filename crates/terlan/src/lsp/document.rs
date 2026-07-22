@@ -5,9 +5,14 @@ use std::sync::{Arc, Mutex};
 use crate::terlan_hir::{
     load_interfaces_from_file_set, resolve_syntax_module_output_with_interfaces, ModuleInterface,
 };
-use crate::terlan_html::{validate_artifact_template_structure, HtmlDiagnostic};
+use crate::terlan_html::{
+    scan_template_interpolations, validate_artifact_template_structure, HtmlDiagnostic, HtmlSpan,
+};
 use crate::terlan_syntax::{parse_module_as_syntax_output, EbnfCompileError, ParserError, Span};
-use crate::terlan_typeck::{type_check_syntax_module_output, Diagnostic as TypeDiagnostic};
+use crate::terlan_typeck::{
+    type_check_syntax_module_output_with_database_schema, DiagSeverity,
+    Diagnostic as TypeDiagnostic,
+};
 use tower_lsp::lsp_types::{Position, Range, Url};
 
 /// Open Terlan document tracked by the LSP server.
@@ -197,6 +202,19 @@ impl OpenDocument {
         let end = Self::position_from_byte_offset(text, normalized_end).unwrap_or(start);
         Range::new(start, end)
     }
+
+    pub(crate) fn range_from_html_span(text: &str, span: HtmlSpan) -> Range {
+        let line_index = span.line.saturating_sub(1) as usize;
+        let line_start = text
+            .split_inclusive('\n')
+            .take(line_index)
+            .map(str::len)
+            .sum::<usize>();
+        Self::range_from_span(
+            text,
+            &Span::new(line_start + span.start, line_start + span.end),
+        )
+    }
 }
 
 /// LSP document category used to choose the validation path.
@@ -326,8 +344,21 @@ impl OpenDocuments {
                             let resolved =
                                 resolve_syntax_module_output_with_interfaces(&module, &interfaces)
                                     .module;
-                            let type_diagnostics =
-                                type_check_syntax_module_output(&module, &resolved);
+                            let (database_schema, database_schema_error) =
+                                Self::database_schema_for_uri(&uri);
+                            let mut type_diagnostics =
+                                type_check_syntax_module_output_with_database_schema(
+                                    &module,
+                                    &resolved,
+                                    database_schema.as_ref(),
+                                );
+                            if let Some(message) = database_schema_error {
+                                type_diagnostics.push(TypeDiagnostic {
+                                    span: module.span.into(),
+                                    message,
+                                    severity: DiagSeverity::Error,
+                                });
+                            }
                             (
                                 true,
                                 None,
@@ -364,6 +395,21 @@ impl OpenDocuments {
         parse_error
     }
 
+    fn database_schema_for_uri(
+        uri: &Url,
+    ) -> (
+        Option<crate::database_schema::DatabaseSchemaSnapshot>,
+        Option<String>,
+    ) {
+        let Ok(path) = uri.to_file_path() else {
+            return (None, None);
+        };
+        match crate::database_schema::DatabaseSchemaSnapshot::discover_for_source(&path) {
+            Ok(snapshot) => (snapshot, None),
+            Err(error) => (None, Some(error)),
+        }
+    }
+
     /// Validates a template document through the shared template validators.
     ///
     /// Inputs:
@@ -383,6 +429,15 @@ impl OpenDocuments {
         let path = uri
             .to_file_path()
             .unwrap_or_else(|_| PathBuf::from(uri.path()));
+        if let Err(error) = scan_template_interpolations(text) {
+            return vec![
+                HtmlDiagnostic::new(Some(path), error.message).with_span(HtmlSpan {
+                    line: error.line as u64,
+                    start: error.start,
+                    end: error.end,
+                }),
+            ];
+        }
         match validate_artifact_template_structure(text, &path) {
             Ok(()) => Vec::new(),
             Err(diagnostics) => diagnostics,

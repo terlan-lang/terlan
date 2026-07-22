@@ -1,0 +1,50 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ObjectConstructor
+ */
+module std.js.ObjectConstructor.
+
+pub opaque type ObjectConstructor.
+
+/**
+ * A reference to the prototype for a class of objects.
+ */
+pub (value: ObjectConstructor) prototype(): Object.
+
+/**
+ * Prevents the modification of attributes of existing properties, and prevents the addition of new properties.
+ * @param o Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) seal(o: T): T.
+
+/**
+ * Prevents the modification of existing property attributes and values, and prevents the addition of new properties.
+ * @param f Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) freeze(f: T): T.
+
+/**
+ * Prevents the modification of existing property attributes and values, and prevents the addition of new properties.
+ * @param o Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) freeze(o: T): Readonly[T].
+
+/**
+ * Prevents the modification of existing property attributes and values, and prevents the addition of new properties.
+ * @param o Object on which to lock the attributes.
+ */
+pub (value: ObjectConstructor) freeze(o: T): Readonly[T].
+
+/**
+ * Prevents the addition of new properties to an object.
+ * @param o Object to make non-extensible.
+ */
+pub (value: ObjectConstructor) prevent_extensions(o: T): T.

@@ -1,12 +1,15 @@
-use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
+use crate::terlan_syntax::sql_regions::has_sql_parameter_boundary;
+use crate::terlan_syntax::sql_regions::sql_interpolation_source;
+use crate::terlan_syntax::{sql_opaque_region_end, SyntaxExprKind, SyntaxExprOutput};
 
+pub(crate) mod classification;
+pub(crate) mod database;
 pub(crate) mod projection;
-mod scanner;
-pub(crate) use projection::simple_sql_projection_fields;
-use scanner::{
-    copy_sql_block_comment, copy_sql_line_comment, copy_sql_quoted_segment,
-    read_sql_interpolation_source, sql_words_without_literals_or_comments,
-};
+mod validation;
+pub(crate) use classification::{SqlQueryKind, SqlTransactionRequirement};
+pub(crate) use database::statement_schema_projection;
+pub(crate) use projection::SqlProjectionError;
+pub(crate) use validation::{parse_single_postgres_statement, SqlSyntaxValidationError};
 
 /// Cardinality shape inferred for a compiler-known SQL form.
 ///
@@ -51,8 +54,9 @@ pub(crate) struct SqlParameterBinding {
 /// - Syntax-output raw macro expression named `sql`.
 ///
 /// Output:
-/// - Row type metadata, rewritten SQL parameter binding, and inferred
-///   cardinality in one stable payload for later wrapper lowering.
+/// - Row type metadata, rewritten SQL parameter binding, transaction
+///   requirement, and inferred cardinality in one stable payload for later
+///   wrapper lowering.
 ///
 /// Transformation:
 /// - Combines syntax-output type arguments, raw SQL text, conservative
@@ -63,7 +67,10 @@ pub(crate) struct SqlFormAnalysis {
     pub(crate) row_type: Option<String>,
     pub(crate) row_type_arg_count: usize,
     pub(crate) binding: SqlParameterBinding,
+    pub(crate) query_kind: SqlQueryKind,
+    pub(crate) transaction_requirement: SqlTransactionRequirement,
     pub(crate) cardinality: SqlCardinality,
+    pub(crate) projection_fields: Option<Vec<String>>,
     pub(crate) result_type: Option<String>,
 }
 
@@ -74,8 +81,8 @@ pub(crate) struct SqlFormAnalysis {
 ///   wrapper-front-door checks.
 ///
 /// Output:
-/// - Bound SQL, parameter count, row type, inferred cardinality, result type,
-///   and optional simple projection fields.
+/// - Bound SQL, parameter count, row type, transaction requirement, inferred
+///   cardinality, result type, and optional AST-derived projection fields.
 ///
 /// Transformation:
 /// - Freezes the SQL analysis data needed by generated query-wrapper emission
@@ -85,6 +92,8 @@ pub(crate) struct SqlWrapperPlan {
     pub(crate) row_type: String,
     pub(crate) bound_sql: String,
     pub(crate) parameter_count: usize,
+    pub(crate) query_kind: SqlQueryKind,
+    pub(crate) transaction_requirement: SqlTransactionRequirement,
     pub(crate) cardinality: SqlCardinality,
     pub(crate) result_type: String,
     pub(crate) projection_fields: Option<Vec<String>>,
@@ -137,6 +146,9 @@ impl SqlFormAnalysis {
         }
         if let Some(message) = self.cardinality_requirement_message() {
             blockers.push(message);
+        }
+        if let Some(message) = self.transaction_requirement.wrapper_blocker() {
+            blockers.push(message.to_string());
         }
         blockers
     }
@@ -280,7 +292,7 @@ impl SqlWrapperPlanError {
     ///   wrapper lowering diagnostics and tests.
     pub(crate) fn message(&self) -> String {
         match self {
-            Self::Analysis(error) => error.message().to_string(),
+            Self::Analysis(error) => error.message(),
             Self::NotReady(blockers) => {
                 format!("SQL wrapper plan is not ready: {}", blockers.join("; "))
             }
@@ -304,6 +316,7 @@ impl SqlWrapperPlanError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum SqlParameterBindingError {
     EmptyInterpolation,
+    ExplicitPlaceholder,
     UnterminatedInterpolation,
 }
 
@@ -323,6 +336,8 @@ pub(crate) enum SqlFormAnalysisError {
     EmptySql,
     MissingRawSql,
     Binding(SqlParameterBindingError),
+    Syntax(SqlSyntaxValidationError),
+    Projection(SqlProjectionError),
 }
 
 impl SqlParameterBindingError {
@@ -340,6 +355,9 @@ impl SqlParameterBindingError {
     pub(crate) fn message(&self) -> &'static str {
         match self {
             Self::EmptyInterpolation => "empty SQL interpolation expression",
+            Self::ExplicitPlaceholder => {
+                "explicit PostgreSQL placeholders are not allowed; use `${expression}`"
+            }
             Self::UnterminatedInterpolation => "unterminated SQL interpolation expression",
         }
     }
@@ -357,11 +375,13 @@ impl SqlFormAnalysisError {
     /// Transformation:
     /// - Converts internal analysis failures into stable messages for tests and
     ///   later typechecker diagnostics.
-    pub(crate) fn message(&self) -> &'static str {
+    pub(crate) fn message(&self) -> String {
         match self {
-            Self::EmptySql => "SQL form text must not be empty",
-            Self::MissingRawSql => "SQL form is missing raw SQL text",
-            Self::Binding(error) => error.message(),
+            Self::EmptySql => "SQL form text must not be empty".to_string(),
+            Self::MissingRawSql => "SQL form is missing raw SQL text".to_string(),
+            Self::Binding(error) => error.message().to_string(),
+            Self::Syntax(error) => error.message().to_string(),
+            Self::Projection(error) => error.message(),
         }
     }
 }
@@ -412,52 +432,6 @@ impl SqlCardinality {
     }
 }
 
-/// Infers conservative result cardinality for a compiler-known SQL form.
-///
-/// Inputs:
-/// - `raw`: SQL text preserved from `sql[Row] { ... }`.
-///
-/// Output:
-/// - A conservative `SqlCardinality` value.
-///
-/// Transformation:
-/// - Removes SQL comments and string bodies, tokenizes word-like SQL terms, and
-///   recognizes only clear first-statement shapes:
-///   `SELECT`, mutating statements with `RETURNING`, mutating statements without
-///   `RETURNING`, and `LIMIT 1`. Anything else stays ambiguous for later
-///   Postgres-backed validation.
-pub(crate) fn infer_sql_cardinality(raw: &str) -> SqlCardinality {
-    let tokens = sql_words_without_literals_or_comments(raw);
-    let Some(first) = tokens.first().map(String::as_str) else {
-        return SqlCardinality::Ambiguous;
-    };
-
-    let has_returning = tokens.iter().any(|token| token == "returning");
-    let has_limit_one = has_limit_one(&tokens);
-
-    match first {
-        "select" => {
-            if has_limit_one {
-                SqlCardinality::OptionalOne
-            } else {
-                SqlCardinality::ManyRows
-            }
-        }
-        "insert" | "update" | "delete" => {
-            if has_returning {
-                if has_limit_one {
-                    SqlCardinality::OptionalOne
-                } else {
-                    SqlCardinality::ManyRows
-                }
-            } else {
-                SqlCardinality::AffectedRows
-            }
-        }
-        _ => SqlCardinality::Ambiguous,
-    }
-}
-
 /// Builds compiler-facing SQL-form analysis for a syntax-output expression.
 ///
 /// Inputs:
@@ -471,7 +445,7 @@ pub(crate) fn infer_sql_cardinality(raw: &str) -> SqlCardinality {
 /// Transformation:
 /// - Reads the explicit row type argument metadata, rewrites interpolation
 ///   islands into Postgres placeholders, and infers conservative cardinality
-///   from the preserved SQL text.
+///   and transaction requirements from the parsed PostgreSQL statement.
 pub(crate) fn analyze_sql_form(
     expr: &SyntaxExprOutput,
 ) -> Result<Option<SqlFormAnalysis>, SqlFormAnalysisError> {
@@ -487,7 +461,13 @@ pub(crate) fn analyze_sql_form(
         return Err(SqlFormAnalysisError::EmptySql);
     }
     let binding = bind_sql_parameters(raw).map_err(SqlFormAnalysisError::Binding)?;
-    let cardinality = infer_sql_cardinality(raw);
+    let statement =
+        parse_single_postgres_statement(&binding.sql).map_err(SqlFormAnalysisError::Syntax)?;
+    let query_kind = classification::classify_statement(&statement);
+    let transaction_requirement = classification::statement_transaction_requirement(&statement);
+    let cardinality = classification::statement_cardinality(&statement);
+    let projection_fields = projection::statement_projection_fields(&statement)
+        .map_err(SqlFormAnalysisError::Projection)?;
     let row_type = expr.type_args.first().map(|type_arg| type_arg.text.clone());
     let result_type = cardinality.result_type_text(row_type.as_deref());
 
@@ -495,7 +475,10 @@ pub(crate) fn analyze_sql_form(
         row_type,
         row_type_arg_count: expr.type_args.len(),
         binding,
+        query_kind,
+        transaction_requirement,
         cardinality,
+        projection_fields,
         result_type,
     }))
 }
@@ -535,15 +518,15 @@ pub(crate) fn build_sql_wrapper_plan(
         .result_type
         .clone()
         .ok_or(SqlWrapperPlanError::MissingResultType)?;
-    let projection_fields = expr.raw.as_deref().and_then(simple_sql_projection_fields);
-
     Ok(Some(SqlWrapperPlan {
         row_type,
         bound_sql: analysis.binding.sql,
         parameter_count: analysis.binding.parameter_count,
+        query_kind: analysis.query_kind,
+        transaction_requirement: analysis.transaction_requirement,
         cardinality: analysis.cardinality,
         result_type,
-        projection_fields,
+        projection_fields: analysis.projection_fields,
     }))
 }
 
@@ -572,23 +555,23 @@ pub(crate) fn bind_sql_parameters(
         let current = chars[index];
         let next = chars.get(index + 1).copied();
 
-        if current == '-' && next == Some('-') {
-            index = copy_sql_line_comment(&chars, index, &mut sql);
+        if let Some(next_index) = sql_opaque_region_end(&chars, index) {
+            sql.extend(chars[index..next_index].iter());
+            index = next_index;
             continue;
         }
 
-        if current == '/' && next == Some('*') {
-            index = copy_sql_block_comment(&chars, index, &mut sql);
-            continue;
-        }
-
-        if current == '\'' || current == '"' {
-            index = copy_sql_quoted_segment(&chars, index, current, &mut sql);
-            continue;
+        if current == '$' {
+            if next.is_some_and(|character| character.is_ascii_digit())
+                && has_sql_parameter_boundary(&chars, index)
+            {
+                return Err(SqlParameterBindingError::ExplicitPlaceholder);
+            }
         }
 
         if current == '$' && next == Some('{') {
-            let (source, next_index) = read_sql_interpolation_source(&chars, index + 2)?;
+            let (source, next_index) = sql_interpolation_source(&chars, index + 2)
+                .ok_or(SqlParameterBindingError::UnterminatedInterpolation)?;
             if source.trim().is_empty() {
                 return Err(SqlParameterBindingError::EmptyInterpolation);
             }
@@ -607,21 +590,4 @@ pub(crate) fn bind_sql_parameters(
         sql,
         parameter_count,
     })
-}
-
-/// Returns whether normalized SQL tokens include `LIMIT 1`.
-///
-/// Inputs:
-/// - `tokens`: lowercase SQL word/number tokens.
-///
-/// Output:
-/// - `true` when a `limit` token is immediately followed by `1`.
-///
-/// Transformation:
-/// - Scans adjacent token windows instead of parsing SQL so the check stays a
-///   conservative source-shape hint.
-fn has_limit_one(tokens: &[String]) -> bool {
-    tokens
-        .windows(2)
-        .any(|window| window[0] == "limit" && window[1] == "1")
 }

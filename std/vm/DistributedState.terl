@@ -1,0 +1,221 @@
+/**
+ * Terlan VM distributed state contract.
+ *
+ * `std.vm.DistributedState` exposes typed descriptors for VM-owned state
+ * scopes, monotonic versions, conflict policies, write outcomes, and
+ * checkpoint snapshots. The VM owns deterministic conflict handling and
+ * checkpoint replay.
+ */
+module std.vm.DistributedState.
+
+/**
+ * Scope represents one namespaced distributed state key.
+ *
+ * Input: namespace and key text.
+ * Output: an opaque state scope descriptor.
+ * Transformation: keeps namespace/key validation inside the VM distributed
+ * state lane.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Scope.
+
+/**
+ * Version represents one monotonic write version.
+ *
+ * Input: sequence number and writer node id.
+ * Output: an opaque state version descriptor.
+ * Transformation: keeps version monotonicity and writer identity validation in
+ * the VM runtime.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Version.
+
+/**
+ * Policy represents one distributed conflict strategy.
+ *
+ * Input: policy tag such as `winner_takes_all`, `last_writer_wins`, `merge`,
+ * or `explicit_user_resolution`.
+ * Output: an opaque policy descriptor.
+ * Transformation: keeps strategy validation and unsupported behavior explicit.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Policy.
+
+/**
+ * Store represents one VM-owned distributed state table.
+ *
+ * Input: write operations and checkpoint restore descriptors.
+ * Output: an opaque state store descriptor.
+ * Transformation: owns state entries, conflict metadata, and checkpoint replay
+ * ordering inside the VM.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Store.
+
+/**
+ * Entry represents one stored distributed state value.
+ *
+ * Input: scope, owner, value, version, and policy.
+ * Output: an opaque state entry descriptor.
+ * Transformation: gives source and tooling a typed entry handle without
+ * exposing the runtime table representation.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Entry.
+
+/**
+ * Outcome represents one distributed write result.
+ *
+ * Input: store write operation.
+ * Output: applied, replayed, conflict, or policy-mismatch descriptor.
+ * Transformation: avoids undefined behavior by making every write result
+ * explicit at the Terlan boundary.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Outcome.
+
+/**
+ * Conflict represents a deterministic write conflict.
+ *
+ * Input: local and incoming versions plus policy metadata.
+ * Output: an opaque conflict descriptor.
+ * Transformation: preserves enough typed metadata for callers to resolve the
+ * conflict without parsing diagnostics.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Conflict.
+
+/**
+ * Snapshot represents one deterministic checkpoint.
+ *
+ * Input: a VM-owned distributed state store.
+ * Output: an opaque checkpoint descriptor.
+ * Transformation: keeps checkpoint ordering and replay validation in the VM.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Snapshot.
+
+/**
+ * Builds a state scope descriptor.
+ *
+ * Input: namespace and key.
+ * Output: scope descriptor.
+ * Transformation: validates non-empty namespace and key through the VM state
+ * contract.
+ */
+@target.vm {process_mailbox: true}
+pub scope(namespace: String, key: String): Scope ->
+    native.
+
+/**
+ * Builds a state version descriptor.
+ *
+ * Input: non-zero sequence and writer node id.
+ * Output: version descriptor.
+ * Transformation: validates monotonic write metadata through the VM state
+ * contract.
+ */
+@target.vm {process_mailbox: true}
+pub version(sequence: Int, node_id: String): Version ->
+    native.
+
+/**
+ * Builds a conflict policy descriptor.
+ *
+ * Input: policy tag.
+ * Output: policy descriptor.
+ * Transformation: normalizes source policy names to VM-owned conflict
+ * strategies.
+ */
+@target.vm {process_mailbox: true}
+pub policy(name: String): Policy ->
+    native.
+
+/**
+ * Creates an empty distributed state store.
+ *
+ * Input: no runtime input.
+ * Output: store descriptor.
+ * Transformation: creates a VM-owned table with no implicit backend or
+ * replication strategy.
+ */
+@target.vm {process_mailbox: true}
+pub store(): Store ->
+    native.
+
+/**
+ * Writes one distributed state value.
+ *
+ * Input: store receiver, scope, owner node, dynamic value, version, and policy.
+ * Output: write outcome descriptor.
+ * Transformation: delegates apply/replay/conflict/policy-mismatch behavior to
+ * the VM distributed state lane.
+ */
+@target.vm {process_mailbox: true}
+pub (store: Store) write(
+    scope: Scope,
+    owner_node_id: String,
+    value: Dynamic,
+    version: Version,
+    policy: Policy
+): Outcome ->
+    native.
+
+/**
+ * Reads one distributed state entry.
+ *
+ * Input: store receiver and scope descriptor.
+ * Output: entry descriptor.
+ * Transformation: keeps the lookup result typed without exposing runtime map
+ * internals.
+ */
+@target.vm {process_mailbox: true}
+pub (store: Store) get(scope: Scope): Entry ->
+    native.
+
+/**
+ * Extracts conflict metadata from a write outcome.
+ *
+ * Input: outcome descriptor.
+ * Output: conflict descriptor.
+ * Transformation: exposes local/incoming version metadata for explicit caller
+ * resolution.
+ */
+@target.vm {process_mailbox: true}
+pub conflict(outcome: Outcome): Conflict ->
+    native.
+
+/**
+ * Exports a deterministic checkpoint snapshot.
+ *
+ * Input: store receiver.
+ * Output: snapshot descriptor.
+ * Transformation: delegates stable ordering to the VM checkpoint lane.
+ */
+@target.vm {process_mailbox: true}
+pub (store: Store) export_snapshot(): Snapshot ->
+    native.
+
+/**
+ * Restores a store from a checkpoint snapshot.
+ *
+ * Input: snapshot descriptor.
+ * Output: restored store descriptor.
+ * Transformation: validates duplicate scopes and version metadata during VM
+ * checkpoint replay.
+ */
+@target.vm {process_mailbox: true}
+pub restore(snapshot: Snapshot): Store ->
+    native.
+
+/**
+ * Returns the textual write outcome kind.
+ *
+ * Input: outcome descriptor.
+ * Output: `applied`, `replayed`, `conflict`, or `policy_mismatch`.
+ * Transformation: exposes stable result classification for tests, logs, and
+ * tooling without parsing diagnostics.
+ */
+@target.vm {process_mailbox: true}
+pub kind(outcome: Outcome): String ->
+    native.

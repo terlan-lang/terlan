@@ -1,0 +1,91 @@
+use std::path::Path;
+use std::process::{Command, Stdio};
+
+use super::support::{
+    call_payload, frame_value, read_control_frame, resume_payload, transition_continuation,
+    write_control_frame,
+};
+
+pub(super) fn assert_native_failure_transitions(
+    image_path: &Path,
+    descriptor_digest: [u8; 32],
+    direct_export: u64,
+    call_export: u64,
+) {
+    let mut worker = Command::new(env!("CARGO_BIN_EXE_terlan-native-worker"))
+        .arg(image_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("start native Failure worker");
+    write_control_frame(worker.stdin.as_mut().unwrap(), 1, &descriptor_digest);
+    assert_eq!(
+        read_control_frame(worker.stdout.as_mut().unwrap()),
+        (2, descriptor_digest.to_vec())
+    );
+
+    for (request_id, export) in [(1, direct_export), (2, call_export)] {
+        write_control_frame(
+            worker.stdin.as_mut().unwrap(),
+            3,
+            &call_payload(request_id, export, &[7, 41]),
+        );
+        let (kind, transition) = read_control_frame(worker.stdout.as_mut().unwrap());
+        assert_eq!(kind, 8, "unexpected Failure reply: {transition:?}");
+        assert_failure_frame(&transition);
+        write_control_frame(
+            worker.stdin.as_mut().unwrap(),
+            9,
+            &resume_payload(request_id, transition_continuation(&transition), &[41]),
+        );
+        let (success_kind, success) = read_control_frame(worker.stdout.as_mut().unwrap());
+        assert_eq!(success_kind, 4);
+        assert_eq!(frame_value(&success), 42);
+    }
+
+    write_control_frame(worker.stdin.as_mut().unwrap(), 6, &[]);
+    assert_eq!(
+        read_control_frame(worker.stdout.as_mut().unwrap()),
+        (7, Vec::new())
+    );
+    drop(worker.stdin.take());
+    assert!(worker.wait().expect("wait for Failure worker").success());
+}
+
+pub(super) fn assert_vm_failure_transition(image_path: &Path) {
+    let run = |entry: &str| {
+        Command::new(env!("CARGO_BIN_EXE_terlan-vm"))
+            .arg("run")
+            .arg(image_path)
+            .arg("--entry")
+            .arg(entry)
+            .arg("--test-eval")
+            .env_remove("TERLAN_NATIVE_WORKER")
+            .output()
+            .expect("run native Failure Terlan consumer")
+    };
+    let isolated = run("spawn_failed_child");
+    assert!(
+        isolated.status.success(),
+        "child Failure was not isolated from its parent:\n{}",
+        String::from_utf8_lossy(&isolated.stderr)
+    );
+    for entry in ["fail_self"] {
+        let failed = run(entry);
+        assert!(!failed.status.success(), "{entry} unexpectedly succeeded");
+        let stderr = String::from_utf8_lossy(&failed.stderr);
+        assert!(stderr.contains("pure_native_failure"));
+        assert!(stderr.contains("native_failure:"));
+    }
+    let malformed = run("failure_zero_invalid");
+    assert!(!malformed.status.success());
+    assert!(String::from_utf8_lossy(&malformed.stderr).contains("Failure code must be positive"));
+}
+
+fn assert_failure_frame(frame: &[u8]) {
+    assert_eq!(u16::from_le_bytes(frame[24..26].try_into().unwrap()), 10);
+    assert_eq!(u16::from_le_bytes(frame[26..28].try_into().unwrap()), 1);
+    assert_eq!(u16::from_le_bytes(frame[28..30].try_into().unwrap()), 1);
+    assert_eq!(i64::from_le_bytes(frame[30..38].try_into().unwrap()), 7);
+    assert_eq!(i64::from_le_bytes(frame[38..46].try_into().unwrap()), 41);
+}

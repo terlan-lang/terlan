@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CSSNamespaceRule
+ */
+module std.js.Dom.CSSNamespaceRule.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`CSSNamespaceRule`** interface describes an object representing a single CSS @namespace at-rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNamespaceRule)
+ */
+pub opaque type CSSNamespaceRule.
+
+/**
+ * The read-only **`namespaceURI`** property of the CSSNamespaceRule returns a string containing the text of the URI of the given namespace.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNamespaceRule/namespaceURI)
+ */
+pub (value: CSSNamespaceRule) namespace_uri(): JsString.
+
+/**
+ * The read-only **`prefix`** property of the CSSNamespaceRule returns a string with the name of the prefix associated to this namespace.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNamespaceRule/prefix)
+ */
+pub (value: CSSNamespaceRule) prefix(): JsString.

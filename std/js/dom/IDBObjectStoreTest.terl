@@ -1,20 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IDBObjectStore
  */
 module std.js.Dom.IDBObjectStoreTest.
 
-import type std.js.Dom.IDBObjectStore.{IDBObjectStore}.
-
+import type std.js.Dom.IDBObjectStore.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub auto_increment_typechecks(receiver: IDBObjectStore): std.core.Bool ->
     receiver.auto_increment().
@@ -31,26 +34,49 @@ pub name_typechecks(receiver: IDBObjectStore): JsString ->
 pub transaction_typechecks(receiver: IDBObjectStore): IDBTransaction ->
     receiver.transaction().
 
-pub count_typechecks(receiver: IDBObjectStore, query: IDBKeyRange | IDBValidKey): IDBRequest[JsNumber] ->
+pub count_typechecks(
+    receiver: IDBObjectStore,
+    query: IDBKeyRange | IDBValidKey
+): IDBRequest[JsNumber] ->
     receiver.count(query).
 
-pub create_index_typechecks(receiver: IDBObjectStore, name: JsString, key_path: Array[JsString] | JsString, options: IDBIndexParameters): IDBIndex ->
+pub create_index_typechecks(
+    receiver: IDBObjectStore,
+    name: JsString,
+    key_path: Array[JsString] | JsString,
+    options: IDBIndexParameters
+): IDBIndex ->
     receiver.create_index(name, key_path, options).
 
 pub delete_index_typechecks(receiver: IDBObjectStore, name: JsString): std.core.Unit ->
     receiver.delete_index(name).
 
-pub get_all_keys_typechecks(receiver: IDBObjectStore, query: Option[IDBKeyRange | IDBValidKey], count: JsNumber): IDBRequest[Array[IDBValidKey]] ->
+pub get_all_keys_typechecks(
+    receiver: IDBObjectStore,
+    query: Option[IDBKeyRange | IDBValidKey],
+    count: JsNumber
+): IDBRequest[Array[IDBValidKey]] ->
     receiver.get_all_keys(query, count).
 
-pub get_key_typechecks(receiver: IDBObjectStore, query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
+pub get_key_typechecks(
+    receiver: IDBObjectStore,
+    query: IDBKeyRange | IDBValidKey
+): IDBRequest[Option[IDBValidKey]] ->
     receiver.get_key(query).
 
 pub index_typechecks(receiver: IDBObjectStore, name: JsString): IDBIndex ->
     receiver.index(name).
 
-pub open_cursor_typechecks(receiver: IDBObjectStore, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursorWithValue]] ->
+pub open_cursor_typechecks(
+    receiver: IDBObjectStore,
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursorWithValue]] ->
     receiver.open_cursor(query, direction).
 
-pub open_key_cursor_typechecks(receiver: IDBObjectStore, query: Option[IDBKeyRange | IDBValidKey], direction: IDBCursorDirection): IDBRequest[Option[IDBCursor]] ->
+pub open_key_cursor_typechecks(
+    receiver: IDBObjectStore,
+    query: Option[IDBKeyRange | IDBValidKey],
+    direction: IDBCursorDirection
+): IDBRequest[Option[IDBCursor]] ->
     receiver.open_key_cursor(query, direction).

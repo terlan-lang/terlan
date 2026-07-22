@@ -1,6 +1,9 @@
 use super::*;
 use crate::terlan_hir::FunctionSignature;
 
+mod generic_struct;
+pub(super) use generic_struct::infer_generic_struct_construction;
+
 /// Infers a raw struct construction expression from syntax output.
 ///
 /// Inputs:
@@ -24,6 +27,24 @@ pub(super) fn infer_syntax_record_construct(
     errors: &mut Vec<String>,
 ) -> Type {
     let name = expr.text.clone().unwrap_or_default();
+    if ctx
+        .struct_schemes
+        .get(&name)
+        .is_some_and(|scheme| !scheme.generic_params.is_empty())
+    {
+        let arguments = expr
+            .fields
+            .iter()
+            .map(|field| {
+                (
+                    field.key.clone(),
+                    infer_syntax_expr(&field.value, locals, ctx, subst, errors),
+                )
+            })
+            .collect::<Vec<_>>();
+        return infer_generic_struct_construction(&name, &arguments, ctx, subst, errors)
+            .unwrap_or(Type::Dynamic);
+    }
     if let Some(known_fields) = ctx.struct_fields.get(&name) {
         for field in &expr.fields {
             let (lookup_field, requested_private) = split_private_field_spelling(&field.key);
@@ -229,6 +250,12 @@ pub(super) fn infer_syntax_field_access(
         .map(|value| apply_subst(&infer_syntax_expr(value, locals, ctx, subst, errors), subst))
         .unwrap_or(Type::Dynamic);
     let field = expr.text.as_deref().unwrap_or_default();
+    if let Some(evidence) = structural_implication_field_type(&receiver, field, ctx, subst) {
+        return evidence.unwrap_or_else(|message| {
+            errors.push(message);
+            Type::Dynamic
+        });
+    }
     match receiver {
         Type::Named { name, .. } if name == "Markdown" => match field {
             "raw" => Type::Binary,
@@ -242,8 +269,47 @@ pub(super) fn infer_syntax_field_access(
                 Type::Dynamic
             }
         },
-        Type::Named { name, .. } => {
+        Type::Named { module, name, args } => {
             let (lookup_field, requested_private) = split_private_field_spelling(field);
+            if let Some(module) = module.as_deref() {
+                if let Some(field_type) = infer_qualified_interface_struct_field(
+                    module,
+                    &name,
+                    &args,
+                    lookup_field,
+                    requested_private,
+                    ctx,
+                    errors,
+                ) {
+                    return field_type;
+                }
+            }
+            if let Some(scheme) = ctx.struct_schemes.get(&name) {
+                if scheme.params.len() == args.len() {
+                    if let Some((_, field_type)) = scheme
+                        .fields
+                        .iter()
+                        .find(|(candidate, _)| candidate == lookup_field)
+                    {
+                        if let Some(message) = struct_field_visibility_error(
+                            &name,
+                            lookup_field,
+                            requested_private,
+                            ctx.struct_field_visibility,
+                            ctx.imported_type_names,
+                        ) {
+                            errors.push(message);
+                        }
+                        let mapping = scheme
+                            .params
+                            .iter()
+                            .copied()
+                            .zip(args)
+                            .collect::<HashMap<_, _>>();
+                        return substitute_type_vars(field_type, &mapping);
+                    }
+                }
+            }
             if let Some(fields) = ctx.struct_fields.get(&name) {
                 if let Some(field_type) = fields.get(lookup_field) {
                     if let Some(message) = struct_field_visibility_error(
@@ -264,7 +330,7 @@ pub(super) fn infer_syntax_field_access(
                 errors.push(format!(
                     "field access requires struct receiver, found {}",
                     pretty_type(&Type::Named {
-                        module: None,
+                        module,
                         name,
                         args: Vec::new(),
                     })
@@ -272,6 +338,14 @@ pub(super) fn infer_syntax_field_access(
                 Type::Dynamic
             }
         }
+        Type::Map(fields) => fields
+            .into_iter()
+            .find(|candidate| candidate.key == field)
+            .map(|candidate| candidate.value)
+            .unwrap_or_else(|| {
+                errors.push(format!("unknown field {} on structural value", field));
+                Type::Dynamic
+            }),
         other => {
             errors.push(format!(
                 "field access requires struct receiver, found {}",
@@ -280,6 +354,96 @@ pub(super) fn infer_syntax_field_access(
             Type::Dynamic
         }
     }
+}
+
+/// Resolves one field on a provider-qualified struct receiver.
+///
+/// Inputs:
+/// - `module`, `struct_name`, and `args`: nominal receiver identity and its
+///   instantiated generic arguments.
+/// - `field` and `requested_private`: selected field and source privacy syntax.
+/// - `ctx` and `errors`: loaded interface context and diagnostic sink.
+///
+/// Output:
+/// - `Some(field_type)` when the qualified interface exports the struct,
+///   including `Dynamic` after a field or generic-arity diagnostic.
+/// - `None` when no matching interface struct exists.
+///
+/// Transformation:
+/// - Reconstructs the provider's field type from interface metadata, qualifies
+///   provider-local type names, substitutes receiver generic arguments, and
+///   enforces cross-module field visibility without requiring a type import.
+fn infer_qualified_interface_struct_field(
+    module: &str,
+    struct_name: &str,
+    args: &[Type],
+    field: &str,
+    requested_private: bool,
+    ctx: &ExprInferContext<'_>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    let interface = ctx.interface_map.get(module)?;
+    let fields = interface.struct_fields.get(struct_name)?;
+    let qualified_name = format!("{}.{}", module, struct_name);
+    let Some(field_signature) = fields.iter().find(|candidate| candidate.name == field) else {
+        errors.push(format!(
+            "unknown field {} on struct {}",
+            field, qualified_name
+        ));
+        return Some(Type::Dynamic);
+    };
+
+    if field_signature.is_private {
+        errors.push(format!(
+            "private field {} on imported struct {} cannot be accessed outside defining module",
+            field, qualified_name
+        ));
+        return Some(Type::Dynamic);
+    }
+    if requested_private {
+        errors.push(format!(
+            "field {} on struct {} is not declared private",
+            field, qualified_name
+        ));
+        return Some(Type::Dynamic);
+    }
+
+    let generic_params = interface
+        .type_params
+        .get(struct_name)
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    if generic_params.len() != args.len() {
+        errors.push(format!(
+            "struct {} expects {} type arguments, found {}",
+            qualified_name,
+            generic_params.len(),
+            args.len()
+        ));
+        return Some(Type::Dynamic);
+    }
+
+    let mut vars = HashMap::new();
+    let mut next_var: TypeVarId = 0;
+    for param in generic_params {
+        vars.insert(normalize_type_param_name(param), next_var);
+        next_var += 1;
+    }
+    let parsed = parse_type_expr(
+        &field_signature.annotation,
+        &interface_type_names(interface),
+        &mut vars,
+        &mut next_var,
+    )
+    .unwrap_or(Type::Dynamic);
+    let parsed = expand_type_aliases(&parsed, &interface_type_aliases(interface));
+    let parsed = qualify_type_names(&parsed, &interface_qualified_type_names(interface));
+    let mapping = generic_params
+        .iter()
+        .enumerate()
+        .map(|(index, _)| (index, args[index].clone()))
+        .collect::<HashMap<_, _>>();
+    Some(substitute_type_vars(&parsed, &mapping))
 }
 
 /// Infers `Module.function` as an imported function value.

@@ -7,8 +7,8 @@ use super::*;
 ///   source module.
 ///
 /// Output:
-/// - Test passes when `terlc build <dir> --target erlang` fails and emits
-///   no Erlang source, BEAM artifact, or build debug map.
+/// - Test passes when the VM build fails and emits no VM artifact, Vm
+///   source, VM artifact, or build debug map.
 ///
 /// Transformation:
 /// - Runs the build command against a manifest-bearing directory and proves
@@ -40,15 +40,16 @@ fn build_command_rejects_project_manifest_before_silent_directory_scan() {
         args: vec![
             source_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::from(1));
-    assert!(!out_dir.join("src/main.erl").exists());
-    assert!(!out_dir.join("ebin/main.beam").exists());
+    assert!(!out_dir.join("vm/main.tvm").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
     assert!(!out_dir.join(BUILD_DEBUG_MAP_FILE).exists());
 }
 
@@ -60,13 +61,12 @@ fn build_command_rejects_project_manifest_before_silent_directory_scan() {
 ///   package-rooted module.
 ///
 /// Output:
-/// - Test passes when `terlc build <project> --target erlang` emits Erlang
-///   source, a BEAM artifact, and a debug-map entry for the module under
-///   the manifest source root.
+/// - Test passes when the VM build emits a VM artifact for the module under
+///   the manifest source root without producing Vm or VM artifacts.
 ///
 /// Transformation:
 /// - Parses `terlan.toml`, resolves `[build] source_roots`, delegates the
-///   selected source root to the existing formal source-root build path,
+///   selected source root to the VM artifact build path,
 ///   and proves the project root itself is not used as the module layout
 ///   root.
 #[test]
@@ -78,14 +78,14 @@ fn build_command_compiles_project_manifest_source_root() {
     fs::create_dir_all(&app_dir).expect("failed to create project src dir");
     fs::write(
             project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
         )
         .expect("failed to write project manifest fixture");
     fs::write(
-            app_dir.join("Main.terl"),
-            "module app.Main.\n\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"hello\");\n    Unit.\n",
-        )
-        .expect("failed to write manifest source-root module");
+        app_dir.join("Main.terl"),
+        "module app.Main.\n\npub main(): Int ->\n    1 + 2.\n",
+    )
+    .expect("failed to write manifest source-root module");
 
     let state = CliState {
         out_dir: out_dir.clone(),
@@ -96,78 +96,91 @@ fn build_command_compiles_project_manifest_source_root() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/app_main.erl").exists());
-    assert!(out_dir.join("ebin/app_main.beam").exists());
-    let executable_path = out_dir.join("bin/app");
-    assert!(executable_path.exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    let image_path = out_dir.join("vm/app_Main.tvm");
     assert_eq!(
-            fs::read_to_string(&executable_path).expect("read executable launcher"),
-            "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nROOT_DIR=$(CDPATH= cd -- \"$SCRIPT_DIR/..\" && pwd)\nexec erl -noshell -pa \"$ROOT_DIR/ebin\" -eval \"case catch app_main:main() of {'EXIT', Reason} -> io:format(standard_error, \\\"terlan entrypoint app.Main.main/0 failed: ~p~n\\\", [Reason]), halt(1); _ -> halt(0) end.\" \"$@\"\n"
-        );
-    assert_executable_bit(&executable_path);
-    let launcher_output = Command::new(&executable_path)
-        .output()
-        .expect("run launcher");
-    assert!(
-        launcher_output.status.success(),
-        "launcher failed: stdout={} stderr={}",
-        String::from_utf8_lossy(&launcher_output.stdout),
-        String::from_utf8_lossy(&launcher_output.stderr)
+        native_image_export_names(&image_path),
+        vec!["app.Main.main/0"]
     );
-    assert_eq!(String::from_utf8_lossy(&launcher_output.stdout), "hello\n");
+}
 
-    let debug_map_text = fs::read_to_string(out_dir.join(BUILD_DEBUG_MAP_FILE))
-        .expect("read project manifest build debug map");
-    let debug_map: serde_json::Value =
-        serde_json::from_str(&debug_map_text).expect("parse project manifest debug map");
-    assert_eq!(debug_map["project"]["package"], "app");
-    assert_eq!(debug_map["project"]["version"], "0.0.1");
-    assert_eq!(debug_map["project"]["source_roots"][0], "src");
-    assert_eq!(debug_map["project"]["artifact"], "beam-thin");
-    let modules = debug_map["modules"].as_array().expect("modules");
-    assert_eq!(modules.len(), 1);
-    assert_eq!(modules[0]["module"], "app.Main");
-    assert_eq!(
-        modules[0]["source_path"],
-        app_dir.join("Main.terl").to_string_lossy().to_string()
-    );
+/// Verifies manifest-backed VM builds resolve sibling source-root modules.
+///
+/// Inputs:
+/// - A project manifest with `artifact = "library"`.
+/// - `app.Auth` importing and calling `app.Account`.
+/// - `app.Main` importing and calling `app.Auth`.
+///
+/// Output:
+/// - Test passes when the import closure typechecks and its scalar leaf enters
+///   the native application image without unresolved-module diagnostics.
+///
+/// Transformation:
+/// - Runs the package source-root interface prepass before per-file VM
+///   artifact emission, matching real applications whose modules depend on
+///   siblings discovered from the same `terlan.toml` source root.
+#[test]
+fn build_command_compiles_project_manifest_sibling_module_imports() {
+    let dir = make_temp_dir("directory_project_manifest_sibling_imports");
+    let project_dir = dir.join("project");
+    let app_dir = project_dir.join("src/app");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&app_dir).expect("failed to create project src dir");
+    fs::write(
+        project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+    )
+    .expect("failed to write project manifest fixture");
+    fs::write(
+        app_dir.join("Account.terl"),
+        "module app.Account.\n\npub label(): Int ->\n    1.\n",
+    )
+    .expect("failed to write account module");
+    fs::write(
+        app_dir.join("Auth.terl"),
+        "module app.Auth.\n\nimport app.Account.\n\npub label(): Int ->\n    Account.label().\n",
+    )
+    .expect("failed to write auth module");
+    fs::write(
+        app_dir.join("Main.terl"),
+        "module app.Main.\n\nimport app.Auth.\n\npub main(): Int ->\n    Auth.label().\n",
+    )
+    .expect("failed to write main module");
 
-    let package_metadata_text = fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
-        .expect("read project package metadata");
-    let package_metadata: serde_json::Value =
-        serde_json::from_str(&package_metadata_text).expect("parse project package metadata");
-    assert_eq!(package_metadata["schema"], BUILD_PACKAGE_METADATA_SCHEMA);
-    assert_eq!(package_metadata["target"], "erlang");
-    assert_eq!(package_metadata["package"]["name"], "app");
-    assert_eq!(package_metadata["package"]["version"], "0.0.1");
-    assert_eq!(package_metadata["artifact"], "beam-thin");
-    assert_eq!(package_metadata["executable"]["mode"], "beam-thin");
-    assert_eq!(package_metadata["executable"]["path"], "bin/app");
-    assert_eq!(package_metadata["executable"]["runtime"], "external-erts");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![
+            project_dir.display().to_string(),
+            "--target".to_string(),
+            "terlan-vm".to_string(),
+        ],
+    };
+
+    let status = run(cmd, state);
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    let image_path = out_dir.join("vm/app_Main.tvm");
     assert_eq!(
-        package_metadata["executable"]["entrypoint"]["module"],
-        "app.Main"
+        native_image_export_names(&image_path),
+        vec!["app.Account.label/0", "app.Auth.label/0", "app.Main.main/0"]
     );
-    assert_eq!(
-        package_metadata["executable"]["entrypoint"]["function"],
-        "main"
-    );
-    assert_eq!(package_metadata["executable"]["entrypoint"]["arity"], 0);
-    assert_eq!(package_metadata["source_roots"][0], "src");
-    assert!(
-        package_metadata["dependencies"]
-            .as_array()
-            .expect("package dependencies")
-            .is_empty(),
-        "project without dependency metadata should emit an empty dependency list"
-    );
+    assert!(!out_dir.join("vm/app_Account.tvm").exists());
+    assert!(!out_dir.join("vm/app_Auth.tvm").exists());
+    assert!(out_dir.join(".terlan/app.Account.typi").exists());
+    assert!(out_dir.join(".terlan/app.Auth.typi").exists());
+    assert!(out_dir.join(".terlan/app.Main.typi").exists());
 }
 
 /// Verifies project builds support template-backed web handlers.
@@ -178,8 +191,8 @@ fn build_command_compiles_project_manifest_source_root() {
 /// - A public HTTP handler returning `Response.html(Page(title = ...))`.
 ///
 /// Output:
-/// - Test passes when `terlc build <project> --target erlang` emits Erlang
-///   source and BEAM artifacts for the handler module.
+/// - Test passes when the frontend emits the handler interface; its managed
+///   values remain outside the scalar native ABI for now.
 ///
 /// Transformation:
 /// - Exercises external template loading plus generated template-call lowering
@@ -218,24 +231,16 @@ fn build_command_compiles_project_template_backed_http_handler() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    let erlang_source_path = out_dir.join("src/app_http.erl");
-    assert!(erlang_source_path.exists());
-    assert!(out_dir.join("ebin/app_http.beam").exists());
-    let erlang_source = fs::read_to_string(erlang_source_path).expect("read emitted erlang");
-    assert!(erlang_source.contains("page() ->"));
-    assert!(erlang_source.contains("typer_html:escape(\"Terlan Cloud\")"));
-    assert!(
-        !erlang_source.contains("Page("),
-        "template call should lower before Erlang emission:\n{}",
-        erlang_source
-    );
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    assert!(out_dir.join(".terlan/app.Http.typi").exists());
 }
 
 /// Verifies manifest-backed library packages do not require an executable
@@ -246,8 +251,8 @@ fn build_command_compiles_project_template_backed_http_handler() {
 /// - A package-rooted source module that does not define `Main.main`.
 ///
 /// Output:
-/// - Test passes when `terlc build <project> --target erlang` emits
-///   module artifacts and package metadata without writing a launcher.
+/// - Test passes when the VM build emits module artifacts without writing a
+///   launcher.
 ///
 /// Transformation:
 /// - Parses the library artifact mode, validates the source root, lowers
@@ -280,22 +285,20 @@ fn build_command_compiles_project_manifest_library_without_entrypoint() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/app_util.erl").exists());
-    assert!(out_dir.join("ebin/app_util.beam").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    assert_eq!(
+        native_image_export_names(&out_dir.join("vm/app_Util.tvm")),
+        vec!["app.Util.value/0"]
+    );
     assert!(!out_dir.join("bin/app").exists());
-    let package_metadata_text = fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
-        .expect("read library package metadata");
-    let package_metadata: serde_json::Value =
-        serde_json::from_str(&package_metadata_text).expect("parse package metadata");
-    assert_eq!(package_metadata["artifact"], "library");
-    assert!(package_metadata.get("executable").is_none());
 }
 
 /// Verifies manifest package namespaces control source layout.
@@ -306,8 +309,8 @@ fn build_command_compiles_project_manifest_library_without_entrypoint() {
 /// - A source file under `src/std/sample/polars`.
 ///
 /// Output:
-/// - Test passes when the build accepts the namespace path, emits module
-///   artifacts, and records namespace metadata.
+/// - Test passes when the build accepts the namespace path and emits the
+///   namespaced VM artifact.
 ///
 /// Transformation:
 /// - Parses `[package] namespace`, validates source files against that
@@ -327,7 +330,7 @@ fn build_command_compiles_project_manifest_namespace_layout() {
         .expect("failed to write project manifest fixture");
     fs::write(
             module_dir.join("DataFrame.terl"),
-            "module std.sample.polars.DataFrame.\n\npub opaque type DataFrame.\n\npub height(df: DataFrame): Int ->\n    0.\n",
+            "module std.sample.polars.DataFrame.\n\npub opaque type DataFrame.\n\npub height(df: DataFrame): Int ->\n    0.\n\npub version(): Int ->\n    4.\n",
         )
         .expect("failed to write namespaced module");
 
@@ -340,28 +343,20 @@ fn build_command_compiles_project_manifest_namespace_layout() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/std_sample_polars_dataframe.erl").exists());
-    assert!(out_dir
-        .join("ebin/std_sample_polars_dataframe.beam")
-        .exists());
-    assert!(!out_dir.join("bin/std-sample-polars").exists());
-    let package_metadata_text = fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
-        .expect("read namespaced package metadata");
-    let package_metadata: serde_json::Value =
-        serde_json::from_str(&package_metadata_text).expect("parse package metadata");
-    assert_eq!(package_metadata["package"]["name"], "std-sample-polars");
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
     assert_eq!(
-        package_metadata["package"]["namespace"],
-        "std.sample.polars"
+        native_image_export_names(&out_dir.join("vm/std_sample_polars_DataFrame.tvm")),
+        vec!["std.sample.polars.DataFrame.version/0"]
     );
-    assert_eq!(package_metadata["artifact"], "library");
+    assert!(!out_dir.join("bin/std-sample-polars").exists());
 }
 
 /// Verifies manifest-backed builds reject source files outside the package root.
@@ -371,8 +366,8 @@ fn build_command_compiles_project_manifest_namespace_layout() {
 /// - A source file under `src/other` declaring `module other.Main`.
 ///
 /// Output:
-/// - Test passes when build fails before writing Erlang source, BEAM
-///   artifacts, debug maps, package metadata, or executable launchers.
+/// - Test passes when build fails before writing VM artifacts, Vm source,
+///   VM artifacts, debug maps, package metadata, or executable launchers.
 ///
 /// Transformation:
 /// - Runs the project build path and proves manifest package identity is
@@ -386,7 +381,7 @@ fn build_command_rejects_project_source_outside_package_root() {
     fs::create_dir_all(&other_dir).expect("failed to create project src dir");
     fs::write(
             project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n",
+            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
         )
         .expect("failed to write project manifest fixture");
     fs::write(
@@ -404,98 +399,19 @@ fn build_command_rejects_project_source_outside_package_root() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::from(1));
-    assert!(!out_dir.join("src/other_main.erl").exists());
-    assert!(!out_dir.join("ebin/other_main.beam").exists());
+    assert!(!out_dir.join("vm/other_Main.tvm").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
     assert!(!out_dir.join(BUILD_DEBUG_MAP_FILE).exists());
     assert!(!out_dir.join(BUILD_PACKAGE_METADATA_FILE).exists());
     assert!(!out_dir.join("bin/app").exists());
-}
-
-/// Verifies Erlang package adapter metadata remains metadata-only.
-///
-/// Inputs:
-/// - A project manifest reserving the Rebar3-compatible Erlang packaging
-///   adapter.
-/// - A buildable manifest source root.
-///
-/// Output:
-/// - Test passes when the build succeeds, records adapter metadata in
-///   `terlan-package-build.json`, and does not generate Rebar3 files.
-///
-/// Transformation:
-/// - Parses `[target.erlang.package]`, runs the formal project build path,
-///   and proves A0.42.6 preserves adapter intent without making Rebar3 part
-///   of normal `terlc build --target erlang`.
-#[test]
-fn build_command_preserves_erlang_package_adapter_metadata_without_rebar3_files() {
-    let dir = make_temp_dir("directory_project_manifest_erlang_package_adapter");
-    let project_dir = dir.join("project");
-    let app_dir = project_dir.join("src/app");
-    let out_dir = dir.join("build");
-    fs::create_dir_all(&app_dir).expect("failed to create project src dir");
-    fs::write(
-            project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"beam-thin\"\n\n[native.rust]\ncrate = \"app_native\"\npath = \"native\"\nhelper = \"app-safe-native\"\nhelper_env = \"APP_SAFE_NATIVE_PATH\"\n\n[target.erlang.package]\nadapter = \"rebar3-compatible\"\n",
-        )
-        .expect("failed to write project manifest fixture");
-    fs::write(
-            app_dir.join("Main.terl"),
-            "module app.Main.\n\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"ok\");\n    Unit.\n",
-        )
-        .expect("failed to write manifest source-root module");
-
-    let state = CliState {
-        out_dir: out_dir.clone(),
-        ..CliState::default()
-    };
-    let cmd = CliCommand {
-        verb: Some("build".to_string()),
-        args: vec![
-            project_dir.display().to_string(),
-            "--target".to_string(),
-            "erlang".to_string(),
-        ],
-    };
-
-    let status = run(cmd, state);
-
-    assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/app_main.erl").exists());
-    assert!(out_dir.join("ebin/app_main.beam").exists());
-    assert!(
-        !out_dir.join("rebar.config").exists(),
-        "adapter metadata must not generate Rebar3 files in A0.42.6"
-    );
-    assert!(
-        !out_dir.join("src/demo.app.src").exists(),
-        "adapter metadata must not generate OTP app metadata in A0.42.6"
-    );
-
-    let package_metadata_text = fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
-        .expect("read project package metadata");
-    let package_metadata: serde_json::Value =
-        serde_json::from_str(&package_metadata_text).expect("parse project package metadata");
-    let adapters = package_metadata["adapters"].as_array().expect("adapters");
-    assert_eq!(adapters.len(), 1);
-    assert_eq!(adapters[0]["target"], "erlang");
-    assert_eq!(adapters[0]["adapter"], "rebar3-compatible");
-    assert_eq!(package_metadata["native"]["rust"]["crate"], "app_native");
-    assert_eq!(package_metadata["native"]["rust"]["path"], "native");
-    assert_eq!(
-        package_metadata["native"]["rust"]["helper"],
-        "app-safe-native"
-    );
-    assert_eq!(
-        package_metadata["native"]["rust"]["helper_env"],
-        "APP_SAFE_NATIVE_PATH"
-    );
 }
 
 /// Verifies project manifests build multiple declared source roots.
@@ -506,15 +422,15 @@ fn build_command_preserves_erlang_package_adapter_metadata_without_rebar3_files(
 ///   from the first.
 ///
 /// Output:
-/// - Test passes when `terlc build <project> --target erlang` emits Erlang
-///   sources, BEAM artifacts, and one combined debug map for both roots.
+/// - Test passes when the VM build typechecks both roots and emits their
+///   independently native scalar leaf in one application image.
 ///
 /// Transformation:
 /// - Parses `terlan.toml`, resolves all `[build] source_roots`, validates
 ///   each root with a shared interface cache, lowers both roots through
 ///   CoreIR, and writes one source-to-artifact map across the project.
 #[test]
-fn build_command_compiles_project_manifest_multiple_source_roots() {
+fn build_command_accepts_project_manifest_multiple_source_roots_vm_import_closure() {
     let dir = make_temp_dir("directory_project_manifest_multiple_source_roots");
     let project_dir = dir.join("project");
     let lib_dir = project_dir.join("lib/demo");
@@ -524,7 +440,7 @@ fn build_command_compiles_project_manifest_multiple_source_roots() {
     fs::create_dir_all(&app_dir).expect("failed to create project app dir");
     fs::write(
             project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"lib\", \"app\"]\nartifact = \"beam-thin\"\n",
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"lib\", \"app\"]\nartifact = \"library\"\n",
         )
         .expect("failed to write multi-root project manifest fixture");
     fs::write(
@@ -547,39 +463,32 @@ fn build_command_compiles_project_manifest_multiple_source_roots() {
         args: vec![
             project_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/demo_util.erl").exists());
-    assert!(out_dir.join("src/demo_main.erl").exists());
-    assert!(out_dir.join("ebin/demo_util.beam").exists());
-    assert!(out_dir.join("ebin/demo_main.beam").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    assert_eq!(
+        native_image_export_names(&out_dir.join("vm/demo_Main.tvm")),
+        vec!["demo.Main.value/0", "demo.Util.one/0"]
+    );
+    assert!(!out_dir.join("vm/demo_Util.tvm").exists());
+}
 
-    let debug_map_text = fs::read_to_string(out_dir.join(BUILD_DEBUG_MAP_FILE))
-        .expect("read multi-root project build debug map");
-    let debug_map: serde_json::Value =
-        serde_json::from_str(&debug_map_text).expect("parse multi-root project debug map");
-    assert_eq!(debug_map["project"]["package"], "demo");
-    assert_eq!(debug_map["project"]["version"], "0.0.1");
-    assert_eq!(debug_map["project"]["source_roots"][0], "lib");
-    assert_eq!(debug_map["project"]["source_roots"][1], "app");
-    assert_eq!(debug_map["project"]["artifact"], "beam-thin");
-    let modules = debug_map["modules"].as_array().expect("modules");
-    let module_names = modules
-        .iter()
-        .map(|entry| entry["module"].as_str().expect("module name"))
+fn native_image_export_names(path: &Path) -> Vec<String> {
+    let image = fs::read(path).expect("read native application image");
+    let target = crate::runtime::native_image::host_tvm_target().expect("host TVM target");
+    let mut names = crate::runtime::native_image::inspect_tvm_image(&image, &target.triple)
+        .expect("inspect native application image")
+        .descriptor
+        .exports
+        .into_iter()
+        .map(|export| export.name)
         .collect::<Vec<_>>();
-    assert_eq!(module_names, vec!["demo.Util", "demo.Main"]);
-    assert_eq!(
-        modules[0]["source_path"],
-        lib_dir.join("Util.terl").to_string_lossy().to_string()
-    );
-    assert_eq!(
-        modules[1]["source_path"],
-        app_dir.join("Main.terl").to_string_lossy().to_string()
-    );
+    names.sort();
+    names
 }

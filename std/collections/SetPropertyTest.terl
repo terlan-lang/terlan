@@ -1,0 +1,42 @@
+/**
+ * Property-based Set collection invariants.
+ *
+ * `std.collections.SetPropertyTest` validates generated mutation sequences
+ * against the public Set API so unique-value collection behavior is covered by
+ * the shared property-testing machinery.
+ */
+module std.collections.SetPropertyTest.
+
+import std.collections.{Set}.
+import std.test.Gen.{elements, for_all}.
+import std.test.Test.{assert_false}.
+
+/**
+ * Verifies generated values can be added and observed.
+ *
+ * Input: generated integer values.
+ * Output: `true` when each generated value is present after insertion and the
+ * set has one visible entry.
+ * Transformation: checks the add/contains/size invariant over generated input.
+ */
+@test
+pub generated_value_add_updates_presence_and_size(): Bool ->
+    for_all(elements([1, 2, 3]), (value) -> let state = Set.new[Int]();
+    state.add(value);
+    state.add(value);
+    state.contains(value) and state.size() == 1).
+
+/**
+ * Verifies removing generated values restores missing state.
+ *
+ * Input: generated integer values.
+ * Output: `true` when each value is absent and the set is empty after removal.
+ * Transformation: checks the add/remove/contains/size invariant over generated
+ * input.
+ */
+@test
+pub generated_value_remove_restores_missing_state(): Bool ->
+    for_all(elements([1, 2, 3]), (value) -> let state = Set.new[Int]();
+    state.add(value);
+    state.remove(value);
+    assert_false(state.contains(value)) and state.size() == 0).

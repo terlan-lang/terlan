@@ -53,6 +53,56 @@ pub from_list(values: List[Byte]): Bytes.
 
 pub (bytes: Bytes) length(): Int.
 
+/// Reads one signed big-endian integer from an arbitrary bit range.
+///
+/// Input: a byte buffer, a zero-based bit offset measured from the most
+/// significant bit of the first byte, and a bit width in `1..63`.
+/// Output: the selected bits interpreted as a two's-complement Terlan `Int`.
+/// Transformation: validates and accumulates the complete bit range in network
+/// order before sign-extending the declared width.
+
+pub (bytes: Bytes) read_int_be(bit_offset: Int, bit_width: Int): Int.
+
+/// Reads one signed little-endian integer from an arbitrary bit range.
+///
+/// Input: a byte buffer, a zero-based bit offset measured from the most
+/// significant bit of the first byte, and a bit width in `1..63`.
+/// Output: the selected little-endian groups interpreted as a two's-complement
+/// Terlan `Int`.
+/// Transformation: accumulates successive groups from least to most
+/// significant before sign-extending the declared width.
+
+pub (bytes: Bytes) read_int_le(bit_offset: Int, bit_width: Int): Int.
+
+/// Reads one unsigned big-endian integer from an arbitrary bit range.
+///
+/// Input: a byte buffer, a zero-based bit offset measured from the most
+/// significant bit of the first byte, and a bit width in `1..63`.
+/// Output: the selected bits as a non-negative Terlan `Int`.
+/// Transformation: validates the complete bit range before accumulating bits in
+/// network order without exposing host pointers or backend bit syntax.
+
+pub (bytes: Bytes) read_uint_be(bit_offset: Int, bit_width: Int): Int.
+
+/// Reads one unsigned little-endian integer from an arbitrary bit range.
+///
+/// Input: a byte buffer, a zero-based bit offset measured from the most
+/// significant bit of the first byte, and a bit width in `1..63`.
+/// Output: the selected bits as a non-negative Terlan `Int`.
+/// Transformation: reads network-order bits in groups of at most eight and
+/// assigns each successive group increasing numeric significance.
+
+pub (bytes: Bytes) read_uint_le(bit_offset: Int, bit_width: Int): Int.
+
+/// Extracts an immutable byte range.
+///
+/// Input: a byte buffer, a zero-based start offset, and a byte length.
+/// Output: a new `Bytes` value containing exactly the selected octets.
+/// Transformation: validates the complete range before copying the selected
+/// bytes into VM-owned immutable storage.
+
+pub (bytes: Bytes) slice(start: Int, length: Int): Bytes.
+
 /// Returns a byte buffer as unsigned octets.
 ///
 /// Input: one `Bytes` receiver.

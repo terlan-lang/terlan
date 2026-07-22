@@ -6,6 +6,7 @@ pub const TERLAN_JSON_TEMPLATE_SUFFIX: &str = ".terl.json";
 pub const TERLAN_TOML_TEMPLATE_SUFFIX: &str = ".terl.toml";
 pub const TERLAN_YAML_TEMPLATE_SUFFIX: &str = ".terl.yaml";
 pub const TERLAN_YML_TEMPLATE_SUFFIX: &str = ".terl.yml";
+pub const TERLAN_XML_TEMPLATE_SUFFIX: &str = ".terl.xml";
 pub const TERLAN_TEXT_TEMPLATE_SUFFIX: &str = ".terl.txt";
 pub const TERLAN_TEMPLATE_SUFFIX: &str = TERLAN_HTML_TEMPLATE_SUFFIX;
 
@@ -14,14 +15,15 @@ pub const TERLAN_TEMPLATE_SUFFIX: &str = TERLAN_HTML_TEMPLATE_SUFFIX;
 ///
 /// Inputs: derived from a template filename suffix. Output: target format
 /// classification. Transformation: separates target selection from parsing so
-/// HTML, Markdown, JSON, TOML, YAML, and text templates can share discovery and
-/// diagnostics without sharing render implementations.
+/// HTML, Markdown, JSON, TOML, YAML, XML, and text templates can share
+/// discovery and diagnostics without sharing render implementations.
 pub enum ArtifactTemplateTarget {
     Html,
     Markdown,
     Json,
     Toml,
     Yaml,
+    Xml,
     Text,
 }
 
@@ -37,6 +39,7 @@ impl ArtifactTemplateTarget {
             Self::Json => TERLAN_JSON_TEMPLATE_SUFFIX,
             Self::Toml => TERLAN_TOML_TEMPLATE_SUFFIX,
             Self::Yaml => TERLAN_YAML_TEMPLATE_SUFFIX,
+            Self::Xml => TERLAN_XML_TEMPLATE_SUFFIX,
             Self::Text => TERLAN_TEXT_TEMPLATE_SUFFIX,
         }
     }
@@ -52,6 +55,7 @@ impl ArtifactTemplateTarget {
             Self::Json => "json",
             Self::Toml => "toml",
             Self::Yaml => "yaml",
+            Self::Xml => "xml",
             Self::Text => "text",
         }
     }
@@ -63,6 +67,22 @@ impl ArtifactTemplateTarget {
     /// broader artifact-template discovery.
     pub fn parses_to_html_tree(self) -> bool {
         matches!(self, Self::Html | Self::Markdown)
+    }
+
+    /// Returns the HTTP media type emitted after rendering this target.
+    ///
+    /// Inputs: target variant. Output: static UTF-8 content type.
+    /// Transformation: keeps compiler template classification and VM HTTP
+    /// response metadata on one target contract.
+    pub fn content_type(self) -> &'static str {
+        match self {
+            Self::Html | Self::Markdown => "text/html; charset=utf-8",
+            Self::Json => "application/json; charset=utf-8",
+            Self::Toml => "application/toml; charset=utf-8",
+            Self::Yaml => "application/yaml; charset=utf-8",
+            Self::Xml => "application/xml; charset=utf-8",
+            Self::Text => "text/plain; charset=utf-8",
+        }
     }
 }
 
@@ -107,6 +127,8 @@ pub fn artifact_template_target_from_filename(file_name: &str) -> Option<Artifac
         || file_name.ends_with(TERLAN_YML_TEMPLATE_SUFFIX)
     {
         Some(ArtifactTemplateTarget::Yaml)
+    } else if file_name.ends_with(TERLAN_XML_TEMPLATE_SUFFIX) {
+        Some(ArtifactTemplateTarget::Xml)
     } else if file_name.ends_with(TERLAN_TEXT_TEMPLATE_SUFFIX) {
         Some(ArtifactTemplateTarget::Text)
     } else {

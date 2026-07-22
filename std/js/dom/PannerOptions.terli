@@ -1,0 +1,45 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PannerOptions
+ */
+module std.js.Dom.PannerOptions.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type PannerOptions.
+
+pub (value: PannerOptions) cone_inner_angle(): JsNumber.
+
+pub (value: PannerOptions) cone_outer_angle(): JsNumber.
+
+pub (value: PannerOptions) cone_outer_gain(): JsNumber.
+
+pub (value: PannerOptions) distance_model(): DistanceModelType.
+
+pub (value: PannerOptions) max_distance(): JsNumber.
+
+pub (value: PannerOptions) orientation_x(): JsNumber.
+
+pub (value: PannerOptions) orientation_y(): JsNumber.
+
+pub (value: PannerOptions) orientation_z(): JsNumber.
+
+pub (value: PannerOptions) panning_model(): PanningModelType.
+
+pub (value: PannerOptions) position_x(): JsNumber.
+
+pub (value: PannerOptions) position_y(): JsNumber.
+
+pub (value: PannerOptions) position_z(): JsNumber.
+
+pub (value: PannerOptions) ref_distance(): JsNumber.
+
+pub (value: PannerOptions) rolloff_factor(): JsNumber.

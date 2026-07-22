@@ -1,8 +1,8 @@
 module=std.js.Dom.PictureInPictureEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=2129205745187740315
-interface_hash=974797568791861660
-interface_doc_hash=974797568791861660
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=17650542215234504611
+interface_hash=7978675702975891055
+interface_doc_hash=7978675702975891055
 deps=0

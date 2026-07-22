@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCInboundRtpStreamStats
  */
 module std.js.Dom.RTCInboundRtpStreamStatsTest.
 
-import type std.js.Dom.RTCInboundRtpStreamStats.{RTCInboundRtpStreamStats}.
-
+import type std.js.Dom.RTCInboundRtpStreamStats.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub audio_level_typechecks(receiver: RTCInboundRtpStreamStats): JsNumber ->
     receiver.audio_level().
@@ -95,7 +99,9 @@ pub jitter_buffer_target_delay_typechecks(receiver: RTCInboundRtpStreamStats): J
 pub key_frames_decoded_typechecks(receiver: RTCInboundRtpStreamStats): JsNumber ->
     receiver.key_frames_decoded().
 
-pub last_packet_received_timestamp_typechecks(receiver: RTCInboundRtpStreamStats): DOMHighResTimeStamp ->
+pub last_packet_received_timestamp_typechecks(
+    receiver: RTCInboundRtpStreamStats
+): DOMHighResTimeStamp ->
     receiver.last_packet_received_timestamp().
 
 pub mid_typechecks(receiver: RTCInboundRtpStreamStats): JsString ->

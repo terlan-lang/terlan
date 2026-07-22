@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface OffscreenCanvas
+ */
+module std.js.Dom.OffscreenCanvas.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * When using the canvas element or the Canvas API, rendering, animation, and user interaction usually happen on the main execution thread of a web application.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas)
+ */
+pub opaque type OffscreenCanvas.
+
+/**
+ * The **`height`** property returns and sets the height of an OffscreenCanvas object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/height)
+ */
+pub (value: OffscreenCanvas) height(): JsNumber.
+
+/**
+ * The **`width`** property returns and sets the width of an OffscreenCanvas object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/width)
+ */
+pub (value: OffscreenCanvas) width(): JsNumber.
+
+/**
+ * The **`OffscreenCanvas.convertToBlob()`** method creates a Blob object representing the image contained in the canvas.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/convertToBlob)
+ */
+pub (value: OffscreenCanvas) convert_to_blob(options: ImageEncodeOptions): std.js.Promise[Blob].
+
+/**
+ * The **`OffscreenCanvas.transferToImageBitmap()`** method creates an ImageBitmap object from the most recently rendered image of the `OffscreenCanvas`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/transferToImageBitmap)
+ */
+pub (value: OffscreenCanvas) transfer_to_image_bitmap(): ImageBitmap.
+
+pub (value: OffscreenCanvas) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: OffscreenCanvas) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

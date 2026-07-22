@@ -1,0 +1,755 @@
+{
+  "schema": "terlan.vm-coverage-classification.v1",
+  "classifications": [
+    {
+      "path": "crates/terlan/src/runtime/vm/acme_worker.rs",
+      "classification": "adapter-boundary",
+      "reason": "ACME worker behavior spans challenge lifecycle, renewal timers, telemetry, and TLS cache handoff while live network issuance remains adapter-bound.",
+      "gate": "make vm-http-acme-worker-migration-check",
+      "summary_only_misses": [
+        "challenge state-machine branches",
+        "renewal and retry timer paths",
+        "TLS cache handoff diagnostics"
+      ],
+      "promotion_plan": "Split deterministic challenge planning, renewal scheduling, and telemetry helpers from live ACME adapter wiring, then promote the pure worker core first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/debugger_transport.rs",
+      "classification": "adapter-boundary",
+      "reason": "Debugger transport owns command and event parking, wakeups, backpressure, and session closure behavior across runtime IO boundaries.",
+      "gate": "make vm-io-reactor-runtime-check",
+      "summary_only_misses": [
+        "command receiver parking branches",
+        "event stream backpressure paths",
+        "closed session diagnostics"
+      ],
+      "promotion_plan": "Separate deterministic command/event queue state from IO session adapter lifecycle, then promote the queue core into the strict coverage baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/distributed_state.rs",
+      "classification": "adapter-boundary",
+      "reason": "Distributed state owns conflict, placement, and replication contract behavior that is validated by distributed state semantics gates before it is promoted into strict coverage.",
+      "gate": "make vm-distributed-state-check",
+      "summary_only_misses": [
+        "conflict resolution branches",
+        "placement policy variants",
+        "replication contract diagnostics"
+      ],
+      "promotion_plan": "Split conflict resolution, placement, and replication contract helpers into smaller modules, then promote each stable module into the 100% line/function baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/distributed_state_remote.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Distributed state remote dispatch maps std.vm descriptors onto VM-owned state values while the release gate still validates the public std.vm surface through focused Terlan tests.",
+      "gate": "make vm-distributed-state-check",
+      "summary_only_misses": [
+        "descriptor decode rejection paths",
+        "outcome conversion variants",
+        "snapshot restore diagnostics"
+      ],
+      "promotion_plan": "Split descriptor decoding from value conversion and state-store execution, then promote each deterministic helper after adversarial std.vm coverage is complete."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/distributed_storage.rs",
+      "classification": "adapter-boundary",
+      "reason": "Distributed storage models persistence and recovery adapter outcomes while the active VM state path is still being wired to durable storage.",
+      "gate": "make vm-distributed-state-check",
+      "summary_only_misses": [
+        "storage availability outcomes",
+        "snapshot corruption diagnostics",
+        "cluster replication adapter branch"
+      ],
+      "promotion_plan": "Wire distributed storage into active state recovery, split checksum and lifecycle helpers, then promote the stable storage core into the coverage baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/evaluation_helpers.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Evaluator helpers are textually included by the active VM runtime and dispatch broad expression, pattern, iterator, range, and imported stdlib behavior while that surface is being split into independently promotable units.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": [
+        "expression and pattern dispatch variants",
+        "iterator and range fallback branches",
+        "imported stdlib compatibility diagnostics"
+      ],
+      "promotion_plan": "Migrate reusable semantics to AOT-native runtime units, preserve their tests, delete evaluator dispatch, and promote the native units independently into the strict line and function baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/framing.rs",
+      "classification": "adapter-boundary",
+      "reason": "Framing covers stream boundary behavior with partial reads, timeouts, cancellation, and backpressure that is validated through transport gates.",
+      "gate": "make vm-tcp-framing-check",
+      "summary_only_misses": [
+        "partial frame reads",
+        "timeout and cancellation outcomes",
+        "backpressure error paths"
+      ],
+      "promotion_plan": "Separate raw stream fixtures from deterministic frame codecs, then promote the codec modules before retaining only host-edge fixture debt."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/io_diagnostics.rs",
+      "classification": "adapter-boundary",
+      "reason": "IO diagnostics renders source-map aware runtime failures whose final behavior depends on transport and support-bundle context.",
+      "gate": "make vm-io-reactor-runtime-check",
+      "summary_only_misses": [
+        "source map rendering variants",
+        "malformed context diagnostics",
+        "transport failure formatting paths"
+      ],
+      "promotion_plan": "Split deterministic diagnostic rendering from transport context collection, then promote the renderer while keeping adapter context debt classified."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/io_reactor.rs",
+      "classification": "adapter-boundary",
+      "reason": "The VM I/O reactor normalizes TCP, UDP, package, debugger, ACME, and timer wakeups into scheduler-facing readiness while protocol runtimes are still being unified behind the reactor path.",
+      "gate": "make vm-io-reactor-runtime-check",
+      "summary_only_misses": [
+        "protocol wake normalization variants",
+        "stale process diagnostics",
+        "timer coalescing and overflow branches"
+      ],
+      "promotion_plan": "Split deterministic wake normalization and drain accounting from protocol adapter enqueue paths, then promote the reactor core into strict line/function coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/io_runtime_boundary.rs",
+      "classification": "adapter-boundary",
+      "reason": "External I/O runtime boundary validation records which host helpers may produce VM wakeups while rejecting any helper that owns actor scheduling, continuations, or direct scheduler access.",
+      "gate": "make vm-io-reactor-runtime-check",
+      "summary_only_misses": [
+        "role-specific adapter plans",
+        "invalid scheduling policy diagnostics",
+        "support-bundle replay boundary paths"
+      ],
+      "promotion_plan": "Promote the deterministic boundary validator after the VM I/O reactor integration stabilizes and all external helper plans are covered by exact runtime gates."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/live_template_protocol.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Live template protocol owns generated JS/WASM binding manifests, rolling compatibility, and patch event dispatch validated by protocol gates.",
+      "gate": "make vm-live-template-client-protocol-check",
+      "summary_only_misses": [
+        "generated binding event variants",
+        "rolling compatibility branches",
+        "protocol payload rejection paths"
+      ],
+      "promotion_plan": "Separate schema hashing and event validation from generated binding emitters, then promote the deterministic protocol core first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/http.rs",
+      "classification": "source-line-only",
+      "reason": "HTTP is source-line clean under the VM coverage lane but still reports LLVM summary-only function misses from protocol branch and closure-shaped dispatch paths.",
+      "gate": "make vm-coverage-source-lines-check",
+      "summary_only_misses": [
+        "protocol branch dispatch summary rows",
+        "closure-shaped handler adapter rows",
+        "error-path formatting summary rows"
+      ],
+      "promotion_plan": "Keep source-line coverage mandatory now; promote to full line/function coverage after LLVM exposes actionable function rows or after the HTTP surface is split into smaller promoted modules."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/http_router.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "HTTP router composition is branch-heavy builder and dispatch code validated by exact route, middleware, static, SSE, and WebSocket behavior gates.",
+      "gate": "make vm-http-router-middleware-check",
+      "summary_only_misses": [
+        "route target dispatch variants",
+        "middleware short-circuit paths",
+        "grouped route duplicate diagnostics"
+      ],
+      "promotion_plan": "Wire the router into active VM HTTP serving, split target dispatch from builder validation, and promote the stable dispatch module first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/http_static.rs",
+      "classification": "adapter-boundary",
+      "reason": "HTTP static and response-body conversion handles asset metadata, stream planning, and typed body conversion across protocol adapter boundaries.",
+      "gate": "make vm-http-static-streaming-check",
+      "summary_only_misses": [
+        "manifest rollback diagnostics",
+        "response body conversion branches",
+        "stream conversion unsupported path"
+      ],
+      "promotion_plan": "Split asset manifest validation from response body conversion, promote deterministic conversion helpers, and leave only streaming adapter debt classified."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/map_value.rs",
+      "classification": "source-line-only",
+      "reason": "Map value storage is under active A-CHAMP performance and adversarial testing, but the broad node-family surface is not yet promoted as one coverage unit.",
+      "gate": "make vm-performance-baseline-check",
+      "summary_only_misses": [
+        "adaptive node family branches",
+        "persistent patch-chain paths",
+        "collision and compressed-prefix variants"
+      ],
+      "promotion_plan": "Keep benchmark and adversarial gates mandatory, then split node families into focused modules and promote each fully covered node family independently."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/memory.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "VM memory accounting owns process heap limits, shared allocation custody, mailbox charge decisions, and resource ownership cleanup while runtime memory policy is still being split into smaller promoted units.",
+      "gate": "make vm-memory-ownership-check",
+      "summary_only_misses": [
+        "shared allocation ownership branches",
+        "mailbox and resource pressure decisions",
+        "process-exit cleanup accounting paths"
+      ],
+      "promotion_plan": "Split deterministic value sizing, process heap accounting, and shared allocation ownership into focused modules, then promote each fully covered memory policy unit into the strict VM coverage baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/model_sync.rs",
+      "classification": "adapter-boundary",
+      "reason": "Model sync coordinates snapshot export, version conflict handling, tombstones, and live template patch replay across storage and DOM adapters.",
+      "gate": "make vm-model-sync-store-check",
+      "summary_only_misses": [
+        "version conflict branches",
+        "tombstone and change stream paths",
+        "DOM patch replay adapter variants"
+      ],
+      "promotion_plan": "Split deterministic versioned store operations from DOM patch replay and storage adapters, then promote the store core first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/model_sync_remote.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Model sync remote dispatch exposes deterministic std.vm descriptor operations while active model synchronization is still split between runtime state and public stdlib shape tests.",
+      "gate": "make vm-model-sync-store-check",
+      "summary_only_misses": [
+        "descriptor arity rejection paths",
+        "change stream conversion variants",
+        "invalid model operation diagnostics"
+      ],
+      "promotion_plan": "Extract descriptor builders and validators into smaller tested helpers, then promote those helpers before retiring the broad remote dispatch classification."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/package_transport.rs",
+      "classification": "adapter-boundary",
+      "reason": "Package transport handles chunked downloads, wakeups, cancellation, and backpressure across VM-owned IO reactor boundaries.",
+      "gate": "make vm-io-reactor-runtime-check",
+      "summary_only_misses": [
+        "download chunk wakeup paths",
+        "transport backpressure branches",
+        "owner cancellation diagnostics"
+      ],
+      "promotion_plan": "Split chunk planning and validation from reactor wakeup integration, then promote deterministic package transport planning first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_adapter.rs",
+      "classification": "adapter-boundary",
+      "reason": "Persistent actor adapter conformance spans local and cluster storage capabilities, corruption handling, and unavailable adapter outcomes.",
+      "gate": "make vm-persistent-actor-adapter-conformance-check",
+      "summary_only_misses": [
+        "adapter capability variants",
+        "corrupt checkpoint diagnostics",
+        "cluster replication fixture paths"
+      ],
+      "promotion_plan": "Separate deterministic conformance manifest validation from adapter execution, then promote manifest checks before adapter edge debt."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_compaction.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Persistent actor compaction evaluates retained ranges, checkpoint equivalence, resource pruning, and crash-safe replay decisions.",
+      "gate": "make vm-persistent-actor-compaction-check",
+      "summary_only_misses": [
+        "retained range validation branches",
+        "checkpoint equivalence paths",
+        "resource pruning rejection diagnostics"
+      ],
+      "promotion_plan": "Split equivalence and retained-range validation from crash fixture orchestration, then promote each deterministic helper module."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_performance.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Persistent actor performance stores deterministic fixture budgets and scaling estimates that are validated by benchmark-style quality gates.",
+      "gate": "make vm-persistent-actor-performance-budget-check",
+      "summary_only_misses": [
+        "small actor budget variants",
+        "event storm scaling branches",
+        "invalid budget diagnostics"
+      ],
+      "promotion_plan": "Split budget arithmetic from fixture orchestration, then promote the deterministic arithmetic module under strict line/function coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_policy.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Persistent actor policy covers ownership, debugger scoping, package downgrade rejection, and storage bypass decisions over many policy cases.",
+      "gate": "make vm-persistent-actor-policy-check",
+      "summary_only_misses": [
+        "owner authorization variants",
+        "debugger and telemetry policy paths",
+        "package downgrade rejection branches"
+      ],
+      "promotion_plan": "Split policy decision tables from support export and adapter checks, then promote deterministic policy decision helpers first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_remote.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Persistent actor remote dispatch exposes descriptor-level std.vm.PersistentActor APIs while durable actor execution semantics remain covered by focused persistent-actor gates.",
+      "gate": "make vm-persistent-actor-store-check",
+      "summary_only_misses": [
+        "descriptor constructor rejection paths",
+        "checkpoint conversion variants",
+        "schema compatibility diagnostics"
+      ],
+      "promotion_plan": "Move descriptor constructors and validators into focused modules with adversarial tests, then promote the deterministic pieces into strict coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_restore.rs",
+      "classification": "adapter-boundary",
+      "reason": "Persistent actor restore validates export manifests, resource checkpoints, schema compatibility, and cross-adapter restore behavior.",
+      "gate": "make vm-persistent-actor-restore-check",
+      "summary_only_misses": [
+        "export manifest rejection paths",
+        "resource checkpoint variants",
+        "cross-adapter restore outcomes"
+      ],
+      "promotion_plan": "Separate deterministic export manifest validation from adapter restore execution, then promote manifest validation first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_schema.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Persistent actor schema owns migration graph planning, compatibility matrices, and unsafe migration rejection across several shape families.",
+      "gate": "make vm-persistent-actor-schema-check",
+      "summary_only_misses": [
+        "migration graph branch families",
+        "compatibility matrix rows",
+        "unsafe migration rejection paths"
+      ],
+      "promotion_plan": "Split migration graph validation, compatibility checks, and rejection diagnostics into focused modules, then promote each stable validator."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_store.rs",
+      "classification": "adapter-boundary",
+      "reason": "Persistent actor store coordinates snapshots, event replay, mailbox checkpoints, timers, and resource handles across durable storage boundaries.",
+      "gate": "make vm-persistent-actor-store-check",
+      "summary_only_misses": [
+        "snapshot replay variants",
+        "mailbox and timer checkpoint paths",
+        "resource handle restore diagnostics"
+      ],
+      "promotion_plan": "Split deterministic event/snapshot validation from durable storage adapter operations, then promote validation helpers first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_telemetry.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Persistent actor telemetry validates trace fixtures, span fields, replay timelines, and secret-leak rejection across diagnostic cases.",
+      "gate": "make vm-persistent-actor-telemetry-check",
+      "summary_only_misses": [
+        "trace fixture variants",
+        "replay timeline validation paths",
+        "secret telemetry rejection diagnostics"
+      ],
+      "promotion_plan": "Split trace schema validation from replay fixture orchestration, then promote deterministic trace validation helpers first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/persistent_actor_telemetry_aggregation.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Persistent actor telemetry aggregation folds validated spans into cardinality-bounded metric series while the persistent actor observability surface is still being stabilized.",
+      "gate": "make vm-persistent-actor-telemetry-check",
+      "summary_only_misses": [
+        "dimension cardinality rejection branches",
+        "metric counter overflow paths",
+        "series merge and failure-count variants"
+      ],
+      "promotion_plan": "Split metric-key validation, counter arithmetic, and series aggregation into focused helpers, then promote the deterministic aggregation core after adversarial telemetry fixtures are complete."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/scheduler_remote.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Scheduler remote dispatch exposes deterministic std.vm.Scheduler descriptor operations while full scheduler placement and migration semantics remain covered by VM scheduler gates.",
+      "gate": "make vm-distributed-scheduling-check",
+      "summary_only_misses": [
+        "descriptor validation rejection paths",
+        "placement fallback variants",
+        "migration event cursor diagnostics"
+      ],
+      "promotion_plan": "Split scheduler descriptor validation from placement decisions, promote deterministic placement helpers, and keep only broad stdlib dispatch classified."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/sse.rs",
+      "classification": "adapter-boundary",
+      "reason": "SSE owns streaming endpoint and backpressure behavior that is validated by protocol gates while live HTTP handler integration is still expanding.",
+      "gate": "make vm-http-sse-check",
+      "summary_only_misses": [
+        "stream close and flush paths",
+        "backpressure limit branches",
+        "endpoint plan validation errors"
+      ],
+      "promotion_plan": "Split event encoding from stream lifecycle management, promote deterministic encoding first, and classify only live stream adapter debt after wiring."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/sse_live_session.rs",
+      "classification": "adapter-boundary",
+      "reason": "SSE live-session ownership binds source-materialized endpoint limits to mutable stream lifecycle state used by production admission.",
+      "gate": "make vm-http-stack-check",
+      "summary_only_misses": [
+        "production session close timing",
+        "transport-owned cancellation handoff"
+      ],
+      "promotion_plan": "Promote the deterministic plan-to-session ownership paths after production transport cancellation and terminal cleanup share one fully covered lifecycle driver."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/std_remote.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "std_remote is a broad standard-library remote dispatch bridge whose exhaustive function summary is less useful than focused contract tests for each exported VM standard surface.",
+      "gate": "make std-vm-parity-matrix-check",
+      "summary_only_misses": [
+        "standard-library remote dispatch arms",
+        "defensive invalid-call branches",
+        "adapter fallback diagnostics"
+      ],
+      "promotion_plan": "Replace the large bridge file with smaller per-domain VM standard modules, then promote each module into the 100% line/function baseline as it becomes independently testable."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/support_bundle.rs",
+      "classification": "adapter-boundary",
+      "reason": "Support bundle capture records replay metadata, ordered IO steps, redaction, and mismatch diagnostics across runtime support boundaries.",
+      "gate": "make vm-io-reactor-runtime-check",
+      "summary_only_misses": [
+        "ordered IO replay variants",
+        "redaction and metadata paths",
+        "mismatched identity diagnostics"
+      ],
+      "promotion_plan": "Split replay metadata validation and redaction from runtime support-bundle collection, then promote deterministic validation helpers first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/udp.rs",
+      "classification": "adapter-boundary",
+      "reason": "UDP runtime owns packet bursts, wakeups, owner cancellation, and socket backpressure across VM IO reactor boundaries.",
+      "gate": "make vm-io-reactor-runtime-check",
+      "summary_only_misses": [
+        "packet burst delivery branches",
+        "socket backpressure paths",
+        "owner cancellation diagnostics"
+      ],
+      "promotion_plan": "Split deterministic packet queue behavior from reactor socket adapter handling, then promote packet queue state first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/websocket.rs",
+      "classification": "adapter-boundary",
+      "reason": "websocket owns protocol adapter behavior with branch-heavy handshake, frame, and close handling that is currently validated by focused protocol tests rather than full LLVM function summary coverage.",
+      "gate": "cargo test -p terlan --bin terlan-vm runtime::vm::websocket",
+      "summary_only_misses": [
+        "handshake rejection branches",
+        "frame close/error paths",
+        "adapter cancellation paths"
+      ],
+      "promotion_plan": "Split handshake, frame codec, and actor adapter responsibilities into separate VM modules, then promote the stable codec modules first and leave only host-edge cancellation debt classified."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/websocket_live_session.rs",
+      "classification": "adapter-boundary",
+      "reason": "WebSocket live-session ownership retains source-materialized endpoint limits with its bounded inbound queue across production upgrade admission.",
+      "gate": "make vm-http-stack-check",
+      "summary_only_misses": [
+        "production session close timing",
+        "transport-owned cancellation handoff"
+      ],
+      "promotion_plan": "Promote deterministic plan-to-queue ownership after production frame transport and terminal cleanup use one fully covered live-session driver."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_checkpoint.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Actor checkpoint restore and validation were split from the evaluator and still contain broad state-transition branches.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["checkpoint restore rejection branches"],
+      "promotion_plan": "Add focused corruption and compatibility coverage, then promote the deterministic checkpoint state machine."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_exit.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Actor exit propagation covers linked-process, monitor, trap-exit, and cleanup outcomes across the scheduler state machine.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["linked exit propagation variants"],
+      "promotion_plan": "Separate exit planning from scheduler mutation and promote the deterministic planning layer after exhaustive transition tests."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_postgres.rs",
+      "classification": "adapter-boundary",
+      "reason": "Actor PostgreSQL operations cross the VM reactor and external native driver boundary with cancellation and ownership paths.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["driver cancellation and ownership branches"],
+      "promotion_plan": "Split deterministic request planning from native driver execution, then promote request planning into strict coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_registry.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Actor registry operations cover registration races, stale owners, lookup outcomes, and process-exit cleanup.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["registration race and stale-owner branches"],
+      "promotion_plan": "Extract the deterministic registry transition table and promote it after adversarial registration and cleanup coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_suspension.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Actor suspension coordinates resumptions, timeouts, continuations, and process termination across scheduler transitions.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["resume timeout and termination variants"],
+      "promotion_plan": "Separate suspension state transitions from scheduler wakeups, then promote the transition core with exhaustive tests."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/comprehension.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Comprehension execution builds and schedules ordered guard rows, including lifted descriptors, short-circuiting, typed failures, cancellation, and one-at-a-time backpressure.",
+      "gate": "make comprehension-guards-check",
+      "summary_only_misses": ["lifted row scheduling and descriptor rejection variants"],
+      "promotion_plan": "Separate descriptor validation from serial row scheduling, then promote each deterministic component after exhaustive lifted-container coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/comprehension_guard.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Comprehension guard evaluation dispatches typed guard forms and stable rejection paths during the evaluator-to-AOT transition.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["guard dispatch and rejection variants"],
+      "promotion_plan": "Move const-safe guard evaluation into a focused typed helper and promote it after complete operator coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/comprehension_source.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Comprehension source evaluation handles list, iterator, and invalid-source variants inherited from the broad evaluator surface.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["iterator source and invalid-source variants"],
+      "promotion_plan": "Split source normalization from evaluator dispatch and promote normalization after iterator adversarial coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/effect.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Effect execution dispatches compiler-classified runtime effects while ownership and cancellation policies are still being separated.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["effect dispatch and cancellation variants"],
+      "promotion_plan": "Extract typed effect descriptors from runtime execution and promote their validator before adapter-specific effect handlers."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/external_function_reference.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "External function references validate module, function, arity, and callable availability across dynamically loaded VM modules.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["missing module and callable variants"],
+      "promotion_plan": "Separate reference validation from module lookup and promote the deterministic validator after malformed-reference coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/fault_remote.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Fault remote dispatch maps public fault descriptors into scheduler and supervision outcomes with defensive rejection paths.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["fault descriptor rejection variants"],
+      "promotion_plan": "Extract descriptor decoding from scheduler effects and promote the decoder after complete malformed-input coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/integer_operator.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Integer operator execution contains checked arithmetic, comparison, division, and overflow branches split from the evaluator.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["checked arithmetic overflow variants"],
+      "promotion_plan": "Unify checked integer operations with the typed AOT primitive layer and promote after exhaustive boundary-value coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/postgres.rs",
+      "classification": "adapter-boundary",
+      "reason": "PostgreSQL runtime behavior spans reactor readiness, native driver state, row conversion, cancellation, and cleanup.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["reactor readiness and driver cleanup branches"],
+      "promotion_plan": "Separate deterministic protocol state from native driver readiness and promote the state machine before adapter paths."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/postgres_command.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "PostgreSQL command decoding validates query operation shapes and maps typed values into driver requests.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["command decode and parameter rejection variants"],
+      "promotion_plan": "Extract the command schema validator and promote it after exhaustive parameter and operation-shape coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/pure_native.rs",
+      "classification": "adapter-boundary",
+      "reason": "Pure native dispatch loads checksum-verified AOT images and crosses the stable TVM native ABI with typed values.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["image loading and ABI rejection variants"],
+      "promotion_plan": "Split image and ABI validation from dynamic loading, then promote the validators before platform loader adapters."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/record.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Record evaluation handles construction, update, access, nominal checks, and malformed field variants split from the evaluator.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["record field and nominal rejection variants"],
+      "promotion_plan": "Unify record layout operations behind a typed runtime primitive and promote after exhaustive field-shape coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/source_postgres.rs",
+      "classification": "adapter-boundary",
+      "reason": "Source PostgreSQL helpers bridge source-visible query descriptors to asynchronous native driver operations and errors.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["source descriptor and driver error variants"],
+      "promotion_plan": "Separate source descriptor validation from driver execution and promote the validator after malformed-query coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/tail_call.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Tail-call execution coordinates argument replacement, local and remote targets, and continuation-free evaluator loops.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["local and remote tail-call variants"],
+      "promotion_plan": "Move pure tail-call planning into typed VMIR lowering and promote runtime validation after deep-recursion coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/template.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Typed template rendering dispatches compiler-lowered interpolation plans across text, attribute, component, and trusted-fragment contexts.",
+      "gate": "make typed-template-interpolation-check",
+      "summary_only_misses": ["component depth and malformed managed-value rejection variants"],
+      "promotion_plan": "Expand executable adversarial rendering coverage, split descriptor validation from node emission, and promote both deterministic units into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/try_expr.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Try expression execution covers structured throw, catch matching, after cleanup, and unmatched exception propagation.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["catch matching and after-cleanup variants"],
+      "promotion_plan": "Separate structured exception transitions from evaluator dispatch and promote them after exhaustive cleanup coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/type_reflection.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Type reflection maps runtime values to closed type descriptors while rejecting unsupported handles and internal shapes.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["handle and internal-shape rejection variants"],
+      "promotion_plan": "Define a closed typed reflection table and promote it after complete runtime value-family coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/value_hash.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Value hashing dispatches every immutable VM value family and rejects identity-bearing resources and unsupported forms.",
+      "gate": "make tvm-aot-pivot-inventory-check",
+      "summary_only_misses": ["nested value and resource rejection variants"],
+      "promotion_plan": "Align hashing with the native data-layout equality contract and promote after collision and nested-value coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_dynamic_module.rs",
+      "classification": "adapter-boundary",
+      "reason": "Actor dynamic-module operations coordinate actor ownership with validated module lifecycle and lease state.",
+      "gate": "make vm-dynamic-module-parity-check",
+      "summary_only_misses": ["actor lease lifecycle and ownership rejection branches"],
+      "promotion_plan": "Separate actor ownership validation from module lifecycle mutation and promote both after complete lifecycle coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_heap_limit.rs",
+      "classification": "source-line-only",
+      "reason": "Actor heap-limit operations combine process policy mutation with live memory accounting and collection outcomes.",
+      "gate": "make vm-memory-heap-pressure-check",
+      "summary_only_misses": ["heap policy transition and collection outcome branches"],
+      "promotion_plan": "Complete boundary-policy coverage and promote the deterministic heap-limit transition module into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_local_trace.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Actor-local trace operations adapt validated actor events into the runtime tracing state machine.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["local trace event and rejection variants"],
+      "promotion_plan": "Consolidate trace event validation and promote the local trace adapter after complete event-family coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_meta_trace.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "Actor meta-trace operations adapt tracing control events while preserving actor ownership and ordering.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["meta trace control and ownership variants"],
+      "promotion_plan": "Consolidate trace control validation and promote the meta-trace adapter after complete control coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/actor_native_trace.rs",
+      "classification": "adapter-boundary",
+      "reason": "Actor native tracing crosses native-call lifecycle, actor accounting, and runtime diagnostic boundaries.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["native call trace lifecycle and failure variants"],
+      "promotion_plan": "Separate deterministic native-call event accounting from boundary dispatch and promote the event core first."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/call_count.rs",
+      "classification": "source-line-only",
+      "reason": "Call-count instrumentation maintains bounded deterministic counters across enabled and disabled trace states.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["counter saturation and disabled trace branches"],
+      "promotion_plan": "Complete saturation and lifecycle coverage, then promote call-count instrumentation into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/call_memory.rs",
+      "classification": "source-line-only",
+      "reason": "Call-memory instrumentation attributes allocation deltas across nested actor calls and trace lifecycle changes.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["nested allocation attribution and saturation branches"],
+      "promotion_plan": "Complete nested and overflow attribution coverage, then promote call-memory instrumentation into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/call_time.rs",
+      "classification": "source-line-only",
+      "reason": "Call-time instrumentation records bounded monotonic timing deltas across nested actor execution.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["nested timing and counter saturation branches"],
+      "promotion_plan": "Complete nested and saturation timing coverage, then promote call-time instrumentation into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/driver.rs",
+      "classification": "adapter-boundary",
+      "reason": "The VM driver adapter owns portable byte queues, logical timers, controller transfer, callback delivery, isolated environment state, and cleanup while concrete host I/O helpers remain outside the runtime core.",
+      "gate": "make vm-driver-suite-parity-check",
+      "summary_only_misses": [
+        "adapter command and queue rejection branches",
+        "callback pressure and duplicate diagnostics",
+        "controller and owner cleanup transitions"
+      ],
+      "promotion_plan": "Split deterministic queue, timer, and callback state from host-helper integration, measure strict line and function coverage, then promote the stable state-machine units independently."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/dynamic_module.rs",
+      "classification": "adapter-boundary",
+      "reason": "Dynamic-module lifecycle coordinates validated loading, leases, reload generations, draining, and unload state.",
+      "gate": "make vm-dynamic-module-parity-check",
+      "summary_only_misses": ["lease draining and generation transition branches"],
+      "promotion_plan": "Split deterministic lifecycle state from platform loading and promote the lifecycle core after exhaustive transition coverage."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/local_trace.rs",
+      "classification": "source-line-only",
+      "reason": "Local trace state owns bounded event capture and deterministic process-scoped trace selection.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["bounded capture and selector rejection branches"],
+      "promotion_plan": "Complete bounded-capacity and selector coverage, then promote local trace state into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/meta_trace.rs",
+      "classification": "source-line-only",
+      "reason": "Meta-trace state owns bounded control-event capture and deterministic tracer lifecycle observations.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["control capacity and tracer lifecycle branches"],
+      "promotion_plan": "Complete capacity and tracer lifecycle coverage, then promote meta-trace state into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/statistics.rs",
+      "classification": "source-line-only",
+      "reason": "Runtime statistics computes checked deltas across compatible immutable environment snapshots.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["snapshot compatibility and counter regression branches"],
+      "promotion_plan": "Complete incompatible and regressing snapshot coverage, then promote statistics into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/system_information.rs",
+      "classification": "generated-style-dispatch",
+      "reason": "System information maps closed runtime queries onto deterministic environment and scheduler values.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["system query dispatch and unsupported key branches"],
+      "promotion_plan": "Close the query table and rejection coverage, then promote system information dispatch into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/system_profile.rs",
+      "classification": "source-line-only",
+      "reason": "System profile validates runtime topology and target metadata before exposing immutable diagnostics.",
+      "gate": "make vm-diagnostics-quality-check",
+      "summary_only_misses": ["topology and target metadata rejection branches"],
+      "promotion_plan": "Complete invalid topology and metadata coverage, then promote system profile validation into the strict baseline."
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/time.rs",
+      "classification": "source-line-only",
+      "reason": "Runtime time operations provide checked monotonic and conversion behavior across supported units.",
+      "gate": "make vm-runtime-semantics-check",
+      "summary_only_misses": ["unit conversion overflow and invalid input branches"],
+      "promotion_plan": "Complete conversion-boundary and monotonicity coverage, then promote runtime time operations into the strict baseline."
+    }
+  ]
+}

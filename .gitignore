@@ -1,8 +1,16 @@
 # Rust build outputs
 /target/
+/proofs/lean/.lake/
+/terlan-vm/erts/rust/target/
 /dist/
 /_build/
+**/_build/
+**/.gradle/
+**/node_modules/
 *.rlib
+
+# Legacy standalone VM checkout retained outside the compiler repository
+/terlan-vm/
 
 # BEAM build outputs and crash dumps
 *.beam

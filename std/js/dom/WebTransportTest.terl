@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WebTransport
  */
 module std.js.Dom.WebTransportTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.WebTransport.{WebTransport}.
-
+import type std.js.Dom.WebTransport.
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub closed_typechecks(receiver: WebTransport): Promise[WebTransportCloseInfo] ->
     receiver.closed().
@@ -32,8 +36,14 @@ pub ready_typechecks(receiver: WebTransport): Promise[Unit] ->
 pub close_typechecks(receiver: WebTransport, close_info: WebTransportCloseInfo): Unit ->
     receiver.close(close_info).
 
-pub create_bidirectional_stream_typechecks(receiver: WebTransport, options: WebTransportSendStreamOptions): Promise[WebTransportBidirectionalStream] ->
+pub create_bidirectional_stream_typechecks(
+    receiver: WebTransport,
+    options: WebTransportSendStreamOptions
+): Promise[WebTransportBidirectionalStream] ->
     receiver.create_bidirectional_stream(options).
 
-pub create_unidirectional_stream_typechecks(receiver: WebTransport, options: WebTransportSendStreamOptions): Promise[WritableStream] ->
+pub create_unidirectional_stream_typechecks(
+    receiver: WebTransport,
+    options: WebTransportSendStreamOptions
+): Promise[WritableStream] ->
     receiver.create_unidirectional_stream(options).

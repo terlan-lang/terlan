@@ -1,0 +1,36 @@
+{
+  "schema": "terlan.vm-aot-runtime-workloads.v1",
+  "samples": 64,
+  "workloads": [
+    {
+      "name": "actor_heap_allocation",
+      "operations_per_sample": 512,
+      "scope": "Allocate 512 fixed-size young objects on one actor-owned heap."
+    },
+    {
+      "name": "local_message_round_trip",
+      "operations_per_sample": 256,
+      "scope": "Send and receive 256 ordered local actor messages."
+    },
+    {
+      "name": "scheduler_yield_cycle",
+      "operations_per_sample": 256,
+      "scope": "Run 256 cooperative scheduler slices that yield and requeue."
+    },
+    {
+      "name": "actor_local_collection_pause",
+      "operations_per_sample": 512,
+      "scope": "Collect a 512-object actor heap with eight precise live roots; heap setup is outside the timed pause."
+    },
+    {
+      "name": "actor_spawn_exit_churn",
+      "operations_per_sample": 256,
+      "scope": "Spawn and normally exit 256 root actors through the unified lifecycle."
+    },
+    {
+      "name": "mixed_actor_runtime_tail",
+      "operations_per_sample": 64,
+      "scope": "Combine managed allocation and collection, local messaging, scheduler yields, and actor teardown."
+    }
+  ]
+}

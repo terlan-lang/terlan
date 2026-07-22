@@ -1,0 +1,63 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface OscillatorNode
+ */
+module std.js.Dom.OscillatorNode.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`OscillatorNode`** interface represents a periodic waveform, such as a sine wave.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode)
+ */
+pub opaque type OscillatorNode.
+
+/**
+ * The `detune` property of the OscillatorNode interface is an a-rate AudioParam representing detuning of oscillation in cents.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode/detune)
+ */
+pub (value: OscillatorNode) detune(): AudioParam.
+
+/**
+ * The **`frequency`** property of the OscillatorNode interface is an a-rate AudioParam representing the frequency of oscillation in hertz.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode/frequency)
+ */
+pub (value: OscillatorNode) frequency(): AudioParam.
+
+/**
+ * The **`type`** property of the OscillatorNode interface specifies what shape of waveform the oscillator will output.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode/type)
+ */
+pub (value: OscillatorNode) type_(): OscillatorType.
+
+/**
+ * The **`setPeriodicWave()`** method of the OscillatorNode interface is used to point to a PeriodicWave defining a periodic waveform that can be used to shape the oscillator's output, when ```js-nolint setPeriodicWave(wave) ``` - `wave` - : A PeriodicWave object representing the waveform to use as the shape of the oscillator's output.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode/setPeriodicWave)
+ */
+pub (value: OscillatorNode) set_periodic_wave(periodic_wave: PeriodicWave): Unit.
+
+pub (value: OscillatorNode) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: OscillatorNode) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

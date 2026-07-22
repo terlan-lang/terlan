@@ -1,0 +1,68 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileSystemEntry
+ */
+module std.js.Dom.FileSystemEntry.
+
+import type std.core.{Bool}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`FileSystemEntry`** interface of the File and Directory Entries API represents a single entry in a file system.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry)
+ */
+pub opaque type FileSystemEntry.
+
+/**
+ * The read-only **`filesystem`** property of the FileSystemEntry interface contains a resides.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/filesystem)
+ */
+pub (value: FileSystemEntry) filesystem(): FileSystem.
+
+/**
+ * The read-only **`fullPath`** property of the FileSystemEntry interface returns a string specifying the full, absolute path from the file system's root to the file represented by the entry.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/fullPath)
+ */
+pub (value: FileSystemEntry) full_path(): JsString.
+
+/**
+ * The read-only **`isDirectory`** property of the FileSystemEntry interface is `true` if the entry represents a directory (meaning it's a FileSystemDirectoryEntry) and `false` if it's not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/isDirectory)
+ */
+pub (value: FileSystemEntry) is_directory(): Bool.
+
+/**
+ * The read-only **`isFile`** property of the FileSystemEntry interface is `true` if the entry represents a file (meaning it's a FileSystemFileEntry) and `false` if it's not.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/isFile)
+ */
+pub (value: FileSystemEntry) is_file(): Bool.
+
+/**
+ * The read-only **`name`** property of the FileSystemEntry interface returns a string specifying the entry's name; this is the entry within its parent directory (the last component of the path as indicated by the FileSystemEntry.fullPath property).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/name)
+ */
+pub (value: FileSystemEntry) name(): JsString.
+
+/**
+ * The FileSystemEntry interface's method **`getParent()`** obtains a ```js-nolint getParent(successCallback, errorCallback) getParent(successCallback) ``` - `successCallback` - : A function which is called when the parent directory entry has been retrieved.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/getParent)
+ */
+pub (value: FileSystemEntry) get_parent(
+    success_callback: FileSystemEntryCallback,
+    error_callback: ErrorCallback
+): std.core.Unit.

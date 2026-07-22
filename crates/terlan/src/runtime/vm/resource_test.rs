@@ -1,8 +1,29 @@
-use super::{VmResourceDescriptor, VmResourceEvent, VmResourceTable, VmResourceTransferPolicy};
+use super::{
+    VmResourceDescriptor, VmResourceEvent, VmResourceId, VmResourceTable, VmResourceTransferPolicy,
+};
 use crate::runtime::vm::process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessTable};
 
 fn source(name: &str) -> VmProcessSource {
     VmProcessSource::new("app.Main", name, 0)
+}
+
+fn register_resource(
+    processes: &mut VmProcessTable,
+    resources: &mut VmResourceTable,
+    owner: VmProcessId,
+    descriptor: VmResourceDescriptor,
+    transfer_policy: VmResourceTransferPolicy,
+) -> VmResourceId {
+    let event = resources
+        .register(processes, owner, descriptor, transfer_policy)
+        .expect("resource registration should succeed");
+    let id = resources
+        .snapshots()
+        .last()
+        .expect("registered resource snapshot should exist")
+        .id;
+    assert_eq!(event, VmResourceEvent::Registered { id, owner });
+    id
 }
 
 #[test]
@@ -11,24 +32,13 @@ fn resource_table_registers_resource_and_exposes_inspection_snapshot() {
     let owner = processes.spawn_root(source("main"));
     let mut resources = VmResourceTable::default();
 
-    let event = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("postgres.connection", "primary"),
-            VmResourceTransferPolicy::OwnerOnly,
-        )
-        .expect("resource registration should succeed");
-
-    let VmResourceEvent::Registered {
-        id,
-        owner: event_owner,
-    } = event
-    else {
-        panic!("expected registration event");
-    };
-
-    assert_eq!(event_owner, owner);
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("postgres.connection", "primary"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
     assert_eq!(
         processes
             .get(owner)
@@ -55,17 +65,13 @@ fn resource_table_transfers_transferable_resource_between_live_processes() {
     let owner = processes.spawn_root(source("owner"));
     let recipient = processes.spawn_root(source("recipient"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("file.handle", "/tmp/report"),
-            VmResourceTransferPolicy::Transferable,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("file.handle", "/tmp/report"),
+        VmResourceTransferPolicy::Transferable,
+    );
 
     let event = resources
         .transfer(&mut processes, id, owner, recipient)
@@ -101,22 +107,64 @@ fn resource_table_transfers_transferable_resource_between_live_processes() {
 }
 
 #[test]
+fn resource_table_releases_transferred_resource_from_new_owner() {
+    let mut processes = VmProcessTable::default();
+    let owner = processes.spawn_root(source("owner"));
+    let recipient = processes.spawn_root(source("recipient"));
+    let mut resources = VmResourceTable::default();
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("file.handle", "/tmp/report"),
+        VmResourceTransferPolicy::Transferable,
+    );
+
+    resources
+        .transfer(&mut processes, id, owner, recipient)
+        .expect("transferable resource should move");
+    assert_eq!(
+        resources
+            .release(&mut processes, owner, id)
+            .expect_err("previous owner should not release transferred resource"),
+        format!(
+            "resource {} is owned by process {}, not {}",
+            id.as_u64(),
+            recipient.as_u64(),
+            owner.as_u64()
+        )
+    );
+
+    assert_eq!(
+        resources
+            .release(&mut processes, recipient, id)
+            .expect("recipient should release transferred resource"),
+        VmResourceEvent::Released {
+            id,
+            owner: recipient
+        }
+    );
+    assert!(processes
+        .get(recipient)
+        .expect("recipient should exist")
+        .resource_handles
+        .is_empty());
+    assert!(resources.snapshots().is_empty());
+}
+
+#[test]
 fn resource_table_rejects_owner_only_transfer() {
     let mut processes = VmProcessTable::default();
     let owner = processes.spawn_root(source("owner"));
     let recipient = processes.spawn_root(source("recipient"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("socket", "control"),
-            VmResourceTransferPolicy::OwnerOnly,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("socket", "control"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
 
     assert_eq!(
         resources
@@ -138,17 +186,13 @@ fn resource_table_reports_stale_handle_after_release() {
     let mut processes = VmProcessTable::default();
     let owner = processes.spawn_root(source("owner"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("json.decoder", "scratch"),
-            VmResourceTransferPolicy::OwnerOnly,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("json.decoder", "scratch"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
 
     assert_eq!(
         resources
@@ -175,28 +219,20 @@ fn resource_table_cleans_up_owner_resources_on_process_exit() {
     let owner = processes.spawn_root(source("owner"));
     let other = processes.spawn_root(source("other"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id: owned_id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("postgres.connection", "primary"),
-            VmResourceTransferPolicy::OwnerOnly,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
-    let VmResourceEvent::Registered { id: other_id, .. } = resources
-        .register(
-            &mut processes,
-            other,
-            VmResourceDescriptor::new("postgres.connection", "analytics"),
-            VmResourceTransferPolicy::OwnerOnly,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let owned_id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("postgres.connection", "primary"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
+    let other_id = register_resource(
+        &mut processes,
+        &mut resources,
+        other,
+        VmResourceDescriptor::new("postgres.connection", "analytics"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
 
     let cleaned_handles = processes
         .exit_process(owner, VmExitReason::Normal)
@@ -225,22 +261,92 @@ fn resource_table_cleans_up_owner_resources_on_process_exit() {
 }
 
 #[test]
+fn resource_table_cleanup_owner_handles_removes_live_process_handle_rows() {
+    let mut processes = VmProcessTable::default();
+    let owner = processes.spawn_root(source("owner"));
+    let other = processes.spawn_root(source("other"));
+    let mut resources = VmResourceTable::default();
+    let first = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("file.handle", "/tmp/a"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
+    let second = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("file.handle", "/tmp/b"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
+    let other_id = register_resource(
+        &mut processes,
+        &mut resources,
+        other,
+        VmResourceDescriptor::new("file.handle", "/tmp/c"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
+
+    let cleanup_events = resources.cleanup_owner_handles(&mut processes, owner);
+
+    assert_eq!(
+        cleanup_events,
+        vec![
+            VmResourceEvent::CleanedUpOnExit { id: first, owner },
+            VmResourceEvent::CleanedUpOnExit { id: second, owner },
+        ]
+    );
+    assert!(processes
+        .get(owner)
+        .expect("owner should still exist")
+        .resource_handles
+        .is_empty());
+    assert_eq!(
+        processes
+            .get(other)
+            .expect("other should still exist")
+            .resource_handles,
+        vec![format!("resource:{}", other_id.as_u64())]
+    );
+    assert_eq!(resources.snapshots().len(), 1);
+    assert_eq!(resources.snapshots()[0].id, other_id);
+
+    assert!(resources
+        .cleanup_owner_handles(&mut processes, VmProcessId::from_raw_for_test(999))
+        .is_empty());
+
+    let detached_owner = processes.spawn_root(source("detached"));
+    resources
+        .register(
+            &mut processes,
+            detached_owner,
+            VmResourceDescriptor::new("file.handle", "/tmp/detached"),
+            VmResourceTransferPolicy::OwnerOnly,
+        )
+        .expect("detached resource should register");
+    let mut detached_processes = VmProcessTable::default();
+    assert_eq!(
+        resources
+            .cleanup_owner_handles(&mut detached_processes, detached_owner)
+            .len(),
+        1
+    );
+}
+
+#[test]
 fn resource_table_rejects_wrong_owner_access_transfer_and_release() {
     let mut processes = VmProcessTable::default();
     let owner = processes.spawn_root(source("owner"));
     let other = processes.spawn_root(source("other"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("file.handle", "/tmp/report"),
-            VmResourceTransferPolicy::Transferable,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("file.handle", "/tmp/report"),
+        VmResourceTransferPolicy::Transferable,
+    );
 
     let expected = format!(
         "resource {} is owned by process {}, not {}",
@@ -275,17 +381,13 @@ fn resource_table_reports_stale_handle_for_transfer() {
     let owner = processes.spawn_root(source("owner"));
     let recipient = processes.spawn_root(source("recipient"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("socket", "control"),
-            VmResourceTransferPolicy::Transferable,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("socket", "control"),
+        VmResourceTransferPolicy::Transferable,
+    );
     resources
         .release(&mut processes, owner, id)
         .expect("resource should release");
@@ -303,17 +405,13 @@ fn resource_table_reports_stale_handle_for_release() {
     let mut processes = VmProcessTable::default();
     let owner = processes.spawn_root(source("owner"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("socket", "control"),
-            VmResourceTransferPolicy::OwnerOnly,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("socket", "control"),
+        VmResourceTransferPolicy::OwnerOnly,
+    );
     resources
         .release(&mut processes, owner, id)
         .expect("resource should release");
@@ -333,17 +431,13 @@ fn resource_table_rejects_missing_process_roles() {
     let target = processes.spawn_root(source("target"));
     let missing = VmProcessId::from_raw_for_test(99);
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("socket", "control"),
-            VmResourceTransferPolicy::Transferable,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("socket", "control"),
+        VmResourceTransferPolicy::Transferable,
+    );
 
     assert_eq!(
         resources
@@ -383,17 +477,13 @@ fn resource_table_rejects_exited_process_roles() {
     let exited = processes.spawn_root(source("exited"));
     let live_target = processes.spawn_root(source("target"));
     let mut resources = VmResourceTable::default();
-    let VmResourceEvent::Registered { id, .. } = resources
-        .register(
-            &mut processes,
-            owner,
-            VmResourceDescriptor::new("socket", "control"),
-            VmResourceTransferPolicy::Transferable,
-        )
-        .expect("resource registration should succeed")
-    else {
-        panic!("expected registration event");
-    };
+    let id = register_resource(
+        &mut processes,
+        &mut resources,
+        owner,
+        VmResourceDescriptor::new("socket", "control"),
+        VmResourceTransferPolicy::Transferable,
+    );
     processes
         .exit_process(exited, VmExitReason::Killed)
         .expect("process should exit");

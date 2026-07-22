@@ -53,6 +53,59 @@ fn std_source_naming_rejects_lowercase_module_filename() {
     assert!(error.contains("expected `Float.terl`"));
 }
 
+/// Verifies lowercase std module declarations are rejected even when the
+/// filename matches.
+///
+/// Inputs:
+/// - Temporary std source `std/core/float.terl` declaring `std.core.float`.
+///
+/// Output:
+/// - Stable diagnostic naming the lowercase final module segment.
+///
+/// Transformation:
+/// - Locks the UpperCamel-style std module convention so source naming cannot
+///   drift back to lowercase module files.
+#[test]
+fn std_source_naming_rejects_lowercase_module_segment() {
+    let repo = temp_repo("std_source_naming_rejects_lowercase_segment");
+    write(
+        &repo,
+        "std/core/float.terl",
+        "module std.core.float.\n\npub value(): Int ->\n    1.\n",
+    );
+
+    let error = run_std_source_naming(&repo).expect_err("lowercase module should fail");
+
+    assert!(error.contains("std/core/float.terl"));
+    assert!(error.contains("final segment `float`"));
+}
+
+/// Verifies generated foreign module names may keep uppercase-leading
+/// underscore forms.
+///
+/// Inputs:
+/// - Temporary generated-style source `std/js/ANGLE_instanced_arrays.terl`.
+///
+/// Output:
+/// - Successful naming summary for one checked source.
+///
+/// Transformation:
+/// - Preserves generated Web/API names while still enforcing the uppercase
+///   leading module convention.
+#[test]
+fn std_source_naming_accepts_uppercase_leading_generated_foreign_segment() {
+    let repo = temp_repo("std_source_naming_accepts_foreign_segment");
+    write(
+        &repo,
+        "std/js/ANGLE_instanced_arrays.terl",
+        "module std.js.ANGLE_instanced_arrays.\n",
+    );
+
+    let summary = run_std_source_naming(&repo).expect("foreign std source should pass");
+
+    assert_eq!(summary.checked_source_count, 1);
+}
+
 /// Verifies generated JavaScript bindings follow the std filename convention.
 ///
 /// Inputs:

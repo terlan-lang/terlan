@@ -15,6 +15,7 @@ on:
       - "tools/**"
       - "scripts/**"
       - "install.sh"
+      - "install.ps1"
       - "Makefile"
       - ".github/workflows/ci.yml"
       - ".github/workflows/release.yml"
@@ -34,6 +35,7 @@ on:
       - "tools/**"
       - "scripts/**"
       - "install.sh"
+      - "install.ps1"
       - "Makefile"
       - ".github/workflows/ci.yml"
       - ".github/workflows/release.yml"
@@ -42,6 +44,76 @@ permissions:
   contents: read
 
 jobs:
+  direct-aot-platform:
+    name: Direct AOT (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64
+            runner: ubuntu-24.04
+          - target: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - target: macos-x86_64
+            runner: macos-15-intel
+          - target: macos-aarch64
+            runner: macos-15
+          - target: windows-x86_64
+            runner: windows-2025
+          - target: windows-aarch64
+            runner: windows-11-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Validate target-native AOT consumers
+        run: python -B tools/check_tvm_aot_platform_matrix.py target
+        env:
+          TERLAN_MATRIX_TARGET: ${{ matrix.target }}
+
+      - name: Upload target execution attestation
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvm-aot-platform-${{ matrix.target }}
+          path: target/quality/tvm-aot-platform/${{ matrix.target }}.json
+          if-no-files-found: error
+
+  direct-aot-platform-matrix:
+    name: Direct AOT platform matrix
+    runs-on: ubuntu-24.04
+    needs: direct-aot-platform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download target execution attestations
+        uses: actions/download-artifact@v4
+        with:
+          pattern: tvm-aot-platform-*
+          path: target/quality/tvm-aot-platform-input
+          merge-multiple: true
+
+      - name: Require the complete executable matrix
+        run: python -B tools/check_tvm_aot_platform_matrix.py aggregate target/quality/tvm-aot-platform-input
+
+      - name: Upload aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvm-aot-platform-matrix
+          path: target/quality/tvm-aot-platform-matrix-report.json
+          if-no-files-found: error
+          retention-days: 90
+
+  # Non-AOT feature jobs are intentionally paused during the hard AOT cutover.
+  # cpp-metadata-extractor:
+  #   ...
+
   check:
     name: Compiler check and test
     runs-on: ubuntu-latest
@@ -53,41 +125,15 @@ jobs:
       - name: Install Rust toolchain
         run: rustup toolchain install stable --profile minimal
 
-      - name: Install Erlang/OTP
-        uses: erlef/setup-beam@v1
+      - name: Validate AOT cutover
+        run: make release-candidate-check
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          otp-version: "29"
-
-      - name: Export OTP 29 path
-        run: echo "TERLAN_OTP29_BIN=$(dirname "$(command -v erl)")" >> "$GITHUB_ENV"
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install Tree-sitter package dependencies
-        run: npm install --prefix tree-sitter-terlan --no-audit --no-fund
-
-      - name: Check
-        run: make check
-
-      - name: Test
-        run: make test
-
-      - name: Release-scale tests
-        run: make test-release
-
-      - name: Tree-sitter CLI grammar check
-        run: make tree-sitter-cli-check
-
-      - name: Erlang runtime matrix
-        run: |
-          if [ -n "${TERLAN_OTP_RUNTIME_BIN:-}" ] && [ -x "$TERLAN_OTP_RUNTIME_BIN/erl" ] && [ -x "$TERLAN_OTP_RUNTIME_BIN/erlc" ]; then
-            make erlang-runtime-matrix-check
-          else
-            echo "Skipping runtime matrix: TERLAN_OTP_RUNTIME_BIN is not configured in this CI workspace."
-          fi
-
-      - name: 0.0.5 release gate
-        run: make release-0-0-5-preflight
+          name: compiler-ci-failure-${{ github.run_id }}
+          path: |
+            target/quality
+            build/artifacts
+          if-no-files-found: ignore

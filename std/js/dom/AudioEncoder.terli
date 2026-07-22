@@ -1,0 +1,85 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioEncoder
+ */
+module std.js.Dom.AudioEncoder.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`AudioEncoder`** interface of the WebCodecs API encodes AudioData objects.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder)
+ */
+pub opaque type AudioEncoder.
+
+/**
+ * The **`encodeQueueSize`** read-only property of the AudioEncoder interface returns the number of pending encode requests in the queue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/encodeQueueSize)
+ */
+pub (value: AudioEncoder) encode_queue_size(): std.js.Number.JsNumber.
+
+/**
+ * The **`state`** read-only property of the AudioEncoder interface returns the current state of the underlying codec.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/state)
+ */
+pub (value: AudioEncoder) state(): CodecState.
+
+/**
+ * The **`close()`** method of the AudioEncoder interface ends all pending work and releases system resources.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/close)
+ */
+pub (value: AudioEncoder) close(): Unit.
+
+/**
+ * The **`configure()`** method of the AudioEncoder interface enqueues a control message to configure the audio encoder for encoding chunks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/configure)
+ */
+pub (value: AudioEncoder) configure(config: AudioEncoderConfig): Unit.
+
+/**
+ * The **`encode()`** method of the AudioEncoder interface enqueues a control message to encode a given AudioData object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/encode)
+ */
+pub (value: AudioEncoder) encode(data: AudioData): Unit.
+
+/**
+ * The **`flush()`** method of the AudioEncoder interface returns a Promise that resolves once all pending messages in the queue have been completed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/flush)
+ */
+pub (value: AudioEncoder) flush(): std.js.Promise[Unit].
+
+/**
+ * The **`reset()`** method of the AudioEncoder interface resets all states including configuration, control messages in the control message queue, and all pending callbacks.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/reset)
+ */
+pub (value: AudioEncoder) reset(): Unit.
+
+pub (value: AudioEncoder) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: AudioEncoder) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

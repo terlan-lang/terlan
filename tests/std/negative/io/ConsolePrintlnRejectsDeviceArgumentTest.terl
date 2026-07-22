@@ -1,0 +1,5 @@
+module std.negative.io.ConsolePrintlnRejectsDeviceArgumentTest.
+
+@test
+pub console_println_rejects_device_argument(): Bool ->
+    std.io.Console.println("device", "message") == Unit.

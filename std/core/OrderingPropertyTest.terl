@@ -1,0 +1,81 @@
+/**
+ * Property-based Ordering invariants.
+ *
+ * `std.core.OrderingPropertyTest` validates the closed comparison domain
+ * against the public Ordering API so ordering results are covered by the
+ * shared property-testing machinery.
+ */
+module std.core.OrderingPropertyTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Eq, Gt, Lt, compare, from_string, to_string}.
+import std.test.Gen.{elements, for_all}.
+import std.test.Test.{each}.
+
+import type std.core.Ordering.Comparison.
+
+/**
+ * Builds the closed comparison-result generator.
+ *
+ * Input: no runtime input.
+ * Output: generator containing `Lt`, `Eq`, and `Gt`.
+ * Transformation: exposes the finite Ordering domain to property tests.
+ */
+comparison_values(): std.test.Gen.Gen[Comparison] ->
+    elements([Lt, Eq, Gt]).
+
+/**
+ * Reverses a comparison result.
+ *
+ * Input: one comparison result.
+ * Output: the opposite comparison result.
+ * Transformation: maps `Lt` to `Gt`, `Gt` to `Lt`, and keeps `Eq` unchanged.
+ */
+reverse_comparison(value: Comparison): Comparison ->
+    case value {
+        Lt -> Gt;
+        Eq -> Eq;
+        Gt -> Lt
+    }.
+
+/**
+ * Verifies comparing a generated comparison value to itself returns equality.
+ *
+ * Input: generated comparison values.
+ * Output: `true` when every generated self-comparison returns `Eq`.
+ * Transformation: checks reflexive comparison over the closed Ordering domain.
+ */
+@test
+pub generated_comparisons_compare_self_as_equal(): Bool ->
+    for_all(elements([Lt, Eq, Gt]), (value) -> compare(value, value) == Eq).
+
+/**
+ * Verifies generated comparison values survive canonical string roundtrips.
+ *
+ * Input: generated comparison values.
+ * Output: `true` when `to_string -> from_string` returns the original value.
+ * Transformation: checks parse/render consistency through the public Ordering
+ * API.
+ */
+@test
+pub generated_comparisons_string_round_trip(): Bool ->
+    for_all(elements([Lt, Eq, Gt]), (value) -> case from_string(to_string(value)) {
+        Some(parsed) -> parsed == value;
+        None -> false
+    }).
+
+/**
+ * Verifies comparison is antisymmetric across generated comparison values.
+ *
+ * Input: generated left and right comparison values.
+ * Output: `true` when reversing `compare(right, left)` matches
+ * `compare(left, right)`.
+ * Transformation: checks the ordering law over every generated pair.
+ */
+@test
+pub generated_comparison_pairs_are_antisymmetric(): Bool ->
+    for_all(elements([Lt, Eq, Gt]), (left) -> for_all(elements([Lt, Eq, Gt]), (right) -> case compare(right, left) {
+        Lt -> compare(left, right) == Gt;
+        Eq -> compare(left, right) == Eq;
+        Gt -> compare(left, right) == Lt
+    })).

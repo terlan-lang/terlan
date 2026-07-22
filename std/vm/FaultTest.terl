@@ -1,0 +1,143 @@
+module std.vm.FaultTest.
+
+import std.core.Option.{None, Some}.
+import std.test.Test.{assert_equal}.
+import std.vm.{Fault, Scheduler}.
+
+import type std.core.Option.
+import type std.vm.Fault.{Monitor, Transition}.
+import type std.vm.Scheduler.
+
+pub complete_recovery_scenario(monitor: Monitor, suspected: Transition, isolated: Transition): Bool ->
+    let recovering = monitor.begin_recovery("node-a", 8, "peer rejoined");
+    let recovered = monitor.complete("node-a", 9, "state caught up");
+    assert_equal("suspected", Fault.transition_next_state(suspected)) and assert_equal("isolated", Fault.transition_next_state(isolated)) and assert_equal("recovering", Fault.transition_next_state(recovering)) and assert_equal("recovered", Fault.transition_next_state(recovered)) and assert_equal("recovered", monitor.state_name("node-a")) and assert_equal(4, monitor.transitions_after(0).length()) and assert_equal(2, monitor.failures_after(0).length()).
+
+pub expire_recovery_scenario(
+    monitor: Monitor,
+    first: Option[Transition],
+    replay: Option[Transition]
+): Bool ->
+    let _recovering = monitor.begin_recovery("node-a", 7, "peer rejoined");
+    let before_expiry = monitor.expire("node-a", 16, "recovery expired");
+    let expired = monitor.expire("node-a", 17, "recovery expired");
+    case expired {
+        Some(transition) ->
+            assert_equal(first, replay) and assert_equal(None, before_expiry) and assert_equal("isolated", Fault.transition_next_state(transition)) and assert_equal("isolated", monitor.state_name("node-a")) and assert_equal(3, monitor.failures_after(0).length());
+        None -> false
+    }.
+
+pub degrade_partition_scenario(monitor: Monitor): Bool ->
+    let degraded = monitor.degrade("node-a", 4, "quorum uncertain");
+    let _isolated = monitor.isolate("node-a", 6, "partition confirmed");
+    assert_equal("degraded", Fault.transition_next_state(degraded)) and assert_equal("isolated", monitor.state_name("node-a")).
+
+pub accepted_isolated_recovery_and_rollback(
+    monitor: Monitor,
+    scheduler: Scheduler,
+    suspected: Transition,
+    degraded: Transition,
+    isolated: Transition
+): Bool ->
+    let recovering = monitor.begin_recovery("node-a", 8, "peer rejoined");
+    let before_expiry = monitor.expire("node-a", 20, "recovery window bounded");
+    let requested = scheduler.request_migration("actor-a", "node-a", "node-b", true);
+    let migration = Scheduler.migration(requested);
+    let migrating = Scheduler.migration_scheduler(requested);
+    let rolled_back = migrating.rollback_migration(migration, "migration timed out");
+    let outcome = Scheduler.outcome(rolled_back);
+    let completed = Scheduler.outcome_scheduler(rolled_back);
+    assert_equal("partition_onset", Fault.transition_diagnostic_kind(suspected)) and assert_equal("suspect_quorum", Fault.transition_diagnostic_kind(degraded)) and assert_equal("node_role_demotion", Fault.transition_diagnostic_kind(isolated)) and assert_equal("recovery_started", Fault.transition_diagnostic_kind(recovering)) and assert_equal(None, before_expiry) and assert_equal("rolled_back", Scheduler.outcome_kind(outcome)) and assert_equal(2, completed.events_after(0).length()).
+
+pub accepted_recovery_and_rollback(
+    monitor: Monitor,
+    scheduler: Scheduler,
+    suspected: Transition
+): Bool ->
+    let degraded = monitor.degrade("node-a", 5, "suspect quorum");
+    case monitor.isolate("node-a", 7, "partition confirmed") {
+        Some(isolated) ->
+            accepted_isolated_recovery_and_rollback(monitor, scheduler, suspected, degraded, isolated);
+        None -> false
+    }.
+
+@test
+pub fault_monitor_suppresses_duplicate_heartbeat(): Bool ->
+    let monitor = Fault.monitor(["node-a"], Fault.policy(2, 5, 9));
+    let first = monitor.record_heartbeat("node-a", 1);
+    let duplicate = monitor.record_heartbeat("node-a", 1);
+    assert_equal("recorded", first) and assert_equal("duplicate_suppressed", duplicate).
+
+@test
+pub fault_monitor_supports_degraded_partition_state(): Bool ->
+    let monitor = Fault.monitor(["node-a"], Fault.policy(2, 5, 9));
+    case monitor.suspect("node-a", 3, "heartbeat missed") {
+        Some(_suspected) -> degrade_partition_scenario(monitor);
+        None -> false
+    }.
+
+@test
+pub fault_monitor_close_releases_resource(): Bool ->
+    let monitor = Fault.monitor(["node-a"], Fault.policy(2, 5, 9));
+    assert_equal(Unit, monitor.close()).
+
+@test
+pub fault_monitor_classifies_isolates_and_recovers_node(): Bool ->
+    let monitor = Fault.monitor(["node-a", "node-b"], Fault.policy(2, 5, 9));
+    let _heartbeat = monitor.record_heartbeat("node-a", 1);
+    case monitor.suspect("node-a", 4, "heartbeat missed") {
+        Some(suspected) ->
+            case monitor.isolate("node-a", 7, "partition confirmed") {
+                Some(isolated) -> complete_recovery_scenario(monitor, suspected, isolated);
+                None -> false
+            };
+        None -> false
+    }.
+
+@test
+pub distributed_fault_recovery_and_rollback_has_no_orphaned_state(): Bool ->
+    let monitor = Fault.monitor(["node-a", "node-b"], Fault.resolve_policy(Fault.policy(2, 5, 9), Fault.policy(3, 6, 12)));
+    let scheduler = Scheduler.new([Scheduler.node("node-a", "active"), Scheduler.node("node-b", "active")]);
+    case monitor.suspect("node-a", 4, "heartbeat missed") {
+        Some(suspected) -> accepted_recovery_and_rollback(monitor, scheduler, suspected);
+        None -> false
+    }.
+
+@test
+pub fault_compatibility_outcomes_are_explicit(): Bool ->
+    assert_equal("supported", Fault.compatibility(true, false)) and assert_equal("fallback_local_only", Fault.compatibility(false, true)) and assert_equal("feature_unsupported", Fault.compatibility(false, false)).
+
+@test
+pub fault_monitor_bounds_recovery_and_suppresses_transition_replay(): Bool ->
+    let monitor = Fault.monitor(["node-a"], Fault.policy(2, 5, 9));
+    let first = monitor.suspect("node-a", 3, "heartbeat missed");
+    let replay = monitor.suspect("node-a", 3, "heartbeat missed");
+    case monitor.isolate("node-a", 6, "partition confirmed") {
+        Some(_isolated) -> expire_recovery_scenario(monitor, first, replay);
+        None -> false
+    }.
+
+@test
+pub migration_timeout_rolls_back_without_orphaned_scheduler_state(): Bool ->
+    let scheduler = Scheduler.new([Scheduler.node("node-a", "active"), Scheduler.node("node-b", "active")]);
+    let requested = scheduler.request_migration("actor-a", "node-a", "node-b", true);
+    let migration = Scheduler.migration(requested);
+    let migrating = Scheduler.migration_scheduler(requested);
+    let rolled_back = migrating.rollback_migration(migration, "migration timed out");
+    let outcome = Scheduler.outcome(rolled_back);
+    let completed = Scheduler.outcome_scheduler(rolled_back);
+    let failure = Fault.failure(Fault.migration_timeout("actor-a", 1, "node-a", "node-b", "requested", 15, "migration timed out"));
+    assert_equal("rolled_back", Scheduler.outcome_kind(outcome)) and assert_equal("migration timed out", Scheduler.outcome_reason(outcome)) and assert_equal(2, completed.events_after(0).length()) and assert_equal("migration_timeout", Fault.failure_kind(failure)) and assert_equal("node-b", Fault.failure_node_id(failure)) and assert_equal(15, Fault.failure_tick(failure)) and assert_equal("migration timed out", Fault.failure_reason(failure)).
+
+@test
+pub fault_descriptor_constructors_validate_and_expose_stable_fields(): Bool ->
+    let policy = Fault.policy(5, 10, 20);
+    let _initial = Fault.state("node-a", "recovered");
+    let transition = Fault.classify_heartbeat(policy, "node-a", 6, 6, "heartbeat missed");
+    let isolated = Fault.isolate_partition(policy, "node-a", 11, 11, "partition suspected");
+    let recovery = Fault.start_recovery("node-a", 12, "operator approved recovery");
+    let completed = Fault.complete_recovery(recovery, 13, "node caught up");
+    let expired = Fault.expire_recovery(policy, recovery, 40, "recovery window expired");
+    let partial = Fault.failure(Fault.migration_partial_commit("actor-b", 2, "node-a", "node-b", "snapshotting", 16, "partial commit"));
+    let stale = Fault.stale_placement_update("actor-c", "node-b", 4, 5, 17, "stale placement");
+    assert_equal("node-a", Fault.transition_node_id(transition)) and assert_equal("recovered", Fault.transition_previous_state(transition)) and assert_equal("suspected", Fault.transition_next_state(transition)) and assert_equal("partition_onset", Fault.transition_diagnostic_kind(transition)) and assert_equal(6, Fault.transition_tick(transition)) and assert_equal("heartbeat missed", Fault.transition_reason(transition)) and assert_equal("isolated", Fault.transition_next_state(isolated)) and assert_equal("recovered", Fault.transition_next_state(completed)) and assert_equal("recovery_completion", Fault.transition_diagnostic_kind(completed)) and assert_equal("recovery_window_expired", Fault.failure_kind(expired)) and assert_equal("migration_partial_commit", Fault.failure_kind(partial)) and assert_equal("migration_rollback_decision", Fault.failure_diagnostic_kind(partial)) and assert_equal("stale_placement_update", Fault.failure_kind(stale)).

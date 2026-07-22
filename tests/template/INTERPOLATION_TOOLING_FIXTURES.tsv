@@ -1,0 +1,5 @@
+text_slot	text	<p>Hello ${name}</p>
+attribute_slot	attribute	<a href="${url}">Link</a>
+nested_expression	text	<p>${case value { _ -> "}" }}</p>
+html_native_text	text	<h1>{user.name}</h1>
+html_native_attribute	attribute	<a href={profile_url(user.id)}>Profile</a>

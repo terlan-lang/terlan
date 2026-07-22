@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface StyleSheetList
+ */
+module std.js.Dom.StyleSheetList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The `StyleSheetList` interface represents a list of CSSStyleSheet objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList)
+ */
+pub opaque type StyleSheetList.
+
+/**
+ * The **`length`** read-only property of the StyleSheetList interface returns the number of CSSStyleSheet objects in the collection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList/length)
+ */
+pub (value: StyleSheetList) length(): JsNumber.
+
+/**
+ * The **`item()`** method of the StyleSheetList interface returns a single CSSStyleSheet object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList/item)
+ */
+pub (value: StyleSheetList) item(index: JsNumber): Option[CSSStyleSheet].

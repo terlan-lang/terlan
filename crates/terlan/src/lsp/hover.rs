@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
 use crate::terlan_hir::{FunctionSignature, ModuleInterface, ParamSignature};
+use crate::terlan_purity::{
+    infer_body_available_pure_callables, syntax_declaration_callable_identity, CallableIdentity,
+};
 use crate::terlan_syntax::{
     parse_module_as_syntax_output, SyntaxDeclarationOutput, SyntaxDeclarationPayload,
-    SyntaxModuleOutput, SyntaxParamOutput,
+    SyntaxModuleOutput, SyntaxParamOutput, SyntaxTraitMethodOutput,
 };
 use tower_lsp::lsp_types::{Hover, HoverContents, MarkupContent, MarkupKind, Position, Url};
 
@@ -74,10 +77,23 @@ fn local_hover_markdown(module: &SyntaxModuleOutput, identifier: &str) -> Option
         );
     }
 
-    module
-        .declarations
-        .iter()
-        .find_map(|declaration| declaration_hover_markdown(declaration, identifier))
+    let known_pure = infer_body_available_pure_callables(module);
+    module.declarations.iter().find_map(|declaration| {
+        let markdown = declaration_hover_markdown(declaration, identifier, &known_pure)?;
+        let is_target_type = matches!(
+            &declaration.payload,
+            SyntaxDeclarationPayload::Type { name, .. }
+                | SyntaxDeclarationPayload::Struct { name, .. }
+                if name == identifier
+        );
+        if !is_target_type {
+            return Some(markdown);
+        }
+        Some(append_negative_trait_impls(
+            markdown,
+            local_negative_trait_impl_signatures(module, identifier),
+        ))
+    })
 }
 
 /// Builds hover Markdown from one source declaration.
@@ -96,7 +112,13 @@ fn local_hover_markdown(module: &SyntaxModuleOutput, identifier: &str) -> Option
 fn declaration_hover_markdown(
     declaration: &SyntaxDeclarationOutput,
     identifier: &str,
+    known_pure: &std::collections::HashSet<CallableIdentity>,
 ) -> Option<String> {
+    if let SyntaxDeclarationPayload::Raw { raw_kind, text } = &declaration.payload {
+        let (name, signature) = raw_shape_hover_parts(raw_kind, text, identifier)?;
+        return hover_markdown("shape", &name, &signature, &declaration.docs);
+    }
+
     let (kind, name, signature) = match &declaration.payload {
         SyntaxDeclarationPayload::Type {
             name,
@@ -114,11 +136,19 @@ fn declaration_hover_markdown(
             ),
         ),
         SyntaxDeclarationPayload::Struct {
-            name, is_public, ..
+            name,
+            generic_params,
+            is_public,
+            ..
         } if name == identifier => (
             "struct",
             name.as_str(),
-            format!("{}struct {}", visibility_prefix(*is_public), name),
+            format!(
+                "{}struct {}{}",
+                visibility_prefix(*is_public),
+                name,
+                type_params_text(generic_params)
+            ),
         ),
         SyntaxDeclarationPayload::Constructor {
             name,
@@ -135,8 +165,72 @@ fn declaration_hover_markdown(
                 type_params_text(params)
             ),
         ),
+        SyntaxDeclarationPayload::Constant {
+            name,
+            annotation,
+            value,
+            is_public,
+        } if name == identifier => (
+            "constant",
+            name.as_str(),
+            format!(
+                "{}const {}: {} = {}",
+                visibility_prefix(*is_public),
+                name,
+                annotation.text,
+                value
+                    .raw
+                    .as_deref()
+                    .or(value.text.as_deref())
+                    .unwrap_or("<const value>")
+            ),
+        ),
+        SyntaxDeclarationPayload::ConstFunction {
+            name,
+            params,
+            return_type,
+            is_public,
+            ..
+        } if name == identifier => (
+            "const function",
+            name.as_str(),
+            format!(
+                "{}const {}({}): {}",
+                visibility_prefix(*is_public),
+                name,
+                syntax_params_text(params),
+                return_type.text
+            ),
+        ),
+        SyntaxDeclarationPayload::Type {
+            name,
+            valued_arms,
+            representation,
+            ..
+        } if valued_arms.iter().any(|arm| arm.name == identifier) => {
+            let arm = valued_arms.iter().find(|arm| arm.name == identifier)?;
+            (
+                "valued-union constant",
+                arm.name.as_str(),
+                format!(
+                    "{}.{}: {} = {}",
+                    name,
+                    arm.name,
+                    representation
+                        .as_ref()
+                        .map(|ty| ty.text.as_str())
+                        .unwrap_or(name),
+                    arm.value
+                        .raw
+                        .as_deref()
+                        .or(arm.value.text.as_deref())
+                        .unwrap_or("<const value>")
+                ),
+            )
+        }
         SyntaxDeclarationPayload::Function {
             name,
+            generic_params,
             params,
             return_type,
             is_public,
@@ -145,9 +239,11 @@ fn declaration_hover_markdown(
             "function",
             name.as_str(),
             format!(
-                "{}{}({}): {}",
+                "{}{}{}{}({}): {}",
+                declaration_purity_prefix(declaration, known_pure),
                 visibility_prefix(*is_public),
                 name,
+                type_params_text(generic_params),
                 syntax_params_text(params),
                 return_type.text
             ),
@@ -155,6 +251,7 @@ fn declaration_hover_markdown(
         SyntaxDeclarationPayload::Method {
             receiver,
             name,
+            generic_params,
             params,
             return_type,
             is_public,
@@ -163,11 +260,13 @@ fn declaration_hover_markdown(
             "method",
             name.as_str(),
             format!(
-                "{}({}: {}) {}({}): {}",
+                "{}{}({}: {}) {}{}({}): {}",
+                declaration_purity_prefix(declaration, known_pure),
                 visibility_prefix(*is_public),
                 receiver.name,
                 receiver.annotation.text,
                 name,
+                type_params_text(generic_params),
                 syntax_params_text(params),
                 return_type.text
             ),
@@ -187,12 +286,106 @@ fn declaration_hover_markdown(
                 type_params_text(params)
             ),
         ),
+        SyntaxDeclarationPayload::Trait { methods, .. } => {
+            let method = methods.iter().find(|method| method.name == identifier)?;
+            (
+                "trait method",
+                method.name.as_str(),
+                syntax_trait_method_signature(method),
+            )
+        }
         SyntaxDeclarationPayload::Template { name, .. } if name == identifier => {
             ("template", name.as_str(), format!("template {name}"))
         }
         _ => return None,
     };
     hover_markdown(kind, name, &signature, &declaration.docs)
+}
+
+/// Returns the source-like purity prefix for function and method hovers.
+///
+/// Inputs:
+/// - `declaration`: syntax-output callable declaration.
+/// - `known_pure`: compiler-proven body and assertion purity identities.
+///
+/// Output:
+/// - `"@pure\n"` for compiler-proven pure declarations, otherwise empty text.
+///
+/// Transformation:
+/// - Projects the same inferred/asserted metadata emitted into interfaces and
+///   public docs into same-document hover signatures.
+fn declaration_purity_prefix(
+    declaration: &SyntaxDeclarationOutput,
+    known_pure: &std::collections::HashSet<CallableIdentity>,
+) -> &'static str {
+    if syntax_declaration_callable_identity(declaration)
+        .is_some_and(|identity| known_pure.contains(&identity))
+    {
+        "@pure\n"
+    } else {
+        ""
+    }
+}
+
+/// Extracts local hover metadata from a raw shape declaration.
+///
+/// Inputs:
+/// - `raw_kind`: raw declaration kind emitted by syntax output.
+/// - `text`: original raw declaration text.
+/// - `identifier`: source identifier under the cursor.
+///
+/// Output:
+/// - Shape name and source-like signature when the raw declaration is a shape
+///   matching the hovered identifier.
+///
+/// Transformation:
+/// - Keeps editor hover useful while shape expansion remains intentionally
+///   rejected by typechecking.
+fn raw_shape_hover_parts(raw_kind: &str, text: &str, identifier: &str) -> Option<(String, String)> {
+    if raw_kind != "shape" {
+        return None;
+    }
+
+    let trimmed = text.trim();
+    let after_visibility =
+        if let Some(rest) = trimmed.strip_prefix("pub").and_then(trim_keyword_rest) {
+            rest
+        } else {
+            trimmed
+        };
+    let after_shape = after_visibility
+        .strip_prefix("shape")
+        .and_then(trim_keyword_rest)?;
+    let name = after_shape
+        .chars()
+        .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
+        .collect::<String>();
+    if name != identifier {
+        return None;
+    }
+
+    let signature = trimmed.strip_suffix('.').unwrap_or(trimmed).trim_end();
+    Some((name, signature.to_string()))
+}
+
+/// Trims whitespace after a recognized keyword token.
+///
+/// Inputs:
+/// - `rest`: source text immediately after the keyword spelling.
+///
+/// Output:
+/// - Remaining source after required whitespace.
+///
+/// Transformation:
+/// - Prevents prefix matches such as `publisher` or `shapeName` from being
+///   treated as keyword-bearing declarations.
+fn trim_keyword_rest(rest: &str) -> Option<&str> {
+    let mut chars = rest.chars();
+    let first = chars.next()?;
+    if !first.is_whitespace() {
+        return None;
+    }
+    Some(chars.as_str().trim_start())
 }
 
 /// Builds hover Markdown from packaged module interfaces.
@@ -289,6 +482,70 @@ fn interface_member_hover_markdown(
     interface: &ModuleInterface,
     identifier: &str,
 ) -> Option<String> {
+    if let Some(constant) = interface.constants.get(identifier) {
+        return hover_markdown(
+            "constant",
+            &format!("{module_name}.{identifier}"),
+            &format!(
+                "pub const {}: {} = {}\n// fingerprint: {}",
+                constant.name, constant.annotation, constant.value_text, constant.fingerprint
+            ),
+            &constant.docs,
+        );
+    }
+
+    if let Some(function) = interface
+        .const_functions
+        .values()
+        .filter(|function| function.name == identifier)
+        .min_by_key(|function| function.params.len())
+    {
+        return hover_markdown(
+            "const function",
+            &format!("{module_name}.{identifier}"),
+            &format!(
+                "pub const {}({}): {}\n// evaluator fingerprint: {}",
+                function.name,
+                interface_params_text(&function.params),
+                function.return_type,
+                function.fingerprint
+            ),
+            &function.docs,
+        );
+    }
+
+    if let Some((owner, arm)) = interface.valued_unions.iter().find_map(|(owner, union)| {
+        union
+            .arms
+            .iter()
+            .find(|arm| arm.name == identifier)
+            .map(|arm| (owner, arm))
+    }) {
+        return hover_markdown(
+            "valued-union constant",
+            &format!("{module_name}.{owner}.{identifier}"),
+            &format!(
+                "{owner}.{} = {}\n// fingerprint: {}",
+                arm.name, arm.value_text, arm.fingerprint
+            ),
+            &[],
+        );
+    }
+
+    if let Some(constant) = interface.associated_constants.values().find(|constant| {
+        constant.name == identifier || constant.name.ends_with(&format!(".{identifier}"))
+    }) {
+        return hover_markdown(
+            "trait-associated constant",
+            &format!("{module_name}.{}", constant.name),
+            &format!(
+                "{}: {} = {}\n// fingerprint: {}",
+                constant.name, constant.annotation, constant.value_text, constant.fingerprint
+            ),
+            &constant.docs,
+        );
+    }
+
     if let Some(docs) = interface.type_docs.get(identifier) {
         if interface.public_types.contains(identifier)
             || interface.opaque_types.contains(identifier)
@@ -303,13 +560,26 @@ fn interface_member_hover_markdown(
             } else {
                 "type"
             };
-            return hover_markdown(
+            let markdown = hover_markdown(
                 kind,
                 &format!("{module_name}.{identifier}"),
                 &format!("pub {kind} {identifier}{params}"),
                 docs,
-            );
+            )?;
+            return Some(append_negative_trait_impls(
+                markdown,
+                interface_negative_trait_impl_signatures(interface, identifier),
+            ));
         }
+    }
+
+    if let Some(shape) = interface.shapes.get(identifier) {
+        return hover_markdown(
+            "shape",
+            &format!("{module_name}.{identifier}"),
+            &shape.signature,
+            &shape.docs,
+        );
     }
 
     if let Some(constructors) = interface
@@ -330,6 +600,22 @@ fn interface_member_hover_markdown(
         );
     }
 
+    if let Some((trait_name, method)) = interface.traits.iter().find_map(|(trait_name, trait_)| {
+        trait_
+            .methods
+            .get(identifier)
+            .map(|method| (trait_name, method))
+    }) {
+        let params = interface_params_text(&method.params);
+        let pure = if method.pure { "@pure\n" } else { "" };
+        return hover_markdown(
+            "trait method",
+            &format!("{module_name}.{trait_name}.{identifier}"),
+            &format!("{pure}{identifier}({params}): {}", method.return_type),
+            &method.docs,
+        );
+    }
+
     let signature = interface
         .functions
         .values()
@@ -345,6 +631,82 @@ fn interface_member_hover_markdown(
         &format!("{module_name}.{identifier}"),
         &interface_function_signature(signature),
         &signature.docs,
+    )
+}
+
+/// Collects source-like negative impl facts for one local target type.
+fn local_negative_trait_impl_signatures(
+    module: &SyntaxModuleOutput,
+    type_name: &str,
+) -> Vec<String> {
+    let mut signatures = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::TraitImpl {
+                trait_ref,
+                for_type,
+                is_negative: true,
+                is_public,
+                ..
+            } if Backend::base_type_name(&for_type.text) == type_name => Some(format!(
+                "{}impl not {}[{}].",
+                visibility_prefix(*is_public),
+                trait_ref.text,
+                for_type.text
+            )),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    signatures.sort();
+    signatures.dedup();
+    signatures
+}
+
+/// Collects exported negative impl facts for one imported target type.
+fn interface_negative_trait_impl_signatures(
+    interface: &ModuleInterface,
+    type_name: &str,
+) -> Vec<String> {
+    let mut signatures = interface
+        .trait_conformances
+        .iter()
+        .filter(|conformance| {
+            conformance.is_negative
+                && conformance.public
+                && Backend::base_type_name(&conformance.for_type) == type_name
+        })
+        .map(|conformance| {
+            format!(
+                "pub impl not {}[{}].",
+                conformance.trait_ref, conformance.for_type
+            )
+        })
+        .collect::<Vec<_>>();
+    signatures.sort();
+    signatures.dedup();
+    signatures
+}
+
+/// Appends visible negative impl metadata to a type hover.
+fn append_negative_trait_impls(mut markdown: String, signatures: Vec<String>) -> String {
+    if signatures.is_empty() {
+        return markdown;
+    }
+    markdown.push_str("\n\n**Negative trait implementations**\n\n```terlan\n");
+    markdown.push_str(&signatures.join("\n"));
+    markdown.push_str("\n```");
+    markdown
+}
+
+/// Renders the source-facing signature for one trait method hover entry.
+fn syntax_trait_method_signature(method: &SyntaxTraitMethodOutput) -> String {
+    let pure = if method.is_pure { "@pure\n" } else { "" };
+    format!(
+        "{pure}{}({}): {}",
+        method.name,
+        syntax_params_text(&method.params),
+        method.return_type.text
     )
 }
 
@@ -440,6 +802,8 @@ fn qualifier_before_identifier(text: &str, byte_offset: usize) -> Option<String>
 ///   hover display.
 fn interface_function_signature(signature: &FunctionSignature) -> String {
     let params = interface_params_text(&signature.params);
+    let generic_params = type_params_text(&signature.generic_params);
+    let purity_prefix = if signature.pure { "@pure\n" } else { "" };
     if signature.receiver_method {
         let receiver = signature.params.first();
         let receiver_text = receiver
@@ -451,13 +815,18 @@ fn interface_function_signature(signature: &FunctionSignature) -> String {
             interface_params_text(&signature.params[1..])
         };
         format!(
-            "pub {}{}({}): {}",
-            receiver_text, signature.name, rest, signature.return_type
+            "{}pub {}{}{}({}): {}",
+            purity_prefix,
+            receiver_text,
+            signature.name,
+            generic_params,
+            rest,
+            signature.return_type
         )
     } else {
         format!(
-            "pub {}({}): {}",
-            signature.name, params, signature.return_type
+            "{}pub {}{}({}): {}",
+            purity_prefix, signature.name, generic_params, params, signature.return_type
         )
     }
 }
@@ -475,7 +844,10 @@ fn interface_function_signature(signature: &FunctionSignature) -> String {
 fn syntax_params_text(params: &[SyntaxParamOutput]) -> String {
     params
         .iter()
-        .map(|param| format!("{}: {}", param.name, param.annotation.text))
+        .map(|param| {
+            let display_name = param.pattern_text.as_deref().unwrap_or(&param.name);
+            format!("{}: {}", display_name, param.annotation.text)
+        })
         .collect::<Vec<_>>()
         .join(", ")
 }

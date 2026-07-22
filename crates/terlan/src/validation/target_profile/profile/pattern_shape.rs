@@ -16,19 +16,23 @@ impl TargetProfile {
         pattern: &CorePattern,
     ) -> bool {
         match self {
-            Self::Erlang | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
-            Self::A0Erlang | Self::A01Erlang | Self::A02Erlang | Self::A03Erlang => {
+            Self::Vm => true,
+            Self::JsShared | Self::JsBrowser | Self::JsWorker => {
+                !matches!(pattern, CorePattern::BinaryLayout { .. })
+            }
+            Self::WasmCore => matches!(pattern, CorePattern::Var(_)),
+            Self::A0Vm | Self::A01Vm | Self::A02Vm | Self::A03Vm => {
                 matches!(pattern, CorePattern::Var(_))
             }
-            Self::A04Erlang => matches!(pattern, CorePattern::Var(_) | CorePattern::Int(_)),
-            Self::A05Erlang => matches!(
+            Self::A04Vm => matches!(pattern, CorePattern::Var(_) | CorePattern::Int(_)),
+            Self::A05Vm => matches!(
                 pattern,
                 CorePattern::Wildcard
                     | CorePattern::Var(_)
                     | CorePattern::Int(_)
                     | CorePattern::Atom(_)
             ),
-            Self::A06Erlang => match pattern {
+            Self::A06Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -38,7 +42,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A07Erlang => match pattern {
+            Self::A07Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -48,7 +52,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A08Erlang => match pattern {
+            Self::A08Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -58,7 +62,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A09Erlang => match pattern {
+            Self::A09Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -68,7 +72,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A010Erlang => match pattern {
+            Self::A010Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -78,7 +82,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A011Erlang => match pattern {
+            Self::A011Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -88,7 +92,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A012Erlang => match pattern {
+            Self::A012Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -98,7 +102,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A013Erlang => match pattern {
+            Self::A013Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -106,6 +110,7 @@ impl TargetProfile {
                 CorePattern::Tuple(values) | CorePattern::List(values) => {
                     values.iter().all(|value| self.allows_pattern_shape(value))
                 }
+                CorePattern::Alias { pattern, .. } => self.allows_pattern_shape(pattern),
                 CorePattern::Constructor {
                     constructor_identity,
                     args,
@@ -116,14 +121,14 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A014Erlang
-            | Self::A015Erlang
-            | Self::A016Erlang
-            | Self::A017Erlang
-            | Self::A018Erlang
-            | Self::A019Erlang
-            | Self::A020Erlang
-            | Self::A021Erlang => match pattern {
+            Self::A014Vm
+            | Self::A015Vm
+            | Self::A016Vm
+            | Self::A017Vm
+            | Self::A018Vm
+            | Self::A019Vm
+            | Self::A020Vm
+            | Self::A021Vm => match pattern {
                 CorePattern::Wildcard
                 | CorePattern::Var(_)
                 | CorePattern::Int(_)
@@ -131,6 +136,7 @@ impl TargetProfile {
                 CorePattern::Tuple(values) | CorePattern::List(values) => {
                     values.iter().all(|value| self.allows_pattern_shape(value))
                 }
+                CorePattern::Alias { pattern, .. } => self.allows_pattern_shape(pattern),
                 CorePattern::Constructor {
                     constructor_identity,
                     args,
@@ -149,6 +155,7 @@ impl TargetProfile {
                 CorePattern::Tuple(values) | CorePattern::List(values) => {
                     values.iter().all(|value| self.allows_pattern_shape(value))
                 }
+                CorePattern::Alias { pattern, .. } => self.allows_pattern_shape(pattern),
                 CorePattern::Constructor {
                     constructor_identity,
                     args,
@@ -158,9 +165,12 @@ impl TargetProfile {
                         && args.iter().all(|arg| self.allows_pattern_shape(arg))
                 }
                 CorePattern::Float(_)
+                | CorePattern::String(_)
+                | CorePattern::StringPattern(_)
                 | CorePattern::ListCons { .. }
                 | CorePattern::Map(_)
-                | CorePattern::Record { .. } => false,
+                | CorePattern::Record { .. }
+                | CorePattern::BinaryLayout { .. } => false,
             },
         }
     }

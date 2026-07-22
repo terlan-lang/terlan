@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCRtpSender
  */
 module std.js.Dom.RTCRtpSenderTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.RTCRtpSender.{RTCRtpSender}.
-
+import type std.js.Dom.RTCRtpSender.
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub dtmf_typechecks(receiver: RTCRtpSender): Option[RTCDTMFSender] ->
     receiver.dtmf().
@@ -32,10 +36,17 @@ pub get_parameters_typechecks(receiver: RTCRtpSender): RTCRtpSendParameters ->
 pub get_stats_typechecks(receiver: RTCRtpSender): Promise[RTCStatsReport] ->
     receiver.get_stats().
 
-pub replace_track_typechecks(receiver: RTCRtpSender, with_track: Option[MediaStreamTrack]): Promise[Unit] ->
+pub replace_track_typechecks(
+    receiver: RTCRtpSender,
+    with_track: Option[MediaStreamTrack]
+): Promise[Unit] ->
     receiver.replace_track(with_track).
 
-pub set_parameters_typechecks(receiver: RTCRtpSender, parameters: RTCRtpSendParameters, set_parameter_options: RTCSetParameterOptions): Promise[Unit] ->
+pub set_parameters_typechecks(
+    receiver: RTCRtpSender,
+    parameters: RTCRtpSendParameters,
+    set_parameter_options: RTCSetParameterOptions
+): Promise[Unit] ->
     receiver.set_parameters(parameters, set_parameter_options).
 
 pub set_streams_typechecks(receiver: RTCRtpSender): Unit ->

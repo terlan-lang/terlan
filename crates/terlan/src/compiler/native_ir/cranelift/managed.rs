@@ -1,0 +1,276 @@
+//! Managed-allocation lowering for direct-AOT native functions.
+
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use cranelift_codegen::ir::{
+    types, AbiParam, Block, BlockArg, InstBuilder, Signature, StackSlotData, StackSlotKind, Value,
+};
+use cranelift_frontend::FunctionBuilder;
+use cranelift_module::{DataDescription, DataId, Linkage, Module};
+use cranelift_object::ObjectModule;
+
+use super::super::{status, NativeExpr, NativeModule};
+
+/// Read-only aggregate descriptors declared once in a native object.
+pub(super) struct ManagedLayouts {
+    ids: HashMap<Arc<[u8]>, DataId>,
+}
+
+impl ManagedLayouts {
+    /// Inventories constructor expressions and defines their immutable ABI data.
+    pub(super) fn declare(
+        module: &mut ObjectModule,
+        natives: &[NativeModule],
+    ) -> Result<Self, String> {
+        let mut layouts = Vec::<Arc<[u8]>>::new();
+        for native in natives {
+            for function in &native.functions {
+                collect_layouts(&function.body, &mut layouts);
+            }
+            for continuation in &native.continuations {
+                collect_layouts(&continuation.body, &mut layouts);
+            }
+        }
+        let mut ids = HashMap::new();
+        for layout in layouts {
+            if ids.contains_key(&layout) {
+                continue;
+            }
+            let id = module
+                .declare_data(
+                    &format!("terlan_managed_layout_{}", ids.len()),
+                    Linkage::Local,
+                    false,
+                    false,
+                )
+                .map_err(|error| format!("error[cranelift.managed_data_declare]: {error}"))?;
+            let mut description = DataDescription::new();
+            description.define(layout.to_vec().into_boxed_slice());
+            description.set_align(8);
+            module
+                .define_data(id, &description)
+                .map_err(|error| format!("error[cranelift.managed_data_define]: {error}"))?;
+            ids.insert(layout, id);
+        }
+        Ok(Self { ids })
+    }
+
+    /// Resolves the immutable object data for one encoded aggregate layout.
+    fn id(&self, layout: &Arc<[u8]>) -> Result<DataId, String> {
+        self.ids.get(layout).copied().ok_or_else(|| {
+            "error[cranelift.managed_layout]: constructor layout was not inventoried".to_string()
+        })
+    }
+}
+
+/// Emits one checked call to the VM-owned managed aggregate allocator.
+pub(super) fn emit_managed_allocation(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    layouts: &ManagedLayouts,
+    encoded_layout: &Arc<[u8]>,
+    fields: &[Value],
+    runtime_context: Value,
+    allocator: Value,
+    error_block: Block,
+) -> Result<Value, String> {
+    let pointer = module.target_config().pointer_type();
+    let allocator_missing =
+        builder
+            .ins()
+            .icmp_imm(cranelift_codegen::ir::condcodes::IntCC::Equal, allocator, 0);
+    branch_on_error(
+        builder,
+        allocator_missing,
+        status::MANAGED_RUNTIME_UNAVAILABLE,
+        error_block,
+    );
+
+    let field_bytes = fields.len().checked_mul(8).ok_or_else(|| {
+        "error[cranelift.managed_fields]: aggregate field storage overflows usize".to_string()
+    })?;
+    let stack_bytes = u32::try_from(field_bytes.max(8)).map_err(|_| {
+        "error[cranelift.managed_fields]: aggregate field storage exceeds u32".to_string()
+    })?;
+    let field_slot = builder.create_sized_stack_slot(StackSlotData::new(
+        StackSlotKind::ExplicitSlot,
+        stack_bytes,
+        3,
+    ));
+    for (index, field) in fields.iter().enumerate() {
+        let offset = i32::try_from(index.saturating_mul(8)).map_err(|_| {
+            "error[cranelift.managed_fields]: aggregate field offset exceeds i32".to_string()
+        })?;
+        builder.ins().stack_store(*field, field_slot, offset);
+    }
+    let result_slot =
+        builder.create_sized_stack_slot(StackSlotData::new(StackSlotKind::ExplicitSlot, 8, 3));
+    let zero = builder.ins().iconst(types::I64, 0);
+    builder.ins().stack_store(zero, result_slot, 0);
+
+    let data = module.declare_data_in_func(layouts.id(encoded_layout)?, builder.func);
+    let layout_pointer = builder.ins().global_value(pointer, data);
+    let layout_length = i64::try_from(encoded_layout.len()).map_err(|_| {
+        "error[cranelift.managed_layout]: descriptor length exceeds i64".to_string()
+    })?;
+    let layout_length = builder.ins().iconst(types::I64, layout_length);
+    let fields_pointer = builder.ins().stack_addr(pointer, field_slot, 0);
+    let field_count = i64::try_from(fields.len()).map_err(|_| {
+        "error[cranelift.managed_fields]: aggregate field count exceeds i64".to_string()
+    })?;
+    let field_count = builder.ins().iconst(types::I64, field_count);
+    let result_pointer = builder.ins().stack_addr(pointer, result_slot, 0);
+    let signature = Signature {
+        params: vec![
+            AbiParam::new(pointer),
+            AbiParam::new(pointer),
+            AbiParam::new(types::I64),
+            AbiParam::new(pointer),
+            AbiParam::new(types::I64),
+            AbiParam::new(pointer),
+        ],
+        returns: vec![AbiParam::new(types::I32)],
+        call_conv: module.target_config().default_call_conv,
+    };
+    let signature = builder.import_signature(signature);
+    let call = builder.ins().call_indirect(
+        signature,
+        allocator,
+        &[
+            runtime_context,
+            layout_pointer,
+            layout_length,
+            fields_pointer,
+            field_count,
+            result_pointer,
+        ],
+    );
+    let callback_status = builder.inst_results(call)[0];
+    let failed = builder.ins().icmp_imm(
+        cranelift_codegen::ir::condcodes::IntCC::NotEqual,
+        callback_status,
+        i64::from(status::OK),
+    );
+    let next = builder.create_block();
+    let error = [BlockArg::Value(callback_status)];
+    builder.ins().brif(failed, error_block, &error, next, &[]);
+    builder.switch_to_block(next);
+    let result = builder.ins().stack_load(types::I64, result_slot, 0);
+    if crate::runtime::native_image::managed::managed_abi_result_is_reference(encoded_layout) {
+        let invalid_reference =
+            builder
+                .ins()
+                .icmp_imm(cranelift_codegen::ir::condcodes::IntCC::Equal, result, 0);
+        branch_on_error(
+            builder,
+            invalid_reference,
+            status::INVALID_MANAGED_REFERENCE,
+            error_block,
+        );
+    }
+    Ok(result)
+}
+
+/// Recursively inventories every managed constructor descriptor in one body.
+fn collect_layouts(expr: &NativeExpr, layouts: &mut Vec<Arc<[u8]>>) {
+    match expr {
+        NativeExpr::StringLiteral { encoded } => layouts.push(encoded.clone()),
+        NativeExpr::ManagedOperation { encoded, args } => {
+            layouts.push(encoded.clone());
+            args.iter()
+                .for_each(|argument| collect_layouts(argument, layouts));
+        }
+        NativeExpr::MakeClosure { encoded, captures } => {
+            layouts.push(encoded.clone());
+            captures
+                .iter()
+                .for_each(|capture| collect_layouts(capture, layouts));
+        }
+        NativeExpr::Construct {
+            encoded_layout,
+            fields,
+            ..
+        } => {
+            layouts.push(encoded_layout.clone());
+            fields
+                .iter()
+                .for_each(|field| collect_layouts(field, layouts));
+        }
+        NativeExpr::Call { args, .. } | NativeExpr::TailCall { args, .. } => args
+            .iter()
+            .for_each(|argument| collect_layouts(argument, layouts)),
+        NativeExpr::InvokeClosure { callee, args, .. } => {
+            collect_layouts(callee, layouts);
+            args.iter()
+                .for_each(|argument| collect_layouts(argument, layouts));
+        }
+        NativeExpr::CallThen {
+            args,
+            values,
+            resume,
+            ..
+        } => {
+            args.iter()
+                .chain(values)
+                .for_each(|value| collect_layouts(value, layouts));
+            collect_layouts(resume, layouts);
+        }
+        NativeExpr::Neg(value)
+        | NativeExpr::FloatNeg(value)
+        | NativeExpr::IntToFloat(value)
+        | NativeExpr::Not(value) => collect_layouts(value, layouts),
+        NativeExpr::Binary { left, right, .. } => {
+            collect_layouts(left, layouts);
+            collect_layouts(right, layouts);
+        }
+        NativeExpr::Let { bindings, body } => {
+            bindings
+                .iter()
+                .for_each(|binding| collect_layouts(binding, layouts));
+            collect_layouts(body, layouts);
+        }
+        NativeExpr::If { clauses } => clauses.iter().for_each(|(condition, body)| {
+            collect_layouts(condition, layouts);
+            collect_layouts(body, layouts);
+        }),
+        NativeExpr::Try {
+            protected,
+            success,
+            failure,
+            cleanup,
+        } => {
+            collect_layouts(protected, layouts);
+            collect_layouts(success, layouts);
+            collect_layouts(failure, layouts);
+            cleanup
+                .iter()
+                .for_each(|expression| collect_layouts(expression, layouts));
+        }
+        NativeExpr::Suspend {
+            arguments, values, ..
+        } => arguments
+            .iter()
+            .chain(values)
+            .for_each(|value| collect_layouts(value, layouts)),
+        NativeExpr::Unit
+        | NativeExpr::Int(_)
+        | NativeExpr::Float(_)
+        | NativeExpr::Bool(_)
+        | NativeExpr::Param(_) => {}
+    }
+}
+
+/// Routes a failed precondition to the native function's shared error block.
+fn branch_on_error(
+    builder: &mut FunctionBuilder<'_>,
+    failed: Value,
+    status: i32,
+    error_block: Block,
+) {
+    let next = builder.create_block();
+    let status = builder.ins().iconst(types::I32, i64::from(status));
+    let error = [BlockArg::Value(status)];
+    builder.ins().brif(failed, error_block, &error, next, &[]);
+    builder.switch_to_block(next);
+}

@@ -1,4 +1,3 @@
 module a0_8_binary_literal.
 
-pub value(): Binary ->
-    "hello".
+pub value(): Binary -> "hello".

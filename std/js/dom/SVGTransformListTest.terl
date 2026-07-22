@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGTransformList
  */
 module std.js.Dom.SVGTransformListTest.
 
-import type std.js.Dom.SVGTransformList.{SVGTransformList}.
-
+import type std.js.Dom.SVGTransformList.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub length_typechecks(receiver: SVGTransformList): JsNumber ->
     receiver.length().
@@ -27,7 +32,10 @@ pub clear_typechecks(receiver: SVGTransformList): std.core.Unit ->
 pub consolidate_typechecks(receiver: SVGTransformList): Option[SVGTransform] ->
     receiver.consolidate().
 
-pub create_svg_transform_from_matrix_typechecks(receiver: SVGTransformList, matrix: DOMMatrix2DInit): SVGTransform ->
+pub create_svg_transform_from_matrix_typechecks(
+    receiver: SVGTransformList,
+    matrix: DOMMatrix2DInit
+): SVGTransform ->
     receiver.create_svg_transform_from_matrix(matrix).
 
 pub get_item_typechecks(receiver: SVGTransformList, index: JsNumber): SVGTransform ->
@@ -36,11 +44,19 @@ pub get_item_typechecks(receiver: SVGTransformList, index: JsNumber): SVGTransfo
 pub initialize_typechecks(receiver: SVGTransformList, new_item: SVGTransform): SVGTransform ->
     receiver.initialize(new_item).
 
-pub insert_item_before_typechecks(receiver: SVGTransformList, new_item: SVGTransform, index: JsNumber): SVGTransform ->
+pub insert_item_before_typechecks(
+    receiver: SVGTransformList,
+    new_item: SVGTransform,
+    index: JsNumber
+): SVGTransform ->
     receiver.insert_item_before(new_item, index).
 
 pub remove_item_typechecks(receiver: SVGTransformList, index: JsNumber): SVGTransform ->
     receiver.remove_item(index).
 
-pub replace_item_typechecks(receiver: SVGTransformList, new_item: SVGTransform, index: JsNumber): SVGTransform ->
+pub replace_item_typechecks(
+    receiver: SVGTransformList,
+    new_item: SVGTransform,
+    index: JsNumber
+): SVGTransform ->
     receiver.replace_item(new_item, index).

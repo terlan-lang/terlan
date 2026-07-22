@@ -5,14 +5,11 @@
  * process primitive needed by daemon integration tests such as epmd parity
  * tests.
  */
-
 module std.vm.Port.
 
-import std.vm.Bytes.{Bytes}.
-import std.vm.Timeout.{Timeout}.
-import std.core.Error.{Error}.
-import std.core.Result.{Result}.
-import std.core.Unit.{Unit}.
+import std.core.{Error, Result, Unit}.
+import std.vm.{Bytes, Timeout}.
+
 import type std.collections.List.
 
 /**
@@ -71,11 +68,7 @@ pub env(key: String, value: String): EnvVar ->
  * Transformation: stores command startup data without starting a process.
  */
 pub command(executable: String, arguments: List[String], environment: List[EnvVar]): Command ->
-    Command(
-        executable = executable,
-        arguments = arguments,
-        environment = environment
-    ).
+    Command(executable = executable, arguments = arguments, environment = environment).
 
 /**
  * Starts an external process.

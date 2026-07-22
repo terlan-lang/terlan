@@ -44,7 +44,7 @@ Important invariants:
 ## Integration Points
 
 - `terlan_syntax`, `terlan_hir`, and `terlan_typeck`: compiler frontend.
-- `terlan_erlang`, JS emission modules, and Rust/native metadata emitters:
+- JS emission modules, VM artifact emission, and Rust/native metadata emitters:
   backend paths.
 - `std/`: standard-library sources, summaries, and release tests.
 - Makefile/CI release targets.

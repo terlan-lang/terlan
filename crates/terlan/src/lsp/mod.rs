@@ -1,18 +1,38 @@
-use std::process::ExitCode;
-
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 mod document;
 mod hover;
 mod import_actions;
+mod server;
+mod template_completion;
 
+pub use server::run_stdio_server;
+
+use crate::terlan_hir::{ConstructorSignature, FunctionSignature};
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, ParserError, Span, SyntaxDeclarationPayload, SyntaxModuleOutput,
+    lex, parse_module_as_syntax_output, token::TokenKind, ParserError, Span,
+    SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxImplMethodOutput, SyntaxModuleOutput,
+    SyntaxParamOutput, SyntaxStructFieldOutput, SyntaxTraitMethodOutput,
 };
 use crate::terlan_typeck::DiagSeverity;
 use document::{OpenDocument, OpenDocuments};
 use hover::hover_for_position;
 use import_actions::import_code_actions_for_diagnostic;
+use template_completion::template_completion_items;
 use tower_lsp::jsonrpc::Result;
-use tower_lsp::{lsp_types::*, Client, LanguageServer, LspService, Server};
+use tower_lsp::lsp_types::request::{
+    GotoDeclarationParams, GotoDeclarationResponse, GotoImplementationParams,
+    GotoImplementationResponse, GotoTypeDefinitionParams, GotoTypeDefinitionResponse,
+};
+use tower_lsp::{lsp_types::*, Client, LanguageServer};
+
+fn is_semantic_constant_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_')
+        && name.bytes().any(|byte| byte.is_ascii_uppercase())
+}
 
 /// Terlan Language Server backend.
 ///
@@ -31,444 +51,11 @@ pub struct Backend {
     open_documents: OpenDocuments,
 }
 
-impl Backend {
-    /// Creates a new LSP backend.
-    ///
-    /// Inputs:
-    /// - `client`: Tower LSP client handle.
-    ///
-    /// Output:
-    /// - Backend with an empty open-document cache.
-    ///
-    /// Transformation:
-    /// - Stores the client and initializes shared document state.
-    fn new(client: Client) -> Self {
-        Self {
-            client,
-            open_documents: OpenDocuments::default(),
-        }
-    }
-
-    /// Publishes parser or typechecker diagnostics for one document.
-    ///
-    /// Inputs:
-    /// - `uri`: target document URI.
-    /// - `version`: document version for diagnostic publication.
-    /// - `parse_error`: optional syntax parser error.
-    /// - `document`: latest document snapshot.
-    ///
-    /// Output:
-    /// - None; diagnostics are sent to the LSP client.
-    ///
-    /// Transformation:
-    /// - Converts Terlan spans and severities into LSP diagnostics, preferring
-    ///   parse errors when parsing failed, then publishing resolver diagnostics
-    ///   before typechecker diagnostics for parseable documents.
-    async fn publish_document_diagnostics(
-        &self,
-        uri: Url,
-        version: i32,
-        parse_error: Option<ParserError>,
-        document: &OpenDocument,
-    ) {
-        let diagnostics = match parse_error {
-            Some(error) => vec![Diagnostic {
-                range: OpenDocument::range_from_span(&document.text, &error.span),
-                severity: Some(DiagnosticSeverity::ERROR),
-                message: error.message,
-                source: Some("terlan-syntax".to_string()),
-                ..Default::default()
-            }],
-            None => Self::resolver_diagnostics_for_document(document)
-                .into_iter()
-                .chain(Self::type_diagnostics_for_document(document))
-                .chain(Self::template_diagnostics_for_document(document))
-                .collect(),
-        };
-
-        self.client
-            .publish_diagnostics(uri, diagnostics, Some(version))
-            .await;
-    }
-
-    /// Converts cached resolver diagnostics into LSP diagnostics.
-    ///
-    /// Inputs:
-    /// - `document`: current open-document snapshot.
-    ///
-    /// Output:
-    /// - LSP diagnostics sourced from `terlan-hir`.
-    ///
-    /// Transformation:
-    /// - Treats HIR resolver diagnostics as errors and converts byte spans to
-    ///   UTF-16 LSP ranges.
-    fn resolver_diagnostics_for_document(document: &OpenDocument) -> Vec<Diagnostic> {
-        document
-            .resolve_diagnostics
-            .iter()
-            .map(|diagnostic| Diagnostic {
-                range: OpenDocument::range_from_span(&document.text, &diagnostic.span),
-                severity: Some(DiagnosticSeverity::ERROR),
-                message: diagnostic.message.clone(),
-                source: Some("terlan-hir".to_string()),
-                ..Default::default()
-            })
-            .collect()
-    }
-
-    /// Converts cached typechecker diagnostics into LSP diagnostics.
-    ///
-    /// Inputs:
-    /// - `document`: current open-document snapshot.
-    ///
-    /// Output:
-    /// - LSP diagnostics sourced from `terlan-typeck`.
-    ///
-    /// Transformation:
-    /// - Preserves typechecker severity and converts byte spans to UTF-16 LSP
-    ///   ranges.
-    fn type_diagnostics_for_document(document: &OpenDocument) -> Vec<Diagnostic> {
-        document
-            .type_diagnostics
-            .iter()
-            .map(|diagnostic| Diagnostic {
-                range: OpenDocument::range_from_span(&document.text, &diagnostic.span),
-                severity: Some(match diagnostic.severity {
-                    DiagSeverity::Error => DiagnosticSeverity::ERROR,
-                    DiagSeverity::Warning => DiagnosticSeverity::WARNING,
-                }),
-                message: diagnostic.message.clone(),
-                source: Some("terlan-typeck".to_string()),
-                ..Default::default()
-            })
-            .collect()
-    }
-
-    /// Converts cached template diagnostics into LSP diagnostics.
-    ///
-    /// Inputs:
-    /// - `document`: current open-document snapshot.
-    ///
-    /// Output:
-    /// - LSP diagnostics sourced from `terlan-template`.
-    ///
-    /// Transformation:
-    /// - Projects path-aware template structure diagnostics into a conservative
-    ///   zero-width document-start range until `terlan_html` exposes precise
-    ///   source spans for every target validator.
-    fn template_diagnostics_for_document(document: &OpenDocument) -> Vec<Diagnostic> {
-        document
-            .template_diagnostics
-            .iter()
-            .map(|diagnostic| Diagnostic {
-                range: Range::new(Position::new(0, 0), Position::new(0, 0)),
-                severity: Some(DiagnosticSeverity::ERROR),
-                message: diagnostic.message.clone(),
-                source: Some("terlan-template".to_string()),
-                ..Default::default()
-            })
-            .collect()
-    }
-
-    /// Builds document symbols for Terlan source text.
-    ///
-    /// Inputs:
-    /// - `text`: current document text.
-    ///
-    /// Output:
-    /// - Nested LSP document symbols, or an empty list when parsing fails.
-    ///
-    /// Transformation:
-    /// - Parses through the compiler syntax-output path and projects module and
-    ///   declaration payloads into LSP symbol names, kinds, and ranges.
-    fn document_symbols_for_text(text: &str) -> Vec<DocumentSymbol> {
-        let Ok(module) = parse_module_as_syntax_output(text) else {
-            return Vec::new();
-        };
-        vec![Self::module_document_symbol(text, &module)]
-    }
-
-    /// Finds same-document definition locations for a source position.
-    ///
-    /// Inputs:
-    /// - `uri`: document URI used in returned LSP locations.
-    /// - `document`: current open-document snapshot.
-    /// - `position`: cursor position from the editor.
-    ///
-    /// Output:
-    /// - One location for a matching declaration symbol.
-    /// - Empty vector when the cursor is not on an identifier, parsing fails,
-    ///   or the identifier has no same-document declaration match.
-    ///
-    /// Transformation:
-    /// - Extracts the identifier under the cursor, reuses compiler-backed
-    ///   document symbols, and maps the first matching declaration selection
-    ///   range into an LSP location. Cross-file imports are intentionally
-    ///   deferred until compiler resolver data can expose safe definition
-    ///   targets.
-    fn definition_locations_for_position(
-        uri: &Url,
-        document: &OpenDocument,
-        position: Position,
-    ) -> Vec<Location> {
-        let Some(byte_offset) = document.byte_offset_from_position(position) else {
-            return Vec::new();
-        };
-        let Some(identifier) = Self::identifier_at_byte_offset(&document.text, byte_offset) else {
-            return Vec::new();
-        };
-        let symbols = Self::document_symbols_for_text(&document.text);
-        let Some(range) = Self::find_symbol_selection_range(&symbols, &identifier) else {
-            return Vec::new();
-        };
-        vec![Location::new(uri.clone(), range)]
-    }
-
-    /// Returns the source identifier under a byte offset.
-    ///
-    /// Inputs:
-    /// - `text`: source document text.
-    /// - `byte_offset`: byte offset produced from an LSP position.
-    ///
-    /// Output:
-    /// - Identifier text when the offset touches a Terlan identifier.
-    /// - `None` when the offset is outside text or on punctuation/whitespace.
-    ///
-    /// Transformation:
-    /// - Expands left and right over ASCII identifier characters. This matches
-    ///   the current Terlan identifier subset used by the parser and keeps
-    ///   definition lookup conservative for dotted module-member references.
-    pub(crate) fn identifier_at_byte_offset(text: &str, byte_offset: usize) -> Option<String> {
-        if byte_offset > text.len() || !text.is_char_boundary(byte_offset) {
-            return None;
-        }
-        let bytes = text.as_bytes();
-        let mut start = byte_offset;
-        if start == text.len() && start > 0 {
-            start -= 1;
-        }
-        if !Self::is_identifier_byte(*bytes.get(start)?) {
-            if start == 0 || !Self::is_identifier_byte(bytes[start - 1]) {
-                return None;
-            }
-            start -= 1;
-        }
-        while start > 0 && Self::is_identifier_byte(bytes[start - 1]) {
-            start -= 1;
-        }
-
-        let mut end = start;
-        while end < bytes.len() && Self::is_identifier_byte(bytes[end]) {
-            end += 1;
-        }
-        (end > start).then(|| text[start..end].to_string())
-    }
-
-    /// Checks whether a byte is part of a Terlan identifier.
-    ///
-    /// Inputs:
-    /// - `byte`: candidate source byte.
-    ///
-    /// Output:
-    /// - `true` for ASCII letters, digits, and underscore.
-    ///
-    /// Transformation:
-    /// - Mirrors the initial LSP identifier lookup subset without depending on
-    ///   parser internals or allocating.
-    pub(crate) fn is_identifier_byte(byte: u8) -> bool {
-        byte.is_ascii_alphanumeric() || byte == b'_'
-    }
-
-    /// Finds a symbol selection range by name.
-    ///
-    /// Inputs:
-    /// - `symbols`: nested document symbols.
-    /// - `name`: identifier text under the cursor.
-    ///
-    /// Output:
-    /// - Selection range for the first matching symbol.
-    /// - `None` when no symbol name matches.
-    ///
-    /// Transformation:
-    /// - Walks module and child symbols in document order, preserving the same
-    ///   ordering editors already receive from `textDocument/documentSymbol`.
-    fn find_symbol_selection_range(symbols: &[DocumentSymbol], name: &str) -> Option<Range> {
-        for symbol in symbols {
-            if symbol.name == name {
-                return Some(symbol.selection_range);
-            }
-            if let Some(children) = &symbol.children {
-                if let Some(range) = Self::find_symbol_selection_range(children, name) {
-                    return Some(range);
-                }
-            }
-        }
-        None
-    }
-
-    /// Builds the top-level module document symbol.
-    ///
-    /// Inputs:
-    /// - `text`: current document text used for range conversion.
-    /// - `module`: parsed syntax-output module.
-    ///
-    /// Output:
-    /// - One module symbol with declaration children.
-    ///
-    /// Transformation:
-    /// - Converts the module span and declaration payloads into the nested LSP
-    ///   symbol shape expected by editors.
-    #[allow(deprecated)]
-    fn module_document_symbol(text: &str, module: &SyntaxModuleOutput) -> DocumentSymbol {
-        let module_span = Span::new(module.span.start, module.span.end);
-        let module_range = OpenDocument::range_from_span(text, &module_span);
-        let selection_range = Self::symbol_selection_range(text, &module_span, &module.module_name)
-            .unwrap_or(module_range);
-        let children = module
-            .declarations
-            .iter()
-            .filter_map(|declaration| {
-                Self::declaration_document_symbol(text, &declaration.payload, &declaration.span)
-            })
-            .collect::<Vec<_>>();
-
-        DocumentSymbol {
-            name: module.module_name.clone(),
-            detail: Some("module".to_string()),
-            kind: SymbolKind::MODULE,
-            tags: None,
-            deprecated: None,
-            range: module_range,
-            selection_range,
-            children: Some(children),
-        }
-    }
-
-    /// Builds one declaration document symbol.
-    ///
-    /// Inputs:
-    /// - `text`: current document text used for range conversion.
-    /// - `payload`: syntax-output declaration payload.
-    /// - `span`: declaration source span.
-    ///
-    /// Output:
-    /// - LSP document symbol when the declaration has a user-facing name.
-    ///
-    /// Transformation:
-    /// - Maps compiler declaration variants to stable editor symbol names and
-    ///   broad LSP symbol kinds.
-    #[allow(deprecated)]
-    fn declaration_document_symbol(
-        text: &str,
-        payload: &SyntaxDeclarationPayload,
-        span: &crate::terlan_syntax::ebnf::EbnfSourceSpan,
-    ) -> Option<DocumentSymbol> {
-        let (name, detail, kind) = Self::declaration_symbol_parts(payload)?;
-        let source_span = Span::new(span.start, span.end);
-        let range = OpenDocument::range_from_span(text, &source_span);
-        let selection_range =
-            Self::symbol_selection_range(text, &source_span, &name).unwrap_or(range);
-        Some(DocumentSymbol {
-            name,
-            detail: Some(detail),
-            kind,
-            tags: None,
-            deprecated: None,
-            range,
-            selection_range,
-            children: None,
-        })
-    }
-
-    /// Builds a name-only selection range inside a broader symbol span.
-    ///
-    /// Inputs:
-    /// - `text`: full document text.
-    /// - `span`: byte range for the enclosing module or declaration.
-    /// - `name`: symbol name to locate inside that range.
-    ///
-    /// Output:
-    /// - LSP range for the first matching symbol name, or `None` if the name
-    ///   cannot be found inside the span.
-    ///
-    /// Transformation:
-    /// - Searches only within the compiler-provided span and converts the
-    ///   matched byte range back to UTF-16 LSP coordinates.
-    fn symbol_selection_range(text: &str, span: &Span, name: &str) -> Option<Range> {
-        let start = span.start.min(text.len());
-        let end = span.end.min(text.len());
-        if start >= end || name.is_empty() {
-            return None;
-        }
-        let haystack = &text[start..end];
-        let relative_start = haystack.find(name)?;
-        let name_start = start + relative_start;
-        let name_end = name_start + name.len();
-        Some(OpenDocument::range_from_span(
-            text,
-            &Span::new(name_start, name_end),
-        ))
-    }
-
-    /// Returns declaration symbol metadata.
-    ///
-    /// Inputs:
-    /// - `payload`: syntax-output declaration payload.
-    ///
-    /// Output:
-    /// - Symbol name, detail label, and LSP symbol kind for named declarations.
-    ///
-    /// Transformation:
-    /// - Keeps editor symbol naming centralized so future declarations can be
-    ///   added without changing the LSP request handler.
-    fn declaration_symbol_parts(
-        payload: &SyntaxDeclarationPayload,
-    ) -> Option<(String, String, SymbolKind)> {
-        match payload {
-            SyntaxDeclarationPayload::Type { name, .. } => {
-                Some((name.clone(), "type".to_string(), SymbolKind::TYPE_PARAMETER))
-            }
-            SyntaxDeclarationPayload::Struct { name, .. } => {
-                Some((name.clone(), "struct".to_string(), SymbolKind::STRUCT))
-            }
-            SyntaxDeclarationPayload::Constructor { name, .. } => Some((
-                name.clone(),
-                "constructor".to_string(),
-                SymbolKind::CONSTRUCTOR,
-            )),
-            SyntaxDeclarationPayload::Function { name, .. } => {
-                Some((name.clone(), "function".to_string(), SymbolKind::FUNCTION))
-            }
-            SyntaxDeclarationPayload::Method { name, .. } => {
-                Some((name.clone(), "method".to_string(), SymbolKind::METHOD))
-            }
-            SyntaxDeclarationPayload::Trait { name, .. } => {
-                Some((name.clone(), "trait".to_string(), SymbolKind::INTERFACE))
-            }
-            SyntaxDeclarationPayload::TraitImpl {
-                trait_ref,
-                for_type,
-                ..
-            } => Some((
-                format!("{} for {}", trait_ref.text, for_type.text),
-                "impl".to_string(),
-                SymbolKind::INTERFACE,
-            )),
-            SyntaxDeclarationPayload::AnnotationSchema { path, .. } => {
-                Some((path.join("."), "annotation".to_string(), SymbolKind::KEY))
-            }
-            SyntaxDeclarationPayload::Template { name, .. } => {
-                Some((name.clone(), "template".to_string(), SymbolKind::FUNCTION))
-            }
-            SyntaxDeclarationPayload::Config { name, .. } => {
-                Some((name.clone(), "config".to_string(), SymbolKind::OBJECT))
-            }
-            SyntaxDeclarationPayload::Import { .. }
-            | SyntaxDeclarationPayload::Export { .. }
-            | SyntaxDeclarationPayload::Raw { .. } => None,
-        }
-    }
-}
+include!("backend_impl_part_001.rs");
+include!("backend_impl_part_002.rs");
+include!("backend_impl_part_003.rs");
+include!("backend_impl_part_004.rs");
+include!("backend_impl_part_005.rs");
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
@@ -494,7 +81,34 @@ impl LanguageServer for Backend {
                 )),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 definition_provider: Some(OneOf::Left(true)),
+                declaration_provider: Some(DeclarationCapability::Simple(true)),
+                implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
+                references_provider: Some(OneOf::Left(true)),
+                type_definition_provider: Some(TypeDefinitionProviderCapability::Simple(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                completion_provider: Some(CompletionOptions::default()),
+                signature_help_provider: Some(SignatureHelpOptions {
+                    trigger_characters: Some(vec!["(".to_string(), ",".to_string()]),
+                    retrigger_characters: Some(vec![",".to_string()]),
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                }),
+                inlay_hint_provider: Some(OneOf::Left(true)),
+                semantic_tokens_provider: Some(
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(
+                        SemanticTokensOptions {
+                            work_done_progress_options: WorkDoneProgressOptions::default(),
+                            legend: SemanticTokensLegend {
+                                token_types: vec![
+                                    SemanticTokenType::KEYWORD,
+                                    SemanticTokenType::VARIABLE,
+                                ],
+                                token_modifiers: vec![SemanticTokenModifier::READONLY],
+                            },
+                            range: Some(false),
+                            full: Some(SemanticTokensFullOptions::Bool(true)),
+                        },
+                    ),
+                ),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 ..Default::default()
             },
@@ -655,6 +269,124 @@ impl LanguageServer for Backend {
         Ok(Some(GotoDefinitionResponse::Array(locations)))
     }
 
+    /// Handles LSP go-to-declaration requests.
+    ///
+    /// Inputs:
+    /// - `params`: document URI and cursor position.
+    ///
+    /// Output:
+    /// - Same locations returned by go-to-definition for Terlan's current
+    ///   declaration/definition surface.
+    ///
+    /// Transformation:
+    /// - Reuses the compiler-backed definition resolver until declaration and
+    ///   definition semantics diverge in the language model.
+    async fn goto_declaration(
+        &self,
+        params: GotoDeclarationParams,
+    ) -> Result<Option<GotoDeclarationResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+        let locations = self
+            .open_documents
+            .snapshot(&uri)
+            .filter(OpenDocument::is_source_like)
+            .map(|document| Self::definition_locations_for_position(&uri, &document, position))
+            .unwrap_or_default();
+        Ok(Some(GotoDeclarationResponse::Array(locations)))
+    }
+
+    /// Handles LSP go-to-type-definition requests.
+    ///
+    /// Inputs:
+    /// - `params`: document URI and cursor position.
+    ///
+    /// Output:
+    /// - Same locations returned by go-to-definition for Terlan's current type
+    ///   declaration surface.
+    ///
+    /// Transformation:
+    /// - Reuses the compiler-backed definition resolver until type-definition
+    ///   semantics diverge from ordinary definition navigation in the language
+    ///   model.
+    async fn goto_type_definition(
+        &self,
+        params: GotoTypeDefinitionParams,
+    ) -> Result<Option<GotoTypeDefinitionResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+        let locations = self
+            .open_documents
+            .snapshot(&uri)
+            .filter(OpenDocument::is_source_like)
+            .map(|document| Self::definition_locations_for_position(&uri, &document, position))
+            .unwrap_or_default();
+        Ok(Some(GotoTypeDefinitionResponse::Array(locations)))
+    }
+
+    /// Handles LSP go-to-implementation requests.
+    ///
+    /// Inputs:
+    /// - `params`: document URI and cursor position.
+    ///
+    /// Output:
+    /// - Same locations returned by go-to-definition for Terlan's current
+    ///   implementation-aware receiver-method navigation surface.
+    ///
+    /// Transformation:
+    /// - Reuses the compiler-backed definition resolver, which already prefers
+    ///   explicit impl methods for receiver-call member references.
+    async fn goto_implementation(
+        &self,
+        params: GotoImplementationParams,
+    ) -> Result<Option<GotoImplementationResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+        let locations = self
+            .open_documents
+            .snapshot(&uri)
+            .filter(OpenDocument::is_source_like)
+            .map(|document| Self::definition_locations_for_position(&uri, &document, position))
+            .unwrap_or_default();
+        Ok(Some(GotoImplementationResponse::Array(locations)))
+    }
+
+    /// Handles LSP find-references requests.
+    ///
+    /// Inputs:
+    /// - `params`: document URI, cursor position, and reference context.
+    ///
+    /// Output:
+    /// - Same-document locations for the identifier under the cursor.
+    ///
+    /// Transformation:
+    /// - Keeps the first reference provider conservative by scanning exact
+    ///   identifier-token occurrences in the latest open source document.
+    /// - Honors `includeDeclaration` by removing locations that overlap the
+    ///   current definition resolver's target ranges.
+    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        let uri = params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+        let Some(document) = self.open_documents.snapshot(&uri) else {
+            return Ok(Some(Vec::new()));
+        };
+        if !document.is_source_like() {
+            return Ok(Some(Vec::new()));
+        }
+
+        let mut locations = Self::reference_locations_for_position(&uri, &document, position);
+        if !params.context.include_declaration {
+            let definitions = Self::definition_locations_for_position(&uri, &document, position);
+            locations.retain(|location| {
+                !Self::is_reference_declaration_range(&document, location.range)
+                    && !definitions.iter().any(|definition| {
+                        definition.uri == location.uri && definition.range == location.range
+                    })
+            });
+        }
+        Ok(Some(locations))
+    }
+
     /// Handles LSP hover requests.
     ///
     /// Inputs:
@@ -677,6 +409,89 @@ impl LanguageServer for Backend {
             .filter(OpenDocument::is_source_like)
             .and_then(|document| hover_for_position(&uri, &document, position));
         Ok(hover)
+    }
+
+    /// Handles LSP completion requests.
+    ///
+    /// Inputs:
+    /// - `params`: document URI and cursor position.
+    ///
+    /// Output:
+    /// - Completion items for currently supported language surfaces.
+    ///
+    /// Transformation:
+    /// - Reuses compiler syntax output and generated summaries so editor
+    ///   completion tracks the same shape declarations as hover/docs.
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        let uri = params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+        let items = self
+            .open_documents
+            .snapshot(&uri)
+            .map_or_else(Vec::new, |document| {
+                if document.is_source_like() {
+                    Self::completion_items_for_position(&uri, &document, position)
+                } else {
+                    template_completion_items(&uri, &document, position)
+                }
+            });
+        Ok(Some(CompletionResponse::Array(items)))
+    }
+
+    /// Handles LSP signature-help requests.
+    ///
+    /// Inputs:
+    /// - `params`: document URI and cursor position.
+    ///
+    /// Output:
+    /// - Signature help for supported local function calls.
+    ///
+    /// Transformation:
+    /// - Reads the latest open document and projects compiler syntax-output
+    ///   callable metadata into standard LSP signature-help payloads.
+    async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+        let signature_help = self
+            .open_documents
+            .snapshot(&uri)
+            .filter(OpenDocument::is_source_like)
+            .and_then(|document| Self::signature_help_for_position(&document, &uri, position));
+        Ok(signature_help)
+    }
+
+    /// Handles LSP inlay-hint requests.
+    ///
+    /// Inputs:
+    /// - `params`: document URI and requested visible range.
+    ///
+    /// Output:
+    /// - Deterministic inlay hints for the supported source range.
+    ///
+    /// Transformation:
+    /// - Reads the latest open document and emits conservative type hints for
+    ///   simple inferred literal bindings.
+    async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
+        let uri = params.text_document.uri;
+        let hints = self
+            .open_documents
+            .snapshot(&uri)
+            .filter(OpenDocument::is_source_like)
+            .map(|document| Self::inlay_hints_for_range(&document, &uri, params.range))
+            .unwrap_or_default();
+        Ok(Some(hints))
+    }
+
+    async fn semantic_tokens_full(
+        &self,
+        params: SemanticTokensParams,
+    ) -> Result<Option<SemanticTokensResult>> {
+        let tokens = self
+            .open_documents
+            .snapshot(&params.text_document.uri)
+            .filter(OpenDocument::is_source_like)
+            .map(|document| Self::value_lifecycle_semantic_tokens(&document));
+        Ok(tokens.map(SemanticTokensResult::Tokens))
     }
 
     /// Handles LSP code-action requests.
@@ -729,55 +544,10 @@ impl LanguageServer for Backend {
     }
 }
 
-/// Runs the Terlan LSP server over stdio.
-///
-/// Inputs:
-/// - Process stdin/stdout.
-///
-/// Output:
-/// - Process exit code.
-///
-/// Transformation:
-/// - Creates a Tokio runtime and runs the async LSP service, converting startup
-///   or server errors into CLI-friendly exit codes.
-pub fn run_stdio_server() -> ExitCode {
-    let runtime = match tokio::runtime::Runtime::new() {
-        Ok(rt) => rt,
-        Err(err) => {
-            eprintln!("failed to start async runtime for LSP server: {err}");
-            return ExitCode::from(1);
-        }
-    };
-
-    if let Err(err) = runtime.block_on(run_stdio_server_async()) {
-        eprintln!("terlan-lsp failed: {err}");
-        return ExitCode::from(1);
-    }
-
-    ExitCode::SUCCESS
-}
-
-/// Runs the async LSP service over stdio.
-///
-/// Inputs:
-/// - Tokio stdin/stdout handles.
-///
-/// Output:
-/// - IO result from setting up and serving the LSP transport.
-///
-/// Transformation:
-/// - Builds a Tower LSP service with `Backend::new` and serves it until the
-///   transport exits.
-async fn run_stdio_server_async() -> std::io::Result<()> {
-    let stdin = tokio::io::stdin();
-    let stdout = tokio::io::stdout();
-
-    let (service, socket) = LspService::new(Backend::new);
-    Server::new(stdin, stdout, socket).serve(service).await;
-
-    Ok(())
-}
-
 #[cfg(test)]
 #[path = "lib_test.rs"]
 mod lib_test;
+
+#[cfg(test)]
+#[path = "trait_negative_test.rs"]
+mod trait_negative_test;

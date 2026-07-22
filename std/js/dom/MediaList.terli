@@ -1,0 +1,61 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaList
+ */
+module std.js.Dom.MediaList.
+
+import type std.core.{Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`MediaList`** interface represents the media queries of a stylesheet, e.g., those set using a link element's `media` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList)
+ */
+pub opaque type MediaList.
+
+/**
+ * The read-only **`length`** property of the MediaList interface returns the number of media queries in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/length)
+ */
+pub (value: MediaList) length(): JsNumber.
+
+/**
+ * The **`mediaText`** property of the MediaList interface is a stringifier that returns a string representing the `MediaList` as text, and also allows you to set a new `MediaList`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/mediaText)
+ */
+pub (value: MediaList) media_text(): JsString.
+
+pub (value: MediaList) to_string(): JsString.
+
+/**
+ * The `appendMedium()` method of the MediaList interface adds a media query to the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/appendMedium)
+ */
+pub (value: MediaList) append_medium(medium: JsString): Unit.
+
+/**
+ * The `deleteMedium()` method of the MediaList interface removes from this `MediaList` the given media query.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/deleteMedium)
+ */
+pub (value: MediaList) delete_medium(medium: JsString): Unit.
+
+/**
+ * The **`item()`** method of the MediaList interface returns the media query at the specified `index`, or `null` if the specified `index` doesn't exist.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/item)
+ */
+pub (value: MediaList) item(index: JsNumber): Option[JsString].

@@ -31,7 +31,7 @@ fn has_structured_config_entries_rejects_empty_config_blocks() {
 #[test]
 fn has_structured_config_entries_accepts_non_empty_config_blocks() {
     assert!(has_structured_config_entries(&[SyntaxConfigEntryOutput {
-        key: "otp_application".to_string(),
+        key: "application".to_string(),
         value: SyntaxConfigValueOutput::Bool { value: true },
     }]));
 }

@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLProgressElement
+ */
+module std.js.Dom.HTMLProgressElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLProgressElement`** interface provides special properties and methods (beyond the regular HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of progress elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement)
+ */
+pub opaque type HTMLProgressElement.
+
+/**
+ * The **`HTMLProgressElement.labels`** read-only property returns a NodeList of the label elements associated with the A NodeList containing the `<label>` elements associated with the `<progress>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/labels)
+ */
+pub (value: HTMLProgressElement) labels(): NodeListOf[HTMLLabelElement].
+
+/**
+ * The **`max`** property of the HTMLProgressElement interface represents the upper bound of the progress element's range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/max)
+ */
+pub (value: HTMLProgressElement) max(): JsNumber.
+
+/**
+ * The **`position`** read-only property of the HTMLProgressElement interface returns current progress of the progress element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/position)
+ */
+pub (value: HTMLProgressElement) position(): JsNumber.
+
+/**
+ * The **`value`** property of the HTMLProgressElement interface represents the current progress of the progress element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/value)
+ */
+pub (value: HTMLProgressElement) value(): JsNumber.
+
+pub (value: HTMLProgressElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLProgressElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

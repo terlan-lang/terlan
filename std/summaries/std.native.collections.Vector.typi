@@ -24,6 +24,17 @@ pub opaque type Vector[T].
 
 pub from_list[T](values: List[T]): Vector[T].
 
+/// Safely returns the value at a zero-based index.
+///
+/// Input: one `Vector[T]` receiver and one `Int` index.
+/// Output: `Some(value)` when the index is non-negative and less than the
+/// vector length; otherwise `None`.
+/// Transformation: performs one atomic native lookup that returns zero or one
+/// values, then converts that compact bridge result into ordinary typed control
+/// flow without invoking the strict `get_at` primitive.
+
+pub (vector: Vector[T]) get(index: Int): Option[T].
+
 /// Returns the value at an index.
 ///
 /// Input: one `Vector[T]` receiver and one `Int` index.
@@ -33,6 +44,15 @@ pub from_list[T](values: List[T]): Vector[T].
 
 pub (vector: Vector[T]) get_at(index: Int): T.
 
+/// Reads zero or one value for the recoverable lookup surface.
+///
+/// Input: one `Vector[T]` receiver and one `Int` index.
+/// Output: a singleton list for a valid index, or an empty list otherwise.
+/// Transformation: uses a bridge-stable list shape to carry a generic optional
+/// value atomically across NativeBoundary.
+
+pub get_optional_values[T](vector: Vector[T], index: Int): List[T].
+
 /// Returns the number of values in a vector.
 ///
 /// Input: one `Vector[T]`.
@@ -40,6 +60,7 @@ pub (vector: Vector[T]) get_at(index: Int): T.
 /// Transformation: aliases the native vector length operation with the shorter
 /// receiver name used by algorithm-oriented code.
 
+@pure
 pub (vector: Vector[T]) len(): Int.
 
 /// Returns the number of values in a vector.
@@ -49,6 +70,7 @@ pub (vector: Vector[T]) len(): Int.
 /// Transformation: observes the native indexed-storage length without changing
 /// the vector contents.
 
+@pure
 pub (vector: Vector[T]) length(): Int.
 
 /// Creates an empty native vector.

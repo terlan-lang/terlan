@@ -334,6 +334,12 @@ pub(crate) fn hover_local_docs(
             {
                 Some(decl.docs.join("\n"))
             }
+            SyntaxDeclarationPayload::Constant { name, .. }
+            | SyntaxDeclarationPayload::ConstFunction { name, .. }
+                if name == &ident && !decl.docs.is_empty() =>
+            {
+                Some(decl.docs.join("\n"))
+            }
             SyntaxDeclarationPayload::Trait {
                 name,
                 params,
@@ -474,6 +480,25 @@ pub(crate) fn interface_item_docs(interface: &ModuleInterface, name: &str) -> Op
         .collect();
     functions.sort_by_key(|(key, _)| key.1);
     if let Some(docs) = functions
+        .into_iter()
+        .find_map(|(_, signature)| (!signature.docs.is_empty()).then(|| signature.docs.join("\n")))
+    {
+        return Some(docs);
+    }
+
+    if let Some(constant) = interface.constants.get(name) {
+        if !constant.docs.is_empty() {
+            return Some(constant.docs.join("\n"));
+        }
+    }
+
+    let mut const_functions = interface
+        .const_functions
+        .iter()
+        .filter(|((function_name, _), _)| function_name == name)
+        .collect::<Vec<_>>();
+    const_functions.sort_by_key(|(key, _)| key.1);
+    if let Some(docs) = const_functions
         .into_iter()
         .find_map(|(_, signature)| (!signature.docs.is_empty()).then(|| signature.docs.join("\n")))
     {

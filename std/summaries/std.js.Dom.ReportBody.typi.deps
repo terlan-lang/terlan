@@ -1,8 +1,8 @@
 module=std.js.Dom.ReportBody
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=6290474650374744185
-interface_hash=6290474650374744185
-interface_doc_hash=6290474650374744185
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6264886683304102795
+interface_hash=12755245155096222776
+interface_doc_hash=12755245155096222776
 deps=0

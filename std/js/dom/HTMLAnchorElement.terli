@@ -1,0 +1,123 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLAnchorElement
+ */
+module std.js.Dom.HTMLAnchorElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLAnchorElement`** interface represents hyperlink elements and provides special properties and methods (beyond those of the regular HTMLElement object interface that they inherit from) for manipulating the layout and presentation of such elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement)
+ */
+pub opaque type HTMLAnchorElement.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLAnchorElement) charset(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLAnchorElement) coords(): JsString.
+
+/**
+ * The **`HTMLAnchorElement.download`** property is a string indicating that the linked resource is intended to be downloaded rather than displayed in the browser.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/download)
+ */
+pub (value: HTMLAnchorElement) download(): JsString.
+
+/**
+ * The **`hreflang`** property of the HTMLAnchorElement interface is a string that is the language of the linked resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/hreflang)
+ */
+pub (value: HTMLAnchorElement) hreflang(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLAnchorElement) name(): JsString.
+
+/**
+ * The **`ping`** property of the HTMLAnchorElement interface is a space-separated list of URLs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/ping)
+ */
+pub (value: HTMLAnchorElement) ping(): JsString.
+
+/**
+ * The **`HTMLAnchorElement.referrerPolicy`** property reflect the HTML `referrerpolicy` attribute of the A string; one of the following: - `no-referrer` - : The Referer header will be omitted entirely.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/referrerPolicy)
+ */
+pub (value: HTMLAnchorElement) referrer_policy(): JsString.
+
+/**
+ * The **`HTMLAnchorElement.rel`** property reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/rel)
+ */
+pub (value: HTMLAnchorElement) rel(): JsString.
+
+/**
+ * The **`HTMLAnchorElement.relList`** read-only property reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/relList)
+ */
+pub (value: HTMLAnchorElement) rel_list(): DOMTokenList.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLAnchorElement) rev(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLAnchorElement) shape(): JsString.
+
+/**
+ * The **`target`** property of the HTMLAnchorElement interface is a string that indicates where to display the linked resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/target)
+ */
+pub (value: HTMLAnchorElement) target_(): JsString.
+
+/**
+ * The **`text`** property of the HTMLAnchorElement represents the text inside the element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/text)
+ */
+pub (value: HTMLAnchorElement) text(): JsString.
+
+/**
+ * The **`type`** property of the HTMLAnchorElement interface is a string that indicates the MIME type of the linked resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/type)
+ */
+pub (value: HTMLAnchorElement) type_(): JsString.
+
+pub (value: HTMLAnchorElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLAnchorElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

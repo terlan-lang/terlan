@@ -1,0 +1,36 @@
+schema = "terlan-vm-http-comparability-profile-v1"
+sample_count = 3
+regression_threshold_percent = 15
+stacks = ["terlan-vm", "axum", "hyper"]
+metrics = [
+  "mean_us",
+  "p50_us",
+  "p95_us",
+  "p99_us",
+  "throughput_requests_per_second",
+]
+
+[schedule]
+fixed_total_requests = 3000
+warmup_requests = 300
+protocol = "http1"
+tls_mode = "disabled-for-all-stacks"
+parser_mode = "full-stack-parser"
+keep_alive_policy = "matched-per-lane"
+concurrency = [1, 10, 100, 1000]
+payload_bytes = [0, 512, 4096]
+route_mix = ["static", "json", "add", "route-param", "stateful-counter"]
+
+[replay]
+fingerprint_schema = "terlan-vm-http-replay-v1"
+execution_validation_required = true
+stable_runs_required = 3
+
+[adversarial]
+scenarios = [
+  "malformed-headers",
+  "large-headers",
+  "slow-client",
+  "cancellation",
+  "backpressure",
+]

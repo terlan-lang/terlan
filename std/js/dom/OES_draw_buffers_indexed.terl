@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface OES_draw_buffers_indexed
  */
 module std.js.Dom.OES_draw_buffers_indexed.
 
@@ -34,7 +42,13 @@ pub (value: OES_draw_buffers_indexed) blend_equationi_oes(buf: GLuint, mode: GLe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendFuncSeparateiOES)
  */
-pub (value: OES_draw_buffers_indexed) blend_func_separatei_oes(buf: GLuint, src_rgb: GLenum, dst_rgb: GLenum, src_alpha: GLenum, dst_alpha: GLenum): Unit ->
+pub (value: OES_draw_buffers_indexed) blend_func_separatei_oes(
+    buf: GLuint,
+    src_rgb: GLenum,
+    dst_rgb: GLenum,
+    src_alpha: GLenum,
+    dst_alpha: GLenum
+): Unit ->
     native.
 
 /**

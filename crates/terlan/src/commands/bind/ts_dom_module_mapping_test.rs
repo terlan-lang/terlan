@@ -126,6 +126,108 @@ fn records_skipped_member_diagnostics() {
     assert_eq!(mapping.skipped[0].reason, "ts_bindgen.unsupported_any");
 }
 
+/// Verifies TypeScript declaration merging emits one Terlan module.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with two declarations for the same interface.
+///
+/// Output:
+/// - Test passes when both supported members land in one generated module plan.
+///
+/// Transformation:
+/// - Prevents declaration-merged TypeScript interfaces from producing
+///   duplicate generated output paths.
+#[test]
+fn merges_duplicate_interface_declarations() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        interface DateLike { year: number; }
+        interface DateLike { month: number; }
+        "#,
+    )
+    .expect("inline merged interface should parse");
+
+    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+
+    assert!(mapping.skipped.is_empty());
+    assert_eq!(mapping.modules.len(), 1);
+    assert_eq!(mapping.modules[0].source_path, "std/js/dom/DateLike.terl");
+    assert_eq!(mapping.modules[0].members.len(), 2);
+    assert_eq!(property(&mapping.modules[0], "year").terlan_name, "year");
+    assert_eq!(property(&mapping.modules[0], "month").terlan_name, "month");
+}
+
+/// Verifies repeated unsupported members get unique skip-manifest sources.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with two call signatures on the same interface.
+///
+/// Output:
+/// - Test passes when the second unsupported member receives a deterministic
+///   suffix instead of duplicating the first source label.
+///
+/// Transformation:
+/// - Keeps generated skip manifests machine-checkable even for TypeScript
+///   interfaces with repeated call or construct signatures.
+#[test]
+fn disambiguates_repeated_unsupported_member_sources() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        interface Callable {
+          (value: string): string;
+          (value: number): number;
+        }
+        "#,
+    )
+    .expect("inline interface should parse");
+
+    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+
+    assert_eq!(mapping.modules.len(), 1);
+    assert_eq!(mapping.skipped.len(), 2);
+    assert_eq!(mapping.skipped[0].source, "Callable.call_signature");
+    assert_eq!(mapping.skipped[1].source, "Callable.call_signature#2");
+}
+
+/// Verifies namespace type aliases map to generated Terlan modules.
+///
+/// Inputs:
+/// - Inline Angular-style `ng` namespace declarations.
+///
+/// Output:
+/// - Test passes when aliases map to namespace-specific module paths and type
+///   alias targets.
+///
+/// Transformation:
+/// - Pins the generated facade surface needed for Angular.ts namespace parity.
+#[test]
+fn maps_namespace_type_aliases_to_modules() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        declare global {
+          export namespace ng {
+            type Angular = TAngular;
+            type HttpPromise<T> = Promise<T>;
+          }
+        }
+        "#,
+    )
+    .expect("namespace aliases should parse");
+
+    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+
+    assert_eq!(mapping.modules.len(), 2);
+    assert_eq!(mapping.modules[0].module_path, "ng.Angular");
+    assert_eq!(mapping.modules[0].source_path, "ng/Angular.terl");
+    assert_eq!(mapping.modules[0].alias_target.as_deref(), Some("Dynamic"));
+    assert_eq!(mapping.modules[1].module_path, "ng.HttpPromise");
+    assert_eq!(mapping.modules[1].type_params, vec!["T"]);
+    assert_eq!(
+        mapping.modules[1].alias_target.as_deref(),
+        Some("std.js.Promise[T]")
+    );
+}
+
 /// Verifies acronym boundaries normalize predictably.
 ///
 /// Inputs:

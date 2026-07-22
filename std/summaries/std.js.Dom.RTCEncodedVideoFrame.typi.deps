@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCEncodedVideoFrame
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=9479385126101977562
-interface_hash=9616546811314452833
-interface_doc_hash=9616546811314452833
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3265352423131623532
+interface_hash=6016368708513873450
+interface_doc_hash=6016368708513873450
 deps=0

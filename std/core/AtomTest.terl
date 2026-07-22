@@ -1,14 +1,13 @@
 module std.core.AtomTest.
 
-pub type Ready =
-    Atom["ready"].
+import std.core.Atom.{equal, to_string}.
+import std.test.Test.{assert, assert_equal}.
 
-pub type Done =
-    Atom["done"].
+pub type Ready.
 
-pub type Status =
-      Ready
-    | Done.
+pub type Done.
+
+pub type Status = Ready | Done.
 
 /**
  * Returns the ready test status.
@@ -34,18 +33,12 @@ pub done_status(): Status ->
 
 @test
 pub equal_accepts_matching_atom_aliases(): Bool ->
-    std.test.Test.assert(std.core.Atom.equal(Ready, Ready)).
+    assert(equal(Ready, Ready)).
 
 @test
 pub equal_rejects_different_atom_aliases(): Bool ->
-    std.test.Test.assert_equal(
-        false,
-        std.core.Atom.equal(ready_status(), done_status())
-    ).
+    assert_equal(false, equal(ready_status(), done_status())).
 
 @test
 pub to_string_renders_atom_alias_payload(): Bool ->
-    std.test.Test.assert_equal(
-        "ready",
-        std.core.Atom.to_string(Ready)
-    ).
+    assert_equal("ready", to_string(Ready)).

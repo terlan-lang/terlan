@@ -1,8 +1,8 @@
 module=std.js.Dom.EcdhKeyDeriveParams
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=18330641699167786670
-interface_hash=11948836334387858244
-interface_doc_hash=11948836334387858244
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=17483192809756891278
+interface_hash=8555360222072336042
+interface_doc_hash=8555360222072336042
 deps=0

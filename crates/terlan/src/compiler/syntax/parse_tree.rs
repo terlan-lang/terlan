@@ -45,6 +45,8 @@ pub enum AnnotationValue {
 pub enum Decl {
     Import(ImportDecl),
     Export(ExportDecl),
+    Constant(ConstantDecl),
+    ConstFunction(ConstFunctionDecl),
     Type(TypeDecl),
     Struct(StructDecl),
     Constructor(ConstructorDecl),
@@ -54,7 +56,31 @@ pub enum Decl {
     TraitImpl(TraitImplDecl),
     AnnotationSchema(AnnotationSchemaDecl),
     Template(TemplateDecl),
+    Shape(ShapeDecl),
     Raw(UnsupportedDecl),
+}
+
+/// Typed module constant evaluated and substituted during compilation.
+#[derive(Debug, Clone)]
+pub struct ConstantDecl {
+    pub name: String,
+    pub annotation: TypeExpr,
+    pub value: Expr,
+    pub is_public: bool,
+    pub docs: Vec<String>,
+    pub span: Span,
+}
+
+/// Compile-time-only function retained exclusively by the constant evaluator.
+#[derive(Debug, Clone)]
+pub struct ConstFunctionDecl {
+    pub name: String,
+    pub params: Vec<Param>,
+    pub return_type: TypeExpr,
+    pub body: Expr,
+    pub is_public: bool,
+    pub docs: Vec<String>,
+    pub span: Span,
 }
 
 /// Source import declaration.
@@ -107,6 +133,8 @@ pub struct TypeDecl {
     pub name: String,
     pub params: Vec<String>,
     pub variants: Vec<TypeExpr>,
+    pub representation: Option<TypeExpr>,
+    pub valued_arms: Vec<ValuedUnionArmDecl>,
     pub implements: Vec<TypeExpr>,
     pub is_public: bool,
     pub is_opaque: bool,
@@ -114,10 +142,19 @@ pub struct TypeDecl {
     pub span: Span,
 }
 
+/// One type-owned member of a closed nominal valued union.
+#[derive(Debug, Clone)]
+pub struct ValuedUnionArmDecl {
+    pub name: String,
+    pub value: Expr,
+    pub span: Span,
+}
+
 /// Struct declaration and its declared fields.
 #[derive(Debug, Clone)]
 pub struct StructDecl {
     pub name: String,
+    pub generic_params: Vec<String>,
     pub includes: Vec<String>,
     pub implements: Vec<TypeExpr>,
     pub fields: Vec<StructFieldDecl>,
@@ -282,6 +319,19 @@ pub struct TemplatePropDecl {
     pub span: Span,
 }
 
+/// Parsed shape-synonym declaration reserved for compile-time pattern expansion.
+#[derive(Debug, Clone)]
+pub struct ShapeDecl {
+    pub name: String,
+    pub params: Vec<String>,
+    pub body: String,
+    pub guard: Option<String>,
+    pub text: String,
+    pub docs: Vec<String>,
+    pub is_public: bool,
+    pub span: Span,
+}
+
 /// Pattern map field.
 #[derive(Debug, Clone)]
 pub struct MapField {
@@ -298,6 +348,27 @@ pub struct MapExprField {
     pub required: bool,
 }
 
+/// One descriptor-backed field inside a binary layout.
+#[derive(Debug, Clone)]
+pub struct BinaryLayoutField {
+    pub name: String,
+    pub descriptor: TypeExpr,
+}
+
+/// One segment inside a capture-bearing string pattern.
+#[derive(Debug, Clone)]
+pub enum StringPatternSegment {
+    Literal(String),
+    Capture(StringPatternCapture),
+}
+
+/// Capture slot inside a string pattern.
+#[derive(Debug, Clone)]
+pub struct StringPatternCapture {
+    pub name: String,
+    pub annotation: Option<TypeExpr>,
+}
+
 /// Pattern syntax tree used in cases, clauses, and destructuring.
 #[derive(Debug, Clone)]
 pub enum Pattern {
@@ -305,12 +376,33 @@ pub enum Pattern {
     Var(String),
     Int(i64),
     Float(f64),
+    String(String),
+    StringPattern(Vec<StringPatternSegment>),
     Atom(String),
+    AtomLiteral(String),
     Tuple(Vec<Pattern>),
+    Alias {
+        alias: String,
+        pattern: Box<Pattern>,
+    },
     List(Vec<Pattern>),
     ListCons(Box<Pattern>, Box<Pattern>),
     Map(Vec<MapField>),
-    Record { name: String, fields: Vec<MapField> },
+    Record {
+        name: String,
+        fields: Vec<MapField>,
+    },
+    BinaryLayout {
+        endian: String,
+        fields: Vec<BinaryLayoutField>,
+    },
+}
+
+/// One ordered generator in a list comprehension.
+#[derive(Debug, Clone)]
+pub struct ListComprehensionGenerator {
+    pub pattern: Pattern,
+    pub source: Box<Expr>,
 }
 
 /// Expression syntax tree produced by the parser.
@@ -335,12 +427,12 @@ pub enum Expr {
     Map(Vec<MapExprField>),
     ListComprehension {
         expr: Box<Expr>,
-        pattern: Pattern,
-        source: Box<Expr>,
-        guard: Option<Box<Expr>>,
+        generators: Vec<ListComprehensionGenerator>,
+        guards: Vec<Expr>,
     },
     Let {
         bindings: Vec<LetBinding>,
+        else_clauses: Vec<CaseClause>,
         body: Option<Box<Expr>>,
     },
     Call {
@@ -395,6 +487,10 @@ pub enum Expr {
     RecordConstruct {
         name: String,
         fields: Vec<MapExprField>,
+    },
+    BinaryLayout {
+        endian: String,
+        fields: Vec<BinaryLayoutField>,
     },
     ConstructorChain {
         base: Box<Expr>,
@@ -557,6 +653,8 @@ pub enum BinaryOp {
     GtEq,
     DivRem,
     Rem,
+    Range,
+    In,
     And,
     Or,
     PipeForward,
@@ -569,7 +667,18 @@ pub struct TraitDecl {
     pub params: Vec<String>,
     pub super_traits: Vec<String>,
     pub methods: Vec<TraitMethodDecl>,
+    pub constants: Vec<TraitConstDecl>,
     pub is_public: bool,
+    pub docs: Vec<String>,
+    pub span: Span,
+}
+
+/// Required or defaulted constant declared by a trait contract.
+#[derive(Debug, Clone)]
+pub struct TraitConstDecl {
+    pub name: String,
+    pub annotation: TypeExpr,
+    pub default: Option<Expr>,
     pub docs: Vec<String>,
     pub span: Span,
 }
@@ -583,6 +692,7 @@ pub struct TraitMethodDecl {
     pub return_type: TypeExpr,
     pub generic_bounds: Vec<String>,
     pub default_body: Option<Expr>,
+    pub is_pure: bool,
     pub docs: Vec<String>,
     pub is_public: bool,
     pub span: Span,
@@ -592,10 +702,22 @@ pub struct TraitMethodDecl {
 #[derive(Debug, Clone)]
 pub struct TraitImplDecl {
     pub trait_ref: TypeExpr,
+    pub generic_params: Vec<String>,
     pub for_type: TypeExpr,
     pub methods: Vec<FunctionDecl>,
+    pub constants: Vec<ImplConstDecl>,
+    pub is_negative: bool,
     pub is_public: bool,
     pub docs: Vec<String>,
+    pub span: Span,
+}
+
+/// Associated constant value supplied by one trait implementation.
+#[derive(Debug, Clone)]
+pub struct ImplConstDecl {
+    pub name: String,
+    pub annotation: Option<TypeExpr>,
+    pub value: Expr,
     pub span: Span,
 }
 

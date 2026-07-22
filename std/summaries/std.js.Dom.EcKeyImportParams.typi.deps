@@ -1,8 +1,8 @@
 module=std.js.Dom.EcKeyImportParams
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5517829260853917682
-interface_hash=12540128622659025122
-interface_doc_hash=12540128622659025122
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4394794119082355979
+interface_hash=4748871270743818443
+interface_doc_hash=4748871270743818443
 deps=0

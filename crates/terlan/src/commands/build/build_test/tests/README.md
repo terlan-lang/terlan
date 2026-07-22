@@ -7,7 +7,7 @@ large mixed test module.
 ## Responsibilities
 
 - Validate build argument parsing and project layout handling.
-- Validate emitted artifacts for Erlang, JavaScript, browser packaging, and
+- Validate emitted artifacts for Terlan VM, JavaScript, browser packaging, and
   standard-library integration.
 - Cover dependency, import, constructor, trait, std runtime, and diagnostic
   behavior.
@@ -18,9 +18,15 @@ large mixed test module.
 
 - `args_test.rs`: build argument behavior.
 - `artifact_test.rs`: emitted artifact behavior.
-- `diagnostics_test.rs`: user-facing failure behavior.
-- `std_*_test.rs`: standard-library build integration.
-- Dependency, project layout, constructor, trait, and data closure test files.
+- `executable_vm_artifact_test.rs`: VM executable artifact behavior without
+  Erlang launcher/runtime coverage.
+- `js_target_diagnostics_test.rs`: JavaScript target-family rejection
+  diagnostics.
+- `wasm_artifact_metadata_test.rs`: VM-default and reserved Wasm/WASI package
+  metadata behavior.
+- `std_runtime_test.rs`: removed public Erlang target rejection coverage.
+- Dependency, project layout, imported-constructor, and target-family test
+  files.
 
 ## Core Model
 
@@ -37,13 +43,14 @@ The main flow is:
 Important invariants:
 
 - Tests must not require network access.
-- Tests that require `erlc` should be isolated to Erlang integration behavior.
+- Tests must not require `erl`, `erlc`, generated Erlang source, or BEAM
+  bytecode.
 - Fixture output should be deterministic.
 
 ## Integration Points
 
 - `commands::build`: build command implementation.
-- `terlan_erlang` and JS emission paths.
+- JS emission paths and VM artifact checks.
 - Standard-library summaries and manifests.
 
 ## Edge Cases

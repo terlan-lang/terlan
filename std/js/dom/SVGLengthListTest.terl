@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGLengthList
  */
 module std.js.Dom.SVGLengthListTest.
 
-import type std.js.Dom.SVGLengthList.{SVGLengthList}.
-
+import type std.js.Dom.SVGLengthList.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub length_typechecks(receiver: SVGLengthList): JsNumber ->
     receiver.length().
@@ -30,11 +35,19 @@ pub get_item_typechecks(receiver: SVGLengthList, index: JsNumber): SVGLength ->
 pub initialize_typechecks(receiver: SVGLengthList, new_item: SVGLength): SVGLength ->
     receiver.initialize(new_item).
 
-pub insert_item_before_typechecks(receiver: SVGLengthList, new_item: SVGLength, index: JsNumber): SVGLength ->
+pub insert_item_before_typechecks(
+    receiver: SVGLengthList,
+    new_item: SVGLength,
+    index: JsNumber
+): SVGLength ->
     receiver.insert_item_before(new_item, index).
 
 pub remove_item_typechecks(receiver: SVGLengthList, index: JsNumber): SVGLength ->
     receiver.remove_item(index).
 
-pub replace_item_typechecks(receiver: SVGLengthList, new_item: SVGLength, index: JsNumber): SVGLength ->
+pub replace_item_typechecks(
+    receiver: SVGLengthList,
+    new_item: SVGLength,
+    index: JsNumber
+): SVGLength ->
     receiver.replace_item(new_item, index).

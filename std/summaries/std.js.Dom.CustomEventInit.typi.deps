@@ -1,8 +1,8 @@
 module=std.js.Dom.CustomEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=7758187896318570470
-interface_hash=16084585459080637192
-interface_doc_hash=16084585459080637192
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=2382008916909767513
+interface_hash=6912964290090740714
+interface_doc_hash=6912964290090740714
 deps=0

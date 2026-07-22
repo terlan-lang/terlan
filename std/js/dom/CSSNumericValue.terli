@@ -1,0 +1,90 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CSSNumericValue
+ */
+module std.js.Dom.CSSNumericValue.
+
+/**
+ * The **`CSSNumericValue`** interface of the CSS Typed Object Model API represents operations that all numeric values can perform.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue)
+ */
+pub opaque type CSSNumericValue.
+
+/**
+ * The **`add()`** method of the `CSSNumericValue`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/add)
+ */
+pub (value: CSSNumericValue) add(): CSSNumericValue.
+
+/**
+ * The **`div()`** method of the supplied value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/div)
+ */
+pub (value: CSSNumericValue) div_(): CSSNumericValue.
+
+/**
+ * The **`equals()`** method of the value are strictly equal.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/equals)
+ */
+pub (value: CSSNumericValue) equals(): std.core.Bool.
+
+/**
+ * The **`max()`** method of the passed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/max)
+ */
+pub (value: CSSNumericValue) max(): CSSNumericValue.
+
+/**
+ * The **`min()`** method of the values passed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/min)
+ */
+pub (value: CSSNumericValue) min(): CSSNumericValue.
+
+/**
+ * The **`mul()`** method of the the supplied value.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/mul)
+ */
+pub (value: CSSNumericValue) mul(): CSSNumericValue.
+
+/**
+ * The **`sub()`** method of the `CSSNumericValue`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/sub)
+ */
+pub (value: CSSNumericValue) sub(): CSSNumericValue.
+
+/**
+ * The **`to()`** method of the another.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/to)
+ */
+pub (value: CSSNumericValue) to(unit: std.js.String.JsString): CSSUnitValue.
+
+/**
+ * The **`toSum()`** method of the ```js-nolint toSum(units) ``` - `units` - : The units to convert to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/toSum)
+ */
+pub (value: CSSNumericValue) to_sum(): CSSMathSum.
+
+/**
+ * The **`type()`** method of the `CSSNumericValue`, one of `angle`, `flex`, `frequency`, `length`, `resolution`, `percent`, `percentHint`, or `time`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/type)
+ */
+pub (value: CSSNumericValue) type_(): CSSNumericType.

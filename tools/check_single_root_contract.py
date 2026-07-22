@@ -138,6 +138,52 @@ def reject_text(path: Path, text: str, needles: list[str]) -> list[ContractDiagn
     ]
 
 
+def make_variable_values(text: str, name: str) -> list[str]:
+    """Return whitespace-delimited values from a continued Make variable.
+
+    Inputs:
+    - `text`: Makefile contents.
+    - `name`: simply-expanded variable name.
+
+    Outputs:
+    - Values declared by `NAME := ...`, including continuation lines.
+
+    Transformation:
+    - Reads the canonical gate list structurally enough to distinguish graph
+      membership from an unrelated target or comment containing the same name.
+    """
+
+    lines = iter(text.splitlines())
+    prefix = f"{name} :="
+    for line in lines:
+        if not line.startswith(prefix):
+            continue
+        fragments = [line.removeprefix(prefix).strip()]
+        while fragments[-1].endswith("\\"):
+            fragments[-1] = fragments[-1][:-1].strip()
+            try:
+                fragments.append(next(lines).strip())
+            except StopIteration:
+                break
+        return " ".join(fragments).split()
+    return []
+
+
+def require_make_variable_value(
+    path: Path, text: str, variable: str, value: str
+) -> list[ContractDiagnostic]:
+    """Require a value to be wired into a canonical Make variable."""
+
+    if value in make_variable_values(text, variable):
+        return []
+    return [
+        ContractDiagnostic(
+            path,
+            f"required release gate `{value}` is missing from `{variable}`",
+        )
+    ]
+
+
 def check_makefile() -> list[ContractDiagnostic]:
     """Validate published Makefile release entrypoints.
 
@@ -165,7 +211,24 @@ def check_makefile() -> list[ContractDiagnostic]:
                 "release-artifact-linux:",
                 "release-boundary-check:",
                 "installer-contract-check:",
+                "COVERAGE_MIN ?= 84.20",
+                "COVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm",
+                "check-gates: $(CHECK_GATES)",
+                "--fail-under-lines $(COVERAGE_MIN)",
             ],
+        )
+    )
+    diagnostics.extend(
+        require_make_variable_value(
+            MAKEFILE, text, "CHECK_GATES", "release-hardening-check"
+        )
+    )
+    coverage_target = text.split("coverage-check:", 1)[-1].split("vm-coverage-100-check:", 1)[0]
+    diagnostics.extend(
+        reject_text(
+            MAKEFILE,
+            coverage_target,
+            ["--all-targets", "--workspace", "--bin terlan-quality", "--bin terlan-benchmark"],
         )
     )
     return diagnostics
@@ -187,15 +250,17 @@ def check_workflows() -> list[ContractDiagnostic]:
 
     diagnostics: list[ContractDiagnostic] = []
     workflow_requirements = {
-        CI_WORKFLOW: ["run: make check", "run: make test", "run: make test-release"],
-        RELEASE_WORKFLOW: [
-            "run: make check",
-            "run: make test",
-            "run: make test-release",
-            "run: make release-artifact-current",
-        ],
+        CI_WORKFLOW: ["run: make release-candidate-check"],
+        RELEASE_WORKFLOW: ["run: make release-candidate-check"],
     }
-    forbidden = ["cd terlan", "../", "working-directory: .."]
+    forbidden = [
+        "cd terlan",
+        "../",
+        "working-directory: ..",
+        "run: make release-artifact-current",
+        "actions/download-artifact",
+        "gh release",
+    ]
     for path, required in workflow_requirements.items():
         text, diagnostic = read_required(path)
         if diagnostic is not None:

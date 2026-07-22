@@ -1,0 +1,115 @@
+//! Core finite integer range contract.
+//!
+//! `std.range.Range` represents portable finite `Int` ranges. Language sugar
+//! such as `Int..Int` must lower to this public API instead of bypassing the
+//! standard library.
+
+module std.range.Range.
+
+/// InvalidStep is returned when a range is requested with a zero step.
+
+pub type InvalidStep =
+    Atom["invalid_step"].
+
+/// Range represents a finite integer range.
+///
+/// Input: start value, stop value, non-zero step, and inclusive/exclusive stop
+/// mode.
+/// Output: a source-level range value.
+/// Transformation: stores the range contract as ordinary Terlan data so VM
+/// lowering, comprehensions, guards, and iterator conversion can share one
+/// representation.
+
+pub struct Range {
+    start: Int,
+    stop: Int,
+    step: Int,
+    inclusive: Bool
+}.
+
+/// RangeError is the typed error returned by checked range constructors.
+
+pub type RangeError =
+    InvalidStep.
+
+/// Returns whether a range contains a value.
+///
+/// Input: one range and one integer value.
+/// Output: `true` when the value is reached by repeatedly applying the range
+/// step from `start`; otherwise `false`.
+/// Transformation: checks bounds first, then performs bounded step alignment.
+
+@pure
+pub contains(range: Range, value: Int): Bool.
+
+/// Creates an exclusive range.
+///
+/// Input: start and stop integer bounds.
+/// Output: a range that stops before `stop`.
+/// Transformation: chooses `1` for ascending ranges and `-1` for descending
+/// ranges.
+
+pub exclusive(start: Int, stop: Int): Range.
+
+/// Creates an inclusive range.
+///
+/// Input: start and stop integer bounds.
+/// Output: a range that includes `stop` when traversal reaches it.
+/// Transformation: chooses `1` for ascending ranges and `-1` for descending
+/// ranges.
+
+pub inclusive(start: Int, stop: Int): Range.
+
+/// Returns whether a range produces no values.
+
+@pure
+pub is_empty(range: Range): Bool.
+
+/// Returns an iterator over a range.
+///
+/// Input: one range.
+/// Output: an iterator over the range values.
+/// Transformation: delegates through `to_list().iterator()` until the VM owns
+/// a direct range iterator lowering path.
+
+pub iterator(range: Range): std.collections.Iterator.Iterator[Int].
+
+/// Returns the number of values produced by a range.
+///
+/// Input: one range.
+/// Output: finite range length.
+/// Transformation: counts by stepping from `start` until the configured stop
+/// condition is reached.
+
+@pure
+pub length(range: Range): Int.
+
+/// Creates a checked stepped range.
+///
+/// Input: start and stop integer bounds, an explicit non-zero step, and
+/// inclusive/exclusive stop mode.
+/// Output: `Ok(range)` for valid steps or `Err(InvalidStep)` for zero.
+/// Transformation: validates the step before exposing a range value.
+
+pub stepped(start: Int, stop: Int, step: Int, inclusive: Bool): Result[Range, RangeError].
+
+/// Converts a range to a list of integers in traversal order.
+///
+/// Input: one range.
+/// Output: a `std.collections.List.List[Int]`.
+/// Transformation: appends every generated value to a portable list.
+
+@pure
+pub to_list(range: Range): List[Int].
+
+/// Constructs a range from explicit fields.
+///
+/// Input: start value, stop value, non-zero step, and inclusive/exclusive stop
+/// mode.
+/// Output: a `Range` value.
+/// Transformation: stores the supplied fields in the transparent range record.
+
+pub constructor Range {
+    (start: Int, stop: Int, step: Int, inclusive: Bool): Range ->
+        Range {start: start, stop: stop, step: step, inclusive: inclusive}
+}.

@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ANGLE_instanced_arrays
  */
 module std.js.Dom.ANGLE_instanced_arrays.
 
@@ -18,7 +26,12 @@ pub opaque type ANGLE_instanced_arrays.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ANGLE_instanced_arrays/drawArraysInstancedANGLE)
  */
-pub (value: ANGLE_instanced_arrays) draw_arrays_instanced_angle(mode: GLenum, first: GLint, count: GLsizei, primcount: GLsizei): Unit ->
+pub (value: ANGLE_instanced_arrays) draw_arrays_instanced_angle(
+    mode: GLenum,
+    first: GLint,
+    count: GLsizei,
+    primcount: GLsizei
+): Unit ->
     native.
 
 /**
@@ -26,7 +39,13 @@ pub (value: ANGLE_instanced_arrays) draw_arrays_instanced_angle(mode: GLenum, fi
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ANGLE_instanced_arrays/drawElementsInstancedANGLE)
  */
-pub (value: ANGLE_instanced_arrays) draw_elements_instanced_angle(mode: GLenum, count: GLsizei, type_: GLenum, offset: GLintptr, primcount: GLsizei): Unit ->
+pub (value: ANGLE_instanced_arrays) draw_elements_instanced_angle(
+    mode: GLenum,
+    count: GLsizei,
+    type_: GLenum,
+    offset: GLintptr,
+    primcount: GLsizei
+): Unit ->
     native.
 
 /**

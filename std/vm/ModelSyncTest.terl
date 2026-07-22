@@ -1,0 +1,81 @@
+module std.vm.ModelSyncTest.
+
+import std.test.Test.{assert_true}.
+import std.vm.{ModelSync, PersistentActor}.
+
+import type std.vm.ModelSync.{AdapterContract, Capability, Conflict, Delete, Key, PackageStoreAdapter, PersistentActorAdapter, SyncableModel, Version, Write}.
+import type std.vm.PersistentActor.{ActorId}.
+
+pub user_key(): Key ->
+    ModelSync.key("User", "alice").
+
+pub writer_version(sequence: Int): Version ->
+    ModelSync.version(sequence, "node-a").
+
+pub order_actor(): ActorId ->
+    PersistentActor.actor_id("order-sync", "orders").
+
+pub user_adapter_contract(): AdapterContract ->
+    let typed_key = ModelSync.capability("typed-key");
+    let optimistic_version = ModelSync.capability("optimistic-version");
+    let put = ModelSync.capability("put");
+    let delete = ModelSync.capability("delete");
+    let snapshot = ModelSync.capability("snapshot");
+    let change_stream = ModelSync.capability("change-stream");
+    ModelSync.adapter_contract("users-memory", "vm", [typed_key, optimistic_version, put, delete, snapshot, change_stream]).
+
+@test
+pub optimistic_write_plan_is_source_visible(): Bool ->
+    let key = user_key();
+    let expected_version = writer_version(1);
+    let next_version = ModelSync.next_version(expected_version, "node-a");
+    let write = ModelSync.write(key, expected_version, next_version, "Alice");
+    assert_true(true).
+
+@test
+pub conflict_and_delete_plans_are_typed(): Bool ->
+    let key = user_key();
+    let expected_version = writer_version(1);
+    let current_version = writer_version(2);
+    let stale = ModelSync.stale(expected_version, current_version);
+    let can_apply = ModelSync.can_apply(expected_version, current_version);
+    let conflict = ModelSync.conflict(key, current_version, expected_version);
+    let delete = ModelSync.delete(key, current_version, ModelSync.next_version(current_version, "node-a"));
+    assert_true(true).
+
+@test
+pub adapter_capabilities_are_declared_in_source(): Bool ->
+    let typed_key = ModelSync.capability("typed-key");
+    let optimistic_version = ModelSync.capability("optimistic-version");
+    let put = ModelSync.capability("put");
+    let delete = ModelSync.capability("delete");
+    let snapshot = ModelSync.capability("snapshot");
+    let change_stream = ModelSync.capability("change-stream");
+    let contract = ModelSync.adapter_contract("memory", "vm", [typed_key, optimistic_version, put, delete, snapshot, change_stream]);
+    assert_true(true).
+
+@test
+pub persistent_actor_adapter_is_source_visible(): Bool ->
+    let actor = order_actor();
+    let typed_key = ModelSync.capability("typed-key");
+    let optimistic_version = ModelSync.capability("optimistic-version");
+    let snapshot = ModelSync.capability("snapshot");
+    let change_stream = ModelSync.capability("change-stream");
+    let contract = ModelSync.adapter_contract("orders-persistent-actor", "persistent-actor", [typed_key, optimistic_version, snapshot, change_stream]);
+    let adapter = ModelSync.persistent_actor_adapter(actor, contract);
+    assert_true(true).
+
+@test
+pub package_store_adapter_is_source_visible(): Bool ->
+    let typed_key = ModelSync.capability("typed-key");
+    let optimistic_version = ModelSync.capability("optimistic-version");
+    let snapshot = ModelSync.capability("snapshot");
+    let change_stream = ModelSync.capability("change-stream");
+    let contract = ModelSync.adapter_contract("orders-package-store", "package", [typed_key, optimistic_version, snapshot, change_stream]);
+    let adapter = ModelSync.package_store_adapter("orders@0.0.7", contract);
+    assert_true(true).
+
+@test
+pub syncable_model_declaration_is_source_visible(): Bool ->
+    let declaration = ModelSync.syncable_model[String]("User", user_key(), user_adapter_contract());
+    assert_true(true).

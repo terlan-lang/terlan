@@ -1,0 +1,9 @@
+module=std.collections.KeyedEnumerable
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=10152695311554147973
+interface_hash=4889546420819891323
+interface_doc_hash=5329163535344123924
+deps=1
+std.core.Option=11539230284316612175

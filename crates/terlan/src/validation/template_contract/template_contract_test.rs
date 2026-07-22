@@ -99,7 +99,7 @@ fn slot_messages(
 ) -> Vec<String> {
     let parsed = crate::terlan_html::parse_template(html, "template.terl.html")
         .expect("parse template fixture");
-    check_template_slots(template, &parsed, struct_fields)
+    check_template_slots(template, &parsed, struct_fields, None)
         .into_iter()
         .map(|diagnostic| diagnostic.message)
         .collect()
@@ -134,6 +134,7 @@ fn component_messages(
         &templates_by_tag,
         &BTreeSet::new(),
         &HashMap::new(),
+        None,
     )
     .into_iter()
     .map(|diagnostic| diagnostic.message)
@@ -160,6 +161,63 @@ fn template_slot_typecheck_rejects_record_value_in_text_context() {
         slot_messages(&template, "<p>${user}</p>", &HashMap::new()),
         vec![
             "template `Card` slot `user` has non-renderable type `User` (template line 1, columns 1-7)"
+        ]
+    );
+}
+
+/// Verifies multiline text-slot diagnostics preserve source line and columns.
+///
+/// Inputs:
+/// - A template prop typed as `User`.
+/// - A text interpolation on the second template line.
+///
+/// Output:
+/// - One non-renderable slot diagnostic pointing to template line 2.
+///
+/// Transformation:
+/// - Locks source-map-style location propagation from the HTML parser through
+///   template contract validation.
+#[test]
+fn template_slot_typecheck_reports_multiline_text_slot_location() {
+    let template = template_decl("Card", &[("user", "User")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<section>\n<p>${user}</p>\n</section>",
+            &HashMap::new()
+        ),
+        vec![
+            "template `Card` slot `user` has non-renderable type `User` (template line 2, columns 1-7)"
+        ]
+    );
+}
+
+/// Verifies multiline attribute-slot diagnostics preserve source line and
+/// columns.
+///
+/// Inputs:
+/// - A template prop typed as `Int`.
+/// - A URL attribute interpolation on the second template line.
+///
+/// Output:
+/// - One URL-specific diagnostic pointing to template line 2.
+///
+/// Transformation:
+/// - Ensures attribute interpolation spans travel with the original attribute
+///   line instead of the element start line.
+#[test]
+fn template_slot_typecheck_reports_multiline_attribute_slot_location() {
+    let template = template_decl("ProfileLink", &[("count", "Int")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<a\nhref=\"${count}\">count</a>",
+            &HashMap::new()
+        ),
+        vec![
+            "template `ProfileLink` URL attribute `href` slot `count` has non-renderable type `Int` (template line 2, columns 1-8)"
         ]
     );
 }
@@ -214,6 +272,304 @@ fn template_slot_typecheck_rejects_html_fragment_in_attribute_context() {
         ),
         vec![
             "template `Shell` attribute slot `body` has non-renderable type `Template.Html` (template line 1, columns 1-7)"
+        ]
+    );
+}
+
+/// Verifies explicit URI values can render into URL-bearing attributes.
+///
+/// Inputs:
+/// - A template prop typed as `std.net.Uri.Uri`.
+/// - A URL attribute interpolation `${profile}`.
+///
+/// Output:
+/// - No diagnostics.
+///
+/// Transformation:
+/// - Proves URL attribute validation accepts the std URI type instead of
+///   treating all attributes as generic scalar text.
+#[test]
+fn template_slot_typecheck_accepts_uri_in_url_attribute() {
+    let template = template_decl("ProfileLink", &[("profile", "std.net.Uri.Uri")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<a href=\"${profile}\">profile</a>",
+            &HashMap::new()
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Verifies URL attributes reject non-URL scalar values.
+///
+/// Inputs:
+/// - A template prop typed as `Int`.
+/// - A URL attribute interpolation `${count}`.
+///
+/// Output:
+/// - One URL-specific non-renderable attribute diagnostic.
+///
+/// Transformation:
+/// - Keeps URL attributes stricter than generic attributes so accidental
+///   numeric values cannot be rendered as links.
+#[test]
+fn template_slot_typecheck_rejects_int_in_url_attribute() {
+    let template = template_decl("ProfileLink", &[("count", "Int")]);
+
+    assert_eq!(
+        slot_messages(&template, "<a href=\"${count}\">count</a>", &HashMap::new()),
+        vec![
+            "template `ProfileLink` URL attribute `href` slot `count` has non-renderable type `Int` (template line 1, columns 1-8)"
+        ]
+    );
+}
+
+/// Verifies boolean values can render into boolean HTML attributes.
+///
+/// Inputs:
+/// - A template prop typed as `Bool`.
+/// - A boolean attribute interpolation `${is_disabled}`.
+///
+/// Output:
+/// - No diagnostics.
+///
+/// Transformation:
+/// - Proves boolean attributes use a distinct renderability rule instead of
+///   generic text rendering.
+#[test]
+fn template_slot_typecheck_accepts_bool_in_boolean_attribute() {
+    let template = template_decl("SubmitButton", &[("is_disabled", "Bool")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<button disabled=\"${is_disabled}\">Save</button>",
+            &HashMap::new()
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Verifies boolean attributes reject string-like values.
+///
+/// Inputs:
+/// - A template prop typed as `String`.
+/// - A boolean attribute interpolation `${state}`.
+///
+/// Output:
+/// - One boolean-specific non-renderable attribute diagnostic.
+///
+/// Transformation:
+/// - Prevents accidental string truthiness from entering template rendering.
+#[test]
+fn template_slot_typecheck_rejects_string_in_boolean_attribute() {
+    let template = template_decl("SubmitButton", &[("state", "String")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<button disabled=\"${state}\">Save</button>",
+            &HashMap::new()
+        ),
+        vec![
+            "template `SubmitButton` boolean attribute `disabled` slot `state` has non-renderable type `String` (template line 1, columns 1-8)"
+        ]
+    );
+}
+
+/// Verifies optional scalar values can render as omitted-or-present attributes.
+///
+/// Inputs:
+/// - A template prop typed as `Option[String]`.
+/// - A generic attribute interpolation `${maybe_title}`.
+///
+/// Output:
+/// - No diagnostics.
+///
+/// Transformation:
+/// - Confirms optional attributes validate the wrapped type instead of
+///   rejecting the `Option` container itself.
+#[test]
+fn template_slot_typecheck_accepts_optional_string_in_attribute() {
+    let template = template_decl("Card", &[("maybe_title", "Option[String]")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<article title=\"${maybe_title}\"></article>",
+            &HashMap::new()
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Verifies optional URI values can render as omitted-or-present URL
+/// attributes.
+///
+/// Inputs:
+/// - A template prop typed as `Option[std.net.Uri.Uri]`.
+/// - A URL attribute interpolation `${maybe_profile}`.
+///
+/// Output:
+/// - No diagnostics.
+///
+/// Transformation:
+/// - Keeps optional URL attributes aligned with the stricter URL attribute
+///   type contract.
+#[test]
+fn template_slot_typecheck_accepts_optional_uri_in_url_attribute() {
+    let template = template_decl(
+        "ProfileLink",
+        &[("maybe_profile", "Option[std.net.Uri.Uri]")],
+    );
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<a href=\"${maybe_profile}\">profile</a>",
+            &HashMap::new()
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Verifies optional booleans can render as omitted-or-present boolean
+/// attributes.
+///
+/// Inputs:
+/// - A template prop typed as `std.core.Option.Option[Bool]`.
+/// - A boolean attribute interpolation `${maybe_disabled}`.
+///
+/// Output:
+/// - No diagnostics.
+///
+/// Transformation:
+/// - Confirms fully qualified core Option spellings use the same optional
+///   attribute rule as short `Option[T]` annotations.
+#[test]
+fn template_slot_typecheck_accepts_qualified_optional_bool_in_boolean_attribute() {
+    let template = template_decl(
+        "SubmitButton",
+        &[("maybe_disabled", "std.core.Option.Option[Bool]")],
+    );
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<button disabled=\"${maybe_disabled}\">Save</button>",
+            &HashMap::new()
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Verifies optional attributes still reject non-renderable wrapped values.
+///
+/// Inputs:
+/// - A template prop typed as `Option[User]`.
+/// - A generic attribute interpolation `${maybe_user}`.
+///
+/// Output:
+/// - One optional-attribute diagnostic.
+///
+/// Transformation:
+/// - Prevents `Option[T]` from becoming an escape hatch for rendering complex
+///   values directly into HTML attributes.
+#[test]
+fn template_slot_typecheck_rejects_optional_record_in_attribute() {
+    let template = template_decl("Card", &[("maybe_user", "Option[User]")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<article title=\"${maybe_user}\"></article>",
+            &HashMap::new()
+        ),
+        vec![
+            "template `Card` optional attribute `title` slot `maybe_user` has non-renderable type `Option[User]` (template line 1, columns 1-13)"
+        ]
+    );
+}
+
+/// Verifies token-list attributes accept collections of string-like values.
+///
+/// Inputs:
+/// - A template prop typed as `List[String]`.
+/// - A `class` attribute interpolation `${classes}`.
+///
+/// Output:
+/// - No diagnostics.
+///
+/// Transformation:
+/// - Confirms token-list attributes can be typed as collections without
+///   falling back to generic scalar-only attribute rendering.
+#[test]
+fn template_slot_typecheck_accepts_string_list_in_token_list_attribute() {
+    let template = template_decl("Card", &[("classes", "List[String]")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<article class=\"${classes}\"></article>",
+            &HashMap::new()
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Verifies optional token-list attributes accept collections of string-like
+/// values.
+///
+/// Inputs:
+/// - A template prop typed as `Option[List[String]]`.
+/// - A `class` attribute interpolation `${maybe_classes}`.
+///
+/// Output:
+/// - No diagnostics.
+///
+/// Transformation:
+/// - Confirms optional attribute validation delegates to the token-list rule
+///   for the wrapped collection type.
+#[test]
+fn template_slot_typecheck_accepts_optional_string_list_in_token_list_attribute() {
+    let template = template_decl("Card", &[("maybe_classes", "Option[List[String]]")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<article class=\"${maybe_classes}\"></article>",
+            &HashMap::new()
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Verifies token-list attributes reject collections of non-token values.
+///
+/// Inputs:
+/// - A template prop typed as `List[User]`.
+/// - A `class` attribute interpolation `${classes}`.
+///
+/// Output:
+/// - One token-list-specific diagnostic.
+///
+/// Transformation:
+/// - Prevents collection values from bypassing renderability checks for
+///   whitespace-separated HTML token attributes.
+#[test]
+fn template_slot_typecheck_rejects_record_list_in_token_list_attribute() {
+    let template = template_decl("Card", &[("classes", "List[User]")]);
+
+    assert_eq!(
+        slot_messages(
+            &template,
+            "<article class=\"${classes}\"></article>",
+            &HashMap::new()
+        ),
+        vec![
+            "template `Card` token-list attribute `class` slot `classes` has non-renderable type `List[User]` (template line 1, columns 1-10)"
         ]
     );
 }

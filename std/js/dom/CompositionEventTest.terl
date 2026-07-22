@@ -1,21 +1,32 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CompositionEvent
  */
 module std.js.Dom.CompositionEventTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.CompositionEvent.{CompositionEvent}.
-
+import type std.js.Dom.CompositionEvent.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub data_typechecks(receiver: CompositionEvent): JsString ->
     receiver.data().
 
-pub init_composition_event_typechecks(receiver: CompositionEvent, type_arg: JsString, bubbles_arg: Bool, cancelable_arg: Bool, view_arg: Option[WindowProxy], data_arg: JsString): std.core.Unit ->
+pub init_composition_event_typechecks(
+    receiver: CompositionEvent,
+    type_arg: JsString,
+    bubbles_arg: Bool,
+    cancelable_arg: Bool,
+    view_arg: Option[WindowProxy],
+    data_arg: JsString
+): std.core.Unit ->
     receiver.init_composition_event(type_arg, bubbles_arg, cancelable_arg, view_arg, data_arg).

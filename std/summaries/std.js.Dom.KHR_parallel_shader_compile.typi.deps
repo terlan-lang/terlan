@@ -1,8 +1,8 @@
 module=std.js.Dom.KHR_parallel_shader_compile
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=11274706659563646978
-interface_hash=11274706659563646978
-interface_doc_hash=11274706659563646978
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=11646403208875868146
+interface_hash=2231188411010737726
+interface_doc_hash=2231188411010737726
 deps=0

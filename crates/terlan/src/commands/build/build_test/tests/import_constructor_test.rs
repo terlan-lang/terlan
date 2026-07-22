@@ -1,6 +1,6 @@
 use super::*;
 
-/// Verifies directory builds compile imported constructor declarations and
+/// Verifies VM directory builds accept imported constructor declarations and
 /// eligible type-alias constructors.
 ///
 /// Inputs:
@@ -10,14 +10,14 @@ use super::*;
 ///   the imported constructor-like names.
 ///
 /// Output:
-/// - Test passes when `terlc build <dir> --target erlang` emits Erlang source
-///   and BEAM artifacts for both modules.
+/// - Test passes when the VM build emits checked consumer and provider
+///   interfaces without producing legacy Erlang artifacts.
 ///
 /// Transformation:
-/// - Runs directory build discovery, import resolution, constructor identity
-///   lowering, Erlang source emission, and `erlc`.
+/// - Runs directory build discovery and feeds imported constructor-like names
+///   into VM artifact typechecking.
 #[test]
-fn build_command_compiles_directory_with_imported_constructors_and_aliases() {
+fn build_command_accepts_directory_with_imported_constructors_and_aliases_vm_import_closure() {
     let dir = make_temp_dir("directory_imported_constructors");
     let source_dir = dir.join("project");
     let out_dir = dir.join("build");
@@ -29,7 +29,7 @@ fn build_command_compiles_directory_with_imported_constructors_and_aliases() {
     .expect("failed to write constructor user source fixture");
     fs::write(
         source_dir.join("z_shapes.terl"),
-        "module z_shapes.\n\npub type Ok[T] =\n    {:ok, value: T}.\n\npub constructor Box {\n    (value: Int): Dynamic ->\n        {:box, value}\n}.\n",
+        "module z_shapes.\n\npub type Ok[T] =\n    {Atom[\"ok\"], value: T}.\n\npub constructor Box {\n    (value: Int): Dynamic ->\n        {Atom[\"box\"], value}\n}.\n",
     )
     .expect("failed to write constructor provider source fixture");
 
@@ -42,20 +42,20 @@ fn build_command_compiles_directory_with_imported_constructors_and_aliases() {
         args: vec![
             source_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/a_user.erl").exists());
-    assert!(out_dir.join("src/z_shapes.erl").exists());
-    assert!(out_dir.join("ebin/a_user.beam").exists());
-    assert!(out_dir.join("ebin/z_shapes.beam").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    assert!(out_dir.join(".terlan/a_user.typi").exists());
+    assert!(out_dir.join(".terlan/z_shapes.typi").exists());
 }
 
-/// Verifies directory builds compile aliased imported constructor-like aliases
+/// Verifies VM directory builds accept aliased imported constructor-like aliases
 /// in expression and pattern positions.
 ///
 /// Inputs:
@@ -64,15 +64,14 @@ fn build_command_compiles_directory_with_imported_constructors_and_aliases() {
 ///   `Success(value)`, and matching `Success(value)` in a `case`.
 ///
 /// Output:
-/// - Test passes when `terlc build <dir> --target erlang` emits Erlang source
-///   and BEAM artifacts for both modules.
+/// - Test passes when the VM build emits checked consumer and provider
+///   interfaces without producing legacy Erlang artifacts.
 ///
 /// Transformation:
-/// - Runs the formal directory build path through interface-cache validation,
-///   CoreIR lowering, Erlang source emission, and `erlc` so aliased imported
-///   alias identities are proven at artifact level.
+/// - Runs the formal directory build path and feeds aliased imported
+///   constructor-like names into VM artifact typechecking.
 #[test]
-fn build_command_compiles_directory_with_aliased_imported_alias_patterns() {
+fn build_command_accepts_directory_with_aliased_imported_alias_patterns_vm_import_closure() {
     let dir = make_temp_dir("directory_aliased_imported_alias_patterns");
     let source_dir = dir.join("project");
     let out_dir = dir.join("build");
@@ -84,7 +83,7 @@ fn build_command_compiles_directory_with_aliased_imported_alias_patterns() {
     .expect("failed to write aliased alias user source fixture");
     fs::write(
         source_dir.join("z_result.terl"),
-        "module z_result.\n\npub type Ok[T] =\n    {:ok, value: T}.\n",
+        "module z_result.\n\npub type Ok[T] =\n    {Atom[\"ok\"], value: T}.\n",
     )
     .expect("failed to write aliased alias provider source fixture");
 
@@ -97,20 +96,20 @@ fn build_command_compiles_directory_with_aliased_imported_alias_patterns() {
         args: vec![
             source_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/a_user.erl").exists());
-    assert!(out_dir.join("src/z_result.erl").exists());
-    assert!(out_dir.join("ebin/a_user.beam").exists());
-    assert!(out_dir.join("ebin/z_result.beam").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    assert!(out_dir.join(".terlan/a_user.typi").exists());
+    assert!(out_dir.join(".terlan/z_result.typi").exists());
 }
 
-/// Verifies directory builds compile aliased imported constructor-like aliases
+/// Verifies VM directory builds accept aliased imported constructor-like aliases
 /// used as constructor-chain bases.
 ///
 /// Inputs:
@@ -119,16 +118,15 @@ fn build_command_compiles_directory_with_aliased_imported_alias_patterns() {
 ///   `Member(id, name) with Admin { ... }`.
 ///
 /// Output:
-/// - Test passes when `terlc build <dir> --target erlang` emits Erlang source
-///   and BEAM artifacts for both modules.
+/// - Test passes when the VM build emits checked consumer and provider
+///   interfaces without producing legacy Erlang artifacts.
 ///
 /// Transformation:
-/// - Runs the formal directory build path through interface-cache validation,
-///   constructor-chain identity resolution, CoreIR lowering, Erlang source
-///   emission, and `erlc` so aliased imported constructor chains are proven at
-///   artifact level.
+/// - Runs the formal directory build path and feeds aliased imported
+///   constructor chains into VM artifact typechecking.
 #[test]
-fn build_command_compiles_directory_with_aliased_imported_alias_constructor_chain() {
+fn build_command_accepts_directory_with_aliased_imported_alias_constructor_chain_vm_import_closure()
+{
     let dir = make_temp_dir("directory_aliased_imported_alias_constructor_chain");
     let source_dir = dir.join("project");
     let out_dir = dir.join("build");
@@ -140,7 +138,7 @@ fn build_command_compiles_directory_with_aliased_imported_alias_constructor_chai
     .expect("failed to write aliased alias constructor-chain user source fixture");
     fs::write(
         source_dir.join("z_user.terl"),
-        "module z_user.\n\npub type User =\n    {:user, id: Int, name: Binary}.\n",
+        "module z_user.\n\npub type User =\n    {Atom[\"user\"], id: Int, name: Binary}.\n",
     )
     .expect("failed to write aliased alias constructor-chain provider source fixture");
 
@@ -153,15 +151,15 @@ fn build_command_compiles_directory_with_aliased_imported_alias_constructor_chai
         args: vec![
             source_dir.display().to_string(),
             "--target".to_string(),
-            "erlang".to_string(),
+            "terlan-vm".to_string(),
         ],
     };
 
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("src/a_user.erl").exists());
-    assert!(out_dir.join("src/z_user.erl").exists());
-    assert!(out_dir.join("ebin/a_user.beam").exists());
-    assert!(out_dir.join("ebin/z_user.beam").exists());
+    assert!(!out_dir.join("src").exists());
+    assert!(!out_dir.join("ebin").exists());
+    assert!(out_dir.join(".terlan/a_user.typi").exists());
+    assert!(out_dir.join(".terlan/z_user.typi").exists());
 }

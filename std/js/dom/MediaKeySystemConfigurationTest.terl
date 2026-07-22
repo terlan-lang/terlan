@@ -1,20 +1,26 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaKeySystemConfiguration
  */
 module std.js.Dom.MediaKeySystemConfigurationTest.
 
-import type std.js.Dom.MediaKeySystemConfiguration.{MediaKeySystemConfiguration}.
-
+import type std.js.Dom.MediaKeySystemConfiguration.
 import type std.js.String.{JsString}.
-
 import type std.js.{Array}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub audio_capabilities_typechecks(receiver: MediaKeySystemConfiguration): Array[MediaKeySystemMediaCapability] ->
+pub audio_capabilities_typechecks(
+    receiver: MediaKeySystemConfiguration
+): Array[MediaKeySystemMediaCapability] ->
     receiver.audio_capabilities().
 
 pub distinctive_identifier_typechecks(receiver: MediaKeySystemConfiguration): MediaKeysRequirement ->
@@ -32,5 +38,7 @@ pub persistent_state_typechecks(receiver: MediaKeySystemConfiguration): MediaKey
 pub session_types_typechecks(receiver: MediaKeySystemConfiguration): Array[JsString] ->
     receiver.session_types().
 
-pub video_capabilities_typechecks(receiver: MediaKeySystemConfiguration): Array[MediaKeySystemMediaCapability] ->
+pub video_capabilities_typechecks(
+    receiver: MediaKeySystemConfiguration
+): Array[MediaKeySystemMediaCapability] ->
     receiver.video_capabilities().

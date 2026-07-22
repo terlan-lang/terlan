@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Set
+ */
+module std.js.Set.
+
+import type std.core.{Bool}.
+
+pub opaque type Set[T].
+
+pub (value: Set[T]) clear(): std.core.Unit.
+
+/**
+ * Removes a specified value from the Set.
+ * @returns Returns true if an element in the Set existed and has been removed, or false if the element does not exist.
+ */
+pub (value: Set[T]) delete(value: T): Bool.
+
+/**
+ * @returns a boolean indicating whether an element with the specified value exists in the Set or not.
+ */
+pub (value: Set[T]) has(value: T): Bool.
+
+/**
+ * @returns the number of (unique) elements in Set.
+ */
+pub (value: Set[T]) size(): std.js.Number.JsNumber.

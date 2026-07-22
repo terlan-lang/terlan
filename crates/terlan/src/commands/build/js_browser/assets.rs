@@ -1,7 +1,12 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
+use serde_json::json;
+use sha2::{Digest, Sha256};
 
 use crate::terlan_syntax::SyntaxImportKind;
 
@@ -53,13 +58,38 @@ pub(super) fn copy_js_module_asset(
             )
         })?;
     }
-    write_build_file(&destination, &bytes, incremental)?;
+    let source_map_relative_path = source_map_relative_path(&web_relative_path);
+    let source_map_file = source_map_relative_path
+        .file_name()
+        .and_then(|file_name| file_name.to_str())
+        .ok_or_else(|| {
+            format!(
+                "cannot determine source map file name for {}",
+                source_map_relative_path.display()
+            )
+        })?;
+    let source_map_bytes = source_map_bytes(module, &web_relative_path)?;
+    let source_mapping_url = format!("\n//# sourceMappingURL={source_map_file}\n");
+    let mut browser_js_bytes = bytes.clone();
+    browser_js_bytes.extend_from_slice(source_mapping_url.as_bytes());
+    write_build_file(&destination, &browser_js_bytes, incremental)?;
+    let source_map_destination = web_root.join(&source_map_relative_path);
+    write_build_file(&source_map_destination, &source_map_bytes, incremental)?;
     assets.push(WebAssetArtifact {
         module: module.module.clone(),
         kind: "javascript-module".to_string(),
         source_relative_path: module.relative_path.clone(),
         web_relative_path: path_to_manifest_string(&web_relative_path),
-        fingerprint: fingerprint(&bytes),
+        fingerprint: fingerprint(&browser_js_bytes),
+        integrity: subresource_integrity(&browser_js_bytes),
+    });
+    assets.push(WebAssetArtifact {
+        module: module.module.clone(),
+        kind: "javascript-source-map".to_string(),
+        source_relative_path: format!("{}.map", module.relative_path),
+        web_relative_path: path_to_manifest_string(&source_map_relative_path),
+        fingerprint: fingerprint(&source_map_bytes),
+        integrity: subresource_integrity(&source_map_bytes),
     });
     Ok(())
 }
@@ -102,6 +132,7 @@ pub(super) fn copy_browser_imported_assets(
             source_relative_path: import.source_path.clone(),
             web_relative_path: path_to_manifest_string(&web_relative_path),
             fingerprint: fingerprint(&import.bytes),
+            integrity: subresource_integrity(&import.bytes),
         });
     }
 
@@ -131,6 +162,7 @@ pub(super) fn copy_manifest_static_assets(
 ) -> Result<(), String> {
     let mut files = manifest_static_asset_files(&config.source_dir)?;
     files.sort();
+    validate_no_case_folded_manifest_asset_collisions(&files, &config.source_dir)?;
     for source in files {
         let relative = source.strip_prefix(&config.source_dir).map_err(|err| {
             format!(
@@ -165,6 +197,7 @@ pub(super) fn copy_manifest_static_assets(
             ),
             web_relative_path: path_to_manifest_string(&web_relative_path),
             fingerprint: fingerprint(&bytes),
+            integrity: subresource_integrity(&bytes),
         });
     }
     let _ = config.inline_limit;
@@ -347,6 +380,7 @@ fn copy_manifest_passthrough_assets(
 ) -> Result<(), String> {
     let mut files = manifest_static_asset_files(&config.source_dir)?;
     files.sort();
+    validate_no_case_folded_manifest_asset_collisions(&files, &config.source_dir)?;
     for source in files {
         let relative = source.strip_prefix(&config.source_dir).map_err(|err| {
             format!(
@@ -431,6 +465,7 @@ fn register_web_root_assets(
             source_relative_path: path_to_manifest_string(relative),
             web_relative_path,
             fingerprint: fingerprint(&bytes),
+            integrity: subresource_integrity(&bytes),
         });
     }
     Ok(true)
@@ -520,6 +555,33 @@ fn validate_safe_manifest_asset_path(relative: &Path, source: &Path) -> Result<(
     Ok(())
 }
 
+/// Rejects manifest assets that collide on case-insensitive filesystems.
+fn validate_no_case_folded_manifest_asset_collisions(
+    files: &[PathBuf],
+    root: &Path,
+) -> Result<(), String> {
+    let mut seen = BTreeMap::<String, &PathBuf>::new();
+    for source in files {
+        let relative = source.strip_prefix(root).map_err(|err| {
+            format!(
+                "cannot relativize static asset {} against {}: {err}",
+                source.display(),
+                root.display()
+            )
+        })?;
+        let folded = path_to_manifest_string(relative).to_ascii_lowercase();
+        if let Some(existing) = seen.get(&folded) {
+            return Err(format!(
+                "manifest static asset paths collide on case-insensitive filesystems: {} and {}",
+                existing.display(),
+                source.display()
+            ));
+        }
+        seen.insert(folded, source);
+    }
+    Ok(())
+}
+
 /// Builds the browser package path for one source-imported asset.
 ///
 /// Inputs:
@@ -557,6 +619,64 @@ fn browser_import_asset_relative_path(
         fingerprint(&import.bytes),
         extension
     ))
+}
+
+/// Computes standard browser subresource integrity metadata for copied assets.
+fn subresource_integrity(bytes: &[u8]) -> String {
+    format!("sha256-{}", STANDARD.encode(Sha256::digest(bytes)))
+}
+
+/// Computes the browser-relative source map path beside a copied JS module.
+fn source_map_relative_path(web_relative_path: &Path) -> PathBuf {
+    let mut source_map_path = web_relative_path.to_path_buf();
+    let file_name = web_relative_path
+        .file_name()
+        .and_then(|file_name| file_name.to_str())
+        .unwrap_or("module.js");
+    source_map_path.set_file_name(format!("{file_name}.map"));
+    source_map_path
+}
+
+/// Emits a deterministic, non-leaking source map for a copied JavaScript module.
+fn source_map_bytes(
+    module: &JsModuleArtifact,
+    web_relative_path: &Path,
+) -> Result<Vec<u8>, String> {
+    let file = web_relative_path
+        .file_name()
+        .and_then(|file_name| file_name.to_str())
+        .ok_or_else(|| {
+            format!(
+                "cannot determine source map output file for {}",
+                web_relative_path.display()
+            )
+        })?;
+    let source = source_map_source_label(&module.source_path);
+    let text = serde_json::to_string(&json!({
+        "version": 3,
+        "file": file,
+        "sources": [source],
+        "sourcesContent": [""],
+        "names": [],
+        "mappings": ""
+    }))
+    .map_err(|err| {
+        format!(
+            "cannot serialize browser source map for {}: {err}",
+            module.module
+        )
+    })?;
+    Ok(text.into_bytes())
+}
+
+/// Reduces a source path to a package-safe source-map label without host paths.
+fn source_map_source_label(source_path: &str) -> String {
+    let path = Path::new(source_path);
+    path.file_name()
+        .and_then(|file_name| file_name.to_str())
+        .filter(|file_name| !file_name.is_empty())
+        .unwrap_or("source.terl")
+        .to_string()
 }
 
 /// Converts an imported asset kind into browser manifest text.

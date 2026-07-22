@@ -1,0 +1,17 @@
+module annotation_isolation_parity.
+
+annotation metadata.rewrite {
+    applies_to: function;
+    action: Name { required: true };
+}.
+
+@metadata.rewrite {action: delete}
+deleted(value: Int): Int -> value + 1.
+
+@metadata.rewrite {action: replace}
+replaced(value: Int): Int -> value * 2.
+
+@metadata.rewrite {action: insert}
+inserted(): Int -> 7.
+
+pub run(): Int -> deleted(10) + replaced(5) + inserted().

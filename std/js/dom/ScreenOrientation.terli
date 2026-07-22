@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ScreenOrientation
+ */
+module std.js.Dom.ScreenOrientation.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`ScreenOrientation`** interface of the Screen Orientation API provides information about the current orientation of the document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ScreenOrientation)
+ */
+pub opaque type ScreenOrientation.
+
+/**
+ * The **`angle`** read-only property of the angle.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ScreenOrientation/angle)
+ */
+pub (value: ScreenOrientation) angle(): std.js.Number.JsNumber.
+
+/**
+ * The **`type`** read-only property of the type, one of `portrait-primary`, `portrait-secondary`, `landscape-primary`, or `landscape-secondary`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ScreenOrientation/type)
+ */
+pub (value: ScreenOrientation) type_(): OrientationType.
+
+/**
+ * The **`unlock()`** method of the document from its default orientation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ScreenOrientation/unlock)
+ */
+pub (value: ScreenOrientation) unlock(): Unit.
+
+pub (value: ScreenOrientation) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: ScreenOrientation) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

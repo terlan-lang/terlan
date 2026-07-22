@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGFEPointLightElement
+ */
+module std.js.Dom.SVGFEPointLightElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFEPointLightElement`** interface corresponds to the fePointLight element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement)
+ */
+pub opaque type SVGFEPointLightElement.
+
+/**
+ * The **`x`** read-only property of the SVGFEPointLightElement interface describes the horizontal coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement/x)
+ */
+pub (value: SVGFEPointLightElement) x(): SVGAnimatedNumber.
+
+/**
+ * The **`y`** read-only property of the SVGFEPointLightElement interface describes the vertical coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement/y)
+ */
+pub (value: SVGFEPointLightElement) y(): SVGAnimatedNumber.
+
+/**
+ * The **`z`** read-only property of the SVGFEPointLightElement interface describes the z-axis value of the position of an SVG filter primitive as a SVGAnimatedNumber.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEPointLightElement/z)
+ */
+pub (value: SVGFEPointLightElement) z(): SVGAnimatedNumber.
+
+pub (value: SVGFEPointLightElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SVGFEPointLightElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

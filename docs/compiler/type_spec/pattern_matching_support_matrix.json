@@ -1,0 +1,701 @@
+{
+  "schema": "terlan.pattern-matching-support.v1",
+  "positive_test_files": [
+    "tests/pattern/PatternMatchingTest.terl",
+    "tests/pattern/StringPatternLongTailTest.terl"
+  ],
+  "shape_synonyms": {
+    "contexts": [
+      {
+        "id": "local",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "supported",
+        "core_ir": "supported",
+        "vm": "supported",
+        "js": "supported",
+        "tree_sitter": "not-applicable",
+        "lsp": "not-applicable",
+        "docs": "not-applicable",
+        "diagnostic": null,
+        "positive_tests": [
+          "tests/pattern/ShapeSynonymTest.terl::local_shape_executes_through_case",
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes_test.rs::expands_local_shape_calls_in_case_and_function_head_patterns"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes_test.rs::rejects_local_shape_arity_mismatch",
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes_test.rs::rejects_local_shape_called_as_runtime_value"
+        ]
+      },
+      {
+        "id": "exported_imported",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "supported",
+        "core_ir": "supported",
+        "vm": "supported",
+        "js": "supported",
+        "tree_sitter": "not-applicable",
+        "lsp": "supported",
+        "docs": "not-applicable",
+        "diagnostic": null,
+        "positive_tests": [
+          "crates/terlan/src/commands/test/test_shape_import_test.rs::project_vm_tests_execute_selected_imported_shape_alias",
+          "crates/terlan/src/commands/build/build_test/tests/shape_js_test.rs::build_command_emits_imported_tuple_shape_for_js_target",
+          "crates/terlan/src/lsp/hover_test.rs::hover_returns_imported_shape_docs_from_interface"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/hir/shapes_test.rs::imported_shape_expansion_rejects_ambiguous_local_aliases",
+          "crates/terlan/src/compiler/hir/shapes_test.rs::imported_shape_expansion_rejects_recursive_provider_shapes"
+        ]
+      },
+      {
+        "id": "guarded",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "supported",
+        "core_ir": "supported",
+        "vm": "supported",
+        "js": "supported",
+        "tree_sitter": "not-applicable",
+        "lsp": "not-applicable",
+        "docs": "not-applicable",
+        "diagnostic": null,
+        "positive_tests": [
+          "tests/pattern/ShapeSynonymTest.terl::guarded_shape_composes_with_clause_guard",
+          "crates/terlan/src/commands/build/build_test/tests/shape_js_test.rs::build_command_emits_guarded_imported_shape_for_js_target"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/typeck/shape_purity_test.rs::syntax_output_rejects_effectful_helper_in_shape_guard_after_expansion",
+          "crates/terlan/src/compiler/typeck/diagnostic_test_part_002.rs::syntax_output_rejects_non_bool_shape_guard_after_expansion"
+        ]
+      },
+      {
+        "id": "nested",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "supported",
+        "core_ir": "supported",
+        "vm": "supported",
+        "js": "supported",
+        "tree_sitter": "not-applicable",
+        "lsp": "not-applicable",
+        "docs": "not-applicable",
+        "diagnostic": null,
+        "positive_tests": [
+          "tests/pattern/ShapeSynonymTest.terl::nested_guarded_shape_executes_through_case",
+          "crates/terlan/src/commands/build/build_test/tests/shape_js_test.rs::build_command_emits_imported_nested_literal_shape_for_js_target"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes_test.rs::rejects_recursive_local_shape_expansion",
+          "crates/terlan/src/compiler/hir/shapes_test.rs::imported_shape_expansion_rejects_recursive_provider_shapes"
+        ]
+      },
+      {
+        "id": "route",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "supported",
+        "core_ir": "supported",
+        "vm": "supported",
+        "js": "unsupported",
+        "tree_sitter": "not-applicable",
+        "lsp": "not-applicable",
+        "docs": "not-applicable",
+        "diagnostic": "target_profile_unsupported",
+        "positive_tests": [
+          "tests/pattern/ShapeSynonymTest.terl::route_shape_uses_ordinary_typed_pattern_matching",
+          "crates/terlan/src/compiler/syntax/parser_decl_test_part_002.rs::parses_shape_synonym_with_string_capture_body"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_adjacent_string_capture_patterns",
+          "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_unterminated_string_capture_patterns"
+        ]
+      },
+      {
+        "id": "function_head",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "supported",
+        "core_ir": "supported",
+        "vm": "supported",
+        "js": "unsupported",
+        "tree_sitter": "not-applicable",
+        "lsp": "not-applicable",
+        "docs": "not-applicable",
+        "diagnostic": "target_profile_unsupported",
+        "positive_tests": [
+          "tests/pattern/ShapeSynonymTest.terl::nested_shape_executes_through_function_head",
+          "tests/pattern/ShapeSynonymTest.terl::guarded_shape_executes_through_function_head"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes/overlap_test.rs::rejects_distinct_shapes_with_equivalent_function_patterns",
+          "crates/terlan/src/commands/build/build_test/tests/js_target_diagnostics_test.rs::build_command_rejects_function_head_pattern_for_js_target"
+        ]
+      },
+      {
+        "id": "wildcard_fallback",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "supported",
+        "core_ir": "supported",
+        "vm": "supported",
+        "js": "supported",
+        "tree_sitter": "not-applicable",
+        "lsp": "not-applicable",
+        "docs": "not-applicable",
+        "diagnostic": null,
+        "positive_tests": [
+          "tests/pattern/ShapeSynonymTest.terl::collection_shape_executes_and_falls_back",
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes/overlap_test.rs::accepts_specific_shape_before_broad_fallback_shape"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes/overlap_test.rs::rejects_distinct_shapes_with_equivalent_case_patterns",
+          "crates/terlan/src/compiler/syntax/syntax_output/shapes/overlap_test.rs::rejects_later_case_shape_subsumed_by_earlier_shape"
+        ]
+      },
+      {
+        "id": "tooling",
+        "parse": "supported",
+        "format": "supported",
+        "typecheck": "not-applicable",
+        "core_ir": "not-applicable",
+        "vm": "not-applicable",
+        "js": "not-applicable",
+        "tree_sitter": "supported",
+        "lsp": "supported",
+        "docs": "supported",
+        "diagnostic": null,
+        "positive_tests": [
+          "crates/terlan/src/compiler/syntax/formatter_test_part_002.rs::formatter_preserves_shape_synonym_raw_declarations",
+          "tree-sitter-terlan/test/corpus/shape_synonyms.txt::shape synonym declarations and ordinary pattern uses",
+          "crates/terlan/src/lsp/lib_test_part_005.rs::lsp_document_accepts_shape_synonym_declarations",
+          "docs/grammar/README.md::shape OkResponse(body)"
+        ],
+        "adversarial_tests": [
+          "crates/terlan/src/compiler/syntax/parser_decl_test_part_003.rs::old_shape_fat_arrow_spelling_is_not_shape_synonym_surface",
+          "crates/terlan/src/compiler/syntax/parser_decl_test_part_003.rs::old_shape_runtime_arrow_spelling_is_not_shape_synonym_surface"
+        ]
+      }
+    ]
+  },
+  "families": [
+    {
+      "id": "wildcard",
+      "surface": "_",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_wildcard_matches_any_value",
+        "function_wildcard_parameters_ignore_arguments"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "variable_binding",
+      "surface": "value",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_variable_pattern_binds_value",
+        "lambda_variable_pattern_binds_argument",
+        "function_variable_parameters_bind_arguments"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "integer_literal",
+      "surface": "1",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_int_literal_requires_exact_value"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "float_literal",
+      "surface": "0.2",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_float_literal_requires_exact_value"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "string_literal",
+      "surface": "\"terlan\"",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_string_literal_requires_exact_value",
+        "let_string_literal_pattern_requires_exact_value",
+        "lambda_string_literal_pattern_requires_exact_value",
+        "function_head_string_literal_pattern_requires_exact_value"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "string_pattern",
+      "surface": "\"users/${id: Int}/${name}.json\"",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "vm-supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_string_capture_binds_typed_value",
+        "case_string_capture_guard_uses_bound_value",
+        "let_string_capture_binds_typed_values",
+        "lambda_string_capture_binds_argument_shape",
+        "function_head_string_capture_binds_argument_shape"
+      ],
+      "adversarial_tests": [
+        "tests/pattern/PatternMatchingTest.terl::case_string_capture_falls_through_on_failed_conversion",
+        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_elixir_style_string_capture_pattern",
+        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_adjacent_string_capture_patterns",
+        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_unterminated_string_capture_patterns",
+        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_empty_string_capture_patterns",
+        "crates/terlan/src/compiler/typeck/pattern_test_part_001.rs::syntax_output_string_capture_pattern_rejects_duplicate_capture_names",
+        "crates/terlan/src/compiler/typeck/pattern_test_part_001.rs::syntax_output_string_capture_pattern_rejects_invalid_capture_annotation",
+        "crates/terlan/src/runtime/vm/patterns_test.rs::repl_pattern_rejects_ambiguous_string_capture_patterns"
+      ]
+    },
+    {
+      "id": "string_pattern_long_tail",
+      "surface": "\"GET /users/${id: Int}\" in route, path, function-head, lambda, shape, and template-backed contexts",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-supported",
+      "vm": "partial",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "route_like_case_capture_matches_request_path",
+        "path_like_let_capture_binds_file_parts",
+        "function_head_capture_clause_matches_route_shape",
+        "function_head_capture_clause_falls_through",
+        "lambda_capture_parameter_matches_path_shape",
+        "crates/terlan/src/compiler/syntax/parser_decl_test_part_002.rs::parses_shape_synonym_with_string_capture_body",
+        "crates/terlan/src/compiler/syntax/syntax_output_pattern_test.rs::syntax_output_keeps_template_backed_string_capture_flow"
+      ],
+      "adversarial_tests": [
+        "crates/terlan/src/lsp/lib_test_part_005.rs::lsp_document_rejects_adjacent_string_capture_patterns",
+        "crates/terlan/src/validation/target_profile/target_profile_test/tests/direct_core_shape_test_part_002.rs::target_profile_rejects_string_capture_pattern_for_core_v0_profile"
+      ],
+      "contexts": [
+        {
+          "id": "route",
+          "parse": "supported",
+          "typecheck": "supported",
+          "core_ir": "supported",
+          "vm": "supported",
+          "js": "unsupported",
+          "tree_sitter": "supported",
+          "lsp": "supported",
+          "stdlib_test": "supported",
+          "diagnostic": null,
+          "positive_tests": [
+            "route_like_case_capture_matches_request_path",
+            "tree-sitter-terlan/test/corpus/basic.txt::string capture patterns"
+          ],
+          "adversarial_tests": []
+        },
+        {
+          "id": "path",
+          "parse": "supported",
+          "typecheck": "supported",
+          "core_ir": "supported",
+          "vm": "supported",
+          "js": "unsupported",
+          "tree_sitter": "supported",
+          "lsp": "supported",
+          "stdlib_test": "supported",
+          "diagnostic": null,
+          "positive_tests": [
+            "path_like_let_capture_binds_file_parts",
+            "tree-sitter-terlan/test/corpus/basic.txt::string capture patterns"
+          ],
+          "adversarial_tests": []
+        },
+        {
+          "id": "function_head",
+          "parse": "supported",
+          "typecheck": "supported",
+          "core_ir": "supported",
+          "vm": "supported",
+          "js": "unsupported",
+          "tree_sitter": "supported",
+          "lsp": "supported",
+          "stdlib_test": "supported",
+          "diagnostic": null,
+          "positive_tests": [
+            "function_head_capture_clause_matches_route_shape",
+            "function_head_capture_clause_falls_through",
+            "tree-sitter-terlan/test/corpus/basic.txt::string capture patterns"
+          ],
+          "adversarial_tests": []
+        },
+        {
+          "id": "lambda",
+          "parse": "supported",
+          "typecheck": "supported",
+          "core_ir": "supported",
+          "vm": "supported",
+          "js": "unsupported",
+          "tree_sitter": "supported",
+          "lsp": "supported",
+          "stdlib_test": "supported",
+          "diagnostic": null,
+          "positive_tests": [
+            "lambda_capture_parameter_matches_path_shape",
+            "tree-sitter-terlan/test/corpus/basic.txt::long-tail string capture contexts"
+          ],
+          "adversarial_tests": []
+        },
+        {
+          "id": "shape",
+          "parse": "supported",
+          "typecheck": "blocked",
+          "core_ir": "blocked",
+          "vm": "blocked",
+          "js": "unsupported",
+          "tree_sitter": "supported",
+          "lsp": "diagnostic-only",
+          "stdlib_test": "syntax-only",
+          "diagnostic": "shape_synonym_expansion_required",
+          "positive_tests": [
+            "crates/terlan/src/compiler/syntax/parser_decl_test_part_002.rs::parses_shape_synonym_with_string_capture_body",
+            "tree-sitter-terlan/test/corpus/basic.txt::shape synonym declaration"
+          ],
+          "adversarial_tests": [
+            "crates/terlan/src/compiler/syntax/syntax_output/shapes_test.rs::rejects_recursive_local_shape_expansion"
+          ]
+        },
+        {
+          "id": "template",
+          "parse": "supported",
+          "typecheck": "syntax-only",
+          "core_ir": "syntax-only",
+          "vm": "syntax-only",
+          "js": "unsupported",
+          "tree_sitter": "supported",
+          "lsp": "syntax-only",
+          "stdlib_test": "syntax-only",
+          "diagnostic": "template_pattern_expansion_not_defined",
+          "positive_tests": [
+            "crates/terlan/src/compiler/syntax/syntax_output_pattern_test.rs::syntax_output_keeps_template_backed_string_capture_flow",
+            "tree-sitter-terlan/test/corpus/basic.txt::long-tail string capture contexts"
+          ],
+          "adversarial_tests": []
+        }
+      ]
+    },
+    {
+      "id": "bool_literal",
+      "surface": "true | false",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_bool_literal_matches_true_and_false"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "atom_alias",
+      "surface": "Ready",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_atom_alias_matches_exact_value"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "unit_constructor",
+      "surface": "Unit",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_unit_constructor_matches_unit_value"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "tuple",
+      "surface": "{left, right}",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_tuple_pattern_binds_nested_values",
+        "let_tuple_destructuring_binds_values",
+        "lambda_tuple_pattern_binds_argument_shape"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "exact_list",
+      "surface": "[left, right]",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_exact_list_pattern_binds_entries",
+        "case_empty_list_pattern_matches_empty_list",
+        "let_list_destructuring_binds_exact_entries"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "list_cons",
+      "surface": "[head | tail]",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_list_cons_pattern_splits_head_and_tail",
+        "case_list_cons_pattern_falls_through_on_empty_list",
+        "let_list_cons_destructuring_binds_tail",
+        "lambda_list_cons_pattern_binds_argument_shape"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "keyed_map",
+      "surface": "{name: name}",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_map_pattern_binds_required_keys"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "constructor",
+      "surface": "Some(value)",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_option_constructors_match_both_shapes",
+        "case_result_constructors_match_both_shapes",
+        "case_custom_constructor_pattern_binds_payloads",
+        "let_constructor_destructuring_binds_payloads",
+        "lambda_constructor_pattern_binds_argument_shape"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "case_guard",
+      "surface": "value when value == 4",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "case_guard_uses_bound_value_and_falls_through"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "let_destructuring",
+      "surface": "let {left, right} = value",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "let_tuple_destructuring_binds_values",
+        "let_list_destructuring_binds_exact_entries",
+        "let_list_cons_destructuring_binds_tail",
+        "let_constructor_destructuring_binds_payloads"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "lambda_parameter",
+      "surface": "({left, right}) -> ...",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "lambda_variable_pattern_binds_argument",
+        "lambda_tuple_pattern_binds_argument_shape",
+        "lambda_list_cons_pattern_binds_argument_shape",
+        "lambda_constructor_pattern_binds_argument_shape"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "function_parameter",
+      "surface": "pub f(value: Int, _ignored: Int)",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "function_variable_parameters_bind_arguments",
+        "function_wildcard_parameters_ignore_arguments"
+      ],
+      "adversarial_tests": []
+    },
+    {
+      "id": "function_head_pattern_parameter",
+      "surface": "pub f({left, right}: {Int, Int})",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "vm-supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": "target_profile_unsupported",
+      "positive_tests": [
+        "function_head_tuple_pattern_binds_expression_body_argument",
+        "function_head_tuple_pattern_refines_typed_bindings",
+        "function_head_alias_pattern_binds_alias_and_fields",
+        "function_head_tuple_pattern_binds_clause_style_argument",
+        "function_head_list_pattern_binds_expression_body_argument",
+        "function_head_constructor_pattern_binds_expression_body_argument",
+        "function_head_map_pattern_binds_expression_body_argument",
+        "function_head_record_pattern_binds_expression_body_argument",
+        "function_head_wildcard_pattern_ignores_expression_body_argument",
+        "function_head_string_literal_pattern_requires_exact_value"
+      ],
+      "adversarial_tests": [
+        "crates/terlan/src/commands/build/build_test/tests/js_target_diagnostics_test.rs::build_command_rejects_function_head_pattern_for_js_target"
+      ]
+    },
+    {
+      "id": "record_struct",
+      "surface": "Point { x: x }",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "proof-required",
+      "target_profile": "rejected",
+      "vm": "unsupported",
+      "js": "unsupported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/runtime/vm/patterns_test.rs::case_pattern_commits_only_successful_bindings",
+        "crates/terlan/src/tests/check_target_profile_gate_test_part_001.rs::run_check_single_file_rejects_record_pattern_for_core_v0_target_profile"
+      ]
+    },
+    {
+      "id": "bare_match_expression",
+      "surface": "name = expression",
+      "parse": "rejected",
+      "format": "not-applicable",
+      "typecheck": "not-applicable",
+      "core_ir": "not-applicable",
+      "target_profile": "not-applicable",
+      "vm": "not-applicable",
+      "js": "not-applicable",
+      "diagnostic": "parse_error",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parser_expr_test_part_003.rs::rejects_bodyless_let_expression"
+      ]
+    }
+  ]
+}

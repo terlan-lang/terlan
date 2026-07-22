@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ServiceWorkerRegistration
  */
 module std.js.Dom.ServiceWorkerRegistrationTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.ServiceWorkerRegistration.{ServiceWorkerRegistration}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.ServiceWorkerRegistration.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub active_typechecks(receiver: ServiceWorkerRegistration): Option[ServiceWorker] ->
     receiver.active().
@@ -42,10 +43,17 @@ pub update_via_cache_typechecks(receiver: ServiceWorkerRegistration): ServiceWor
 pub waiting_typechecks(receiver: ServiceWorkerRegistration): Option[ServiceWorker] ->
     receiver.waiting().
 
-pub get_notifications_typechecks(receiver: ServiceWorkerRegistration, filter: GetNotificationOptions): Promise[std.js.Array[Notification]] ->
+pub get_notifications_typechecks(
+    receiver: ServiceWorkerRegistration,
+    filter: GetNotificationOptions
+): Promise[std.js.Array[Notification]] ->
     receiver.get_notifications(filter).
 
-pub show_notification_typechecks(receiver: ServiceWorkerRegistration, title: JsString, options: NotificationOptions): Promise[Unit] ->
+pub show_notification_typechecks(
+    receiver: ServiceWorkerRegistration,
+    title: JsString,
+    options: NotificationOptions
+): Promise[Unit] ->
     receiver.show_notification(title, options).
 
 pub unregister_typechecks(receiver: ServiceWorkerRegistration): Promise[Bool] ->
@@ -54,8 +62,18 @@ pub unregister_typechecks(receiver: ServiceWorkerRegistration): Promise[Bool] ->
 pub update_typechecks(receiver: ServiceWorkerRegistration): Promise[ServiceWorkerRegistration] ->
     receiver.update().
 
-pub add_event_listener_typechecks(receiver: ServiceWorkerRegistration, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: ServiceWorkerRegistration,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: ServiceWorkerRegistration, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: ServiceWorkerRegistration,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

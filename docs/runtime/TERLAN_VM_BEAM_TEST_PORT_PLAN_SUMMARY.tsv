@@ -1,0 +1,16 @@
+# kind	name	count
+total	areas	11
+priority	P0	5
+priority	P1	4
+priority	P2	2
+classification	delete-after-vm-equivalent	1
+classification	port-to-rust-vm-test	7
+classification	port-to-terlan-test	3
+replacement_gate	std-vm-parity-matrix-check	3
+replacement_gate	vm-distribution-suite-parity-check	1
+replacement_gate	vm-failure-primitives-check	1
+replacement_gate	vm-process-model-check	2
+replacement_gate	vm-runtime-semantics-check	1
+replacement_gate	vm-scheduler-contract-check	1
+replacement_gate	vm-tcp-stream-check	1
+replacement_gate	vm-timer-primitives-check	1

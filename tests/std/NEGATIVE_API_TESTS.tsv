@@ -3,7 +3,7 @@
 # Inputs:
 # - API identifiers for public stdlib APIs with type-level constraints.
 # - Invalid Terlan release-test fixtures under tests/std/negative.
-# - Stable diagnostic substrings expected from `terlc test --target erlang`.
+# - Stable diagnostic substrings expected from the default `terlc test` VM lane.
 #
 # Output:
 # - A tab-separated manifest consumed by
@@ -15,6 +15,11 @@
 #
 # Format:
 # api_id<TAB>fixture<TAB>expected_diagnostic_substring
+std.core.Secret.denies_show	tests/std/negative/core/SecretRejectsShowTest.terl	trait bound `Show[std.core.Secret.Secret]` is explicitly denied
+std.core.Secret.denies_equal	tests/std/negative/core/SecretRejectsEqualTest.terl	trait bound `Equal[std.core.Secret.Secret]` is explicitly denied
+std.core.Secret.denies_ordering	tests/std/negative/core/SecretRejectsOrderingTest.terl	trait bound `Ordering[std.core.Secret.Secret]` is explicitly denied
+std.vm.Process.send.actor_message	tests/std/negative/vm/ProcessRejectsDeniedActorMessageTest.terl	trait bound `ActorMessage[LocalOnlyMessage]` is explicitly denied
+std.vm.Cluster.send.node_payload	tests/std/negative/vm/ClusterRejectsDeniedNodePayloadTest.terl	trait bound `SendAcrossNode[LocalOnlyPayload]` is explicitly denied
 std.test.Test.assert.condition_bool	tests/std/negative/test/AssertRejectsStringArgumentTest.terl	type mismatch
 std.test.Test.assert_false.condition_bool	tests/std/negative/test/AssertFalseRejectsStringArgumentTest.terl	type mismatch
 std.test.Test.assert_not_equal.same_type	tests/std/negative/test/AssertNotEqualRejectsMixedTypesTest.terl	type mismatch

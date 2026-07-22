@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ServiceWorkerContainer
  */
 module std.js.Dom.ServiceWorkerContainerTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.ServiceWorkerContainer.{ServiceWorkerContainer}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.ServiceWorkerContainer.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub controller_typechecks(receiver: ServiceWorkerContainer): Option[ServiceWorker] ->
     receiver.controller().
@@ -24,20 +25,39 @@ pub controller_typechecks(receiver: ServiceWorkerContainer): Option[ServiceWorke
 pub ready_typechecks(receiver: ServiceWorkerContainer): Promise[ServiceWorkerRegistration] ->
     receiver.ready().
 
-pub get_registration_typechecks(receiver: ServiceWorkerContainer, client_url: URL | JsString): Promise[Option[ServiceWorkerRegistration]] ->
+pub get_registration_typechecks(
+    receiver: ServiceWorkerContainer,
+    client_url: URL | JsString
+): Promise[Option[ServiceWorkerRegistration]] ->
     receiver.get_registration(client_url).
 
-pub get_registrations_typechecks(receiver: ServiceWorkerContainer): Promise[std.js.Array[ServiceWorkerRegistration]] ->
+pub get_registrations_typechecks(
+    receiver: ServiceWorkerContainer
+): Promise[std.js.Array[ServiceWorkerRegistration]] ->
     receiver.get_registrations().
 
-pub register_typechecks(receiver: ServiceWorkerContainer, script_url: URL | JsString, options: RegistrationOptions): Promise[ServiceWorkerRegistration] ->
+pub register_typechecks(
+    receiver: ServiceWorkerContainer,
+    script_url: URL | JsString,
+    options: RegistrationOptions
+): Promise[ServiceWorkerRegistration] ->
     receiver.register(script_url, options).
 
 pub start_messages_typechecks(receiver: ServiceWorkerContainer): Unit ->
     receiver.start_messages().
 
-pub add_event_listener_typechecks(receiver: ServiceWorkerContainer, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: ServiceWorkerContainer,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: ServiceWorkerContainer, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: ServiceWorkerContainer,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

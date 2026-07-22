@@ -23,6 +23,7 @@ from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 import re
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -166,6 +167,8 @@ class BaselineGroup:
     - `body_hash`: hash of a reviewed duplicate body.
     - `logical_lines`: reviewed normalized body length.
     - `occurrences`: maximum allowed occurrence count.
+    - `owner`: team or subsystem responsible for extracting the helper.
+    - `removal_plan`: concrete planned shared helper or extraction direction.
     - `samples`: diagnostic sample text from the baseline file.
 
     Outputs:
@@ -178,6 +181,8 @@ class BaselineGroup:
     body_hash: str
     logical_lines: int
     occurrences: int
+    owner: str
+    removal_plan: str
     samples: str
 
 
@@ -502,6 +507,62 @@ def duplicate_groups() -> list[DuplicateGroup]:
     return sorted(duplicates, key=lambda group: group.body_hash)
 
 
+def parse_baseline_lines(lines: list[str], source: Path) -> tuple[dict[str, BaselineGroup], list[str]]:
+    """Parse duplicate-helper baseline rows from already-read text.
+
+    Inputs:
+    - Baseline text lines.
+    - Source path used for diagnostics.
+
+    Outputs:
+    - Mapping from duplicate helper body hash to reviewed baseline entry.
+    - Diagnostics for malformed, unowned, or duplicate rows.
+
+    Transformation:
+    - Validates the TSV schema without touching the real repository baseline,
+      which lets the checker self-test adversarial row shapes.
+    """
+
+    baseline: dict[str, BaselineGroup] = {}
+    diagnostics: list[str] = []
+    for number, line in enumerate(lines, 1):
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        if len(fields) != 6:
+            diagnostics.append(
+                f"{source}:{number}: expected hash<TAB>lines<TAB>count<TAB>owner<TAB>removal_plan<TAB>samples"
+            )
+            continue
+        body_hash, line_count_text, occurrence_text, owner, removal_plan, samples = fields
+        try:
+            line_count = int(line_count_text)
+            occurrences = int(occurrence_text)
+        except ValueError:
+            diagnostics.append(f"{source}:{number}: line count and occurrence count must be integers")
+            continue
+        if not owner.strip() or not removal_plan.strip():
+            diagnostics.append(f"{source}:{number}: owner and removal_plan are required")
+            continue
+        if owner in {"unassigned", "todo"} or "todo" in removal_plan.lower():
+            diagnostics.append(
+                f"{source}:{number}: duplicate-helper baseline rows require a real owner and removal plan"
+            )
+            continue
+        if body_hash in baseline:
+            diagnostics.append(f"{source}:{number}: duplicate baseline row for helper body `{body_hash}`")
+            continue
+        baseline[body_hash] = BaselineGroup(
+            body_hash,
+            line_count,
+            occurrences,
+            owner,
+            removal_plan,
+            samples,
+        )
+    return baseline, diagnostics
+
+
 def read_baseline() -> tuple[dict[str, BaselineGroup], list[str]]:
     """Read the duplicate-helper baseline file.
 
@@ -513,28 +574,11 @@ def read_baseline() -> tuple[dict[str, BaselineGroup], list[str]]:
     - Diagnostics for malformed rows.
 
     Transformation:
-    - Parses tab-separated hash, logical-line count, occurrence count, and
-      sample location rows.
+    - Parses tab-separated hash, logical-line count, occurrence count, owner,
+      removal plan, and sample location rows.
     """
 
-    baseline: dict[str, BaselineGroup] = {}
-    diagnostics: list[str] = []
-    for number, line in enumerate(BASELINE.read_text(encoding="utf-8").splitlines(), 1):
-        if not line or line.startswith("#"):
-            continue
-        fields = line.split("\t")
-        if len(fields) != 4:
-            diagnostics.append(f"{BASELINE}:{number}: expected hash<TAB>lines<TAB>count<TAB>samples")
-            continue
-        body_hash, line_count_text, occurrence_text, samples = fields
-        try:
-            line_count = int(line_count_text)
-            occurrences = int(occurrence_text)
-        except ValueError:
-            diagnostics.append(f"{BASELINE}:{number}: line count and occurrence count must be integers")
-            continue
-        baseline[body_hash] = BaselineGroup(body_hash, line_count, occurrences, samples)
-    return baseline, diagnostics
+    return parse_baseline_lines(BASELINE.read_text(encoding="utf-8").splitlines(), BASELINE)
 
 
 def compare_to_baseline(groups: list[DuplicateGroup], baseline: dict[str, BaselineGroup]) -> list[str]:
@@ -598,14 +642,73 @@ def write_baseline(groups: list[DuplicateGroup]) -> None:
     QUALITY_DIR.mkdir(parents=True, exist_ok=True)
     lines = [
         "# Reviewed cross-file duplicate Rust helper bodies.",
-        "# Format: body_hash<TAB>logical_lines<TAB>occurrences<TAB>sample_locations",
-        "# Existing rows are migration debt; new or grown groups must be extracted into shared modules.",
+        "# Format: body_hash<TAB>logical_lines<TAB>occurrences<TAB>owner<TAB>removal_plan<TAB>sample_locations",
+        "# Existing rows are migration debt with owners; new or grown groups must be extracted into shared modules.",
     ]
-    lines.extend(group.baseline_row() for group in groups)
+    lines.extend(
+        f"{group.body_hash}\t{group.logical_lines}\t{group.occurrence_count()}\tunassigned\towner-required-before-commit\t{group.sample_locations()}"
+        for group in groups
+    )
     BASELINE.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def parse_args() -> argparse.Namespace:
+def run_self_test() -> None:
+    """Run focused duplicate-helper baseline parser self-tests.
+
+    Inputs:
+    - Embedded baseline row snippets.
+
+    Outputs:
+    - Raises `AssertionError` on regression; otherwise returns `None`.
+
+    Transformation:
+    - Exercises malformed and adversarial baseline metadata without rewriting
+      the real duplicate-helper baseline or scanning the full crate tree.
+    """
+
+    source = Path("fixture/rust_duplicate_helper_baseline.tsv")
+    complete, complete_diagnostics = parse_baseline_lines(
+        [
+            "# comment",
+            "aaaaaaaaaaaaaaaa\t12\t2\tquality\tExtract a reviewed shared helper.\tcrates/a.rs:1:a;crates/b.rs:2:b",
+        ],
+        source,
+    )
+    assert complete_diagnostics == []
+    assert complete["aaaaaaaaaaaaaaaa"].owner == "quality"
+
+    _, field_diagnostics = parse_baseline_lines(["too\tfew\tfields"], source)
+    assert any("expected hash<TAB>lines" in diagnostic for diagnostic in field_diagnostics)
+
+    _, integer_diagnostics = parse_baseline_lines(
+        ["bbbbbbbbbbbbbbbb\tmany\t2\tquality\tExtract helper.\tsample"],
+        source,
+    )
+    assert any("must be integers" in diagnostic for diagnostic in integer_diagnostics)
+
+    _, owner_diagnostics = parse_baseline_lines(
+        ["cccccccccccccccc\t12\t2\t\tExtract helper.\tsample"],
+        source,
+    )
+    assert any("owner and removal_plan are required" in diagnostic for diagnostic in owner_diagnostics)
+
+    _, todo_diagnostics = parse_baseline_lines(
+        ["dddddddddddddddd\t12\t2\ttodo\ttodo later\tsample"],
+        source,
+    )
+    assert any("real owner and removal plan" in diagnostic for diagnostic in todo_diagnostics)
+
+    _, duplicate_diagnostics = parse_baseline_lines(
+        [
+            "eeeeeeeeeeeeeeee\t12\t2\tquality\tExtract helper.\tsample-a",
+            "eeeeeeeeeeeeeeee\t12\t3\tquality\tExtract helper differently.\tsample-b",
+        ],
+        source,
+    )
+    assert any("duplicate baseline row" in diagnostic for diagnostic in duplicate_diagnostics)
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse duplicate-helper checker command-line arguments.
 
     Inputs:
@@ -624,10 +727,15 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="rewrite the reviewed duplicate-helper baseline from current source",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="run focused checker self-tests instead of scanning crate sources",
+    )
+    return parser.parse_args(argv)
 
 
-def main() -> int:
+def main(argv: list[str]) -> int:
     """Run the duplicate-helper quality gate.
 
     Inputs:
@@ -644,7 +752,11 @@ def main() -> int:
       otherwise validates current state against the baseline.
     """
 
-    args = parse_args()
+    args = parse_args(argv)
+    if args.self_test:
+        run_self_test()
+        return 0
+
     groups = duplicate_groups()
     if args.write_baseline:
         write_baseline(groups)
@@ -663,4 +775,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))

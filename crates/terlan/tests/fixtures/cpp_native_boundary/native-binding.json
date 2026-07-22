@@ -1,0 +1,1365 @@
+{
+  "schema": "terlan.cpp.binding.v1",
+  "package": {
+    "namespace": "cpp_fixture",
+    "adapter": "cxx",
+    "crate_name": "terlan-native-boundary-fixture"
+  },
+  "build": {
+    "include_roots": [".", "include"],
+    "defines": {"TERLAN_CPP_FIXTURE": "1"},
+    "library_search_paths": [],
+    "linked_libraries": [],
+    "platform_conditions": [],
+    "rebuild_inputs": ["src/lib.rs", "include", "cpp"]
+  },
+  "mapping": {
+    "schema": "terlan.cpp.mapping.v1",
+    "symbols": [
+      {
+        "symbol": "record.native_boundary",
+        "disposition": "bind",
+        "ownership": "unique",
+        "thread_safety": "thread_confined"
+      },
+      {"symbol": "function.make_native_boundary", "disposition": "bind"},
+      {"symbol": "method.native_boundary.value", "disposition": "bind"},
+      {"symbol": "method.native_boundary.doubled", "disposition": "bind"},
+      {"symbol": "method.native_boundary.label", "disposition": "bind"},
+      {"symbol": "method.native_boundary.bytes", "disposition": "bind"},
+      {"symbol": "method.native_boundary.samples", "disposition": "bind"},
+      {"symbol": "method.native_boundary.add", "disposition": "bind"},
+      {"symbol": "function.live_native_boundary_count", "disposition": "bind"},
+      {"symbol": "function.sum_snapshot_fields", "disposition": "bind"},
+      {"symbol": "function.sum_integer_list", "disposition": "bind"},
+      {"symbol": "function.sum_float_list", "disposition": "bind"},
+      {
+        "symbol": "record.native_snapshot",
+        "disposition": "bind",
+        "ownership": "copied",
+        "thread_safety": "send"
+      },
+      {"symbol": "method.native_snapshot.projected_value", "disposition": "bind"},
+      {"symbol": "method.native_snapshot.projected_doubled", "disposition": "bind"},
+      {"symbol": "function.make_native_snapshot", "disposition": "bind"},
+      {"symbol": "enum.boundary_mode", "disposition": "bind"},
+      {"symbol": "method.native_boundary.mode", "disposition": "bind"},
+      {
+        "symbol": "method.native_boundary.tripled_or_throw",
+        "disposition": "bind",
+        "exception": {
+          "error_code": "boundary_operation_failed",
+          "message": "Native boundary operation failed."
+        }
+      },
+      {
+        "symbol": "record.native_gauge",
+        "disposition": "bind",
+        "ownership": "unique",
+        "thread_safety": "thread_confined"
+      },
+      {"symbol": "function.make_native_gauge", "disposition": "bind"},
+      {"symbol": "method.native_gauge.reading", "disposition": "bind"},
+      {"symbol": "method.native_gauge.increment", "disposition": "bind"},
+      {"symbol": "function.live_native_gauge_count", "disposition": "bind"},
+      {
+        "symbol": "unsupported.raw_pointer",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "raw_pointer_ownership",
+          "detail": "raw pointer ownership is not expressed by the metadata"
+        }
+      },
+      {
+        "symbol": "unsupported.reference_lifetime",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "reference_lifetime_ambiguity",
+          "detail": "reference result has no named lifetime owner"
+        }
+      },
+      {
+        "symbol": "unsupported.template",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "unsupported_template",
+          "detail": "template has no concrete metadata instantiation"
+        }
+      },
+      {
+        "symbol": "unsupported.exception",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "exception_boundary",
+          "detail": "exception contract has no stable value conversion"
+        }
+      },
+      {
+        "symbol": "unsupported.overload",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "overload_ambiguity",
+          "detail": "two overload candidates have the same generated Terlan name"
+        }
+      },
+      {
+        "symbol": "unsupported.macro",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "unsupported_macro",
+          "detail": "preprocessor macros do not have a typed callable ABI"
+        }
+      },
+      {
+        "symbol": "unsupported.callback",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "unsupported_callback_shape",
+          "detail": "callback lifetime is not represented by the mapping"
+        }
+      },
+      {
+        "symbol": "unsupported.variadic",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "unsupported_variadic_function",
+          "detail": "variadic arguments have no stable generated signature"
+        }
+      },
+      {
+        "symbol": "unsupported.inheritance",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "unsupported_inheritance",
+          "detail": "virtual inheritance layout is outside the first ownership model"
+        }
+      },
+      {
+        "symbol": "unsupported.ownership",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "unknown_ownership",
+          "detail": "result ownership is not asserted by package policy"
+        }
+      },
+      {
+        "symbol": "unsupported.type",
+        "disposition": "reject",
+        "rejection": {
+          "shape": "unmapped_type",
+          "detail": "canonical result type has no reviewed Terlan mapping"
+        }
+      }
+    ]
+  },
+  "cpp_metadata": {
+    "schema": "terlan.cpp.metadata.v1",
+    "producer": {
+      "name": "clang-libtooling",
+      "version": "fixture-1",
+      "format": "normalized-ast-json"
+    },
+    "compile": {
+      "target_triple": "x86_64-unknown-linux-gnu",
+      "language_standard": "c++14",
+      "include_roots": ["."],
+      "defines": {"TERLAN_CPP_FIXTURE": "1"},
+      "arguments": [
+        "clang++",
+        "--target=x86_64-unknown-linux-gnu",
+        "-std=c++14",
+        "-DTERLAN_CPP_FIXTURE=1",
+        "-I."
+      ]
+    },
+    "namespace": "terlan_fixture",
+    "header": "native_boundary.hpp",
+    "sources": ["native_boundary.cc"],
+    "symbols": [
+      {
+        "id": "record.native_snapshot",
+        "cpp_name": "NativeSnapshot",
+        "source": {"path": "native_boundary.hpp", "line": 8, "column": 8},
+        "kind": "record",
+        "documentation": "Copied immutable boundary snapshot.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeSnapshot",
+        "fields": [
+          {
+            "name": "value",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            }
+          },
+          {
+            "name": "doubled",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "method.native_snapshot.projected_value",
+        "cpp_name": "projected_value",
+        "source": {"path": "native_boundary.hpp", "line": 16, "column": 16},
+        "kind": "method",
+        "documentation": "Returns the copied snapshot value.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeSnapshot::projected_value",
+        "receiver": "terlan_fixture::NativeSnapshot",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_snapshot.projected_doubled",
+        "cpp_name": "projected_doubled",
+        "source": {"path": "native_boundary.hpp", "line": 17, "column": 16},
+        "kind": "method",
+        "documentation": "Returns the copied doubled snapshot value.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeSnapshot::projected_doubled",
+        "receiver": "terlan_fixture::NativeSnapshot",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "function.make_native_snapshot",
+        "cpp_name": "make_native_snapshot",
+        "source": {"path": "native_boundary.hpp", "line": 55, "column": 39},
+        "kind": "function",
+        "documentation": "Creates one temporary owned snapshot for immediate projection.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::make_native_snapshot",
+        "returns": {
+          "spelling": "std::unique_ptr<NativeSnapshot>",
+          "canonical": "std::unique_ptr<NativeSnapshot>",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "value",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "enum.boundary_mode",
+        "cpp_name": "BoundaryMode",
+        "source": {"path": "native_boundary.hpp", "line": 15, "column": 12},
+        "kind": "enum",
+        "documentation": "Defines native boundary processing modes.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::BoundaryMode",
+        "enum_values": [
+          {"name": "Raw", "value": "7"},
+          {"name": "Doubled", "value": "41"},
+          {"name": "Offset", "value": "99"},
+          {"name": "Hidden", "value": "123"}
+        ]
+      },
+      {
+        "id": "record.native_boundary",
+        "cpp_name": "NativeBoundary",
+        "source": {"path": "native_boundary.hpp", "line": 8, "column": 7},
+        "kind": "record",
+        "documentation": "Owns one signed integer for the binding fixture.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary"
+      },
+      {
+        "id": "function.make_native_boundary",
+        "cpp_name": "make_native_boundary",
+        "source": {"path": "native_boundary.hpp", "line": 18, "column": 33},
+        "kind": "function",
+        "documentation": "Creates an owned native boundary.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::make_native_boundary",
+        "returns": {
+          "spelling": "std::unique_ptr<NativeBoundary>",
+          "canonical": "std::unique_ptr<NativeBoundary>",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "value",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.value",
+        "cpp_name": "value",
+        "source": {"path": "native_boundary.hpp", "line": 12, "column": 16},
+        "kind": "method",
+        "documentation": "Returns the currently stored value.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::value",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.doubled",
+        "cpp_name": "doubled",
+        "source": {"path": "native_boundary.hpp", "line": 18, "column": 16},
+        "kind": "method",
+        "documentation": "Returns twice the currently stored value.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::doubled",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.label",
+        "cpp_name": "label",
+        "source": {"path": "native_boundary.hpp", "line": 23, "column": 32},
+        "kind": "method",
+        "documentation": "Copies the current value as an owned string.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::label",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::unique_ptr<std::string>",
+          "canonical": "std::unique_ptr<std::string>",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.bytes",
+        "cpp_name": "bytes",
+        "source": {"path": "native_boundary.hpp", "line": 24, "column": 46},
+        "kind": "method",
+        "documentation": "Copies the current value into an owned byte vector.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::bytes",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::unique_ptr<std::vector<std::uint8_t>>",
+          "canonical": "std::unique_ptr<std::vector<std::uint8_t>>",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.samples",
+        "cpp_name": "samples",
+        "source": {"path": "native_boundary.hpp", "line": 25, "column": 47},
+        "kind": "method",
+        "documentation": "Copies the current value into an owned integer vector.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::samples",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::unique_ptr<std::vector<std::int64_t>>",
+          "canonical": "std::unique_ptr<std::vector<std::int64_t>>",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.mode",
+        "cpp_name": "mode",
+        "source": {"path": "native_boundary.hpp", "line": 34, "column": 16},
+        "kind": "method",
+        "documentation": "Returns the current native boundary mode.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::mode",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "BoundaryMode",
+          "canonical": "terlan_fixture::BoundaryMode",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false,
+          "enum_type": true
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.tripled_or_throw",
+        "cpp_name": "tripled_or_throw",
+        "source": {"path": "native_boundary.hpp", "line": 36, "column": 16},
+        "kind": "method",
+        "documentation": "Returns a tripled value or throws an upstream exception.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::tripled_or_throw",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": false,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.add",
+        "cpp_name": "add",
+        "source": {"path": "native_boundary.hpp", "line": 13, "column": 8},
+        "kind": "method",
+        "documentation": "Adds a delta to the stored value.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::add",
+        "receiver": "NativeBoundary",
+        "receiver_mutable": true,
+        "returns": {
+          "spelling": "void",
+          "canonical": "void",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "delta",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "function.live_native_boundary_count",
+        "cpp_name": "live_native_boundary_count",
+        "source": {"path": "native_boundary.hpp", "line": 19, "column": 14},
+        "kind": "function",
+        "documentation": "Returns the number of live fixture values.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::live_native_boundary_count",
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "function.sum_snapshot_fields",
+        "cpp_name": "sum_snapshot_fields",
+        "source": {"path": "native_boundary.hpp", "line": 41, "column": 14},
+        "kind": "function",
+        "documentation": "Adds the primitive fields copied from one boundary snapshot.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::sum_snapshot_fields",
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "value",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          },
+          {
+            "name": "doubled",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "function.sum_integer_list",
+        "cpp_name": "sum_integer_list",
+        "source": {"path": "native_boundary.hpp", "line": 49, "column": 14},
+        "kind": "function",
+        "documentation": "Adds one copied signed integer list.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::sum_integer_list",
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "values",
+            "ty": {
+              "spelling": "rust::Slice<const std::int64_t>",
+              "canonical": "rust::Slice<const std::int64_t>",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "function.sum_float_list",
+        "cpp_name": "sum_float_list",
+        "source": {"path": "native_boundary.hpp", "line": 51, "column": 8},
+        "kind": "function",
+        "documentation": "Adds one copied floating-point list.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::sum_float_list",
+        "returns": {
+          "spelling": "double",
+          "canonical": "double",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "values",
+            "ty": {
+              "spelling": "rust::Slice<const double>",
+              "canonical": "rust::Slice<const double>",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "record.native_gauge",
+        "cpp_name": "NativeGauge",
+        "source": {"path": "native_boundary.hpp", "line": 21, "column": 7},
+        "kind": "record",
+        "documentation": "Owns a second independent signed gauge value.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeGauge"
+      },
+      {
+        "id": "function.make_native_gauge",
+        "cpp_name": "make_native_gauge",
+        "source": {"path": "native_boundary.hpp", "line": 37, "column": 30},
+        "kind": "function",
+        "documentation": "Creates an owned native gauge.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::make_native_gauge",
+        "returns": {
+          "spelling": "std::unique_ptr<NativeGauge>",
+          "canonical": "std::unique_ptr<NativeGauge>",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "value",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_gauge.reading",
+        "cpp_name": "reading",
+        "source": {"path": "native_boundary.hpp", "line": 30, "column": 16},
+        "kind": "method",
+        "documentation": "Returns the gauge reading.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeGauge::reading",
+        "receiver": "NativeGauge",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_gauge.increment",
+        "cpp_name": "increment",
+        "source": {"path": "native_boundary.hpp", "line": 31, "column": 8},
+        "kind": "method",
+        "documentation": "Increments the gauge reading.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeGauge::increment",
+        "receiver": "NativeGauge",
+        "receiver_mutable": true,
+        "returns": {
+          "spelling": "void",
+          "canonical": "void",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "delta",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "function.live_native_gauge_count",
+        "cpp_name": "live_native_gauge_count",
+        "source": {"path": "native_boundary.hpp", "line": 38, "column": 14},
+        "kind": "function",
+        "documentation": "Returns the number of live gauge values.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::live_native_gauge_count",
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "unsupported.raw_pointer",
+        "cpp_name": "borrow_raw",
+        "source": {"path": "native_boundary.hpp", "line": 22, "column": 1},
+        "kind": "function",
+        "documentation": "Returns an unowned raw pointer.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::borrow_raw",
+        "returns": {
+          "spelling": "NativeBoundary*",
+          "canonical": "terlan_fixture::NativeBoundary*",
+          "is_const": false,
+          "pointer_depth": 1,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "noexcept": true,
+        "overload_candidates": 1
+      },
+      {
+        "id": "unsupported.reference_lifetime",
+        "cpp_name": "borrow_view",
+        "source": {"path": "native_boundary.hpp", "line": 23, "column": 1},
+        "kind": "function",
+        "documentation": "Returns a borrowed native reference.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::borrow_view",
+        "returns": {
+          "spelling": "const NativeBoundary&",
+          "canonical": "const terlan_fixture::NativeBoundary&",
+          "is_const": true,
+          "pointer_depth": 0,
+          "reference": "lvalue",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "noexcept": true,
+        "overload_candidates": 1
+      },
+      {
+        "id": "unsupported.template",
+        "cpp_name": "make_tensor<T>",
+        "source": {"path": "native_boundary.hpp", "line": 24, "column": 1},
+        "kind": "function",
+        "documentation": "Constructs an unspecialized template value.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::make_tensor",
+        "returns": {
+          "spelling": "Tensor<T>",
+          "canonical": "terlan_fixture::Tensor<T>",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": true
+        },
+        "noexcept": true,
+        "template_parameters": ["T"],
+        "overload_candidates": 1
+      },
+      {
+        "id": "unsupported.exception",
+        "cpp_name": "may_throw",
+        "source": {"path": "native_boundary.hpp", "line": 25, "column": 1},
+        "kind": "function",
+        "documentation": "May throw a C++ exception.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::may_throw",
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "noexcept": false,
+        "overload_candidates": 1
+      },
+      {
+        "id": "unsupported.overload",
+        "cpp_name": "ambiguous",
+        "source": {"path": "native_boundary.hpp", "line": 26, "column": 1},
+        "kind": "function",
+        "documentation": "Represents an unresolved overload set.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::ambiguous",
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "noexcept": true,
+        "overload_candidates": 2
+      },
+      {
+        "id": "unsupported.macro",
+        "cpp_name": "TERLAN_FIXTURE_UNSAFE_SCALE",
+        "source": {"path": "native_boundary.hpp", "line": 10, "column": 1},
+        "kind": "macro",
+        "documentation": "Represents an untyped function-like preprocessor macro.",
+        "annotations": [],
+        "overload_set": "TERLAN_FIXTURE_UNSAFE_SCALE"
+      },
+      {
+        "id": "unsupported.callback",
+        "cpp_name": "visit",
+        "source": {"path": "native_boundary.hpp", "line": 27, "column": 1},
+        "kind": "function",
+        "documentation": "Accepts a callback with an unmodeled lifetime.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::visit",
+        "returns": {
+          "spelling": "void",
+          "canonical": "void",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "callback",
+            "ty": {
+              "spelling": "void (*)(std::int64_t)",
+              "canonical": "void (*)(std::int64_t)",
+              "is_const": false,
+              "pointer_depth": 1,
+              "reference": "none",
+              "function_pointer": true,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
+        "noexcept": true,
+        "overload_candidates": 1
+      },
+      {
+        "id": "unsupported.variadic",
+        "cpp_name": "format_many",
+        "source": {"path": "native_boundary.hpp", "line": 28, "column": 1},
+        "kind": "function",
+        "documentation": "Accepts an unbounded variadic argument list.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::format_many",
+        "returns": {
+          "spelling": "void",
+          "canonical": "void",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "noexcept": true,
+        "overload_candidates": 1,
+        "variadic": true
+      },
+      {
+        "id": "unsupported.inheritance",
+        "cpp_name": "PolymorphicBoundary",
+        "source": {"path": "native_boundary.hpp", "line": 29, "column": 1},
+        "kind": "record",
+        "documentation": "Uses an unsupported inherited layout.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::PolymorphicBoundary",
+        "inheritance": ["terlan_fixture::BoundaryBase"]
+      },
+      {
+        "id": "unsupported.ownership",
+        "cpp_name": "make_shared_view",
+        "source": {"path": "native_boundary.hpp", "line": 30, "column": 1},
+        "kind": "function",
+        "documentation": "Returns a view without package ownership policy.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::make_shared_view",
+        "returns": {
+          "spelling": "NativeBoundary",
+          "canonical": "terlan_fixture::NativeBoundary",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "noexcept": true,
+        "overload_candidates": 1
+      },
+      {
+        "id": "unsupported.type",
+        "cpp_name": "opaque_scalar",
+        "source": {"path": "native_boundary.hpp", "line": 31, "column": 1},
+        "kind": "function",
+        "documentation": "Returns a canonical type with no reviewed mapping.",
+        "annotations": [],
+        "overload_set": "terlan_fixture::opaque_scalar",
+        "returns": {
+          "spelling": "OpaqueScalar",
+          "canonical": "terlan_fixture::OpaqueScalar",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "noexcept": true,
+        "overload_candidates": 1
+      }
+    ]
+  },
+  "modules": [
+    {
+      "module": "cpp_fixture.NativeBoundary",
+      "documentation": "Generated C++ NativeBoundary fixture.",
+      "types": [
+        {
+          "name": "NativeBoundary",
+          "cpp_symbol": "record.native_boundary",
+          "kind": "opaque_resource",
+          "documentation": "Opaque uniquely owned C++ boundary handle."
+        },
+        {
+          "name": "NativeSnapshot",
+          "cpp_symbol": "record.native_snapshot",
+          "kind": "value_record",
+          "fields": [
+            {"name": "value", "cpp_field": "value", "ty": "Int"},
+            {"name": "doubled", "cpp_field": "doubled", "ty": "Int"}
+          ],
+          "documentation": "Copied immutable snapshot of one boundary value."
+        },
+        {
+          "name": "BoundaryMode",
+          "cpp_symbol": "enum.boundary_mode",
+          "kind": "enum",
+          "variants": [
+            {
+              "name": "Raw",
+              "cpp_name": "Raw",
+              "atom": "raw",
+              "documentation": "Marks an unprocessed boundary value."
+            },
+            {
+              "name": "Doubled",
+              "cpp_name": "Doubled",
+              "atom": "doubled",
+              "documentation": "Marks the fixture's doubled boundary state."
+            },
+            {
+              "name": "Offset",
+              "cpp_name": "Offset",
+              "atom": "offset",
+              "documentation": "Marks any remaining boundary state."
+            }
+          ],
+          "documentation": "Symbolic boundary mode independent of C++ discriminants."
+        }
+      ],
+      "functions": [
+        {
+          "name": "new",
+          "operation": "cpp_fixture.native_boundary.new",
+          "cpp_symbol": "function.make_native_boundary",
+          "role": "constructor",
+          "args": [{"name": "value", "ty": "Int"}],
+          "returns": "NativeBoundary",
+          "blocking": "fast",
+          "resource": "opaque_handle",
+          "documentation": "Creates a uniquely owned NativeBoundary handle."
+        },
+        {
+          "name": "value",
+          "operation": "cpp_fixture.native_boundary.value",
+          "cpp_symbol": "method.native_boundary.value",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Reads the value owned by a live handle."
+        },
+        {
+          "name": "add",
+          "operation": "cpp_fixture.native_boundary.add",
+          "cpp_symbol": "method.native_boundary.add",
+          "role": "mutable_method",
+          "args": [
+            {"name": "boundary", "ty": "NativeBoundary"},
+            {"name": "delta", "ty": "Int"}
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Mutates the value owned by a live handle."
+        },
+        {
+          "name": "snapshot",
+          "operation": "cpp_fixture.native_boundary.snapshot",
+          "role": "value_projection",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "projections": [
+            {"field": "value", "cpp_symbol": "method.native_boundary.value"},
+            {"field": "doubled", "cpp_symbol": "method.native_boundary.doubled"}
+          ],
+          "returns": "NativeSnapshot",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Copies the current boundary state into an ordinary record."
+        },
+        {
+          "name": "owned_snapshot",
+          "operation": "cpp_fixture.native_boundary.owned_snapshot",
+          "cpp_symbol": "function.make_native_snapshot",
+          "role": "owned_value_projection",
+          "args": [{"name": "value", "ty": "Int"}],
+          "projections": [
+            {"field": "value", "cpp_symbol": "method.native_snapshot.projected_value"},
+            {"field": "doubled", "cpp_symbol": "method.native_snapshot.projected_doubled"}
+          ],
+          "returns": "NativeSnapshot",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Projects a temporary uniquely owned C++ value into an ordinary record."
+        },
+        {
+          "name": "sum_snapshot",
+          "operation": "cpp_fixture.native_boundary.sum_snapshot",
+          "cpp_symbol": "function.sum_snapshot_fields",
+          "role": "free_function",
+          "args": [
+            {
+              "name": "snapshot",
+              "ty": "NativeSnapshot",
+              "fields": [
+                {"field": "value", "cpp_parameter": "value"},
+                {"field": "doubled", "cpp_parameter": "doubled"}
+              ]
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Copies one snapshot record into reviewed scalar C++ parameters."
+        },
+        {
+          "name": "sum_integers",
+          "operation": "cpp_fixture.native_boundary.sum_integers",
+          "cpp_symbol": "function.sum_integer_list",
+          "role": "free_function",
+          "args": [{"name": "values", "ty": "List[Int]"}],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Adds a copied integer list through a call-scoped CXX slice."
+        },
+        {
+          "name": "sum_floats",
+          "operation": "cpp_fixture.native_boundary.sum_floats",
+          "cpp_symbol": "function.sum_float_list",
+          "role": "free_function",
+          "args": [{"name": "values", "ty": "List[Float]"}],
+          "returns": "Float",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Adds a copied floating-point list through a call-scoped CXX slice."
+        },
+        {
+          "name": "label",
+          "operation": "cpp_fixture.native_boundary.label",
+          "cpp_symbol": "method.native_boundary.label",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "String",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Copies the current value into an ordinary String."
+        },
+        {
+          "name": "bytes",
+          "operation": "cpp_fixture.native_boundary.bytes",
+          "cpp_symbol": "method.native_boundary.bytes",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "std.vm.Bytes.Bytes",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Copies the current value into ordinary VM-owned bytes."
+        },
+        {
+          "name": "samples",
+          "operation": "cpp_fixture.native_boundary.samples",
+          "cpp_symbol": "method.native_boundary.samples",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "List[Int]",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Copies the current value into an ordinary integer list."
+        },
+        {
+          "name": "mode",
+          "operation": "cpp_fixture.native_boundary.mode",
+          "cpp_symbol": "method.native_boundary.mode",
+          "role": "enum_projection",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "BoundaryMode",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Returns the current boundary mode as a finite symbolic value."
+        },
+        {
+          "name": "tripled_or_error",
+          "operation": "cpp_fixture.native_boundary.tripled_or_error",
+          "cpp_symbol": "method.native_boundary.tripled_or_throw",
+          "role": "exception_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "fallible": {
+            "ok": "Int",
+            "error": "std.core.Error.Error"
+          },
+          "returns": "Result[Int, std.core.Error.Error]",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Returns a tripled value or a stable contained C++ error."
+        },
+        {
+          "name": "dispose",
+          "operation": "cpp_fixture.native_boundary.dispose",
+          "role": "dispose",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "dispose_handle",
+          "documentation": "Drops the uniquely owned C++ handle."
+        },
+        {
+          "name": "live_count",
+          "operation": "cpp_fixture.native_boundary.live_count",
+          "cpp_symbol": "function.live_native_boundary_count",
+          "role": "free_function",
+          "args": [],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Returns the number of live C++ fixture handles."
+        }
+      ]
+    },
+    {
+      "module": "cpp_fixture.NativeGauge",
+      "documentation": "Generated second C++ resource fixture.",
+      "types": [
+        {
+          "name": "NativeGauge",
+          "cpp_symbol": "record.native_gauge",
+          "kind": "opaque_resource",
+          "documentation": "Opaque uniquely owned C++ gauge handle."
+        }
+      ],
+      "functions": [
+        {
+          "name": "new",
+          "operation": "cpp_fixture.native_gauge.new",
+          "cpp_symbol": "function.make_native_gauge",
+          "role": "constructor",
+          "args": [{"name": "value", "ty": "Int"}],
+          "returns": "NativeGauge",
+          "blocking": "fast",
+          "resource": "opaque_handle",
+          "documentation": "Creates a uniquely owned NativeGauge handle."
+        },
+        {
+          "name": "reading",
+          "operation": "cpp_fixture.native_gauge.reading",
+          "cpp_symbol": "method.native_gauge.reading",
+          "role": "immutable_method",
+          "args": [{"name": "gauge", "ty": "NativeGauge"}],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Reads the value owned by a live gauge."
+        },
+        {
+          "name": "increment",
+          "operation": "cpp_fixture.native_gauge.increment",
+          "cpp_symbol": "method.native_gauge.increment",
+          "role": "mutable_method",
+          "args": [
+            {"name": "gauge", "ty": "NativeGauge"},
+            {"name": "delta", "ty": "Int"}
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Mutates the value owned by a live gauge."
+        },
+        {
+          "name": "dispose",
+          "operation": "cpp_fixture.native_gauge.dispose",
+          "role": "dispose",
+          "args": [{"name": "gauge", "ty": "NativeGauge"}],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "dispose_handle",
+          "documentation": "Drops the uniquely owned C++ gauge handle."
+        },
+        {
+          "name": "live_count",
+          "operation": "cpp_fixture.native_gauge.live_count",
+          "cpp_symbol": "function.live_native_gauge_count",
+          "role": "free_function",
+          "args": [],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Returns the number of live C++ gauge handles."
+        }
+      ]
+    }
+  ]
+}

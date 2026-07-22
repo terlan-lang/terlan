@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableWritablePair
+ */
+module std.js.Dom.ReadableWritablePair.
+
+pub opaque type ReadableWritablePair[R, W].
+
+pub (value: ReadableWritablePair[R, W]) readable(): ReadableStream[R].
+
+/**
+ * Provides a convenient, chainable way of piping this readable stream through a transform stream (or any other { writable, readable } pair). It simply pipes the stream into the writable side of the supplied pair, and returns the readable side for further use.
+ *
+ * Piping a stream will lock it for the duration of the pipe, preventing any other consumer from acquiring a reader.
+ */
+pub (value: ReadableWritablePair[R, W]) writable(): WritableStream[W].

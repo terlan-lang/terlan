@@ -1,0 +1,37 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SpeechRecognitionResultList
+ */
+module std.js.Dom.SpeechRecognitionResultList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`SpeechRecognitionResultList`** interface of the Web Speech API represents a list of SpeechRecognitionResult objects, or a single one if results are being captured in SpeechRecognition.continuous mode.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList)
+ */
+pub opaque type SpeechRecognitionResultList.
+
+/**
+ * The **`length`** read-only property of the 'array' — the number of SpeechRecognitionResult objects in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList/length)
+ */
+pub (value: SpeechRecognitionResultList) length(): JsNumber.
+
+/**
+ * The **`item`** getter of the syntax.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList/item)
+ */
+pub (value: SpeechRecognitionResultList) item(index: JsNumber): SpeechRecognitionResult.

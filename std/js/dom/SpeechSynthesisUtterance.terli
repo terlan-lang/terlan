@@ -1,0 +1,78 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SpeechSynthesisUtterance
+ */
+module std.js.Dom.SpeechSynthesisUtterance.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SpeechSynthesisUtterance`** interface of the Web Speech API represents a speech request.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance)
+ */
+pub opaque type SpeechSynthesisUtterance.
+
+/**
+ * The **`lang`** property of the SpeechSynthesisUtterance interface gets and sets the language of the utterance.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance/lang)
+ */
+pub (value: SpeechSynthesisUtterance) lang(): JsString.
+
+/**
+ * The **`pitch`** property of the SpeechSynthesisUtterance interface gets and sets the pitch at which the utterance will be spoken at.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance/pitch)
+ */
+pub (value: SpeechSynthesisUtterance) pitch(): JsNumber.
+
+/**
+ * The **`rate`** property of the SpeechSynthesisUtterance interface gets and sets the speed at which the utterance will be spoken at.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance/rate)
+ */
+pub (value: SpeechSynthesisUtterance) rate(): JsNumber.
+
+/**
+ * The **`text`** property of the The text may be provided as plain text, or a well-formed SSML document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance/text)
+ */
+pub (value: SpeechSynthesisUtterance) text(): JsString.
+
+/**
+ * The **`voice`** property of the SpeechSynthesisUtterance interface gets and sets the voice that will be used to speak the utterance.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance/voice)
+ */
+pub (value: SpeechSynthesisUtterance) voice(): Option[SpeechSynthesisVoice].
+
+/**
+ * The **`volume`** property of the SpeechSynthesisUtterance interface gets and sets the volume that the utterance will be spoken at.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance/volume)
+ */
+pub (value: SpeechSynthesisUtterance) volume(): JsNumber.
+
+pub (value: SpeechSynthesisUtterance) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SpeechSynthesisUtterance) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

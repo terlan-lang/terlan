@@ -1,13 +1,16 @@
 use super::*;
 
+mod alias_bounds;
 mod explicit_type_args;
 mod trait_bounds;
 
+pub(super) use alias_bounds::check_type_alias_implication_bounds;
 use explicit_type_args::bind_explicit_call_type_args;
 pub(crate) use trait_bounds::{
     alias_name_for_type, canonicalize_trait_lookup_types, check_function_bounds,
-    collect_trait_bound_impl_type_args, infer_trait_method_call_from_current_bounds,
-    refine_by_syntax_guard, trait_has_bound_implementation, TraitLookupCache,
+    check_function_call_bounds, collect_trait_bound_impl_type_args,
+    infer_trait_method_call_from_current_bounds, refine_by_syntax_guard,
+    structural_implication_field_type, trait_has_bound_implementation, TraitLookupCache,
 };
 pub(super) use trait_bounds::{TraitMethodLookupKey, TraitMethodLookupResult};
 
@@ -116,7 +119,7 @@ pub(crate) fn infer_instantiated_function_with_bounds(
         }
     }
 
-    if let Err(message) = check_function_bounds(scheme, function_name, ctx, subst) {
+    if let Err(message) = check_function_call_bounds(scheme, function_name, args, ctx, subst) {
         return Err(message);
     }
 

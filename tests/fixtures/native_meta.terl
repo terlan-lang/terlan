@@ -1,14 +1,7 @@
 module native_meta.
 
-target erlang with safe_native.
+target erlang with native_boundary.
 
-pub length[T](A: Array[T]): Int ->
-    0.
+pub length[T](A: Array[T]): Int -> 0.
 
-native core module NativeArray {
-    #[native(normal)]
-    length[T](A: Array[T]): Int.
-
-    #[native(dirty_cpu)]
-    push[T](A: Array[T], Value: T): Array[T].
-}
+native core module NativeArray { # [ native ( normal ) ] length [ T ] ( A : Array [ T ] ) : Int . # [ native ( dirty_cpu ) ] push [ T ] ( A : Array [ T ] , Value : T ) : Array [ T ] . }.

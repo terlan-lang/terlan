@@ -1,34 +1,69 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasPath
  */
 module std.js.Dom.CanvasPathTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.CanvasPath.{CanvasPath}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.CanvasPath.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub arc_typechecks(receiver: CanvasPath, x: JsNumber, y: JsNumber, radius: JsNumber, start_angle: JsNumber, end_angle: JsNumber, counterclockwise: Bool): Unit ->
+pub arc_typechecks(
+    receiver: CanvasPath,
+    x: JsNumber,
+    y: JsNumber,
+    radius: JsNumber,
+    start_angle: JsNumber,
+    end_angle: JsNumber,
+    counterclockwise: Bool
+): Unit ->
     receiver.arc(x, y, radius, start_angle, end_angle, counterclockwise).
 
-pub arc_to_typechecks(receiver: CanvasPath, x1: JsNumber, y1: JsNumber, x2: JsNumber, y2: JsNumber, radius: JsNumber): Unit ->
+pub arc_to_typechecks(
+    receiver: CanvasPath,
+    x1: JsNumber,
+    y1: JsNumber,
+    x2: JsNumber,
+    y2: JsNumber,
+    radius: JsNumber
+): Unit ->
     receiver.arc_to(x1, y1, x2, y2, radius).
 
-pub bezier_curve_to_typechecks(receiver: CanvasPath, cp1x: JsNumber, cp1y: JsNumber, cp2x: JsNumber, cp2y: JsNumber, x: JsNumber, y: JsNumber): Unit ->
+pub bezier_curve_to_typechecks(
+    receiver: CanvasPath,
+    cp1x: JsNumber,
+    cp1y: JsNumber,
+    cp2x: JsNumber,
+    cp2y: JsNumber,
+    x: JsNumber,
+    y: JsNumber
+): Unit ->
     receiver.bezier_curve_to(cp1x, cp1y, cp2x, cp2y, x, y).
 
 pub close_path_typechecks(receiver: CanvasPath): Unit ->
     receiver.close_path().
 
-pub ellipse_typechecks(receiver: CanvasPath, x: JsNumber, y: JsNumber, radius_x: JsNumber, radius_y: JsNumber, rotation: JsNumber, start_angle: JsNumber, end_angle: JsNumber, counterclockwise: Bool): Unit ->
+pub ellipse_typechecks(
+    receiver: CanvasPath,
+    x: JsNumber,
+    y: JsNumber,
+    radius_x: JsNumber,
+    radius_y: JsNumber,
+    rotation: JsNumber,
+    start_angle: JsNumber,
+    end_angle: JsNumber,
+    counterclockwise: Bool
+): Unit ->
     receiver.ellipse(x, y, radius_x, radius_y, rotation, start_angle, end_angle, counterclockwise).
 
 pub line_to_typechecks(receiver: CanvasPath, x: JsNumber, y: JsNumber): Unit ->
@@ -37,7 +72,13 @@ pub line_to_typechecks(receiver: CanvasPath, x: JsNumber, y: JsNumber): Unit ->
 pub move_to_typechecks(receiver: CanvasPath, x: JsNumber, y: JsNumber): Unit ->
     receiver.move_to(x, y).
 
-pub quadratic_curve_to_typechecks(receiver: CanvasPath, cpx: JsNumber, cpy: JsNumber, x: JsNumber, y: JsNumber): Unit ->
+pub quadratic_curve_to_typechecks(
+    receiver: CanvasPath,
+    cpx: JsNumber,
+    cpy: JsNumber,
+    x: JsNumber,
+    y: JsNumber
+): Unit ->
     receiver.quadratic_curve_to(cpx, cpy, x, y).
 
 pub rect_typechecks(receiver: CanvasPath, x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->

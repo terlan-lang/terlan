@@ -13,22 +13,26 @@ and tested in Rust.
 ## Public Surface
 
 - `terlan-quality rust-quality`: validates Rust source size and inline-test
-  baselines.
+  baselines. Oversized-file rows are exact ratchets: reductions must lower the
+  checked-in count, so an old baseline can never provide hidden growth room.
 - `terlan-quality rust-docs`: validates Rustdoc coverage for implementation
   functions and types.
 - `terlan-quality module-readmes`: validates README coverage for source-owning
   module directories.
 - `terlan-quality cli-exact-selectors`: validates CLI Makefile exact-test
   selectors against Cargo's current test list.
+- `terlan-quality core-typing-spec`: validates the human and machine-readable
+  core typing spec, initial form classification, Lean anchors, and gate names.
 - `terlan-quality test-hierarchy`: validates that Makefile script gates remain
   release-owned policy, drift, generator, or orchestration checks.
 - `terlan-quality internal-docs`: validates that published docs do not contain
   scratch roadmap or research packets.
 - `terlan-quality oxc-boundary`: validates that Oxc usage stays behind
   JavaScript backend and binding-generator ownership boundaries.
+- `terlan-quality terlan-lint-style-profile`: validates the lint style profile
+  rule families, severities, diagnostic ID policy, and roadmap/Make hooks.
 - `terlan-quality vm-artifact-format`: validates that the 0.0.7 VM artifact
   contract is compiler-owned and does not drift back to BEAM/Erlang defaults.
-
 ## Testing Notes
 
 Check logic belongs in normal Rust tests next to this crate. One-off release or

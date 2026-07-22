@@ -1,0 +1,17 @@
+{
+  "schema": "terlan-http-aot-performance-limits-v1",
+  "maximum_sequential_p50_ratio": 1.35,
+  "maximum_sequential_p95_ratio": 1.35,
+  "maximum_sequential_p99_ratio": 1.35,
+  "minimum_sequential_throughput_ratio": 0.7,
+  "maximum_pressure_p50_ratio": 1.35,
+  "maximum_pressure_p95_ratio": 1.35,
+  "maximum_pressure_p99_ratio": 1.5,
+  "minimum_pressure_throughput_ratio": 0.7,
+  "maximum_longevity_p50_ratio": 1.4,
+  "maximum_longevity_p95_ratio": 1.4,
+  "maximum_longevity_p99_ratio": 1.5,
+  "minimum_longevity_throughput_ratio": 0.7,
+  "maximum_peak_rss_ratio": 1.2,
+  "maximum_generation_reload_ratio": 1.25
+}

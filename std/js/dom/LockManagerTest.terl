@@ -1,24 +1,37 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface LockManager
  */
 module std.js.Dom.LockManagerTest.
 
-import type std.js.Dom.LockManager.{LockManager}.
-
+import type std.js.Dom.LockManager.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub query_typechecks(receiver: LockManager): Promise[LockManagerSnapshot] ->
     receiver.query().
 
-pub request_typechecks(receiver: LockManager, name: JsString, callback: LockGrantedCallback[T]): Promise[T] ->
+pub request_typechecks(
+    receiver: LockManager,
+    name: JsString,
+    callback: LockGrantedCallback[T]
+): Promise[T] ->
     receiver.request(name, callback).
 
-pub request_typechecks(receiver: LockManager, name: JsString, options: LockOptions, callback: LockGrantedCallback[T]): Promise[T] ->
+pub request_typechecks(
+    receiver: LockManager,
+    name: JsString,
+    options: LockOptions,
+    callback: LockGrantedCallback[T]
+): Promise[T] ->
     receiver.request(name, options, callback).

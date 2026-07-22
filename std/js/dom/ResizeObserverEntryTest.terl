@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ResizeObserverEntry
  */
 module std.js.Dom.ResizeObserverEntryTest.
 
-import type std.js.Dom.ResizeObserverEntry.{ResizeObserverEntry}.
-
+import type std.js.Dom.ResizeObserverEntry.
 import type std.js.{Array}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub border_box_size_typechecks(receiver: ResizeObserverEntry): Array[ResizeObserverSize] ->
     receiver.border_box_size().
@@ -21,7 +26,9 @@ pub content_box_size_typechecks(receiver: ResizeObserverEntry): Array[ResizeObse
 pub content_rect_typechecks(receiver: ResizeObserverEntry): DOMRectReadOnly ->
     receiver.content_rect().
 
-pub device_pixel_content_box_size_typechecks(receiver: ResizeObserverEntry): Array[ResizeObserverSize] ->
+pub device_pixel_content_box_size_typechecks(
+    receiver: ResizeObserverEntry
+): Array[ResizeObserverSize] ->
     receiver.device_pixel_content_box_size().
 
 pub target__typechecks(receiver: ResizeObserverEntry): Element ->

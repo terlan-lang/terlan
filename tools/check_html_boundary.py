@@ -37,6 +37,9 @@ STATIC_SITE_MOD = STATIC_SITE_ROOT / "mod.rs"
 STATIC_SITE_RENDER = STATIC_SITE_ROOT / "render.rs"
 DOC_COMMAND = ROOT / "crates" / "terlan" / "src" / "commands" / "doc" / "mod.rs"
 DOC_RENDER = ROOT / "crates" / "terlan" / "src" / "commands" / "doc" / "render.rs"
+DOC_RENDER_SUPPORT = (
+    ROOT / "crates" / "terlan" / "src" / "commands" / "doc" / "render" / "support.rs"
+)
 
 REQUIRED_BOUNDARY_MARKERS = (
     (
@@ -64,7 +67,7 @@ REQUIRED_BOUNDARY_MARKERS = (
         "use crate::terlan_html::escape_html_text;",
     ),
     (
-        DOC_RENDER,
+        DOC_RENDER_SUPPORT,
         "use crate::terlan_html::escape_html_text;",
     ),
 )
@@ -166,7 +169,7 @@ def cli_renderer_files() -> list[Path]:
         for path in STATIC_SITE_ROOT.glob("*.rs")
         if not path.name.endswith("_test.rs")
     ]
-    doc_files = [DOC_COMMAND, DOC_RENDER]
+    doc_files = [DOC_COMMAND, DOC_RENDER, DOC_RENDER_SUPPORT]
     return sorted(static_files + doc_files)
 
 

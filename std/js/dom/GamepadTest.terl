@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Gamepad
  */
 module std.js.Dom.GamepadTest.
 
-import type std.js.Dom.Gamepad.{Gamepad}.
-
+import type std.js.Dom.Gamepad.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.{Array}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub axes_typechecks(receiver: Gamepad): Array[JsNumber] ->
     receiver.axes().

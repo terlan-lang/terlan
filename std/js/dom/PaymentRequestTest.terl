@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PaymentRequest
  */
 module std.js.Dom.PaymentRequestTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.PaymentRequest.{PaymentRequest}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.PaymentRequest.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub id_typechecks(receiver: PaymentRequest): JsString ->
     receiver.id().
@@ -36,11 +37,24 @@ pub abort_typechecks(receiver: PaymentRequest): Promise[Unit] ->
 pub can_make_payment_typechecks(receiver: PaymentRequest): Promise[Bool] ->
     receiver.can_make_payment().
 
-pub show_typechecks(receiver: PaymentRequest, details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate]): Promise[PaymentResponse] ->
+pub show_typechecks(
+    receiver: PaymentRequest,
+    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate]
+): Promise[PaymentResponse] ->
     receiver.show(details_promise).
 
-pub add_event_listener_typechecks(receiver: PaymentRequest, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: PaymentRequest,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: PaymentRequest, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: PaymentRequest,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

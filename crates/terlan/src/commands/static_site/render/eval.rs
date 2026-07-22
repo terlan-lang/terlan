@@ -47,12 +47,23 @@ pub(super) fn eval_syntax_static_template_expr(
                 })?;
             Ok(StaticTemplateValue::Int(value))
         }
-        SyntaxExprKind::Atom if expr.text.as_deref() == Some("true") => {
+        SyntaxExprKind::Atom | SyntaxExprKind::Var if expr.text.as_deref() == Some("true") => {
             Ok(StaticTemplateValue::Bool(true))
         }
-        SyntaxExprKind::Atom if expr.text.as_deref() == Some("false") => {
+        SyntaxExprKind::Atom | SyntaxExprKind::Var if expr.text.as_deref() == Some("false") => {
             Ok(StaticTemplateValue::Bool(false))
         }
+        SyntaxExprKind::Var if expr.text.as_deref() == Some("None") => {
+            Ok(StaticTemplateValue::Optional(None))
+        }
+        SyntaxExprKind::List => Ok(StaticTemplateValue::List(
+            expr.children
+                .iter()
+                .map(|item| {
+                    eval_syntax_static_template_expr(module, templates, markdown_imports, item)
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
         SyntaxExprKind::HtmlBlock => Ok(StaticTemplateValue::Html(
             render_syntax_static_html_nodes(module, templates, markdown_imports, &expr.html_nodes)?,
         )),
@@ -73,7 +84,11 @@ pub(super) fn eval_syntax_static_template_expr(
             ))
         }
         SyntaxExprKind::Call => {
-            if let Some(html) =
+            if let Some(value) =
+                eval_syntax_static_option(module, templates, markdown_imports, expr)?
+            {
+                Ok(value)
+            } else if let Some(html) =
                 render_syntax_static_template_call(module, templates, markdown_imports, expr)?
             {
                 Ok(StaticTemplateValue::Html(html))
@@ -112,6 +127,28 @@ pub(super) fn eval_syntax_static_template_expr(
             "static template output only supports literal template props".to_string(),
         )),
     }
+}
+
+fn eval_syntax_static_option(
+    module: &SyntaxModuleOutput,
+    templates: &BTreeMap<String, crate::terlan_html::HtmlTemplate>,
+    markdown_imports: &BTreeMap<String, crate::terlan_html::MarkdownDocument>,
+    expr: &SyntaxExprOutput,
+) -> Result<Option<StaticTemplateValue>, StaticSyntaxRenderError> {
+    let Some(callee) = expr.children.first() else {
+        return Ok(None);
+    };
+    if callee.kind != SyntaxExprKind::Var || callee.text.as_deref() != Some("Some") {
+        return Ok(None);
+    }
+    if expr.children.len() != 2 || expr.arg_names.iter().any(Option::is_some) {
+        return Err(StaticSyntaxRenderError::Invalid(
+            "static option constructor `Some` requires one positional value".to_string(),
+        ));
+    }
+    let value =
+        eval_syntax_static_template_expr(module, templates, markdown_imports, &expr.children[1])?;
+    Ok(Some(StaticTemplateValue::Optional(Some(Box::new(value)))))
 }
 
 /// Evaluates a default struct-constructor call as a static record value.

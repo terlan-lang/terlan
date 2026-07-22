@@ -132,7 +132,11 @@ fn infer_syntax_binary_types(
     errors: &mut Vec<String>,
 ) -> Type {
     match op {
-        SyntaxBinaryOp::Add if is_string_concat_pair(left, right) => Type::Binary,
+        SyntaxBinaryOp::Add
+            if is_string_concat_pair(&apply_subst(left, subst), &apply_subst(right, subst)) =>
+        {
+            Type::Binary
+        }
         SyntaxBinaryOp::Add | SyntaxBinaryOp::Sub | SyntaxBinaryOp::Mul => {
             if let Err(message) = unify(left, &Type::Number, subst) {
                 errors.push(format!("left side {}", message));
@@ -178,13 +182,33 @@ fn infer_syntax_binary_types(
         | SyntaxBinaryOp::EqEq
         | SyntaxBinaryOp::EqEqEq
         | SyntaxBinaryOp::NotEq
-        | SyntaxBinaryOp::NotEqEq
-        | SyntaxBinaryOp::Lt
-        | SyntaxBinaryOp::Gt
-        | SyntaxBinaryOp::LtEq
-        | SyntaxBinaryOp::GtEq => {
-            if let Err(message) = unify_comparable_types(left, right, aliases, subst) {
+        | SyntaxBinaryOp::NotEqEq => {
+            if let Err(message) = unify_equality_types(left, right, aliases, subst) {
                 errors.push(message);
+            }
+            Type::Bool
+        }
+        SyntaxBinaryOp::Lt | SyntaxBinaryOp::Gt | SyntaxBinaryOp::LtEq | SyntaxBinaryOp::GtEq => {
+            if let Err(message) = unify_ordered_types(left, right, aliases, subst) {
+                errors.push(message);
+            }
+            Type::Bool
+        }
+        SyntaxBinaryOp::Range => {
+            if let Err(message) = unify(&Type::Int, left, subst) {
+                errors.push(format!("left side {}", message));
+            }
+            if let Err(message) = unify(&Type::Int, right, subst) {
+                errors.push(format!("right side {}", message));
+            }
+            int_range_type()
+        }
+        SyntaxBinaryOp::In => {
+            if let Err(message) = unify(&Type::Int, left, subst) {
+                errors.push(format!("left side {}", message));
+            }
+            if let Err(message) = unify(&int_range_type(), right, subst) {
+                errors.push(format!("right side {}", message));
             }
             Type::Bool
         }
@@ -267,10 +291,10 @@ fn is_string_concat_operand(ty: &Type) -> bool {
         )
 }
 
-/// Unifies binary comparison operands with transparent alias expansion.
+/// Unifies equality operands with transparent alias expansion.
 ///
 /// Inputs:
-/// - `left` and `right`: inferred operand types from a comparison expression.
+/// - `left` and `right`: inferred operand types from an equality expression.
 /// - `aliases`: the visible type aliases for the current inference context.
 /// - `subst`: the mutable type-variable substitution table.
 ///
@@ -281,24 +305,149 @@ fn is_string_concat_operand(ty: &Type) -> bool {
 ///
 /// Transformation:
 /// - First attempts normal unification so existing substitutions and
-///   diagnostics remain unchanged for ordinary comparisons.
+///   diagnostics remain unchanged for ordinary equality.
 /// - If that fails, expands non-opaque aliases on both sides and retries using
 ///   the same substitution table.
-fn unify_comparable_types(
+fn unify_equality_types(
     left: &Type,
     right: &Type,
     aliases: &HashMap<String, TypeAlias>,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<(), String> {
     if let Err(original_message) = unify(left, right, subst) {
+        if are_broadly_equal(left, right) {
+            return Ok(());
+        }
         let left_expanded = expand_type_aliases(left, aliases);
         let right_expanded = expand_type_aliases(right, aliases);
-        if unify(&left_expanded, &right_expanded, subst).is_err() {
+        if unify(&left_expanded, &right_expanded, subst).is_err()
+            && !are_broadly_equal(&left_expanded, &right_expanded)
+        {
             return Err(original_message);
         }
     }
 
     Ok(())
+}
+
+/// Unifies ordered comparison operands with transparent alias expansion.
+fn unify_ordered_types(
+    left: &Type,
+    right: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    if let Err(original_message) = unify(left, right, subst) {
+        if are_broadly_ordered(left, right) {
+            return Ok(());
+        }
+        let left_expanded = expand_type_aliases(left, aliases);
+        let right_expanded = expand_type_aliases(right, aliases);
+        if unify(&left_expanded, &right_expanded, subst).is_err()
+            && !are_broadly_ordered(&left_expanded, &right_expanded)
+        {
+            return Err(original_message);
+        }
+    }
+
+    Ok(())
+}
+
+/// Returns whether two non-identical literal or primitive types can be checked
+/// for equality.
+///
+/// Inputs:
+/// - `left` and `right`: inferred equality operand types after ordinary
+///   unification failed.
+///
+/// Output:
+/// - `true` when both operands are in the same equality-compatible family.
+///
+/// Transformation:
+/// - Widens literal operands only for equality typing. This keeps exact
+///   literal types available for patterns while allowing expressions such as
+///   `{1, "a"} != {2, "a"}` to typecheck as ordinary structural equality.
+fn are_broadly_equal(left: &Type, right: &Type) -> bool {
+    left == right
+        || (is_numeric_comparison_operand(left) && is_numeric_comparison_operand(right))
+        || (is_atom_comparison_operand(left) && is_atom_comparison_operand(right))
+        || (is_string_like(left) && is_string_like(right))
+        || matches!((left, right), (Type::Bool, Type::Bool))
+        || are_structurally_equal_compatible(left, right)
+}
+
+fn are_structurally_equal_compatible(left: &Type, right: &Type) -> bool {
+    match (left, right) {
+        (Type::List(left), Type::List(right)) => are_broadly_equal(left, right),
+        (Type::Tuple(left), Type::Tuple(right)) => {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(left, right)| are_broadly_equal(left, right))
+        }
+        (Type::Map(left), Type::Map(right)) => {
+            left.len() == right.len()
+                && left.iter().all(|left_field| {
+                    right
+                        .iter()
+                        .find(|right_field| {
+                            right_field.key == left_field.key
+                                && right_field.required == left_field.required
+                        })
+                        .is_some_and(|right_field| {
+                            are_broadly_equal(&left_field.value, &right_field.value)
+                        })
+                })
+        }
+        (
+            Type::FixedArray {
+                size: left_size,
+                elem: left_elem,
+            },
+            Type::FixedArray {
+                size: right_size,
+                elem: right_elem,
+            },
+        ) => left_size == right_size && are_broadly_equal(left_elem, right_elem),
+        (
+            Type::Named {
+                module: left_module,
+                name: left_name,
+                args: left_args,
+            },
+            Type::Named {
+                module: right_module,
+                name: right_name,
+                args: right_args,
+            },
+        ) => {
+            left_module == right_module
+                && left_name == right_name
+                && left_args.len() == right_args.len()
+                && left_args
+                    .iter()
+                    .zip(right_args)
+                    .all(|(left, right)| are_broadly_equal(left, right))
+        }
+        _ => false,
+    }
+}
+
+/// Returns whether two non-identical literal or primitive types can be ordered.
+fn are_broadly_ordered(left: &Type, right: &Type) -> bool {
+    is_numeric_comparison_operand(left) && is_numeric_comparison_operand(right)
+}
+
+fn is_numeric_comparison_operand(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::Int | Type::Float | Type::Number | Type::LiteralInt(_)
+    )
+}
+
+fn is_atom_comparison_operand(ty: &Type) -> bool {
+    matches!(ty, Type::Atom | Type::LiteralAtom(_))
 }
 
 /// Checks whether a type can act as an integer.
@@ -313,6 +462,25 @@ fn unify_comparable_types(
 /// - Performs a small structural match without alias expansion.
 fn is_int_like(ty: &Type) -> bool {
     matches!(ty, Type::Int | Type::LiteralInt(_))
+}
+
+/// Returns the public source type for an inclusive integer range.
+///
+/// Inputs:
+/// - None.
+///
+/// Output:
+/// - `std.range.Range.Range` as a named source-level type.
+///
+/// Transformation:
+/// - Reuses the concrete public standard-library type so `..` sugar does not
+///   drift into a private compiler-only range type.
+fn int_range_type() -> Type {
+    Type::Named {
+        module: Some("std.range.Range".to_string()),
+        name: "Range".to_string(),
+        args: Vec::new(),
+    }
 }
 
 /// Binary operators recognized by expression type inference.
@@ -342,6 +510,8 @@ enum SyntaxBinaryOp {
     Gt,
     LtEq,
     DivRem,
+    Range,
+    In,
     And,
     Or,
     PipeForward,
@@ -376,6 +546,8 @@ fn syntax_binary_op(operator: Option<&str>) -> SyntaxBinaryOp {
         ">" => SyntaxBinaryOp::Gt,
         "<=" => SyntaxBinaryOp::LtEq,
         "div" | "rem" => SyntaxBinaryOp::DivRem,
+        ".." => SyntaxBinaryOp::Range,
+        "in" => SyntaxBinaryOp::In,
         "and" | "&&" => SyntaxBinaryOp::And,
         "or" | "||" => SyntaxBinaryOp::Or,
         "|>" => SyntaxBinaryOp::PipeForward,

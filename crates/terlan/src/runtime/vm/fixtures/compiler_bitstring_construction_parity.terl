@@ -1,0 +1,27 @@
+module compiler_bitstring_construction_parity.
+
+import std.vm.BitString.{BitString, from_bytes, from_uint_be}.
+import std.vm.Bytes.{Bytes, from_list}.
+
+empty_bits(): BitString ->
+    from_bytes(from_list([]), 0).
+
+pack(values: List[Int], width: Int): BitString ->
+    case values {
+        [] -> empty_bits();
+        [value | rest] -> from_uint_be(value, width).concat(pack(rest, width))
+    }.
+
+pub pack_bits(values: List[Int]): BitString ->
+    pack(values, 1).
+
+pub pack_bytes(values: List[Int]): Bytes ->
+    pack(values, 8).to_bytes().
+
+pub run(): Bool ->
+    let bits = pack_bits([1, 0, 1, 1, 1]);
+    let bytes = pack_bytes([0, 127, 128, 255]);
+    bits.bit_length() == 5
+        and bits.byte_length() == 1
+        and bits.to_uint_be() == 23
+        and bytes.to_list() == [0, 127, 128, 255].

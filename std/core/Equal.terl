@@ -4,7 +4,6 @@
  * `std.core.Equal` defines explicit, type-directed equality for values whose
  * equality can be represented safely and portably.
  */
-
 module std.core.Equal.
 
 import type std.core.Ordering.Comparison.
@@ -93,8 +92,7 @@ pub impl Equal[String] for String {
  * inspecting either value.
  */
 pub impl Equal[Unit] for Unit {
-    equal(_left: Unit, _right: Unit): Bool ->
-        true.
+    equal(_left: Unit, _right: Unit): Bool -> true.
 }.
 
 /**

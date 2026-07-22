@@ -1,8 +1,8 @@
 module=std.js.Dom.DOMRectList
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=14965025875940138543
-interface_hash=1940912809145151510
-interface_doc_hash=1940912809145151510
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5687535562104343579
+interface_hash=18394682467672889369
+interface_doc_hash=18394682467672889369
 deps=0

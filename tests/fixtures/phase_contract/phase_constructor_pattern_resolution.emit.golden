@@ -1,4 +1,0 @@
--module(phase_constructor_pattern_resolution).
--export([typer_ctor_some_1/1, unwrap/1]).
-typer_ctor_some_1(Value) ->
-unwrap(Input) ->

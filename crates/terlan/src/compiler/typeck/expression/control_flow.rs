@@ -1,5 +1,14 @@
 use super::*;
 
+mod comprehension;
+use comprehension::{clause_references_later_binding, collect_comprehension_pattern_bindings};
+pub(super) use comprehension::{infer_syntax_let_expr, infer_syntax_list_comprehension};
+
+mod function;
+mod let_else;
+pub(super) use function::infer_syntax_fun_expr;
+use let_else::infer_syntax_let_else;
+
 /// Infers a case expression.
 ///
 /// Inputs:
@@ -26,6 +35,7 @@ pub(super) fn infer_syntax_case_expr(
         .unwrap_or(Type::Dynamic);
     let match_type = widen_case_scrutinee_type_for_patterns(&scrutinee_type, expr, ctx, subst)
         .unwrap_or_else(|| scrutinee_type.clone());
+    check_case_exhaustiveness(expr, &match_type, ctx, errors);
     let branches = expr
         .clauses
         .iter()
@@ -47,6 +57,22 @@ pub(super) fn infer_syntax_case_expr(
 
             if let Some(guard) = clause.guard.as_ref() {
                 refine_by_syntax_guard(guard, &mut clause_locals, ctx.aliases, &mut clause_subst);
+                super::check_clause_guard_purity(
+                    guard,
+                    "case guard",
+                    &clause_locals,
+                    ctx,
+                    &clause_subst,
+                    errors,
+                );
+                check_clause_guard_type(
+                    guard,
+                    "case guard",
+                    &clause_locals,
+                    ctx,
+                    &mut clause_subst,
+                    errors,
+                );
             }
 
             apply_subst_to_locals(&mut clause_locals, &clause_subst);
@@ -57,6 +83,130 @@ pub(super) fn infer_syntax_case_expr(
         .collect::<Vec<_>>();
 
     normalize_union(branches)
+}
+
+/// Requires a clause guard expression to infer as Bool.
+///
+/// Inputs:
+/// - `guard`: syntax-output guard expression.
+/// - `label`: diagnostic context such as `case guard`.
+/// - `locals`, `ctx`, `subst`, and `errors`: active inference state.
+///
+/// Output:
+/// - None; appends a diagnostic when the guard is not Boolean.
+///
+/// Transformation:
+/// - Infers the guard under already-bound pattern locals and unifies it with
+///   `Bool` so clause selection cannot depend on truthy/non-Boolean values.
+fn check_clause_guard_type(
+    guard: &SyntaxExprOutput,
+    label: &str,
+    locals: &HashMap<String, Type>,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) {
+    let guard_type = infer_syntax_expr(guard, locals, ctx, subst, errors);
+    if let Err(message) = unify(&Type::Bool, &guard_type, subst) {
+        errors.push(format!("{label} {message}"));
+    }
+}
+
+/// Checks whether a case expression covers every finite union variant.
+///
+/// Inputs:
+/// - `expr`: case expression clauses.
+/// - `match_type`: type used for pattern validation.
+/// - `ctx`: alias environment used to expand union variants.
+/// - `errors`: typecheck error sink.
+///
+/// Output:
+/// - No return value; pushes a hard typecheck error for non-exhaustive cases.
+///
+/// Transformation:
+/// - Treats unguarded wildcard/variable patterns as exhaustive, subtracts
+///   unguarded covered variants from finite unions, and ignores guarded
+///   clauses for coverage because guards can reject at runtime.
+fn check_case_exhaustiveness(
+    expr: &SyntaxExprOutput,
+    match_type: &Type,
+    ctx: &ExprInferContext,
+    errors: &mut Vec<String>,
+) {
+    check_clauses_exhaustiveness(&expr.clauses, match_type, ctx, errors);
+}
+
+fn check_clauses_exhaustiveness(
+    clauses: &[crate::terlan_syntax::SyntaxClauseOutput],
+    match_type: &Type,
+    ctx: &ExprInferContext,
+    errors: &mut Vec<String>,
+) {
+    let expanded = expand_type_aliases(match_type, ctx.aliases);
+    let mut remaining = as_exhaustive_union_variants(&expanded);
+    if remaining.len() <= 1 {
+        return;
+    }
+
+    for clause in clauses {
+        let Some(pattern) = clause.patterns.first() else {
+            continue;
+        };
+
+        if clause.guard.is_some() {
+            continue;
+        }
+
+        if matches!(
+            pattern.kind,
+            SyntaxPatternKind::Wildcard
+                | SyntaxPatternKind::Ignore
+                | SyntaxPatternKind::Placeholder
+                | SyntaxPatternKind::Var
+        ) {
+            return;
+        }
+
+        remaining.retain(|variant| !syntax_pattern_subsumes_variant(pattern, variant, ctx.aliases));
+        if remaining.is_empty() {
+            return;
+        }
+    }
+
+    if !remaining.is_empty() {
+        errors.push(format!(
+            "non-exhaustive case expression\nmissing:\n  {}",
+            remaining
+                .iter()
+                .map(|variant| pretty_case_missing_variant(variant, ctx.aliases))
+                .collect::<Vec<_>>()
+                .join("\n  ")
+        ));
+    }
+}
+
+/// Renders a missing case variant using source-facing alias names when possible.
+fn pretty_case_missing_variant(variant: &Type, aliases: &HashMap<String, TypeAlias>) -> String {
+    let expanded_variant = expand_type_aliases(variant, aliases);
+    let mut matching_aliases = aliases
+        .iter()
+        .filter_map(|(name, alias)| {
+            if !alias.params.is_empty() {
+                return None;
+            }
+            let expanded_alias = expand_type_aliases(&alias.body, aliases);
+            if expanded_alias == expanded_variant {
+                Some(name.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    matching_aliases.sort();
+    matching_aliases
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| pretty_type(variant))
 }
 
 /// Applies inferred type substitutions to local bindings.
@@ -106,11 +256,23 @@ fn widen_case_scrutinee_type_for_patterns(
     ctx: &ExprInferContext,
     subst: &HashMap<TypeVarId, Type>,
 ) -> Option<Type> {
+    if !case_has_discriminating_pattern(expr) {
+        return None;
+    }
     if matches!(scrutinee_type, Type::Dynamic | Type::Term | Type::Union(_)) {
         return None;
     }
+    if matches!(
+        expand_type_aliases(scrutinee_type, ctx.aliases),
+        Type::Union(_)
+    ) {
+        return None;
+    }
 
-    for (alias_name, alias) in ctx.aliases {
+    let mut visible_aliases = ctx.aliases.iter().collect::<Vec<_>>();
+    visible_aliases.sort_by(|(left, _), (right, _)| left.cmp(right));
+
+    for (alias_name, alias) in visible_aliases {
         if alias.is_opaque {
             continue;
         }
@@ -124,6 +286,9 @@ fn widen_case_scrutinee_type_for_patterns(
         let fresh_body = substitute_type_vars(&alias.body, &fresh_params);
         let expanded_body = expand_type_aliases(&fresh_body, ctx.aliases);
         if !matches!(expanded_body, Type::Union(_)) {
+            continue;
+        }
+        if !case_patterns_match_alias_variants(expr, &expanded_body, ctx.aliases) {
             continue;
         }
 
@@ -149,6 +314,53 @@ fn widen_case_scrutinee_type_for_patterns(
     }
 
     None
+}
+
+/// Returns whether a case branch needs structural union-alias widening.
+///
+/// Variable, wildcard, ignore, and placeholder patterns already accept the
+/// concrete scrutinee type. Widening those patterns to an arbitrary visible
+/// union can change receiver-method resolution without adding match evidence.
+fn case_has_discriminating_pattern(expr: &SyntaxExprOutput) -> bool {
+    expr.clauses.iter().any(|clause| {
+        clause
+            .patterns
+            .first()
+            .is_some_and(pattern_is_discriminating)
+    })
+}
+
+/// Reports whether a pattern contributes structural case discrimination.
+fn pattern_is_discriminating(pattern: &SyntaxPatternOutput) -> bool {
+    match pattern.kind {
+        SyntaxPatternKind::Wildcard
+        | SyntaxPatternKind::Var
+        | SyntaxPatternKind::Ignore
+        | SyntaxPatternKind::Placeholder => false,
+        SyntaxPatternKind::Alias => pattern.children.iter().any(pattern_is_discriminating),
+        _ => true,
+    }
+}
+
+/// Rejects union candidates whose structural variants do not represent the
+/// constructor patterns written by the case expression.
+fn case_patterns_match_alias_variants(
+    expr: &SyntaxExprOutput,
+    expanded_alias_body: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+) -> bool {
+    let Type::Union(variants) = expanded_alias_body else {
+        return false;
+    };
+    expr.clauses.iter().all(|clause| {
+        let Some(pattern) = clause.patterns.first() else {
+            return true;
+        };
+        !matches!(pattern.kind, SyntaxPatternKind::Constructor)
+            || variants
+                .iter()
+                .any(|variant| syntax_pattern_subsumes_variant(pattern, variant, aliases))
+    })
 }
 
 /// Returns whether a concrete type can inhabit an expanded union alias.
@@ -276,6 +488,14 @@ pub(super) fn infer_syntax_try_expr(
 
             if let Some(guard) = clause.guard.as_ref() {
                 refine_by_syntax_guard(guard, &mut clause_locals, ctx.aliases, &mut clause_subst);
+                check_clause_guard_type(
+                    guard,
+                    "try guard",
+                    &clause_locals,
+                    ctx,
+                    &mut clause_subst,
+                    errors,
+                );
             }
 
             let branch_type =
@@ -302,6 +522,14 @@ pub(super) fn infer_syntax_try_expr(
 
         if let Some(guard) = clause.guard.as_ref() {
             refine_by_syntax_guard(guard, &mut clause_locals, ctx.aliases, &mut clause_subst);
+            check_clause_guard_type(
+                guard,
+                "catch guard",
+                &clause_locals,
+                ctx,
+                &mut clause_subst,
+                errors,
+            );
         }
 
         let branch_type =
@@ -355,356 +583,4 @@ pub(super) fn infer_syntax_if_expr(
         .collect::<Vec<_>>();
 
     normalize_union(branches)
-}
-
-/// Infers a list comprehension expression.
-///
-/// Inputs:
-/// - `expr`: syntax-output list comprehension.
-/// - `locals`, `ctx`, `subst`, and `errors`: active inference state.
-///
-/// Output:
-/// - List type containing the inferred yielded element type.
-///
-/// Transformation:
-/// - Infers the source iterable, binds generator pattern locals, checks the
-///   optional guard, and infers the yielded expression in item scope.
-pub(super) fn infer_syntax_list_comprehension(
-    expr: &SyntaxExprOutput,
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    let source_type = expr
-        .children
-        .get(1)
-        .map(|source| infer_syntax_expr(source, locals, ctx, subst, errors))
-        .unwrap_or(Type::Dynamic);
-    let element_type = match expand_type_aliases(&source_type, ctx.aliases) {
-        Type::List(elem) => *elem,
-        Type::Dynamic | Type::Term => Type::Dynamic,
-        other => {
-            if let Some(iterable_item_type) = infer_iterable_comprehension_element_type(&other, ctx)
-            {
-                iterable_item_type
-            } else {
-                errors.push(format!(
-                    "list comprehension source must be List or Iterable, found {}",
-                    pretty_type(&other)
-                ));
-                Type::Dynamic
-            }
-        }
-    };
-    let mut item_locals = locals.clone();
-    let mut item_subst = subst.clone();
-    if let Some(pattern) = expr.patterns.first() {
-        if let Err(message) = check_syntax_pattern(
-            pattern,
-            &element_type,
-            ctx.aliases,
-            Some(ctx),
-            &mut item_locals,
-            &mut item_subst,
-        ) {
-            errors.push(message);
-        }
-    }
-    if let Some(guard) = expr.children.get(2) {
-        refine_by_syntax_guard(guard, &mut item_locals, ctx.aliases, &mut item_subst);
-        let guard_type = infer_syntax_expr(guard, &item_locals, ctx, &mut item_subst, errors);
-        if let Err(message) = unify(&Type::Bool, &guard_type, &mut item_subst) {
-            errors.push(format!("list comprehension filter {}", message));
-        }
-    }
-    let item_type = expr
-        .children
-        .first()
-        .map(|item| infer_syntax_expr(item, &item_locals, ctx, &mut item_subst, errors))
-        .unwrap_or(Type::Dynamic);
-
-    Type::List(Box::new(apply_subst(&item_type, &item_subst)))
-}
-
-/// Infers the element type produced by an iterable comprehension source.
-///
-/// Inputs:
-/// - `source_type`: inferred source collection type.
-/// - `ctx`, `subst`, and `errors`: active inference state.
-///
-/// Output:
-/// - Element type yielded by the source.
-///
-/// Transformation:
-/// - Handles built-in list-like sources and delegates target-neutral sources to
-///   visible `Iterable`/`Iterator` trait information.
-fn infer_iterable_comprehension_element_type(
-    source_type: &Type,
-    ctx: &ExprInferContext,
-) -> Option<Type> {
-    let source_type = expand_type_aliases(source_type, ctx.aliases);
-
-    if let Some(impl_args_by_type) = ctx.trait_bound_impl_type_args.get("Iterable") {
-        for impl_args in impl_args_by_type {
-            if impl_args.len() < 2 {
-                continue;
-            }
-
-            let collection_arg = expand_type_aliases(&impl_args[0], ctx.aliases);
-            let item_arg = expand_type_aliases(&impl_args[1], ctx.aliases);
-            let mut local_subst = HashMap::new();
-
-            if unify(&collection_arg, &source_type, &mut local_subst).is_ok() {
-                return Some(apply_subst(&item_arg, &local_subst));
-            }
-        }
-    }
-
-    for bound in ctx.current_bounds.iter() {
-        if bound.trait_name != "Iterable" || bound.trait_args.len() < 2 {
-            continue;
-        }
-
-        let collection_arg = expand_type_aliases(&bound.trait_args[0], ctx.aliases);
-        let item_arg = expand_type_aliases(&bound.trait_args[1], ctx.aliases);
-        let mut local_subst = HashMap::new();
-
-        if unify(&collection_arg, &source_type, &mut local_subst).is_ok() {
-            return Some(apply_subst(&item_arg, &local_subst));
-        }
-    }
-
-    None
-}
-
-/// Infers an anonymous function expression.
-///
-/// Inputs:
-/// - `expr`: syntax-output function expression.
-/// - `locals`, `ctx`, `subst`, and `errors`: active inference state.
-///
-/// Output:
-/// - Function type or union of compatible clause function types.
-///
-/// Transformation:
-/// - Creates scoped locals for clause patterns, infers each body, and returns a
-///   function type preserving parameter count and return type.
-pub(super) fn infer_syntax_fun_expr(
-    expr: &SyntaxExprOutput,
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    let union = expr
-        .clauses
-        .iter()
-        .map(|clause| {
-            let mut clause_locals = locals.clone();
-            let mut clause_subst = subst.clone();
-            for pattern in &clause.patterns {
-                let _ = check_syntax_pattern(
-                    pattern,
-                    &Type::Dynamic,
-                    ctx.aliases,
-                    Some(ctx),
-                    &mut clause_locals,
-                    &mut clause_subst,
-                );
-            }
-            let inferred =
-                infer_syntax_expr(&clause.body, &clause_locals, ctx, &mut clause_subst, errors);
-            Type::Function {
-                params: vec![Type::Dynamic; clause.patterns.len()],
-                ret: Box::new(apply_subst(&inferred, &clause_subst)),
-            }
-        })
-        .collect::<Vec<_>>();
-    normalize_union(union)
-}
-
-/// Infers a syntax-output let expression.
-///
-/// Inputs:
-/// - `expr`: syntax-output let node with binding patterns in `patterns`,
-///   binding values in `children`, and a required final body child.
-/// - `locals`: local type environment visible before the let expression.
-/// - `ctx`, `subst`, `errors`: inference context, substitution state, and
-///   diagnostics accumulator.
-///
-/// Output:
-/// - Inferred explicit body type.
-///
-/// Transformation:
-/// - Infers binding values left-to-right, type-checks each pattern against its
-///   value, and extends a scoped local environment after each binding. The
-///   caller's `locals` map is not mutated.
-pub(super) fn infer_syntax_let_expr(
-    expr: &SyntaxExprOutput,
-    locals: &HashMap<String, Type>,
-    ctx: &ExprInferContext,
-    subst: &mut HashMap<TypeVarId, Type>,
-    errors: &mut Vec<String>,
-) -> Type {
-    if expr.patterns.is_empty() || expr.children.len() != expr.patterns.len() + 1 {
-        errors.push("malformed let expression".to_string());
-        return Type::Dynamic;
-    }
-
-    let mut scoped = locals.clone();
-    for (pattern, value) in expr.patterns.iter().zip(expr.children.iter()) {
-        let value_type = infer_syntax_expr(value, &scoped, ctx, subst, errors);
-        let binding_type = apply_subst(&value_type, subst);
-        if is_unconstrained_empty_constructor_binding(value, &binding_type) {
-            let constructor = syntax_callee_name(value).unwrap_or("constructor");
-            errors.push(format!(
-                "empty constructor `{}()` requires an expected type; use an explicit typed helper such as `{}.new[T]()`",
-                constructor, constructor
-            ));
-        }
-        if let Err(message) = check_syntax_pattern(
-            pattern,
-            &binding_type,
-            ctx.aliases,
-            Some(ctx),
-            &mut scoped,
-            subst,
-        ) {
-            errors.push(message);
-        }
-    }
-
-    infer_syntax_expr(
-        &expr.children[expr.patterns.len()],
-        &scoped,
-        ctx,
-        subst,
-        errors,
-    )
-}
-
-/// Returns whether a let binding uses an unconstrained empty constructor.
-///
-/// Inputs:
-/// - `value`: source expression on the right side of one let binding.
-/// - `binding_type`: inferred type after applying the current substitution.
-///
-/// Output:
-/// - `true` when `value` is an empty constructor call whose type still
-///   contains an unresolved inference variable.
-///
-/// Transformation:
-/// - Recognizes only uppercase constructor-call syntax such as `Vector()` and
-///   recursively inspects the inferred type for unresolved generic variables.
-///   Contextual uses, such as a function returning `Vector[String]`, are not
-///   rejected here because their expected type can resolve the constructor.
-fn is_unconstrained_empty_constructor_binding(
-    value: &SyntaxExprOutput,
-    binding_type: &Type,
-) -> bool {
-    matches!(value.kind, SyntaxExprKind::Call)
-        && value.remote.is_none()
-        && value.children.len() == 1
-        && syntax_callee_name(value).is_some_and(is_constructor_name)
-        && type_contains_unresolved_var(binding_type)
-}
-
-/// Returns whether a type contains an unresolved inference variable.
-///
-/// Inputs:
-/// - `ty`: inferred type tree to inspect.
-///
-/// Output:
-/// - `true` when any nested position is `Type::Var`.
-///
-/// Transformation:
-/// - Recursively walks structural, named, function, and fixed-array types
-///   without expanding aliases or mutating inference state.
-fn type_contains_unresolved_var(ty: &Type) -> bool {
-    match ty {
-        Type::Var(_) => true,
-        Type::Apply { args, .. } => args.iter().any(type_contains_unresolved_var),
-        Type::Existential { params, body } => type_contains_unresolved_free_var(body, params),
-        Type::List(inner) => type_contains_unresolved_var(inner),
-        Type::Tuple(items) | Type::Union(items) => items.iter().any(type_contains_unresolved_var),
-        Type::Map(fields) => fields
-            .iter()
-            .any(|field| type_contains_unresolved_var(&field.value)),
-        Type::Named { args, .. } => args.iter().any(type_contains_unresolved_var),
-        Type::Function { params, ret } => {
-            params.iter().any(type_contains_unresolved_var) || type_contains_unresolved_var(ret)
-        }
-        Type::FixedArray { elem, .. } => type_contains_unresolved_var(elem),
-        Type::Int
-        | Type::Float
-        | Type::Number
-        | Type::Binary
-        | Type::Atom
-        | Type::Bool
-        | Type::Term
-        | Type::Dynamic
-        | Type::Never
-        | Type::Placeholder
-        | Type::LiteralAtom(_)
-        | Type::LiteralInt(_) => false,
-    }
-}
-
-/// Returns whether a type contains an unresolved variable not bound locally.
-///
-/// Inputs:
-/// - `ty`: type tree to inspect.
-/// - `bound`: existential variables that are intentionally scoped by `ty`.
-///
-/// Output:
-/// - `true` when a free inference variable remains unresolved.
-///
-/// Transformation:
-/// - Recursively mirrors `type_contains_unresolved_var` while treating
-///   existential binders as local names rather than inference holes.
-fn type_contains_unresolved_free_var(ty: &Type, bound: &[TypeVarId]) -> bool {
-    match ty {
-        Type::Var(id) => !bound.contains(id),
-        Type::Apply { constructor, args } => {
-            !bound.contains(constructor)
-                || args
-                    .iter()
-                    .any(|arg| type_contains_unresolved_free_var(arg, bound))
-        }
-        Type::Existential { params, body } => {
-            let mut nested_bound = bound.to_vec();
-            nested_bound.extend(params);
-            type_contains_unresolved_free_var(body, &nested_bound)
-        }
-        Type::List(inner) => type_contains_unresolved_free_var(inner, bound),
-        Type::Tuple(items) | Type::Union(items) => items
-            .iter()
-            .any(|item| type_contains_unresolved_free_var(item, bound)),
-        Type::Map(fields) => fields
-            .iter()
-            .any(|field| type_contains_unresolved_free_var(&field.value, bound)),
-        Type::Named { args, .. } => args
-            .iter()
-            .any(|arg| type_contains_unresolved_free_var(arg, bound)),
-        Type::Function { params, ret } => {
-            params
-                .iter()
-                .any(|param| type_contains_unresolved_free_var(param, bound))
-                || type_contains_unresolved_free_var(ret, bound)
-        }
-        Type::FixedArray { elem, .. } => type_contains_unresolved_free_var(elem, bound),
-        Type::Int
-        | Type::Float
-        | Type::Number
-        | Type::Binary
-        | Type::Atom
-        | Type::Bool
-        | Type::Term
-        | Type::Dynamic
-        | Type::Never
-        | Type::Placeholder
-        | Type::LiteralAtom(_)
-        | Type::LiteralInt(_) => false,
-    }
 }

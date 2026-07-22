@@ -58,6 +58,7 @@ pub subtract_duration(instant: Instant, duration: Duration): Instant.
 /// Output: finite millisecond timestamp.
 /// Transformation: reads the portable numeric representation unchanged.
 
+@pure
 pub (instant: Instant) to_milliseconds(): Float.
 
 /// Constructs an instant from milliseconds.

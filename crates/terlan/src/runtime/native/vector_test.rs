@@ -10,8 +10,8 @@ use super::*;
 ///
 /// Transformation:
 /// - Copies the text into the bridge-neutral value shape used by vectors.
-fn text(value: &str) -> SafeNativeBridgeValue {
-    SafeNativeBridgeValue::Text(value.to_string())
+fn text(value: &str) -> NativeBoundaryBridgeValue {
+    NativeBoundaryBridgeValue::Text(value.to_string())
 }
 
 /// Validates native vectors preserve insertion order.
@@ -33,6 +33,11 @@ fn vector_reads_values_by_index() {
     assert_eq!(len(&vector), Ok(2));
     assert_eq!(vector.get_at(0), Ok(text("Ada")));
     assert_eq!(vector.get_at(1), Ok(text("Grace")));
+    assert_eq!(vector.get(0), Some(text("Ada")));
+    assert_eq!(vector.get(-1), None);
+    assert_eq!(vector.get(2), None);
+    assert_eq!(get_optional_values(&vector, 1), vec![text("Grace")]);
+    assert_eq!(get_optional_values(&vector, 2), Vec::new());
 }
 
 /// Validates native vector mutation updates indexed storage.
@@ -72,7 +77,7 @@ fn vector_mutations_update_storage() {
 ///
 /// Transformation:
 /// - Exercises bounds checking before the dispatch layer maps errors into
-///   SafeNative diagnostics.
+///   NativeBoundary diagnostics.
 #[test]
 fn vector_rejects_invalid_indexes() {
     let vector = NativeVector::from_values(vec![text("Ada")]);

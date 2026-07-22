@@ -1,0 +1,55 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasFillStrokeStyles
+ */
+module std.js.Dom.CanvasFillStrokeStyles.
+
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+pub opaque type CanvasFillStrokeStyles.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle)
+ */
+pub (value: CanvasFillStrokeStyles) fill_style(): CanvasGradient | CanvasPattern | JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle)
+ */
+pub (value: CanvasFillStrokeStyles) stroke_style(): CanvasGradient | CanvasPattern | JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createConicGradient)
+ */
+pub (value: CanvasFillStrokeStyles) create_conic_gradient(start_angle: JsNumber, x: JsNumber, y: JsNumber): CanvasGradient.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createLinearGradient)
+ */
+pub (value: CanvasFillStrokeStyles) create_linear_gradient(x0: JsNumber, y0: JsNumber, x1: JsNumber, y1: JsNumber): CanvasGradient.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createPattern)
+ */
+pub (value: CanvasFillStrokeStyles) create_pattern(image: CanvasImageSource, repetition: Option[JsString]): Option[CanvasPattern].
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createRadialGradient)
+ */
+pub (value: CanvasFillStrokeStyles) create_radial_gradient(
+    x0: JsNumber,
+    y0: JsNumber,
+    r0: JsNumber,
+    x1: JsNumber,
+    y1: JsNumber,
+    r1: JsNumber
+): CanvasGradient.

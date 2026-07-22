@@ -1,8 +1,8 @@
 module=std.js.Dom.CanvasDrawPath
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=10158500349774031608
-interface_hash=4834547275530756493
-interface_doc_hash=4834547275530756493
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4706103953993532764
+interface_hash=11737493828433559861
+interface_doc_hash=11737493828433559861
 deps=0

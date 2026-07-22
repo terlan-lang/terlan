@@ -24,7 +24,7 @@ fn compile_and_emit_direct_js(source: &str) -> String {
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -69,6 +69,9 @@ pub shout(): String ->
 pub whisper(): String ->
     \"HELLO\".lowercase().
 
+pub reverse_text(): String ->
+    \"åb\".reverse().
+
 pub append_pair(): String ->
     \"a\".append(\"b\").
 
@@ -84,6 +87,10 @@ pub concat_pair(): String ->
     assert!(js.contains(r#"return "hello  ".trimEnd();"#), "{js}");
     assert!(js.contains(r#"return "hello".toUpperCase();"#), "{js}");
     assert!(js.contains(r#"return "HELLO".toLowerCase();"#), "{js}");
+    assert!(
+        js.contains(r#"return Array.from("åb").reverse().join("");"#),
+        "{js}"
+    );
     assert!(js.contains(r#"return "a" + "b";"#), "{js}");
     assert!(js.contains(r#"return ["a", "b"].join("");"#), "{js}");
 }

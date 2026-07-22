@@ -6,7 +6,6 @@ mod tests {
     use crate::support::test_fs;
     use crate::validation::target_profile::TargetProfile;
     use std::path::PathBuf;
-    use std::process::Command;
 
     /// Builds a command argument vector from string slices.
     ///
@@ -37,58 +36,24 @@ mod tests {
         test_fs::temp_dir("build_command", name)
     }
 
-    /// Asserts that a generated file has at least one executable bit when the
-    /// platform exposes Unix mode bits.
-    ///
-    /// Inputs:
-    /// - `path`: generated file path.
-    ///
-    /// Output:
-    /// - Test assertion success or panic.
-    ///
-    /// Transformation:
-    /// - Reads Unix mode bits and verifies user/group/other execute permission
-    ///   exists; non-Unix platforms use a no-op fallback.
-    #[cfg(unix)]
-    fn assert_executable_bit(path: &Path) {
-        use std::os::unix::fs::PermissionsExt;
-
-        let mode = fs::metadata(path)
-            .expect("read executable metadata")
-            .permissions()
-            .mode();
-        assert_ne!(mode & 0o111, 0, "launcher should be executable");
-    }
-
-    /// Asserts that a generated file has at least one executable bit when the
-    /// platform exposes Unix mode bits.
-    ///
-    /// Inputs:
-    /// - `path`: generated file path.
-    ///
-    /// Output:
-    /// - Always succeeds on non-Unix platforms.
-    ///
-    /// Transformation:
-    /// - Keeps launcher tests portable while execution permissions remain a
-    ///   Unix-specific build artifact detail.
-    #[cfg(not(unix))]
-    fn assert_executable_bit(_path: &Path) {}
-
+    mod annotation_isolation_artifact_test;
     mod args_test;
     mod artifact_test;
-    mod data_closure_test;
+    mod asm_labels_artifact_test;
+    mod debug_info_artifact_test;
     mod dependency_test;
-    mod diagnostics_test;
-    mod executable_language_test;
+    mod deterministic_artifact_test;
+    mod embedded_line_coverage_artifact_test;
+    mod executable_vm_artifact_test;
     mod import_constructor_test;
+    mod js_target_diagnostics_test;
+    mod key_compatibility_test;
+    mod latin1_source_policy_test;
+    mod mobile_build_test;
+    mod parallel_compilation_test;
     mod project_layout_test;
-    mod sql_runtime_test;
-    mod std_collection_mutator_test;
-    mod std_collection_test;
-    mod std_import_test;
+    mod shape_js_test;
     mod std_runtime_test;
-    mod std_trait_test;
     mod wasm_artifact_metadata_test;
     mod wasm_build_target_test;
 }

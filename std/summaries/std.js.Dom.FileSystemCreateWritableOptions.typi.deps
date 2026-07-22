@@ -1,8 +1,8 @@
 module=std.js.Dom.FileSystemCreateWritableOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16748232809654932971
-interface_hash=12680758396448666410
-interface_doc_hash=12680758396448666410
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=9235790171600058871
+interface_hash=241705028515745985
+interface_doc_hash=241705028515745985
 deps=0

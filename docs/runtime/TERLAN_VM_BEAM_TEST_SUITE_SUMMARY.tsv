@@ -1,0 +1,16 @@
+# kind	name	count
+total	files	1603
+classification	delete-after-vm-equivalent	1043
+classification	port-to-rust-vm-test	388
+classification	port-to-terlan-test	172
+owner	common-test	298
+owner	erts-emulator	74
+owner	erts-rust	87
+owner	erts-test	38
+owner	kernel	189
+owner	otp-compiler	444
+owner	otp-tools	56
+owner	parsetools	3
+owner	sasl	234
+owner	stdlib	172
+owner	syntax-tools	8

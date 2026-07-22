@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check committed Rust-backed std SafeNative artifacts against generated output."""
+"""Check committed Rust-backed std NativeBoundary artifacts against generated output."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ SUMMARIES = ROOT / "std" / "summaries"
 
 @dataclass(frozen=True)
 class SourceModule:
-    """One source module that should emit checked SafeNative artifacts."""
+    """One source module that should emit checked NativeBoundary artifacts."""
 
     module: str
     source: Path
@@ -73,7 +73,7 @@ def load_sources() -> tuple[list[SourceModule], list[str]]:
 
 
 def run_emit_native_metadata(source: SourceModule, out_dir: Path) -> str | None:
-    """Emit SafeNative metadata artifacts for one source module.
+    """Emit NativeBoundary metadata artifacts for one source module.
 
     Inputs:
     - `source`: manifest source module.
@@ -84,7 +84,7 @@ def run_emit_native_metadata(source: SourceModule, out_dir: Path) -> str | None:
     - Diagnostic text when emission fails.
 
     Transformation:
-    - Runs the compiler with `safe_native_optional` policy so source-level
+    - Runs the compiler with `native_boundary_optional` policy so source-level
       `@compiler.native` annotations generate the same artifacts as release
       interface generation.
     """
@@ -98,7 +98,7 @@ def run_emit_native_metadata(source: SourceModule, out_dir: Path) -> str | None:
         "terlc",
         "--",
         "--native-policy",
-        "safe_native_optional",
+        "native_boundary_optional",
         "emit-native-metadata",
         str(source.source),
         "--out-dir",
@@ -128,7 +128,7 @@ def comparable_artifacts(out_dir: Path) -> list[Path]:
     - `out_dir`: temporary output directory for one source module.
 
     Outputs:
-    - Sorted generated `.safe_native.json` and `.safe_native.rs` files.
+    - Sorted generated `.native_boundary.json` and `.native_boundary.rs` files.
 
     Transformation:
     - Returns only release-owned NativeBoundary artifacts. The generator no
@@ -139,8 +139,8 @@ def comparable_artifacts(out_dir: Path) -> list[Path]:
         [
             path
             for path in out_dir.iterdir()
-            if path.name.endswith(".safe_native.json")
-            or path.name.endswith(".safe_native.rs")
+            if path.name.endswith(".native_boundary.json")
+            or path.name.endswith(".native_boundary.rs")
         ]
     )
 
@@ -148,7 +148,7 @@ def compare_artifact(generated: Path) -> str | None:
     """Compare one generated artifact with its committed summary copy.
 
     Inputs:
-    - `generated`: generated SafeNative artifact path.
+    - `generated`: generated NativeBoundary artifact path.
 
     Outputs:
     - `None` when the committed file exists and matches exactly.
@@ -161,12 +161,12 @@ def compare_artifact(generated: Path) -> str | None:
 
     committed = SUMMARIES / generated.name
     if not committed.is_file():
-        return f"missing committed SafeNative artifact: {committed.relative_to(ROOT)}"
+        return f"missing committed NativeBoundary artifact: {committed.relative_to(ROOT)}"
     generated_text = generated.read_text(encoding="utf-8")
     committed_text = committed.read_text(encoding="utf-8")
     if generated_text != committed_text:
         return (
-            "stale SafeNative artifact: "
+            "stale NativeBoundary artifact: "
             f"{committed.relative_to(ROOT)}; run `make stdlib-build-interfaces`"
         )
     return None
@@ -184,7 +184,7 @@ def rust_crate_name(path: Path) -> str:
 
     Transformation:
     - Converts punctuation in generated artifact names such as
-      `std_data_json_safe_native.safe_native.rs` into underscores so `rustc`
+      `std_data_json_native_boundary.native_boundary.rs` into underscores so `rustc`
       can compile the file independently.
     """
 
@@ -196,10 +196,10 @@ def rust_crate_name(path: Path) -> str:
 
 
 def compile_rust_artifact(generated: Path, out_dir: Path) -> str | None:
-    """Compile one generated SafeNative Rust artifact.
+    """Compile one generated NativeBoundary Rust artifact.
 
     Inputs:
-    - `generated`: generated `.safe_native.rs` artifact.
+    - `generated`: generated `.native_boundary.rs` artifact.
     - `out_dir`: temporary directory for compiler output.
 
     Outputs:
@@ -208,11 +208,11 @@ def compile_rust_artifact(generated: Path, out_dir: Path) -> str | None:
 
     Transformation:
     - Invokes `rustc` directly against the generated standalone skeleton so
-      checked-in std SafeNative artifacts are guarded by syntax and
+      checked-in std NativeBoundary artifacts are guarded by syntax and
       `#![forbid(unsafe_code)]` validation, not only byte comparison.
     """
 
-    if not generated.name.endswith(".safe_native.rs"):
+    if not generated.name.endswith(".native_boundary.rs"):
         return None
 
     rustc = os.environ.get("RUSTC", "rustc")
@@ -251,7 +251,7 @@ def check_source(source: SourceModule) -> list[str]:
 
     Transformation:
     - Emits artifacts into a temporary directory and compares release-owned
-      SafeNative JSON/Rust artifacts against `std/summaries`. No Erlang loader
+      NativeBoundary JSON/Rust artifacts against `std/summaries`. No Erlang loader
       stubs are generated or accepted in this default stdlib gate.
     """
 
@@ -263,7 +263,7 @@ def check_source(source: SourceModule) -> list[str]:
             return [failure]
         artifacts = comparable_artifacts(out_dir)
         if not artifacts:
-            return [f"{source.source}: emitted no comparable SafeNative artifacts"]
+            return [f"{source.source}: emitted no comparable NativeBoundary artifacts"]
         for artifact in artifacts:
             error = compare_artifact(artifact)
             if error:
@@ -275,7 +275,7 @@ def check_source(source: SourceModule) -> list[str]:
 
 
 def main() -> int:
-    """Run the std SafeNative artifact drift check.
+    """Run the std NativeBoundary artifact drift check.
 
     Inputs:
     - Rust-backed std manifest, source modules, compiler, and committed summary

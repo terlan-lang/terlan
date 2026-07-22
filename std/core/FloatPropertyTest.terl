@@ -1,0 +1,67 @@
+/**
+ * Property-based Float invariants.
+ *
+ * `std.core.FloatPropertyTest` validates generated finite float values against
+ * the public Float API and primitive arithmetic so core numeric behavior is
+ * covered by the shared property-testing machinery.
+ */
+module std.core.FloatPropertyTest.
+
+import std.core.Float.{abs, ceil, floor, max, min}.
+import std.test.Gen.{floats, for_all}.
+import std.test.Test.{each}.
+
+/**
+ * Verifies zero is the additive identity for generated finite floats.
+ *
+ * Input: generated finite float values.
+ * Output: `true` when adding zero on either side preserves each value.
+ * Transformation: checks left and right additive identity over generated
+ * finite-float inputs.
+ */
+@test
+pub generated_floats_add_zero_preserves_value(): Bool ->
+    for_all(floats(), (value) -> value + 0 == value and 0 + value == value).
+
+/**
+ * Verifies one is the multiplicative identity for generated finite floats.
+ *
+ * Input: generated finite float values.
+ * Output: `true` when multiplying by one on either side preserves each value.
+ * Transformation: checks left and right multiplicative identity over generated
+ * finite-float inputs.
+ */
+@test
+pub generated_floats_multiply_one_preserves_value(): Bool ->
+    for_all(floats(), (value) -> value * 1 == value and 1 * value == value).
+
+/**
+ * Verifies min and max are idempotent for generated finite floats.
+ *
+ * Input: generated finite float values.
+ * Output: `true` when `min(value, value)` and `max(value, value)` both return
+ * the original value.
+ * Transformation: checks idempotence of the public Float helpers.
+ */
+@test
+pub generated_floats_min_max_are_idempotent(): Bool ->
+    for_all(floats(), (value) -> min(value, value) == value and max(value, value) == value).
+
+/**
+ * Verifies absolute value is non-negative and symmetric for finite floats.
+ *
+ * Input: generated finite float values.
+ * Output: `true` when absolute values are non-negative and match the absolute
+ * value of the negated input.
+ * Transformation: checks the public `Float.abs` helper over generated inputs.
+ */
+@test
+pub generated_floats_abs_is_non_negative_and_symmetric(): Bool ->
+    for_all(floats(), (value) -> abs(value) >= 0 and abs(value) == abs(0 - value)).
+
+/**
+ * Verifies floor and ceiling bound every generated finite float.
+ */
+@test
+pub generated_floats_are_bounded_by_floor_and_ceiling(): Bool ->
+    for_all(floats(), (value) -> floor(value) <= value and value <= ceil(value) and ceil(value) - floor(value) <= 1).

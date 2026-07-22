@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Navigator
  */
 module std.js.Dom.NavigatorTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.Navigator.{Navigator}.
-
+import type std.js.Dom.Navigator.
 import type std.js.String.{JsString}.
+import type std.js.{Array, Promise}.
 
-import type std.js.{Array}.
-
-import type std.js.{Promise}.
-
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub clipboard_typechecks(receiver: Navigator): Clipboard ->
     receiver.clipboard().
@@ -66,7 +67,11 @@ pub get_gamepads_typechecks(receiver: Navigator): Array[Option[Gamepad]] ->
 pub request_midi_access_typechecks(receiver: Navigator, options: MIDIOptions): Promise[MIDIAccess] ->
     receiver.request_midi_access(options).
 
-pub request_media_key_system_access_typechecks(receiver: Navigator, key_system: JsString, supported_configurations: Array[MediaKeySystemConfiguration]): Promise[MediaKeySystemAccess] ->
+pub request_media_key_system_access_typechecks(
+    receiver: Navigator,
+    key_system: JsString,
+    supported_configurations: Array[MediaKeySystemConfiguration]
+): Promise[MediaKeySystemAccess] ->
     receiver.request_media_key_system_access(key_system, supported_configurations).
 
 pub send_beacon_typechecks(receiver: Navigator, url: URL | JsString, data: Option[BodyInit]): Bool ->

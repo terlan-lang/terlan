@@ -222,7 +222,10 @@ pub(crate) fn script_from_command(command: &str) -> Option<PathBuf> {
 pub(crate) fn is_allowed_script(script: &Path) -> bool {
     let allowed_exact = [
         Path::new("tools/package_release_artifact.py"),
+        Path::new("tools/release_promotion_pipeline.py"),
         Path::new("tools/validate_ebnf.py"),
+        Path::new("scripts/run_exact_cargo_test.sh"),
+        Path::new("scripts/publish_release_from_dist.sh"),
         Path::new("std/scripts/build_interfaces.py"),
         Path::new("std/scripts/run_release_tests.sh"),
     ];

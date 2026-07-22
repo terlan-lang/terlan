@@ -1,14 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface NonElementParentNode
  */
 module std.js.Dom.NonElementParentNodeTest.
 
-import type std.js.Dom.NonElementParentNode.{NonElementParentNode}.
+import type std.js.Dom.NonElementParentNode.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub get_element_by_id_typechecks(receiver: NonElementParentNode, element_id: std.js.String.JsString): Option[Element] ->
+pub get_element_by_id_typechecks(
+    receiver: NonElementParentNode,
+    element_id: std.js.String.JsString
+): Option[Element] ->
     receiver.get_element_by_id(element_id).

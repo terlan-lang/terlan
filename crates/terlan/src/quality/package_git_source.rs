@@ -21,6 +21,15 @@ const REQUIRED_TERMS: &[&str] = &[
     "secondary",
 ];
 
+const REQUIRED_SOURCE_FIELDS: &[&str] = &[
+    "dependency name",
+    "repository url",
+    "immutable revision",
+    "resolved revision checksum",
+    "lockfile entry",
+    "resolver version",
+];
+
 const FORBIDDEN_CLAIMS: &[&str] = &[
     "branch is authoritative",
     "tag is authoritative",
@@ -29,10 +38,13 @@ const FORBIDDEN_CLAIMS: &[&str] = &[
     "implicit network resolution is allowed for release builds",
 ];
 
+const PLACEHOLDER_TERMS: &[&str] = &["todo", "tbd", "placeholder", "fixme"];
+
 /// Summary produced by the package Git source contract gate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageGitSourceSummary {
     pub required_term_count: usize,
+    pub required_field_count: usize,
 }
 
 /// Runs the package Git source contract gate.
@@ -62,6 +74,7 @@ pub fn run_package_git_source(root: &Path) -> QualityResult<PackageGitSourceSumm
     }
     Ok(PackageGitSourceSummary {
         required_term_count: REQUIRED_TERMS.len(),
+        required_field_count: REQUIRED_SOURCE_FIELDS.len(),
     })
 }
 
@@ -74,9 +87,21 @@ fn validate_package_git_source_text(text: &str) -> Vec<String> {
             diagnostics.push(format!("missing package Git source contract term `{term}`"));
         }
     }
+    for field in REQUIRED_SOURCE_FIELDS {
+        if !normalized.contains(field) {
+            diagnostics.push(format!("missing package Git source field `{field}`"));
+        }
+    }
     for claim in FORBIDDEN_CLAIMS {
         if normalized.contains(claim) {
             diagnostics.push(format!("forbidden package Git source claim `{claim}`"));
+        }
+    }
+    for placeholder in PLACEHOLDER_TERMS {
+        if normalized.contains(placeholder) {
+            diagnostics.push(format!(
+                "placeholder package Git source text `{placeholder}` is not allowed"
+            ));
         }
     }
     diagnostics

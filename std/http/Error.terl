@@ -5,7 +5,6 @@
  * HTTP request and response helpers. Backends must map server, body, and
  * serialization failures into this target-neutral shape.
  */
-
 module std.http.Error.
 
 import type std.core.Error.
@@ -35,11 +34,7 @@ pub struct HttpError includes Error {
  * `std.core.Error.Error` plus HTTP-specific status context.
  */
 pub new(code: Atom, message: String, status: Int): HttpError ->
-    HttpError(
-        code = code,
-        message = message,
-        status = status
-    ).
+    HttpError(code = code, message = message, status = status).
 
 /**
  * Returns the portable HTTP error code.

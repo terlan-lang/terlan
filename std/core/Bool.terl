@@ -4,12 +4,12 @@
  * `std.core.Bool` provides named operations used by stdlib trait/conformance
  * implementations for `Bool`.
  */
-
 module std.core.Bool.
 
 import std.core.Option.{None, Some}.
-import type std.core.Option.
 import std.core.Ordering.{Eq, Gt, Lt}.
+
+import type std.core.Option.
 
 /**
  * Returns whether two `Bool` values are equal.
@@ -94,16 +94,11 @@ pub is_false(value: Bool): Bool ->
  */
 pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison ->
     case left == right {
-        true ->
-            Eq;
-
+        true -> Eq;
         false ->
             case left {
-                false ->
-                    Lt;
-
-                true ->
-                    Gt
+                false -> Lt;
+                true -> Gt
             }
     }.
 
@@ -124,11 +119,8 @@ pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison ->
  */
 pub to_string(value: Bool): String ->
     case value {
-        true ->
-            "true";
-
-        false ->
-            "false"
+        true -> "true";
+        false -> "false"
     }.
 
 /**
@@ -149,15 +141,10 @@ pub to_string(value: Bool): String ->
  */
 pub from_string(value: String): Option[Bool] ->
     case value == "true" {
-        true ->
-            Some(true);
-
+        true -> Some(true);
         false ->
             case value == "false" {
-                true ->
-                    Some(false);
-
-                false ->
-                    None
+                true -> Some(false);
+                false -> None
             }
     }.

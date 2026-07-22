@@ -1,0 +1,287 @@
+/**
+ * Terlan VM model synchronization contract.
+ *
+ * `std.vm.ModelSync` exposes source-visible descriptors for typed model keys,
+ * optimistic versions, write plans, delete plans, conflict metadata, and
+ * adapter capability declarations. The VM owns validation and storage
+ * mechanics; Terlan code owns when to build and pass these descriptors.
+ */
+module std.vm.ModelSync.
+
+import type std.vm.PersistentActor.{ActorId}.
+
+/**
+ * Key represents one synchronized model row.
+ *
+ * Input: model name and model id.
+ * Output: an opaque model key descriptor.
+ * Transformation: validates non-empty model identity through the VM model-sync
+ * lane.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Key.
+
+/**
+ * Version represents one optimistic write version.
+ *
+ * Input: monotonic sequence and writer id.
+ * Output: an opaque optimistic version descriptor.
+ * Transformation: keeps optimistic concurrency metadata typed at the source
+ * boundary.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Version.
+
+/**
+ * Write represents one optimistic model write plan.
+ *
+ * Input: key, expected version, next version, and value payload.
+ * Output: an opaque write descriptor.
+ * Transformation: lets Terlan code build an explicit compare-and-swap write
+ * request without accessing store internals.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Write.
+
+/**
+ * Delete represents one optimistic model delete plan.
+ *
+ * Input: key, expected version, and tombstone version.
+ * Output: an opaque delete descriptor.
+ * Transformation: exposes delete concurrency metadata without leaking the
+ * tombstone representation.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Delete.
+
+/**
+ * Conflict represents one optimistic write conflict.
+ *
+ * Input: key, current version, and incoming version.
+ * Output: an opaque conflict descriptor.
+ * Transformation: makes stale-write failures typed and inspectable by source
+ * code and tools.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Conflict.
+
+/**
+ * Capability represents one model-sync adapter capability.
+ *
+ * Input: capability name such as typed-key, optimistic-version, put, delete,
+ * snapshot, or change-stream.
+ * Output: an opaque capability descriptor.
+ * Transformation: keeps adapter portability checks source-visible.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Capability.
+
+/**
+ * AdapterContract represents one portable model-sync adapter declaration.
+ *
+ * Input: adapter name, storage family, and capabilities.
+ * Output: an opaque adapter contract descriptor.
+ * Transformation: separates portable model-sync capability declaration from
+ * backend-specific storage details.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type AdapterContract.
+
+/**
+ * PersistentActorAdapter represents a model-sync adapter bound to a persistent
+ * actor.
+ *
+ * Input: persistent actor id and portable adapter contract.
+ * Output: an opaque adapter binding descriptor.
+ * Transformation: keeps persistent actor store integration source-visible
+ * without exposing actor storage internals.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type PersistentActorAdapter.
+
+/**
+ * PackageStoreAdapter represents a model-sync adapter bound to a Terlan package
+ * store.
+ *
+ * Input: package id and portable adapter contract.
+ * Output: an opaque adapter binding descriptor.
+ * Transformation: keeps package-backed model sync source-visible without
+ * exposing package cache or registry internals.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type PackageStoreAdapter.
+
+/**
+ * SyncableModel represents a source-visible model declaration.
+ *
+ * Input: model value type.
+ * Output: typed syncable model declaration descriptor.
+ * Transformation: lets Terlan code declare a model-sync surface without ORM
+ * identity maps, hidden lazy loading, or backend-specific query generation.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type SyncableModel[T].
+
+/**
+ * Builds a model key descriptor.
+ *
+ * Input: model name and id.
+ * Output: key descriptor.
+ * Transformation: validates non-empty model identity through the VM.
+ */
+@target.vm {process_mailbox: true}
+pub key(model: String, id: String): Key ->
+    native.
+
+/**
+ * Builds an optimistic version descriptor.
+ *
+ * Input: positive sequence and writer id.
+ * Output: version descriptor.
+ * Transformation: validates monotonic write metadata through the VM.
+ */
+@target.vm {process_mailbox: true}
+pub version(sequence: Int, writer_id: String): Version ->
+    native.
+
+/**
+ * Returns the initial optimistic version for a writer.
+ *
+ * Input: writer id.
+ * Output: version descriptor at sequence one.
+ * Transformation: gives source code a stable constructor for first writes.
+ */
+@target.vm {process_mailbox: true}
+pub initial_version(writer_id: String): Version ->
+    native.
+
+/**
+ * Advances an optimistic version for a writer.
+ *
+ * Input: current version and writer id.
+ * Output: next version descriptor.
+ * Transformation: keeps sequence advancement in one VM-validated API.
+ */
+@target.vm {process_mailbox: true}
+pub next_version(current: Version, writer_id: String): Version ->
+    native.
+
+/**
+ * Builds an optimistic write descriptor.
+ *
+ * Input: key, expected version, next version, and model value.
+ * Output: write descriptor.
+ * Transformation: exposes compare-and-swap write intent to Terlan code.
+ */
+@target.vm {process_mailbox: true}
+pub write(key: Key, expected_version: Version, next_version: Version, value: Dynamic): Write ->
+    native.
+
+/**
+ * Builds an optimistic delete descriptor.
+ *
+ * Input: key, expected version, and tombstone version.
+ * Output: delete descriptor.
+ * Transformation: exposes compare-and-swap delete intent to Terlan code.
+ */
+@target.vm {process_mailbox: true}
+pub delete(key: Key, expected_version: Version, tombstone_version: Version): Delete ->
+    native.
+
+/**
+ * Builds a typed conflict descriptor.
+ *
+ * Input: key, current version, and incoming version.
+ * Output: conflict descriptor.
+ * Transformation: lets tools and source tests model stale writes explicitly.
+ */
+@target.vm {process_mailbox: true}
+pub conflict(key: Key, current_version: Version, incoming_version: Version): Conflict ->
+    native.
+
+/**
+ * Returns true when an expected version is older than the current version.
+ *
+ * Input: expected and current versions.
+ * Output: stale-version predicate.
+ * Transformation: exposes optimistic concurrency preflight without direct
+ * store access.
+ */
+@target.vm {process_mailbox: true}
+pub stale(expected: Version, current: Version): Bool ->
+    native.
+
+/**
+ * Returns true when the expected version matches the current version.
+ *
+ * Input: expected and current versions.
+ * Output: apply predicate.
+ * Transformation: exposes compare-and-swap eligibility as a typed predicate.
+ */
+@target.vm {process_mailbox: true}
+pub can_apply(expected: Version, current: Version): Bool ->
+    native.
+
+/**
+ * Builds a model-sync adapter capability descriptor.
+ *
+ * Input: capability name.
+ * Output: capability descriptor.
+ * Transformation: keeps adapter capability declarations explicit at the source
+ * boundary.
+ */
+@target.vm {process_mailbox: true}
+pub capability(name: String): Capability ->
+    native.
+
+/**
+ * Builds a portable adapter contract.
+ *
+ * Input: adapter name, storage family, and capability list.
+ * Output: adapter contract descriptor.
+ * Transformation: exposes model-sync portability requirements to Terlan code.
+ */
+@target.vm {process_mailbox: true}
+pub adapter_contract(
+    name: String,
+    storage_family: String,
+    capabilities: List[Capability]
+): AdapterContract ->
+    native.
+
+/**
+ * Binds a model-sync adapter contract to a persistent actor store.
+ *
+ * Input: persistent actor id and adapter contract.
+ * Output: persistent actor adapter binding descriptor.
+ * Transformation: lets Terlan code declare that model sync persists through a
+ * VM-owned persistent actor lane.
+ */
+@target.vm {process_mailbox: true}
+pub persistent_actor_adapter(actor: ActorId, contract: AdapterContract): PersistentActorAdapter ->
+    native.
+
+/**
+ * Binds a model-sync adapter contract to a package store.
+ *
+ * Input: package id and adapter contract.
+ * Output: package store adapter binding descriptor.
+ * Transformation: lets Terlan code declare that model sync persists through a
+ * package-owned storage lane without relying on ORM identity maps.
+ */
+@target.vm {process_mailbox: true}
+pub package_store_adapter(package_id: String, contract: AdapterContract): PackageStoreAdapter ->
+    native.
+
+/**
+ * Declares one typed syncable model.
+ *
+ * Input: model name, key prototype, and portable adapter contract.
+ * Output: typed syncable model declaration descriptor.
+ * Transformation: makes the public model-sync declaration source-visible while
+ * the VM owns versioning, conflict checks, snapshots, change streams, and
+ * adapter validation.
+ */
+@target.vm {process_mailbox: true}
+pub syncable_model[T](name: String, key: Key, contract: AdapterContract): SyncableModel[T] ->
+    native.

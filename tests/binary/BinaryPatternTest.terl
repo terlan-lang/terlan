@@ -1,0 +1,191 @@
+module tests.binary.BinaryPatternTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.BitString.{from_bytes}.
+import std.vm.Bytes.{from_list}.
+
+shape Packet(port, body) =
+    Binary[big] {
+        port: UInt[16],
+        body: Rest
+    }.
+
+shape Header(port, flags) =
+    Binary[big] {
+        port: UInt[16],
+        flags: UInt[8]
+    }.
+
+pub decode_port(Binary[big] { port: UInt[16], body: Rest }): Int -> port.
+
+pub decode_shape_port(Packet(port, _body)): Int -> port.
+
+@test
+pub case_pattern_captures_signed_and_unsigned_integers(): Bool ->
+    let port = 258;
+    let delta = -2;
+    let packet = Binary[big] { port: UInt[16], delta: IntBits[8] };
+    case packet {
+        Binary[big] { found_port: UInt[16], found_delta: IntBits[8] } ->
+            assert_equal(258, found_port) and assert_equal(-2, found_delta);
+        _ -> false
+    }.
+
+@test
+pub case_pattern_captures_bytes_bits_and_unaligned_rest(): Bool ->
+    let prefix = from_list([170]);
+    let flags = from_bytes(from_list([160]), 3);
+    let body = from_list([255]);
+    let packet = Binary[big] {
+        prefix: Bytes[1],
+        flags: Bits[3],
+        body: Rest
+    };
+    case packet {
+        Binary[big] {
+            found_prefix: Bytes[1],
+            found_flags: Bits[3],
+            found_body: Rest
+        } ->
+            assert_equal([170], found_prefix.to_list())
+                and assert_equal(3, found_flags.bit_length())
+                and assert_equal([255], found_body.to_list());
+        _ -> false
+    }.
+
+@test
+pub function_head_pattern_binds_binary_fields(): Bool ->
+    let port = 4660;
+    let body = from_list([1, 2]);
+    let packet = Binary[big] { port: UInt[16], body: Rest };
+    assert_equal(4660, decode_port(packet)).
+
+@test
+pub shape_backed_function_head_binds_binary_fields(): Bool ->
+    let port = 4660;
+    let body = from_list([1, 2]);
+    let packet = Binary[big] { port: UInt[16], body: Rest };
+    assert_equal(4660, decode_shape_port(packet)).
+
+@test
+pub shape_backed_case_pattern_reuses_binary_layout(): Bool ->
+    let port = 8080;
+    let flags = 5;
+    let packet = Binary[big] { port: UInt[16], flags: UInt[8] };
+    case packet {
+        Header(decoded_port, decoded_flags) ->
+            assert_equal(8080, decoded_port) and assert_equal(5, decoded_flags);
+        _ -> false
+    }.
+
+@test
+pub shape_backed_let_pattern_reuses_binary_layout(): Bool ->
+    let port = 443;
+    let flags = 3;
+    let packet = Binary[big] { port: UInt[16], flags: UInt[8] };
+    let Header(decoded_port, decoded_flags) = packet;
+    assert_equal(443, decoded_port) and assert_equal(3, decoded_flags).
+
+@test
+pub lambda_pattern_binds_binary_fields(): Bool ->
+    let port = 258;
+    let body = from_list([1]);
+    let packet = Binary[big] { port: UInt[16], body: Rest };
+    let decode = ((Binary[big] { found: UInt[16], rest: Rest }) -> found);
+    assert_equal(258, decode(packet)).
+
+@test
+pub let_pattern_binds_binary_fields(): Bool ->
+    let port = 258;
+    let body = from_list([1]);
+    let packet = Binary[big] { port: UInt[16], body: Rest };
+    let Binary[big] { found: UInt[16], rest: Rest } = packet;
+    assert_equal(258, found) and assert_equal([1], rest.to_list()).
+
+@test
+pub little_endian_pattern_decodes_wire_order(): Bool ->
+    let port = 4660;
+    let packet = Binary[little] { port: UInt[16] };
+    case packet {
+        Binary[little] { found: UInt[16] } -> assert_equal(4660, found);
+        _ -> false
+    }.
+
+@test
+pub exact_pattern_falls_through_when_input_has_trailing_bits(): Bool ->
+    let first = 1;
+    let second = 2;
+    let packet = Binary[big] { first: UInt[8], second: UInt[8] };
+    case packet {
+        Binary[big] { only: UInt[8] } -> false;
+        _ -> assert_equal(1, first)
+    }.
+
+@test
+pub utf8_pattern_captures_one_unicode_scalar(): Bool ->
+    let scalar = 66376;
+    let packet = Binary[big] { scalar: Utf8 };
+    case packet {
+        Binary[big] { decoded: Utf8 } -> assert_equal(66376, decoded);
+        _ -> false
+    }.
+
+@test
+pub utf8_pattern_rejects_malformed_and_truncated_encodings(): Bool ->
+    let malformed = from_bytes(from_list([224, 128, 128]), 24);
+    let truncated = from_bytes(from_list([226, 130]), 16);
+    let malformed_falls_through = case malformed {
+        Binary[big] { decoded: Utf8 } -> false;
+        _ -> true
+    };
+    let truncated_falls_through = case truncated {
+        Binary[big] { decoded: Utf8 } -> false;
+        _ -> true
+    };
+    malformed_falls_through and truncated_falls_through.
+
+@test
+pub utf16_and_utf32_patterns_decode_both_wire_orders(): Bool ->
+    let first = 8364;
+    let second = 128512;
+    let third = 66376;
+    let big = Binary[big] {
+        first: Utf16,
+        second: Utf16,
+        third: Utf32
+    };
+    let little = Binary[little] {
+        first: Utf16,
+        second: Utf16,
+        third: Utf32
+    };
+    let big_matches = case big {
+        Binary[big] { a: Utf16, b: Utf16, c: Utf32 } ->
+            a == first and b == second and c == third;
+        _ -> false
+    };
+    let little_matches = case little {
+        Binary[little] { a: Utf16, b: Utf16, c: Utf32 } ->
+            a == first and b == second and c == third;
+        _ -> false
+    };
+    big_matches and little_matches.
+
+@test
+pub utf16_and_utf32_patterns_reject_invalid_encodings(): Bool ->
+    let truncated_pair = from_bytes(from_list([216, 0]), 16);
+    let lone_low = from_bytes(from_list([220, 0]), 16);
+    let invalid_utf32 = from_bytes(from_list([0, 0, 216, 0]), 32);
+    let truncated_falls_through = case truncated_pair {
+        Binary[big] { scalar: Utf16 } -> false;
+        _ -> true
+    };
+    let low_falls_through = case lone_low {
+        Binary[big] { scalar: Utf16 } -> false;
+        _ -> true
+    };
+    let utf32_falls_through = case invalid_utf32 {
+        Binary[big] { scalar: Utf32 } -> false;
+        _ -> true
+    };
+    truncated_falls_through and low_falls_through and utf32_falls_through.

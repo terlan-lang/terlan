@@ -1,0 +1,53 @@
+module tests.binary.BinaryDynamicSizeTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.BitString.{from_bytes}.
+import std.vm.Bytes.{from_list}.
+
+import type std.vm.Bytes.{Bytes}.
+
+pub word_counted_payload_length(frame: Bytes): Int ->
+    let word_count = frame.read_uint_be(0, 32);
+    (word_count - 1) * 4.
+
+pub word_counted_payload(frame: Bytes): Bytes ->
+    frame.slice(4, word_counted_payload_length(frame)).
+
+pub word_counted_payload_with_word_size(frame: Bytes, word_size: Int): Bytes ->
+    let word_count = frame.read_uint_be(0, word_size * 8);
+    frame.slice(word_size, (word_count - 1) * word_size).
+
+pub word_counted_remaining(frame: Bytes): Bytes ->
+    let payload_length = word_counted_payload_length(frame);
+    let remaining_start = 4 + payload_length;
+    frame.slice(remaining_start, frame.length() - remaining_start).
+
+@test
+pub computed_size_accepts_empty_and_nonempty_payloads(): Bool ->
+    let empty = from_list([0, 0, 0, 1]);
+    let payload = from_list([0, 0, 0, 2, 97, 98, 99, 100]);
+    assert_equal([], word_counted_payload(empty).to_list());
+    assert_equal([97, 98, 99, 100], word_counted_payload(payload).to_list()).
+
+@test
+pub computed_size_preserves_trailing_bytes(): Bool ->
+    let frame = from_list([0, 0, 0, 2, 97, 98, 99, 100, 120, 121]);
+    assert_equal([97, 98, 99, 100], word_counted_payload(frame).to_list());
+    assert_equal([120, 121], word_counted_remaining(frame).to_list()).
+
+@test
+pub computed_size_uses_lexically_scoped_runtime_values(): Bool ->
+    let word_size = 4;
+    let frame = from_list([0, 0, 0, 2, 116, 101, 114, 108]);
+    assert_equal(
+        [116, 101, 114, 108],
+        word_counted_payload_with_word_size(frame, word_size).to_list()
+    ).
+
+@test
+pub computed_bit_size_slices_unaligned_fields(): Bool ->
+    let width = 13;
+    let bits = from_bytes(from_list([171, 192]), 16);
+    let field = bits.slice(0, width);
+    assert_equal(width, field.bit_length());
+    assert_equal(5496, field.to_uint_be()).

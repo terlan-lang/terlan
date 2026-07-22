@@ -1,0 +1,58 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasDrawPath
+ */
+module std.js.Dom.CanvasDrawPath.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasDrawPath.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/beginPath)
+ */
+pub (value: CanvasDrawPath) begin_path(): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clip)
+ */
+pub (value: CanvasDrawPath) clip(fill_rule: CanvasFillRule): Unit.
+
+pub (value: CanvasDrawPath) clip(path: Path2D, fill_rule: CanvasFillRule): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fill)
+ */
+pub (value: CanvasDrawPath) fill(fill_rule: CanvasFillRule): Unit.
+
+pub (value: CanvasDrawPath) fill(path: Path2D, fill_rule: CanvasFillRule): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInPath)
+ */
+pub (value: CanvasDrawPath) is_point_in_path(x: JsNumber, y: JsNumber, fill_rule: CanvasFillRule): Bool.
+
+pub (value: CanvasDrawPath) is_point_in_path(path: Path2D, x: JsNumber, y: JsNumber, fill_rule: CanvasFillRule): Bool.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInStroke)
+ */
+pub (value: CanvasDrawPath) is_point_in_stroke(x: JsNumber, y: JsNumber): Bool.
+
+pub (value: CanvasDrawPath) is_point_in_stroke(path: Path2D, x: JsNumber, y: JsNumber): Bool.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/stroke)
+ */
+pub (value: CanvasDrawPath) stroke(): Unit.
+
+pub (value: CanvasDrawPath) stroke(path: Path2D): Unit.

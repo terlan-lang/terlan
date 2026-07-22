@@ -1,0 +1,60 @@
+{
+  "schema": "terlan.release-generated-artifacts.v1",
+  "artifacts": [
+    {
+      "id": "stdlib-js-bindings",
+      "classification": "committed",
+      "paths": [
+        "std/js/**/*.terl",
+        "std/js/**/*.terli"
+      ],
+      "regenerate": "make stdlib-js-bindings-drift-check",
+      "freshness_gate": "stdlib-js-bindings-drift-check",
+      "owner": "stdlib-js"
+    },
+    {
+      "id": "stdlib-native-artifacts",
+      "classification": "committed",
+      "paths": [
+        "std/summaries/*.native_boundary.json",
+        "std/summaries/*.native_boundary.rs"
+      ],
+      "regenerate": "make stdlib-native-artifacts-check",
+      "freshness_gate": "stdlib-native-artifacts-check",
+      "owner": "native-boundary"
+    },
+    {
+      "id": "stdlib-release-manifest",
+      "classification": "committed",
+      "paths": [
+        "std/RELEASE_MANIFEST.tsv"
+      ],
+      "regenerate": "make stdlib-release-manifest-check",
+      "freshness_gate": "stdlib-release-manifest-check",
+      "owner": "stdlib"
+    },
+    {
+      "id": "stdlib-summaries",
+      "classification": "committed",
+      "paths": [
+        "std/summaries/*.typi",
+        "std/summaries/*.typi.deps"
+      ],
+      "regenerate": "make stdlib-build-interfaces",
+      "freshness_gate": "stdlib-summary-drift-check",
+      "owner": "compiler-typeck"
+    },
+    {
+      "id": "tree-sitter-parser",
+      "classification": "committed",
+      "paths": [
+        "tree-sitter-terlan/src/grammar.json",
+        "tree-sitter-terlan/src/node-types.json",
+        "tree-sitter-terlan/src/parser.c"
+      ],
+      "regenerate": "make tree-sitter-cli-check",
+      "freshness_gate": "tree-sitter-cli-check",
+      "owner": "editor-tooling"
+    }
+  ]
+}

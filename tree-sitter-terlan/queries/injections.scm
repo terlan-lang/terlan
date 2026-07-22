@@ -10,5 +10,13 @@
 ; - Marks the interpolation expression as Terlan source so editor hosts can
 ;   reuse Terlan highlighting inside mixed template files.
 (interpolation
-  (expression) @injection.content
+  content: (expression) @injection.content
+  (#set! injection.language "terlan"))
+
+(template_text_interpolation
+  content: (expression) @injection.content
+  (#set! injection.language "terlan"))
+
+(template_attribute_interpolation
+  content: (expression) @injection.content
   (#set! injection.language "terlan"))

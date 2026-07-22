@@ -1,0 +1,57 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface EncodedVideoChunk
+ */
+module std.js.Dom.EncodedVideoChunk.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`EncodedVideoChunk`** interface of the WebCodecs API represents a chunk of encoded video data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk)
+ */
+pub opaque type EncodedVideoChunk.
+
+/**
+ * The **`byteLength`** read-only property of the EncodedVideoChunk interface returns the length in bytes of the encoded video data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/byteLength)
+ */
+pub (value: EncodedVideoChunk) byte_length(): JsNumber.
+
+/**
+ * The **`duration`** read-only property of the EncodedVideoChunk interface returns an integer indicating the duration of the video in microseconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/duration)
+ */
+pub (value: EncodedVideoChunk) duration(): Option[JsNumber].
+
+/**
+ * The **`timestamp`** read-only property of the EncodedVideoChunk interface returns an integer indicating the timestamp of the video in microseconds.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/timestamp)
+ */
+pub (value: EncodedVideoChunk) timestamp(): JsNumber.
+
+/**
+ * The **`type`** read-only property of the EncodedVideoChunk interface returns a value indicating whether the video chunk is a key chunk, which does not rely on other frames for decoding.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/type)
+ */
+pub (value: EncodedVideoChunk) type_(): EncodedVideoChunkType.
+
+/**
+ * The **`copyTo()`** method of the EncodedVideoChunk interface copies the encoded chunk of video data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/copyTo)
+ */
+pub (value: EncodedVideoChunk) copy_to(destination: AllowSharedBufferSource): std.core.Unit.

@@ -6,13 +6,12 @@
  * identity; source code works with an opaque session handle and explicit
  * response threading.
  */
-
 module std.http.Session.
 
-import std.core.Unit.{Unit}.
+import std.core.Unit.
+
 import type std.core.Option.
-import type std.http.Request.Request.
-import type std.http.Response.Response.
+import type std.http.{Request, Response}.
 
 /**
  * Session represents one VM-owned HTTP session actor.

@@ -26,7 +26,7 @@ pub type Auto =
 /// source-visible TLS model.
 
 pub type Config =
-    {mode : Mode, domains : List[String], email : Option[String], primary_provider : Option[Provider], fallback_provider : Option[Provider], cert : Option[String], key : Option[String], passphrase_env : Option[String], ca : Option[String], server_name : Option[String], trust_local : Bool}.
+    {mode: Mode, domains: List[String], email: Option[String], primary_provider: Option[Provider], fallback_provider: Option[Provider], cert: Option[String], key: Option[String], passphrase_env: Option[String], ca: Option[String], server_name: Option[String], trust_local: Bool}.
 
 /// Internal represents local/internal development certificate management.
 ///

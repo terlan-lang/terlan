@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGSVGElement
  */
 module std.js.Dom.SVGSVGElementTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.SVGSVGElement.{SVGSVGElement}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.SVGSVGElement.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub current_scale_typechecks(receiver: SVGSVGElement): JsNumber ->
     receiver.current_scale().
@@ -39,10 +40,18 @@ pub y_typechecks(receiver: SVGSVGElement): SVGAnimatedLength ->
 pub animations_paused_typechecks(receiver: SVGSVGElement): Bool ->
     receiver.animations_paused().
 
-pub check_enclosure_typechecks(receiver: SVGSVGElement, element: SVGElement, rect: DOMRectReadOnly): Bool ->
+pub check_enclosure_typechecks(
+    receiver: SVGSVGElement,
+    element: SVGElement,
+    rect: DOMRectReadOnly
+): Bool ->
     receiver.check_enclosure(element, rect).
 
-pub check_intersection_typechecks(receiver: SVGSVGElement, element: SVGElement, rect: DOMRectReadOnly): Bool ->
+pub check_intersection_typechecks(
+    receiver: SVGSVGElement,
+    element: SVGElement,
+    rect: DOMRectReadOnly
+): Bool ->
     receiver.check_intersection(element, rect).
 
 pub create_svg_angle_typechecks(receiver: SVGSVGElement): SVGAngle ->
@@ -66,7 +75,10 @@ pub create_svg_rect_typechecks(receiver: SVGSVGElement): DOMRect ->
 pub create_svg_transform_typechecks(receiver: SVGSVGElement): SVGTransform ->
     receiver.create_svg_transform().
 
-pub create_svg_transform_from_matrix_typechecks(receiver: SVGSVGElement, matrix: DOMMatrix2DInit): SVGTransform ->
+pub create_svg_transform_from_matrix_typechecks(
+    receiver: SVGSVGElement,
+    matrix: DOMMatrix2DInit
+): SVGTransform ->
     receiver.create_svg_transform_from_matrix(matrix).
 
 pub deselect_all_typechecks(receiver: SVGSVGElement): Unit ->
@@ -81,10 +93,18 @@ pub get_current_time_typechecks(receiver: SVGSVGElement): JsNumber ->
 pub get_element_by_id_typechecks(receiver: SVGSVGElement, element_id: JsString): Element ->
     receiver.get_element_by_id(element_id).
 
-pub get_enclosure_list_typechecks(receiver: SVGSVGElement, rect: DOMRectReadOnly, reference_element: Option[SVGElement]): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement] ->
+pub get_enclosure_list_typechecks(
+    receiver: SVGSVGElement,
+    rect: DOMRectReadOnly,
+    reference_element: Option[SVGElement]
+): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement] ->
     receiver.get_enclosure_list(rect, reference_element).
 
-pub get_intersection_list_typechecks(receiver: SVGSVGElement, rect: DOMRectReadOnly, reference_element: Option[SVGElement]): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement] ->
+pub get_intersection_list_typechecks(
+    receiver: SVGSVGElement,
+    rect: DOMRectReadOnly,
+    reference_element: Option[SVGElement]
+): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement] ->
     receiver.get_intersection_list(rect, reference_element).
 
 pub pause_animations_typechecks(receiver: SVGSVGElement): Unit ->
@@ -105,8 +125,18 @@ pub unsuspend_redraw_typechecks(receiver: SVGSVGElement, suspend_handle_id: JsNu
 pub unsuspend_redraw_all_typechecks(receiver: SVGSVGElement): Unit ->
     receiver.unsuspend_redraw_all().
 
-pub add_event_listener_typechecks(receiver: SVGSVGElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: SVGSVGElement,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: SVGSVGElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: SVGSVGElement,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

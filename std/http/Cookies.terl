@@ -6,12 +6,12 @@
  * incoming cookies and record response cookie mutations while the HTTP runtime
  * owns concrete header storage.
  */
-
 module std.http.Cookies.
 
+import std.core.Option.{None, Some, is_some, with_default}.
+import std.core.Unit.
+
 import type std.core.Option.
-import std.core.Option.{None, Some, with_default}.
-import std.core.Unit.{Unit}.
 
 /**
  * Lax represents the default practical SameSite cookie policy.
@@ -21,8 +21,7 @@ import std.core.Unit.{Unit}.
  * Transformation: gives cookie option records a stable source-visible policy
  * value without exposing backend header formatting.
  */
-pub type Lax =
-    Atom["lax"].
+pub type Lax.
 
 /**
  * Strict represents the strict SameSite cookie policy.
@@ -32,8 +31,7 @@ pub type Lax =
  * Transformation: gives cookie option records a stable source-visible policy
  * value without exposing backend header formatting.
  */
-pub type Strict =
-    Atom["strict"].
+pub type Strict.
 
 /**
  * None represents the cross-site SameSite cookie policy.
@@ -43,8 +41,7 @@ pub type Strict =
  * Transformation: gives cookie option records a stable source-visible policy
  * value without exposing backend header formatting.
  */
-pub type None =
-    Atom["none"].
+pub type None.
 
 /**
  * SameSite represents the supported SameSite cookie policies.
@@ -54,10 +51,7 @@ pub type None =
  * Transformation: narrows cookie policy values before runtime header
  * serialization and validation.
  */
-pub type SameSite =
-      Lax
-    | Strict
-    | None.
+pub type SameSite = Lax | Strict | None.
 
 /**
  * Options represents optional `Set-Cookie` metadata.
@@ -88,15 +82,7 @@ pub struct Options {
  */
 pub constructor Options {
     (path: Option[String], domain: Option[String], max_age: Option[Int], expires: Option[String], http_only: Bool, secure: Bool, same_site: Option[SameSite]): Options ->
-        Options {
-            path: path,
-            domain: domain,
-            max_age: max_age,
-            expires: expires,
-            http_only: http_only,
-            secure: secure,
-            same_site: same_site
-        }
+        Options {path: path, domain: domain, max_age: max_age, expires: expires, http_only: http_only, secure: secure, same_site: same_site}
 }.
 
 /**
@@ -133,7 +119,13 @@ pub (jar: Jar) get(name: String): Option[String] ->
  * returned response.
  */
 @compiler.native {std.http.cookies.set}
-pub (mut jar: Jar) set(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): Unit ->
+pub (mut jar: Jar) set(
+    name: String,
+    value: String,
+    path: String = "/",
+    http_only: Bool = false,
+    secure: Bool = false
+): Unit ->
     native.
 
 /**
@@ -159,7 +151,13 @@ pub (mut jar: Jar) delete(name: String, path: String = "/"): Unit ->
  * headers by hand.
  */
 @compiler.native {std.http.cookies.set_header}
-pub set_header(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): String ->
+pub set_header(
+    name: String,
+    value: String,
+    path: String = "/",
+    http_only: Bool = false,
+    secure: Bool = false
+): String ->
     native.
 
 /**
@@ -172,10 +170,21 @@ pub set_header(name: String, value: String, path: String = "/", http_only: Bool 
  * Output: serialized `Set-Cookie` header value.
  * Transformation: delegates validation and deterministic serialization to the
  * Rust HTTP adapter while keeping the source API ready for a future `Options`
- * record wrapper once records can cross SafeNative directly.
+ * record wrapper once records can cross NativeBoundary directly.
  */
 @compiler.native {std.http.cookies.set_header_with_options}
-pub set_header_with_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): String ->
+pub set_header_with_options(
+    name: String,
+    value: String,
+    path: String = "/",
+    domain: String = "",
+    max_age: Int = 0,
+    include_max_age: Bool = false,
+    expires: String = "",
+    http_only: Bool = false,
+    secure: Bool = false,
+    same_site: String = ""
+): String ->
     native.
 
 /**
@@ -188,18 +197,7 @@ pub set_header_with_options(name: String, value: String, path: String = "/", dom
  * converting `SameSite` markers into the adapter's string vocabulary.
  */
 pub set_header_options(name: String, value: String, options: Options): String ->
-    set_header_with_options(
-        name,
-        value,
-        with_default(options.path, "/"),
-        with_default(options.domain, ""),
-        with_default(options.max_age, 0),
-        std.core.Option.is_some(options.max_age),
-        with_default(options.expires, ""),
-        options.http_only,
-        options.secure,
-        same_site_to_string(options.same_site)
-    ).
+    set_header_with_options(name, value, with_default(options.path, "/"), with_default(options.domain, ""), with_default(options.max_age, 0), is_some(options.max_age), with_default(options.expires, ""), options.http_only, options.secure, same_site_to_string(options.same_site)).
 
 /**
  * Converts optional SameSite policy into runtime header text.
@@ -211,17 +209,10 @@ pub set_header_options(name: String, value: String, options: Options): String ->
  */
 same_site_to_string(value: Option[SameSite]): String ->
     case value {
-        None ->
-            "";
-
-        Some(Lax) ->
-            "lax";
-
-        Some(Strict) ->
-            "strict";
-
-        Some(None) ->
-            "none"
+        None -> "";
+        Some(Lax) -> "lax";
+        Some(Strict) -> "strict";
+        Some(None) -> "none"
     }.
 
 /**

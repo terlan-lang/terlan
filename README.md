@@ -2,63 +2,55 @@
 
 ### Write once. Compile everywhere.
 
-Terlan is an open source, statically typed, functional programming language for
-building safe, predictable, industrial-strength software across server, native,
-and web platforms. Terlan uses Erlang/BEAM as its reliability core, then
-supplements it with access to the Rust and JavaScript ecosystems
-through explicit compiler targets.
+Terlan is a statically typed, functional programming language for safe and
+predictable software.
 
-Terlan favors immutable data, explicit types, and predictable control flow,
-while remaining practical for object-style APIs, platform interop, and rich
-domain modeling. If you have worked across multiple server stacks, Terlan
-should feel familiar and predictable.
+It is designed for industrial systems across VM-hosted, web, native, and future
+embedded targets.
 
-## Hello World
+The 0.0.7 development line makes the compiler-owned Rust `terlan-vm` the
+default runtime direction. Terlan keeps the supervision, actor, mailbox,
+hot-reload, and fault-tolerance goals that made BEAM attractive, but the product
+runtime is no longer the old OTP/BEAM execution path.
 
-The value proposition of Terlan is best demonstrated in the following example:
-
-```terlan
-module hello_terl.Main.
-
-import std.io.Console.{println}.
-
-pub main(): Unit ->
-    println("Hello Terlan").
-```
-
-This compiles to Erlang:
-
-```erlang
--module(hello_terl_main).
-
--export([main/0]).
-
-main() ->
-    begin io:format("~ts~n", ["Hello Terlan"]), unit end.
-```
+Terlan favors explicit types, immutable data, pattern matching, readable
+functional pipelines, and target-specific standard libraries. Advanced features
+are being added where they make production code clearer: table-driven tests,
+property tests, shape guards, string and binary patterns, typed templates,
+native bindings, and VM-owned HTTP/networking.
 
 ## Status
 
-Current version: `0.0.6`
+Current version: `0.0.7`.
 
-Terlan is in a very early experimental stage. The compiler, standard library,
-syntax, and release tooling are still changing quickly.
+Terlan is still early and experimental. The syntax, runtime, standard library,
+VM, editor integrations, and release tooling are changing quickly. The current
+goal is not maturity; the goal is to make the VM-default compiler path real,
+tested, and predictable.
 
-Input, issues, experiments, and design feedback are especially welcome at this stage.
-If you want to support the project, please star the repository.
+Current direction:
+
+- `terlc` is the compiler and project tool.
+- `terlan-vm` is the default runtime target under active hardening.
+- OTP/BEAM references are legacy inventory, semantics comparison material, or
+  migration checkpoints.
+- JavaScript, Wasm, HTTP, native packages, editor tooling, and debugger support
+  are active experimental surfaces.
+- Standard-library APIs must have executable coverage, adversarial tests where
+  appropriate, and documentation that can be served to tools.
 
 ## Install
 
-Install the latest platform-specific release artifact:
+Install the latest published platform artifact:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/v0.0.6/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | sh
 ```
 
-To install a specific release through the latest installer:
+Pin a published release through the installer:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.6 sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.7 sh
 ```
 
 On Windows, use PowerShell:
@@ -67,62 +59,31 @@ On Windows, use PowerShell:
 iwr https://raw.githubusercontent.com/terlan-lang/terlan/main/install.ps1 -UseBasicParsing | iex
 ```
 
-Or install from a release checkout with Rust:
+Install from a checkout with Rust:
 
 ```sh
 cargo install --path crates/terlan --bin terlc --force
-terlc version
+terlc --version
 ```
 
-## Erlang/OTP
+## Hello World
 
-Terlan is validated against Erlang/OTP 29 and requires an OTP 29.x
-installation for the Erlang target. `terlc build` and `terlc test` invoke
-`erlc` and `erl`, so both commands must be available on `PATH`.
-
-Check the installed OTP release:
-
-```sh
-erl -noshell -eval 'io:format("~s~n", [erlang:system_info(otp_release)]), halt().'
-```
-
-The command should print:
-
-```text
-29
-```
-
-Install OTP 29 from the official Erlang downloads page:
-
-```text
-https://www.erlang.org/downloads/29
-```
-
-The official source-build instructions are here:
-
-```text
-https://www.erlang.org/doc/system/install.html
-```
-
-For a quick container check, Erlang publishes an OTP 29 image:
-
-```sh
-docker run -it erlang:29
-```
-
-## Create And Run
-
-Create a new project:
+Create a project:
 
 ```sh
 terlc init hello
 cd hello
 ```
 
-Build it:
+`terlc init` creates a runnable Terlan module:
 
-```sh
-terlc build
+```terlan
+module hello.Main.
+
+import std.io.Console.{println}.
+
+pub main(): Unit ->
+    println("hello from Terlan").
 ```
 
 Run it:
@@ -137,9 +98,48 @@ Expected output:
 hello from Terlan
 ```
 
-## Test
+## Function Head Migration
 
-`terlc init` creates a sample test file:
+README quickstart migration example:
+
+```text
+Before:
+pub full_name(user = {name, family_name}: User): String -> name + " " + family_name.
+
+After:
+pub full_name({name, family_name} = user: User): String -> name + " " + family_name.
+```
+
+The CLI diagnostic links this rewrite to
+`docs/language/function_heads.md#migrationfunction_head_patterninvalid_alias_style`
+and the stable ID `migration.function_head_pattern.invalid_alias_style`.
+
+## String Pattern Captures
+
+String patterns can bind delimited text directly. An inferred capture binds a
+`String`:
+
+```terlan
+let "assets/${bucket}/${file}.txt" = path;
+bucket + "/" + file.
+```
+
+A typed capture parses and checks the captured text before its clause runs:
+
+```terlan
+case request_line {
+    "GET /users/${id: Int}" where id > 0 -> id;
+    _ -> 0
+}.
+```
+
+The same capture syntax works in `let`, `case`, function-head, and lambda
+patterns. Guards use `where`. Adjacent captures without a literal delimiter are
+rejected because their boundary would be ambiguous.
+
+## Tests
+
+`terlc init` also creates a sample test file:
 
 ```text
 tests/hello/MainTest.terl
@@ -159,19 +159,45 @@ test hello_text_is_stable ... ok
 test result: ok. 1 passed; 0 failed
 ```
 
-## Current Scope
+The standard test library now includes assertion helpers, table-driven tests,
+lifecycle hooks, property generators, shrinking/reporting support, and fake-test
+detection. These are used by the standard library itself, not kept as examples
+only.
 
-0.0.6 hardens Terlan's release path around the experimental Rust VM,
-installer/package validation, stdlib release tests, editor/LSP packaging,
-SafeNative coverage, and continued codebase consolidation. OTP 29 remains the
-reference runtime while `terlan-vm` is validated beside it.
+## Runtime Model
 
-## JavaScript Target
+Terlan 0.0.7 is centered on `terlan-vm`.
 
-Terlan can emit library-style JavaScript modules with:
+The VM owns the runtime semantics that should not leak into application code:
+processes, mailboxes, scheduling, resources, VM-owned collections, native
+capability boundaries, HTTP transport ownership, and future debugger and
+hot-reload behavior.
+
+Native capabilities are expected to cross a compiler and VM-owned boundary. They
+must not depend on ad hoc runtime escape hatches. Where maintained Rust crates
+exist for parsing, TLS, SQL, Wasm, or protocol work, Terlan should reuse them
+instead of hand-rolling fragile infrastructure.
+
+## Targets
+
+The active targets are:
+
+- `vm`: the default Terlan VM target.
+- `js.shared`: library-style JavaScript modules.
+- `js.browser`: browser APIs plus packaged web assets.
+- `js.worker`: worker-safe JavaScript APIs.
+- `wasm.core`: first Wasm core artifact path for explicit ABI types.
+
+Target selection should become increasingly type-driven. For example, importing
+`std.wasm.Abi.I32` should be enough for the compiler to infer a Wasm core
+artifact when the module shape requires it.
+
+## JavaScript And Web
+
+Terlan can emit library-style JavaScript modules:
 
 ```sh
-terlc build --target js
+terlc build --target js.shared
 ```
 
 It can also package a browser web artifact:
@@ -183,17 +209,89 @@ terlc build --target js.browser
 terlc serve
 ```
 
-The accepted JavaScript target profiles are:
+The JavaScript standard library is generated from TypeScript declaration
+surfaces and lives under `std.js` and related browser namespaces. Missing
+TypeScript standard-library or DOM declarations must be intentional and
+justified, not accidental.
 
-- `js` / `js.shared` for shared library-style modules.
-- `js.browser` for browser APIs and packaged `_build/web` output.
-- `js.worker` for worker-safe APIs.
+The JavaScript target validates emitted JavaScript with Oxc and rejects
+target-only imports on incompatible targets.
 
-The initial generated JavaScript standard library surface is intentionally
-small: `std.js.String`, `std.js.Array`, `std.js.Promise`,
-`std.js.Dom.Document`, and `std.js.Dom.HTMLElement`.
+## HTTP
 
-The JavaScript target is still experimental. It validates emitted JavaScript
-with Oxc, rejects JavaScript-only standard-library imports on non-JavaScript
-targets, and can package local browser artifacts with static assets and
-`terlc serve`.
+Terlan HTTP is moving into the VM runtime instead of being a thin wrapper over
+another framework. The long-term split is strict:
+
+- maintained Rust crates own protocol parsing and cryptography;
+- the Terlan VM owns streams, backpressure, cancellation, handler scheduling,
+  session actors, hot reload, and fault-tolerance semantics.
+
+`std.http` currently covers request, response, cookies, routing, sessions, TLS
+configuration, and VM transport work. ACME/Let's Encrypt support remains part
+of the 0.0.7 hardening track.
+
+## Standard Library
+
+The standard library includes core types, collections, object/map support,
+JSON, random, regex, ranges, paths/files, logging, templates, testing, VM
+primitives, HTTP descriptors, JavaScript bindings, and Wasm ABI types.
+
+Standard-library APIs are expected to be documented and covered by executable
+tests. Coverage gates are intentionally strict so release APIs do not silently
+outgrow their tests.
+
+## Editor Support
+
+The repository includes editor support for syntax, icons, runnable tests, and
+language-server work. VS Code is the most active integration, with Neovim,
+Emacs, and IntelliJ tracked as supported editor surfaces.
+
+Editor integrations should serve documentation for modules, structs, functions,
+methods, and generated standard-library declarations.
+
+## Development Checks
+
+Useful focused checks:
+
+```sh
+make std-test-honesty-check
+make std-test-table-check
+make std-test-property-check
+make std-package-coverage-100-check
+make stdlib-release-tests-vm-default-check
+make all-terlan-tests-vm-check
+make terlan-vm-run-command-check
+make vm-release-install-validation-check
+make wasm-coreir-lowering-check
+make vm-performance-baseline-check
+make vm-coverage-100-check
+make vm-coverage-source-lines-check
+make roadmap-gate-integrity-check
+```
+
+Broader local validation:
+
+```sh
+make check
+```
+
+Roadmap items are expected to name executable gates. Completed roadmap material
+should be collapsed into baselines so the active roadmap stays useful.
+
+## Documentation
+
+Important design documents:
+
+- `docs/grammar/TERLAN_SYNTAX_SPEC.ebnf`
+- `docs/compiler/TERLAN_CORE_TYPING_SPEC.md`
+- `docs/compiler/TERLAN_TARGET_INFERENCE.md`
+- `docs/runtime/TVM_EXECUTABLE_IMAGE_SPEC.md`
+- `docs/runtime/TVM_NATIVE_DATA_ABI_SPEC.md`
+- `docs/runtime/TERLAN_VM_OWNERSHIP.md`
+- `docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md`
+- `docs/runtime/OTP_RUNTIME_EXIT.md`
+- `docs/runtime/EDITOR_DEBUGGER_SURFACE.md`
+
+Lean and formal-spec work are part of the long-term quality track. They are not
+required for ordinary end-user compilation, but compiler behavior should keep
+moving toward a documented, checkable type and runtime model.

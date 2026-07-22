@@ -386,7 +386,9 @@ fn route_from_expr(expr: &SyntaxExprOutput) -> Result<Option<Vec<ApiRoute>>, Str
         "delete" => "DELETE",
         "head" => "HEAD",
         "options" => "OPTIONS",
-        "new" | "use" | "error" => return Ok(None),
+        "new" | "use" | "map_response" | "error" | "overload" | "lifecycle" => {
+            return Ok(None);
+        }
         _ => return Ok(None),
     };
     let Some(route) = expr

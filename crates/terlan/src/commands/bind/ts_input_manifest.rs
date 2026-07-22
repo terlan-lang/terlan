@@ -192,15 +192,11 @@ fn validate_generator_metadata(generator: &TsInputGenerator) -> Result<(), Strin
 /// - `Err(String)` when package identity, version, or resolution is invalid.
 ///
 /// Transformation:
-/// - Keeps the initial tiny fixture explicit as a committed TypeScript fixture
-///   while reserving the same package fields for later installed-package
-///   manifests.
+/// - Keeps source package identity explicit without coupling the generator to
+///   TypeScript's own standard-library package only.
 fn validate_source_package_metadata(source_package: &TsSourcePackage) -> Result<(), String> {
-    if source_package.name != "typescript" {
-        return Err(format!(
-            "ts_bindgen.input_manifest_package: expected `typescript`, found `{}`",
-            source_package.name
-        ));
+    if source_package.name.trim().is_empty() {
+        return Err("ts_bindgen.input_manifest_package_empty".to_string());
     }
     if source_package.version.trim().is_empty() {
         return Err("ts_bindgen.input_manifest_package_version_empty".to_string());
@@ -231,9 +227,9 @@ fn validate_input_file(repo_root: &Path, input: &TsInputFile) -> Result<(), Stri
             input.kind
         ));
     }
-    if !matches!(input.namespace.as_str(), "std.js" | "std.js.Dom") {
+    if !is_valid_terlan_namespace(&input.namespace) {
         return Err(format!(
-            "ts_bindgen.input_manifest_namespace: expected `std.js` or `std.js.Dom`, found `{}`",
+            "ts_bindgen.input_manifest_namespace: expected dotted Terlan namespace, found `{}`",
             input.namespace
         ));
     }
@@ -260,6 +256,27 @@ fn validate_input_file(repo_root: &Path, input: &TsInputFile) -> Result<(), Stri
         ));
     }
     Ok(())
+}
+
+/// Returns whether a manifest namespace is a dotted Terlan module prefix.
+///
+/// Inputs:
+/// - `namespace`: manifest-owned module namespace.
+///
+/// Output:
+/// - `true` for non-empty dotted identifiers.
+/// - `false` for empty, path-like, or punctuation-bearing names.
+///
+/// Transformation:
+/// - Allows generated bindings outside `std.js` while preserving a small,
+///   deterministic namespace contract.
+fn is_valid_terlan_namespace(namespace: &str) -> bool {
+    !namespace.is_empty()
+        && namespace.split('.').all(|segment| {
+            let mut chars = segment.chars();
+            matches!(chars.next(), Some(first) if first.is_ascii_alphabetic() || first == '_')
+                && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+        })
 }
 
 /// Converts a manifest path to a safe repository-relative path.

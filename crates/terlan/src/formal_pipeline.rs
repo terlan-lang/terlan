@@ -2,16 +2,18 @@ use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::OnceLock;
 
 use crate::terlan_hir::{
-    load_interfaces_from_dir, resolve_syntax_module_output_with_interfaces,
-    syntax_module_output_to_interface, ModuleInterface,
+    expand_syntax_shape_imports, load_interfaces_from_dir,
+    resolve_syntax_module_output_with_interfaces, syntax_module_output_to_interface,
+    ModuleInterface,
 };
 use crate::terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
     SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
 };
-use crate::terlan_typeck::{expand_syntax_includes, expand_syntax_raw_macros};
+use crate::terlan_typeck::{expand_syntax_includes, expand_syntax_macros_with_interfaces};
 
 use crate::validation::config_contract::check_config_declarations_syntax_output;
 use crate::validation::native_policy::{validate_native_policy, NativePolicy};
@@ -19,7 +21,10 @@ use crate::validation::phase_manifest::PhaseManifestDiagnostic;
 use crate::validation::target_profile::{
     target_profile_checks_with_options, TargetProfile, TargetProfileCheckOptions,
 };
-use crate::validation::template_contract::type_check_syntax_module_output_with_templates;
+use crate::validation::template_contract::type_check_syntax_module_output_with_template_inputs;
+
+#[path = "formal_pipeline/templates.rs"]
+mod templates;
 use crate::DiagnosticFormat;
 
 /// Checked artifacts produced by the formal compile pipeline.
@@ -126,11 +131,17 @@ fn load_adjacent_interfaces_from_file_set(path: &str) -> HashMap<String, ModuleI
 ///   and inserts each parsed interface only when the caller has not already
 ///   supplied an interface for that module.
 pub(crate) fn load_embedded_std_interfaces(interfaces: &mut HashMap<String, ModuleInterface>) {
-    for summary in EMBEDDED_STD_INTERFACE_SUMMARIES {
-        let Some((module_name, interface)) = parse_embedded_std_interface(summary) else {
-            continue;
-        };
-        interfaces.entry(module_name).or_insert(interface);
+    static EMBEDDED_INTERFACES: OnceLock<HashMap<String, ModuleInterface>> = OnceLock::new();
+    let embedded = EMBEDDED_INTERFACES.get_or_init(|| {
+        EMBEDDED_STD_INTERFACE_SUMMARIES
+            .iter()
+            .filter_map(|summary| parse_embedded_std_interface(summary))
+            .collect()
+    });
+    for (module_name, interface) in embedded {
+        interfaces
+            .entry(module_name.clone())
+            .or_insert_with(|| interface.clone());
     }
 }
 
@@ -153,48 +164,68 @@ fn parse_embedded_std_interface(summary: &str) -> Option<(String, ModuleInterfac
 }
 
 const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
-    include_str!("../../../std/summaries/std.beam.Agent.typi"),
-    include_str!("../../../std/summaries/std.beam.Backpressure.typi"),
-    include_str!("../../../std/summaries/std.beam.Bytes.typi"),
-    include_str!("../../../std/summaries/std.beam.GenServer.typi"),
-    include_str!("../../../std/summaries/std.beam.Message.typi"),
-    include_str!("../../../std/summaries/std.beam.NativeBridge.typi"),
-    include_str!("../../../std/summaries/std.beam.Port.typi"),
-    include_str!("../../../std/summaries/std.beam.Process.typi"),
-    include_str!("../../../std/summaries/std.beam.Supervisor.typi"),
-    include_str!("../../../std/summaries/std.beam.Task.typi"),
-    include_str!("../../../std/summaries/std.beam.Tcp.typi"),
-    include_str!("../../../std/summaries/std.beam.Timeout.typi"),
+    include_str!("../../../std/summaries/std.vm.Agent.typi"),
+    include_str!("../../../std/summaries/std.vm.Backpressure.typi"),
+    include_str!("../../../std/summaries/std.vm.BitString.typi"),
+    include_str!("../../../std/summaries/std.vm.Bytes.typi"),
+    include_str!("../../../std/summaries/std.vm.Cluster.typi"),
+    include_str!("../../../std/summaries/std.vm.DistributedState.typi"),
+    include_str!("../../../std/summaries/std.vm.DistributedStorage.typi"),
+    include_str!("../../../std/summaries/std.vm.Fault.typi"),
+    include_str!("../../../std/summaries/std.vm.GenServer.typi"),
+    include_str!("../../../std/summaries/std.vm.Message.typi"),
+    include_str!("../../../std/summaries/std.vm.ModelSync.typi"),
+    include_str!("../../../std/summaries/std.vm.NativeBridge.typi"),
+    include_str!("../../../std/summaries/std.vm.PersistentActor.typi"),
+    include_str!("../../../std/summaries/std.vm.Port.typi"),
+    include_str!("../../../std/summaries/std.vm.Process.typi"),
+    include_str!("../../../std/summaries/std.vm.Scheduler.typi"),
+    include_str!("../../../std/summaries/std.vm.Supervisor.typi"),
+    include_str!("../../../std/summaries/std.vm.Task.typi"),
+    include_str!("../../../std/summaries/std.vm.Tcp.typi"),
+    include_str!("../../../std/summaries/std.vm.Timeout.typi"),
     include_str!("../../../std/summaries/std.core.Add.typi"),
     include_str!("../../../std/summaries/std.core.Atom.typi"),
     include_str!("../../../std/summaries/std.core.Bool.typi"),
+    include_str!("../../../std/summaries/std.core.Effect.typi"),
     include_str!("../../../std/summaries/std.core.Equal.typi"),
     include_str!("../../../std/summaries/std.core.Error.typi"),
     include_str!("../../../std/summaries/std.core.Float.typi"),
     include_str!("../../../std/summaries/std.core.Functional.typi"),
+    include_str!("../../../std/summaries/std.core.GuardResult.typi"),
     include_str!("../../../std/summaries/std.core.Int.typi"),
     include_str!("../../../std/summaries/std.core.Object.typi"),
+    include_str!("../../../std/summaries/std.binary.Binary.typi"),
     include_str!("../../../std/summaries/std.collections.Enumerable.typi"),
     include_str!("../../../std/summaries/std.collections.Index.typi"),
     include_str!("../../../std/summaries/std.collections.Iterable.typi"),
     include_str!("../../../std/summaries/std.collections.Iterator.typi"),
+    include_str!("../../../std/summaries/std.collections.KeyedEnumerable.typi"),
     include_str!("../../../std/summaries/std.collections.List.typi"),
     include_str!("../../../std/summaries/std.collections.Map.typi"),
     include_str!("../../../std/summaries/std.data.Json.typi"),
     include_str!("../../../std/summaries/std.db.Postgres.typi"),
     include_str!("../../../std/summaries/std.encoding.Base64.typi"),
+    include_str!("../../../std/summaries/std.encoding.Md5.typi"),
     include_str!("../../../std/summaries/std.http.typi"),
     include_str!("../../../std/summaries/std.http.Cookies.typi"),
     include_str!("../../../std/summaries/std.http.Error.typi"),
     include_str!("../../../std/summaries/std.http.Request.typi"),
     include_str!("../../../std/summaries/std.http.Response.typi"),
     include_str!("../../../std/summaries/std.http.Router.typi"),
+    include_str!("../../../std/summaries/std.http.Session.typi"),
+    include_str!("../../../std/summaries/std.http.Sse.typi"),
+    include_str!("../../../std/summaries/std.http.WebSocket.typi"),
     include_str!("../../../std/summaries/std.http.Tls.typi"),
     include_str!("../../../std/summaries/std.native.collections.Vector.typi"),
     include_str!("../../../std/summaries/std.core.Option.typi"),
     include_str!("../../../std/summaries/std.core.Ordering.typi"),
     include_str!("../../../std/summaries/std.core.Result.typi"),
+    include_str!("../../../std/summaries/std.core.Secret.typi"),
     include_str!("../../../std/summaries/std.collections.Set.typi"),
+    include_str!("../../../std/summaries/std.range.Range.typi"),
+    include_str!("../../../std/summaries/std.random.Random.typi"),
+    include_str!("../../../std/summaries/std.regex.Regex.typi"),
     include_str!("../../../std/summaries/std.core.String.typi"),
     include_str!("../../../std/summaries/std.core.Task.typi"),
     include_str!("../../../std/summaries/std.core.Unit.typi"),
@@ -203,7 +234,7 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.io.File.typi"),
     include_str!("../../../std/summaries/std.io.Path.typi"),
     include_str!("../../../std/summaries/std.io.typi"),
-    include_str!("../../../std/summaries/std.log.typi"),
+    include_str!("../../../std/summaries/std.log.Log.typi"),
     include_str!("../../../std/summaries/std.js.Array.typi"),
     include_str!("../../../std/summaries/std.js.Dom.Document.typi"),
     include_str!("../../../std/summaries/std.js.Dom.HTMLElement.typi"),
@@ -213,7 +244,13 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.net.Uri.typi"),
     include_str!("../../../std/summaries/std.sync.Resource.typi"),
     include_str!("../../../std/summaries/std.template.Template.typi"),
+    include_str!("../../../std/summaries/std.test.Gen.typi"),
+    include_str!("../../../std/summaries/std.test.Shrink.typi"),
     include_str!("../../../std/summaries/std.test.Test.typi"),
+    include_str!("../../../std/summaries/std.time.typi"),
+    include_str!("../../../std/summaries/std.time.Duration.typi"),
+    include_str!("../../../std/summaries/std.time.Instant.typi"),
+    include_str!("../../../std/summaries/std.wasm.Abi.typi"),
 ];
 
 /// Lists Terlan implementation sources under a directory.
@@ -518,7 +555,8 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     };
 
     let interfaces = load_external_interfaces(path, cache_dir);
-    let (syntax_output, macro_expansion_diagnostics) = expand_syntax_raw_macros(syntax_output);
+    let (mut syntax_output, macro_expansion_diagnostics) =
+        expand_syntax_macros_with_interfaces(syntax_output, &interfaces);
     for diag in macro_expansion_diagnostics.iter() {
         crate::support::emit_diagnostic(
             "type_error",
@@ -542,6 +580,34 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     }
 
     if !result.macro_expansion_diagnostics.is_empty() {
+        result.exit_code = ExitCode::from(1);
+        return result;
+    }
+
+    if let Err(error) = expand_syntax_shape_imports(&mut syntax_output, &interfaces) {
+        let (message, span_start, span_end) = match error {
+            crate::terlan_syntax::ebnf::EbnfCompileError::Parse(message, span) => {
+                (message, span.start, span.end)
+            }
+            crate::terlan_syntax::ebnf::EbnfCompileError::Serialize(message) => (message, 0, 0),
+        };
+        crate::support::emit_diagnostic(
+            "type_error",
+            &message,
+            path,
+            span_start,
+            span_end,
+            diagnostic_format,
+        );
+        result.resolve_diagnostics.push(PhaseManifestDiagnostic {
+            code: "shape_expansion_error",
+            severity: "error",
+            message,
+            path: path.to_string(),
+            span_start,
+            span_end,
+            ..Default::default()
+        });
         result.exit_code = ExitCode::from(1);
         return result;
     }
@@ -596,8 +662,13 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
         return result;
     }
 
-    let mut typecheck_diagnostics =
-        type_check_syntax_module_output_with_templates(&syntax_output, &resolved, Path::new(path));
+    let template_typecheck = type_check_syntax_module_output_with_template_inputs(
+        &syntax_output,
+        &resolved,
+        Path::new(path),
+    );
+    let checked_template_inputs = template_typecheck.template_inputs;
+    let mut typecheck_diagnostics = template_typecheck.diagnostics;
     typecheck_diagnostics.extend(check_config_declarations_syntax_output(&syntax_output));
     let mut has_type_errors = false;
     for diag in typecheck_diagnostics {
@@ -634,8 +705,33 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     if has_type_errors || !result.resolve_diagnostics.is_empty() {
         result.exit_code = ExitCode::from(1);
     } else {
-        let core =
+        let mut core =
             crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax_output, &resolved);
+        core.source.source_path = Some(path.to_string());
+        match templates::core_template_render_plans(checked_template_inputs, &core) {
+            Ok(templates) => core.templates = templates,
+            Err(message) => {
+                crate::support::emit_diagnostic(
+                    "type_error",
+                    &message,
+                    path,
+                    0,
+                    0,
+                    diagnostic_format,
+                );
+                result.core_diagnostics.push(PhaseManifestDiagnostic {
+                    code: "template_render_plan",
+                    severity: "error",
+                    message,
+                    path: path.to_string(),
+                    span_start: 0,
+                    span_end: 0,
+                    ..Default::default()
+                });
+                result.exit_code = ExitCode::from(1);
+                return result;
+            }
+        }
         let target_profile_violations =
             target_profile_checks_with_options(&core, target_profile, target_profile_options);
         if !target_profile_violations.is_empty() {

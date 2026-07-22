@@ -1,4 +1,8 @@
 use super::*;
+use crate::terlan_syntax::{
+    AMBIGUOUS_STRUCTURAL_IMPLICATION_DIAGNOSTIC, DUPLICATE_RECORD_TYPE_FIELD_DIAGNOSTIC,
+};
+use std::collections::HashSet;
 
 impl Parser {
     /// Parses preserved type-expression text.
@@ -16,11 +20,28 @@ impl Parser {
     ///   delimiters, comments are ignored, qualified dotted names stay intact,
     ///   and obvious runtime-expression tokens are rejected from type position.
     pub(super) fn parse_type_expr(&mut self, stop: &[TokenKind]) -> ParseResult<TypeExpr> {
+        self.parse_type_expr_inner(stop, DUPLICATE_RECORD_TYPE_FIELD_DIAGNOSTIC)
+    }
+
+    /// Parses an implication field type while rejecting ambiguous nested shapes.
+    pub(super) fn parse_implication_type_expr(
+        &mut self,
+        stop: &[TokenKind],
+    ) -> ParseResult<TypeExpr> {
+        self.parse_type_expr_inner(stop, AMBIGUOUS_STRUCTURAL_IMPLICATION_DIAGNOSTIC)
+    }
+
+    fn parse_type_expr_inner(
+        &mut self,
+        stop: &[TokenKind],
+        duplicate_record_field_diagnostic: &'static str,
+    ) -> ParseResult<TypeExpr> {
         let start = self.current().start;
         let mut depth_p = 0;
         let mut depth_b = 0;
         let mut depth_bra = 0;
         let mut parts = Vec::new();
+        let mut record_field_scopes = Vec::<HashSet<String>>::new();
 
         while !self.check(TokenKind::EOF) {
             if self.check_any(stop)
@@ -31,6 +52,33 @@ impl Parser {
                 && !self.is_existential_type_dot(&parts)
             {
                 break;
+            }
+            if self.check(TokenKind::Colon)
+                && self
+                    .tokens
+                    .get(self.pos + 1)
+                    .is_some_and(|token| matches!(token.kind, TokenKind::Atom | TokenKind::String))
+                && !self.is_record_type_field_colon(depth_bra)
+            {
+                let payload = self.parse_raw_atom_literal_payload()?;
+                parts.push(format!(
+                    "Atom[{}]",
+                    crate::terlan_syntax::quoted_string_literal(&payload)
+                ));
+                continue;
+            }
+            if self.check(TokenKind::Colon) && self.is_record_type_field_colon(depth_bra) {
+                let field = self.tokens[self.pos - 1].clone();
+                let field_span = field.span();
+                let scope = record_field_scopes
+                    .last_mut()
+                    .expect("record field colon requires an open record scope");
+                if !scope.insert(field.text) {
+                    return Err(ParseError {
+                        message: duplicate_record_field_diagnostic.to_string(),
+                        span: field_span,
+                    });
+                }
             }
             let token = self.bump();
             if matches!(
@@ -48,8 +96,14 @@ impl Parser {
                 TokenKind::RParen if depth_p > 0 => depth_p -= 1,
                 TokenKind::LBracket => depth_b += 1,
                 TokenKind::RBracket if depth_b > 0 => depth_b -= 1,
-                TokenKind::LBrace => depth_bra += 1,
-                TokenKind::RBrace if depth_bra > 0 => depth_bra -= 1,
+                TokenKind::LBrace => {
+                    depth_bra += 1;
+                    record_field_scopes.push(HashSet::new());
+                }
+                TokenKind::RBrace if depth_bra > 0 => {
+                    depth_bra -= 1;
+                    record_field_scopes.pop();
+                }
                 _ => {}
             }
             parts.push(token.text);
@@ -63,6 +117,14 @@ impl Parser {
         }
 
         let text = join_parts(&parts);
+        if text.contains("=>") {
+            return Err(ParseError {
+                message:
+                    "`=>` implication constraints are only valid in generic parameter constraints"
+                        .to_string(),
+                span: Span::new(start, self.previous().end),
+            });
+        }
         if let Some(token) = invalid_runtime_type_token(&text) {
             return Err(ParseError {
                 message: format!(
@@ -77,6 +139,16 @@ impl Parser {
             span: Span::new(start, self.previous().end),
         })
     }
+
+    /// Reports whether the current colon separates a record field from its type.
+    fn is_record_type_field_colon(&self, brace_depth: usize) -> bool {
+        brace_depth > 0
+            && self
+                .tokens
+                .get(self.pos.saturating_sub(1))
+                .is_some_and(|token| is_type_field_name(&token.text))
+    }
+
     /// Reports whether the current dot belongs to a qualified type reference.
     ///
     /// Inputs:
@@ -138,6 +210,13 @@ impl Parser {
                 _ => part == ",",
             })
     }
+}
+
+/// Reports whether text can name a structural record field.
+fn is_type_field_name(text: &str) -> bool {
+    let mut chars = text.chars();
+    matches!(chars.next(), Some(ch) if ch.is_ascii_lowercase() || ch == '_')
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
 /// Validates a source type-variable name inside an existential binder.

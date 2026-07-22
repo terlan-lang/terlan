@@ -1,0 +1,49 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLOptGroupElement
+ */
+module std.js.Dom.HTMLOptGroupElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLOptGroupElement`** interface provides special properties and methods (beyond the regular HTMLElement object interface they also have available to them by inheritance) for manipulating the layout and presentation of optgroup elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptGroupElement)
+ */
+pub opaque type HTMLOptGroupElement.
+
+/**
+ * The **`disabled`** property of the HTMLOptGroupElement interface is a boolean value that reflects the optgroup element's `disabled` attribute, which indicates whether the control is disabled.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptGroupElement/disabled)
+ */
+pub (value: HTMLOptGroupElement) disabled(): Bool.
+
+/**
+ * The **`label`** property of the HTMLOptGroupElement interface is a string value that reflects the optgroup element's `label` attribute, which provides a textual label to the group of options.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptGroupElement/label)
+ */
+pub (value: HTMLOptGroupElement) label(): JsString.
+
+pub (value: HTMLOptGroupElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLOptGroupElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

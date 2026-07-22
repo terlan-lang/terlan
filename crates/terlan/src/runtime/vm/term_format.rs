@@ -2,6 +2,13 @@
 
 use super::ReplValue;
 
+mod decoder;
+
+pub(crate) use decoder::decode_tetf_distribution_envelope;
+
+#[cfg(test)]
+pub(crate) use decoder::decode_tetf;
+
 const MAGIC: &[u8; 4] = b"TETF";
 const VERSION: u8 = 1;
 const PROFILE_RUNTIME_TERM: u8 = 1;
@@ -19,6 +26,9 @@ const TAG_TUPLE: u8 = 0x09;
 const TAG_LIST: u8 = 0x0a;
 const TAG_MAP: u8 = 0x0b;
 const TAG_SET: u8 = 0x0c;
+const TAG_RECORD: u8 = 0x0d;
+const TAG_BYTES: u8 = 0x0e;
+const TAG_BITSTRING: u8 = 0x0f;
 const TAG_VM_REF: u8 = 0x20;
 const TAG_DISTRIBUTION_ENVELOPE: u8 = 0x21;
 
@@ -157,6 +167,10 @@ pub(crate) fn encode_tetf_distribution_envelope(
     envelope: &TetfDistributionEnvelope,
     declared_atoms: &[String],
 ) -> Result<Vec<u8>, String> {
+    validate_text_field("trace_id", &envelope.trace_id)?;
+    validate_text_field("from_node_id", &envelope.from_node_id)?;
+    validate_text_field("to_node_id", &envelope.to_node_id)?;
+    validate_epoch(envelope.epoch)?;
     let mut bytes = Vec::new();
     bytes.extend_from_slice(MAGIC);
     bytes.push(VERSION);
@@ -196,6 +210,17 @@ fn encode_value(
             bytes.push(TAG_STRING);
             write_text(bytes, value)?;
         }
+        ReplValue::Bytes(value) => {
+            bytes.push(TAG_BYTES);
+            write_len(bytes, value.len())?;
+            bytes.extend_from_slice(value);
+        }
+        ReplValue::BitString(value) => {
+            bytes.push(TAG_BITSTRING);
+            write_len(bytes, value.bit_len())?;
+            write_len(bytes, value.byte_len())?;
+            bytes.extend_from_slice(value.packed_bytes());
+        }
         ReplValue::Atom(value) => {
             if !declared_atoms.iter().any(|atom| atom == value) {
                 return Err(format!(
@@ -216,6 +241,31 @@ fn encode_value(
                 encode_value(item, declared_atoms, bytes)?;
             }
         }
+        ReplValue::Record { name, fields } => {
+            bytes.push(TAG_RECORD);
+            write_text(bytes, name)?;
+            let mut encoded_fields = Vec::new();
+            for (field, value) in fields {
+                let mut encoded_value = Vec::new();
+                encode_value(value, declared_atoms, &mut encoded_value)?;
+                encoded_fields.push((field, encoded_value));
+            }
+            encoded_fields.sort_by(|left, right| left.0.cmp(right.0));
+            if let Some(duplicate) = encoded_fields
+                .windows(2)
+                .find(|pair| pair[0].0 == pair[1].0)
+            {
+                return Err(format!(
+                    "error[tetf_canonical]: duplicate record field `{}`",
+                    duplicate[0].0
+                ));
+            }
+            write_len(bytes, encoded_fields.len())?;
+            for (field, value) in encoded_fields {
+                write_text(bytes, field)?;
+                bytes.extend_from_slice(&value);
+            }
+        }
         ReplValue::List(items) => {
             bytes.push(TAG_LIST);
             write_len(bytes, items.len())?;
@@ -234,6 +284,26 @@ fn encode_value(
                 encoded_entries.push((encoded_key, encoded_value));
             }
             encoded_entries.sort_by(|left, right| left.0.cmp(&right.0));
+            reject_duplicate_map_keys(&encoded_entries)?;
+            write_len(bytes, encoded_entries.len())?;
+            for (key, value) in encoded_entries {
+                bytes.extend_from_slice(&key);
+                bytes.extend_from_slice(&value);
+            }
+        }
+        #[cfg(test)]
+        ReplValue::MapIndexed(map) => {
+            bytes.push(TAG_MAP);
+            let mut encoded_entries = Vec::new();
+            for (key, value) in map.to_entries() {
+                let mut encoded_key = Vec::new();
+                let mut encoded_value = Vec::new();
+                encode_value(&key, declared_atoms, &mut encoded_key)?;
+                encode_value(&value, declared_atoms, &mut encoded_value)?;
+                encoded_entries.push((encoded_key, encoded_value));
+            }
+            encoded_entries.sort_by(|left, right| left.0.cmp(&right.0));
+            reject_duplicate_map_keys(&encoded_entries)?;
             write_len(bytes, encoded_entries.len())?;
             for (key, value) in encoded_entries {
                 bytes.extend_from_slice(&key);
@@ -255,13 +325,15 @@ fn encode_value(
                 bytes.extend_from_slice(&item);
             }
         }
+        #[cfg(test)]
+        ReplValue::RandomGenerator(_) => {
+            return Err(
+                "error[tetf_unsupported]: random generator state has no TETF encoding".to_string(),
+            );
+        }
+        #[cfg(test)]
         ReplValue::Iterator { .. } => {
             return Err("error[tetf_unsupported]: iterator state has no TETF encoding".to_string());
-        }
-        ReplValue::Closure(_) => {
-            return Err(
-                "error[tetf_unsupported]: function values have no TETF encoding".to_string(),
-            );
         }
     }
     Ok(())
@@ -276,11 +348,40 @@ fn write_text(bytes: &mut Vec<u8>, value: &str) -> Result<(), String> {
 
 /// Appends one VM reference payload.
 fn encode_vm_ref(reference: &TetfVmRef, bytes: &mut Vec<u8>) -> Result<(), String> {
+    validate_vm_ref(reference)?;
     bytes.push(TAG_VM_REF);
     bytes.push(reference.kind.tag());
     write_text(bytes, &reference.node_id)?;
     write_u64(bytes, reference.local_id);
     write_u64(bytes, reference.epoch);
+    Ok(())
+}
+
+/// Validates a TETF text metadata field before serialization.
+fn validate_text_field(field: &str, value: &str) -> Result<(), String> {
+    if value.trim().is_empty() {
+        return Err(format!(
+            "error[tetf_invalid_metadata]: `{field}` must not be empty"
+        ));
+    }
+    Ok(())
+}
+
+/// Validates VM reference metadata before it crosses a runtime boundary.
+fn validate_vm_ref(reference: &TetfVmRef) -> Result<(), String> {
+    validate_text_field("node_id", &reference.node_id)?;
+    if reference.local_id == 0 {
+        return Err("error[tetf_invalid_ref]: VM reference local id must be non-zero".to_string());
+    }
+    validate_epoch(reference.epoch)?;
+    Ok(())
+}
+
+/// Validates epoch metadata before serializing cross-runtime control data.
+fn validate_epoch(epoch: u64) -> Result<(), String> {
+    if epoch == 0 {
+        return Err("error[tetf_stale_ref]: VM reference epoch must be non-zero".to_string());
+    }
     Ok(())
 }
 
@@ -297,6 +398,14 @@ fn write_len(bytes: &mut Vec<u8>, len: usize) -> Result<(), String> {
     Ok(())
 }
 
+/// Rejects duplicate canonical map keys before emitting a malleable payload.
+fn reject_duplicate_map_keys(entries: &[(Vec<u8>, Vec<u8>)]) -> Result<(), String> {
+    if entries.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+        return Err("error[tetf_canonical]: duplicate map key".to_string());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
-#[path = "term_format_test.rs"]
-mod term_format_test;
+#[path = "term_format_runtime_test.rs"]
+mod term_format_runtime_test;

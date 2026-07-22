@@ -1,0 +1,39 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DOMMatrixInit
+ */
+module std.js.Dom.DOMMatrixInit.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type DOMMatrixInit.
+
+pub (value: DOMMatrixInit) is2_d(): std.core.Bool.
+
+pub (value: DOMMatrixInit) m13(): JsNumber.
+
+pub (value: DOMMatrixInit) m14(): JsNumber.
+
+pub (value: DOMMatrixInit) m23(): JsNumber.
+
+pub (value: DOMMatrixInit) m24(): JsNumber.
+
+pub (value: DOMMatrixInit) m31(): JsNumber.
+
+pub (value: DOMMatrixInit) m32(): JsNumber.
+
+pub (value: DOMMatrixInit) m33(): JsNumber.
+
+pub (value: DOMMatrixInit) m34(): JsNumber.
+
+pub (value: DOMMatrixInit) m43(): JsNumber.
+
+pub (value: DOMMatrixInit) m44(): JsNumber.

@@ -1,23 +1,21 @@
 use super::*;
 
-/// Verifies multi-generator list comprehensions fail before semantic
-/// phases.
+/// Verifies multi-generator list comprehensions reach every compiler phase.
 ///
 /// Inputs:
 /// - A temporary single-file Terlan module containing a list comprehension
 ///   with two generators and a requested phase-manifest output path.
 ///
 /// Output:
-/// - Test assertion only; the command must fail and write a phase manifest
-///   with a parse diagnostic and skipped resolve/typecheck/CoreIR phases.
+/// - Test assertion only; the command must succeed and write a phase manifest
+///   with successful parse, resolve, typecheck, and CoreIR phases.
 ///
 /// Transformation:
-/// - Runs the command-level check path and confirms the parser-level A0.24
-///   collection contract is visible in phase output before unsupported
-///   comprehension shape can reach semantic lowering.
+/// - Runs the command-level check path and confirms ordered generators remain
+///   supported through the complete formal compiler pipeline.
 #[test]
-fn run_check_single_file_rejects_multi_generator_list_comprehension_before_phase_manifest() {
-    let dir = make_temp_dir("check_single_file_multi_generator_list_comprehension_rejected");
+fn run_check_single_file_accepts_multi_generator_list_comprehension_phase_manifest() {
+    let dir = make_temp_dir("check_single_file_multi_generator_list_comprehension_accepted");
     let source = dir.join("multi_generator_list_comprehension.terl");
     fs::write(
             &source,
@@ -38,22 +36,18 @@ fn run_check_single_file_rejects_multi_generator_list_comprehension_before_phase
         CliState::default(),
     );
 
-    assert_ne!(exit, ExitCode::SUCCESS);
+    assert_eq!(exit, ExitCode::SUCCESS);
     let manifest_text = fs::read_to_string(&manifest).expect("read phase manifest");
-    assert!(manifest_text.contains(r#""name":"parse","status":"error""#));
-    assert!(
-        manifest_text.contains("multiple list comprehension generators are not supported"),
-        "{manifest_text}"
-    );
-    assert!(manifest_text.contains(r#""name":"resolve","status":"skipped""#));
-    assert!(manifest_text.contains(r#""name":"typecheck","status":"skipped""#));
-    assert!(manifest_text.contains(r#""name":"core","status":"skipped""#));
+    assert!(manifest_text.contains(r#""name":"parse","status":"ok""#));
+    assert!(manifest_text.contains(r#""name":"resolve","status":"ok""#));
+    assert!(manifest_text.contains(r#""name":"typecheck","status":"ok""#));
+    assert!(manifest_text.contains(r#""name":"core","status":"ok""#));
 }
 
-/// Verifies Erlang binary segment syntax fails at parse time.
+/// Verifies Vm binary segment syntax fails at parse time.
 ///
 /// Inputs:
-/// - A temporary single-file Terlan module containing Erlang binary
+/// - A temporary single-file Terlan module containing Vm binary
 ///   segment syntax and a requested phase-manifest output path.
 ///
 /// Output:
@@ -61,7 +55,7 @@ fn run_check_single_file_rejects_multi_generator_list_comprehension_before_phase
 ///   whose parse phase records the source-syntax diagnostic.
 ///
 /// Transformation:
-/// - Runs the command-level check path and confirms backend Erlang binary
+/// - Runs the command-level check path and confirms backend Vm binary
 ///   syntax cannot enter Terlan typechecking or CoreIR.
 #[test]
 fn run_check_single_file_rejects_binary_segment_lowering_in_phase_manifest() {
@@ -91,7 +85,7 @@ fn run_check_single_file_rejects_binary_segment_lowering_in_phase_manifest() {
     assert!(manifest_text.contains(r#""name":"parse","status":"error""#));
     assert!(manifest_text.contains(r#""name":"typecheck","status":"skipped""#));
     assert!(manifest_text.contains(r#""name":"core","status":"skipped""#));
-    assert!(manifest_text.contains("Erlang binary literal syntax"));
+    assert!(manifest_text.contains("Vm binary literal syntax"));
 }
 
 /// Verifies unsupported subject-bearing annotations stop in the syntax
@@ -197,24 +191,22 @@ run(): Int -> 1.
     assert!(manifest_text.contains(r#""core_ir_hash":0"#));
 }
 
-/// Verifies asset imports fail in the generic formal compile path before
-/// backend emission.
+/// Verifies asset imports infer the browser target before backend emission.
 ///
 /// Inputs:
 /// - A temporary Terlan module with a CSS asset import and a simple
 ///   backend-supported function.
 ///
 /// Output:
-/// - Test passes when `terlc check --emit-phase-manifest` fails in the
-///   CoreIR target-profile phase and records the unsupported asset-import
-///   decision in the manifest.
+/// - Test passes when `terlc check --emit-phase-manifest` accepts the source
+///   after selecting the browser target profile from asset-import evidence.
 ///
 /// Transformation:
 /// - Runs the command-level check path and confirms parse/resolve/typecheck
-///   can accept the syntax while CoreIR target-profile validation rejects
-///   unresolved asset import resolution.
+///   can accept the syntax while target inference keeps browser-only asset
+///   imports out of the generic VM validation path.
 #[test]
-fn run_check_single_file_rejects_asset_import_resolution_in_phase_manifest() {
+fn run_check_single_file_accepts_asset_import_resolution_in_phase_manifest() {
     let dir = make_temp_dir("check_single_file_asset_import_rejected");
     let source = dir.join("asset_import.terl");
     fs::write(
@@ -236,13 +228,13 @@ fn run_check_single_file_rejects_asset_import_resolution_in_phase_manifest() {
         CliState::default(),
     );
 
-    assert_ne!(exit, ExitCode::SUCCESS);
+    assert_eq!(exit, ExitCode::SUCCESS);
     let manifest_text = fs::read_to_string(&manifest).expect("read phase manifest");
     assert!(manifest_text.contains(r#""name":"parse","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"resolve","status":"ok""#));
     assert!(manifest_text.contains(r#""name":"typecheck","status":"ok""#));
-    assert!(manifest_text.contains(r#""name":"core","status":"error""#));
-    assert!(manifest_text.contains("asset import resolution Css import `PageCss<-./style.css`"));
+    assert!(manifest_text.contains(r#""name":"core","status":"ok""#));
+    assert!(!manifest_text.contains("asset import resolution Css import `PageCss<-./style.css`"));
 }
 
 /// Verifies constructor declaration edge cases fail before backend phases.

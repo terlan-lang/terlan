@@ -51,7 +51,7 @@ pub add(A: Int, B: Int): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -60,6 +60,90 @@ pub add(A: Int, B: Int): Int ->
 
     assert!(js.contains("export function add(A, B)"));
     assert!(js.contains("return A + B;") || js.contains("return (A + B);"));
+}
+
+/// Verifies direct Oxc lowering safely matches and binds record fields.
+#[test]
+fn emit_core_module_with_direct_oxc_ast_handles_record_case() {
+    let source = r#"module js_core_direct_record_case.
+
+pub struct User {
+    name: String,
+    level: Int
+}.
+
+pub name(value: Dynamic): String ->
+    case value {
+        User{name: name, level: 7} -> name;
+        _ -> "unknown"
+    }.
+"#;
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_core_direct_record_case.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("compile record case to CoreIR");
+
+    let js = oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core)
+        .unwrap_or_else(|| panic!("direct record case rejected CoreIR: {:#?}", artifacts.core));
+
+    assert!(js.contains("typeof value === \"object\""), "{js}");
+    assert!(js.contains("value[\"level\"] === 7"), "{js}");
+    assert!(js.contains("{ name }"), "{js}");
+}
+
+/// Verifies direct Oxc lowering safely matches and binds tagged constructors.
+#[test]
+fn emit_core_module_with_direct_oxc_ast_handles_constructor_case() {
+    let source = r#"module js_core_direct_constructor_case.
+
+pub constructor Box {
+    (value: Int, marker: Int): Dynamic -> {box, value, marker}
+}.
+
+pub constructor Ready {
+    (): Dynamic -> Atom["ready"]
+}.
+
+pub unwrap(value: Dynamic): Int ->
+    case value {
+        Box(payload, 7) -> payload;
+        _ -> 0
+    }.
+
+pub is_ready(value: Dynamic): Bool ->
+    case value {
+        Ready() -> true;
+        _ -> false
+    }.
+"#;
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_core_direct_constructor_case.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("compile constructor case to CoreIR");
+
+    let js =
+        oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).unwrap_or_else(|| {
+            panic!(
+                "direct constructor case rejected CoreIR: {:#?}",
+                artifacts.core
+            )
+        });
+
+    assert!(js.contains("Array.isArray(value)"), "{js}");
+    assert!(js.contains("value.length === 3"), "{js}");
+    assert!(js.contains("value[0] === \"box\""), "{js}");
+    assert!(js.contains("value[2] === 7"), "{js}");
+    assert!(js.contains("value === \"ready\""), "{js}");
 }
 
 /// Verifies that direct Oxc AST lowering handles integer literal returns.
@@ -88,7 +172,7 @@ pub answer(): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -126,7 +210,7 @@ pub ratio(): Float ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -140,7 +224,7 @@ pub ratio(): Float ->
 /// Verifies that direct Oxc AST lowering handles string-like literals.
 ///
 /// Inputs:
-/// - A checked Terlan module with public binary and atom literal returns.
+/// - A checked Terlan module with public binary and atom-value returns.
 ///
 /// Output:
 /// - Assertions over Oxc-printed JavaScript source.
@@ -161,10 +245,10 @@ pub escaped(): Binary ->
     \"quote \\\" slash \\\\ newline \\n carriage \\r tab \\t\".
 
 pub status(): Atom ->
-    :ok.
+    Atom[\"ok\"].
 
 pub quoted_status(): Atom ->
-    :'it\\'s-ready'.
+    Atom[\"it's-ready\"].
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         "js_core_direct_strings.terl",
@@ -172,7 +256,7 @@ pub quoted_status(): Atom ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -229,7 +313,7 @@ pub no(): Bool ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 
@@ -269,7 +353,7 @@ pub choose(flag: Bool): Int ->
         DiagnosticFormat::default(),
         None,
         NativePolicy::default(),
-        TargetProfile::default(),
+        TargetProfile::JsShared,
     )
     .expect("compile source to CoreIR");
 

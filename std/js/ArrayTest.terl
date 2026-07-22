@@ -1,8 +1,7 @@
 module tests.js.std.ArrayTest.
 
-import type std.collections.List.{List}.
-
-import type std.js.Array.{Array}.
+import type std.collections.List.
+import type std.js.Array.
 
 pub accepts_array(value: Array[Int]): Array[Int] ->
     value.
@@ -19,6 +18,4 @@ pub reads_array_length(values: Array[Int]): Int ->
 pub reads_array_index(values: Array[Int], index: Int): Int ->
     values.get_at(index).
 
-@test
-pub generated_surface_is_declared(): Bool ->
-    true.
+pub generated_surface_contract(): Bool -> true.

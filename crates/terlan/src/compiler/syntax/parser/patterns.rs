@@ -1,4 +1,5 @@
 use super::*;
+use crate::terlan_syntax::parse_tree::{StringPatternCapture, StringPatternSegment};
 
 impl Parser {
     /// Parses a function-clause pattern and discards an optional source type
@@ -39,6 +40,13 @@ impl Parser {
         let token = self.current().clone();
         match token.kind {
             TokenKind::Atom => {
+                if self
+                    .tokens
+                    .get(self.pos + 1)
+                    .is_some_and(|next| next.kind == TokenKind::Dot)
+                {
+                    return self.parse_qualified_constant_pattern();
+                }
                 self.bump();
                 if token.text == "_" {
                     Ok(Pattern::Wildcard)
@@ -53,12 +61,26 @@ impl Parser {
                     Ok(Pattern::Var(token.text))
                 }
             }
-            TokenKind::Colon => {
-                self.bump();
-                let atom = self.expect_atom_literal_name()?;
-                Ok(Pattern::Atom(atom))
-            }
+            TokenKind::Colon => Ok(Pattern::AtomLiteral(self.parse_raw_atom_literal_payload()?)),
             TokenKind::Var => {
+                if self
+                    .tokens
+                    .get(self.pos + 1)
+                    .is_some_and(|next| next.kind == TokenKind::Dot)
+                {
+                    return self.parse_qualified_constant_pattern();
+                }
+                if self.starts_binary_layout() {
+                    return self.parse_binary_layout_pattern();
+                }
+                if token.text == "Atom"
+                    && matches!(
+                        self.tokens.get(self.pos + 1),
+                        Some(next) if next.kind == TokenKind::LBracket
+                    )
+                {
+                    return Ok(Pattern::AtomLiteral(self.parse_atom_literal_payload()?));
+                }
                 self.bump();
                 if self.check(TokenKind::LBrace)
                     && token
@@ -92,14 +114,10 @@ impl Parser {
                         .is_some_and(|ch| ch.is_ascii_uppercase())
                 {
                     self.bump();
-                    if self.check(TokenKind::RParen) {
-                        return Err(ParseError {
-                            message: "constructor patterns require at least one argument"
-                                .to_string(),
-                            span: token.span(),
-                        });
-                    }
                     let mut parts = vec![Pattern::Atom(token.text)];
+                    if self.consume_if(TokenKind::RParen) {
+                        return Ok(Pattern::Tuple(parts));
+                    }
                     loop {
                         parts.push(self.parse_pattern()?);
                         if !self.consume_if(TokenKind::Comma) {
@@ -125,7 +143,26 @@ impl Parser {
             }
             TokenKind::Float => {
                 self.bump();
-                Ok(Pattern::Float(token.text.parse::<f64>().unwrap_or(0.0)))
+                Ok(Pattern::Float(parse_float_literal_token(&token)?))
+            }
+            TokenKind::String => {
+                self.bump();
+                if string_pattern_has_elixir_capture(&token.text) {
+                    return Err(ParseError {
+                        message: string_pattern_diagnostic(&token.text).to_string(),
+                        span: token.span(),
+                    });
+                }
+                let Some(value) = parse_string_token_payload(&token.text) else {
+                    return Err(ParseError {
+                        message: "invalid string literal pattern".to_string(),
+                        span: token.span(),
+                    });
+                };
+                if value.contains("${") {
+                    return parse_string_capture_pattern(&value, token.span());
+                }
+                Ok(Pattern::String(value))
             }
             TokenKind::LBracket => {
                 self.bump();
@@ -221,6 +258,32 @@ impl Parser {
         }
     }
 
+    fn parse_qualified_constant_pattern(&mut self) -> ParseResult<Pattern> {
+        let start = self.current().start;
+        let mut segments = vec![self.bump().text.clone()];
+        while self.consume_if(TokenKind::Dot) {
+            let segment = self.current().clone();
+            if !matches!(segment.kind, TokenKind::Atom | TokenKind::Var) {
+                return Err(ParseError {
+                    message: "expected name after `.` in constant pattern".to_string(),
+                    span: segment.span(),
+                });
+            }
+            self.bump();
+            segments.push(segment.text);
+        }
+        let name = segments.join(".");
+        let member = segments.last().expect("qualified pattern has a member");
+        if segments.len() < 2 || !super::constants::is_screaming_snake_case(member) {
+            return Err(ParseError {
+                message: "qualified value patterns must end in a SCREAMING_SNAKE_CASE constant"
+                    .to_string(),
+                span: Span::new(start, self.previous().end),
+            });
+        }
+        Ok(Pattern::Tuple(vec![Pattern::Atom(name)]))
+    }
+
     /// Parses one map pattern field.
     ///
     /// Inputs:
@@ -245,8 +308,14 @@ impl Parser {
         self.expect(TokenKind::Colon)?;
 
         let value = self.parse_pattern()?;
+        let Some(key) = Self::map_field_key_text(&key_token) else {
+            return Err(ParseError {
+                message: "invalid keyed field name".to_string(),
+                span: key_token.span(),
+            });
+        };
         Ok(MapField {
-            key: key_token.text,
+            key,
             value: Box::new(value),
             required: true,
         })
@@ -308,4 +377,163 @@ impl Parser {
         }
         Ok(fields)
     }
+}
+
+/// Returns the stable diagnostic for reserved string-literal pattern syntax.
+///
+/// Inputs:
+/// - Raw string token text, including source delimiters.
+///
+/// Output:
+/// - A stable diagnostic string for the reserved Terlan `${...}` pattern
+///   surface or the rejected Elixir-style `#{...}` interpolation spelling.
+///
+/// Transformation:
+/// - Keeps string patterns unavailable until the AST, typechecker, formatter,
+///   VM binder, and editor surfaces agree, while still preserving the accepted
+///   capture spelling decision.
+fn string_pattern_diagnostic(raw: &str) -> &'static str {
+    if raw.contains("#{") {
+        "string patterns use `${...}` captures; `#{...}` is not Terlan syntax"
+    } else {
+        "string pattern matching is reserved for Terlan 0.0.7; match with case guards or helper parsers for now"
+    }
+}
+
+/// Returns whether a string token contains rejected Elixir-style capture syntax.
+///
+/// Inputs: raw quoted string token text.
+/// Output: `true` when the token contains `#{...}` capture syntax.
+/// Transformation: keeps the spelling diagnostic independent from Terlan
+/// `${...}` parsing so the parser can accept the Terlan capture surface without
+/// ever accepting Erlang/Elixir interpolation syntax.
+fn string_pattern_has_elixir_capture(raw: &str) -> bool {
+    raw.contains("#{")
+}
+
+/// Parses one capture-bearing string pattern payload.
+///
+/// Inputs:
+/// - `payload`: decoded string literal payload without outer quotes.
+/// - `span`: source span of the original string token.
+///
+/// Output:
+/// - A segmented string pattern preserving literal and capture ordering.
+///
+/// Transformation:
+/// - Scans for deterministic `${name}` and `${name: Type}` capture slots,
+///   preserves literal boundaries, and rejects malformed or adjacent captures
+///   before type checking and VM matching are implemented.
+fn parse_string_capture_pattern(payload: &str, span: Span) -> ParseResult<Pattern> {
+    let mut segments = Vec::new();
+    let mut rest = payload;
+    let mut previous_was_capture = false;
+
+    while let Some(start) = rest.find("${") {
+        let literal = &rest[..start];
+        if !literal.is_empty() {
+            segments.push(StringPatternSegment::Literal(literal.to_string()));
+        } else if previous_was_capture {
+            return Err(ParseError {
+                message: "adjacent string captures require a literal separator".to_string(),
+                span,
+            });
+        }
+
+        let after_start = &rest[start + 2..];
+        let Some(end) = after_start.find('}') else {
+            return Err(ParseError {
+                message: "unterminated string capture pattern".to_string(),
+                span,
+            });
+        };
+        let capture_source = after_start[..end].trim();
+        segments.push(StringPatternSegment::Capture(parse_string_capture_slot(
+            capture_source,
+            span,
+        )?));
+        previous_was_capture = true;
+        rest = &after_start[end + 1..];
+    }
+
+    if !rest.is_empty() {
+        segments.push(StringPatternSegment::Literal(rest.to_string()));
+    }
+
+    if segments
+        .iter()
+        .all(|segment| matches!(segment, StringPatternSegment::Literal(_)))
+    {
+        return Ok(Pattern::String(payload.to_string()));
+    }
+
+    Ok(Pattern::StringPattern(segments))
+}
+
+/// Parses the payload of one `${...}` string capture slot.
+///
+/// Inputs:
+/// - `source`: capture payload without `${` and `}`.
+/// - `span`: source span of the enclosing string token.
+///
+/// Output:
+/// - Capture metadata with optional type annotation text.
+///
+/// Transformation:
+/// - Splits on the first `:` to keep type syntax source-preserving while still
+///   validating that capture names and annotations are non-empty.
+fn parse_string_capture_slot(source: &str, span: Span) -> ParseResult<StringPatternCapture> {
+    if source.is_empty() {
+        return Err(ParseError {
+            message: "empty string capture pattern".to_string(),
+            span,
+        });
+    }
+
+    let (name, annotation) = match source.split_once(':') {
+        Some((name, annotation)) => {
+            let annotation = annotation.trim();
+            if annotation.is_empty() {
+                return Err(ParseError {
+                    message: "string capture type annotation cannot be empty".to_string(),
+                    span,
+                });
+            }
+            (
+                name.trim(),
+                Some(TypeExpr {
+                    text: annotation.to_string(),
+                    span,
+                }),
+            )
+        }
+        None => (source.trim(), None),
+    };
+
+    if !valid_string_capture_name(name) {
+        return Err(ParseError {
+            message: "string capture names must be lower-case bindings".to_string(),
+            span,
+        });
+    }
+
+    Ok(StringPatternCapture {
+        name: name.to_string(),
+        annotation,
+    })
+}
+
+/// Returns whether a capture name is a canonical lower-case binding.
+///
+/// Inputs: source name inside `${...}`.
+/// Output: `true` for lower-case or underscore-prefixed identifier syntax.
+/// Transformation: mirrors ordinary binding-name shape without interpreting
+/// capture names as constructor or type names.
+fn valid_string_capture_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    (first == '_' || first.is_ascii_lowercase())
+        && chars.all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
 }

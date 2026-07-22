@@ -1,8 +1,8 @@
 module=std.js.Dom.TextTrack
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16844039145906050476
-interface_hash=8510501924180440900
-interface_doc_hash=8510501924180440900
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5557743661912449256
+interface_hash=3931372591756893744
+interface_doc_hash=3931372591756893744
 deps=0

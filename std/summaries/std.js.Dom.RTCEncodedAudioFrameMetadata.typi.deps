@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCEncodedAudioFrameMetadata
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=156321611542819034
-interface_hash=1467387459616440970
-interface_doc_hash=1467387459616440970
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=1110892226791766028
+interface_hash=7599523190794156104
+interface_doc_hash=7599523190794156104
 deps=0

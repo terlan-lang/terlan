@@ -1,7 +1,7 @@
 # Std Encoding Internals
 
-This directory owns portable encoding helpers. The current surface is Base64,
-with backend implementation delegated to Rust-native SafeNative operations.
+This directory owns portable encoding and legacy integrity helpers. Backend
+implementations are delegated to maintained Rust crates through NativeBoundary.
 
 ## Responsibilities
 
@@ -13,6 +13,8 @@ with backend implementation delegated to Rust-native SafeNative operations.
 ## Public Surface
 
 - `std.encoding.Base64`: Base64 encode/decode helpers.
+- `std.encoding.Md5`: legacy MD5 integrity compatibility; never use it for a
+  security decision.
 
 ## Core Model
 
@@ -35,7 +37,7 @@ Important invariants:
 
 ## Integration Points
 
-- `terlan_safenative`: owns Rust-backed codec operations.
+- `terlan_native_boundary`: owns Rust-backed codec operations.
 - `std/RUST_BACKED_MANIFEST.tsv`: records native operation ownership.
 - HTTP and data modules may use encoding helpers later for protocol work.
 
@@ -48,6 +50,9 @@ Important invariants:
 
 `Base64`
 : Portable Base64 helper module.
+
+`Md5`
+: Legacy deterministic integrity digest backed by RustCrypto.
 
 ## Testing Notes
 

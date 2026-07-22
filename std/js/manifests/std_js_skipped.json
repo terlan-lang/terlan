@@ -75,8 +75,8 @@
       "source": "Symbol.valueOf"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.PropertyKey"
     },
     {
@@ -112,7 +112,7 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "ObjectConstructor.call_signature"
+      "source": "ObjectConstructor.call_signature#2"
     },
     {
       "detail": "Any",
@@ -215,13 +215,13 @@
       "source": "std.js.Function"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.ThisParameterType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.OmitThisParameter"
     },
     {
@@ -322,12 +322,12 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "DateConstructor.construct_signature"
+      "source": "DateConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "DateConstructor.construct_signature"
+      "source": "DateConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -362,7 +362,7 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "RegExpConstructor.construct_signature"
+      "source": "RegExpConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -372,7 +372,7 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "RegExpConstructor.call_signature"
+      "source": "RegExpConstructor.call_signature#2"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -497,7 +497,7 @@
     {
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
-      "source": "JSON.stringify parameter value"
+      "source": "JSON.stringify parameter value#2"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -512,7 +512,7 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ReadonlyArray.every"
+      "source": "ReadonlyArray.every#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -537,7 +537,7 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ReadonlyArray.filter"
+      "source": "ReadonlyArray.filter#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -547,17 +547,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ReadonlyArray.reduce"
+      "source": "ReadonlyArray.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ReadonlyArray.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "ReadonlyArray.reduceRight"
+      "source": "ReadonlyArray.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -567,7 +562,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ReadonlyArray.reduceRight"
+      "source": "ReadonlyArray.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "ReadonlyArray.reduceRight#3"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -605,8 +605,8 @@
       "source": "TypedPropertyDescriptor.set"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.PromiseConstructorLike"
     },
     {
@@ -620,8 +620,8 @@
       "source": "Promise"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Awaited"
     },
     {
@@ -630,93 +630,93 @@
       "source": "ArrayLike.index_signature"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Partial"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Required"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Readonly"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Pick"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Record"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Exclude"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Extract"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Omit"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.NonNullable"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Parameters"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.ConstructorParameters"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.ReturnType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.InstanceType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Uppercase"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Lowercase"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Capitalize"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Uncapitalize"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.NoInfer"
     },
     {
@@ -725,13 +725,13 @@
       "source": "WeakKeyTypes.object"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.WeakKey"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.ArrayBufferLike"
     },
     {
@@ -807,17 +807,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int8Array.reduce"
+      "source": "Int8Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int8Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Int8Array.reduceRight"
+      "source": "Int8Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -827,7 +822,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int8Array.reduceRight"
+      "source": "Int8Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Int8Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -862,22 +862,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int8ArrayConstructor.construct_signature"
+      "source": "Int8ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int8ArrayConstructor.construct_signature"
+      "source": "Int8ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int8ArrayConstructor.construct_signature"
+      "source": "Int8ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int8ArrayConstructor.construct_signature"
+      "source": "Int8ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -937,17 +937,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8Array.reduce"
+      "source": "Uint8Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8Array.reduceRight"
+      "source": "Uint8Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -957,7 +952,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8Array.reduceRight"
+      "source": "Uint8Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Uint8Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -992,22 +992,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ArrayConstructor.construct_signature"
+      "source": "Uint8ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ArrayConstructor.construct_signature"
+      "source": "Uint8ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ArrayConstructor.construct_signature"
+      "source": "Uint8ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ArrayConstructor.construct_signature"
+      "source": "Uint8ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1067,17 +1067,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8ClampedArray.reduce"
+      "source": "Uint8ClampedArray.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8ClampedArray.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8ClampedArray.reduceRight"
+      "source": "Uint8ClampedArray.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1087,7 +1082,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint8ClampedArray.reduceRight"
+      "source": "Uint8ClampedArray.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Uint8ClampedArray.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1122,22 +1122,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ClampedArrayConstructor.construct_signature"
+      "source": "Uint8ClampedArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ClampedArrayConstructor.construct_signature"
+      "source": "Uint8ClampedArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ClampedArrayConstructor.construct_signature"
+      "source": "Uint8ClampedArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint8ClampedArrayConstructor.construct_signature"
+      "source": "Uint8ClampedArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1197,17 +1197,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int16Array.reduce"
+      "source": "Int16Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int16Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Int16Array.reduceRight"
+      "source": "Int16Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1217,7 +1212,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int16Array.reduceRight"
+      "source": "Int16Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Int16Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1252,22 +1252,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int16ArrayConstructor.construct_signature"
+      "source": "Int16ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int16ArrayConstructor.construct_signature"
+      "source": "Int16ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int16ArrayConstructor.construct_signature"
+      "source": "Int16ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int16ArrayConstructor.construct_signature"
+      "source": "Int16ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1327,17 +1327,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint16Array.reduce"
+      "source": "Uint16Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint16Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint16Array.reduceRight"
+      "source": "Uint16Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1347,7 +1342,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint16Array.reduceRight"
+      "source": "Uint16Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Uint16Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1382,22 +1382,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint16ArrayConstructor.construct_signature"
+      "source": "Uint16ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint16ArrayConstructor.construct_signature"
+      "source": "Uint16ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint16ArrayConstructor.construct_signature"
+      "source": "Uint16ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint16ArrayConstructor.construct_signature"
+      "source": "Uint16ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1457,17 +1457,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int32Array.reduce"
+      "source": "Int32Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int32Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Int32Array.reduceRight"
+      "source": "Int32Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1477,7 +1472,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Int32Array.reduceRight"
+      "source": "Int32Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Int32Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1512,22 +1512,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int32ArrayConstructor.construct_signature"
+      "source": "Int32ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int32ArrayConstructor.construct_signature"
+      "source": "Int32ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int32ArrayConstructor.construct_signature"
+      "source": "Int32ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Int32ArrayConstructor.construct_signature"
+      "source": "Int32ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1587,17 +1587,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint32Array.reduce"
+      "source": "Uint32Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint32Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint32Array.reduceRight"
+      "source": "Uint32Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1607,7 +1602,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Uint32Array.reduceRight"
+      "source": "Uint32Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Uint32Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1642,22 +1642,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint32ArrayConstructor.construct_signature"
+      "source": "Uint32ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint32ArrayConstructor.construct_signature"
+      "source": "Uint32ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint32ArrayConstructor.construct_signature"
+      "source": "Uint32ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Uint32ArrayConstructor.construct_signature"
+      "source": "Uint32ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1717,17 +1717,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Float32Array.reduce"
+      "source": "Float32Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Float32Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Float32Array.reduceRight"
+      "source": "Float32Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1737,7 +1732,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Float32Array.reduceRight"
+      "source": "Float32Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Float32Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1772,22 +1772,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float32ArrayConstructor.construct_signature"
+      "source": "Float32ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float32ArrayConstructor.construct_signature"
+      "source": "Float32ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float32ArrayConstructor.construct_signature"
+      "source": "Float32ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float32ArrayConstructor.construct_signature"
+      "source": "Float32ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1847,17 +1847,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Float64Array.reduce"
+      "source": "Float64Array.reduce#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Float64Array.reduce"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Float64Array.reduceRight"
+      "source": "Float64Array.reduce#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1867,7 +1862,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Float64Array.reduceRight"
+      "source": "Float64Array.reduceRight#2"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Float64Array.reduceRight#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -1902,22 +1902,22 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float64ArrayConstructor.construct_signature"
+      "source": "Float64ArrayConstructor.construct_signature#2"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float64ArrayConstructor.construct_signature"
+      "source": "Float64ArrayConstructor.construct_signature#3"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float64ArrayConstructor.construct_signature"
+      "source": "Float64ArrayConstructor.construct_signature#4"
     },
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "Float64ArrayConstructor.construct_signature"
+      "source": "Float64ArrayConstructor.construct_signature#5"
     },
     {
       "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
@@ -1930,19 +1930,194 @@
       "source": "std.js.Float64Array"
     },
     {
-      "detail": "ambient TypeScript modules are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_module",
-      "source": "std.js.Intl"
+      "detail": "StringLiteral(\"sort\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "CollatorOptions.usage"
+    },
+    {
+      "detail": "StringLiteral(\"lookup\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "CollatorOptions.localeMatcher"
+    },
+    {
+      "detail": "StringLiteral(\"upper\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "CollatorOptions.caseFirst"
+    },
+    {
+      "detail": "StringLiteral(\"base\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "CollatorOptions.sensitivity"
+    },
+    {
+      "detail": "StringLiteral(\"big5han\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "CollatorOptions.collation"
+    },
+    {
+      "detail": "only named properties and methods are supported",
+      "reason": "ts_bindgen.unsupported_interface_signature",
+      "source": "CollatorConstructor.construct_signature"
+    },
+    {
+      "detail": "only named properties and methods are supported",
+      "reason": "ts_bindgen.unsupported_interface_signature",
+      "source": "CollatorConstructor.call_signature"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Collator"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "NumberFormatOptionsStyleRegistry.decimal"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "NumberFormatOptionsStyleRegistry.percent"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "NumberFormatOptionsStyleRegistry.currency"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "std.js.Intl.NumberFormatOptionsStyle"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "NumberFormatOptionsCurrencyDisplayRegistry.code"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "NumberFormatOptionsCurrencyDisplayRegistry.symbol"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "NumberFormatOptionsCurrencyDisplayRegistry.name"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "std.js.Intl.NumberFormatOptionsCurrencyDisplay"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "std.js.Intl.NumberFormatOptionsUseGrouping"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "std.js.Intl.ResolvedNumberFormatOptionsUseGrouping"
+    },
+    {
+      "detail": "StringLiteral(\"lookup\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "NumberFormatOptions.localeMatcher"
+    },
+    {
+      "detail": "only named properties and methods are supported",
+      "reason": "ts_bindgen.unsupported_interface_signature",
+      "source": "NumberFormatConstructor.construct_signature"
+    },
+    {
+      "detail": "only named properties and methods are supported",
+      "reason": "ts_bindgen.unsupported_interface_signature",
+      "source": "NumberFormatConstructor.call_signature"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.NumberFormat"
+    },
+    {
+      "detail": "StringLiteral(\"best fit\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.localeMatcher"
+    },
+    {
+      "detail": "StringLiteral(\"long\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.weekday"
+    },
+    {
+      "detail": "StringLiteral(\"long\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.era"
+    },
+    {
+      "detail": "StringLiteral(\"numeric\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.year"
+    },
+    {
+      "detail": "StringLiteral(\"numeric\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.month"
+    },
+    {
+      "detail": "StringLiteral(\"numeric\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.day"
+    },
+    {
+      "detail": "StringLiteral(\"numeric\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.hour"
+    },
+    {
+      "detail": "StringLiteral(\"numeric\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.minute"
+    },
+    {
+      "detail": "StringLiteral(\"numeric\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.second"
+    },
+    {
+      "detail": "StringLiteral(\"short\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.timeZoneName"
+    },
+    {
+      "detail": "StringLiteral(\"best fit\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "DateTimeFormatOptions.formatMatcher"
+    },
+    {
+      "detail": "only named properties and methods are supported",
+      "reason": "ts_bindgen.unsupported_interface_signature",
+      "source": "DateTimeFormatConstructor.construct_signature"
+    },
+    {
+      "detail": "only named properties and methods are supported",
+      "reason": "ts_bindgen.unsupported_interface_signature",
+      "source": "DateTimeFormatConstructor.call_signature"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.DateTimeFormat"
     },
     {
       "detail": "interface is owned by a hand-authored Terlan JavaScript bridge wrapper",
       "reason": "ts_bindgen.reserved_bridge_interface",
-      "source": "String"
+      "source": "String#2"
     },
     {
       "detail": "interface is owned by a hand-authored Terlan JavaScript bridge wrapper",
       "reason": "ts_bindgen.reserved_bridge_interface",
-      "source": "Number"
+      "source": "Number#2"
     },
     {
       "detail": "Callback { params: [Named(\"V\"), Named(\"K\"), Generic { name: \"Map\", args: [Named(\"K\"), Named(\"V\")] }], return_type: Primitive(Void) }",
@@ -1962,7 +2137,7 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "MapConstructor.construct_signature"
+      "source": "MapConstructor.construct_signature#2"
     },
     {
       "detail": "Any",
@@ -2185,18 +2360,18 @@
       "source": "UnderlyingSink.type"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "only property members are supported in record type literals",
+      "reason": "ts_bindgen.unsupported_record_member",
       "source": "std.js.Dom.NodeFilter"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_variable",
-      "source": "std.js.Dom.NodeFilter"
+      "source": "std.js.Dom.NodeFilter#2"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "only property members are supported in record type literals",
+      "reason": "ts_bindgen.unsupported_record_member",
       "source": "std.js.Dom.XPathNSResolver"
     },
     {
@@ -3390,19 +3565,9 @@
       "source": "std.js.Dom.DOMMatrix"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.SVGMatrix"
-    },
-    {
       "detail": "top-level variables and constructors are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_variable",
       "source": "std.js.Dom.SVGMatrix"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.WebKitCSSMatrix"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -3428,11 +3593,6 @@
       "detail": "top-level variables and constructors are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_variable",
       "source": "std.js.Dom.DOMPoint"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.SVGPoint"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -3463,11 +3623,6 @@
       "detail": "top-level variables and constructors are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_variable",
       "source": "std.js.Dom.DOMRect"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.SVGRect"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -3632,7 +3787,7 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Document.createElement"
+      "source": "Document.createElement#2"
     },
     {
       "detail": "StringLiteral(\"http://www.w3.org/1999/xhtml\")",
@@ -3647,17 +3802,17 @@
     {
       "detail": "StringLiteral(\"http://www.w3.org/2000/svg\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createElementNS parameter namespaceURI"
+      "source": "Document.createElementNS parameter namespaceURI#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Document.createElementNS"
+      "source": "Document.createElementNS#2"
     },
     {
       "detail": "StringLiteral(\"http://www.w3.org/1998/Math/MathML\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createElementNS parameter namespaceURI"
+      "source": "Document.createElementNS parameter namespaceURI#3"
     },
     {
       "detail": "StringLiteral(\"AnimationEvent\")",
@@ -3667,322 +3822,322 @@
     {
       "detail": "StringLiteral(\"AnimationPlaybackEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#2"
     },
     {
       "detail": "StringLiteral(\"AudioProcessingEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#3"
     },
     {
       "detail": "StringLiteral(\"BeforeUnloadEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#4"
     },
     {
       "detail": "StringLiteral(\"BlobEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#5"
     },
     {
       "detail": "StringLiteral(\"ClipboardEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#6"
     },
     {
       "detail": "StringLiteral(\"CloseEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#7"
     },
     {
       "detail": "StringLiteral(\"CompositionEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#8"
     },
     {
       "detail": "StringLiteral(\"ContentVisibilityAutoStateChangeEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#9"
     },
     {
       "detail": "StringLiteral(\"CookieChangeEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#10"
     },
     {
       "detail": "StringLiteral(\"CustomEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#11"
     },
     {
       "detail": "StringLiteral(\"DeviceMotionEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#12"
     },
     {
       "detail": "StringLiteral(\"DeviceOrientationEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#13"
     },
     {
       "detail": "StringLiteral(\"DragEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#14"
     },
     {
       "detail": "StringLiteral(\"ErrorEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#15"
     },
     {
       "detail": "StringLiteral(\"Event\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#16"
     },
     {
       "detail": "StringLiteral(\"Events\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#17"
     },
     {
       "detail": "StringLiteral(\"FocusEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#18"
     },
     {
       "detail": "StringLiteral(\"FontFaceSetLoadEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#19"
     },
     {
       "detail": "StringLiteral(\"FormDataEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#20"
     },
     {
       "detail": "StringLiteral(\"GamepadEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#21"
     },
     {
       "detail": "StringLiteral(\"HashChangeEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#22"
     },
     {
       "detail": "StringLiteral(\"IDBVersionChangeEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#23"
     },
     {
       "detail": "StringLiteral(\"InputEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#24"
     },
     {
       "detail": "StringLiteral(\"KeyboardEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#25"
     },
     {
       "detail": "StringLiteral(\"MIDIConnectionEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#26"
     },
     {
       "detail": "StringLiteral(\"MIDIMessageEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#27"
     },
     {
       "detail": "StringLiteral(\"MediaEncryptedEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#28"
     },
     {
       "detail": "StringLiteral(\"MediaKeyMessageEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#29"
     },
     {
       "detail": "StringLiteral(\"MediaQueryListEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#30"
     },
     {
       "detail": "StringLiteral(\"MediaStreamTrackEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#31"
     },
     {
       "detail": "StringLiteral(\"MessageEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#32"
     },
     {
       "detail": "StringLiteral(\"MouseEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#33"
     },
     {
       "detail": "StringLiteral(\"MouseEvents\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#34"
     },
     {
       "detail": "StringLiteral(\"OfflineAudioCompletionEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#35"
     },
     {
       "detail": "StringLiteral(\"PageRevealEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#36"
     },
     {
       "detail": "StringLiteral(\"PageSwapEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#37"
     },
     {
       "detail": "StringLiteral(\"PageTransitionEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#38"
     },
     {
       "detail": "StringLiteral(\"PaymentMethodChangeEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#39"
     },
     {
       "detail": "StringLiteral(\"PaymentRequestUpdateEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#40"
     },
     {
       "detail": "StringLiteral(\"PictureInPictureEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#41"
     },
     {
       "detail": "StringLiteral(\"PointerEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#42"
     },
     {
       "detail": "StringLiteral(\"PopStateEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#43"
     },
     {
       "detail": "StringLiteral(\"ProgressEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#44"
     },
     {
       "detail": "StringLiteral(\"PromiseRejectionEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#45"
     },
     {
       "detail": "StringLiteral(\"RTCDTMFToneChangeEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#46"
     },
     {
       "detail": "StringLiteral(\"RTCDataChannelEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#47"
     },
     {
       "detail": "StringLiteral(\"RTCErrorEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#48"
     },
     {
       "detail": "StringLiteral(\"RTCPeerConnectionIceErrorEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#49"
     },
     {
       "detail": "StringLiteral(\"RTCPeerConnectionIceEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#50"
     },
     {
       "detail": "StringLiteral(\"RTCTrackEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#51"
     },
     {
       "detail": "StringLiteral(\"SecurityPolicyViolationEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#52"
     },
     {
       "detail": "StringLiteral(\"SpeechSynthesisErrorEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#53"
     },
     {
       "detail": "StringLiteral(\"SpeechSynthesisEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#54"
     },
     {
       "detail": "StringLiteral(\"StorageEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#55"
     },
     {
       "detail": "StringLiteral(\"SubmitEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#56"
     },
     {
       "detail": "StringLiteral(\"TextEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#57"
     },
     {
       "detail": "StringLiteral(\"ToggleEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#58"
     },
     {
       "detail": "StringLiteral(\"TouchEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#59"
     },
     {
       "detail": "StringLiteral(\"TrackEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#60"
     },
     {
       "detail": "StringLiteral(\"TransitionEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#61"
     },
     {
       "detail": "StringLiteral(\"UIEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#62"
     },
     {
       "detail": "StringLiteral(\"UIEvents\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#63"
     },
     {
       "detail": "StringLiteral(\"WebGLContextEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#64"
     },
     {
       "detail": "StringLiteral(\"WheelEvent\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.createEvent parameter eventInterface"
+      "source": "Document.createEvent parameter eventInterface#65"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -3992,17 +4147,17 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Document.getElementsByTagName"
+      "source": "Document.getElementsByTagName#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Document.getElementsByTagName"
+      "source": "Document.getElementsByTagName#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Document.getElementsByTagName"
+      "source": "Document.getElementsByTagName#4"
     },
     {
       "detail": "StringLiteral(\"http://www.w3.org/1999/xhtml\")",
@@ -4012,12 +4167,12 @@
     {
       "detail": "StringLiteral(\"http://www.w3.org/2000/svg\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.getElementsByTagNameNS parameter namespaceURI"
+      "source": "Document.getElementsByTagNameNS parameter namespaceURI#2"
     },
     {
       "detail": "StringLiteral(\"http://www.w3.org/1998/Math/MathML\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Document.getElementsByTagNameNS parameter namespaceURI"
+      "source": "Document.getElementsByTagNameNS parameter namespaceURI#3"
     },
     {
       "detail": "Null",
@@ -4242,17 +4397,12 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Element.closest"
+      "source": "Element.closest#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Element.closest"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "Element.getElementsByTagName"
+      "source": "Element.closest#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -4262,12 +4412,17 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Element.getElementsByTagName"
+      "source": "Element.getElementsByTagName#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "Element.getElementsByTagName"
+      "source": "Element.getElementsByTagName#3"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Element.getElementsByTagName#4"
     },
     {
       "detail": "StringLiteral(\"http://www.w3.org/1999/xhtml\")",
@@ -4277,12 +4432,12 @@
     {
       "detail": "StringLiteral(\"http://www.w3.org/2000/svg\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Element.getElementsByTagNameNS parameter namespaceURI"
+      "source": "Element.getElementsByTagNameNS parameter namespaceURI#2"
     },
     {
       "detail": "StringLiteral(\"http://www.w3.org/1998/Math/MathML\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "Element.getElementsByTagNameNS parameter namespaceURI"
+      "source": "Element.getElementsByTagNameNS parameter namespaceURI#3"
     },
     {
       "detail": "generated bindings require explicit TypeScript annotations",
@@ -5357,17 +5512,17 @@
     {
       "detail": "StringLiteral(\"bitmaprenderer\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "HTMLCanvasElement.getContext parameter contextId"
+      "source": "HTMLCanvasElement.getContext parameter contextId#2"
     },
     {
       "detail": "StringLiteral(\"webgl\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "HTMLCanvasElement.getContext parameter contextId"
+      "source": "HTMLCanvasElement.getContext parameter contextId#3"
     },
     {
       "detail": "StringLiteral(\"webgl2\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "HTMLCanvasElement.getContext parameter contextId"
+      "source": "HTMLCanvasElement.getContext parameter contextId#4"
     },
     {
       "detail": "Any",
@@ -5612,7 +5767,7 @@
     {
       "detail": "only named properties and methods are supported",
       "reason": "ts_bindgen.unsupported_interface_signature",
-      "source": "HTMLFormElement.index_signature"
+      "source": "HTMLFormElement.index_signature#2"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -7492,7 +7647,7 @@
     {
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
-      "source": "MessagePort.postMessage parameter message"
+      "source": "MessagePort.postMessage parameter message#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -7837,17 +7992,17 @@
     {
       "detail": "StringLiteral(\"bitmaprenderer\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "OffscreenCanvas.getContext parameter contextId"
+      "source": "OffscreenCanvas.getContext parameter contextId#2"
     },
     {
       "detail": "StringLiteral(\"webgl\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "OffscreenCanvas.getContext parameter contextId"
+      "source": "OffscreenCanvas.getContext parameter contextId#3"
     },
     {
       "detail": "StringLiteral(\"webgl2\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "OffscreenCanvas.getContext parameter contextId"
+      "source": "OffscreenCanvas.getContext parameter contextId#4"
     },
     {
       "detail": "Any",
@@ -7922,22 +8077,17 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ParentNode.querySelector"
+      "source": "ParentNode.querySelector#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ParentNode.querySelector"
+      "source": "ParentNode.querySelector#3"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ParentNode.querySelector"
-    },
-    {
-      "detail": "TypeScript type shape is outside the first DOM binding slice",
-      "reason": "ts_bindgen.unsupported_type",
-      "source": "ParentNode.querySelectorAll"
+      "source": "ParentNode.querySelector#4"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -7947,12 +8097,17 @@
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ParentNode.querySelectorAll"
+      "source": "ParentNode.querySelectorAll#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
       "reason": "ts_bindgen.unsupported_type",
-      "source": "ParentNode.querySelectorAll"
+      "source": "ParentNode.querySelectorAll#3"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "ParentNode.querySelectorAll#4"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -10632,7 +10787,7 @@
     {
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
-      "source": "ServiceWorker.postMessage parameter message"
+      "source": "ServiceWorker.postMessage parameter message#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -10992,7 +11147,7 @@
     {
       "detail": "StringLiteral(\"jwk\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "SubtleCrypto.exportKey parameter format"
+      "source": "SubtleCrypto.exportKey parameter format#2"
     },
     {
       "detail": "StringLiteral(\"Ed25519\")",
@@ -11007,7 +11162,7 @@
     {
       "detail": "StringLiteral(\"jwk\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "SubtleCrypto.importKey parameter format"
+      "source": "SubtleCrypto.importKey parameter format#2"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -11208,11 +11363,6 @@
       "detail": "top-level variables and constructors are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_variable",
       "source": "std.js.Dom.URL"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.webkitURL"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -13242,167 +13392,167 @@
     {
       "detail": "StringLiteral(\"EXT_blend_minmax\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#2"
     },
     {
       "detail": "StringLiteral(\"EXT_color_buffer_float\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#3"
     },
     {
       "detail": "StringLiteral(\"EXT_color_buffer_half_float\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#4"
     },
     {
       "detail": "StringLiteral(\"EXT_float_blend\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#5"
     },
     {
       "detail": "StringLiteral(\"EXT_frag_depth\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#6"
     },
     {
       "detail": "StringLiteral(\"EXT_sRGB\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#7"
     },
     {
       "detail": "StringLiteral(\"EXT_shader_texture_lod\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#8"
     },
     {
       "detail": "StringLiteral(\"EXT_texture_compression_bptc\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#9"
     },
     {
       "detail": "StringLiteral(\"EXT_texture_compression_rgtc\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#10"
     },
     {
       "detail": "StringLiteral(\"EXT_texture_filter_anisotropic\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#11"
     },
     {
       "detail": "StringLiteral(\"KHR_parallel_shader_compile\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#12"
     },
     {
       "detail": "StringLiteral(\"OES_element_index_uint\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#13"
     },
     {
       "detail": "StringLiteral(\"OES_fbo_render_mipmap\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#14"
     },
     {
       "detail": "StringLiteral(\"OES_standard_derivatives\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#15"
     },
     {
       "detail": "StringLiteral(\"OES_texture_float\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#16"
     },
     {
       "detail": "StringLiteral(\"OES_texture_float_linear\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#17"
     },
     {
       "detail": "StringLiteral(\"OES_texture_half_float\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#18"
     },
     {
       "detail": "StringLiteral(\"OES_texture_half_float_linear\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#19"
     },
     {
       "detail": "StringLiteral(\"OES_vertex_array_object\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#20"
     },
     {
       "detail": "StringLiteral(\"OVR_multiview2\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#21"
     },
     {
       "detail": "StringLiteral(\"WEBGL_color_buffer_float\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#22"
     },
     {
       "detail": "StringLiteral(\"WEBGL_compressed_texture_astc\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#23"
     },
     {
       "detail": "StringLiteral(\"WEBGL_compressed_texture_etc\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#24"
     },
     {
       "detail": "StringLiteral(\"WEBGL_compressed_texture_etc1\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#25"
     },
     {
       "detail": "StringLiteral(\"WEBGL_compressed_texture_pvrtc\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#26"
     },
     {
       "detail": "StringLiteral(\"WEBGL_compressed_texture_s3tc\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#27"
     },
     {
       "detail": "StringLiteral(\"WEBGL_compressed_texture_s3tc_srgb\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#28"
     },
     {
       "detail": "StringLiteral(\"WEBGL_debug_renderer_info\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#29"
     },
     {
       "detail": "StringLiteral(\"WEBGL_debug_shaders\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#30"
     },
     {
       "detail": "StringLiteral(\"WEBGL_depth_texture\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#31"
     },
     {
       "detail": "StringLiteral(\"WEBGL_draw_buffers\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#32"
     },
     {
       "detail": "StringLiteral(\"WEBGL_lose_context\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#33"
     },
     {
       "detail": "StringLiteral(\"WEBGL_multi_draw\")",
       "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "WebGLRenderingContextBase.getExtension parameter extensionName"
+      "source": "WebGLRenderingContextBase.getExtension parameter extensionName#34"
     },
     {
       "detail": "Any",
@@ -15122,7 +15272,7 @@
     {
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
-      "source": "Window.postMessage parameter message"
+      "source": "Window.postMessage parameter message#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -15267,7 +15417,7 @@
     {
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
-      "source": "Worker.postMessage parameter message"
+      "source": "Worker.postMessage parameter message#2"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -15535,14 +15685,464 @@
       "source": "std.js.Dom.XSLTProcessor"
     },
     {
-      "detail": "ambient TypeScript modules are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_module",
-      "source": "std.js.Dom.CSS"
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.highlights"
     },
     {
-      "detail": "ambient TypeScript modules are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_module",
-      "source": "std.js.Dom.WebAssembly"
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.Hz"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.Q"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cap"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.ch"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cm"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cqb"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cqh"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cqi"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cqmax"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cqmin"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.cqw"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.deg"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dpcm"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dpi"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dppx"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dvb"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dvh"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dvi"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dvmax"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dvmin"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.dvw"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.em"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.escape"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.ex"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.fr"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.grad"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.ic"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.kHz"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.lh"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.lvb"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.lvh"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.lvi"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.lvmax"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.lvmin"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.lvw"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.mm"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.ms"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.number"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.pc"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.percent"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.pt"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.px"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.rad"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.rcap"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.rch"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.registerProperty"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.rem"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.rex"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.ric"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.rlh"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.s"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.supports"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.supports#2"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.svb"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.svh"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.svi"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.svmax"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.svmin"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.svw"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.turn"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.vb"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.vh"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.vi"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.vmax"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.vmin"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.vw"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.CompileError"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Global.value"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "Global.valueOf"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.Global"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.Instance"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.LinkError"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.Memory"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.Module"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.RuntimeError"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Table.get return"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Table.grow parameter value"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Table.set parameter value"
+    },
+    {
+      "detail": "top-level variables and constructors are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_variable",
+      "source": "std.js.Dom.Table"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "ValueTypeMap.externref"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "ValueTypeMap.i64"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "ValueTypeMap.v128"
+    },
+    {
+      "detail": "unsupported type alias target StringLiteral(\"function\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "std.js.Dom.WebAssembly.ImportExportKind"
+    },
+    {
+      "detail": "unsupported type alias target StringLiteral(\"anyfunc\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
+      "source": "std.js.Dom.WebAssembly.TableKind"
+    },
+    {
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
+      "source": "std.js.Dom.WebAssembly.ValueType"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.compile"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.compileStreaming"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.instantiate"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.instantiate#2"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.instantiateStreaming"
+    },
+    {
+      "detail": "top-level functions are not emitted yet",
+      "reason": "ts_bindgen.unsupported_top_level_function",
+      "source": "std.js.Dom.validate"
     },
     {
       "detail": "Any",
@@ -15785,8 +16385,8 @@
       "source": "WebCodecsErrorCallback.call_signature"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Dom.ElementTagNameMap"
     },
     {
@@ -16117,7 +16717,7 @@
     {
       "detail": "top-level functions are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_function",
-      "source": "std.js.Dom.postMessage"
+      "source": "std.js.Dom.postMessage#2"
     },
     {
       "detail": "top-level functions are not emitted yet",
@@ -16157,7 +16757,7 @@
     {
       "detail": "top-level functions are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_function",
-      "source": "std.js.Dom.scroll"
+      "source": "std.js.Dom.scroll#2"
     },
     {
       "detail": "top-level functions are not emitted yet",
@@ -16167,7 +16767,7 @@
     {
       "detail": "top-level functions are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_function",
-      "source": "std.js.Dom.scrollBy"
+      "source": "std.js.Dom.scrollBy#2"
     },
     {
       "detail": "top-level functions are not emitted yet",
@@ -16177,7 +16777,7 @@
     {
       "detail": "top-level functions are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_function",
-      "source": "std.js.Dom.scrollTo"
+      "source": "std.js.Dom.scrollTo#2"
     },
     {
       "detail": "top-level functions are not emitted yet",
@@ -16872,7 +17472,7 @@
     {
       "detail": "top-level functions are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_function",
-      "source": "std.js.Dom.createImageBitmap"
+      "source": "std.js.Dom.createImageBitmap#2"
     },
     {
       "detail": "top-level functions are not emitted yet",
@@ -16917,7 +17517,7 @@
     {
       "detail": "top-level functions are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_function",
-      "source": "std.js.Dom.addEventListener"
+      "source": "std.js.Dom.addEventListener#2"
     },
     {
       "detail": "top-level functions are not emitted yet",
@@ -16927,1361 +17527,1016 @@
     {
       "detail": "top-level functions are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_function",
-      "source": "std.js.Dom.removeEventListener"
+      "source": "std.js.Dom.removeEventListener#2"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.AlgorithmIdentifier"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.AllowSharedBufferSource"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Dom.AutoFill"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Dom.AutoFillField"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Dom.AutoFillSection"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.Base64URLString"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.BigInteger"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.BlobPart"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.BodyInit"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.BufferSource"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.COSEAlgorithmIdentifier"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.CSSKeywordish"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.CSSNumberish"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.CSSPerspectiveValue"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.CSSUnparsedSegment"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.CanvasImageSource"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ClipboardItemData"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ClipboardItems"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ConstrainBoolean"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ConstrainDOMString"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ConstrainDouble"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ConstrainULong"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.CookieList"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.DOMHighResTimeStamp"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.EpochTimeStamp"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.EventListenerOrEventListenerObject"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.FileSystemWriteChunkType"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.Float32List"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.FormDataEntryValue"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLbitfield"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLboolean"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLclampf"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLenum"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLfloat"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLint"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLint64"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLintptr"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLsizei"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLsizeiptr"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLuint"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.GLuint64"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.HTMLOrSVGImageElement"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.HTMLOrSVGScriptElement"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.HashAlgorithmIdentifier"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Dom.HeadersInit"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.IDBValidKey"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ImageBitmapSource"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ImageBufferSource"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ImageDataArray"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.Int32List"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.LineAndPositionSetting"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.MediaProvider"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.MessageEventSource"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"attributes\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MutationRecordType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.NamedCurve"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.OffscreenRenderingContext"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.OnBeforeUnloadEventHandler"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.OnErrorEventHandler"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Dom.OptionalPostfixToken"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "TypeScript type shape is outside the first DOM binding slice",
+      "reason": "ts_bindgen.unsupported_type",
       "source": "std.js.Dom.OptionalPrefixToken"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.PerformanceEntryList"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.PublicKeyCredentialClientCapabilities"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "std.js.Dom.PublicKeyCredentialJSON"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.RTCRtpTransform"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ReadableStreamController"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ReadableStreamReadResult"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ReadableStreamReader"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.RenderingContext"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.ReportList"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.RequestInfo"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.TexImageSource"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.TimerHandler"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.Transferable"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.Uint32List"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.VibratePattern"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.WindowProxy"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
-      "source": "std.js.Dom.XMLHttpRequestBodyInit"
-    },
-    {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"center\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AlignSetting"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"discard\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AlphaOption"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"finished\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AnimationPlayState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"active\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AnimationReplaceState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"segments\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AppendMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"direct\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AttestationConveyancePreference"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"balanced\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AudioContextLatencyCategory"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AudioContextState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"f32\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AudioSampleFormat"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"cross-platform\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AuthenticatorAttachment"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"ble\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AuthenticatorTransport"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"billing\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutoFillAddressKind"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutoFillBase"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"email\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutoFillContactField"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"home\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutoFillContactKind"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"webauthn\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutoFillCredentialField"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"additional-name\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutoFillNormalField"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutoKeyword"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"a-rate\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AutomationRate"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"annexb\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.AvcBitstreamFormat"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"arraybuffer\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.BinaryType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"allpass\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.BiquadFilterType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"constant\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.BitrateMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"clamp\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CSSMathOperator"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"angle\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CSSNumericBaseType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanPlayTypeResult"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"inherit\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasDirection"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"evenodd\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasFillRule"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasFontKerning"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"condensed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasFontStretch"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"all-petite-caps\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasFontVariantCaps"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"butt\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasLineCap"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"bevel\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasLineJoin"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"center\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasTextAlign"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"alphabetic\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasTextBaseline"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CanvasTextRendering"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"clamped-max\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ChannelCountMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"discrete\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ChannelInterpretation"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"all\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ClientTypes"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CodecState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"p3\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ColorGamut"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"default\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ColorSpaceConversion"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"accumulate\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CompositeOperation"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"accumulate\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CompositeOperationOrAuto"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"deflate\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CompressionFormat"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"lax\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CookieSameSite"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"conditional\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.CredentialMediationRequirement"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"application/xhtml+xml\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.DOMParserSupportedType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.DirectionSetting"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"browser\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.DisplayCaptureSurfaceType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"exponential\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.DistanceModelType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"complete\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.DocumentReadyState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"hidden\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.DocumentVisibilityState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"delta\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.EncodedAudioChunkType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"delta\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.EncodedVideoChunkType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"decode\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.EndOfStreamError"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"native\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.EndingType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"directory\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.FileSystemHandleKind"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.FillLightMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.FillMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.FontDisplay"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"error\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.FontFaceLoadStatus"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"loaded\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.FontFaceSetLoadStatus"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.FullscreenNavigationUI"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"dual-rumble\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.GamepadHapticEffectType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"complete\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.GamepadHapticsResult"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.GamepadMappingType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"color\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.GlobalCompositeOperation"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"no-preference\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.HardwareAcceleration"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"smpteSt2086\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.HdrMetadataType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"grammar-error\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.HighlightType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"next\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.IDBCursorDirection"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"done\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.IDBRequestReadyState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"default\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.IDBTransactionDurability"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"readonly\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.IDBTransactionMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"flipY\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ImageOrientation"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"high\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ImageSmoothingQuality"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"afterbegin\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.InsertPosition"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"accumulate\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.IterationCompositeOperation"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"jwk\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.KeyFormat"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"private\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.KeyType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"decrypt\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.KeyUsage"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"quality\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.LatencyMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"center\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.LineAlignSetting"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"exclusive\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.LockMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"logged-in\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.LoginStatus"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MIDIPortConnectionState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"connected\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MIDIPortDeviceState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"input\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MIDIPortType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"file\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaDecodingType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"audioinput\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaDeviceKind"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"record\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaEncodingType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"individualization-request\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaKeyMessageType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed-by-application\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaKeySessionClosedReason"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"persistent-license\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaKeySessionType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"expired\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaKeyStatus"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"not-allowed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaKeysRequirement"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"nexttrack\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaSessionAction"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"none\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaSessionPlaybackState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"ended\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.MediaStreamTrackState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"back_forward\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.NavigationTimingType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"push\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.NavigationType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.NotificationDirection"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"default\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.NotificationPermission"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"2d\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.OffscreenRenderingContextId"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"ogg\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.OpusBitstreamFormat"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"landscape-primary\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.OrientationType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"custom\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.OscillatorType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"2x\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.OverSampleType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"HRTF\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PanningModelType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"fail\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PaymentComplete"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"delivery\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PaymentShippingType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"camera\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PermissionName"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"denied\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PermissionState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"alternate\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PlaybackDirection"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PositionAlignSetting"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"display-p3\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PredefinedColorSpace"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"default\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PremultiplyAlpha"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"attachment\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PresentationStyle"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"public-key\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PublicKeyCredentialType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auth\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.PushEncryptionKeyName"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"balanced\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCBundlePolicy"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCDataChannelState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"balanced\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCDegradationPreference"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"client\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCDtlsRole"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCDtlsTransportState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"delta\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCEncodedVideoFrameType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"data-channel-failure\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCErrorDetailType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"host\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceCandidateType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"rtcp\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceComponent"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"checking\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceConnectionState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"complete\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceGathererState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"complete\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceGatheringState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"tcp\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceProtocol"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"controlled\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceRole"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"active\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceTcpCandidateType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"all\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceTransportPolicy"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"checking\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCIceTransportState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCPeerConnectionState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"high\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCPriorityType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"bandwidth\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCQualityLimitationReason"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"require\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCRtcpMuxPolicy"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"inactive\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCRtpTransceiverDirection"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCSctpTransportState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"answer\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCSdpType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCSignalingState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"failed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCStatsIceCandidatePairState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"candidate-pair\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RTCStatsType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"byob\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ReadableStreamReaderMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"bytes\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ReadableStreamType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ReadyState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"inactive\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RecordingState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"always\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RedEyeReduction"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ReferrerPolicy"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"connected\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RemotePlaybackState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"default\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RequestCache"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"include\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RequestCredentials"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RequestDestination"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"cors\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RequestMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RequestPriority"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"error\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.RequestRedirect"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"discouraged\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ResidentKeyRequirement"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"border-box\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ResizeObserverBoxOptions"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"high\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ResizeQuality"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"basic\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ResponseType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ScrollBehavior"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"center\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ScrollLogicalPosition"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"auto\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ScrollRestoration"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ScrollSetting"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"enforce\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.SecurityPolicyViolationEventDisposition"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"end\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.SelectionMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"activated\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ServiceWorkerState"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"all\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ServiceWorkerUpdateViaCache"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"closed\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.ShadowRootMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"manual\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.SlotAssignmentMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"audio-busy\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.SpeechSynthesisErrorCode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"captions\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.TextTrackKind"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"disabled\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.TextTrackMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"direct\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.TouchType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"hlg\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.TransferFunction"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"discouraged\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.UserVerificationRequirement"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"bt470bg\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.VideoColorPrimaries"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"constant\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.VideoEncoderBitrateMode"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"environment\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.VideoFacingModeEnum"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"bt470bg\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.VideoMatrixCoefficients"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"BGRA\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.VideoPixelFormat"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"bt709\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.VideoTransferCharacteristics"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"screen\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.WakeLockType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"default\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.WebGLPowerPreference"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"default\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.WebTransportCongestionControl"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"session\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.WebTransportErrorSource"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"classic\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.WorkerType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"seek\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.WriteCommandType"
     },
     {
-      "detail": "type aliases are not emitted yet",
-      "reason": "ts_bindgen.unsupported_top_level_type_alias",
+      "detail": "unsupported type alias target StringLiteral(\"\")",
+      "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.XMLHttpRequestResponseType"
     }
   ],

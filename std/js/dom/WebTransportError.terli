@@ -1,0 +1,35 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WebTransportError
+ */
+module std.js.Dom.WebTransportError.
+
+/**
+ * The **`WebTransportError`** interface of the WebTransport API represents an error related to the API, which can arise from server errors, network connection problems, or client-initiated abort operations (for example, arising from a WritableStream.abort() call).
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportError)
+ */
+pub opaque type WebTransportError.
+
+/**
+ * The **`source`** read-only property of the WebTransportError interface returns an enumerated value indicating the source of the error.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportError/source)
+ */
+pub (value: WebTransportError) source(): WebTransportErrorSource.
+
+/**
+ * The **`streamErrorCode`** read-only property of the WebTransportError interface returns a number in the range 0-255 indicating the application protocol error code for this error, or `null` if one is not available.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportError/streamErrorCode)
+ */
+pub (value: WebTransportError) stream_error_code(): Option[std.js.Number.JsNumber].

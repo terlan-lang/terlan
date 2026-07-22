@@ -1,8 +1,8 @@
 module=std.js.Dom.HkdfParams
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16202389312469479953
-interface_hash=13617409695961587844
-interface_doc_hash=13617409695961587844
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5016322202226696139
+interface_hash=8872568342507033575
+interface_doc_hash=8872568342507033575
 deps=0

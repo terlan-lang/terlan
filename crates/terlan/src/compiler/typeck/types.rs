@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::terlan_syntax::span::Span;
 
 /// Identifier for an inference type variable.
@@ -11,6 +13,34 @@ use crate::terlan_syntax::span::Span;
 /// Transformation:
 /// - Keeps type variables compact and comparable without storing source names.
 pub type TypeVarId = usize;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FixedArraySize {
+    Known(usize),
+    Param(TypeVarId),
+}
+
+impl FixedArraySize {
+    pub(crate) fn substitute(self, mapping: &HashMap<TypeVarId, Type>) -> Self {
+        let Self::Param(id) = self else {
+            return self;
+        };
+        match mapping.get(&id) {
+            Some(Type::LiteralInt(value)) => usize::try_from(*value)
+                .map(Self::Known)
+                .unwrap_or(Self::Param(id)),
+            Some(Type::Var(next)) => Self::Param(*next),
+            _ => Self::Param(id),
+        }
+    }
+
+    pub(crate) fn rename(self, mapping: &HashMap<TypeVarId, TypeVarId>) -> Self {
+        match self {
+            Self::Known(_) => self,
+            Self::Param(id) => Self::Param(mapping.get(&id).copied().unwrap_or(id)),
+        }
+    }
+}
 
 /// Internal Terlan type model used by type checking.
 ///
@@ -39,6 +69,7 @@ pub enum Type {
 
     LiteralAtom(String),
     LiteralInt(i64),
+    LiteralBool(bool),
 
     Var(TypeVarId),
     Placeholder,
@@ -55,7 +86,7 @@ pub enum Type {
     Union(Vec<Type>),
     Map(Vec<MapFieldType>),
     FixedArray {
-        size: usize,
+        size: FixedArraySize,
         elem: Box<Type>,
     },
 
@@ -165,6 +196,7 @@ pub fn pretty_type(ty: &Type) -> String {
         Type::Never => "Never".to_string(),
         Type::LiteralAtom(atom) => atom.to_string(),
         Type::LiteralInt(value) => format!("{}", value),
+        Type::LiteralBool(value) => value.to_string(),
         Type::Var(id) => format!("T{}", id),
         Type::Placeholder => "_".to_string(),
         Type::Apply { constructor, args } => {
@@ -185,6 +217,10 @@ pub fn pretty_type(ty: &Type) -> String {
         ),
         Type::List(inner) => format!("List[{}]", pretty_type(inner)),
         Type::FixedArray { size, elem } => {
+            let size = match size {
+                FixedArraySize::Known(value) => value.to_string(),
+                FixedArraySize::Param(id) => format!("T{id}"),
+            };
             format!("FixedArray[{}, {}]", size, pretty_type(elem))
         }
         Type::Tuple(items) => format!(

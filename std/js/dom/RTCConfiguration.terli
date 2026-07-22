@@ -1,0 +1,29 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCConfiguration
+ */
+module std.js.Dom.RTCConfiguration.
+
+import type std.js.{Array}.
+
+pub opaque type RTCConfiguration.
+
+pub (value: RTCConfiguration) bundle_policy(): RTCBundlePolicy.
+
+pub (value: RTCConfiguration) certificates(): Array[RTCCertificate].
+
+pub (value: RTCConfiguration) ice_candidate_pool_size(): std.js.Number.JsNumber.
+
+pub (value: RTCConfiguration) ice_servers(): Array[RTCIceServer].
+
+pub (value: RTCConfiguration) ice_transport_policy(): RTCIceTransportPolicy.
+
+pub (value: RTCConfiguration) rtcp_mux_policy(): RTCRtcpMuxPolicy.

@@ -7,6 +7,8 @@ Declaration ::= { Annotation } DeclarationCore .
 DeclarationCore
   ::= ModuleDecl "."
    | ImportDecl "."
+   | ConstantDecl "."
+   | ConstFunctionDecl "."
    | TypeDecl "."
    | OpaqueTypeDecl "."
    | StructDecl "."
@@ -82,18 +84,29 @@ AnnotationValueType
    .
 AnnotationObjectTypeEntry ::= AnnotationKey ":" AnnotationValueType .
 
-TypeDecl ::= [ "pub" ] "type" TypeName [ TypeParams ] [ ImplementsClause ] "=" TypeExpr .
+ConstantDecl ::= [ "pub" ] "const" ConstName ":" TypeExpr "=" Expr .
+ConstFunctionDecl ::= [ "pub" ] "const" LowerIdent "(" [ ParamList ] ")" ":" TypeExpr "->" Expr .
+
+TypeDecl ::= [ "pub" ] "type" TypeName [ TypeParams ] ( ValuedUnionBody | [ ImplementsClause ] [ "=" TypeExpr ] ) .
+ValuedUnionBody ::= ":" TypeExpr "=" ValuedUnionArm { "|" ValuedUnionArm } .
+ValuedUnionArm ::= ConstName "=" Expr .
 
 OpaqueTypeDecl ::= [ "pub" ] "opaque" "type" TypeName [ TypeParams ] [ ImplementsClause ] [ "=" TypeExpr ] .
 
-StructDecl ::= [ "pub" ] "struct" TypeName [ StructIncludes ] [ ImplementsClause ] StructBody .
+StructDecl ::= [ "pub" ] "struct" TypeName [ TypeParams ] [ StructIncludes ] [ ImplementsClause ] StructBody .
 StructIncludes ::= "includes" TypeRef { "," TypeRef } .
 ImplementsClause ::= "implements" TraitRef { "," TraitRef } .
 
 ConstructorDecl ::= [ "pub" ] "constructor" TypeName [ TypeParams ] "{" ConstructorClause { ";" ConstructorClause } "}" .
 FunctionDecl ::= [ "pub" ] [ "macro" ] ( TypedFunction | ClauseFunction ) .
-TraitDecl ::= [ "pub" ] "trait" TypeName [ TypeParams ] [ "extends" TraitRef { "," TraitRef } ] "{" [ TraitMethodDecl { ";" TraitMethodDecl } [ ";" ] ] "}" .
-TraitImplDecl ::= [ "pub" ] "impl" TraitRef "for" TypeExpr "{" [ TraitImplMethod { ";" TraitImplMethod } [ ";" ] ] "}" .
+TraitDecl ::= [ "pub" ] "trait" TypeName [ TypeParams ] [ "extends" TraitRef { "," TraitRef } ] "{" { TraitMember } "}" .
+TraitMember ::= TraitMethodDecl | TraitConstDecl .
+TraitConstDecl ::= "const" ConstName ":" TypeExpr [ "=" Expr ] "." .
+TraitImplDecl ::= [ "pub" ] "impl" TraitImplRef "for" TypeExpr "{" { TraitImplMember } "}" .
+TraitImplMember ::= TraitImplMethod | TraitImplConst .
+TraitImplConst ::= "const" ConstName [ ":" TypeExpr ] "=" Expr "." .
+TraitImplRef ::= TypeRef [ "[" TraitImplArg { "," TraitImplArg } "]" ] .
+TraitImplArg ::= TypeExpr | TypeParam .
 
 MethodDecl ::= [ "pub" ] Receiver MethodFunction .
 Receiver ::= "(" [ "mut" ] LowerIdent ":" ReceiverType ")" .
@@ -169,7 +182,12 @@ HtmlBlockExpr ::= "html" RawBlock .
 
 TypeName ::= UpperIdent .
 TypeParams ::= "[" TypeParam { "," TypeParam } "]" .
-TypeParam ::= [ Variance ] TypeVar [ HigherKindArity ] .
+TypeParam ::= ConstTypeParam | [ Variance ] TypeVar [ HigherKindArity ] [ ImplicationConstraint ] .
+ConstTypeParam ::= "const" ConstName ":" ConstKind .
+ConstKind ::= "Int" | "Bool" | "Atom" .
+ImplicationConstraint ::= "=>" StructuralEvidenceShape .
+StructuralEvidenceShape ::= "{" ImplicationField { "," ImplicationField } "}" .
+ImplicationField ::= LowerIdent ":" TypeExpr .
 Variance ::= "+" | "-" .
 HigherKindArity ::= "[" "_" { "," "_" } "]" .
 
@@ -213,8 +231,9 @@ Constraint ::= TraitRef .
 
 Expr ::= LetExpr | AssignExpr .
 
-LetExpr ::= "let" LetBinding { ";" LetBinding } ";" Expr .
+LetExpr ::= "let" ( LetBinding ";" Expr | "{" RefutableLetBinding { ";" RefutableLetBinding } [ ";" ] "}" "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr ) .
 LetBinding ::= Pattern "=" Expr .
+RefutableLetBinding ::= Pattern "<-" Expr .
 AssignExpr ::= IndexAssignExpr | PipeExpr .
 IndexAssignExpr ::= PostfixExpr "[" Expr "]" "=" Expr .
 
@@ -304,6 +323,7 @@ ListPattern ::= "[" "]" | "[" Pattern { "," Pattern } "]" | "[" Pattern "|" Patt
 PrimaryPattern
   ::= "_"
    | Binding
+   | QualifiedConstantPattern
    | ConstructorPattern
    | AtomLiteralExpr
    | Int
@@ -315,8 +335,9 @@ PrimaryPattern
    | StructPattern
    | "(" Pattern ")"
    .
+QualifiedConstantPattern ::= NameRef { "." NameRef } "." ConstName .
 TuplePattern ::= "{" Pattern "," Pattern { "," Pattern } "}" .
-ConstructorPattern ::= ConstructorAtom [ "(" PatternList1 ")" ] .
+ConstructorPattern ::= ConstructorAtom [ "(" [ PatternList1 ] ")" ] .
 KeyedContainerPattern ::= "{" [ PatternKeyedField { "," PatternKeyedField } ] "}" .
 PatternKeyedField ::= KeyedFieldName ":" Pattern .
 StructPattern ::= TypeName "{" [ StructPatternField { "," StructPatternField } ] "}" .
@@ -352,6 +373,7 @@ ReservedWord
    | "markdown"
    | "html"
    | "pub"
+   | "const"
    | "macro"
    | "case"
    | "let"
@@ -377,6 +399,7 @@ ReservedWord
 
 NameRef ::= LowerIdent | UpperIdent .
 Identifier ::= LowerIdent | UpperIdent .
+ConstName ::= UpperIdent .
 
 LowerIdent ::= LowerLetter { IdentContinue } .
 UpperIdent ::= UpperLetter { IdentContinue } .
@@ -395,7 +418,8 @@ DecimalInt ::= Digit { Digit } .
 BinaryInt ::= "0b" BinaryDigit { BinaryDigit } .
 HexInt ::= "0x" HexDigit { HexDigit } .
 OctalInt ::= "0o" OctalDigit { OctalDigit } .
-Float ::= Digit { Digit } "." Digit { Digit } .
+Float ::= DecimalInt ( "." DecimalInt [ Exponent ] | Exponent ) .
+Exponent ::= ( "e" | "E" ) [ "+" | "-" ] DecimalInt .
 StringLiteral ::= "\"" { StringChar } "\"" .
 
 BinaryDigit ::= "0" | "1" .

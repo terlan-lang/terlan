@@ -1,0 +1,71 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface TextTrackCue
+ */
+module std.js.Dom.TextTrackCue.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`TextTrackCue`** interface of the WebVTT API is the abstract base class for the various derived cue types, such as VTTCue; you will work with these derived types rather than the base class.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue)
+ */
+pub opaque type TextTrackCue.
+
+/**
+ * The **`endTime`** property of the TextTrackCue interface returns and sets the end time of the cue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/endTime)
+ */
+pub (value: TextTrackCue) end_time(): JsNumber.
+
+/**
+ * The **`id`** property of the TextTrackCue interface returns and sets the identifier for this cue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/id)
+ */
+pub (value: TextTrackCue) id(): JsString.
+
+/**
+ * The **`pauseOnExit`** property of the TextTrackCue interface returns or sets the flag indicating whether playback of the media should pause when the end of the range to which this cue applies is reached.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/pauseOnExit)
+ */
+pub (value: TextTrackCue) pause_on_exit(): Bool.
+
+/**
+ * The **`startTime`** property of the TextTrackCue interface returns and sets the start time of the cue.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/startTime)
+ */
+pub (value: TextTrackCue) start_time(): JsNumber.
+
+/**
+ * The **`track`** read-only property of the TextTrackCue interface returns the TextTrack object that this cue belongs to.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/track)
+ */
+pub (value: TextTrackCue) track(): Option[TextTrack].
+
+pub (value: TextTrackCue) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: TextTrackCue) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

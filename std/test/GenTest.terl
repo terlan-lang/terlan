@@ -1,0 +1,308 @@
+/**
+ * Deterministic generator helper coverage.
+ *
+ * `std.test.GenTest` validates the initial finite generator surface used by
+ * property-style tests.
+ */
+module std.test.GenTest.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.range.Range.
+import std.test.Gen.{atoms, booleans, constant, elements, filter, floats, frequency, int_range, list_of, map, map_of, object_of, one_of, option_of, pair_of, range_of, recursive, result_of, sample, sized, strings}.
+import std.test.Test.{assert_equal}.
+
+import type std.test.Gen.
+
+pub type GeneratedUser = {name: String, age: Int}.
+
+/**
+ * Verifies a constant generator yields one stable sample.
+ *
+ * Input: one integer value.
+ * Output: `true` when sampling returns exactly that value.
+ * Transformation: checks the replayable constant generator shape.
+ */
+@test
+pub constant_generator_replays_one_value(): Bool ->
+    assert_equal([42], sample(constant(42))).
+
+/**
+ * Verifies explicit element generators preserve source order.
+ *
+ * Input: list of integer samples.
+ * Output: `true` when sampling returns the same list.
+ * Transformation: checks deterministic sample ordering.
+ */
+@test
+pub elements_generator_preserves_values(): Bool ->
+    assert_equal([1, 2, 3], sample(elements([1, 2, 3]))).
+
+/**
+ * Verifies integer ranges expand inclusively.
+ *
+ * Input: inclusive integer range bounds.
+ * Output: `true` when every integer between the bounds appears once.
+ * Transformation: checks deterministic range expansion.
+ */
+@test
+pub int_range_generator_expands_inclusive_bounds(): Bool ->
+    assert_equal([1, 2, 3], sample(int_range(1, 3))).
+
+/**
+ * Verifies range generators use the public std range constructors.
+ *
+ * Input: integer start and stop bounds.
+ * Output: `true` when inclusive and exclusive range samples keep their public
+ * constructor shape.
+ * Transformation: checks generated ranges through the public `Range`
+ * constructor so the test stays executable under the VM.
+ */
+@test
+pub range_of_generator_returns_public_range_values(): Bool ->
+    assert_equal([Range(1, 3, 1, true), Range(1, 3, 1, false)], sample(range_of(1, 3))).
+
+/**
+ * Verifies the canonical boolean generator order.
+ *
+ * Input: no runtime input.
+ * Output: `true` when samples are `false` and `true` in order.
+ * Transformation: checks deterministic Bool generation.
+ */
+@test
+pub booleans_generator_returns_false_then_true(): Bool ->
+    assert_equal([false, true], sample(booleans())).
+
+/**
+ * Verifies the canonical string generator order.
+ *
+ * Input: no runtime input.
+ * Output: `true` when empty and ASCII samples appear in order.
+ * Transformation: checks deterministic String generation.
+ */
+@test
+pub strings_generator_returns_core_string_samples(): Bool ->
+    assert_equal(["", "terlan", "sample"], sample(strings())).
+
+/**
+ * Verifies the canonical finite float generator order.
+ *
+ * Input: no runtime input.
+ * Output: `true` when zero, positive, and negative finite floats appear in
+ * order.
+ * Transformation: checks deterministic Float generation.
+ */
+@test
+pub floats_generator_returns_finite_samples(): Bool ->
+    assert_equal([0.0, 1.5, -1.5], sample(floats())).
+
+/**
+ * Verifies the canonical atom generator order.
+ *
+ * Input: no runtime input.
+ * Output: `true` when representative finite atom samples appear in order.
+ * Transformation: checks deterministic Atom generation without runtime atom
+ * creation.
+ */
+@test
+pub atoms_generator_returns_finite_samples(): Bool ->
+    assert_equal([Atom["ok"], Atom["error"]], sample(atoms())).
+
+/**
+ * Verifies one-of combines two deterministic generators.
+ *
+ * Input: two constant generators.
+ * Output: `true` when samples from the left generator precede right samples.
+ * Transformation: checks deterministic composition without random selection.
+ */
+@test
+pub one_of_generator_combines_samples_in_order(): Bool ->
+    assert_equal([1, 2], sample(one_of(constant(1), constant(2)))).
+
+/**
+ * Verifies weighted generators expand deterministically.
+ *
+ * Input: two weighted constant generators.
+ * Output: `true` when weights repeat samples in source order.
+ * Transformation: checks frequency expansion without random selection.
+ */
+@test
+pub frequency_generator_repeats_weighted_samples(): Bool ->
+    assert_equal([1, 1, 2], sample(frequency([{2, constant(1)}, {1, constant(2)}]))).
+
+/**
+ * Verifies non-positive frequency weights contribute no samples.
+ *
+ * Input: zero, negative, and positive weighted generators.
+ * Output: `true` when only the positive-weight samples appear.
+ * Transformation: locks deterministic weighted generation for adversarial
+ * table rows without random selection.
+ */
+@test
+pub frequency_generator_ignores_nonpositive_weights(): Bool ->
+    assert_equal([3, 3], sample(frequency([{0, constant(1)}, {-1, constant(2)}, {2, constant(3)}]))).
+
+/**
+ * Verifies filtered generators keep accepted samples.
+ *
+ * Input: integer range and lower-bound predicate.
+ * Output: `true` when only matching samples remain.
+ * Transformation: checks deterministic filtering in source order.
+ */
+@test
+pub filter_generator_keeps_matching_samples(): Bool ->
+    assert_equal([3, 4, 5], sample(filter(int_range(1, 5), (value) -> value > 2))).
+
+/**
+ * Verifies filtered generators can produce no samples.
+ *
+ * Input: integer range and impossible predicate.
+ * Output: `true` when the filtered generator samples as an empty typed list.
+ * Transformation: locks deterministic discard behavior for generated
+ * adversarial rows.
+ */
+@test
+pub filter_generator_returns_empty_when_no_samples_match(): Bool ->
+    assert_equal(List.new[Int](), sample(filter(int_range(1, 5), (value) -> value > 10))).
+
+/**
+ * Verifies mapped generators can create typed custom records.
+ *
+ * Input: integer generator and mapper building `GeneratedUser` values.
+ * Output: `true` when custom record samples preserve mapped fields.
+ * Transformation: checks user-defined domain generator construction from
+ * primitive samples.
+ */
+@test
+pub mapped_generator_builds_custom_record_values(): Bool ->
+    assert_equal([{name: "user", age: 1}, {name: "user", age: 2}], sample(map(elements([1, 2]), (age) -> {name: "user", age: age}))).
+
+/**
+ * Verifies sized generators pass the explicit bound to the builder.
+ *
+ * Input: size value and a generator-building callback.
+ * Output: `true` when the generated samples reflect the supplied size.
+ * Transformation: checks deterministic size threading without hidden
+ * randomness.
+ */
+@test
+pub sized_generator_threads_explicit_size(): Bool ->
+    assert_equal([1, 2, 3], sample(sized(3, (size) -> int_range(1, size)))).
+
+/**
+ * Verifies recursive generators apply a finite step count.
+ *
+ * Input: depth, base generator, and generator-building step.
+ * Output: `true` when the step is applied exactly once per positive depth.
+ * Transformation: checks bounded recursive generation without hidden
+ * recursion or random growth.
+ */
+@test
+pub recursive_generator_applies_bounded_steps(): Bool ->
+    assert_equal([1, 2, 2], sample(recursive(2, constant(1), (generator) -> one_of(generator, constant(2))))).
+
+/**
+ * Verifies optional generators include missing and present values.
+ *
+ * Input: payload generator with two integer samples.
+ * Output: `true` when `None` is first and payloads are wrapped as `Some`.
+ * Transformation: checks deterministic Option generation.
+ */
+@test
+pub option_of_generator_wraps_payload_samples(): Bool ->
+    assert_equal([none_int_option(), Some(1), Some(2)], sample(option_of(elements([1, 2])))).
+
+none_int_option(): Option[Int] ->
+    None.
+
+/**
+ * Verifies result generators include success samples before error samples.
+ *
+ * Input: success and error payload generators.
+ * Output: `true` when successes are wrapped as `Ok` before errors are wrapped
+ * as `Err`.
+ * Transformation: checks deterministic Result generation.
+ */
+@test
+pub result_of_generator_wraps_success_then_error_samples(): Bool ->
+    assert_equal([ok_int_result(), Ok(2), err_string_result()], sample(result_of(elements([1, 2]), elements(["bad"])))).
+
+/**
+ * Verifies list generators include empty and sample-list shapes.
+ *
+ * Input: element generator with two integer samples.
+ * Output: `true` when generated lists are empty and all samples in order.
+ * Transformation: checks the first bounded list-generation rule.
+ */
+@test
+pub list_of_generator_returns_empty_and_sample_list(): Bool ->
+    assert_equal([List.new[Int](), [1, 2]], sample(list_of(elements([1, 2])))).
+
+/**
+ * Verifies pair generators emit a deterministic Cartesian product.
+ *
+ * Input: two finite generators.
+ * Output: `true` when pairs are generated in left-major order.
+ * Transformation: checks bounded tuple generation.
+ */
+@test
+pub pair_of_generator_returns_left_major_pairs(): Bool ->
+    assert_equal([{1, "a"}, {1, "b"}, {2, "a"}, {2, "b"}], sample(pair_of(elements([1, 2]), elements(["a", "b"])))).
+
+/**
+ * Verifies pair generators return no rows when either side is empty.
+ *
+ * Input: one empty left-side generator and one empty right-side generator.
+ * Output: `true` when both generated pair lists are empty.
+ * Transformation: locks Cartesian-product identity behavior for generated
+ * property table rows.
+ */
+@test
+pub pair_of_generator_returns_empty_when_either_side_is_empty(): Bool ->
+    assert_equal(empty_pair_rows(), sample(pair_of(empty_int_generator(), elements(["a"])))) and assert_equal(empty_pair_rows(), sample(pair_of(elements([1]), empty_binary_generator()))).
+
+/**
+ * Verifies map generators emit empty and pair-built maps.
+ *
+ * Input: key and value generators.
+ * Output: `true` when samples contain an empty map and a populated map.
+ * Transformation: checks bounded map generation through map APIs.
+ */
+@test
+pub map_of_generator_returns_empty_and_pair_map(): Bool ->
+    case sample(map_of(elements(["alice", "bob"]), elements([1]))) {
+        [empty, generated] ->
+            assert_equal(0, empty.size()) and assert_equal(2, generated.size()) and assert_equal(Some(1), generated.get("alice")) and assert_equal(Some(1), generated.get("bob"));
+        _ -> false
+    }.
+
+/**
+ * Verifies object generators emit empty and pair-built objects.
+ *
+ * Input: string-key and value generators.
+ * Output: `true` when samples contain an empty object and a populated object.
+ * Transformation: checks bounded object generation through object APIs.
+ */
+@test
+pub object_of_generator_returns_empty_and_pair_object(): Bool ->
+    case sample(object_of(elements(["status", "mode"]), elements(["ok"]))) {
+        [empty, generated] ->
+            assert_equal(0, empty.size()) and assert_equal(2, generated.size()) and assert_equal(Some("ok"), generated.get("status")) and assert_equal(Some("ok"), generated.get("mode"));
+        _ -> false
+    }.
+
+empty_int_generator(): Gen[Int] ->
+    elements(List.new[Int]()).
+
+empty_binary_generator(): Gen[Binary] ->
+    elements(List.new[Binary]()).
+
+empty_pair_rows(): List[{Int, Binary}] ->
+    List.new[{Int, Binary}]().
+
+ok_int_result(): Result[Int, String] ->
+    Ok(1).
+
+err_string_result(): Result[Int, String] ->
+    Err("bad").

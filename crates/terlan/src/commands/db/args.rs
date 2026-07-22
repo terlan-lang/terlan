@@ -29,11 +29,13 @@ pub(super) enum DbCommand {
     Rebuild {
         directory: PathBuf,
         dev: bool,
+        confirm: bool,
         database_url: Option<String>,
     },
     Reset {
         directory: PathBuf,
         dev: bool,
+        confirm: bool,
         database_url: Option<String>,
     },
     Validate {
@@ -42,6 +44,12 @@ pub(super) enum DbCommand {
     Status {
         directory: PathBuf,
         database_url: Option<String>,
+    },
+    Snapshot {
+        directory: PathBuf,
+        database_url: Option<String>,
+        output: Option<PathBuf>,
+        check: bool,
     },
     Help,
 }
@@ -62,6 +70,7 @@ struct ParsedLiveDbArgs {
     directory: PathBuf,
     database_url: Option<String>,
     dev: bool,
+    confirm: bool,
 }
 
 /// Parses command-local `db` arguments.
@@ -132,6 +141,7 @@ pub(super) fn parse_db_command(args: &[String]) -> Result<DbCommand, String> {
             Ok(DbCommand::Rebuild {
                 directory: parsed.directory,
                 dev: parsed.dev,
+                confirm: parsed.confirm,
                 database_url: parsed.database_url,
             })
         }
@@ -143,6 +153,7 @@ pub(super) fn parse_db_command(args: &[String]) -> Result<DbCommand, String> {
             Ok(DbCommand::Reset {
                 directory: parsed.directory,
                 dev: parsed.dev,
+                confirm: parsed.confirm,
                 database_url: parsed.database_url,
             })
         }
@@ -172,8 +183,74 @@ pub(super) fn parse_db_command(args: &[String]) -> Result<DbCommand, String> {
                 database_url: parsed.database_url,
             })
         }
+        [subcommand, flag]
+            if subcommand == "snapshot" && matches!(flag.as_str(), "--help" | "-h") =>
+        {
+            Ok(DbCommand::Help)
+        }
+        [subcommand, rest @ ..] if subcommand == "snapshot" => parse_snapshot_args(rest),
         [subcommand, ..] => Err(format!("unknown terlc db subcommand: {subcommand}")),
     }
+}
+
+/// Parses database schema snapshot arguments.
+fn parse_snapshot_args(args: &[String]) -> Result<DbCommand, String> {
+    let mut directory = None;
+    let mut database_url = None;
+    let mut output = None;
+    let mut check = false;
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--database-url" => {
+                if database_url.is_some() {
+                    return Err("terlc db snapshot accepts one --database-url".to_string());
+                }
+                let Some(value) = args.get(index + 1) else {
+                    return Err("terlc db snapshot --database-url requires a URL".to_string());
+                };
+                database_url = Some(value.clone());
+                index += 2;
+            }
+            "--output" => {
+                if output.is_some() {
+                    return Err("terlc db snapshot accepts one --output".to_string());
+                }
+                let Some(value) = args.get(index + 1) else {
+                    return Err("terlc db snapshot --output requires a path".to_string());
+                };
+                output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--check" => {
+                if check {
+                    return Err("terlc db snapshot accepts one --check flag".to_string());
+                }
+                check = true;
+                index += 1;
+            }
+            flag if flag.starts_with('-') => {
+                return Err(format!("unknown terlc db snapshot option: {flag}"));
+            }
+            value => {
+                if directory.is_some() {
+                    return Err(
+                        "terlc db snapshot accepts at most one migration directory".to_string()
+                    );
+                }
+                directory = Some(PathBuf::from(value));
+                index += 1;
+            }
+        }
+    }
+
+    Ok(DbCommand::Snapshot {
+        directory: directory.unwrap_or_else(|| PathBuf::from(DEFAULT_MIGRATION_DIR)),
+        database_url,
+        output,
+        check,
+    })
 }
 
 /// Parses shared live database command arguments.
@@ -188,8 +265,8 @@ pub(super) fn parse_db_command(args: &[String]) -> Result<DbCommand, String> {
 ///
 /// Transformation:
 /// - Accepts at most one migration directory, at most one `--database-url`
-///   value, and optionally one `--dev` flag for destructive development
-///   commands.
+///   value, and optionally one `--dev` and `--confirm` flag for destructive
+///   development commands.
 fn parse_live_db_args(
     command: &str,
     args: &[String],
@@ -198,6 +275,7 @@ fn parse_live_db_args(
     let mut directory = None;
     let mut database_url = None;
     let mut dev = false;
+    let mut confirm = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -222,6 +300,16 @@ fn parse_live_db_args(
             "--dev" => {
                 return Err(format!("terlc db {command} does not accept --dev"));
             }
+            "--confirm" if allow_dev => {
+                if confirm {
+                    return Err(format!("terlc db {command} accepts one --confirm flag"));
+                }
+                confirm = true;
+                index += 1;
+            }
+            "--confirm" => {
+                return Err(format!("terlc db {command} does not accept --confirm"));
+            }
             flag if flag.starts_with('-') => {
                 return Err(format!("unknown terlc db {command} option: {flag}"));
             }
@@ -241,5 +329,6 @@ fn parse_live_db_args(
         directory: directory.unwrap_or_else(|| PathBuf::from(DEFAULT_MIGRATION_DIR)),
         database_url,
         dev,
+        confirm,
     })
 }

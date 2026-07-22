@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCRtpSendParameters
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=15894783646113837069
-interface_hash=3153979907759168993
-interface_doc_hash=3153979907759168993
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15776239718427660681
+interface_hash=5679838086256962423
+interface_doc_hash=5679838086256962423
 deps=0

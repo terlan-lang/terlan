@@ -1,0 +1,45 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaTrackConstraintSet
+ */
+module std.js.Dom.MediaTrackConstraintSet.
+
+pub opaque type MediaTrackConstraintSet.
+
+pub (value: MediaTrackConstraintSet) aspect_ratio(): ConstrainDouble.
+
+pub (value: MediaTrackConstraintSet) auto_gain_control(): ConstrainBoolean.
+
+pub (value: MediaTrackConstraintSet) background_blur(): ConstrainBoolean.
+
+pub (value: MediaTrackConstraintSet) channel_count(): ConstrainULong.
+
+pub (value: MediaTrackConstraintSet) device_id(): ConstrainDOMString.
+
+pub (value: MediaTrackConstraintSet) display_surface(): ConstrainDOMString.
+
+pub (value: MediaTrackConstraintSet) echo_cancellation(): ConstrainBoolean.
+
+pub (value: MediaTrackConstraintSet) facing_mode(): ConstrainDOMString.
+
+pub (value: MediaTrackConstraintSet) frame_rate(): ConstrainDouble.
+
+pub (value: MediaTrackConstraintSet) group_id(): ConstrainDOMString.
+
+pub (value: MediaTrackConstraintSet) height(): ConstrainULong.
+
+pub (value: MediaTrackConstraintSet) noise_suppression(): ConstrainBoolean.
+
+pub (value: MediaTrackConstraintSet) sample_rate(): ConstrainULong.
+
+pub (value: MediaTrackConstraintSet) sample_size(): ConstrainULong.
+
+pub (value: MediaTrackConstraintSet) width(): ConstrainULong.

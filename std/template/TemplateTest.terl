@@ -1,6 +1,9 @@
 module std.template.TemplateTest.
 
+import std.collections.List.
 import std.template.Template.
+import std.test.Test.{assert_equal}.
+
 import type std.collections.List.
 import type std.template.Template.Html.
 
@@ -11,5 +14,10 @@ pub accepts_html_list(value: List[Html]): List[Html] ->
     value.
 
 @test
-pub template_surface_is_declared(): Bool ->
-    true.
+pub trusted_and_empty_fragments_are_stable(): Bool ->
+    assert_equal(Template.trusted("<strong>Ada</strong>"), Template.trusted("<strong>" + "Ada</strong>")) and assert_equal(Template.trusted(""), Template.empty()).
+
+@test
+pub join_concatenates_trusted_fragments(): Bool ->
+    let fragments = List(Template.trusted("<p>"), Template.trusted("Ada"), Template.trusted("</p>"));
+    assert_equal(Template.trusted("<p>Ada</p>"), Template.join(fragments)).

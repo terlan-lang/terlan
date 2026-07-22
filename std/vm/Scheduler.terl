@@ -1,0 +1,491 @@
+/**
+ * Terlan VM distributed scheduler contract.
+ *
+ * `std.vm.Scheduler` exposes the source-level shape for VM-owned process
+ * placement, shard affinity, and controlled actor migration. The VM owns the
+ * actual placement table, migration sequencing, and scheduler event log.
+ */
+module std.vm.Scheduler.
+
+import type std.collections.List.
+
+/**
+ * Node represents one schedulable VM cluster node.
+ *
+ * Input: node identity and lifecycle state.
+ * Output: an opaque scheduler node descriptor.
+ * Transformation: keeps membership and load metadata inside the VM scheduler
+ * while allowing Terlan source to build placement scenarios.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Node.
+
+/**
+ * Scheduler represents one distributed scheduling table.
+ *
+ * Input: active node descriptors and policy decisions.
+ * Output: an opaque scheduler descriptor.
+ * Transformation: owns placement state, shard ownership, migration state, and
+ * event ordering inside the VM runtime.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Scheduler.
+
+/**
+ * Policy represents one placement policy descriptor.
+ *
+ * Input: policy constructor arguments such as pinned node or shard key.
+ * Output: an opaque scheduling policy.
+ * Transformation: keeps policy validation in the VM while exposing stable
+ * source-level placement choices.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Policy.
+
+/**
+ * Placement represents one VM placement decision.
+ *
+ * Input: actor identity and scheduling policy.
+ * Output: an opaque placement descriptor with selected node metadata.
+ * Transformation: records deterministic placement outcomes without leaking the
+ * scheduler table representation.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Placement.
+
+/**
+ * PlacementResult carries a placement decision and its updated scheduler.
+ *
+ * Input: one successful VM placement transition.
+ * Output: immutable scheduler and placement values from the same transition.
+ * Transformation: forces source code to thread the scheduler state that owns
+ * the new placement assignment and event.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type PlacementResult.
+
+/**
+ * Migration represents one controlled migration intent or outcome.
+ *
+ * Input: actor identity, source node, target node, and statefulness flag.
+ * Output: an opaque migration descriptor.
+ * Transformation: records snapshot, transfer, resume, rollback, and abort
+ * lifecycle state under VM ownership.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Migration.
+
+/**
+ * MigrationResult carries a migration state and its updated scheduler.
+ *
+ * Input: one successful migration request or phase transition.
+ * Output: immutable scheduler and migration values from the same transition.
+ * Transformation: keeps migration sequencing and event state synchronized in
+ * source code without exposing the VM scheduler representation.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type MigrationResult.
+
+/**
+ * MigrationOutcome represents one terminal migration result.
+ *
+ * Input: a committed, rolled-back, or aborted migration transition.
+ * Output: opaque outcome with kind, sequence, and optional reason metadata.
+ * Transformation: keeps terminal replay records VM-owned while exposing typed
+ * source inspection.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type MigrationOutcome.
+
+/**
+ * MigrationOutcomeResult carries a terminal outcome and updated scheduler.
+ *
+ * Input: one successful terminal migration transition.
+ * Output: immutable scheduler and outcome values from the same transition.
+ * Transformation: preserves the terminal event and exactly-once replay record
+ * in the scheduler state returned to source code.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type MigrationOutcomeResult.
+
+/**
+ * Event represents one scheduler notification.
+ *
+ * Input: placement, migration, throttling, or partition-response event data.
+ * Output: an opaque scheduler event descriptor.
+ * Transformation: exposes a typed event stream while the VM owns event
+ * sequencing and replay safety.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type Event.
+
+/**
+ * Builds one schedulable VM node descriptor.
+ *
+ * Input: node id and lifecycle state such as `active` or `unreachable`.
+ * Output: node descriptor.
+ * Transformation: normalizes node state for source-level scheduler scenarios.
+ */
+@target.vm {process_mailbox: true}
+pub node(node_id: String, state: String): Node ->
+    native.
+
+/**
+ * Builds a distributed scheduler from a node set.
+ *
+ * Input: node descriptors.
+ * Output: scheduler descriptor.
+ * Transformation: delegates active-node filtering and invalid-membership
+ * rejection to the VM distributed scheduler.
+ */
+@target.vm {process_mailbox: true}
+pub new(nodes: List[Node]): Scheduler ->
+    native.
+
+/**
+ * Builds a round-robin placement policy.
+ *
+ * Input: no runtime input.
+ * Output: policy descriptor.
+ * Transformation: asks the VM to place actors across active nodes in stable
+ * deterministic order.
+ */
+@target.vm {process_mailbox: true}
+pub round_robin(): Policy ->
+    native.
+
+/**
+ * Builds a least-connections placement policy.
+ *
+ * Input: no runtime input.
+ * Output: policy descriptor.
+ * Transformation: asks the VM to use tracked connection load with stable
+ * tie-breaks.
+ */
+@target.vm {process_mailbox: true}
+pub least_connections(): Policy ->
+    native.
+
+/**
+ * Builds a pinned-node placement policy.
+ *
+ * Input: node id.
+ * Output: policy descriptor.
+ * Transformation: asks the VM to validate that the target node is active
+ * before placing the actor.
+ */
+@target.vm {process_mailbox: true}
+pub pinned(node_id: String): Policy ->
+    native.
+
+/**
+ * Builds a shard-affinity policy with explicit fallback behavior.
+ *
+ * Input: shard key and fallback tag such as `reject` or `round_robin`.
+ * Output: policy descriptor.
+ * Transformation: lets the VM choose deterministic shard ownership and record
+ * whether fallback was required.
+ */
+@target.vm {process_mailbox: true}
+pub shard_affinity(shard_key: String, fallback: String): Policy ->
+    native.
+
+/**
+ * Updates tracked load for one node.
+ *
+ * Input: scheduler receiver, node id, and active connection count.
+ * Output: updated scheduler descriptor.
+ * Transformation: records load in the VM-owned scheduler table for later
+ * least-connections placement.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) update_load(node_id: String, active_connections: Int): Scheduler ->
+    native.
+
+/**
+ * Places one actor using a policy.
+ *
+ * Input: scheduler receiver, actor id, and policy descriptor.
+ * Output: placement transition with the decision and updated scheduler.
+ * Transformation: produces a deterministic placement decision and scheduler
+ * event inside the VM while preserving immutable source state.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) place(actor_id: String, policy: Policy): PlacementResult ->
+    native.
+
+/**
+ * Declares a route-level placement policy override.
+ *
+ * Input: scheduler receiver, route id, and policy descriptor.
+ * Output: updated scheduler descriptor.
+ * Transformation: records one immutable route policy declaration; repeating
+ * the same declaration is idempotent and conflicting declarations fail.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) declare_route_policy(route_id: String, policy: Policy): Scheduler ->
+    native.
+
+/**
+ * Declares an actor-group policy override inside one route.
+ *
+ * Input: scheduler receiver, route id, actor-group id, and policy descriptor.
+ * Output: updated scheduler descriptor.
+ * Transformation: records the most specific placement policy scope without
+ * exposing the VM scheduler registry.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) declare_actor_group_policy(route_id: String, actor_group_id: String, policy: Policy): Scheduler ->
+    native.
+
+/**
+ * Places an actor with a route policy override.
+ *
+ * Input: scheduler receiver, actor id, route id, and call-site default policy.
+ * Output: placement transition with the decision and updated scheduler.
+ * Transformation: uses the declared route policy when present and otherwise
+ * applies the supplied default policy.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) place_for_route(actor_id: String, route_id: String, default_policy: Policy): PlacementResult ->
+    native.
+
+/**
+ * Places an actor using actor-group, route, then default policy precedence.
+ *
+ * Input: scheduler receiver, actor id, route id, actor-group id, and default
+ * policy.
+ * Output: placement transition with the decision and updated scheduler.
+ * Transformation: resolves the most specific declared policy deterministically
+ * before delegating placement to the VM scheduler.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) place_for_actor_group(
+    actor_id: String,
+    route_id: String,
+    actor_group_id: String,
+    default_policy: Policy
+): PlacementResult ->
+    native.
+
+/**
+ * Refreshes scheduler membership from a new node set.
+ *
+ * Input: scheduler receiver and replacement node descriptors.
+ * Output: updated scheduler descriptor.
+ * Transformation: removes inactive placement targets and preserves scheduler
+ * state that remains valid after membership changes.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) refresh(nodes: List[Node]): Scheduler ->
+    native.
+
+/**
+ * Requests controlled migration for one actor.
+ *
+ * Input: scheduler receiver, actor id, source node, target node, and
+ * statefulness flag.
+ * Output: migration transition with the intent and updated scheduler.
+ * Transformation: records an ordered migration intent before VM-owned
+ * snapshot, transfer, resume, rollback, or abort work can proceed.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) request_migration(
+    actor_id: String,
+    from_node_id: String,
+    to_node_id: String,
+    stateful: Bool
+): MigrationResult ->
+    native.
+
+/**
+ * Advances a migration phase.
+ *
+ * Input: scheduler receiver, migration descriptor, and phase tag.
+ * Output: migration transition with the updated intent and scheduler.
+ * Transformation: delegates legal phase ordering to the VM scheduler.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) advance_migration(migration: Migration, phase: String): MigrationResult ->
+    native.
+
+/**
+ * Commits a migration that has reached the resuming phase.
+ *
+ * Input: scheduler receiver and current migration descriptor.
+ * Output: committed outcome and updated scheduler.
+ * Transformation: validates actor and sequence identity, records the terminal
+ * outcome, and emits one ordered commit event.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) commit_migration(migration: Migration): MigrationOutcomeResult ->
+    native.
+
+/**
+ * Rolls back an in-flight migration with a non-empty reason.
+ *
+ * Input: scheduler receiver, migration descriptor, and reason.
+ * Output: rolled-back outcome and updated scheduler.
+ * Transformation: removes the in-flight migration and records a replayable
+ * rollback event under VM ownership.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) rollback_migration(migration: Migration, reason: String): MigrationOutcomeResult ->
+    native.
+
+/**
+ * Aborts an in-flight migration with a non-empty reason.
+ *
+ * Input: scheduler receiver, migration descriptor, and reason.
+ * Output: aborted outcome and updated scheduler.
+ * Transformation: terminates the in-flight migration and records a replayable
+ * abort event under VM ownership.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) abort_migration(migration: Migration, reason: String): MigrationOutcomeResult ->
+    native.
+
+/**
+ * Reads scheduler events after an event cursor.
+ *
+ * Input: scheduler receiver and last observed event sequence.
+ * Output: ordered event descriptors.
+ * Transformation: exposes typed scheduler notifications without leaking the
+ * internal event log representation.
+ */
+@target.vm {process_mailbox: true}
+pub (scheduler: Scheduler) events_after(last_event_sequence: Int): List[Event] ->
+    native.
+
+/**
+ * Returns the updated scheduler from a placement transition.
+ */
+@target.vm {process_mailbox: true}
+pub placement_scheduler(result: PlacementResult): Scheduler ->
+    native.
+
+/**
+ * Returns the placement decision from a placement transition.
+ */
+@target.vm {process_mailbox: true}
+pub placement(result: PlacementResult): Placement ->
+    native.
+
+/**
+ * Returns the actor id recorded by a placement decision.
+ */
+@target.vm {process_mailbox: true}
+pub placement_actor_id(placement: Placement): String ->
+    native.
+
+/**
+ * Returns the selected node id from a placement decision.
+ */
+@target.vm {process_mailbox: true}
+pub placement_node_id(placement: Placement): String ->
+    native.
+
+/**
+ * Returns the policy name recorded by a placement decision.
+ */
+@target.vm {process_mailbox: true}
+pub placement_policy(placement: Placement): String ->
+    native.
+
+/**
+ * Reports whether placement used the policy fallback path.
+ */
+@target.vm {process_mailbox: true}
+pub placement_fallback_used(placement: Placement): Bool ->
+    native.
+
+/**
+ * Returns the updated scheduler from a migration transition.
+ */
+@target.vm {process_mailbox: true}
+pub migration_scheduler(result: MigrationResult): Scheduler ->
+    native.
+
+/**
+ * Returns the migration value from a migration transition.
+ */
+@target.vm {process_mailbox: true}
+pub migration(result: MigrationResult): Migration ->
+    native.
+
+/**
+ * Returns the actor id tracked by a migration.
+ */
+@target.vm {process_mailbox: true}
+pub migration_actor_id(migration: Migration): String ->
+    native.
+
+/**
+ * Returns the source node id tracked by a migration.
+ */
+@target.vm {process_mailbox: true}
+pub migration_from_node_id(migration: Migration): String ->
+    native.
+
+/**
+ * Returns the target node id tracked by a migration.
+ */
+@target.vm {process_mailbox: true}
+pub migration_to_node_id(migration: Migration): String ->
+    native.
+
+/**
+ * Returns the monotonic migration sequence.
+ */
+@target.vm {process_mailbox: true}
+pub migration_sequence(migration: Migration): Int ->
+    native.
+
+/**
+ * Reports whether a migration carries actor state.
+ */
+@target.vm {process_mailbox: true}
+pub migration_stateful(migration: Migration): Bool ->
+    native.
+
+/**
+ * Returns the current migration phase name.
+ */
+@target.vm {process_mailbox: true}
+pub migration_phase(migration: Migration): String ->
+    native.
+
+/**
+ * Returns the updated scheduler from a terminal migration transition.
+ */
+@target.vm {process_mailbox: true}
+pub outcome_scheduler(result: MigrationOutcomeResult): Scheduler ->
+    native.
+
+/**
+ * Returns the terminal outcome from a migration transition.
+ */
+@target.vm {process_mailbox: true}
+pub outcome(result: MigrationOutcomeResult): MigrationOutcome ->
+    native.
+
+/**
+ * Returns `committed`, `rolled_back`, or `aborted`.
+ */
+@target.vm {process_mailbox: true}
+pub outcome_kind(outcome: MigrationOutcome): String ->
+    native.
+
+/**
+ * Returns the migration sequence associated with an outcome.
+ */
+@target.vm {process_mailbox: true}
+pub outcome_sequence(outcome: MigrationOutcome): Int ->
+    native.
+
+/**
+ * Returns the terminal reason, or an empty String for commit.
+ */
+@target.vm {process_mailbox: true}
+pub outcome_reason(outcome: MigrationOutcome): String ->
+    native.

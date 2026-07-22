@@ -1,0 +1,40 @@
+/**
+ * Property coverage for portable range helpers.
+ *
+ * `std.range.RangePropertyTest` validates generated range values through
+ * public range APIs on the VM default path.
+ */
+module std.range.RangePropertyTest.
+
+import std.range.Range.{contains, length, to_list}.
+import std.test.Gen.{for_all, range_of}.
+import std.test.Test.{assert, assert_equal, each}.
+
+import type std.collections.List.
+import type std.range.Range.
+
+/**
+ * Verifies generated ranges materialize the same number of values they report.
+ *
+ * Input: generated inclusive and exclusive range values.
+ * Output: `true` when `length(range)` matches `to_list(range).length()`.
+ * Transformation: applies property generation to range materialization so
+ * traversal and counting cannot diverge.
+ */
+@test
+pub generated_ranges_match_materialized_length(): Bool ->
+    for_all(range_of(-2, 2), (range) -> let values = to_list(range);
+    assert_equal(length(range), values.length())).
+
+/**
+ * Verifies every materialized generated range value is contained by the range.
+ *
+ * Input: generated inclusive and exclusive range values.
+ * Output: `true` when every value from `to_list(range)` satisfies
+ * `contains(range, value)`.
+ * Transformation: checks the membership predicate against generated traversal
+ * output instead of one hand-picked range.
+ */
+@test
+pub generated_range_values_are_contained(): Bool ->
+    for_all(range_of(2, -2), (range) -> each(to_list(range), (value) -> assert(contains(range, value)))).

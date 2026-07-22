@@ -1,0 +1,59 @@
+module std.http.WebSocketTest.
+
+import std.http.WebSocket.
+import std.test.Test.{assert}.
+
+import type std.http.WebSocket.{Endpoint, Frame}.
+
+pub accepts_frame(value: Frame): Frame ->
+    value.
+
+pub accepts_endpoint(value: Endpoint): Endpoint ->
+    value.
+
+pub frame_descriptor_has_text(value: Dynamic): Bool ->
+    case value {
+        {tag, kind, payload} ->
+            tag == Atom["websocket_frame"] and kind == Atom["text"] and payload == "hello";
+        _ -> false
+    }.
+
+pub control_descriptor_has_close(value: Dynamic): Bool ->
+    case value {
+        {tag, kind} -> tag == Atom["websocket_frame"] and kind == Atom["close"];
+        _ -> false
+    }.
+
+pub control_descriptor_has_payload(
+    value: Dynamic,
+    expected_kind: Dynamic,
+    expected_payload: String
+): Bool ->
+    case value {
+        {tag, kind, payload} ->
+            tag == Atom["websocket_frame"] and kind == expected_kind and payload == expected_payload;
+        _ -> false
+    }.
+
+pub endpoint_descriptor_has_limits(value: Dynamic): Bool ->
+    case value {
+        {tag, max_pending_frames, max_frame_bytes} ->
+            tag == Atom["websocket_endpoint"] and max_pending_frames == 16 and max_frame_bytes == 4096;
+        _ -> false
+    }.
+
+@test
+pub websocket_text_records_typed_descriptor(): Bool ->
+    assert(frame_descriptor_has_text(WebSocket.text("hello"))).
+
+@test
+pub websocket_control_records_close_descriptor(): Bool ->
+    assert(control_descriptor_has_close(WebSocket.close())).
+
+@test
+pub websocket_control_records_ping_and_pong_descriptors(): Bool ->
+    assert(control_descriptor_has_payload(WebSocket.ping("hb"), Atom["ping"], "hb") and control_descriptor_has_payload(WebSocket.pong("hb"), Atom["pong"], "hb")).
+
+@test
+pub websocket_endpoint_records_channel_limits(): Bool ->
+    assert(endpoint_descriptor_has_limits(WebSocket.endpoint(16, 4096))).

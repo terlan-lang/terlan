@@ -1,0 +1,400 @@
+{
+  "schema": "terlan.c-abi.binding.v1",
+  "package": {
+    "namespace": "c_abi_fixture",
+    "adapter": "c-abi",
+    "crate_name": "terlan-c-abi-boundary-fixture"
+  },
+  "validation": {
+    "deterministic_regeneration": true,
+    "warning_denied_build": true,
+    "ownership_lifecycle": true,
+    "error_translation": true,
+    "smoke": "generated_fixture"
+  },
+  "c_metadata": {
+    "schema": "terlan.c.metadata.v1",
+    "producer": {
+      "name": "clang-libtooling",
+      "version": "fixture-1",
+      "format": "normalized-ast-json"
+    },
+    "abi_version": 1,
+    "header": "native_boundary.h",
+    "sources": ["native_boundary.c"],
+    "symbols": [
+      {
+        "id": "record.native_boundary",
+        "c_name": "TerlanCNativeBoundary",
+        "kind": "opaque_struct",
+        "status": "bind",
+        "ownership": "owned",
+        "destructor_symbol": "function.native_boundary_destroy",
+        "thread_safety": "thread_confined"
+      },
+      {
+        "id": "function.native_boundary_create",
+        "c_name": "terlan_c_native_boundary_create",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "value", "c_type": "int64_t", "direction": "input", "ownership": "value"},
+          {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
+        ]
+      },
+      {
+        "id": "function.native_boundary_value",
+        "c_name": "terlan_c_native_boundary_value",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "boundary", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
+          {"name": "out_value", "c_type": "int64_t *", "direction": "output", "ownership": "borrowed_call"}
+        ]
+      },
+      {
+        "id": "function.native_boundary_add",
+        "c_name": "terlan_c_native_boundary_add",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "boundary", "c_type": "TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
+          {"name": "delta", "c_type": "int64_t", "direction": "input", "ownership": "value"}
+        ]
+      },
+      {
+        "id": "function.native_boundary_sample_count",
+        "c_name": "terlan_c_native_boundary_sample_count",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "boundary", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
+          {"name": "out_count", "c_type": "int64_t *", "direction": "output", "ownership": "borrowed_call"}
+        ]
+      },
+      {
+        "id": "function.native_boundary_samples",
+        "c_name": "terlan_c_native_boundary_samples",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "boundary", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
+          {
+            "name": "out_samples",
+            "c_type": "int64_t **",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": {
+              "owner_parameter": "boundary",
+              "length_symbol": "function.native_boundary_sample_count",
+              "copy": "immediate"
+            }
+          }
+        ]
+      },
+      {
+        "id": "function.native_boundary_duplicate_handle",
+        "c_name": "terlan_c_native_boundary_duplicate_handle",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "boundary", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
+          {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
+        ]
+      },
+      {
+        "id": "function.call_dispatcher",
+        "c_name": "terlan_c_call_dispatcher",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "operator_name", "c_type": "const char *", "direction": "input", "ownership": "borrowed_call"},
+          {"name": "overload_name", "c_type": "const char *", "direction": "input", "ownership": "borrowed_call"},
+          {"name": "stack", "c_type": "uint64_t *", "direction": "in_out", "ownership": "borrowed_call"},
+          {"name": "extension_abi_version", "c_type": "uint64_t", "direction": "input", "ownership": "value"}
+        ]
+      },
+      {
+        "id": "function.native_boundary_destroy",
+        "c_name": "terlan_c_native_boundary_destroy",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {"name": "boundary", "c_type": "TerlanCNativeBoundary *", "direction": "input", "ownership": "transfer_full"}
+        ]
+      },
+      {
+        "id": "function.native_boundary_live_count",
+        "c_name": "terlan_c_native_boundary_live_count",
+        "kind": "function",
+        "status": "bind",
+        "returns": "int64_t",
+        "error_model": "infallible",
+        "parameters": []
+      },
+      {
+        "id": "unsupported.pointer",
+        "c_name": "terlan_c_unknown_pointer",
+        "kind": "function",
+        "status": "unsupported",
+        "unsupported_shape": "pointer_ownership_unknown",
+        "detail": "pointer parameter has no direction or ownership policy"
+      },
+      {
+        "id": "unsupported.lifetime",
+        "c_name": "terlan_c_borrowed_result",
+        "kind": "function",
+        "status": "unsupported",
+        "unsupported_shape": "borrowed_lifetime",
+        "detail": "borrowed result has no representable lifetime owner"
+      },
+      {
+        "id": "unsupported.destructor",
+        "c_name": "TerlanCUndestroyable",
+        "kind": "opaque_struct",
+        "status": "unsupported",
+        "unsupported_shape": "missing_destructor",
+        "detail": "owned opaque handle has no destruction function"
+      },
+      {
+        "id": "unsupported.callback",
+        "c_name": "terlan_c_register_callback",
+        "kind": "function",
+        "status": "unsupported",
+        "unsupported_shape": "unsupported_callback",
+        "detail": "callback concurrency and lifetime are not declared"
+      },
+      {
+        "id": "unsupported.variadic",
+        "c_name": "terlan_c_log",
+        "kind": "function",
+        "status": "unsupported",
+        "unsupported_shape": "unsupported_variadic_function",
+        "detail": "variadic arguments have no generated type contract"
+      },
+      {
+        "id": "unsupported.union",
+        "c_name": "TerlanCUnion",
+        "kind": "opaque_struct",
+        "status": "unsupported",
+        "unsupported_shape": "unsupported_union",
+        "detail": "union active-field semantics are not declared"
+      },
+      {
+        "id": "unsupported.bitfield",
+        "c_name": "TerlanCBitfield",
+        "kind": "opaque_struct",
+        "status": "unsupported",
+        "unsupported_shape": "unsupported_bitfield",
+        "detail": "bitfield layout is implementation-defined and has no reviewed value mapping"
+      },
+      {
+        "id": "unsupported.abi_version",
+        "c_name": "TerlanCUnversionedOptions",
+        "kind": "opaque_struct",
+        "status": "unsupported",
+        "unsupported_shape": "abi_version_missing",
+        "detail": "extensible ABI struct has no size or version field"
+      },
+      {
+        "id": "unsupported.thread_local_error",
+        "c_name": "terlan_c_last_error",
+        "kind": "function",
+        "status": "unsupported",
+        "unsupported_shape": "thread_local_error",
+        "detail": "thread-local error text has no owned result contract"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "module": "c_abi_fixture.NativeBoundary",
+      "documentation": "Generated C ABI NativeBoundary fixture.",
+      "types": [
+        {
+          "name": "NativeBoundary",
+          "c_symbol": "record.native_boundary",
+          "documentation": "Opaque C handle owned by a generated Rust adapter."
+        }
+      ],
+      "functions": [
+        {
+          "name": "new",
+          "operation": "c_abi_fixture.native_boundary.new",
+          "c_symbol": "function.native_boundary_create",
+          "role": "constructor",
+          "args": [{"name": "value", "ty": "Int"}],
+          "returns": "NativeBoundary",
+          "blocking": "fast",
+          "resource": "opaque_handle",
+          "documentation": "Creates an owned opaque C handle."
+        },
+        {
+          "name": "value",
+          "operation": "c_abi_fixture.native_boundary.value",
+          "c_symbol": "function.native_boundary_value",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Reads the value through a call-scoped borrow."
+        },
+        {
+          "name": "add",
+          "operation": "c_abi_fixture.native_boundary.add",
+          "c_symbol": "function.native_boundary_add",
+          "role": "mutable_method",
+          "args": [
+            {"name": "boundary", "ty": "NativeBoundary"},
+            {"name": "delta", "ty": "Int"}
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Mutates the value through a call-scoped borrow."
+        },
+        {
+          "name": "sample_count",
+          "operation": "c_abi_fixture.native_boundary.sample_count",
+          "c_symbol": "function.native_boundary_sample_count",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns the length used to copy the borrowed sample array."
+        },
+        {
+          "name": "samples",
+          "operation": "c_abi_fixture.native_boundary.samples",
+          "c_symbol": "function.native_boundary_samples",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "List[Int]",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Copies a handle-owned borrowed array into an owned integer list."
+        },
+        {
+          "name": "clone",
+          "operation": "c_abi_fixture.native_boundary.clone",
+          "c_symbol": "function.call_dispatcher",
+          "role": "immutable_method",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "NativeBoundary",
+          "blocking": "fast",
+          "resource": "opaque_handle",
+          "documentation": "Clones the handle through a metadata-described StableIValue dispatcher stack.",
+          "dispatcher": {
+            "duplicate_handle_symbol": "function.native_boundary_duplicate_handle",
+            "operator_name": "fixture::clone",
+            "overload_name": "",
+            "extension_abi_version": "0x0001000000000000",
+            "stack": [
+              {"kind": "owned_handle_copy", "argument": "boundary"},
+              {"kind": "null"}
+            ],
+            "output": {"kind": "owned_handle", "index": 0}
+          }
+        },
+        {
+          "name": "unsqueeze",
+          "operation": "c_abi_fixture.native_boundary.unsqueeze",
+          "c_symbol": "function.call_dispatcher",
+          "role": "immutable_method",
+          "args": [
+            {"name": "boundary", "ty": "NativeBoundary"},
+            {"name": "dimension", "ty": "Int"}
+          ],
+          "returns": "NativeBoundary",
+          "blocking": "fast",
+          "resource": "opaque_handle",
+          "documentation": "Passes a signed integer through a metadata-described StableIValue dispatcher stack.",
+          "dispatcher": {
+            "duplicate_handle_symbol": "function.native_boundary_duplicate_handle",
+            "operator_name": "fixture::unsqueeze",
+            "overload_name": "",
+            "extension_abi_version": "0x0001000000000000",
+            "stack": [
+              {"kind": "owned_handle_copy", "argument": "boundary"},
+              {"kind": "int_argument", "argument": "dimension"}
+            ],
+            "output": {"kind": "owned_handle", "index": 0}
+          }
+        },
+        {
+          "name": "matmul",
+          "operation": "c_abi_fixture.native_boundary.matmul",
+          "c_symbol": "function.call_dispatcher",
+          "role": "immutable_method",
+          "args": [
+            {"name": "left", "ty": "NativeBoundary"},
+            {"name": "right", "ty": "NativeBoundary"}
+          ],
+          "returns": "NativeBoundary",
+          "blocking": "fast",
+          "resource": "opaque_handle",
+          "documentation": "Passes two independently owned handle copies through the dispatcher stack.",
+          "dispatcher": {
+            "duplicate_handle_symbol": "function.native_boundary_duplicate_handle",
+            "operator_name": "fixture::matmul",
+            "overload_name": "",
+            "extension_abi_version": "0x0001000000000000",
+            "stack": [
+              {"kind": "owned_handle_copy", "argument": "left"},
+              {"kind": "owned_handle_copy", "argument": "right"}
+            ],
+            "output": {"kind": "owned_handle", "index": 0}
+          }
+        },
+        {
+          "name": "dispose",
+          "operation": "c_abi_fixture.native_boundary.dispose",
+          "c_symbol": "function.native_boundary_destroy",
+          "role": "dispose",
+          "args": [{"name": "boundary", "ty": "NativeBoundary"}],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "dispose_handle",
+          "documentation": "Destroys the owned C handle exactly once."
+        },
+        {
+          "name": "live_count",
+          "operation": "c_abi_fixture.native_boundary.live_count",
+          "c_symbol": "function.native_boundary_live_count",
+          "role": "free_function",
+          "args": [],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "value",
+          "documentation": "Returns the number of live fixture handles."
+        }
+      ]
+    }
+  ]
+}

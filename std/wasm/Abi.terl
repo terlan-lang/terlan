@@ -1,0 +1,47 @@
+/**
+ * WebAssembly ABI scalar types.
+ *
+ * `std.wasm.Abi` names WebAssembly boundary scalar types used by the
+ * `wasm.core` target. These aliases keep exported function signatures explicit
+ * without requiring redundant annotations.
+ */
+module std.wasm.Abi.
+
+/**
+ * WebAssembly 32-bit integer ABI scalar.
+ *
+ * Input: no runtime input.
+ * Output: an `Int` value represented as Wasm `i32` at the export boundary.
+ * Transformation: aliases portable Terlan `Int` to the explicit WebAssembly
+ * ABI spelling used by `terlc build --target wasm.core`.
+ */
+pub type I32 = Int.
+
+/**
+ * WebAssembly 64-bit integer ABI scalar.
+ *
+ * Input: no runtime input.
+ * Output: an `Int` value represented as Wasm `i64` at the export boundary.
+ * Transformation: preserves the explicit width required by host calls and
+ * artifact manifests.
+ */
+pub type I64 = Int.
+
+/**
+ * WebAssembly 32-bit floating-point ABI scalar.
+ *
+ * Input: no runtime input.
+ * Output: a `Float` value represented as Wasm `f32` at the export boundary.
+ * Transformation: narrows finite Terlan float literals and values to the
+ * explicit Wasm scalar selected by the declaration.
+ */
+pub type F32 = Float.
+
+/**
+ * WebAssembly 64-bit floating-point ABI scalar.
+ *
+ * Input: no runtime input.
+ * Output: a `Float` value represented as Wasm `f64` at the export boundary.
+ * Transformation: preserves Terlan float precision at the Wasm boundary.
+ */
+pub type F64 = Float.

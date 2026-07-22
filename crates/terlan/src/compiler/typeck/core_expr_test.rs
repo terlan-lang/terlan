@@ -492,9 +492,12 @@ pub values(items: List[Int]): List[Int] ->\n\
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ListComprehension {
             expr: Box::new(CoreExpr::Var("value".to_string())),
-            pattern: CorePattern::Var("value".to_string()),
-            source: Box::new(CoreExpr::Var("items".to_string())),
-            guard: None,
+            generators: vec![CoreListComprehensionGenerator {
+                pattern: CorePattern::Var("value".to_string()),
+                source: CoreExpr::Var("items".to_string()),
+            }],
+            guards: Vec::new(),
+            lift: None,
         })
     );
     assert_eq!(
@@ -602,10 +605,10 @@ fn syntax_output_lowering_to_core_let_expr() {
 module core_let_expr_boundary.\n\
 \n\
 pub with_body(x: Int): Int ->\n\
-    let y = x + 1; z = y * 2; z + y.\n\
+    let y = x + 1; let z = y * 2; z + y.\n\
 \n\
 pub final_value(x: Int): Int ->\n\
-    let y = x + 1; z = y * 2; z.\n",
+    let y = x + 1; let z = y * 2; z.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;

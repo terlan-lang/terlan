@@ -9,6 +9,7 @@ use html5ever::tokenizer::{
 use html5ever::TokenizerResult;
 
 use crate::terlan_html::header::template_body_source;
+use crate::terlan_html::interpolation::interpolation_expression_close;
 use crate::terlan_html::{
     template_tag_from_path, HtmlAttr, HtmlAttrValue, HtmlDiagnostic, HtmlElement, HtmlNode,
     HtmlSlot, HtmlSpan, HtmlTemplate, MarkdownDocument, TERLAN_MARKDOWN_TEMPLATE_SUFFIX,
@@ -30,7 +31,7 @@ pub fn parse_template(
             return Err(vec![HtmlDiagnostic::new(
                 Some(path.to_path_buf()),
                 "missing template filename",
-            )])
+            )]);
         }
     };
 
@@ -400,19 +401,26 @@ impl TemplateBuilder {
             }
 
             let slot_start = open + delimiter.prefix_len;
-            let Some(close_offset) = text[slot_start..].find('}') else {
-                self.diagnostics
-                    .push(self.diagnostic(line_number, "unterminated template interpolation slot"));
+            let Some(close) = interpolation_expression_close(text, slot_start) else {
+                self.diagnostics.push(
+                    self.diagnostic(line_number, "unterminated template interpolation slot")
+                        .with_span(span_for(line_number, open, text.len())),
+                );
                 nodes.push(HtmlNode::Text(text[open..].to_owned()));
                 return nodes;
             };
 
-            let close = slot_start + close_offset;
             let slot_source = &text[slot_start..close];
             match parse_slot_path(slot_source, Some(span_for(line_number, open, close + 1))) {
                 Ok(slot) => nodes.push(HtmlNode::Slot(slot)),
                 Err(message) => {
-                    self.diagnostics.push(self.diagnostic(line_number, message));
+                    self.diagnostics.push(
+                        self.diagnostic(line_number, message).with_span(span_for(
+                            line_number,
+                            open,
+                            close + 1,
+                        )),
+                    );
                     nodes.push(HtmlNode::Text(text[open..=close].to_owned()));
                 }
             }

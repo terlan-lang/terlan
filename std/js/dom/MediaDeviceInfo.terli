@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaDeviceInfo
+ */
+module std.js.Dom.MediaDeviceInfo.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`MediaDeviceInfo`** interface of the Media Capture and Streams API contains information that describes a single media input or output device.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo)
+ */
+pub opaque type MediaDeviceInfo.
+
+/**
+ * The **`deviceId`** read-only property of the MediaDeviceInfo interface returns a string that is an identifier for the represented device and is persisted across sessions.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/deviceId)
+ */
+pub (value: MediaDeviceInfo) device_id(): JsString.
+
+/**
+ * The **`groupId`** read-only property of the MediaDeviceInfo interface returns a string that is a group identifier.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/groupId)
+ */
+pub (value: MediaDeviceInfo) group_id(): JsString.
+
+/**
+ * The **`kind`** read-only property of the MediaDeviceInfo interface returns an enumerated value, that is either `'videoinput'`, `'audioinput'` or `'audiooutput'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/kind)
+ */
+pub (value: MediaDeviceInfo) kind(): MediaDeviceKind.
+
+/**
+ * The **`label`** read-only property of the MediaDeviceInfo interface returns a string describing this device (for example 'External USB Webcam').
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/label)
+ */
+pub (value: MediaDeviceInfo) label(): JsString.

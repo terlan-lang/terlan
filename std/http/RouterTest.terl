@@ -1,11 +1,11 @@
 module std.http.RouterTest.
 
-import std.http.Router.
-import std.http.Response.
-import type std.http.Request.Request.
-import type std.http.Response.Response.
+import std.http.{Response, Router, Sse, WebSocket}.
+import std.test.Test.{assert}.
+
 import type std.http.Error.HttpError.
-import type std.http.Router.Router.
+import type std.http.Router.{LifecycleDecision, LifecycleEvent, MiddlewareResult}.
+import type std.http.{Request, Response, Router}.
 
 pub home(_request: Request): Response ->
     Response.text("home").
@@ -16,19 +16,37 @@ pub not_found(_request: Request): Response ->
 pub render_error(_error: HttpError): Response ->
     Response.text("error").
 
-pub require_user(_request: Request): Response ->
-    Response.text("authorized").
+pub require_user(_request: Request): MiddlewareResult -> Atom["continue"].
+
+pub add_response_context(_request: Request, response: Response): Response ->
+    response.
+
+pub lifecycle_policy(_event: LifecycleEvent): LifecycleDecision -> Atom["lifecycle_allow"].
 
 pub users(router: Router): Router ->
-    Router.get(Router.use(router, require_user), "/:id", home).
+    router
+    |> Router.use(require_user)
+    |> Router.get("/:id", home).
 
 pub sample_router(): Router ->
     let router = Router.get(Router.new(), "/", home);
+    let router = Router.map_response(router, add_response_context);
     let router = Router.options(router, "/", home);
+    let router = Router.overload(router, Atom["reject"], 64);
+    let router = Router.lifecycle(router, lifecycle_policy);
+    let router = Router.sse(router, "/events", Sse.endpoint_with_keep_alive(16, 4096, 15000));
+    let router = Router.websocket(router, "/socket", WebSocket.endpoint(16, 4096));
     let router = Router.group(router, "/users", users);
     let router = Router.fallback(router, not_found);
     Router.error(router, render_error).
 
+pub router_descriptor_has_expected_steps(value: Dynamic): Bool ->
+    case value {
+        {tag, {get_tag, get_path, _get_handler}, {response_tag, _response_middleware}, {options_tag, options_path, _options_handler}, {overload_tag, overload_policy, max_pending}, {lifecycle_tag, _lifecycle}, {sse_tag, sse_path, sse_endpoint}, {websocket_tag, websocket_path, websocket_endpoint}, {group_tag, group_prefix, _group_builder}, {fallback_tag, _fallback_handler}, {error_tag, _error_handler}} ->
+            tag == Atom["router"] and get_tag == Atom["get"] and get_path == "/" and response_tag == Atom["map_response"] and options_tag == Atom["options"] and options_path == "/" and overload_tag == Atom["overload"] and overload_policy == Atom["reject"] and max_pending == 64 and lifecycle_tag == Atom["lifecycle"] and sse_tag == Atom["sse"] and sse_path == "/events" and sse_endpoint == Sse.endpoint_with_keep_alive(16, 4096, 15000) and websocket_tag == Atom["websocket"] and websocket_path == "/socket" and websocket_endpoint == WebSocket.endpoint(16, 4096) and group_tag == Atom["group"] and group_prefix == "/users" and fallback_tag == Atom["fallback"] and error_tag == Atom["error"];
+        _ -> false
+    }.
+
 @test
-pub router_surface_is_declared(): Bool ->
-    true.
+pub router_builder_records_route_group_fallback_and_error_steps(): Bool ->
+    assert(router_descriptor_has_expected_steps(sample_router())).

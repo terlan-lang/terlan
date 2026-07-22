@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLTableRowElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=14798853988088670982
-interface_hash=1357442276969342904
-interface_doc_hash=1357442276969342904
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=14687716181691766948
+interface_hash=12701721701585991040
+interface_doc_hash=12701721701585991040
 deps=0

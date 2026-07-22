@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCRtpReceiver
  */
 module std.js.Dom.RTCRtpReceiverTest.
 
-import type std.js.Dom.RTCRtpReceiver.{RTCRtpReceiver}.
-
+import type std.js.Dom.RTCRtpReceiver.
 import type std.js.{Array}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub jitter_buffer_target_typechecks(receiver: RTCRtpReceiver): Option[DOMHighResTimeStamp] ->
     receiver.jitter_buffer_target().
@@ -33,5 +38,7 @@ pub get_parameters_typechecks(receiver: RTCRtpReceiver): RTCRtpReceiveParameters
 pub get_stats_typechecks(receiver: RTCRtpReceiver): std.js.Promise[RTCStatsReport] ->
     receiver.get_stats().
 
-pub get_synchronization_sources_typechecks(receiver: RTCRtpReceiver): Array[RTCRtpSynchronizationSource] ->
+pub get_synchronization_sources_typechecks(
+    receiver: RTCRtpReceiver
+): Array[RTCRtpSynchronizationSource] ->
     receiver.get_synchronization_sources().

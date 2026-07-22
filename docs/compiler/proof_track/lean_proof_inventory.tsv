@@ -1,0 +1,6 @@
+path	status	source_contract	terlan_version	gate	notes
+proofs/lean/Terlan/Core/Arithmetic.lean	current	CoreIR integer arithmetic seed	0.0.7	lean-proof-track-check	Executable integer arithmetic seed family; broader CoreIR preservation remains classified in lean_proof_gaps.tsv.
+proofs/lean/Terlan/FeatureCull/LegacyBoundaries.lean	current	0.0.7 retired feature rejection	0.0.7	lean-proof-track-check	Executable one-way rejection boundary for retired compiler and runtime assumptions.
+proofs/lean/Terlan/Runtime/NativeBoundary.lean	current	NativeBoundary admission, resource ownership, and credit conservation	0.0.7	lean-proof-track-check	Executable abstract runtime proof linked to fingerprinted NativeBoundary manifests; full Aeneas refinement remains separately classified.
+proofs/lean/Terlan/Type/ShapeImplication.lean	current	shape implication evidence soundness, lexical scope, result preservation, and non-conversion	0.0.7	lean-proof-track-check	Executable closed-shape evidence family linked to the canonical type specification and EBNF.
+proofs/lean/lakefile.lean	generated-only	Lean proof build configuration	0.0.7	lean-proof-track-check	Pinned Lake package definition; execution ownership is recorded by replay metadata.

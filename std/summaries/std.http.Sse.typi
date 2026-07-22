@@ -1,0 +1,99 @@
+//! Portable server-sent event contract.
+//!
+//! `std.http.Sse` exposes typed event and endpoint builders for VM-owned
+//! `text/event-stream` responses. The runtime owns concrete stream queues,
+//! backpressure, cancellation, and wire encoding.
+
+module std.http.Sse.
+
+/// Endpoint represents one server-sent event route policy.
+///
+/// Input: bounded queue and payload settings.
+/// Output: an opaque endpoint plan consumed by router/runtime lowering.
+/// Transformation: keeps live stream state out of source values while allowing
+/// route declarations to install explicit SSE endpoint limits.
+
+pub opaque type Endpoint.
+
+/// Event represents one server-sent event payload.
+///
+/// Input: optional event metadata plus required UTF-8 data.
+/// Output: an opaque event handle owned by the HTTP runtime.
+/// Transformation: hides raw SSE frame construction while preserving typed
+/// handler code that can later be lowered into VM event streams.
+
+pub opaque type Event.
+
+/// Installs the complete generated callback set for an endpoint.
+///
+/// Input: one endpoint and static callbacks for open, event-ready, keep-alive,
+/// graceful drain, and cancellation lifecycle events.
+/// Output: the endpoint with one callback set attached.
+/// Transformation: keeps callback identities in compiler-owned route metadata
+/// while the VM owns invocation, suspension, resumption, and cleanup.
+
+pub (endpoint: Endpoint) callbacks(open: () -> Unit, event_ready: (String) -> Unit, keep_alive: () -> Unit, drain: () -> Unit, cancellation: (String) -> Unit): Endpoint.
+
+/// Creates a data-only SSE event.
+///
+/// Input: one UTF-8 event data string.
+/// Output: an `Event` with no id, event name, or retry hint.
+/// Transformation: delegates target event construction to the VM HTTP runtime
+/// without exposing raw `data:` frame syntax.
+
+pub data(value: String): Event.
+
+/// Creates an SSE endpoint plan.
+///
+/// Input: maximum pending event count and maximum encoded event byte size.
+/// Output: an `Endpoint` plan for router lowering.
+/// Transformation: records explicit stream bounds for the VM HTTP runtime
+/// without allocating a live stream at source evaluation time.
+
+pub endpoint(max_pending_events: Int = 128, max_event_bytes: Int = 65536): Endpoint.
+
+/// Creates an SSE endpoint plan with keep-alive comments.
+///
+/// Input: maximum pending event count, maximum encoded event byte size, and
+/// keep-alive interval in milliseconds.
+/// Output: an `Endpoint` plan for router lowering.
+/// Transformation: records explicit stream bounds and keep-alive policy for the
+/// VM HTTP runtime without exposing host async primitives.
+
+pub endpoint_with_keep_alive(max_pending_events: Int = 128, max_event_bytes: Int = 65536, keep_alive_ms: Int = 15000): Endpoint.
+
+/// Creates a queued SSE response from already available events.
+///
+/// Input: a list of typed `Event` values and an optional HTTP status code.
+/// Output: a `Response` with `text/event-stream` semantics.
+/// Transformation: gives handlers a deterministic queued response path while
+/// live stream mutation remains VM-owned runtime work.
+
+pub response(events: List[Event], status: Int = 200): Response.
+
+/// Returns an event after setting its id.
+///
+/// Input: one `Event` and one UTF-8 id string.
+/// Output: the updated `Event`.
+/// Transformation: records id metadata on the target-owned event descriptor
+/// while preserving expression-style source code.
+
+pub (event: Event) with_id(id: String): Event.
+
+/// Returns an event after setting its event name.
+///
+/// Input: one `Event` and one UTF-8 event name.
+/// Output: the updated `Event`.
+/// Transformation: records event-name metadata on the target-owned descriptor
+/// instead of asking source code to write raw `event:` frame lines.
+
+pub (event: Event) with_name(name: String): Event.
+
+/// Returns an event after setting its retry hint.
+///
+/// Input: one `Event` and a reconnect retry delay in milliseconds.
+/// Output: the updated `Event`.
+/// Transformation: records retry metadata for VM-side validation and wire
+/// encoding.
+
+pub (event: Event) with_retry_ms(retry_ms: Int): Event.

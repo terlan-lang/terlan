@@ -1,13 +1,19 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface KeyboardEvent
  */
 module std.js.Dom.KeyboardEvent.
 
 import type std.core.{Bool}.
-
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
 /**
@@ -121,5 +127,16 @@ pub (value: KeyboardEvent) get_modifier_state(key_arg: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/initKeyboardEvent)
  */
-pub (value: KeyboardEvent) init_keyboard_event(type_arg: JsString, bubbles_arg: Bool, cancelable_arg: Bool, view_arg: Option[Window], key_arg: JsString, location_arg: JsNumber, ctrl_key: Bool, alt_key: Bool, shift_key: Bool, meta_key: Bool): std.core.Unit ->
+pub (value: KeyboardEvent) init_keyboard_event(
+    type_arg: JsString,
+    bubbles_arg: Bool,
+    cancelable_arg: Bool,
+    view_arg: Option[Window],
+    key_arg: JsString,
+    location_arg: JsNumber,
+    ctrl_key: Bool,
+    alt_key: Bool,
+    shift_key: Bool,
+    meta_key: Bool
+): std.core.Unit ->
     native.

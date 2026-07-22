@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_constructor_chain_resolution
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
 export=User:constructor/2
 export=build/2
 function=build/2 public=true params=id:Int:core=Int,name:Binary:core=Binary return=Dynamic return_core=Dynamic

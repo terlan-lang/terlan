@@ -1,0 +1,54 @@
+[runner]
+lockstep_mode = true
+temp_root = "build/tmp/lean-proof"
+clean_env = true
+forbidden_env = ["LEAN_PATH"]
+lean_version = "4.31.0"
+elan_channel = "leanprover/lean4:v4.31.0"
+lake_flags = ["env", "lean"]
+dependency_lockfile = "proofs/lean/lake-manifest.json"
+
+[guardrails]
+warning_wall_time_multiplier = 2
+hard_wall_time_multiplier = 4
+closeout_requires_lockstep = true
+
+[[groups]]
+name = "foundational"
+max_parallelism = 1
+timeout_ms = 60000
+cpu_ms = 60000
+memory_mb = 512
+io_mb = 64
+retry_count = 0
+lockstep = true
+
+[[groups]]
+name = "lowering"
+max_parallelism = 2
+timeout_ms = 90000
+cpu_ms = 90000
+memory_mb = 768
+io_mb = 96
+retry_count = 1
+lockstep = false
+
+[[groups]]
+name = "runtime"
+max_parallelism = 2
+timeout_ms = 90000
+cpu_ms = 90000
+memory_mb = 768
+io_mb = 96
+retry_count = 1
+lockstep = false
+
+[[groups]]
+name = "std-boundary"
+max_parallelism = 2
+timeout_ms = 90000
+cpu_ms = 90000
+memory_mb = 768
+io_mb = 96
+retry_count = 1
+lockstep = false

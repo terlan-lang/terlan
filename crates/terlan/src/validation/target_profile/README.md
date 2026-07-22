@@ -3,18 +3,26 @@
 This module owns compile-time validation that checks whether a `CoreModule`
 conforms to a specific backend-capability profile before backend emission.
 
-The formal pipeline now lowers through backend-agnostic `CoreIR` first. Backend
+The formal pipeline now lowers through backend-agnostic `CoreIR` first. Target
 profiles describe which `CoreIR` forms and evidence levels are acceptable for a
 given target family. The current profiles are:
 
-- `erlang`: permissive backend profile for the current CoreIR-gated Erlang
-  emission path.
-- `a0-erlang`: frozen 0.0.1 release-candidate Erlang artifact subset.
-- `a0.1-erlang`: named successor profile for simple Int arithmetic and
-  comparison expressions; it does not broaden the frozen 0.0.1 RC profile.
-- `core-v0`: portable backend-agnostic subset profile that accepts only typed,
-  Lean-covered CoreIR forms from the current v0 proof baseline and rejects
-  runtime-boundary or broader backend-specific shapes.
+- `vm`: compiler-owned Terlan VM profile for the default runtime lane.
+- `a0-vm`: frozen 0.0.1 release-candidate VM artifact subset.
+- `a0.1-vm` through `a0.21-vm`: named successor profiles that document the A0
+  profile progression without reopening old runtime targets.
+- `js.shared`: shared JavaScript module profile with no browser-only ambient
+  access.
+- `js.browser`: browser JavaScript profile for explicit browser and DOM
+  bindings.
+- `js.worker`: worker JavaScript profile for explicit worker-safe bindings.
+- `core-v0`: retired proof-subset profile retained only while old profile
+  tests are removed.
+
+Reserved target families are also classified before implementation so CLI
+diagnostics can distinguish planned targets from misspellings. The 0.0.7
+mobile planning slice reserves `mobile`, `mobile.shell`, `mobile.android`, and
+`mobile.ios` as the Mobile family without enabling mobile emission.
 
 ## Responsibilities
 
@@ -65,9 +73,10 @@ Implementation layout:
 
 ## CoreV0 Coverage Matrix
 
-`core-v0` is the portable, Lean-covered baseline. The Erlang profile remains
-permissive while the portable profile rejects every form that is not yet part of
-that baseline.
+`core-v0` is the old portable, Lean-covered baseline. It remains internal
+validation scaffolding while the VM profile progression absorbs the useful
+coverage. It is not a public CLI profile and must not be treated as a runtime
+target.
 
 | CoreIR family | CoreV0 status | Gate coverage |
 | --- | --- | --- |
@@ -104,21 +113,17 @@ accepted by `core-v0` or deliberately rejected by the profile validator.
 ## Integration Points
 
 - `formal_pipeline.rs`: calls this validator after `CoreIR` lowering.
-- `main.rs`: parses `--target-profile erlang|a0-erlang|a0.1-erlang|core-v0`
-  and passes the selected profile into command execution state.
+- `main.rs`: parses public `--target-profile` values and passes the selected
+  profile into command execution state.
+- `commands/build/args.rs`: rejects reserved future target names with
+  family-specific diagnostics before backend dispatch.
 - `formal pipeline target-specific compile wrappers` (when command-specific target
   selection is introduced).
 
 ## Testing Notes
 
-- `target_profile_accepts_float_for_erlang_profile` exercises that the Erlang
-  profile permits permissive proof coverage.
-- `target_profile_accepts_mathx_for_a0_erlang_profile` exercises the frozen A0
-  arithmetic fixture profile.
-- `target_profile_accepts_arithmetic_for_a0_1_erlang_profile` exercises the
-  named A0.1 successor arithmetic/comparison profile.
-- `target_profile_keeps_subtraction_out_of_a0_erlang_profile` exercises that
-  the frozen A0 profile does not silently widen when A0.1 is introduced.
+- A0 progression tests exercise that each named VM profile accepts only its
+  documented successor surface and that earlier profiles do not silently widen.
 - `target_profile_rejects_float_expr_for_core_v0_profile` exercises that float
   literals remain outside `core-v0` while their proof coverage is
   `proof-model-required`.
@@ -147,8 +152,7 @@ accepted by `core-v0` or deliberately rejected by the profile validator.
   exercise that `core-v0` requires checked-preservation evidence for typed
   expression and pattern payloads.
 - `target_profile_rejects_map_expr_for_core_v0_profile` exercises that the
-  portable profile rejects broader backend-specific CoreIR while Erlang remains
-  permissive.
+  old portable profile rejects broader runtime-specific CoreIR.
 - `target_profile_rejects_map_pattern_for_core_v0_profile` exercises that map
   patterns remain outside `core-v0` while their proof coverage is
   `proof-model-required`.
@@ -158,9 +162,8 @@ accepted by `core-v0` or deliberately rejected by the profile validator.
 - `target_profile_rejects_record_pattern_for_core_v0_profile` exercises that
   record patterns remain outside `core-v0` while their proof coverage is
   `proof-model-required`.
-- `target_profile_allows_float_pattern_for_erlang_profile` and
-  `target_profile_rejects_float_pattern_for_core_v0_profile` exercise that
-  float patterns remain outside `core-v0` while Erlang remains permissive.
+- `target_profile_rejects_float_pattern_for_core_v0_profile` exercises that
+  float patterns remain outside `core-v0`.
 - `target_profile_rejects_constructor_chain_expr_for_core_v0_profile` exercises
   that constructor chains remain outside `core-v0` while their proof coverage is
   `partial`, even when the base constructor identity resolves.
@@ -205,8 +208,6 @@ accepted by `core-v0` or deliberately rejected by the profile validator.
   `run_check_single_file_rejects_record_update_for_core_v0_target_profile`, and
   `run_check_single_file_rejects_template_instantiate_for_core_v0_target_profile`
   exercise the command-surface path from CLI state to `check` execution.
-- `target_profile_allows_lambda_for_erlang_profile` exercises that the Erlang
-  profile accepts lambda-shaped CoreIR terms.
 - `target_profile_rejects_unresolved_constructor_call_candidate`,
   `target_profile_rejects_unresolved_constructor_pattern_candidate`, and
   `target_profile_rejects_unresolved_constructor_chain_candidate` exercise the

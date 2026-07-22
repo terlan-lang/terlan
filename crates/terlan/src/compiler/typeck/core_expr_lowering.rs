@@ -3,6 +3,10 @@ use super::core_pattern_lowering::{core_pattern_from_syntax, core_patterns_from_
 use super::core_sql_lowering::sql_query_core_expr_from_syntax;
 use super::*;
 
+#[path = "core_expr_lowering/name_case.rs"]
+mod name_case;
+use name_case::{starts_with_ascii_lowercase, starts_with_ascii_uppercase};
+
 /// Converts a syntax-output expression into a typed Core expression when covered.
 ///
 /// Inputs:
@@ -39,6 +43,7 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::Let => core_let_expr_from_syntax(expr),
         SyntaxExprKind::Sequence => core_sequence_expr_from_syntax(expr),
         SyntaxExprKind::Map => core_map_expr_fields_from_syntax(expr).map(CoreExpr::Map),
+        SyntaxExprKind::BinaryLayout => core_binary_layout_expr_from_syntax(expr),
         SyntaxExprKind::RecordConstruct => core_record_construct_expr_from_syntax(expr),
         SyntaxExprKind::FieldAccess => core_field_access_expr_from_syntax(expr),
         SyntaxExprKind::RecordAccess => core_record_access_expr_from_syntax(expr),
@@ -77,6 +82,12 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         }
         SyntaxExprKind::BinaryOp => {
             let operator = expr.operator.clone()?;
+            if operator == "|>" {
+                return core_pipe_forward_expr_from_syntax(expr);
+            }
+            if matches!(operator.as_str(), "and" | "&&" | "or" | "||") {
+                return core_logical_expr_from_syntax(expr, &operator);
+            }
             let left = expr.children.first().and_then(core_expr_from_syntax)?;
             let right = expr.children.get(1).and_then(core_expr_from_syntax)?;
             Some(CoreExpr::BinaryOp {
@@ -93,6 +104,93 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         | SyntaxExprKind::Quote
         | SyntaxExprKind::Unquote => None,
     }
+}
+
+/// Lowers one associative logical chain into a balanced CoreIR tree.
+///
+/// Flattening uses an explicit work list so source files with long validation
+/// predicates do not consume the Rust call stack. Pairwise reconstruction
+/// retains operand order and bounds subsequent CoreIR traversal depth to the
+/// logarithm of the operand count.
+fn core_logical_expr_from_syntax(expr: &SyntaxExprOutput, operator: &str) -> Option<CoreExpr> {
+    let conjunction = matches!(operator, "and" | "&&");
+    let same_operator = |candidate: Option<&str>| {
+        candidate.is_some_and(|candidate| {
+            matches!(candidate, "and" | "&&") == conjunction
+                && matches!(candidate, "and" | "&&" | "or" | "||")
+        })
+    };
+    let mut pending = vec![expr];
+    let mut operands = Vec::new();
+    while let Some(candidate) = pending.pop() {
+        if candidate.kind == SyntaxExprKind::BinaryOp
+            && same_operator(candidate.operator.as_deref())
+            && candidate.children.len() == 2
+        {
+            pending.push(&candidate.children[1]);
+            pending.push(&candidate.children[0]);
+        } else {
+            operands.push(core_expr_from_syntax(candidate)?);
+        }
+    }
+
+    while operands.len() > 1 {
+        let mut combined = Vec::with_capacity(operands.len().div_ceil(2));
+        let mut pairs = operands.into_iter();
+        while let Some(left) = pairs.next() {
+            if let Some(right) = pairs.next() {
+                combined.push(CoreExpr::BinaryOp {
+                    operator: operator.to_string(),
+                    left: Box::new(left),
+                    right: Box::new(right),
+                });
+            } else {
+                combined.push(left);
+            }
+        }
+        operands = combined;
+    }
+    operands.pop()
+}
+
+/// Converts `left |> target(args...)` into the same CoreIR as
+/// `target(left, args...)`.
+fn core_pipe_forward_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+    let [left, right] = expr.children.as_slice() else {
+        return None;
+    };
+    if !matches!(right.kind, SyntaxExprKind::Call) {
+        return None;
+    }
+    let (callee, args) = right.children.split_first()?;
+    if right.remote.is_none() && matches!(callee.kind, SyntaxExprKind::Var) {
+        let method = callee.text.as_deref()?;
+        if core_syntax_pipe_receiver_method(method) {
+            let mut lowered_args = Vec::with_capacity(args.len() + 1);
+            lowered_args.push(core_expr_from_syntax(left)?);
+            lowered_args.extend(
+                args.iter()
+                    .map(core_expr_from_syntax)
+                    .collect::<Option<Vec<_>>>()?,
+            );
+            return Some(CoreExpr::RemoteCall {
+                module: "__receiver__".to_string(),
+                function: method.to_string(),
+                args: lowered_args,
+            });
+        }
+    }
+    let mut lowered_call = right.clone();
+    lowered_call.children = Vec::with_capacity(right.children.len() + 1);
+    lowered_call.children.push(callee.clone());
+    lowered_call.children.push(left.clone());
+    lowered_call.children.extend(args.iter().cloned());
+    core_expr_from_syntax(&lowered_call)
+}
+
+/// Returns whether a bare pipe stage names a VM-owned receiver method.
+fn core_syntax_pipe_receiver_method(method: &str) -> bool {
+    matches!(method, "iterator")
 }
 
 /// Converts a syntax-output sequence into a CoreIR let chain.
@@ -142,7 +240,7 @@ fn core_syntax_mutable_receiver_call_expr_from_syntax(expr: &SyntaxExprOutput) -
         return None;
     }
     let method = callee.text.as_deref()?;
-    if !matches!(method, "push" | "clear" | "put" | "remove" | "add") {
+    if !core_syntax_mutable_receiver_method(method) {
         return None;
     }
     let receiver = callee.children.first()?;
@@ -167,7 +265,7 @@ fn core_syntax_receiver_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option
         return None;
     }
     let method = callee.text.as_deref()?;
-    if matches!(method, "push" | "clear" | "put" | "remove" | "add") {
+    if core_syntax_mutable_receiver_method(method) {
         return None;
     }
     let receiver = callee.children.first()?;
@@ -183,6 +281,25 @@ fn core_syntax_receiver_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option
         function: method.to_string(),
         args: lowered_args,
     })
+}
+
+/// Returns whether a receiver method mutates the receiver in CoreIR.
+fn core_syntax_mutable_receiver_method(method: &str) -> bool {
+    matches!(
+        method,
+        "push"
+            | "clear"
+            | "put"
+            | "remove"
+            | "set_at"
+            | "swap"
+            | "add"
+            | "update"
+            | "cast"
+            | "cancel"
+            | "dispose"
+            | "stop"
+    )
 }
 
 /// Converts syntax-output expression children into typed Core expression children.
@@ -330,20 +447,34 @@ fn core_index_assign_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExp
 ///   comprehension semantics.
 fn core_list_comprehension_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     if !matches!(expr.kind, SyntaxExprKind::ListComprehension)
-        || expr.patterns.len() != 1
-        || !(2..=3).contains(&expr.children.len())
+        || expr.patterns.is_empty()
+        || expr.children.len() < expr.patterns.len() + 1
     {
         return None;
     }
 
+    let generators = expr
+        .patterns
+        .iter()
+        .zip(expr.children.iter().skip(1))
+        .map(|(pattern, source)| {
+            Some(CoreListComprehensionGenerator {
+                pattern: core_pattern_from_syntax(pattern)?,
+                source: core_expr_from_syntax(source)?,
+            })
+        })
+        .collect::<Option<Vec<_>>>()?;
+
     Some(CoreExpr::ListComprehension {
         expr: Box::new(core_expr_from_syntax(&expr.children[0])?),
-        pattern: core_pattern_from_syntax(&expr.patterns[0])?,
-        source: Box::new(core_expr_from_syntax(&expr.children[1])?),
-        guard: match expr.children.get(2) {
-            Some(guard) => Some(Box::new(core_expr_from_syntax(guard)?)),
-            None => None,
-        },
+        generators,
+        guards: expr
+            .children
+            .iter()
+            .skip(expr.patterns.len() + 1)
+            .map(core_expr_from_syntax)
+            .collect::<Option<Vec<_>>>()?,
+        lift: expr.comprehension_lift.clone(),
     })
 }
 
@@ -354,15 +485,16 @@ fn core_list_comprehension_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<C
 ///   and whose children are binding values plus a required final body.
 ///
 /// Output:
-/// - `Some(CoreExpr::Let)` when every binding value and body lowers to typed
-///   Core.
+/// - `Some(CoreExpr::Let)` for ordinary bindings or nested `CoreExpr::Case`
+///   nodes for a refutable group with shared fallback clauses.
 /// - `None` when the syntax-output shape is malformed or any child remains
 ///   unsupported.
 ///
 /// Transformation:
 /// - Pairs each binding pattern with its value child and lowers the final child
-///   as the explicit result expression. Bodyless let expressions are rejected
-///   as malformed input.
+///   as the explicit result expression. A shared `else` lowers each binding to
+///   one case whose success branch continues to the next binding and whose
+///   failure branches reuse the shared clauses.
 fn core_let_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     if !matches!(expr.kind, SyntaxExprKind::Let)
         || expr.patterns.is_empty()
@@ -375,16 +507,51 @@ fn core_let_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
         .patterns
         .iter()
         .zip(expr.children.iter())
-        .map(|(pattern, value)| {
-            Some(CoreLetBinding {
-                pattern: core_pattern_from_syntax(pattern)?,
-                value: core_expr_from_syntax(value)?,
-            })
+        .enumerate()
+        .map(|(index, (pattern, value))| {
+            Some((
+                CoreLetBinding {
+                    pattern: core_pattern_from_syntax(pattern)?,
+                    value: core_expr_from_syntax(value)?,
+                },
+                match expr.let_guards.get(index).and_then(Option::as_deref) {
+                    Some(guard) => Some(core_expr_from_syntax(guard)?),
+                    None => None,
+                },
+            ))
         })
         .collect::<Option<Vec<_>>>()?;
 
     let body = core_expr_from_syntax(expr.children.get(expr.patterns.len())?)?;
 
+    if !expr.clauses.is_empty() {
+        let fallback_clauses = expr
+            .clauses
+            .iter()
+            .map(core_case_clause_from_syntax)
+            .collect::<Option<Vec<_>>>()?;
+        return bindings
+            .into_iter()
+            .rev()
+            .try_fold(body, |continuation, (binding, guard)| {
+                let mut clauses = Vec::with_capacity(fallback_clauses.len() + 1);
+                clauses.push(CoreCaseClause {
+                    pattern: binding.pattern,
+                    guard,
+                    body: continuation,
+                });
+                clauses.extend(fallback_clauses.iter().cloned());
+                Some(CoreExpr::Case {
+                    scrutinee: Box::new(binding.value),
+                    clauses,
+                })
+            });
+    }
+
+    let bindings = bindings
+        .into_iter()
+        .map(|(binding, guard)| guard.is_none().then_some(binding))
+        .collect::<Option<Vec<_>>>()?;
     Some(CoreExpr::Let {
         bindings,
         body: Box::new(body),
@@ -774,7 +941,7 @@ fn core_named_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
 /// Converts a syntax-output function-value invocation into typed CoreIR.
 ///
 /// Inputs:
-/// - `expr`: syntax-output `FunctionCall` expression created from `callee.(args)`.
+/// - `expr`: syntax-output `FunctionCall` expression created from `callee(args)`.
 ///
 /// Output:
 /// - `Some(CoreExpr::FunctionCall)` when the callee and every argument are
@@ -784,7 +951,7 @@ fn core_named_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
 ///
 /// Transformation:
 /// - Preserves the callable expression separately from named calls so later
-///   target profiles and backends can distinguish `f.(x)` from `f(x)`.
+///   target profiles and backends can distinguish `f(x)` from `f(x)`.
 fn core_function_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     if expr.kind != SyntaxExprKind::FunctionCall || expr.remote.is_some() {
         return None;
@@ -798,42 +965,6 @@ fn core_function_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreEx
             .map(core_expr_from_syntax)
             .collect::<Option<Vec<_>>>()?,
     })
-}
-
-/// Checks whether a name begins with an ASCII lowercase character.
-///
-/// Inputs:
-/// - `name`: source-level identifier text.
-///
-/// Output:
-/// - `true` when the first character is ASCII lowercase.
-/// - `false` for empty strings and non-lowercase leading characters.
-///
-/// Transformation:
-/// - Reads only the first Unicode scalar value and applies the Terlan
-///   source-mode ASCII lowercase convention used for function names.
-fn starts_with_ascii_lowercase(name: &str) -> bool {
-    name.chars()
-        .next()
-        .is_some_and(|ch| ch.is_ascii_lowercase())
-}
-
-/// Checks whether a name begins with an ASCII uppercase character.
-///
-/// Inputs:
-/// - `name`: source-level identifier text.
-///
-/// Output:
-/// - `true` when the first character is ASCII uppercase.
-/// - `false` for empty strings and non-uppercase leading characters.
-///
-/// Transformation:
-/// - Reads only the first Unicode scalar value and applies the Terlan
-///   source-mode ASCII uppercase convention used for constructor candidates.
-fn starts_with_ascii_uppercase(name: &str) -> bool {
-    name.chars()
-        .next()
-        .is_some_and(|ch| ch.is_ascii_uppercase())
 }
 
 /// Converts syntax-output case clauses into typed Core case clauses.
@@ -858,140 +989,4 @@ fn core_case_clauses_from_syntax(expr: &SyntaxExprOutput) -> Option<Vec<CoreCase
         .collect()
 }
 
-/// Converts one syntax-output case clause into a typed Core case clause.
-///
-/// Inputs:
-/// - `clause`: syntax-output case clause.
-///
-/// Output:
-/// - `Some(CoreCaseClause)` for one-pattern clauses in the current typed
-///   subset, including supported guarded forms.
-/// - `None` for multi-pattern clauses, unsupported patterns, unsupported
-///   guards, or unsupported bodies.
-///
-/// Transformation:
-/// - Lowers the branch pattern and body without using backend syntax or
-///   rendered summary text.
-fn core_case_clause_from_syntax(
-    clause: &crate::terlan_syntax::SyntaxClauseOutput,
-) -> Option<CoreCaseClause> {
-    if clause.patterns.len() != 1 {
-        return None;
-    }
-    let guard = clause
-        .guard
-        .as_ref()
-        .and_then(|guard| core_expr_from_syntax(guard.as_ref()));
-    Some(CoreCaseClause {
-        pattern: core_pattern_from_syntax(&clause.patterns[0])?,
-        guard,
-        body: core_expr_from_syntax(&clause.body)?,
-    })
-}
-
-/// Converts a syntax-output try expression into typed Core.
-///
-/// Inputs:
-/// - `expr`: syntax-output try expression with body, `of` clauses, `catch`
-///   clauses, and optional cleanup branch.
-///
-/// Output:
-/// - `Some(CoreExpr::Try)` when the body, every clause, and optional cleanup
-///   branch lower into typed Core.
-/// - `None` when the node is not try syntax or any child remains unsupported.
-///
-/// Transformation:
-/// - Preserves try body, success clauses, catch clauses, and optional cleanup
-///   branch as a backend-neutral CoreIR keyword expression.
-fn core_try_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
-    if !matches!(expr.kind, SyntaxExprKind::Try) || expr.children.len() != 1 {
-        return None;
-    }
-
-    Some(CoreExpr::Try {
-        body: Box::new(core_expr_from_syntax(&expr.children[0])?),
-        of_clauses: core_case_clauses_from_syntax(expr)?,
-        catch_clauses: expr
-            .catch_clauses
-            .iter()
-            .map(core_case_clause_from_syntax)
-            .collect::<Option<Vec<_>>>()?,
-        after_clause: match expr.try_after.as_ref() {
-            Some(after_clause) => Some(core_try_after_from_syntax(after_clause)?),
-            None => None,
-        },
-    })
-}
-
-/// Converts a syntax-output try cleanup branch into typed Core.
-///
-/// Inputs:
-/// - `after_clause`: syntax-output try cleanup trigger/body payload.
-///
-/// Output:
-/// - `Some(CoreTryAfter)` when both trigger and body lower into typed Core.
-/// - `None` when either expression remains unsupported.
-///
-/// Transformation:
-/// - Preserves cleanup trigger and body as a try-specific CoreIR branch without
-///   backend cleanup semantics.
-fn core_try_after_from_syntax(
-    after_clause: &crate::terlan_syntax::syntax_output::SyntaxTryAfterOutput,
-) -> Option<CoreTryAfter> {
-    Some(CoreTryAfter {
-        trigger: Box::new(core_expr_from_syntax(&after_clause.trigger)?),
-        body: Box::new(core_expr_from_syntax(&after_clause.body)?),
-    })
-}
-
-/// Converts a syntax-output if expression into typed Core.
-///
-/// Inputs:
-/// - `expr`: syntax-output if expression whose clauses carry conditions in
-///   `guard` and branch bodies in `body`.
-///
-/// Output:
-/// - `Some(CoreExpr::If)` when every condition and body lowers into typed Core.
-/// - `None` when the node is not an if expression, contains pattern payloads,
-///   lacks a condition, or contains unsupported condition/body expressions.
-///
-/// Transformation:
-/// - Reconstructs condition/body branches from syntax-output clauses without
-///   treating them as pattern-matching case clauses.
-fn core_if_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
-    if !matches!(expr.kind, SyntaxExprKind::If) {
-        return None;
-    }
-
-    expr.clauses
-        .iter()
-        .map(core_if_clause_from_syntax)
-        .collect::<Option<Vec<_>>>()
-        .map(|clauses| CoreExpr::If { clauses })
-}
-
-/// Converts one syntax-output if clause into typed Core.
-///
-/// Inputs:
-/// - `clause`: syntax-output if clause with no patterns, condition in `guard`,
-///   and branch body in `body`.
-///
-/// Output:
-/// - `Some(CoreIfClause)` when condition and body are typed Core expressions.
-/// - `None` when patterns are present, condition is missing, or either
-///   expression remains unsupported.
-///
-/// Transformation:
-/// - Lowers the condition/body pair while preserving the if-specific branch
-///   shape independently from case-pattern clauses.
-fn core_if_clause_from_syntax(
-    clause: &crate::terlan_syntax::SyntaxClauseOutput,
-) -> Option<CoreIfClause> {
-    if !clause.patterns.is_empty() {
-        return None;
-    }
-    Some(CoreIfClause {
-        condition: core_expr_from_syntax(clause.guard.as_ref()?.as_ref())?,
-        body: core_expr_from_syntax(&clause.body)?,
-    })
-}
+include!("core_expr_lowering/try_if.rs");

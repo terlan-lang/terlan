@@ -21,6 +21,7 @@ pub opaque type Set[T].
 /// intrinsic and updates the receiver binding in source order. Pipe chains
 /// continue with the updated receiver.
 
+@pure
 pub (mut set: Set[T]) add(value: T): Unit.
 
 /// Removes every value from a set.
@@ -30,15 +31,18 @@ pub (mut set: Set[T]) add(value: T): Unit.
 /// Transformation: lowers through the compiler-owned `core.set.clear`
 /// intrinsic and updates the receiver binding so it becomes empty.
 
+@pure
 pub (mut set: Set[T]) clear(): Unit.
 
 /// Returns whether a value exists in a set.
 ///
 /// Input: one `Set[T]` receiver and one value of type `T`.
-/// Output: `true` when the value exists; otherwise `false`.
+/// Output: `true` when the value exists;
+/// otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.set.contains`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (set: Set[T]) contains(value: T): Bool.
 
 /// Creates a set from list values.
@@ -54,10 +58,12 @@ pub from_list[T](values: List[T]): Set[T].
 /// Returns whether a set contains no values.
 ///
 /// Input: one `Set[T]`.
-/// Output: `true` when the set is empty; otherwise `false`.
+/// Output: `true` when the set is empty;
+/// otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.set.is_empty`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (set: Set[T]) is_empty(): Bool.
 
 /// Creates an iterator over set values.
@@ -68,6 +74,7 @@ pub (set: Set[T]) is_empty(): Bool.
 /// intrinsic. Backends choose their own traversal order and representation while
 /// preserving the portable value-yielding contract.
 
+@pure
 pub (set: Set[T]) iterator(): Iterator[T].
 
 /// Creates an empty set.
@@ -86,6 +93,7 @@ pub new[T](): Set[T].
 /// Transformation: lowers through the compiler-owned `core.set.remove`
 /// intrinsic and updates the receiver binding in source order.
 
+@pure
 pub (mut set: Set[T]) remove(value: T): Unit.
 
 /// Returns the number of unique values in a set.
@@ -95,6 +103,7 @@ pub (mut set: Set[T]) remove(value: T): Unit.
 /// Transformation: lowers through the compiler-owned `core.set.size`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (set: Set[T]) size(): Int.
 
 /// Constructs a set from positional values.

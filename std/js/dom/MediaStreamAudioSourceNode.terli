@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaStreamAudioSourceNode
+ */
+module std.js.Dom.MediaStreamAudioSourceNode.
+
+/**
+ * The **`MediaStreamAudioSourceNode`** interface is a type of AudioNode which operates as an audio source whose media is received from a MediaStream obtained using the WebRTC or Media Capture and Streams APIs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamAudioSourceNode)
+ */
+pub opaque type MediaStreamAudioSourceNode.
+
+/**
+ * The MediaStreamAudioSourceNode interface's read-only **`mediaStream`** property indicates the receiving audio.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamAudioSourceNode/mediaStream)
+ */
+pub (value: MediaStreamAudioSourceNode) media_stream(): MediaStream.

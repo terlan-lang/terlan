@@ -1,0 +1,40 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ResolvedCollatorOptions
+ */
+module std.js.Intl.ResolvedCollatorOptionsTest.
+
+import type std.core.{Bool}.
+import type std.js.Intl.ResolvedCollatorOptions.
+import type std.js.String.{JsString}.
+
+pub generated_binding_surface_contract(): Bool -> true.
+
+pub locale_typechecks(receiver: ResolvedCollatorOptions): JsString ->
+    receiver.locale().
+
+pub usage_typechecks(receiver: ResolvedCollatorOptions): JsString ->
+    receiver.usage().
+
+pub sensitivity_typechecks(receiver: ResolvedCollatorOptions): JsString ->
+    receiver.sensitivity().
+
+pub ignore_punctuation_typechecks(receiver: ResolvedCollatorOptions): Bool ->
+    receiver.ignore_punctuation().
+
+pub collation_typechecks(receiver: ResolvedCollatorOptions): JsString ->
+    receiver.collation().
+
+pub case_first_typechecks(receiver: ResolvedCollatorOptions): JsString ->
+    receiver.case_first().
+
+pub numeric_typechecks(receiver: ResolvedCollatorOptions): Bool ->
+    receiver.numeric().

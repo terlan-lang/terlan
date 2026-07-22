@@ -4,11 +4,10 @@
  * `std.collections.Iterator` defines the portable state-passing shape used by
  * collection traversal.
  */
-
 module std.collections.Iterator.
 
 import std.core.Option.{None, Option, Some}.
-import std.core.Unit.{Unit}.
+import std.core.Unit.
 
 /**
  * Iterator represents a traversal state for values of type `T`.
@@ -28,8 +27,7 @@ pub opaque type Iterator[T].
  * Transformation: makes traversal state explicit and immutable at the source
  * level.
  */
-pub type Step[T] =
-    {value: T, next: Iterator[T]}.
+pub type Step[T] = {value: T, next: Iterator[T]}.
 
 /**
  * Returns the next value and iterator state, or `None` when exhausted.
@@ -51,7 +49,7 @@ pub next(iterator: Iterator[T]): Option[Step[T]] ->
  * Input: one iterator state and one callback from `T` to `Unit`.
  * Output: `Unit`.
  * Transformation: repeatedly calls `next(iterator)`. When traversal is
- * exhausted, returns `Unit`. When a value is yielded, calls `cb.(value)` for
+ * exhausted, returns `Unit`. When a value is yielded, calls `cb(value)` for
  * its effect and continues with the returned next iterator state.
  *
  * ```terlan
@@ -67,17 +65,15 @@ pub next(iterator: Iterator[T]): Option[Step[T]] ->
  *            Unit;
  *
  *        Some({value: value, next: rest}) ->
- *            let _done = cb.(value);
+ *            let _done = cb(value);
  *            each(rest, cb)
  *    }.
  * ```
  */
 pub each(iterator: Iterator[T], cb: (T) -> Unit): Unit ->
     case next(iterator) {
-        None ->
-            Unit;
-
+        None -> Unit;
         Some({value: value, next: rest}) ->
-            let _done = cb.(value);
+            let _done = cb(value);
             each(rest, cb)
     }.

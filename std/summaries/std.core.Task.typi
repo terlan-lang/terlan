@@ -52,7 +52,7 @@ pub failed[T](error: Error): Task[T].
 /// Transformation: composes the mapper with the task's success channel while
 /// preserving the original error channel.
 
-pub (task: Task[T]) map[U](mapper: (T ) -> U): Task[U].
+pub (task: Task[T]) map[U](mapper: (T) -> U): Task[U].
 
 /// Recovers a failed task into a success value.
 ///
@@ -62,7 +62,7 @@ pub (task: Task[T]) map[U](mapper: (T ) -> U): Task[U].
 /// Transformation: maps the error channel into the success channel without
 /// exposing target-specific exceptions.
 
-pub (task: Task[T]) recover(handler: (Error ) -> T): Task[T].
+pub (task: Task[T]) recover(handler: (Error) -> T): Task[T].
 
 /// Joins a task into a typed result.
 ///
@@ -91,4 +91,4 @@ pub spawn[T](work: () -> T): Task[T].
 /// Transformation: provides monadic bind for task sequencing without forcing
 /// nested callback chains into the user-facing source.
 
-pub (task: Task[T]) then[U](next: (T ) -> Task[U]): Task[U].
+pub (task: Task[T]) then[U](next: (T) -> Task[U]): Task[U].

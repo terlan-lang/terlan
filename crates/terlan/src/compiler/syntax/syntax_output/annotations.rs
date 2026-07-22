@@ -1,3 +1,4 @@
+use super::annotation_schemas::collect_user_annotation_schemas;
 use super::*;
 
 /// Validates compiler-known annotation schemas before syntax output is returned.
@@ -15,11 +16,18 @@ use super::*;
 pub(super) fn validate_builtin_annotation_schemas(
     declarations: &[SyntaxDeclarationOutput],
 ) -> EbnfCompileResult<()> {
-    let user_schemas = collect_user_annotation_schemas(declarations);
+    let user_schemas = collect_user_annotation_schemas(declarations)?;
     for declaration in declarations {
         for annotation in &declaration.annotations {
             if annotation_path_matches(annotation, &["test"]) {
                 validate_marker_annotation(annotation, declaration, &["FunctionDecl"], "@test")?;
+            } else if annotation_path_matches(annotation, &["pure"]) {
+                validate_marker_annotation(
+                    annotation,
+                    declaration,
+                    &["FunctionDecl", "MethodDecl"],
+                    "@pure",
+                )?;
             } else if annotation_path_matches(annotation, &["compiler", "inline"]) {
                 validate_marker_annotation(
                     annotation,
@@ -41,8 +49,8 @@ pub(super) fn validate_builtin_annotation_schemas(
                 validate_compiler_key_annotation(annotation, declaration, "@compiler.intrinsic")?;
             } else if annotation_path_matches(annotation, &["compiler", "native"]) {
                 validate_compiler_key_annotation(annotation, declaration, "@compiler.native")?;
-            } else if annotation_path_matches(annotation, &["target", "erlang"]) {
-                validate_target_erlang_annotation(annotation, declaration)?;
+            } else if annotation_path_matches(annotation, &["target", "vm"]) {
+                validate_target_vm_annotation(annotation, declaration)?;
             } else if annotation_path_matches(annotation, &["target", "js"]) {
                 validate_target_js_annotation(annotation, declaration)?;
             } else if annotation_path_matches(annotation, &["native"]) {
@@ -54,29 +62,6 @@ pub(super) fn validate_builtin_annotation_schemas(
     }
 
     Ok(())
-}
-
-/// Collects user-declared annotation schemas from syntax declarations.
-///
-/// Inputs:
-/// - `declarations`: module declarations after syntax-output payload routing.
-///
-/// Output:
-/// - Map from dotted annotation path to schema payload.
-///
-/// Transformation:
-/// - Indexes `AnnotationSchemaDecl` payloads so declaration-leading annotations
-///   can be validated without reparsing source text.
-fn collect_user_annotation_schemas<'a>(
-    declarations: &'a [SyntaxDeclarationOutput],
-) -> std::collections::BTreeMap<String, &'a SyntaxDeclarationPayload> {
-    let mut schemas = std::collections::BTreeMap::new();
-    for declaration in declarations {
-        if let SyntaxDeclarationPayload::AnnotationSchema { path, .. } = &declaration.payload {
-            schemas.insert(path.join("."), &declaration.payload);
-        }
-    }
-    schemas
 }
 
 /// Validates one annotation against a user-declared schema.
@@ -449,7 +434,7 @@ fn validate_compiler_key_annotation(
     Ok(())
 }
 
-/// Validates `@target.erlang` annotation metadata.
+/// Validates `@target.vm` annotation metadata.
 ///
 /// Inputs:
 /// - `annotation`: parsed annotation metadata.
@@ -460,8 +445,8 @@ fn validate_compiler_key_annotation(
 ///
 /// Transformation:
 /// - Rejects positional metadata, unknown keys, duplicate keys, and invalid
-///   value types for the Erlang target-owned annotation surface.
-fn validate_target_erlang_annotation(
+///   value types for the Terlan VM target-owned annotation surface.
+fn validate_target_vm_annotation(
     annotation: &SyntaxAnnotationOutput,
     declaration: &SyntaxDeclarationOutput,
 ) -> EbnfCompileResult<()> {
@@ -480,18 +465,15 @@ fn validate_target_erlang_annotation(
             "TemplateDecl",
             "ConfigDecl",
         ],
-        "@target.erlang",
+        "@target.vm",
     )?;
     if !annotation.values.is_empty() {
-        return annotation_error(
-            annotation,
-            "@target.erlang does not accept positional metadata",
-        );
+        return annotation_error(annotation, "@target.vm does not accept positional metadata");
     }
-    validate_unique_annotation_keys(annotation, "@target.erlang")?;
+    validate_unique_annotation_keys(annotation, "@target.vm")?;
     for entry in &annotation.entries {
         match entry.key_text().as_str() {
-            "otp_application" => {
+            "application" => {
                 validate_annotation_entry_value(entry, annotation_value_is_bool, "Bool")?
             }
             "process_mailbox" => validate_annotation_entry_value(
@@ -502,7 +484,7 @@ fn validate_target_erlang_annotation(
             key => {
                 return annotation_entry_error(
                     entry,
-                    format!("@target.erlang has unknown key `{key}`"),
+                    format!("@target.vm has unknown key `{key}`"),
                 );
             }
         }
@@ -614,7 +596,7 @@ fn validate_native_annotation(
             }
             "worker" => validate_annotation_entry_value(entry, annotation_value_is_bool, "Bool")?,
             key => {
-                return annotation_entry_error(entry, format!("@native has unknown key `{key}`"))
+                return annotation_entry_error(entry, format!("@native has unknown key `{key}`"));
             }
         }
     }
@@ -831,7 +813,7 @@ impl SyntaxAnnotationEntryOutput {
     /// - `self`: typed annotation entry with one or more key segments.
     ///
     /// Output:
-    /// - Dotted key path such as `otp_application`.
+    /// - Dotted key path such as `application`.
     ///
     /// Transformation:
     /// - Joins structured key segments for schema lookup and diagnostics.

@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-terlan",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "description": "Tree-sitter grammar scaffold for Terlan source and template headers.",
   "license": "MIT OR Apache-2.0",
   "main": "grammar.js",

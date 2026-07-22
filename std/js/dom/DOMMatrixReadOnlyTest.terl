@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DOMMatrixReadOnly
  */
 module std.js.Dom.DOMMatrixReadOnlyTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.DOMMatrixReadOnly.{DOMMatrixReadOnly}.
-
+import type std.js.Dom.DOMMatrixReadOnly.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub a_typechecks(receiver: DOMMatrixReadOnly): JsNumber ->
     receiver.a().
@@ -98,22 +102,51 @@ pub inverse_typechecks(receiver: DOMMatrixReadOnly): DOMMatrix ->
 pub multiply_typechecks(receiver: DOMMatrixReadOnly, other: DOMMatrixInit): DOMMatrix ->
     receiver.multiply(other).
 
-pub rotate_typechecks(receiver: DOMMatrixReadOnly, rot_x: JsNumber, rot_y: JsNumber, rot_z: JsNumber): DOMMatrix ->
+pub rotate_typechecks(
+    receiver: DOMMatrixReadOnly,
+    rot_x: JsNumber,
+    rot_y: JsNumber,
+    rot_z: JsNumber
+): DOMMatrix ->
     receiver.rotate(rot_x, rot_y, rot_z).
 
-pub rotate_axis_angle_typechecks(receiver: DOMMatrixReadOnly, x: JsNumber, y: JsNumber, z: JsNumber, angle: JsNumber): DOMMatrix ->
+pub rotate_axis_angle_typechecks(
+    receiver: DOMMatrixReadOnly,
+    x: JsNumber,
+    y: JsNumber,
+    z: JsNumber,
+    angle: JsNumber
+): DOMMatrix ->
     receiver.rotate_axis_angle(x, y, z, angle).
 
 pub rotate_from_vector_typechecks(receiver: DOMMatrixReadOnly, x: JsNumber, y: JsNumber): DOMMatrix ->
     receiver.rotate_from_vector(x, y).
 
-pub scale_typechecks(receiver: DOMMatrixReadOnly, scale_x: JsNumber, scale_y: JsNumber, scale_z: JsNumber, origin_x: JsNumber, origin_y: JsNumber, origin_z: JsNumber): DOMMatrix ->
+pub scale_typechecks(
+    receiver: DOMMatrixReadOnly,
+    scale_x: JsNumber,
+    scale_y: JsNumber,
+    scale_z: JsNumber,
+    origin_x: JsNumber,
+    origin_y: JsNumber,
+    origin_z: JsNumber
+): DOMMatrix ->
     receiver.scale(scale_x, scale_y, scale_z, origin_x, origin_y, origin_z).
 
-pub scale3d_typechecks(receiver: DOMMatrixReadOnly, scale: JsNumber, origin_x: JsNumber, origin_y: JsNumber, origin_z: JsNumber): DOMMatrix ->
+pub scale3d_typechecks(
+    receiver: DOMMatrixReadOnly,
+    scale: JsNumber,
+    origin_x: JsNumber,
+    origin_y: JsNumber,
+    origin_z: JsNumber
+): DOMMatrix ->
     receiver.scale3d(scale, origin_x, origin_y, origin_z).
 
-pub scale_non_uniform_typechecks(receiver: DOMMatrixReadOnly, scale_x: JsNumber, scale_y: JsNumber): DOMMatrix ->
+pub scale_non_uniform_typechecks(
+    receiver: DOMMatrixReadOnly,
+    scale_x: JsNumber,
+    scale_y: JsNumber
+): DOMMatrix ->
     receiver.scale_non_uniform(scale_x, scale_y).
 
 pub skew_x_typechecks(receiver: DOMMatrixReadOnly, sx: JsNumber): DOMMatrix ->
@@ -131,7 +164,12 @@ pub to_float64_array_typechecks(receiver: DOMMatrixReadOnly): Float64Array[Array
 pub transform_point_typechecks(receiver: DOMMatrixReadOnly, point: DOMPointInit): DOMPoint ->
     receiver.transform_point(point).
 
-pub translate_typechecks(receiver: DOMMatrixReadOnly, tx: JsNumber, ty: JsNumber, tz: JsNumber): DOMMatrix ->
+pub translate_typechecks(
+    receiver: DOMMatrixReadOnly,
+    tx: JsNumber,
+    ty: JsNumber,
+    tz: JsNumber
+): DOMMatrix ->
     receiver.translate(tx, ty, tz).
 
 pub to_string_typechecks(receiver: DOMMatrixReadOnly): std.js.String.JsString ->

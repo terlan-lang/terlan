@@ -2,7 +2,7 @@
   "name": "terlan-vscode",
   "displayName": "Terlan",
   "description": "Syntax highlighting and language-server integration for Terlan source files.",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "publisher": "terlan-lang",
   "license": "Apache-2.0",
   "icon": "icons/png/terlan-extension-128.png",
@@ -43,6 +43,18 @@
     "onLanguage:terlan-template-yaml",
     "onLanguage:terlan-template-text",
     "onCommand:terlan.runMain",
+    "onCommand:terlan.runCheck",
+    "onCommand:terlan.runBuild",
+    "onCommand:terlan.runClean",
+    "onCommand:terlan.runServe",
+    "onCommand:terlan.runWatch",
+    "onCommand:terlan.runDoctor",
+    "onCommand:terlan.runDebug",
+    "onCommand:terlan.runDebugAtCursor",
+    "onCommand:terlan.inspectRuntime",
+    "onCommand:terlan.addMissingImport",
+    "onCommand:terlan.formatDocument",
+    "onCommand:terlan.showDiagnostics",
     "onCommand:terlan.runTestFile",
     "onCommand:terlan.runTestAtCursor"
   ],
@@ -82,6 +94,54 @@
         "icon": "$(play)"
       },
       {
+        "command": "terlan.runCheck",
+        "title": "Check Terlan Workspace",
+        "category": "Terlan",
+        "icon": "$(check)"
+      },
+      {
+        "command": "terlan.runBuild",
+        "title": "Build Terlan Workspace",
+        "category": "Terlan",
+        "icon": "$(package)"
+      },
+      {
+        "command": "terlan.runClean",
+        "title": "Clean Terlan Workspace",
+        "category": "Terlan",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "terlan.runServe",
+        "title": "Serve Terlan Web",
+        "category": "Terlan",
+        "icon": "$(server)"
+      },
+      {
+        "command": "terlan.runWatch",
+        "title": "Watch Terlan Web",
+        "category": "Terlan",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "terlan.runDoctor",
+        "title": "Run Terlan Doctor",
+        "category": "Terlan",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "terlan.runDebug",
+        "title": "Launch Terlan Debug",
+        "category": "Terlan",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "terlan.runDebugAtCursor",
+        "title": "Debug Terlan at Cursor",
+        "category": "Terlan",
+        "icon": "$(debug-breakpoint)"
+      },
+      {
         "command": "terlan.runTestFile",
         "title": "Run Terlan Test File",
         "category": "Terlan",
@@ -92,12 +152,76 @@
         "title": "Run Terlan Test at Cursor",
         "category": "Terlan",
         "icon": "$(play)"
+      },
+      {
+        "command": "terlan.inspectRuntime",
+        "title": "Inspect Terlan Runtime",
+        "category": "Terlan",
+        "icon": "$(inspect)"
+      },
+      {
+        "command": "terlan.addMissingImport",
+        "title": "Add Missing Terlan Import",
+        "category": "Terlan",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "terlan.formatDocument",
+        "title": "Format Terlan Document",
+        "category": "Terlan",
+        "icon": "$(symbol-keyword)"
+      },
+      {
+        "command": "terlan.showDiagnostics",
+        "title": "Show Terlan Diagnostics",
+        "category": "Terlan",
+        "icon": "$(warning)"
       }
     ],
     "menus": {
       "editor/title": [
         {
           "command": "terlan.runMain",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runCheck",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runBuild",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runServe",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runWatch",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runDoctor",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runDebug",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runDebugAtCursor",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runClean",
           "when": "resourceFilename =~ /\\.terl$/",
           "group": "navigation"
         },
@@ -115,6 +239,46 @@
       "explorer/context": [
         {
           "command": "terlan.runMain",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runCheck",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runBuild",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runServe",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runWatch",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runDoctor",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runDebug",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runDebugAtCursor",
+          "when": "resourceFilename =~ /\\.terl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "terlan.runClean",
           "when": "resourceFilename =~ /\\.terl$/",
           "group": "navigation"
         },

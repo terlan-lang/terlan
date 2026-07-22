@@ -410,7 +410,7 @@ impl Response {
     ///
     /// Transformation:
     /// - Converts Hyper/http-adjacent response values back into the portable
-    ///   SafeNative shape used by compiler tests and future runtime bridges.
+    ///   NativeBoundary shape used by compiler tests and future runtime bridges.
     pub fn from_http_response(response: ::http::Response<String>) -> Self {
         let status = i64::from(response.status().as_u16());
         let content_type = response
@@ -468,7 +468,7 @@ pub fn body_json(request: &Request) -> Result<Json, HttpError> {
 /// - Owned UTF-8 body text.
 ///
 /// Transformation:
-/// - Copies the stable body snapshot for SafeNative dispatch without parsing
+/// - Copies the stable body snapshot for NativeBoundary dispatch without parsing
 ///   or interpreting content type.
 pub fn body_text(request: &Request) -> String {
     request.body().to_string()
@@ -483,7 +483,7 @@ pub fn body_text(request: &Request) -> String {
 /// - Owned method text.
 ///
 /// Transformation:
-/// - Copies the stable method metadata for SafeNative dispatch.
+/// - Copies the stable method metadata for NativeBoundary dispatch.
 pub fn method(request: &Request) -> String {
     request.method().to_string()
 }
@@ -497,7 +497,7 @@ pub fn method(request: &Request) -> String {
 /// - Owned URL path text without query text.
 ///
 /// Transformation:
-/// - Copies the stable path metadata for SafeNative dispatch.
+/// - Copies the stable path metadata for NativeBoundary dispatch.
 pub fn path(request: &Request) -> String {
     request.path().to_string()
 }
@@ -541,7 +541,7 @@ pub fn query(request: &Request, name: &str) -> Option<String> {
 /// - Owned raw query text without the leading `?`.
 ///
 /// Transformation:
-/// - Copies the preserved query string metadata for SafeNative dispatch
+/// - Copies the preserved query string metadata for NativeBoundary dispatch
 ///   without decoding or splitting it.
 pub fn query_string(request: &Request) -> String {
     request.query_string().to_string()
@@ -695,6 +695,32 @@ pub fn file(path: &str, status_code: i64, content_type: &str) -> Response {
     }
 }
 
+/// Rejects response streaming outside the VM-owned scheduler and transport.
+///
+/// Inputs:
+/// - Ordered response chunks and their explicit HTTP/queue policy.
+///
+/// Output:
+/// - Stable `HttpError` identifying that streaming requires the Terlan VM.
+///
+/// Transformation:
+/// - Keeps `std.http.Response` under one Rust adapter owner while preventing
+///   non-VM backends from silently concatenating or unboundedly buffering a
+///   source stream.
+pub fn stream(
+    _chunks: &[String],
+    _status_code: i64,
+    _content_type: &str,
+    _chunk_size: i64,
+    _max_pending_writes: i64,
+) -> Result<Response, HttpError> {
+    Err(HttpError::new(
+        "http.response.streaming_requires_vm",
+        "response streaming requires the Terlan VM runtime",
+        500,
+    ))
+}
+
 /// Returns a content type for one served package file.
 ///
 /// Inputs:
@@ -813,6 +839,23 @@ pub fn apply_cookie_mutations(response: &mut Response, jar: &CookieJar) {
     for mutation in jar.mutations() {
         set_cookie_header(response, mutation);
     }
+}
+
+/// Returns a response with recorded cookie jar mutations applied.
+///
+/// Inputs:
+/// - `response`: response wrapper receiving cookie headers.
+/// - `jar`: request-scoped cookie jar containing response mutations.
+///
+/// Output:
+/// - Response wrapper with one `Set-Cookie` header per recorded mutation.
+///
+/// Transformation:
+/// - Applies the same mutation loop as direct response composition, then
+///   returns the receiver value for source-level chaining.
+pub fn with_cookies(mut response: Response, jar: &CookieJar) -> Response {
+    apply_cookie_mutations(&mut response, jar);
+    response
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGAnimatedPreserveAspectRatio
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8001901141273115198
-interface_hash=740361417831644898
-interface_doc_hash=740361417831644898
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=12043458610722992568
+interface_hash=4479016074143086282
+interface_doc_hash=4479016074143086282
 deps=0

@@ -1,0 +1,105 @@
+==================
+generic structural implication
+==================
+
+module app.Implication.
+
+pub display_name[T => {name: String, profile: {title: String}}](value: T): String ->
+  value.name.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (type_parameters
+      (implication_type_parameter
+        (type_identifier)
+        (structural_evidence_shape
+          (implication_field
+            (identifier)
+            (type_expression
+              (type_identifier)))
+          (implication_field
+            (identifier)
+            (structural_evidence_shape
+              (implication_field
+                (identifier)
+                (type_expression
+                  (type_identifier))))))))
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (field_expression
+        (expression
+          (identifier))
+        (field_identifier)))))
+
+==================
+generic trait implementation implication
+==================
+
+module app.ImplImplication.
+
+pub trait Render[T] {
+  render(value: T): String.
+}.
+
+pub impl Render[T => {title: String}] for T {
+  render(value: T): String -> value.title.
+}.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (trait_declaration
+    (pub_keyword)
+    (type_identifier)
+    (type_parameters
+      (type_identifier))
+    (function_signature
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_expression
+            (type_identifier))))
+      (type_expression
+        (type_identifier))))
+  (impl_declaration
+    (pub_keyword)
+    (impl_trait_ref
+      (type_identifier)
+      (implication_type_parameter
+        (type_identifier)
+        (structural_evidence_shape
+          (implication_field
+            (identifier)
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (type_identifier))
+    (function_declaration
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_expression
+            (type_identifier))))
+      (type_expression
+        (type_identifier))
+      (expression
+        (field_expression
+          (expression
+            (identifier))
+          (field_identifier))))))

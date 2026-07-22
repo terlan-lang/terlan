@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSFontFeatureValuesRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16960092018939337701
-interface_hash=8095683779829753117
-interface_doc_hash=8095683779829753117
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4603644954263112481
+interface_hash=14947337738740838919
+interface_doc_hash=14947337738740838919
 deps=0

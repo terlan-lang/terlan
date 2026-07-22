@@ -24,6 +24,9 @@ pub struct SyntaxExprOutput {
     pub span: EbnfSourceSpan,
     #[serde(default)]
     pub raw: Option<String>,
+    /// Typechecked unary container that lifts a guarded comprehension.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comprehension_lift: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub type_args: Vec<SyntaxTypeOutput>,
     pub operator: Option<String>,
@@ -32,6 +35,8 @@ pub struct SyntaxExprOutput {
     pub arg_names: Vec<Option<String>>,
     pub children: Vec<SyntaxExprOutput>,
     pub patterns: Vec<SyntaxPatternOutput>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub let_guards: Vec<Option<Box<SyntaxExprOutput>>>,
     pub fields: Vec<SyntaxExprFieldOutput>,
     pub clauses: Vec<SyntaxClauseOutput>,
     #[serde(default)]
@@ -149,6 +154,7 @@ pub enum SyntaxExprKind {
     FieldAccess,
     RecordUpdate,
     RecordConstruct,
+    BinaryLayout,
     TemplateInstantiate,
     ConstructorChain,
     UnaryOp,

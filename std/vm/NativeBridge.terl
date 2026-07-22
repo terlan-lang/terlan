@@ -5,15 +5,12 @@
  * Rust-backed native workers. It is a runtime target contract, not a portable
  * runtime abstraction.
  */
-
 module std.vm.NativeBridge.
 
-import std.vm.Backpressure.{Backpressure}.
+import std.core.{Error, Result, Unit}.
+import std.vm.Backpressure.
 import std.vm.Message.{MessageCodec}.
 import std.vm.Supervisor.{Supervised}.
-import std.core.Result.{Result}.
-import std.core.Error.{Error}.
-import std.core.Unit.{Unit}.
 
 /**
  * NativeBridge represents a supervised native worker handle.
@@ -27,6 +24,34 @@ import std.core.Unit.{Unit}.
 pub opaque type NativeBridge[Resource].
 
 /**
+ * NativeTransfer marks values that may cross the VM native bridge boundary.
+ *
+ * Input: source value type `T`.
+ * Output: an identity proof method used by generic boundary checks.
+ * Transformation: lets ordinary values use the default bridge representation
+ * while allowing a concrete `impl not NativeTransfer[LocalType]` declaration
+ * to prohibit native transfer at compile time.
+ */
+@target.vm {process_mailbox: true}
+pub trait NativeTransfer[T] {
+    transfer(value: T): T.
+}.
+
+/**
+ * Provides native-transfer evidence for values without a concrete denial.
+ *
+ * Input: any source value of type `T`.
+ * Output: the same typed value.
+ * Transformation: supplies generic compile-time evidence only; the VM still
+ * owns encoding, resource validation, and native worker dispatch.
+ */
+@target.vm {process_mailbox: true}
+pub impl NativeTransfer[T] for T {
+    transfer(value: T): T ->
+        value.
+}.
+
+/**
  * NativeBridgeRuntime defines the required bridge operations.
  *
  * Input: resource type `Resource`, command type `Command`, and reply type
@@ -37,11 +62,7 @@ pub opaque type NativeBridge[Resource].
  * traits.
  */
 @target.vm {process_mailbox: true}
-pub trait NativeBridgeRuntime[Resource, Command, Reply]
-    extends Supervised[NativeBridge[Resource]],
-            Backpressure[NativeBridge[Resource]],
-            MessageCodec[Command],
-            MessageCodec[Reply] {
+pub trait NativeBridgeRuntime[Resource, Command, Reply] extends Supervised[NativeBridge[Resource]], Backpressure[NativeBridge[Resource]], MessageCodec[Command], MessageCodec[Reply], NativeTransfer[Resource], NativeTransfer[Command], NativeTransfer[Reply] {
     start(resource: Resource): Result[NativeBridge[Resource], Error].
     call(bridge: NativeBridge[Resource], command: Command): Result[Reply, Error].
     dispose(bridge: NativeBridge[Resource]): Unit.
@@ -57,7 +78,9 @@ pub trait NativeBridgeRuntime[Resource, Command, Reply]
  * worker while keeping native ownership outside portable Terlan semantics.
  */
 @target.vm {process_mailbox: true}
-pub start[Resource](resource: Resource): Result[NativeBridge[Resource], Error] ->
+pub start[Resource](
+    resource: Resource
+)[NativeTransfer[Resource]]: Result[NativeBridge[Resource], Error] ->
     native.
 
 /**
@@ -69,7 +92,9 @@ pub start[Resource](resource: Resource): Result[NativeBridge[Resource], Error] -
  * and normalizes adapter failures into the standard typed error channel.
  */
 @target.vm {process_mailbox: true}
-pub (bridge: NativeBridge[Resource]) call[Command, Reply](command: Command): Result[Reply, Error] ->
+pub (bridge: NativeBridge[Resource]) call[Command, Reply](
+    command: Command
+)[NativeTransfer[Command], NativeTransfer[Reply]]: Result[Reply, Error] ->
     native.
 
 /**

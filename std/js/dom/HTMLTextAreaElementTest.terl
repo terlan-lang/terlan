@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLTextAreaElement
  */
 module std.js.Dom.HTMLTextAreaElementTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.HTMLTextAreaElement.{HTMLTextAreaElement}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.HTMLTextAreaElement.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub autocomplete_typechecks(receiver: HTMLTextAreaElement): AutoFill ->
     receiver.autocomplete().
@@ -102,11 +103,27 @@ pub set_custom_validity_typechecks(receiver: HTMLTextAreaElement, error: JsStrin
 pub set_range_text_typechecks(receiver: HTMLTextAreaElement, replacement: JsString): Unit ->
     receiver.set_range_text(replacement).
 
-pub set_range_text_typechecks(receiver: HTMLTextAreaElement, replacement: JsString, start: JsNumber, end: JsNumber, selection_mode: SelectionMode): Unit ->
+pub set_range_text_typechecks(
+    receiver: HTMLTextAreaElement,
+    replacement: JsString,
+    start: JsNumber,
+    end: JsNumber,
+    selection_mode: SelectionMode
+): Unit ->
     receiver.set_range_text(replacement, start, end, selection_mode).
 
-pub add_event_listener_typechecks(receiver: HTMLTextAreaElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: HTMLTextAreaElement,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: HTMLTextAreaElement, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: HTMLTextAreaElement,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

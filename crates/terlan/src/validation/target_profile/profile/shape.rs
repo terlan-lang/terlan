@@ -1,6 +1,10 @@
 use crate::terlan_typeck::{CoreExpr, CoreProofCoverage};
 
 use super::TargetProfile;
+use crate::validation::target_profile::std_runtime::{
+    target_profile_supports_vm_intrinsic, target_profile_supports_vm_mutable_receiver_call,
+    target_profile_supports_vm_std_remote_call,
+};
 
 impl TargetProfile {
     /// Returns whether profile allows a given expression-level proof coverage.
@@ -60,32 +64,33 @@ impl TargetProfile {
     /// - One target profile.
     ///
     /// Output:
-    /// - `true` for supported Erlang forms.
+    /// - `true` for supported VM forms.
     pub(in crate::validation::target_profile) const fn allows_uncovered_pattern(&self) -> bool {
         match self {
-            Self::Erlang | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
-            Self::A0Erlang
-            | Self::A01Erlang
-            | Self::A02Erlang
-            | Self::A03Erlang
-            | Self::A04Erlang
-            | Self::A05Erlang
-            | Self::A06Erlang
-            | Self::A07Erlang
-            | Self::A08Erlang
-            | Self::A09Erlang
-            | Self::A010Erlang
-            | Self::A011Erlang
-            | Self::A012Erlang
-            | Self::A013Erlang
-            | Self::A014Erlang
-            | Self::A015Erlang
-            | Self::A016Erlang
-            | Self::A017Erlang
-            | Self::A018Erlang
-            | Self::A019Erlang
-            | Self::A020Erlang
-            | Self::A021Erlang => false,
+            Self::Vm | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
+            Self::WasmCore => false,
+            Self::A0Vm
+            | Self::A01Vm
+            | Self::A02Vm
+            | Self::A03Vm
+            | Self::A04Vm
+            | Self::A05Vm
+            | Self::A06Vm
+            | Self::A07Vm
+            | Self::A08Vm
+            | Self::A09Vm
+            | Self::A010Vm
+            | Self::A011Vm
+            | Self::A012Vm
+            | Self::A013Vm
+            | Self::A014Vm
+            | Self::A015Vm
+            | Self::A016Vm
+            | Self::A017Vm
+            | Self::A018Vm
+            | Self::A019Vm
+            | Self::A020Vm
+            | Self::A021Vm => false,
             Self::CoreV0 => false,
         }
     }
@@ -97,31 +102,32 @@ impl TargetProfile {
     /// - One target profile.
     ///
     /// Output:
-    /// - `true` for supported Erlang forms.
+    /// - `true` for supported VM forms.
     pub(in crate::validation::target_profile) const fn allows_runtime_boundary(&self) -> bool {
         match self {
-            Self::Erlang | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
-            Self::A0Erlang
-            | Self::A01Erlang
-            | Self::A02Erlang
-            | Self::A03Erlang
-            | Self::A04Erlang
-            | Self::A05Erlang
-            | Self::A06Erlang
-            | Self::A07Erlang
-            | Self::A08Erlang
-            | Self::A09Erlang
-            | Self::A010Erlang
-            | Self::A011Erlang
-            | Self::A012Erlang
-            | Self::A013Erlang
-            | Self::A014Erlang
-            | Self::A015Erlang
-            | Self::A016Erlang
-            | Self::A017Erlang
-            | Self::A018Erlang
-            | Self::A019Erlang => false,
-            Self::A020Erlang | Self::A021Erlang => true,
+            Self::Vm | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
+            Self::WasmCore => false,
+            Self::A0Vm
+            | Self::A01Vm
+            | Self::A02Vm
+            | Self::A03Vm
+            | Self::A04Vm
+            | Self::A05Vm
+            | Self::A06Vm
+            | Self::A07Vm
+            | Self::A08Vm
+            | Self::A09Vm
+            | Self::A010Vm
+            | Self::A011Vm
+            | Self::A012Vm
+            | Self::A013Vm
+            | Self::A014Vm
+            | Self::A015Vm
+            | Self::A016Vm
+            | Self::A017Vm
+            | Self::A018Vm
+            | Self::A019Vm => false,
+            Self::A020Vm | Self::A021Vm => true,
             Self::CoreV0 => false,
         }
     }
@@ -138,29 +144,30 @@ impl TargetProfile {
         &self,
     ) -> bool {
         match self {
-            Self::Erlang | Self::JsShared | Self::JsBrowser | Self::JsWorker => false,
-            Self::A0Erlang
-            | Self::A01Erlang
-            | Self::A02Erlang
-            | Self::A03Erlang
-            | Self::A04Erlang
-            | Self::A05Erlang
-            | Self::A06Erlang
-            | Self::A07Erlang
-            | Self::A08Erlang
-            | Self::A09Erlang
-            | Self::A010Erlang
-            | Self::A011Erlang
-            | Self::A012Erlang
-            | Self::A013Erlang
-            | Self::A014Erlang
-            | Self::A015Erlang
-            | Self::A016Erlang
-            | Self::A017Erlang
-            | Self::A018Erlang
-            | Self::A019Erlang
-            | Self::A020Erlang
-            | Self::A021Erlang => false,
+            Self::Vm | Self::JsShared | Self::JsBrowser | Self::JsWorker => false,
+            Self::WasmCore => false,
+            Self::A0Vm
+            | Self::A01Vm
+            | Self::A02Vm
+            | Self::A03Vm
+            | Self::A04Vm
+            | Self::A05Vm
+            | Self::A06Vm
+            | Self::A07Vm
+            | Self::A08Vm
+            | Self::A09Vm
+            | Self::A010Vm
+            | Self::A011Vm
+            | Self::A012Vm
+            | Self::A013Vm
+            | Self::A014Vm
+            | Self::A015Vm
+            | Self::A016Vm
+            | Self::A017Vm
+            | Self::A018Vm
+            | Self::A019Vm
+            | Self::A020Vm
+            | Self::A021Vm => false,
             Self::CoreV0 => true,
         }
     }
@@ -175,8 +182,23 @@ impl TargetProfile {
     /// - `true` when this profile accepts the core expression family.
     pub(in crate::validation::target_profile) fn allows_expr_shape(&self, expr: &CoreExpr) -> bool {
         match self {
-            Self::Erlang | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
-            Self::A0Erlang => match expr {
+            Self::Vm | Self::JsShared | Self::JsBrowser | Self::JsWorker => true,
+            Self::WasmCore => match expr {
+                CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Var(_) => true,
+                CoreExpr::BinaryOp {
+                    operator,
+                    left,
+                    right,
+                } => {
+                    matches!(
+                        operator.as_str(),
+                        "+" | "-" | "*" | "==" | "!=" | "<" | "<=" | ">" | ">="
+                    ) && self.allows_expr_shape(left)
+                        && self.allows_expr_shape(right)
+                }
+                _ => false,
+            },
+            Self::A0Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) => true,
                 CoreExpr::BinaryOp {
                     operator,
@@ -187,7 +209,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A01Erlang => match expr {
+            Self::A01Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) => true,
                 CoreExpr::BinaryOp {
                     operator,
@@ -202,7 +224,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A02Erlang => match expr {
+            Self::A02Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) => true,
                 CoreExpr::Atom(value) => matches!(value.as_str(), "true" | "false"),
                 CoreExpr::BinaryOp {
@@ -218,7 +240,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A03Erlang => match expr {
+            Self::A03Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) => true,
                 CoreExpr::Atom(value) => matches!(value.as_str(), "true" | "false"),
                 CoreExpr::BinaryOp {
@@ -238,7 +260,7 @@ impl TargetProfile {
                 }),
                 _ => false,
             },
-            Self::A04Erlang => match expr {
+            Self::A04Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) => true,
                 CoreExpr::Atom(value) => matches!(value.as_str(), "true" | "false"),
                 CoreExpr::BinaryOp {
@@ -266,7 +288,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A05Erlang => match expr {
+            Self::A05Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => true,
                 CoreExpr::BinaryOp {
                     operator,
@@ -293,7 +315,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A06Erlang => match expr {
+            Self::A06Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => true,
                 CoreExpr::Tuple(values) => values.iter().all(|value| self.allows_expr_shape(value)),
                 CoreExpr::BinaryOp {
@@ -321,7 +343,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A07Erlang => match expr {
+            Self::A07Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => true,
                 CoreExpr::Tuple(values) | CoreExpr::List(values) => {
                     values.iter().all(|value| self.allows_expr_shape(value))
@@ -351,7 +373,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A08Erlang => match expr {
+            Self::A08Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -383,7 +405,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A09Erlang => match expr {
+            Self::A09Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -418,7 +440,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A010Erlang => match expr {
+            Self::A010Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -454,7 +476,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A011Erlang => match expr {
+            Self::A011Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -493,7 +515,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A012Erlang => match expr {
+            Self::A012Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -507,12 +529,12 @@ impl TargetProfile {
                 CoreExpr::FunctionCall { callee, args } => {
                     matches!(
                         self,
-                        Self::A016Erlang
-                            | Self::A017Erlang
-                            | Self::A018Erlang
-                            | Self::A019Erlang
-                            | Self::A020Erlang
-                            | Self::A021Erlang
+                        Self::A016Vm
+                            | Self::A017Vm
+                            | Self::A018Vm
+                            | Self::A019Vm
+                            | Self::A020Vm
+                            | Self::A021Vm
                     ) && self.allows_expr_shape(callee)
                         && args.iter().all(|arg| self.allows_expr_shape(arg))
                 }
@@ -552,7 +574,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A013Erlang => match expr {
+            Self::A013Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -566,12 +588,12 @@ impl TargetProfile {
                 CoreExpr::FunctionCall { callee, args } => {
                     matches!(
                         self,
-                        Self::A016Erlang
-                            | Self::A017Erlang
-                            | Self::A018Erlang
-                            | Self::A019Erlang
-                            | Self::A020Erlang
-                            | Self::A021Erlang
+                        Self::A016Vm
+                            | Self::A017Vm
+                            | Self::A018Vm
+                            | Self::A019Vm
+                            | Self::A020Vm
+                            | Self::A021Vm
                     ) && self.allows_expr_shape(callee)
                         && args.iter().all(|arg| self.allows_expr_shape(arg))
                 }
@@ -611,7 +633,7 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A014Erlang => match expr {
+            Self::A014Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -625,12 +647,12 @@ impl TargetProfile {
                 CoreExpr::FunctionCall { callee, args } => {
                     matches!(
                         self,
-                        Self::A016Erlang
-                            | Self::A017Erlang
-                            | Self::A018Erlang
-                            | Self::A019Erlang
-                            | Self::A020Erlang
-                            | Self::A021Erlang
+                        Self::A016Vm
+                            | Self::A017Vm
+                            | Self::A018Vm
+                            | Self::A019Vm
+                            | Self::A020Vm
+                            | Self::A021Vm
                     ) && self.allows_expr_shape(callee)
                         && args.iter().all(|arg| self.allows_expr_shape(arg))
                 }
@@ -674,13 +696,13 @@ impl TargetProfile {
                 }
                 _ => false,
             },
-            Self::A015Erlang
-            | Self::A016Erlang
-            | Self::A017Erlang
-            | Self::A018Erlang
-            | Self::A019Erlang
-            | Self::A020Erlang
-            | Self::A021Erlang => match expr {
+            Self::A015Vm
+            | Self::A016Vm
+            | Self::A017Vm
+            | Self::A018Vm
+            | Self::A019Vm
+            | Self::A020Vm
+            | Self::A021Vm => match expr {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) | CoreExpr::Atom(_) => {
                     true
                 }
@@ -694,12 +716,12 @@ impl TargetProfile {
                 CoreExpr::FunctionCall { callee, args } => {
                     matches!(
                         self,
-                        Self::A016Erlang
-                            | Self::A017Erlang
-                            | Self::A018Erlang
-                            | Self::A019Erlang
-                            | Self::A020Erlang
-                            | Self::A021Erlang
+                        Self::A016Vm
+                            | Self::A017Vm
+                            | Self::A018Vm
+                            | Self::A019Vm
+                            | Self::A020Vm
+                            | Self::A021Vm
                     ) && self.allows_expr_shape(callee)
                         && args.iter().all(|arg| self.allows_expr_shape(arg))
                 }
@@ -762,29 +784,25 @@ impl TargetProfile {
                 CoreExpr::FieldAccess { base, .. } => {
                     matches!(
                         self,
-                        Self::A017Erlang
-                            | Self::A018Erlang
-                            | Self::A019Erlang
-                            | Self::A020Erlang
-                            | Self::A021Erlang
+                        Self::A017Vm | Self::A018Vm | Self::A019Vm | Self::A020Vm | Self::A021Vm
                     ) && self.allows_expr_shape(base)
                 }
                 CoreExpr::Let { bindings, body } => {
                     matches!(
                         self,
-                        Self::A018Erlang | Self::A019Erlang | Self::A020Erlang | Self::A021Erlang
+                        Self::A018Vm | Self::A019Vm | Self::A020Vm | Self::A021Vm
                     ) && bindings
                         .iter()
                         .all(|binding| self.allows_expr_shape(&binding.value))
                         && self.allows_expr_shape(body)
                 }
                 CoreExpr::Index { base, index } => {
-                    matches!(self, Self::A019Erlang | Self::A020Erlang | Self::A021Erlang)
+                    matches!(self, Self::A019Vm | Self::A020Vm | Self::A021Vm)
                         && self.allows_expr_shape(base)
                         && self.allows_expr_shape(index)
                 }
                 CoreExpr::RemoteCall { args, .. } => {
-                    matches!(self, Self::A020Erlang | Self::A021Erlang)
+                    matches!(self, Self::A020Vm | Self::A021Vm)
                         && args.iter().all(|arg| self.allows_expr_shape(arg))
                 }
                 _ => false,
@@ -793,6 +811,7 @@ impl TargetProfile {
                 CoreExpr::Int(_) | CoreExpr::Binary(_) | CoreExpr::Atom(_) | CoreExpr::Var(_) => {
                     true
                 }
+                CoreExpr::Float(_) => false,
                 CoreExpr::Tuple(values) | CoreExpr::List(values) => {
                     values.iter().all(|value| self.allows_expr_shape(value))
                 }
@@ -844,11 +863,37 @@ impl TargetProfile {
                     ) && self.allows_expr_shape(left)
                         && self.allows_expr_shape(right)
                 }
-                CoreExpr::Float(_)
-                | CoreExpr::FixedArray(_)
+                CoreExpr::RemoteCall {
+                    module,
+                    function,
+                    args,
+                } => {
+                    target_profile_supports_vm_std_remote_call(*self, module, function, args.len())
+                        && args.iter().all(|arg| self.allows_expr_shape(arg))
+                }
+                CoreExpr::Intrinsic(call) => {
+                    target_profile_supports_vm_intrinsic(*self, call)
+                        && call.args.iter().all(|arg| self.allows_expr_shape(arg))
+                }
+                CoreExpr::Let { bindings, body } => {
+                    bindings.iter().all(|binding| {
+                        self.allows_pattern_shape(&binding.pattern)
+                            && self.allows_expr_shape(&binding.value)
+                    }) && self.allows_expr_shape(body)
+                }
+                CoreExpr::MutableReceiverCall {
+                    receiver,
+                    method,
+                    args,
+                    ..
+                } => {
+                    target_profile_supports_vm_mutable_receiver_call(*self, method, args.len())
+                        && self.allows_expr_shape(receiver)
+                        && args.iter().all(|arg| self.allows_expr_shape(arg))
+                }
+                CoreExpr::FixedArray(_)
                 | CoreExpr::Index { .. }
                 | CoreExpr::ListComprehension { .. }
-                | CoreExpr::Let { .. }
                 | CoreExpr::Map(_)
                 | CoreExpr::RecordConstruct { .. }
                 | CoreExpr::RecordAccess { .. }
@@ -856,9 +901,6 @@ impl TargetProfile {
                 | CoreExpr::TemplateInstantiate { .. }
                 | CoreExpr::ConstructorChain { .. }
                 | CoreExpr::RemoteFunRef { .. }
-                | CoreExpr::RemoteCall { .. }
-                | CoreExpr::MutableReceiverCall { .. }
-                | CoreExpr::Intrinsic(_)
                 | CoreExpr::SqlQuery { .. }
                 | CoreExpr::Try { .. } => false,
             },

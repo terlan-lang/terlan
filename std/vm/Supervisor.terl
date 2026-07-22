@@ -5,12 +5,9 @@
  * services and native bridges. It is deliberately expressed as ordinary types
  * and traits so supervision stays outside the Terlan grammar.
  */
-
 module std.vm.Supervisor.
 
-import std.core.Result.{Result}.
-import std.core.Error.{Error}.
-import std.core.Unit.{Unit}.
+import std.core.{Error, Result, Unit}.
 
 /**
  * Supervisor represents a runtime supervision owner.

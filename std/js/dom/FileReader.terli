@@ -1,0 +1,85 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileReader
+ */
+module std.js.Dom.FileReader.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`FileReader`** interface lets web applications asynchronously read the contents of files (or raw data buffers) stored on the user's computer, using File or Blob objects to specify the file or data to read.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader)
+ */
+pub opaque type FileReader.
+
+/**
+ * The **`error`** read-only property of the FileReader interface returns the error that occurred while reading the file.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/error)
+ */
+pub (value: FileReader) error(): Option[DOMException].
+
+/**
+ * The **`result`** read-only property of the FileReader interface returns the file's contents.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/result)
+ */
+pub (value: FileReader) result(): Option[ArrayBuffer | JsString].
+
+/**
+ * The **`abort()`** method of the FileReader interface aborts the read operation.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/abort)
+ */
+pub (value: FileReader) abort(): Unit.
+
+/**
+ * The **`readAsArrayBuffer()`** method of the FileReader interface is used to start reading the contents of a specified Blob or File.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsArrayBuffer)
+ */
+pub (value: FileReader) read_as_array_buffer(blob: Blob): Unit.
+
+/**
+ * The **`readAsBinaryString()`** method of the FileReader interface is used to start reading the contents of the specified Blob or File.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsBinaryString)
+ */
+pub (value: FileReader) read_as_binary_string(blob: Blob): Unit.
+
+/**
+ * The **`readAsDataURL()`** method of the FileReader interface is used to read the contents of the specified file's data as a base64 encoded string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsDataURL)
+ */
+pub (value: FileReader) read_as_data_url(blob: Blob): Unit.
+
+/**
+ * The **`readAsText()`** method of the FileReader interface is used to read the contents of the specified Blob or File.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsText)
+ */
+pub (value: FileReader) read_as_text(blob: Blob, encoding: JsString): Unit.
+
+pub (value: FileReader) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: FileReader) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

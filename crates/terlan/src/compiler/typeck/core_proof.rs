@@ -6,8 +6,11 @@ use super::core_pattern_lowering::{
 };
 use super::*;
 
+use std::collections::HashSet;
+
 mod evidence;
 mod module_facts;
+mod structural_impl;
 
 use evidence::{
     core_expr_checked_preservation_evidence, core_pattern_checked_preservation_evidence,
@@ -15,6 +18,9 @@ use evidence::{
 pub(crate) use module_facts::{
     core_resolved_imported_modules, core_syntax_imports, core_syntax_trait_conformances,
     merge_core_imports,
+};
+pub(crate) use structural_impl::{
+    core_syntax_structural_impl_dispatch, rewrite_structural_impl_calls,
 };
 
 pub(crate) mod metadata;
@@ -38,22 +44,56 @@ pub(crate) fn core_syntax_function_clauses(
 ) -> HashMap<(String, usize), Vec<CoreFunctionClause>> {
     let mut clauses = HashMap::new();
     for declaration in &module.declarations {
-        if let SyntaxDeclarationPayload::Function {
-            name,
-            params,
-            clauses: function_clauses,
-            ..
-        } = &declaration.payload
-        {
-            clauses.insert(
-                (name.clone(), params.len()),
-                function_clauses
-                    .iter()
-                    .map(|clause| {
-                        core_function_clause_summary(clause, receiver_methods, template_prop_order)
-                    })
-                    .collect(),
-            );
+        match &declaration.payload {
+            SyntaxDeclarationPayload::Function {
+                name,
+                params,
+                clauses: function_clauses,
+                ..
+            } => {
+                let function_value_locals = function_value_parameter_names(params);
+                clauses.insert(
+                    (name.clone(), params.len()),
+                    function_clauses
+                        .iter()
+                        .map(|clause| {
+                            core_function_clause_summary(
+                                clause,
+                                receiver_methods,
+                                template_prop_order,
+                                &function_value_locals,
+                            )
+                        })
+                        .collect(),
+                );
+            }
+            SyntaxDeclarationPayload::Method {
+                receiver,
+                name,
+                params,
+                clauses: method_clauses,
+                ..
+            } => {
+                let mut receiver_first_params = Vec::with_capacity(params.len() + 1);
+                receiver_first_params.push(receiver.clone());
+                receiver_first_params.extend(params.iter().cloned());
+                let function_value_locals = function_value_parameter_names(&receiver_first_params);
+                clauses.insert(
+                    (name.clone(), receiver_first_params.len()),
+                    receiver_method_clauses_with_bindings(receiver, params, method_clauses)
+                        .iter()
+                        .map(|clause| {
+                            core_function_clause_summary(
+                                clause,
+                                receiver_methods,
+                                template_prop_order,
+                                &function_value_locals,
+                            )
+                        })
+                        .collect(),
+                );
+            }
+            _ => {}
         }
     }
     clauses
@@ -363,11 +403,13 @@ fn resolve_constructor_identities_in_core_expr(
         | CoreExpr::Binary(_)
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
-        | CoreExpr::RemoteFunRef { .. }
-        | CoreExpr::SqlQuery { .. } => {}
+        | CoreExpr::RemoteFunRef { .. } => {}
         CoreExpr::Tuple(items)
         | CoreExpr::List(items)
         | CoreExpr::FixedArray(items)
+        | CoreExpr::SqlQuery {
+            parameters: items, ..
+        }
         | CoreExpr::RemoteCall { args: items, .. }
         | CoreExpr::Call { args: items, .. }
         | CoreExpr::Intrinsic(CoreIntrinsicCall { args: items, .. }) => {
@@ -400,14 +442,22 @@ fn resolve_constructor_identities_in_core_expr(
         }
         CoreExpr::ListComprehension {
             expr,
-            pattern,
-            source,
-            guard,
+            generators,
+            guards,
+            ..
         } => {
             resolve_constructor_identities_in_core_expr(expr, constructor_identities);
-            resolve_constructor_identities_in_core_pattern(pattern, constructor_identities);
-            resolve_constructor_identities_in_core_expr(source, constructor_identities);
-            if let Some(guard) = guard {
+            for generator in generators {
+                resolve_constructor_identities_in_core_pattern(
+                    &mut generator.pattern,
+                    constructor_identities,
+                );
+                resolve_constructor_identities_in_core_expr(
+                    &mut generator.source,
+                    constructor_identities,
+                );
+            }
+            for guard in guards {
                 resolve_constructor_identities_in_core_expr(guard, constructor_identities);
             }
         }
@@ -567,11 +617,17 @@ fn resolve_constructor_identities_in_core_pattern(
         | CorePattern::Var(_)
         | CorePattern::Int(_)
         | CorePattern::Float(_)
+        | CorePattern::String(_)
+        | CorePattern::StringPattern(_)
+        | CorePattern::BinaryLayout { .. }
         | CorePattern::Atom(_) => {}
         CorePattern::Tuple(elements) | CorePattern::List(elements) => {
             for element in elements {
                 resolve_constructor_identities_in_core_pattern(element, constructor_identities);
             }
+        }
+        CorePattern::Alias { pattern, .. } => {
+            resolve_constructor_identities_in_core_pattern(pattern, constructor_identities);
         }
         CorePattern::ListCons { head, tail } => {
             resolve_constructor_identities_in_core_pattern(head, constructor_identities);
@@ -624,6 +680,7 @@ fn core_function_clause_summary(
     clause: &crate::terlan_syntax::SyntaxFunctionClauseOutput,
     receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     template_prop_order: &HashMap<String, Vec<String>>,
+    function_value_locals: &HashSet<String>,
 ) -> CoreFunctionClause {
     let patterns = clause
         .patterns
@@ -656,12 +713,43 @@ fn core_function_clause_summary(
         core_patterns,
         pattern_proof_coverage,
         pattern_checked_preservation_evidence,
-        guard: clause
-            .guard
-            .as_ref()
-            .map(|guard| core_expr_summary(guard, receiver_methods, template_prop_order)),
-        body: core_expr_summary(&clause.body, receiver_methods, template_prop_order),
+        guard: clause.guard.as_ref().map(|guard| {
+            core_expr_summary(
+                guard,
+                receiver_methods,
+                template_prop_order,
+                function_value_locals,
+            )
+        }),
+        body: core_expr_summary(
+            &clause.body,
+            receiver_methods,
+            template_prop_order,
+            function_value_locals,
+        ),
     }
+}
+
+fn function_value_parameter_names(
+    params: &[crate::terlan_syntax::SyntaxParamOutput],
+) -> HashSet<String> {
+    let mut names = HashSet::new();
+    for param in params {
+        let mut vars = HashMap::new();
+        let mut next_var = 0;
+        if matches!(
+            parse_type_expr(
+                &param.annotation.text,
+                &HashSet::new(),
+                &mut vars,
+                &mut next_var
+            ),
+            Some(Type::Function { .. })
+        ) {
+            names.insert(param.name.clone());
+        }
+    }
+    names
 }
 
 /// Converts a syntax expression into a recursive CoreIR expression summary.
@@ -680,17 +768,28 @@ fn core_expr_summary(
     expr: &SyntaxExprOutput,
     receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     template_prop_order: &HashMap<String, Vec<String>>,
+    function_value_locals: &HashSet<String>,
 ) -> CoreExprSummary {
     let mut children = expr
         .children
         .iter()
-        .map(|child| core_expr_summary(child, receiver_methods, template_prop_order))
+        .map(|child| {
+            core_expr_summary(
+                child,
+                receiver_methods,
+                template_prop_order,
+                function_value_locals,
+            )
+        })
         .collect::<Vec<_>>();
-    children.extend(
-        expr.fields
-            .iter()
-            .map(|field| core_expr_summary(&field.value, receiver_methods, template_prop_order)),
-    );
+    children.extend(expr.fields.iter().map(|field| {
+        core_expr_summary(
+            &field.value,
+            receiver_methods,
+            template_prop_order,
+            function_value_locals,
+        )
+    }));
     children.extend(expr.clauses.iter().flat_map(|clause| {
         let mut clause_children = Vec::new();
         if let Some(guard) = &clause.guard {
@@ -698,12 +797,14 @@ fn core_expr_summary(
                 guard,
                 receiver_methods,
                 template_prop_order,
+                function_value_locals,
             ));
         }
         clause_children.push(core_expr_summary(
             &clause.body,
             receiver_methods,
             template_prop_order,
+            function_value_locals,
         ));
         clause_children
     }));
@@ -714,12 +815,14 @@ fn core_expr_summary(
                 guard,
                 receiver_methods,
                 template_prop_order,
+                function_value_locals,
             ));
         }
         clause_children.push(core_expr_summary(
             &clause.body,
             receiver_methods,
             template_prop_order,
+            function_value_locals,
         ));
         clause_children
     }));
@@ -728,15 +831,20 @@ fn core_expr_summary(
             &after.trigger,
             receiver_methods,
             template_prop_order,
+            function_value_locals,
         ));
         children.push(core_expr_summary(
             &after.body,
             receiver_methods,
             template_prop_order,
+            function_value_locals,
         ));
     }
     let core_expr = core_mutable_receiver_call_expr_from_syntax(expr, receiver_methods)
         .or_else(|| core_template_call_expr_from_syntax(expr, template_prop_order))
+        .or_else(|| {
+            core_function_value_parameter_call_expr_from_syntax(expr, function_value_locals)
+        })
         .or_else(|| core_expr_from_syntax(expr));
     let checked_preservation_evidence = core_expr
         .as_ref()
@@ -754,6 +862,31 @@ fn core_expr_summary(
         arity: expr.arity,
         children,
     }
+}
+
+fn core_function_value_parameter_call_expr_from_syntax(
+    expr: &SyntaxExprOutput,
+    function_value_locals: &HashSet<String>,
+) -> Option<CoreExpr> {
+    if expr.kind != SyntaxExprKind::Call || expr.remote.is_some() {
+        return None;
+    }
+    let (callee, args) = expr.children.split_first()?;
+    let name = match callee.kind {
+        SyntaxExprKind::Var => callee.text.as_deref()?,
+        _ => return None,
+    };
+    if !function_value_locals.contains(name) {
+        return None;
+    }
+
+    Some(CoreExpr::FunctionCall {
+        callee: Box::new(core_expr_from_syntax(callee)?),
+        args: args
+            .iter()
+            .map(core_expr_from_syntax)
+            .collect::<Option<Vec<_>>>()?,
+    })
 }
 
 /// Converts a direct generated template function call into CoreIR.

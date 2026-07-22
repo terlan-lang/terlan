@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLFormControlsCollection
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8823147912071094094
-interface_hash=789830199508444887
-interface_doc_hash=789830199508444887
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6755004900365718095
+interface_hash=17668513328198049974
+interface_doc_hash=17668513328198049974
 deps=0

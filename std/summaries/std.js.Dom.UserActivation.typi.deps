@@ -1,8 +1,8 @@
 module=std.js.Dom.UserActivation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=6381893096602884878
-interface_hash=1764972192030206179
-interface_doc_hash=1764972192030206179
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=13735091579804354584
+interface_hash=17027989463021073504
+interface_doc_hash=17027989463021073504
 deps=0

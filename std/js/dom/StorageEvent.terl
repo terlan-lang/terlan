@@ -1,11 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface StorageEvent
  */
 module std.js.Dom.StorageEvent.
 
 import type std.core.{Bool}.
-
 import type std.js.String.{JsString}.
 
 /**
@@ -61,5 +68,14 @@ pub (value: StorageEvent) url(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/initStorageEvent)
  */
-pub (value: StorageEvent) init_storage_event(type_: JsString, bubbles: Bool, cancelable: Bool, key: Option[JsString], old_value: Option[JsString], new_value: Option[JsString], url: URL | JsString, storage_area: Option[Storage]): std.core.Unit ->
+pub (value: StorageEvent) init_storage_event(
+    type_: JsString,
+    bubbles: Bool,
+    cancelable: Bool,
+    key: Option[JsString],
+    old_value: Option[JsString],
+    new_value: Option[JsString],
+    url: URL | JsString,
+    storage_area: Option[Storage]
+): std.core.Unit ->
     native.

@@ -1,12 +1,9 @@
 module=std.js.Array
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=7521373444069046570
-interface_hash=12358826539900730976
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=6738278824409817568
+interface_hash=17689423361639711634
 interface_doc_hash=5151590949606345951
-deps=4
+deps=1
 std.collections.Index=18015119207544762395
-std.collections.Iterable=722649067895576239
-std.collections.Iterator=7072952334587783129
-std.collections.List=2112715437383919250

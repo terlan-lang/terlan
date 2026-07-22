@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGLength
  */
 module std.js.Dom.SVGLengthTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.SVGLength.{SVGLength}.
-
+import type std.js.Dom.SVGLength.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub unit_type_typechecks(receiver: SVGLength): JsNumber ->
     receiver.unit_type().
@@ -29,5 +33,9 @@ pub value_in_specified_units_typechecks(receiver: SVGLength): JsNumber ->
 pub convert_to_specified_units_typechecks(receiver: SVGLength, unit_type: JsNumber): Unit ->
     receiver.convert_to_specified_units(unit_type).
 
-pub new_value_specified_units_typechecks(receiver: SVGLength, unit_type: JsNumber, value_in_specified_units: JsNumber): Unit ->
+pub new_value_specified_units_typechecks(
+    receiver: SVGLength,
+    unit_type: JsNumber,
+    value_in_specified_units: JsNumber
+): Unit ->
     receiver.new_value_specified_units(unit_type, value_in_specified_units).

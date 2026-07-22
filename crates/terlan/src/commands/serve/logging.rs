@@ -21,6 +21,21 @@ pub(super) fn next_request_id() -> u64 {
     REQUEST_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
+/// Derives the local connection id for one request log.
+///
+/// Inputs:
+/// - `request_id`: process-local request id.
+///
+/// Output:
+/// - Stable local connection id for the current serve path.
+///
+/// Transformation:
+/// - Keeps the observability schema explicit before lower VM transport
+///   connection handles are threaded through the local serve adapter.
+pub(super) fn connection_id_for_request(request_id: u64) -> u64 {
+    request_id
+}
+
 /// Writes one dynamic-handler request log line.
 ///
 /// Inputs:
@@ -83,8 +98,9 @@ pub(super) fn render_handler_log_line(
     status: u16,
     duration_ms: u128,
 ) -> String {
+    let connection_id = connection_id_for_request(request_id);
     let mut line = format!(
-        "terlc serve request_id={request_id} build_id={build_id} method={request_method} path={request_path} route_method={} route={} handler={}.{} status={status} duration_ms={duration_ms}",
+        "terlc serve request_id={request_id} connection_id={connection_id} build_id={build_id} method={request_method} path={request_path} route_method={} route={} handler={}.{} status={status} duration_ms={duration_ms}",
         identity.method, identity.route, identity.module, identity.function
     );
     append_source_span(&mut line, identity.source);
@@ -233,8 +249,9 @@ pub(super) fn render_static_log_line(
     status: u16,
     duration_ms: u128,
 ) -> String {
+    let connection_id = connection_id_for_request(request_id);
     format!(
-        "terlc serve request_id={request_id} build_id={build_id} method={request_method} path={request_path} static={} status={status} duration_ms={duration_ms}",
+        "terlc serve request_id={request_id} connection_id={connection_id} build_id={build_id} method={request_method} path={request_path} static={} status={status} duration_ms={duration_ms}",
         response_path.display()
     )
 }
@@ -269,8 +286,9 @@ pub(super) fn render_static_route_log_line(
     status: u16,
     duration_ms: u128,
 ) -> String {
+    let connection_id = connection_id_for_request(request_id);
     let mut line = format!(
-        "terlc serve request_id={request_id} build_id={build_id} method={request_method} path={request_path} static_route_method={route_method} static_route={route} status={status} duration_ms={duration_ms}"
+        "terlc serve request_id={request_id} connection_id={connection_id} build_id={build_id} method={request_method} path={request_path} static_route_method={route_method} static_route={route} status={status} duration_ms={duration_ms}"
     );
     append_source_span(&mut line, source);
     line
@@ -308,8 +326,9 @@ pub(super) fn render_file_route_log_line(
     status: u16,
     duration_ms: u128,
 ) -> String {
+    let connection_id = connection_id_for_request(request_id);
     let mut line = format!(
-        "terlc serve request_id={request_id} build_id={build_id} method={request_method} path={request_path} file_route_method={route_method} file_route={route} file={} status={status} duration_ms={duration_ms}",
+        "terlc serve request_id={request_id} connection_id={connection_id} build_id={build_id} method={request_method} path={request_path} file_route_method={route_method} file_route={route} file={} status={status} duration_ms={duration_ms}",
         response_path.display()
     );
     append_source_span(&mut line, source);

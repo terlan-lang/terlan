@@ -8,8 +8,18 @@ pub view(Role: Role): Html[none] ->
     html {
         <div>
             {case Role {
-                admin -> <span class="admin">Admin</span>;
-                viewer -> <span>Viewer</span>
+                admin ->
+                    html {
+                        <span class="admin">
+                            Admin
+                        </span>
+                    };
+                viewer ->
+                    html {
+                        <span>
+                            Viewer
+                        </span>
+                    }
             }}
         </div>
     }.

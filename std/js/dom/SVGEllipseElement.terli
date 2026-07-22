@@ -1,0 +1,63 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGEllipseElement
+ */
+module std.js.Dom.SVGEllipseElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGEllipseElement`** interface provides access to the properties of ellipse elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement)
+ */
+pub opaque type SVGEllipseElement.
+
+/**
+ * The **`cx`** read-only property of the SVGEllipseElement interface describes the x-axis coordinate of the center of the ellipse as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/cx)
+ */
+pub (value: SVGEllipseElement) cx(): SVGAnimatedLength.
+
+/**
+ * The **`cy`** read-only property of the SVGEllipseElement interface describes the y-axis coordinate of the center of the ellipse as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/cy)
+ */
+pub (value: SVGEllipseElement) cy(): SVGAnimatedLength.
+
+/**
+ * The **`rx`** read-only property of the SVGEllipseElement interface describes the x-axis radius of the ellipse as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/rx)
+ */
+pub (value: SVGEllipseElement) rx(): SVGAnimatedLength.
+
+/**
+ * The **`ry`** read-only property of the SVGEllipseElement interface describes the y-axis radius of the ellipse as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/ry)
+ */
+pub (value: SVGEllipseElement) ry(): SVGAnimatedLength.
+
+pub (value: SVGEllipseElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SVGEllipseElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

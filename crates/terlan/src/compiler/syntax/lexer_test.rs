@@ -121,3 +121,33 @@ fn symbolic_boolean_operators_are_boolean_tokens() {
     assert_eq!(tokens[3].kind, TokenKind::Or);
     assert_eq!(tokens[3].text, "||");
 }
+
+/// Verifies scientific Float spellings remain one typed token.
+#[test]
+fn small_float_parity_scientific_literals_are_single_float_tokens() {
+    let tokens = lex("1e3 2.5e-4 7E+8").expect("lexer should parse scientific floats");
+    let numeric = tokens
+        .iter()
+        .filter(|token| token.kind != TokenKind::EOF)
+        .map(|token| (token.kind.clone(), token.text.as_str()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        numeric,
+        vec![
+            (TokenKind::Float, "1e3"),
+            (TokenKind::Float, "2.5e-4"),
+            (TokenKind::Float, "7E+8"),
+        ]
+    );
+}
+
+/// Verifies incomplete exponents cannot be absorbed into numeric values.
+#[test]
+fn small_float_parity_malformed_scientific_exponents_remain_trailing_source() {
+    for source in ["1e", "1e+", "2.0E-"] {
+        let tokens = lex(source).expect("lexer should preserve malformed trailing source");
+        assert!(matches!(tokens[0].kind, TokenKind::Int | TokenKind::Float));
+        assert_ne!(tokens[0].text, source);
+    }
+}

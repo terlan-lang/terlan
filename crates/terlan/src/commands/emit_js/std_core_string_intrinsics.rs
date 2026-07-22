@@ -50,6 +50,9 @@ pub(super) fn core_string_intrinsic_call_to_oxc_expression<'a>(
         CorePrimitiveIntrinsic::StringUppercase => {
             core_string_method_intrinsic_to_oxc_expression(ast, args, "toUpperCase")
         }
+        CorePrimitiveIntrinsic::StringReverse => {
+            core_string_reverse_intrinsic_to_oxc_expression(ast, args)
+        }
         CorePrimitiveIntrinsic::StringTrim => {
             core_string_method_intrinsic_to_oxc_expression(ast, args, "trim")
         }
@@ -204,6 +207,75 @@ fn core_string_concat_intrinsic_to_oxc_expression<'a>(
     Some(ast.expression_call(
         SPAN,
         callee,
+        oxc_ast::NONE,
+        ast.vec1(Argument::from(ast.expression_string_literal(
+            SPAN,
+            oxc_string_value(ast, ""),
+            None,
+        ))),
+        false,
+    ))
+}
+
+/// Lowers `core.string.reverse` into `Array.from(value).reverse().join("")`.
+///
+/// Inputs:
+/// - `ast`: Oxc AST builder tied to the destination allocator.
+/// - `args`: CoreIR intrinsic arguments in `(value)` order.
+///
+/// Output:
+/// - `Some(Expression)` for JavaScript text-unit reversal.
+/// - `None` when the intrinsic has the wrong arity or unsupported value.
+///
+/// Transformation:
+/// - Converts the backend-neutral reverse operation into `Array.from` over the
+///   JavaScript string, then reverses and joins the resulting code-point array
+///   so behavior matches the portable `String.length` text-unit contract.
+fn core_string_reverse_intrinsic_to_oxc_expression<'a>(
+    ast: oxc_ast::AstBuilder<'a>,
+    args: &[CoreExpr],
+) -> Option<oxc_ast::ast::Expression<'a>> {
+    use oxc_ast::ast::Argument;
+    use oxc_span::SPAN;
+
+    let [value] = args else {
+        return None;
+    };
+    let array_from_callee = ast
+        .member_expression_static(
+            SPAN,
+            ast.expression_identifier(SPAN, oxc_ident_name(ast, "Array")),
+            ast.identifier_name(SPAN, oxc_ident_name(ast, "from")),
+            false,
+        )
+        .into();
+    let array_from = ast.expression_call(
+        SPAN,
+        array_from_callee,
+        oxc_ast::NONE,
+        ast.vec1(Argument::from(core_expr_to_oxc_expression(ast, value)?)),
+        false,
+    );
+    let reverse_callee = ast
+        .member_expression_static(
+            SPAN,
+            array_from,
+            ast.identifier_name(SPAN, oxc_ident_name(ast, "reverse")),
+            false,
+        )
+        .into();
+    let reversed = ast.expression_call(SPAN, reverse_callee, oxc_ast::NONE, ast.vec(), false);
+    let join_callee = ast
+        .member_expression_static(
+            SPAN,
+            reversed,
+            ast.identifier_name(SPAN, oxc_ident_name(ast, "join")),
+            false,
+        )
+        .into();
+    Some(ast.expression_call(
+        SPAN,
+        join_callee,
         oxc_ast::NONE,
         ast.vec1(Argument::from(ast.expression_string_literal(
             SPAN,

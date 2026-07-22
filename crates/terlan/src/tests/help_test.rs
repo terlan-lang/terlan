@@ -128,18 +128,45 @@ fn top_level_usage_hides_internal_scratch_commands() {
 
     for public_command in [
         "terlc help [command]",
-        "terlc init [project-name] [--profile default|web|static]",
+        "terlc init [project-name] [--profile default|web|static|mobile]",
         "terlc check <file.terl|file.terli|dir>",
-        "terlc build [file.terl|dir] [--target erlang|js] [--out-dir <dir>]",
-        "terlc run [project-dir] [--target erlang]",
-        "terlc test [file.terl|dir] [--target erlang|js] [--name <test_function>]",
+        concat!(
+            "terlc build [file.terl|dir] ",
+            "[--target terlan-vm|js|wasm.core|mobile.android|mobile.ios] [--out-dir <dir>]"
+        ),
+        "terlc run [project-dir|file.terl] [--target terlan-vm]",
+        concat!(
+            "terlc run <artifact.wasm> [--export <name>] [--arg <type:value>] ",
+            "[--host-return <module.name=type:value>] [--expect <type:value>] ",
+            "[--repeat <count>] ",
+            "[--timeout-ms <ms>]"
+        ),
+        "terlc clean [project-dir]",
+        "terlc doctor [project-dir]",
+        concat!(
+            "terlc serve [web-dir] [--host <host>] [--port <port>] ",
+            "[--poll-ms <ms>] [--handler-runtime static] [--check|--check-config]"
+        ),
+        concat!(
+            "terlc integration-test [project-dir] [--host <host>] [--port <port>] ",
+            "[--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]"
+        ),
+        "terlc test [file.terl|dir] [--target terlan-vm|js|wasm] [--name <test_function>]",
         "terlc static <emit|serve|check> <file.terl>",
-        "terlc doc <file.terl|dir|std>",
+        "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
+        "terlc api <emit|check|import>",
         "terlc db <init|new|validate|status|migrate|rebuild|reset>",
-        "terlc repl [--help] [--runtime beam|vm]",
-        "terlc fmt <file.terl>",
+        concat!(
+            "terlc debug [project-dir|file.terl] ",
+            "[--break <module.function|file:line>] ",
+            "[--script <file.terldbg>] [--json-events]"
+        ),
+        "terlc repl [--help] [--debug] [<file.terl|project-dir>]",
+        "terlc fmt [--migrate-repeated-lets] <file.terl|dir>",
+        "terlc lint [--fix] <file.terl|file.terli|dir>",
+        "terlc migrate pattern-head [--write] [--json] <file.terl|file.terli|dir>",
         "terlc version | terlc --version | terlc -V",
-        "Global options: --diagnostic-format text|json --color auto|always|never --target-profile erlang|js.shared|js.browser|js.worker",
+        "Global options: --diagnostic-format text|json --color auto|always|never --timings",
     ] {
         assert!(
             usage.contains(public_command),
@@ -148,24 +175,29 @@ fn top_level_usage_hides_internal_scratch_commands() {
     }
 
     for internal_command in [
-        "bind rust",
+        "bind native",
+        "bind cpp",
+        "bind c",
         "--experimental",
         "deploy",
         "terlc --experimental vm",
         "otp-runtime",
         "emit <file.terl>",
+        "terlc bind",
         "emit-static",
         "serve-static",
         "emit-js",
-        "interface <file.terli>",
+        "interface <file.terl|file.terli>",
         "doctest",
         "emit-native-metadata",
         "hover",
         "lsp",
         "syntax-contract",
         "native-policy",
-        "a0-erlang",
+        "target erlang",
+        "--target-profile",
         "core-v0",
+        "js.shared",
     ] {
         assert!(
             !usage.contains(internal_command),
@@ -228,7 +260,8 @@ fn run_cli_accepts_help_command_short_help() {
 #[test]
 fn run_cli_accepts_help_command_for_known_commands() {
     for command in [
-        "help", "init", "bind", "build", "run", "static", "test", "doc", "db", "repl",
+        "help", "init", "bind", "build", "run", "clean", "doctor", "static", "test", "doc", "db",
+        "debug", "repl", "lint",
     ] {
         assert_eq!(
             run_cli(vec!["help".to_string(), command.to_string()]),
@@ -361,17 +394,20 @@ fn run_cli_accepts_command_local_help_for_known_commands() {
         "check",
         "build",
         "run",
+        "clean",
+        "doctor",
         "static",
-        "emit",
         "emit-js",
         "test",
         "interface",
         "doc",
         "db",
+        "debug",
         "doctest",
         "emit-native-metadata",
         "repl",
         "fmt",
+        "lint",
         "hover",
         "lsp",
         "version",
@@ -388,7 +424,7 @@ fn run_cli_accepts_command_local_help_for_known_commands() {
 /// Verifies the reserved Rust binding command reaches the generator.
 ///
 /// Inputs:
-/// - Synthetic `terlc bind rust --crate polars --out ...` arguments.
+/// - Synthetic `terlc bind native --crate polars --out ...` arguments.
 ///
 /// Output:
 /// - Exit code assertion only.
@@ -397,12 +433,12 @@ fn run_cli_accepts_command_local_help_for_known_commands() {
 /// - Runs the public dispatcher and confirms the P0.3 binding command
 ///   shape is recognized and routed to the deterministic generator probe.
 #[test]
-fn run_cli_reserves_bind_rust_generator_surface() {
+fn run_cli_reserves_bind_native_generator_surface() {
     let out_dir = make_temp_dir("bind_rust_generator_surface").join("polars");
     assert_eq!(
         run_cli(vec![
             "bind".to_string(),
-            "rust".to_string(),
+            "native".to_string(),
             "--crate".to_string(),
             "polars".to_string(),
             "--out".to_string(),
@@ -411,6 +447,66 @@ fn run_cli_reserves_bind_rust_generator_surface() {
         ExitCode::SUCCESS
     );
     assert!(out_dir.join("terlan.toml").exists());
+}
+
+/// Verifies the manifest-backed native binding command reaches the generator.
+///
+/// Inputs:
+/// - Synthetic `terlc bind cpp --manifest ... --out ...` arguments.
+///
+/// Output:
+/// - Exit code and generated file assertions.
+///
+/// Transformation:
+/// - Runs the public dispatcher and confirms the general native binding path
+///   is exposed through the CLI, not only through private generator tests.
+#[test]
+fn run_cli_reserves_bind_cpp_generator_surface() {
+    let root = make_temp_dir("bind_native_generator_surface");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/cpp_native_boundary/native-binding.json");
+    let out_dir = root.join("cpp-native-boundary");
+
+    assert_eq!(
+        run_cli(vec![
+            "bind".to_string(),
+            "cpp".to_string(),
+            "--manifest".to_string(),
+            manifest.to_string_lossy().to_string(),
+            "--out".to_string(),
+            out_dir.to_string_lossy().to_string(),
+        ]),
+        ExitCode::SUCCESS
+    );
+    assert!(out_dir.join("src/cpp_fixture/NativeBoundary.terl").exists());
+    assert!(out_dir.join("native/terlan-native.toml").exists());
+    assert!(out_dir.join("native/rust/build.rs").exists());
+}
+
+/// Verifies the manifest-backed C ABI binding command reaches its generator.
+#[test]
+fn run_cli_reserves_bind_c_generator_surface() {
+    let root = make_temp_dir("bind_c_generator_surface");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/c_abi_native_boundary/native-binding.json");
+    let out_dir = root.join("c-abi-native-boundary");
+
+    assert_eq!(
+        run_cli(vec![
+            "bind".to_string(),
+            "c".to_string(),
+            "--manifest".to_string(),
+            manifest.to_string_lossy().to_string(),
+            "--out".to_string(),
+            out_dir.to_string_lossy().to_string(),
+        ]),
+        ExitCode::SUCCESS
+    );
+    assert!(out_dir
+        .join("src/c_abi_fixture/NativeBoundary.terl")
+        .exists());
+    assert!(out_dir.join("native/terlan-native.toml").exists());
+    assert!(out_dir.join("native/rust/build.rs").exists());
 }
 
 /// Verifies generic command-local help still works after global options.
@@ -587,7 +683,7 @@ fn run_cli_rejects_version_command_extra_arguments() {
 ///   successful user request, not an invalid command option.
 #[test]
 fn run_cli_accepts_release_command_long_help() {
-    for command in ["init", "build", "run", "test", "doc"] {
+    for command in ["init", "build", "run", "test", "doc", "migrate"] {
         assert_eq!(
             run_cli(vec![command.to_string(), "--help".to_string()]),
             ExitCode::SUCCESS,
@@ -609,7 +705,7 @@ fn run_cli_accepts_release_command_long_help() {
 ///   aliases follow the same successful routing as `--help`.
 #[test]
 fn run_cli_accepts_release_command_short_help() {
-    for command in ["init", "build", "run", "test", "doc"] {
+    for command in ["init", "build", "run", "test", "doc", "migrate"] {
         assert_eq!(
             run_cli(vec![command.to_string(), "-h".to_string()]),
             ExitCode::SUCCESS,

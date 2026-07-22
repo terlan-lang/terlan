@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DateConstructor
  */
 module std.js.DateConstructorTest.
 
-import type std.js.DateConstructor.{DateConstructor}.
-
+import type std.js.DateConstructor.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub prototype_typechecks(receiver: DateConstructor): Date ->
     receiver.prototype().
@@ -18,7 +23,16 @@ pub prototype_typechecks(receiver: DateConstructor): Date ->
 pub parse_typechecks(receiver: DateConstructor, s: std.js.String.JsString): JsNumber ->
     receiver.parse(s).
 
-pub utc_typechecks(receiver: DateConstructor, year: JsNumber, month_index: JsNumber, date: JsNumber, hours: JsNumber, minutes: JsNumber, seconds: JsNumber, ms: JsNumber): JsNumber ->
+pub utc_typechecks(
+    receiver: DateConstructor,
+    year: JsNumber,
+    month_index: JsNumber,
+    date: JsNumber,
+    hours: JsNumber,
+    minutes: JsNumber,
+    seconds: JsNumber,
+    ms: JsNumber
+): JsNumber ->
     receiver.utc(year, month_index, date, hours, minutes, seconds, ms).
 
 pub now_typechecks(receiver: DateConstructor): JsNumber ->

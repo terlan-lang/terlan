@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLSlotElement
+ */
+module std.js.Dom.HTMLSlotElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+import type std.js.{Array}.
+
+/**
+ * The **`HTMLSlotElement`** interface of the Shadow DOM API enables access to the name and assigned nodes of an HTML slot element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement)
+ */
+pub opaque type HTMLSlotElement.
+
+/**
+ * The **`name`** property of the HTMLSlotElement interface returns or sets the slot name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/name)
+ */
+pub (value: HTMLSlotElement) name(): JsString.
+
+/**
+ * The **`assign()`** method of the HTMLSlotElement interface sets the slot's _manually assigned nodes_ to an ordered set of slottables.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assign)
+ */
+pub (value: HTMLSlotElement) assign(): Unit.
+
+/**
+ * The **`assignedElements()`** method of the HTMLSlotElement interface returns a sequence of the elements assigned to this slot (and no other nodes).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assignedElements)
+ */
+pub (value: HTMLSlotElement) assigned_elements(options: AssignedNodesOptions): Array[Element].
+
+/**
+ * The **`assignedNodes()`** method of the HTMLSlotElement interface returns a sequence of the nodes assigned to this slot.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assignedNodes)
+ */
+pub (value: HTMLSlotElement) assigned_nodes(options: AssignedNodesOptions): Array[Node].
+
+pub (value: HTMLSlotElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLSlotElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

@@ -50,7 +50,7 @@ import std.core.Option.{Option, Some, None}.\n\
 pub value(): Option[Int, String] ->\n\
     None.\n\
 ",
-        "std/core/option.terl",
+        "std/core/Option.terl",
     );
 
     assert!(

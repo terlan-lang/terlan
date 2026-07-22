@@ -1,0 +1,4 @@
+module aotbench.Math.
+
+pub value(): Int ->
+    7.

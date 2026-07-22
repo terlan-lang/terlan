@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioWorkletNodeOptions
  */
 module std.js.Dom.AudioWorkletNodeOptionsTest.
 
-import type std.js.Dom.AudioWorkletNodeOptions.{AudioWorkletNodeOptions}.
-
+import type std.js.Dom.AudioWorkletNodeOptions.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub number_of_inputs_typechecks(receiver: AudioWorkletNodeOptions): JsNumber ->
     receiver.number_of_inputs().
@@ -21,5 +26,7 @@ pub number_of_outputs_typechecks(receiver: AudioWorkletNodeOptions): JsNumber ->
 pub output_channel_count_typechecks(receiver: AudioWorkletNodeOptions): std.js.Array[JsNumber] ->
     receiver.output_channel_count().
 
-pub parameter_data_typechecks(receiver: AudioWorkletNodeOptions): Record[std.js.String.JsString , JsNumber] ->
+pub parameter_data_typechecks(
+    receiver: AudioWorkletNodeOptions
+): Record[std.js.String.JsString, JsNumber] ->
     receiver.parameter_data().

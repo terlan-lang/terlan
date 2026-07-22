@@ -11,7 +11,9 @@
     }
   },
   "fileNames": {
-    "*Test.terl": "_terlan_test_file"
+    "*Test.terl": "_terlan_test_file",
+    "terlan.toml": "_terlan_file",
+    "vmir-execution-trace-report.json": "_terlan_file"
   },
   "languageIds": {
     "terlan": "_terlan_file",
@@ -33,6 +35,7 @@
     "terl.toml": "_terlan_file",
     "terl.yaml": "_terlan_file",
     "terl.yml": "_terlan_file",
-    "terl.txt": "_terlan_file"
+    "terl.txt": "_terlan_file",
+    "terldbg": "_terlan_file"
   }
 }

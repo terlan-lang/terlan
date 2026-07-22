@@ -1,0 +1,277 @@
+/**
+ * Deterministic shrinker helper coverage.
+ *
+ * `std.test.ShrinkTest` validates the initial finite shrinker surface used by
+ * property-style tests.
+ */
+module std.test.ShrinkTest.
+
+import std.collections.{List, Map}.
+import std.core.Object.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.test.Shrink.{guard_self, limit, shrink_bool, shrink_float, shrink_int, shrink_list, shrink_map, shrink_object, shrink_option, shrink_pair, shrink_result, shrink_string}.
+import std.test.Test.{assert_equal}.
+
+/**
+ * Verifies non-zero integers shrink toward zero.
+ *
+ * Input: non-zero integer value.
+ * Output: `true` when the shrink candidates contain zero.
+ * Transformation: checks the base integer shrink rule.
+ */
+@test
+pub shrink_int_returns_zero_for_nonzero_value(): Bool ->
+    assert_equal([0], shrink_int(42)).
+
+/**
+ * Verifies zero has no smaller integer candidate.
+ *
+ * Input: zero integer value.
+ * Output: `true` when no shrink candidates are returned.
+ * Transformation: checks the integer shrink stopping point.
+ */
+@test
+pub shrink_int_stops_at_zero(): Bool ->
+    assert_equal(List.new[Int](), shrink_int(0)).
+
+/**
+ * Verifies non-zero floats shrink toward zero.
+ *
+ * Input: non-zero float value.
+ * Output: `true` when the shrink candidates contain zero.
+ * Transformation: checks the base float shrink rule.
+ */
+@test
+pub shrink_float_returns_zero_for_nonzero_value(): Bool ->
+    assert_equal([0.0], shrink_float(1.5)).
+
+/**
+ * Verifies zero has no smaller float candidate.
+ *
+ * Input: zero float value.
+ * Output: `true` when no shrink candidates are returned.
+ * Transformation: checks the float shrink stopping point.
+ */
+@test
+pub shrink_float_stops_at_zero(): Bool ->
+    assert_equal(List.new[Float](), shrink_float(0.0)).
+
+/**
+ * Verifies `true` shrinks to `false`.
+ *
+ * Input: boolean `true`.
+ * Output: `true` when the shrink candidates contain `false`.
+ * Transformation: checks the base boolean shrink rule.
+ */
+@test
+pub shrink_bool_simplifies_true(): Bool ->
+    assert_equal([false], shrink_bool(true)).
+
+/**
+ * Verifies `false` has no simpler boolean candidate.
+ *
+ * Input: boolean `false`.
+ * Output: `true` when no shrink candidates are returned.
+ * Transformation: checks the boolean shrink stopping point.
+ */
+@test
+pub shrink_bool_stops_at_false(): Bool ->
+    assert_equal(List.new[Bool](), shrink_bool(false)).
+
+/**
+ * Verifies non-empty strings shrink to the empty string.
+ *
+ * Input: non-empty string value.
+ * Output: `true` when the shrink candidates contain `""`.
+ * Transformation: checks the base string shrink rule.
+ */
+@test
+pub shrink_string_simplifies_nonempty_to_empty(): Bool ->
+    assert_equal([""], shrink_string("abc")).
+
+/**
+ * Verifies empty strings have no simpler candidate.
+ *
+ * Input: empty string value.
+ * Output: `true` when no shrink candidates are returned.
+ * Transformation: checks the string shrink stopping point.
+ */
+@test
+pub shrink_string_stops_at_empty(): Bool ->
+    assert_equal(List.new[String](), shrink_string("")).
+
+/**
+ * Verifies `Some` shrinks to `None`.
+ *
+ * Input: present optional value.
+ * Output: `true` when the shrink candidates contain `None`.
+ * Transformation: checks the base optional shrink rule.
+ */
+@test
+pub shrink_option_simplifies_some_to_none(): Bool ->
+    assert_equal([none_int_option()], shrink_option(Some(42))).
+
+/**
+ * Verifies `None` has no simpler optional candidate.
+ *
+ * Input: missing optional value.
+ * Output: `true` when no shrink candidates are returned.
+ * Transformation: checks the optional shrink stopping point.
+ */
+@test
+pub shrink_option_stops_at_none(): Bool ->
+    assert_equal(List.new[Option[Int]](), shrink_option(none_int_option())).
+
+/**
+ * Verifies `Ok` results shrink through the success-payload shrinker.
+ *
+ * Input: successful result with a non-zero integer payload.
+ * Output: `true` when the shrink candidates contain `Ok(0)`.
+ * Transformation: checks result shrinking preserves the success channel.
+ */
+@test
+pub shrink_result_simplifies_ok_payload(): Bool ->
+    assert_equal([ok_zero_result()], shrink_result(Ok(42), (value) -> shrink_int(value), (reason) -> shrink_string(reason))).
+
+/**
+ * Verifies `Err` results shrink through the error-payload shrinker.
+ *
+ * Input: error result with a non-empty string payload.
+ * Output: `true` when the shrink candidates contain `Err("")`.
+ * Transformation: checks result shrinking preserves the error channel.
+ */
+@test
+pub shrink_result_simplifies_err_payload(): Bool ->
+    assert_equal([err_empty_result()], shrink_result(Err("bad"), (value) -> shrink_int(value), (reason) -> shrink_string(reason))).
+
+/**
+ * Verifies non-empty lists shrink to an empty list.
+ *
+ * Input: list with values.
+ * Output: `true` when the shrink candidates contain the empty list.
+ * Transformation: checks the base list shrink rule.
+ */
+@test
+pub shrink_list_simplifies_nonempty_to_empty(): Bool ->
+    assert_equal([List.new[Int]()], shrink_list([1, 2, 3])).
+
+/**
+ * Verifies empty lists have no smaller candidate.
+ *
+ * Input: empty typed list.
+ * Output: `true` when no shrink candidates are returned.
+ * Transformation: checks the list shrink stopping point.
+ */
+@test
+pub shrink_list_stops_at_empty(): Bool ->
+    assert_equal(List.new[List[Int]](), shrink_list(List.new[Int]())).
+
+/**
+ * Verifies pairs shrink left candidates before right candidates.
+ *
+ * Input: pair with shrinkable integer and string payloads.
+ * Output: `true` when the smaller left pair appears before the smaller right
+ * pair.
+ * Transformation: checks deterministic tuple shrinking with caller-provided
+ * payload shrinkers.
+ */
+@test
+pub shrink_pair_simplifies_left_then_right_payloads(): Bool ->
+    assert_equal([{0, "abc"}, {42, ""}], shrink_pair({42, "abc"}, (value) -> shrink_int(value), (text) -> shrink_string(text))).
+
+/**
+ * Verifies pairs stop when both payload shrinkers stop.
+ *
+ * Input: pair whose payloads have no smaller candidates.
+ * Output: `true` when no pair shrink candidates are returned.
+ * Transformation: checks the tuple shrink stopping point.
+ */
+@test
+pub shrink_pair_stops_when_payloads_stop(): Bool ->
+    assert_equal(List.new[{Int, String}](), shrink_pair({0, ""}, (value) -> shrink_int(value), (text) -> shrink_string(text))).
+
+/**
+ * Verifies non-empty maps shrink to an empty map.
+ *
+ * Input: map with two entries.
+ * Output: `true` when the only shrink candidate has size zero.
+ * Transformation: checks the first deterministic map shrink rule through the
+ * public Map API.
+ */
+@test
+pub shrink_map_simplifies_nonempty_to_empty(): Bool ->
+    case shrink_map(Map({"alice", 1}, {"bob", 2}), Map.new[String, Int]()) {
+        [empty] -> assert_equal(0, empty.size());
+        _ -> false
+    }.
+
+/**
+ * Verifies empty maps have no smaller candidate.
+ *
+ * Input: empty typed map.
+ * Output: `true` when no map shrink candidates are returned.
+ * Transformation: checks the map shrink stopping point.
+ */
+@test
+pub shrink_map_stops_at_empty(): Bool ->
+    assert_equal(List.new[std.collections.Map.Map[String, Int]](), shrink_map(Map.new[String, Int](), Map.new[String, Int]())).
+
+/**
+ * Verifies non-empty objects shrink to an empty object.
+ *
+ * Input: object with two members.
+ * Output: `true` when the only shrink candidate has size zero.
+ * Transformation: checks the first deterministic Object shrink rule through
+ * the public Object API.
+ */
+@test
+pub shrink_object_simplifies_nonempty_to_empty(): Bool ->
+    case shrink_object(Object({"status", "ok"}, {"mode", "test"}), std.core.Object.new[String]()) {
+        [empty] -> assert_equal(0, empty.size());
+        _ -> false
+    }.
+
+/**
+ * Verifies empty objects have no smaller candidate.
+ *
+ * Input: empty typed object.
+ * Output: `true` when no object shrink candidates are returned.
+ * Transformation: checks the object shrink stopping point.
+ */
+@test
+pub shrink_object_stops_at_empty(): Bool ->
+    assert_equal(List.new[Object[String]](), shrink_object(std.core.Object.new[String](), std.core.Object.new[String]())).
+
+/**
+ * Verifies custom shrinkers can remove self candidates.
+ *
+ * Input: original value and candidate list containing the original value.
+ * Output: `true` when the original value is removed and other candidates
+ * remain in source order.
+ * Transformation: checks the public guard against self-shrink loops.
+ */
+@test
+pub guard_self_removes_original_candidate(): Bool ->
+    assert_equal([0, 1], guard_self(42, [42, 0, 42, 1])).
+
+/**
+ * Verifies shrink candidate lists can be bounded.
+ *
+ * Input: maximum counts and candidate list.
+ * Output: `true` when candidates are truncated in source order and zero
+ * limits return an empty list.
+ * Transformation: checks the maximum-shrink-count primitive.
+ */
+@test
+pub limit_bounds_candidate_count(): Bool ->
+    assert_equal([1, 2], limit(2, [1, 2, 3, 4])) and assert_equal(List.new[Int](), limit(0, [1, 2, 3])).
+
+none_int_option(): Option[Int] ->
+    None.
+
+ok_zero_result(): Result[Int, String] ->
+    Ok(0).
+
+err_empty_result(): Result[Int, String] ->
+    Err("").

@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCDataChannelEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16033804800863179787
-interface_hash=8018052987516141233
-interface_doc_hash=8018052987516141233
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10349864424930494140
+interface_hash=5388848613201145630
+interface_doc_hash=5388848613201145630
 deps=0

@@ -5,12 +5,9 @@
  * Terlan traits. Default implementations and concrete runtime lowering remain
  * target-owned; this module only exposes the typed source contract.
  */
-
 module std.vm.GenServer.
 
-import std.core.Result.{Result}.
-import std.core.Error.{Error}.
-import std.core.Unit.{Unit}.
+import std.core.{Error, Result, Unit}.
 
 /**
  * CallReply contains a new state and reply value.
@@ -20,8 +17,7 @@ import std.core.Unit.{Unit}.
  * Transformation: represents a synchronous GenServer reply without leaking the
  * backend tuple shape used by the VM implementation.
  */
-pub type CallReply[State, Reply] =
-    {state: State, reply: Reply}.
+pub type CallReply[State, Reply] = {state: State, reply: Reply}.
 
 /**
  * ServerRef represents a running GenServer process.
@@ -49,7 +45,8 @@ pub trait GenServer[Server, State, Request, Reply, Event] {
     init(server: Server): Result[State, Error].
     handle_call(server: Server, state: State, request: Request): Result[CallReply[State, Reply], Error].
     handle_cast(server: Server, state: State, event: Event): Result[State, Error].
-    terminate(server: Server, state: State): Unit -> Unit.
+    terminate(server: Server, state: State): Unit ->
+        Unit.
 }.
 
 /**
@@ -62,7 +59,9 @@ pub trait GenServer[Server, State, Request, Reply, Event] {
  * target-owned.
  */
 @target.vm {process_mailbox: true}
-pub start[Server, State, Request, Reply, Event](server: Server): Result[ServerRef[State, Request, Reply, Event], Error] ->
+pub start[Server, State, Request, Reply, Event](
+    server: Server
+): Result[ServerRef[State, Request, Reply, Event], Error] ->
     native.
 
 /**

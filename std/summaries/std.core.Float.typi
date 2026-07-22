@@ -19,7 +19,18 @@ module std.core.Float.
 ///     std.core.Float.abs(-2.25).
 /// ```
 
+@pure
 pub abs(value: Float): Float.
+
+/// Returns the least whole Float not less than the input.
+///
+/// Input: one finite `Float` value.
+/// Output: the mathematical ceiling represented as a `Float`.
+/// Transformation: delegates deterministic finite rounding to the VM-owned
+/// primitive intrinsic.
+
+@pure
+pub ceil(value: Float): Float.
 
 /// Compares two supported finite `Float` values using numeric ordering.
 ///
@@ -41,6 +52,7 @@ pub abs(value: Float): Float.
 ///    std.core.Float.compare(1.5, 2.5).
 /// ```
 
+@pure
 pub compare(left: Float, right: Float): std.core.Ordering.Comparison.
 
 /// Returns whether two finite `Float` values are equal.
@@ -58,7 +70,18 @@ pub compare(left: Float, right: Float): std.core.Ordering.Comparison.
 ///     std.core.Float.equal(1.5, 1.5).
 /// ```
 
+@pure
 pub equal(left: Float, right: Float): Bool.
+
+/// Returns the greatest whole Float not greater than the input.
+///
+/// Input: one finite `Float` value.
+/// Output: the mathematical floor represented as a `Float`.
+/// Transformation: delegates deterministic finite rounding to the VM-owned
+/// primitive intrinsic.
+
+@pure
+pub floor(value: Float): Float.
 
 /// Parses a canonical UTF-8 `String` into `Float`.
 ///
@@ -75,7 +98,19 @@ pub equal(left: Float, right: Float): Bool.
 ///    std.core.Float.from_string("1.5").
 /// ```
 
+@pure
 pub from_string(value: String): Option[Float].
+
+/// Returns the natural logarithm of a positive finite Float.
+///
+/// Input: one finite `Float` greater than zero.
+/// Output: the finite natural logarithm of the input.
+/// Transformation: delegates to the VM-owned binary64 logarithm primitive.
+/// Zero, negative, and non-finite runtime values fail with a stable domain
+/// diagnostic instead of terminating the runtime.
+
+@pure
+pub log(value: Float): Float.
 
 /// Returns the larger of two finite `Float` values.
 ///
@@ -92,6 +127,7 @@ pub from_string(value: String): Option[Float].
 ///     std.core.Float.max(2.25, 1.5).
 /// ```
 
+@pure
 pub max(left: Float, right: Float): Float.
 
 /// Returns the smaller of two finite `Float` values.
@@ -108,7 +144,18 @@ pub max(left: Float, right: Float): Float.
 ///     std.core.Float.min(1.5, 2.25).
 /// ```
 
+@pure
 pub min(left: Float, right: Float): Float.
+
+/// Returns the nearest binary64 representation of pi.
+
+@pure
+pub pi(): Float.
+
+/// Returns the nearest binary64 representation of tau.
+
+@pure
+pub tau(): Float.
 
 /// Renders a finite `Float` as its canonical UTF-8 `String`.
 ///
@@ -124,4 +171,5 @@ pub min(left: Float, right: Float): Float.
 ///    std.core.Float.to_string(1.5).
 /// ```
 
+@pure
 pub to_string(value: Float): String.

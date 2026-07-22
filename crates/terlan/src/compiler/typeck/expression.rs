@@ -1,14 +1,17 @@
+mod binary_layout;
 mod calls;
 mod casts;
 mod construction;
 mod control_flow;
 mod function_inference;
+mod guard_purity;
 mod indexing;
 mod operators;
 mod overloads;
 mod sql;
 mod values;
 
+use binary_layout::infer_syntax_binary_layout;
 pub(crate) use calls::infer_syntax_expr_with_expected;
 pub(super) use calls::syntax_callee_name;
 use calls::{
@@ -17,18 +20,23 @@ use calls::{
 };
 use casts::infer_syntax_cast_expr;
 use construction::{
-    infer_imported_module_member_function_value_with_expected, infer_syntax_constructor_chain,
-    infer_syntax_field_access, infer_syntax_record_access, infer_syntax_record_construct,
-    infer_syntax_record_update, infer_syntax_template_instantiation,
+    infer_generic_struct_construction, infer_imported_module_member_function_value_with_expected,
+    infer_syntax_constructor_chain, infer_syntax_field_access, infer_syntax_record_access,
+    infer_syntax_record_construct, infer_syntax_record_update, infer_syntax_template_instantiation,
 };
 use control_flow::{
     infer_syntax_case_expr, infer_syntax_fun_expr, infer_syntax_if_expr, infer_syntax_let_expr,
     infer_syntax_list_comprehension, infer_syntax_try_expr,
 };
+pub(super) use function_inference::refine_by_syntax_guard;
 use function_inference::*;
 pub(crate) use function_inference::{
     check_function_bounds, collect_trait_bound_impl_type_args, infer_function_with_bounds,
     TraitLookupCache,
+};
+pub(super) use guard_purity::{
+    check_clause_guard_purity, check_pure_expression_effects_with_call_facts,
+    expression_has_effects_with_call_facts, EffectfulCallFacts,
 };
 use indexing::{infer_syntax_index, infer_syntax_index_assign};
 use operators::{infer_syntax_binary_op, infer_syntax_unary_op};
@@ -39,11 +47,20 @@ use overloads::{
     infer_imported_function_candidate_matches,
     infer_interface_function_overload_with_explicit_type_args,
 };
-use sql::{infer_sql_form_result_type, validate_sql_form_row_type};
+use sql::{
+    infer_sql_form_result_type, validate_sql_form_parameter_types, validate_sql_form_row_type,
+};
 use values::infer_syntax_var;
 pub(crate) use values::is_constructor_name;
 
 use super::*;
+
+pub(super) fn check_type_alias_implication_bounds(
+    ty: &Type,
+    ctx: &ExprInferContext<'_>,
+) -> Vec<String> {
+    function_inference::check_type_alias_implication_bounds(ty, ctx)
+}
 
 /// Shared expression-inference context for one module.
 ///
@@ -58,28 +75,32 @@ use super::*;
 /// - Groups all immutable typechecking lookup tables plus a scoped trait cache
 ///   so expression inference functions do not need long parameter lists.
 pub(super) struct ExprInferContext<'a> {
+    pub(super) database_schema: Option<&'a crate::database_schema::DatabaseSchemaSnapshot>,
     pub(super) local_fns: &'a HashMap<(String, usize), FunctionSymbol>,
     pub(super) signatures: &'a HashMap<(String, usize), Vec<FunctionScheme>>,
     pub(super) interface_map: &'a HashMap<String, ModuleInterface>,
     pub(super) module_aliases: &'a HashMap<String, String>,
     pub(super) file_imports: &'a HashMap<String, String>,
     pub(super) markdown_imports: &'a HashMap<String, String>,
-    pub(super) function_imports: &'a HashMap<String, ImportedFunctionTarget>,
+    pub(super) function_imports: &'a HashMap<String, Vec<ImportedFunctionTarget>>,
     pub(super) imported_type_names: &'a HashMap<String, QualifiedTypeName>,
     pub(super) constructor_aliases: &'a HashMap<String, QualifiedTypeName>,
     pub(super) constructors: &'a HashMap<String, Vec<ConstructorScheme>>,
     pub(super) templates: &'a HashMap<String, TemplateScheme>,
     pub(super) aliases: &'a HashMap<String, TypeAlias>,
     pub(super) struct_fields: &'a HashMap<String, HashMap<String, Type>>,
+    pub(super) struct_schemes: &'a HashMap<String, StructScheme>,
     pub(super) struct_field_visibility: &'a HashMap<String, HashMap<String, StructFieldVisibility>>,
     pub(super) receiver_methods: &'a HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     pub(super) trait_method_calls: &'a HashMap<(String, String), Vec<ResolvedTraitMethod>>,
     pub(super) trait_bound_impl_type_args: &'a HashMap<String, Vec<Vec<Type>>>,
+    pub(super) negative_trait_impl_type_args: &'a HashMap<String, Vec<Vec<Type>>>,
     pub(super) trait_signatures: &'a HashMap<String, ParsedTraitSignature>,
     pub(super) alias_names: &'a HashSet<String>,
     pub(super) current_bounds: &'a [FunctionBound],
     pub(super) current_constructor_target: Option<&'a str>,
     pub(super) trait_lookup_cache: &'a RefCell<TraitLookupCache>,
+    pub(super) effectful_calls: EffectfulCallFacts<'a>,
 }
 
 /// Creates an expression-inference context for one callable body.
@@ -105,6 +126,7 @@ where
     'a: 'b,
 {
     ExprInferContext {
+        database_schema: ctx.database_schema,
         local_fns: ctx.local_fns,
         signatures: ctx.signatures,
         interface_map: ctx.interface_map,
@@ -118,15 +140,18 @@ where
         templates: ctx.templates,
         aliases: ctx.aliases,
         struct_fields: ctx.struct_fields,
+        struct_schemes: ctx.struct_schemes,
         struct_field_visibility: ctx.struct_field_visibility,
         receiver_methods: ctx.receiver_methods,
         trait_method_calls: ctx.trait_method_calls,
         trait_bound_impl_type_args: ctx.trait_bound_impl_type_args,
+        negative_trait_impl_type_args: ctx.negative_trait_impl_type_args,
         trait_signatures: ctx.trait_signatures,
         alias_names: ctx.alias_names,
         current_bounds,
         current_constructor_target: ctx.current_constructor_target,
         trait_lookup_cache: ctx.trait_lookup_cache,
+        effectful_calls: ctx.effectful_calls,
     }
 }
 
@@ -150,6 +175,7 @@ where
     'a: 'b,
 {
     ExprInferContext {
+        database_schema: ctx.database_schema,
         local_fns: ctx.local_fns,
         signatures: ctx.signatures,
         interface_map: ctx.interface_map,
@@ -163,15 +189,18 @@ where
         templates: ctx.templates,
         aliases: ctx.aliases,
         struct_fields: ctx.struct_fields,
+        struct_schemes: ctx.struct_schemes,
         struct_field_visibility: ctx.struct_field_visibility,
         receiver_methods: ctx.receiver_methods,
         trait_method_calls: ctx.trait_method_calls,
         trait_bound_impl_type_args: ctx.trait_bound_impl_type_args,
+        negative_trait_impl_type_args: ctx.negative_trait_impl_type_args,
         trait_signatures: ctx.trait_signatures,
         alias_names: ctx.alias_names,
         current_bounds: ctx.current_bounds,
         current_constructor_target: Some(constructor_target),
         trait_lookup_cache: ctx.trait_lookup_cache,
+        effectful_calls: ctx.effectful_calls,
     }
 }
 
@@ -255,6 +284,18 @@ pub(super) fn infer_syntax_expr(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Type {
+    if let Some(union) = expr
+        .raw
+        .as_deref()
+        .and_then(|raw| raw.strip_prefix("const_union:"))
+        .and_then(|qualified| qualified.rsplit_once('.').map(|(union, _)| union))
+    {
+        return Type::Named {
+            module: None,
+            name: union.to_string(),
+            args: Vec::new(),
+        };
+    }
     match expr.kind {
         SyntaxExprKind::Int => {
             Type::LiteralInt(expr.text.as_deref().unwrap_or("0").parse().unwrap_or(0))
@@ -340,7 +381,7 @@ pub(super) fn infer_syntax_expr(
                     .collect(),
             );
             Type::FixedArray {
-                size: expr.children.len(),
+                size: types::FixedArraySize::Known(expr.children.len()),
                 elem: Box::new(elem_type),
             }
         }
@@ -356,6 +397,7 @@ pub(super) fn infer_syntax_expr(
                 })
                 .collect(),
         ),
+        SyntaxExprKind::BinaryLayout => infer_syntax_binary_layout(expr, locals, subst, errors),
         SyntaxExprKind::Case => infer_syntax_case_expr(expr, locals, ctx, subst, errors),
         SyntaxExprKind::Try => infer_syntax_try_expr(expr, locals, ctx, subst, errors),
         SyntaxExprKind::If => infer_syntax_if_expr(expr, locals, ctx, subst, errors),
@@ -390,9 +432,12 @@ pub(super) fn infer_syntax_expr(
             Type::Dynamic
         }
         SyntaxExprKind::RawMacro => {
-            for child in &expr.children {
-                infer_syntax_expr(child, locals, ctx, subst, errors);
-            }
+            let parameter_types = expr
+                .children
+                .iter()
+                .map(|child| infer_syntax_expr(child, locals, ctx, subst, errors))
+                .collect::<Vec<_>>();
+            validate_sql_form_parameter_types(expr, &parameter_types, ctx, subst, errors);
             validate_sql_form_row_type(expr, ctx, errors);
             let sql_result_type = infer_sql_form_result_type(expr, ctx, errors);
             if crate::terlan_typeck::raw_macros::raw_macro_requires_resolution_diagnostic(expr) {

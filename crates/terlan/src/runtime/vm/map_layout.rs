@@ -16,6 +16,9 @@ pub(crate) const DENSE_NODE_MIN_OCCUPIED_SLOTS: usize = 17;
 /// Minimum skipped hash-fragment levels that justify path compression.
 pub(crate) const COMPRESSED_PATH_MIN_SKIPPED_LEVELS: usize = 2;
 
+/// First dynamic-map size where indexed storage beats the flat runtime path.
+pub(crate) const ACTIVE_INDEXED_MAP_MIN: usize = 128;
+
 /// Root representation selected for one VM-owned portable map.
 ///
 /// Inputs:
@@ -145,6 +148,16 @@ pub(crate) fn select_achamp_node_layout(shape: AChampSubtreeHint) -> AChampNodeL
         return AChampNodeLayout::DenseNode;
     }
     AChampNodeLayout::SparseNode
+}
+
+/// Reports whether a dynamic map should activate its indexed A-CHAMP profile.
+pub(crate) fn should_use_indexed_map(entry_count: usize) -> bool {
+    entry_count >= ACTIVE_INDEXED_MAP_MIN
+        && select_map_root_layout(MapShapeHint {
+            entry_count,
+            shared_literal_key_shape: false,
+            insert_delete_heavy: true,
+        }) == MapRootLayout::AChampRoot
 }
 
 #[cfg(test)]

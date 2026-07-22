@@ -1,24 +1,24 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Document
  */
 module std.js.Dom.DocumentTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.Document.{Document}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.Document.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub url_typechecks(receiver: Document): JsString ->
     receiver.url().
@@ -161,7 +161,12 @@ pub adopt_node_typechecks(receiver: Document, node: T): T ->
 pub capture_events_typechecks(receiver: Document): Unit ->
     receiver.capture_events().
 
-pub caret_position_from_point_typechecks(receiver: Document, x: JsNumber, y: JsNumber, options: CaretPositionFromPointOptions): Option[CaretPosition] ->
+pub caret_position_from_point_typechecks(
+    receiver: Document,
+    x: JsNumber,
+    y: JsNumber,
+    options: CaretPositionFromPointOptions
+): Option[CaretPosition] ->
     receiver.caret_position_from_point(x, y, options).
 
 pub caret_range_from_point_typechecks(receiver: Document, x: JsNumber, y: JsNumber): Option[Range] ->
@@ -176,7 +181,11 @@ pub close_typechecks(receiver: Document): Unit ->
 pub create_attribute_typechecks(receiver: Document, local_name: JsString): Attr ->
     receiver.create_attribute(local_name).
 
-pub create_attribute_ns_typechecks(receiver: Document, namespace: Option[JsString], qualified_name: JsString): Attr ->
+pub create_attribute_ns_typechecks(
+    receiver: Document,
+    namespace: Option[JsString],
+    qualified_name: JsString
+): Attr ->
     receiver.create_attribute_ns(namespace, qualified_name).
 
 pub create_cdata_section_typechecks(receiver: Document, data: JsString): CDATASection ->
@@ -188,22 +197,45 @@ pub create_comment_typechecks(receiver: Document, data: JsString): Comment ->
 pub create_document_fragment_typechecks(receiver: Document): DocumentFragment ->
     receiver.create_document_fragment().
 
-pub create_element_typechecks(receiver: Document, tag_name: JsString, options: ElementCreationOptions): HTMLElement ->
+pub create_element_typechecks(
+    receiver: Document,
+    tag_name: JsString,
+    options: ElementCreationOptions
+): HTMLElement ->
     receiver.create_element(tag_name, options).
 
-pub create_element_ns_typechecks(receiver: Document, namespace_uri: Option[JsString], qualified_name: JsString, options: ElementCreationOptions): Element ->
+pub create_element_ns_typechecks(
+    receiver: Document,
+    namespace_uri: Option[JsString],
+    qualified_name: JsString,
+    options: ElementCreationOptions
+): Element ->
     receiver.create_element_ns(namespace_uri, qualified_name, options).
 
-pub create_element_ns_typechecks(receiver: Document, namespace: Option[JsString], qualified_name: JsString, options: ElementCreationOptions | JsString): Element ->
+pub create_element_ns_typechecks(
+    receiver: Document,
+    namespace: Option[JsString],
+    qualified_name: JsString,
+    options: ElementCreationOptions | JsString
+): Element ->
     receiver.create_element_ns(namespace, qualified_name, options).
 
 pub create_event_typechecks(receiver: Document, event_interface: JsString): Event ->
     receiver.create_event(event_interface).
 
-pub create_node_iterator_typechecks(receiver: Document, root: Node, what_to_show: JsNumber, filter: Option[NodeFilter]): NodeIterator ->
+pub create_node_iterator_typechecks(
+    receiver: Document,
+    root: Node,
+    what_to_show: JsNumber,
+    filter: Option[NodeFilter]
+): NodeIterator ->
     receiver.create_node_iterator(root, what_to_show, filter).
 
-pub create_processing_instruction_typechecks(receiver: Document, target_: JsString, data: JsString): ProcessingInstruction ->
+pub create_processing_instruction_typechecks(
+    receiver: Document,
+    target_: JsString,
+    data: JsString
+): ProcessingInstruction ->
     receiver.create_processing_instruction(target_, data).
 
 pub create_range_typechecks(receiver: Document): Range ->
@@ -212,10 +244,20 @@ pub create_range_typechecks(receiver: Document): Range ->
 pub create_text_node_typechecks(receiver: Document, data: JsString): Text ->
     receiver.create_text_node(data).
 
-pub create_tree_walker_typechecks(receiver: Document, root: Node, what_to_show: JsNumber, filter: Option[NodeFilter]): TreeWalker ->
+pub create_tree_walker_typechecks(
+    receiver: Document,
+    root: Node,
+    what_to_show: JsNumber,
+    filter: Option[NodeFilter]
+): TreeWalker ->
     receiver.create_tree_walker(root, what_to_show, filter).
 
-pub exec_command_typechecks(receiver: Document, command_id: JsString, show_ui: Bool, value: JsString): Bool ->
+pub exec_command_typechecks(
+    receiver: Document,
+    command_id: JsString,
+    show_ui: Bool,
+    value: JsString
+): Bool ->
     receiver.exec_command(command_id, show_ui, value).
 
 pub exit_fullscreen_typechecks(receiver: Document): Promise[Unit] ->
@@ -230,16 +272,29 @@ pub exit_pointer_lock_typechecks(receiver: Document): Unit ->
 pub get_element_by_id_typechecks(receiver: Document, element_id: JsString): Option[HTMLElement] ->
     receiver.get_element_by_id(element_id).
 
-pub get_elements_by_class_name_typechecks(receiver: Document, class_names: JsString): HTMLCollectionOf[Element] ->
+pub get_elements_by_class_name_typechecks(
+    receiver: Document,
+    class_names: JsString
+): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_class_name(class_names).
 
-pub get_elements_by_name_typechecks(receiver: Document, element_name: JsString): NodeListOf[HTMLElement] ->
+pub get_elements_by_name_typechecks(
+    receiver: Document,
+    element_name: JsString
+): NodeListOf[HTMLElement] ->
     receiver.get_elements_by_name(element_name).
 
-pub get_elements_by_tag_name_typechecks(receiver: Document, qualified_name: JsString): HTMLCollectionOf[Element] ->
+pub get_elements_by_tag_name_typechecks(
+    receiver: Document,
+    qualified_name: JsString
+): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name(qualified_name).
 
-pub get_elements_by_tag_name_ns_typechecks(receiver: Document, namespace: Option[JsString], local_name: JsString): HTMLCollectionOf[Element] ->
+pub get_elements_by_tag_name_ns_typechecks(
+    receiver: Document,
+    namespace: Option[JsString],
+    local_name: JsString
+): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name_ns(namespace, local_name).
 
 pub get_selection_typechecks(receiver: Document): Option[Selection] ->
@@ -257,7 +312,12 @@ pub import_node_typechecks(receiver: Document, node: T, options: ImportNodeOptio
 pub open_typechecks(receiver: Document, unused1: JsString, unused2: JsString): Document ->
     receiver.open(unused1, unused2).
 
-pub open_typechecks(receiver: Document, url: URL | JsString, name: JsString, features: JsString): Option[WindowProxy] ->
+pub open_typechecks(
+    receiver: Document,
+    url: URL | JsString,
+    name: JsString,
+    features: JsString
+): Option[WindowProxy] ->
     receiver.open(url, name, features).
 
 pub query_command_enabled_typechecks(receiver: Document, command_id: JsString): Bool ->
@@ -281,7 +341,10 @@ pub release_events_typechecks(receiver: Document): Unit ->
 pub request_storage_access_typechecks(receiver: Document): Promise[Unit] ->
     receiver.request_storage_access().
 
-pub start_view_transition_typechecks(receiver: Document, callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback): ViewTransition ->
+pub start_view_transition_typechecks(
+    receiver: Document,
+    callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback
+): ViewTransition ->
     receiver.start_view_transition(callback_options).
 
 pub write_typechecks(receiver: Document): Unit ->
@@ -290,8 +353,18 @@ pub write_typechecks(receiver: Document): Unit ->
 pub writeln_typechecks(receiver: Document): Unit ->
     receiver.writeln().
 
-pub add_event_listener_typechecks(receiver: Document, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: Document,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: Document, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: Document,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

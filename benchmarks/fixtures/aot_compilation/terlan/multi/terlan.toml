@@ -1,0 +1,7 @@
+[package]
+name = "aotbench"
+version = "0.0.1"
+
+[build]
+source_roots = ["src"]
+artifact = "terlan-vm"

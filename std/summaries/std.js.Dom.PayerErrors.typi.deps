@@ -1,8 +1,8 @@
 module=std.js.Dom.PayerErrors
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=18078540013106134673
-interface_hash=9023528053086311482
-interface_doc_hash=9023528053086311482
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=2426415759038351186
+interface_hash=15951238325700489735
+interface_doc_hash=15951238325700489735
 deps=0

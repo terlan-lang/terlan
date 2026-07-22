@@ -1,8 +1,8 @@
 module=std.js.Dom.WebTransportBidirectionalStream
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=6248097716476063573
-interface_hash=18204014137524298350
-interface_doc_hash=18204014137524298350
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5209429890189745198
+interface_hash=14369825741074080720
+interface_doc_hash=14369825741074080720
 deps=0

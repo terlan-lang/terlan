@@ -1,8 +1,8 @@
 module=std.js.Dom.EncodedVideoChunkMetadata
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=18018400523150896
-interface_hash=8281910739852750478
-interface_doc_hash=8281910739852750478
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=8087724501331851392
+interface_hash=3826382268130889454
+interface_doc_hash=3826382268130889454
 deps=0

@@ -1,5 +1,4 @@
 module tests.test_model.FailingBoolTest.
 
 @test
-pub failing_bool(): Bool ->
-    false.
+pub failing_bool(): Bool -> false.

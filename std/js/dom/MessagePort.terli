@@ -1,0 +1,49 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MessagePort
+ */
+module std.js.Dom.MessagePort.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`MessagePort`** interface of the Channel Messaging API represents one of the two ports of a MessageChannel, allowing messages to be sent from one port and listening out for them arriving at the other.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessagePort)
+ */
+pub opaque type MessagePort.
+
+/**
+ * The **`close()`** method of the MessagePort interface disconnects the port, so it is no longer active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessagePort/close)
+ */
+pub (value: MessagePort) close(): Unit.
+
+/**
+ * The **`start()`** method of the MessagePort interface starts the sending of messages queued on the port.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessagePort/start)
+ */
+pub (value: MessagePort) start(): Unit.
+
+pub (value: MessagePort) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: MessagePort) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

@@ -1,0 +1,233 @@
+module std.vm.ClusterTest.
+
+import std.core.Option.{None, Some}.
+import std.test.Test.{assert_equal}.
+import std.vm.Cluster.
+import std.vm.Cluster.{Accepted, Active, AlreadyConnected, AtMostOnce, Connected, Degraded, Disconnected, Duplicate, Fenced, Healthy, HeartbeatTimeout, Left, LocalClose, Missing, NeedsAck, Node, OutOfOrder, Reconnected, RemoteClose, SendAcrossNode, SessionFenced, TransportFailure, Unreachable}.
+
+import type std.vm.Cluster.{AcceptResult, AcknowledgeResult, Delivery, DisconnectEvent, DisconnectReason, DisconnectResult, Frame, InboundOutcome, Membership, OutOfOrder, Profile, ReconnectOutcome, ReconnectResult, Reconnected, SendResult, Session, SessionState}.
+
+pub local_profile(): Profile ->
+    Cluster.profile("demo", "vm-a", "node-a", "cluster-a", "0.0.7", "message").
+
+pub remote_profile(): Profile ->
+    Cluster.profile("demo", "vm-b", "node-b", "cluster-a", "0.0.7", "message").
+
+pub backup_profile(): Profile ->
+    Cluster.profile("demo", "vm-c", "node-c", "cluster-a", "0.0.7", "message").
+
+pub expects_first_message(outcome: InboundOutcome): Bool ->
+    case outcome {
+        OutOfOrder {expected_message_id: expected} -> expected == 1;
+        _ -> false
+    }.
+
+pub is_accepted(outcome: InboundOutcome): Bool ->
+    case outcome {
+        Accepted -> true;
+        _ -> false
+    }.
+
+pub is_duplicate(outcome: InboundOutcome): Bool ->
+    case outcome {
+        Duplicate -> true;
+        _ -> false
+    }.
+
+pub is_connected(state: SessionState): Bool ->
+    case state {
+        Connected -> true;
+        _ -> false
+    }.
+
+pub is_disconnected(state: SessionState): Bool ->
+    case state {
+        Disconnected -> true;
+        _ -> false
+    }.
+
+pub is_already_connected(outcome: ReconnectOutcome): Bool ->
+    case outcome {
+        AlreadyConnected -> true;
+        _ -> false
+    }.
+
+pub is_reconnected_without_pending_ack(outcome: ReconnectOutcome): Bool ->
+    case outcome {
+        Reconnected {pending_ack_count: count} -> count == 0;
+        _ -> false
+    }.
+
+pub disconnect_reason_round_trips(reason: DisconnectReason, tick: Int): Bool ->
+    let session = Cluster.open(local_profile(), remote_profile(), 1024);
+    let result = session.disconnect(reason, tick);
+    let disconnected_session = result.session;
+    result.event.reason == reason and result.event.tick == tick and result.event.pending_ack_count == 0 and is_disconnected(disconnected_session.state()).
+
+@test
+pub profile_exposes_explicit_node_identity(): Bool ->
+    assert_equal("node-a", local_profile().node_id()).
+
+@test
+pub membership_join_records_peer_as_active(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let membership = Cluster.membership(local, 5);
+    let joined = membership.join(remote, 1, "web");
+    assert_equal(Active, joined.state("node-b")).
+
+@test
+pub membership_timeout_and_heartbeat_recovery_are_deterministic(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let membership = Cluster.membership(local, 5);
+    let joined = membership.join(remote, 1, "web");
+    let fresh = joined.expire(6);
+    let expired = fresh.expire(7);
+    let recovered = expired.heartbeat("node-b", 8);
+    assert_equal(Active, fresh.state("node-b")) and assert_equal(Unreachable, expired.state("node-b")) and assert_equal(Active, recovered.state("node-b")) and assert_equal(Active, recovered.state("node-a")).
+
+@test
+pub membership_leave_and_fence_have_distinct_terminal_states(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let membership = Cluster.membership(local, 5);
+    let joined = membership.join(remote, 1, "web");
+    let left = joined.leave("node-b", 2);
+    let fenced = joined.fence("node-b", 3);
+    assert_equal(Active, joined.state("node-b")) and assert_equal(Left, left.state("node-b")) and assert_equal(Fenced, fenced.state("node-b")) and assert_equal(Missing, fenced.state("node-missing")).
+
+@test
+pub membership_view_health_and_leader_hint_are_deterministic(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let membership = Cluster.membership(local, 5);
+    let joined = membership.join(remote, 1, "leader");
+    let expired = joined.expire(7);
+    case joined.view() {
+        [Node {node_id: local_id, state: local_state, last_seen_tick: local_tick, roles: local_roles}, Node {node_id: remote_id, state: remote_state, last_seen_tick: remote_tick, roles: remote_roles}] ->
+            assert_equal("node-a", local_id) and assert_equal(Active, local_state) and assert_equal(0, local_tick) and assert_equal(["local"], local_roles) and assert_equal("node-b", remote_id) and assert_equal(Active, remote_state) and assert_equal(1, remote_tick) and assert_equal(["leader"], remote_roles) and assert_equal(Healthy, joined.health()) and assert_equal(Some("node-b"), joined.leader_hint()) and assert_equal(Degraded, expired.health()) and assert_equal(None, expired.leader_hint());
+        _ -> false
+    }.
+
+@test
+pub membership_pruning_respects_retention_and_fencing(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let membership = Cluster.membership(local, 5);
+    let joined = membership.join(remote, 1, "worker");
+    let left = joined.leave("node-b", 2);
+    let at_boundary = left.prune(7, 5);
+    let after_boundary = at_boundary.prune(8, 5);
+    let fenced = joined.fence("node-b", 2);
+    let fenced_after_retention = fenced.prune(100, 5);
+    let unreachable = joined.expire(7);
+    let unreachable_after_retention = unreachable.prune(7, 5);
+    assert_equal(Left, at_boundary.state("node-b")) and assert_equal(Missing, after_boundary.state("node-b")) and assert_equal(Fenced, fenced_after_retention.state("node-b")) and assert_equal(Active, fenced_after_retention.state("node-a")) and assert_equal(Unreachable, unreachable.state("node-b")) and assert_equal(Missing, unreachable_after_retention.state("node-b")).
+
+@test
+pub membership_restart_uses_a_new_epoch_and_preserves_roles(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let membership = Cluster.membership(local, 5);
+    let joined = membership.join(remote, 1, "worker");
+    let unreachable = joined.expire(7);
+    let restarted_profile = remote.next_epoch();
+    let restarted = unreachable.restart(restarted_profile, 8);
+    assert_equal(1, remote.epoch()) and assert_equal(2, restarted_profile.epoch()) and assert_equal(Unreachable, unreachable.state("node-b")) and assert_equal(Active, restarted.state("node-b")) and case restarted.view() {
+    [_, Node {node_id: "node-b", state: Active, last_seen_tick: 8, roles: ["worker"]}] -> true;
+    _ -> false
+}.
+
+@test
+pub partition_heal_moves_leadership_hint_deterministically(): Bool ->
+    let membership = Cluster.membership(local_profile(), 5);
+    let primary = membership.join(remote_profile(), 1, "leader");
+    let redundant = primary.join(backup_profile(), 1, "leader");
+    let partitioned = redundant.partition("node-b", 2);
+    let healed = partitioned.heal("node-b", 3);
+    assert_equal(Some("node-b"), redundant.leader_hint()) and assert_equal(Unreachable, partitioned.state("node-b")) and assert_equal(Some("node-c"), partitioned.leader_hint()) and assert_equal(Active, healed.state("node-b")) and assert_equal(Some("node-b"), healed.leader_hint()).
+
+@test
+pub bootstrap_delivery_failover_and_restart_execute_end_to_end(): Bool ->
+    let local = local_profile();
+    let primary_profile = remote_profile();
+    let backup = backup_profile();
+    let membership = Cluster.membership(local, 5);
+    let primary = membership.join(primary_profile, 1, "leader");
+    let redundant = primary.join(backup, 1, "leader");
+    let primary_outbound = Cluster.open(local, primary_profile, 1024);
+    let primary_inbound = Cluster.open(primary_profile, local, 1024);
+    let primary_send = primary_outbound.send("message", "primary");
+    let primary_accept = primary_inbound.accept(primary_send.frame);
+    let partitioned = redundant.partition("node-b", 2);
+    let backup_outbound = Cluster.open(local, backup, 1024);
+    let backup_inbound = Cluster.open(backup, local, 1024);
+    let backup_send = backup_outbound.send("message", "backup");
+    let backup_accept = backup_inbound.accept(backup_send.frame);
+    let restarted_profile = primary_profile.next_epoch();
+    let restarted = partitioned.restart(restarted_profile, 3);
+    is_accepted(primary_accept.outcome) and assert_equal(Some("node-b"), redundant.leader_hint()) and assert_equal(Unreachable, partitioned.state("node-b")) and assert_equal(Some("node-c"), partitioned.leader_hint()) and is_accepted(backup_accept.outcome) and assert_equal(2, restarted_profile.epoch()) and assert_equal(Active, restarted.state("node-b")) and assert_equal(Some("node-b"), restarted.leader_hint()).
+
+@test
+pub two_node_message_exchange_preserves_order_and_duplicate_history(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let outbound = Cluster.open(local, remote, 1024);
+    let inbound = Cluster.open(remote, local, 1024);
+    let first_send = outbound.send("message", "first");
+    let outbound_after_first = first_send.session;
+    let first = first_send.frame;
+    let second_send = outbound_after_first.send("message", "second");
+    let second = second_send.frame;
+    let gap_accept = inbound.accept(second);
+    let inbound_after_gap = gap_accept.session;
+    let first_accept = inbound_after_gap.accept(first);
+    let inbound_after_first = first_accept.session;
+    let second_accept = inbound_after_first.accept(second);
+    let inbound_after_second = second_accept.session;
+    let duplicate_accept = inbound_after_second.accept(first);
+    expects_first_message(gap_accept.outcome) and is_accepted(first_accept.outcome) and is_accepted(second_accept.outcome) and is_duplicate(duplicate_accept.outcome).
+
+@test
+pub explicit_delivery_and_acknowledgement_lifecycle_is_typed(): Bool ->
+    let outbound = Cluster.open(local_profile(), remote_profile(), 1024);
+    let needs_ack_send = outbound.send_with("message", "confirmed", NeedsAck);
+    let pending = needs_ack_send.session;
+    let needs_ack_frame = needs_ack_send.frame;
+    let acknowledged = pending.acknowledge(needs_ack_frame);
+    let after_ack = acknowledged.session;
+    let at_most_once_send = after_ack.send_with("message", "best effort", AtMostOnce);
+    let at_most_once_session = at_most_once_send.session;
+    let at_most_once_frame = at_most_once_send.frame;
+    assert_equal(NeedsAck, needs_ack_frame.delivery()) and assert_equal(1, needs_ack_frame.message_id()) and pending.needs_ack(needs_ack_frame) and assert_equal(1, pending.pending_ack_count()) and assert_equal(1, acknowledged.message_id) and after_ack.needs_ack(needs_ack_frame) == false and assert_equal(0, after_ack.pending_ack_count()) and assert_equal(AtMostOnce, at_most_once_frame.delivery()) and assert_equal(2, at_most_once_frame.message_id()) and at_most_once_session.needs_ack(at_most_once_frame) == false and assert_equal(0, at_most_once_session.pending_ack_count()).
+
+@test
+pub session_disconnect_and_reconnect_preserve_transport_continuity(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let outbound = Cluster.open(local, remote, 1024);
+    let no_op_reconnect = outbound.reconnect(remote, 1);
+    let outbound_after_no_op = no_op_reconnect.session;
+    let first_send = outbound_after_no_op.send("message", "first");
+    let outbound_after_first = first_send.session;
+    let first = first_send.frame;
+    let disconnected = outbound_after_first.disconnect(TransportFailure, 10);
+    let disconnected_session = disconnected.session;
+    let disconnected_state = disconnected_session.state();
+    let reconnected = disconnected_session.reconnect(remote, 11);
+    let reconnected_session = reconnected.session;
+    let reconnected_state = reconnected_session.state();
+    let second_send = reconnected_session.send("message", "second");
+    let second = second_send.frame;
+    let inbound = Cluster.open(remote, local, 1024);
+    let gap_accept = inbound.accept(second);
+    let inbound_after_gap = gap_accept.session;
+    let first_accept = inbound_after_gap.accept(first);
+    let inbound_after_first = first_accept.session;
+    let second_accept = inbound_after_first.accept(second);
+    is_already_connected(no_op_reconnect.outcome) and disconnected.event.reason == TransportFailure and disconnected.event.tick == 10 and disconnected.event.pending_ack_count == 0 and is_disconnected(disconnected_state) and is_reconnected_without_pending_ack(reconnected.outcome) and is_connected(reconnected_state) and expects_first_message(gap_accept.outcome) and is_accepted(first_accept.outcome) and is_accepted(second_accept.outcome).
+
+@test
+pub session_disconnect_reasons_are_typed_and_lossless(): Bool ->
+    disconnect_reason_round_trips(LocalClose, 1) and disconnect_reason_round_trips(RemoteClose, 2) and disconnect_reason_round_trips(TransportFailure, 3) and disconnect_reason_round_trips(HeartbeatTimeout, 4) and disconnect_reason_round_trips(SessionFenced, 5).

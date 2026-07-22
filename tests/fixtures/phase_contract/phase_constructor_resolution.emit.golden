@@ -1,4 +1,0 @@
--module(phase_constructor_resolution).
--export([make/0, typer_ctor_ok_1/1]).
-typer_ctor_ok_1(Value) ->
-make() ->

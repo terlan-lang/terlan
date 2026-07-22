@@ -1,0 +1,44 @@
+module std.collections.IteratorTest.
+
+import std.collections.Iterator.{each, next}.
+import std.core.Option.{None, Some}.
+import std.core.Unit.
+import std.test.Test.{assert_equal}.
+
+import type std.collections.Iterator.
+
+sum_values(iterator: std.collections.Iterator.Iterator[Int], sum: Int): Int ->
+    case next(iterator) {
+        None -> sum;
+        Some({value: value, next: rest}) -> sum_values(rest, sum + value)
+    }.
+
+@test
+pub next_yields_value_and_next_iterator(): Bool ->
+    let values = [10, 20];
+    case values |> iterator() |> next() {
+        Some({value: first, next: rest}) ->
+            case next(rest) {
+                Some({value: second, next: _done}) -> assert_equal(30, first + second);
+                None -> false
+            };
+        None -> false
+    }.
+
+@test
+pub next_returns_none_when_iterator_is_exhausted(): Bool ->
+    let values = [];
+    case values |> iterator() |> next() {
+        None -> true;
+        Some(_step) -> false
+    }.
+
+@test
+pub each_returns_unit_after_visiting_values(): Bool ->
+    let values = [1, 2, 3];
+    assert_equal(Unit, values |> iterator() |> each((_value) -> Unit)).
+
+@test
+pub recursive_next_accumulates_values(): Bool ->
+    let values = [1, 2, 3];
+    assert_equal(6, values |> iterator() |> sum_values(0)).

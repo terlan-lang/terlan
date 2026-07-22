@@ -1,8 +1,8 @@
 module=std.js.Dom.WebTransportDatagramDuplexStream
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=17553857448259741782
-interface_hash=2314301360478957108
-interface_doc_hash=2314301360478957108
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6553924880879366834
+interface_hash=8775702657948875814
+interface_doc_hash=8775702657948875814
 deps=0

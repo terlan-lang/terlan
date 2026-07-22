@@ -1,20 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaSession
  */
 module std.js.Dom.MediaSessionTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.MediaSession.{MediaSession}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.MediaSession.
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub metadata_typechecks(receiver: MediaSession): Option[MediaMetadata] ->
     receiver.metadata().
@@ -22,7 +24,11 @@ pub metadata_typechecks(receiver: MediaSession): Option[MediaMetadata] ->
 pub playback_state_typechecks(receiver: MediaSession): MediaSessionPlaybackState ->
     receiver.playback_state().
 
-pub set_action_handler_typechecks(receiver: MediaSession, action: MediaSessionAction, handler: Option[MediaSessionActionHandler]): Unit ->
+pub set_action_handler_typechecks(
+    receiver: MediaSession,
+    action: MediaSessionAction,
+    handler: Option[MediaSessionActionHandler]
+): Unit ->
     receiver.set_action_handler(action, handler).
 
 pub set_camera_active_typechecks(receiver: MediaSession, active: Bool): Promise[Unit] ->

@@ -1,0 +1,58 @@
+{
+  "functions": [
+    {
+      "arity": 0,
+      "name": "new",
+      "operation": "std.native.collections.vector.new"
+    },
+    {
+      "arity": 1,
+      "name": "from_list",
+      "operation": "std.native.collections.vector.from_list"
+    },
+    {
+      "arity": 1,
+      "name": "length",
+      "operation": "std.native.collections.vector.length"
+    },
+    {
+      "arity": 1,
+      "name": "len",
+      "operation": "std.native.collections.vector.length"
+    },
+    {
+      "arity": 2,
+      "name": "get_at",
+      "operation": "std.native.collections.vector.get_at"
+    },
+    {
+      "arity": 2,
+      "name": "get_optional_values",
+      "operation": "std.native.collections.vector.get"
+    },
+    {
+      "arity": 3,
+      "name": "set_at",
+      "operation": "std.native.collections.vector.set_at"
+    },
+    {
+      "arity": 3,
+      "name": "swap",
+      "operation": "std.native.collections.vector.swap"
+    },
+    {
+      "arity": 2,
+      "name": "push",
+      "operation": "std.native.collections.vector.push"
+    },
+    {
+      "arity": 1,
+      "name": "to_list",
+      "operation": "std.native.collections.vector.to_list"
+    }
+  ],
+  "module": "std_native_collections_vector_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.native.collections.Vector"
+}

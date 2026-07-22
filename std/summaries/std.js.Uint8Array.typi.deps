@@ -1,8 +1,8 @@
 module=std.js.Uint8Array
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=304227938350640459
-interface_hash=1834722939559207960
-interface_doc_hash=1834722939559207960
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=18035176878631833835
+interface_hash=3483483629531550822
+interface_doc_hash=3483483629531550822
 deps=0

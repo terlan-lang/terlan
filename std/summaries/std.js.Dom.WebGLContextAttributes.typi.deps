@@ -1,8 +1,8 @@
 module=std.js.Dom.WebGLContextAttributes
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=17310827520039642286
-interface_hash=13223102675231751192
-interface_doc_hash=13223102675231751192
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4083773088205161381
+interface_hash=3872207824399374045
+interface_doc_hash=3872207824399374045
 deps=0

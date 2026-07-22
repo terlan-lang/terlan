@@ -1,5 +1,26 @@
 "use strict";
 
+const path = require("path");
+
+const RUN_COMMAND_IDS = Object.freeze({
+  runMain: "terlan.runMain",
+  runCheck: "terlan.runCheck",
+  runBuild: "terlan.runBuild",
+  runClean: "terlan.runClean",
+  runServe: "terlan.runServe",
+  runWatch: "terlan.runWatch",
+  runDoctor: "terlan.runDoctor",
+  runDebug: "terlan.runDebug",
+  runDebugAtCursor: "terlan.runDebugAtCursor",
+  inspectRuntime: "terlan.inspectRuntime",
+  addMissingImport: "terlan.addMissingImport",
+  formatDocument: "terlan.formatDocument",
+  showDiagnostics: "terlan.showDiagnostics",
+  runTestFile: "terlan.runTestFile",
+  runTestAtCursor: "terlan.runTestAtCursor",
+  runTestByName: "terlan.runTestByName"
+});
+
 /**
  * Quotes one terminal argument for the active platform shell.
  *
@@ -36,23 +57,205 @@ function buildRunCommandLine(command, projectPath, platform = process.platform) 
 }
 
 /**
- * Prefixes terminal commands with shell command-cache refresh when supported.
+ * Builds the terminal command used by the Terlan workspace check action.
  *
- * @param {string} commandLine Shell command line to run.
- * @param {string} platform Node platform identifier used for shell selection.
- * @returns {string} Terminal command line with command cache refresh prefix.
+ * @param {string} command Configured compiler command.
+ * @param {string} projectPath Workspace/project path to check.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
  *
  * @description
- * Reused integrated terminals may keep an old `terlc` path in the shell hash
- * table after a local compiler reinstall. On POSIX shells, `hash -r` clears
- * that cache before the Terlan command runs. Windows shells do not use this
- * command, so the input is returned unchanged there.
+ * Delegates package validation to `terlc check <project>` so editor checks use
+ * the same compiler path as CLI users and CI gates.
  */
-function withShellCommandCacheRefresh(commandLine, platform = process.platform) {
-  if (platform === "win32") {
-    return commandLine;
+function buildCheckCommandLine(command, projectPath, platform = process.platform) {
+  return `${shellQuote(command, platform)} check ${shellQuote(projectPath, platform)}`;
+}
+
+/**
+ * Builds the terminal command used by the Terlan workspace build action.
+ *
+ * @param {string} command Configured compiler command.
+ * @param {string} projectPath Workspace/project path to build.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
+ *
+ * @description
+ * Delegates package artifact construction to `terlc build <project>`.
+ */
+function buildBuildCommandLine(command, projectPath, platform = process.platform) {
+  return `${shellQuote(command, platform)} build ${shellQuote(projectPath, platform)}`;
+}
+
+/**
+ * Builds the terminal command used by the Terlan workspace clean action.
+ *
+ * @param {string} command Configured compiler command.
+ * @param {string} projectPath Workspace/project path to clean.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
+ *
+ * @description
+ * Delegates package artifact cleanup to `terlc clean <project>`.
+ */
+function buildCleanCommandLine(command, projectPath, platform = process.platform) {
+  return `${shellQuote(command, platform)} clean ${shellQuote(projectPath, platform)}`;
+}
+
+/**
+ * Builds the terminal command used by the Terlan web server button.
+ *
+ * @param {string} command Configured compiler command.
+ * @param {string} projectPath Workspace/project path to serve.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
+ *
+ * @description
+ * Delegates web serving to `terlc serve <project>` so the editor does not own
+ * routing, HTTP, reload, or VM handler behavior.
+ */
+function buildServeCommandLine(command, projectPath, platform = process.platform) {
+  return `${shellQuote(command, platform)} serve ${shellQuote(projectPath, platform)}`;
+}
+
+/**
+ * Builds the terminal command used by the Terlan live-reload watch button.
+ *
+ * @param {string} command Configured compiler command.
+ * @param {string} projectPath Workspace/project path to watch and serve.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
+ *
+ * @description
+ * Uses the compiler-owned serve watcher with an explicit poll interval instead
+ * of implementing editor-side filesystem watching.
+ */
+function buildWatchCommandLine(command, projectPath, platform = process.platform) {
+  return `${buildServeCommandLine(command, projectPath, platform)} --poll-ms 250`;
+}
+
+/**
+ * Builds the terminal command used by the Terlan support diagnostics button.
+ *
+ * @param {string} command Configured compiler command.
+ * @param {string} projectPath Workspace/project path to diagnose.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
+ *
+ * @description
+ * Delegates editor support diagnostics to `terlc doctor <project>` so support
+ * output and future support-bundle paths remain compiler-owned.
+ */
+function buildDoctorCommandLine(command, projectPath, platform = process.platform) {
+  return `${shellQuote(command, platform)} doctor ${shellQuote(projectPath, platform)}`;
+}
+
+/** Builds the compiler-owned deterministic VM inspection command. */
+function buildInspectCommandLine(command, projectPath, platform = process.platform) {
+  return `${shellQuote(command, platform)} inspect ${shellQuote(projectPath, platform)} --snapshot`;
+}
+
+/**
+ * Builds the terminal command used by the Terlan debugger launch action.
+ *
+ * @param {string} command Configured compiler command.
+ * @param {string} projectPath Workspace/project path to debug.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
+ *
+ * @description
+ * Delegates debugger launch to the compiler-owned `terlc debug` JSON event
+ * surface without publishing a VS Code debug adapter before it exists.
+ */
+function buildDebugCommandLine(command, projectPath, platform = process.platform) {
+  return `${shellQuote(command, platform)} debug ${shellQuote(projectPath, platform)} --json-events`;
+}
+
+/**
+ * Builds the terminal command used by the Terlan cursor-breakpoint debugger action.
+ *
+ * @param {string} command Configured compiler command.
+ * @param {string} filePath Terlan source file path to debug.
+ * @param {number} oneBasedLine One-based source line used as the breakpoint.
+ * @param {string} platform Node platform identifier used for shell quoting.
+ * @returns {string} Terminal command line.
+ *
+ * @description
+ * Delegates cursor breakpoint launch to `terlc debug <file> --break
+ * <file:line> --json-events`, keeping breakpoint parsing compiler-owned.
+ */
+function buildDebugBreakpointCommandLine(
+  command,
+  filePath,
+  oneBasedLine,
+  platform = process.platform
+) {
+  const breakpoint = `${filePath}:${oneBasedLine}`;
+  return `${shellQuote(command, platform)} debug ${shellQuote(filePath, platform)} --break ${shellQuote(breakpoint, platform)} --json-events`;
+}
+
+/**
+ * Redacts a launch target path for reports and support-facing metadata.
+ *
+ * @param {string | undefined} targetPath File, package, or workspace path.
+ * @param {string | undefined} workspacePath Workspace root allowed to be redacted.
+ * @returns {string | undefined} Redacted target path for display/reporting.
+ *
+ * @description
+ * Keeps terminal commands exact while avoiding absolute workspace-root leakage
+ * in machine-readable editor reports. Paths outside the active workspace are
+ * left unchanged because the helper cannot prove they are safe to rewrite.
+ */
+function redactLaunchTargetPath(targetPath, workspacePath = undefined) {
+  if (!targetPath) {
+    return undefined;
   }
-  return `hash -r 2>/dev/null || true; ${commandLine}`;
+  if (!workspacePath) {
+    return targetPath;
+  }
+
+  const target = path.resolve(targetPath);
+  const workspace = path.resolve(workspacePath);
+  if (target === workspace) {
+    return "${workspace}";
+  }
+  if (target.startsWith(`${workspace}${path.sep}`)) {
+    return "${workspace}" + target.slice(workspace.length);
+  }
+  return targetPath;
+}
+
+/**
+ * Builds a stable editor launch descriptor for terminal-backed commands.
+ *
+ * @param {string} kind Launch kind such as `run`, `test`, or `debug`.
+ * @param {string} targetPath File, package, or workspace path being launched.
+ * @param {string} commandLine Exact compiler command users can reproduce.
+ * @param {string} platform Node platform identifier used for shell behavior.
+ * @param {string | undefined} workspacePath Workspace root to redact in reports.
+ * @returns {*} Machine-readable launch descriptor.
+ *
+ * @description
+ * Keeps exact reproduction commands and integrated-terminal commands aligned so
+ * users can copy the visible command without editor-specific shell setup.
+ */
+function buildTerminalLaunchDescriptor(
+  kind,
+  targetPath,
+  commandLine,
+  platform = process.platform,
+  workspacePath = undefined
+) {
+  return {
+    kind,
+    targetPath,
+    displayTargetPath: redactLaunchTargetPath(targetPath, workspacePath),
+    commandLine,
+    reproductionCommand: commandLine,
+    terminalCommandLine: commandLine,
+    outputMode: "integrated-terminal-pass-through",
+    colorPreservation: "compiler-owned"
+  };
 }
 
 /**
@@ -109,6 +312,73 @@ function resolveRunWorkspaceFolder(workspace, activeEditor) {
   }
   const folders = workspace.workspaceFolders || [];
   return folders[0];
+}
+
+/**
+ * Selects the package/workspace path used by workspace-level runnable commands.
+ *
+ * @param {object} workspace VS Code workspace API surface.
+ * @param {object | undefined} activeEditor Active text editor, when present.
+ * @param {(filePath: string) => boolean} pathExists Filesystem predicate.
+ * @returns {string | undefined} Nearest Terlan package root or workspace root.
+ *
+ * @description
+ * Prefers the closest parent directory containing `terlan.toml` for the active
+ * document, bounded by the owning VS Code workspace folder. This lets editor
+ * run/check/build/serve/debug actions target nested Terlan packages without
+ * walking above the open workspace.
+ */
+function resolveRunTargetPath(workspace, activeEditor, pathExists) {
+  const workspaceFolder = resolveRunWorkspaceFolder(workspace, activeEditor);
+  if (!workspaceFolder || !workspaceFolder.uri || !workspaceFolder.uri.fsPath) {
+    return undefined;
+  }
+
+  const workspacePath = path.resolve(workspaceFolder.uri.fsPath);
+  const filePath = activeEditor
+    && activeEditor.document
+    && activeEditor.document.uri
+    && activeEditor.document.uri.fsPath;
+  if (!filePath) {
+    return workspaceFolder.uri.fsPath;
+  }
+
+  let current = path.resolve(path.dirname(filePath));
+  while (current === workspacePath || current.startsWith(`${workspacePath}${path.sep}`)) {
+    if (pathExists(path.join(current, "terlan.toml"))) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+
+  return workspaceFolder.uri.fsPath;
+}
+
+/**
+ * Returns whether the active source is a conventional project script.
+ *
+ * @param {string | undefined} filePath Active document path.
+ * @param {string | undefined} projectPath Resolved Terlan package root.
+ * @returns {boolean} True for `.terl` files below the package `scripts` tree.
+ *
+ * @description
+ * Lets the general run action execute an active project script directly while
+ * ordinary package source files continue to launch the package entrypoint.
+ */
+function isProjectScriptFilePath(filePath, projectPath) {
+  if (!filePath || !projectPath || !String(filePath).endsWith(".terl")) {
+    return false;
+  }
+  const relative = path.relative(path.resolve(projectPath), path.resolve(filePath));
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    return false;
+  }
+  const [first] = relative.split(path.sep);
+  return first === "scripts";
 }
 
 /**
@@ -184,6 +454,21 @@ function findTestNameAtLine(text, line) {
   const ranges = discoverTestRanges(text);
   const range = ranges.find((test) => line >= test.startLine && line <= test.endLine);
   return range ? range.name : undefined;
+}
+
+/**
+ * Returns whether a source document still declares one runnable test name.
+ *
+ * @param {string} text Terlan source text.
+ * @param {string} testName Exact test function name.
+ * @returns {boolean} True when the named `@test` function is present.
+ *
+ * @description
+ * Lets stale CodeLens command arguments be rejected after a test is renamed or
+ * deleted but before VS Code refreshes the CodeLens inventory.
+ */
+function hasRunnableTestName(text, testName) {
+  return discoverTestRanges(text).some((test) => test.name === testName);
 }
 
 /**
@@ -355,20 +640,34 @@ function hasModuleImport(text, moduleName) {
 }
 
 module.exports = {
+  RUN_COMMAND_IDS,
+  buildBuildCommandLine,
+  buildCheckCommandLine,
+  buildCleanCommandLine,
+  buildDebugBreakpointCommandLine,
+  buildDebugCommandLine,
+  buildDoctorCommandLine,
+  buildInspectCommandLine,
+  buildServeCommandLine,
+  buildTerminalLaunchDescriptor,
   buildTestFileCommandLine,
   buildTestNameCommandLine,
   buildRunCommandLine,
+  buildWatchCommandLine,
   discoverRunnableEntries,
   discoverTestRanges,
   findQualifiedModuleReferenceAtLine,
   findModuleReferencePrefixAtPosition,
   findTestNameAtLine,
+  hasRunnableTestName,
   hasModuleImport,
   importInsertionLine,
   isTerlanTestFilePath,
   moduleLeafName,
   parseModuleDeclaration,
+  redactLaunchTargetPath,
+  isProjectScriptFilePath,
+  resolveRunTargetPath,
   resolveRunWorkspaceFolder,
-  shellQuote,
-  withShellCommandCacheRefresh
+  shellQuote
 };

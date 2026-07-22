@@ -40,16 +40,44 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
                 })
                 .collect(),
         },
+        Decl::Constant(decl) => SyntaxDeclarationPayload::Constant {
+            name: decl.name.clone(),
+            annotation: type_output(&decl.annotation),
+            value: expr_output_with_span(&decl.value, decl.span.into()),
+            is_public: decl.is_public,
+        },
+        Decl::ConstFunction(decl) => SyntaxDeclarationPayload::ConstFunction {
+            name: decl.name.clone(),
+            params: decl.params.iter().map(param_output).collect(),
+            return_type: type_output(&decl.return_type),
+            body: expr_output_with_span(&decl.body, decl.span.into()),
+            is_public: decl.is_public,
+        },
         Decl::Type(decl) => SyntaxDeclarationPayload::Type {
             name: decl.name.clone(),
             params: decl.params.clone(),
             is_public: decl.is_public,
             is_opaque: decl.is_opaque,
             implements: decl.implements.iter().map(type_output).collect(),
-            variants: decl.variants.iter().map(type_output).collect(),
+            variants: if let Some(representation) = &decl.representation {
+                vec![type_output(representation)]
+            } else {
+                decl.variants.iter().map(type_output).collect()
+            },
+            representation: decl.representation.as_ref().map(type_output),
+            valued_arms: decl
+                .valued_arms
+                .iter()
+                .map(|arm| SyntaxValuedUnionArmOutput {
+                    name: arm.name.clone(),
+                    value: expr_output_with_span(&arm.value, arm.span.into()),
+                    span: arm.span.into(),
+                })
+                .collect(),
         },
         Decl::Struct(decl) => SyntaxDeclarationPayload::Struct {
             name: decl.name.clone(),
+            generic_params: decl.generic_params.clone(),
             includes: decl.includes.clone(),
             implements: decl.implements.iter().map(type_output).collect(),
             is_public: decl.is_public,
@@ -79,7 +107,7 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
         Decl::Function(decl) => SyntaxDeclarationPayload::Function {
             name: decl.name.clone(),
             generic_params: decl.generic_params.clone(),
-            params: decl.params.iter().map(param_output).collect(),
+            params: function_params_output(&decl.params, decl.clauses.first()),
             return_type: type_output(&decl.return_type),
             is_public: decl.is_public,
             is_macro: decl.is_macro,
@@ -102,12 +130,38 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
             super_traits: decl.super_traits.clone(),
             is_public: decl.is_public,
             methods: decl.methods.iter().map(trait_method_output).collect(),
+            constants: decl
+                .constants
+                .iter()
+                .map(|constant| SyntaxTraitConstOutput {
+                    name: constant.name.clone(),
+                    annotation: type_output(&constant.annotation),
+                    default: constant
+                        .default
+                        .as_ref()
+                        .map(|value| expr_output_with_span(value, constant.span.into())),
+                    docs: constant.docs.clone(),
+                    span: constant.span.into(),
+                })
+                .collect(),
         },
         Decl::TraitImpl(decl) => SyntaxDeclarationPayload::TraitImpl {
             trait_ref: type_output(&decl.trait_ref),
+            generic_params: decl.generic_params.clone(),
             for_type: type_output(&decl.for_type),
+            is_negative: decl.is_negative,
             is_public: decl.is_public,
             methods: decl.methods.iter().map(impl_method_output).collect(),
+            constants: decl
+                .constants
+                .iter()
+                .map(|constant| SyntaxImplConstOutput {
+                    name: constant.name.clone(),
+                    annotation: constant.annotation.as_ref().map(type_output),
+                    value: expr_output_with_span(&constant.value, constant.span.into()),
+                    span: constant.span.into(),
+                })
+                .collect(),
         },
         Decl::AnnotationSchema(decl) => SyntaxDeclarationPayload::AnnotationSchema {
             path: decl.path.clone(),
@@ -140,6 +194,10 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
                 })
                 .collect(),
         },
+        Decl::Shape(decl) => SyntaxDeclarationPayload::Raw {
+            raw_kind: "shape".to_string(),
+            text: decl.text.clone(),
+        },
         Decl::Raw(decl) if is_config_declaration_kind(&decl.kind) => {
             SyntaxDeclarationPayload::Config {
                 name: decl.kind.clone(),
@@ -168,6 +226,8 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
 ///   and exports, which currently do not carry source docs.
 pub(super) fn declaration_docs(declaration: &Decl) -> Vec<String> {
     match declaration {
+        Decl::Constant(decl) => decl.docs.clone(),
+        Decl::ConstFunction(decl) => decl.docs.clone(),
         Decl::Type(decl) => decl.docs.clone(),
         Decl::Struct(decl) => decl.docs.clone(),
         Decl::Constructor(decl) => decl.docs.clone(),
@@ -177,6 +237,7 @@ pub(super) fn declaration_docs(declaration: &Decl) -> Vec<String> {
         Decl::TraitImpl(decl) => decl.docs.clone(),
         Decl::AnnotationSchema(decl) => decl.docs.clone(),
         Decl::Template(decl) => decl.docs.clone(),
+        Decl::Shape(decl) => decl.docs.clone(),
         Decl::Raw(decl) => decl.docs.clone(),
         Decl::Import(_) | Decl::Export(_) => Vec::new(),
     }
@@ -213,6 +274,71 @@ fn type_output(ty: &TypeExpr) -> SyntaxTypeOutput {
 ///   receiver/argument metadata plus optional default syntax and source-like
 ///   default text.
 fn param_output(param: &Param) -> SyntaxParamOutput {
+    param_output_with_pattern(param, None)
+}
+
+/// Converts parsed function parameters and optional head patterns into
+/// syntax-output form.
+///
+/// Inputs:
+/// - `params`: parsed callable parameters in source order.
+/// - `first_clause`: optional first function clause carrying normalized pattern
+///   metadata.
+///
+/// Output:
+/// - Syntax parameters with optional `pattern_text` for structural function-head
+///   parameters.
+///
+/// Transformation:
+/// - Reuses the formatter's canonical pattern spelling when the clause pattern
+///   is not the same simple variable as the ABI parameter name.
+fn function_params_output(
+    params: &[Param],
+    first_clause: Option<&FunctionClause>,
+) -> Vec<SyntaxParamOutput> {
+    params
+        .iter()
+        .enumerate()
+        .map(|(index, param)| {
+            let pattern = first_clause
+                .filter(|clause| clause.patterns.len() == params.len())
+                .and_then(|clause| clause.patterns.get(index))
+                .filter(|pattern| !pattern_matches_param_name(pattern, param));
+            param_output_with_pattern(param, pattern)
+        })
+        .collect()
+}
+
+/// Returns whether a pattern is the parameter's plain variable binding.
+///
+/// Inputs:
+/// - `pattern`: clause pattern considered for display.
+/// - `param`: ABI parameter generated from the function head.
+///
+/// Output:
+/// - `true` for the ordinary `name: Type` case.
+///
+/// Transformation:
+/// - Prevents normal named parameters from gaining redundant `pattern_text`.
+fn pattern_matches_param_name(pattern: &Pattern, param: &Param) -> bool {
+    matches!(pattern, Pattern::Var(name) if name == &param.name)
+}
+
+/// Converts a parsed parameter into syntax-output form with optional pattern
+/// display text.
+///
+/// Inputs:
+/// - `param`: parser parameter with name, annotation, mutability, optional
+///   default, and span.
+/// - `pattern`: optional structural pattern associated with the parameter.
+///
+/// Output:
+/// - `SyntaxParamOutput` consumed by type checking and editor/doc rendering.
+///
+/// Transformation:
+/// - Converts the annotation through `type_output` and preserves mutable
+///   receiver/argument metadata plus optional default and pattern source text.
+fn param_output_with_pattern(param: &Param, pattern: Option<&Pattern>) -> SyntaxParamOutput {
     let span = param.span.into();
     SyntaxParamOutput {
         name: param.name.clone(),
@@ -224,6 +350,7 @@ fn param_output(param: &Param) -> SyntaxParamOutput {
             .as_ref()
             .map(|expr| expr_output_with_span(expr, span)),
         default_text: param.default.as_ref().map(expr_to_output_text),
+        pattern_text: pattern.map(crate::terlan_syntax::formatter::format_pattern),
         span,
     }
 }
@@ -267,7 +394,7 @@ fn constructor_param_output(param: &ConstructorParam) -> SyntaxConstructorParamO
 ///
 /// Transformation:
 /// - Converts constructor parameters and body expression into the stable
-///   syntax-output layer used by type checking and Erlang lowering.
+///   syntax-output layer used by type checking and Vm lowering.
 fn constructor_clause_output(clause: &ConstructorClause) -> SyntaxConstructorClauseOutput {
     let span: EbnfSourceSpan = clause.span.into();
     SyntaxConstructorClauseOutput {
@@ -328,6 +455,7 @@ fn trait_method_output(method: &TraitMethodDecl) -> SyntaxTraitMethodOutput {
             .default_body
             .as_ref()
             .map(|expr| expr_output_with_span(expr, span)),
+        is_pure: method.is_pure,
         is_public: method.is_public,
         docs: method.docs.clone(),
         span: method.span.into(),

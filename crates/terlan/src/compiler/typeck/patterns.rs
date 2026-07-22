@@ -9,17 +9,21 @@ use crate::terlan_typeck::field_visibility::{
 use super::{
     alias_constructor_schemes, apply_subst, bind_var, expand_type_aliases,
     instantiate_constructor_scheme, is_literal_atom, is_map_type, next_constructor_type_var,
-    normalize_union, parse_interface_constructor_schemes, pretty_type, unify, ConstructorScheme,
-    ExprInferContext, MapFieldType, Type, TypeAlias, TypeVarId,
+    normalize_union, parse_interface_constructor_schemes, parse_type_expr, pretty_type,
+    split_module_name, unify, ConstructorScheme, ExprInferContext, MapFieldType, Type, TypeAlias,
+    TypeVarId,
 };
 
+mod binary_layout;
+mod string_capture;
+use binary_layout::check_binary_layout_pattern;
+use string_capture::check_string_capture_pattern;
+
 /// Checks record-pattern field visibility against expression context metadata.
-///
 /// Inputs:
 /// - `struct_name`: expected struct type name for the record pattern.
 /// - `field_key`: pattern field key, optionally written as `#field`.
 /// - `ctx`: optional expression inference context with visibility/import data.
-///
 /// Output:
 /// - `Ok(())` when the field key is visibility-compatible, otherwise a
 ///   diagnostic message.
@@ -68,13 +72,34 @@ pub(super) fn syntax_pattern_subsumes_variant(
     aliases: &HashMap<String, TypeAlias>,
 ) -> bool {
     let variant = expand_type_aliases(variant, aliases);
+    if pattern.kind == SyntaxPatternKind::Constructor
+        && pattern
+            .text
+            .as_deref()
+            .is_some_and(|name| name.starts_with("$const:"))
+    {
+        return pattern
+            .children
+            .first()
+            .is_some_and(|child| syntax_pattern_subsumes_variant(child, &variant, aliases));
+    }
+    if pattern.kind == SyntaxPatternKind::Constructor
+        && constructor_pattern_alias_subsumes_variant(pattern, &variant, aliases)
+    {
+        return true;
+    }
     match (pattern.kind, variant) {
         (SyntaxPatternKind::Wildcard, _)
         | (SyntaxPatternKind::Var, _)
+        | (SyntaxPatternKind::Alias, _)
         | (SyntaxPatternKind::Ignore, _)
         | (SyntaxPatternKind::Placeholder, _) => true,
         (SyntaxPatternKind::Int, Type::Int | Type::Union(_)) => true,
         (SyntaxPatternKind::Float, Type::Float | Type::Union(_)) => true,
+        (
+            SyntaxPatternKind::String | SyntaxPatternKind::StringPattern,
+            Type::Binary | Type::Union(_),
+        ) => true,
         (SyntaxPatternKind::Atom, Type::LiteralAtom(b)) => {
             pattern.text.as_deref().is_some_and(|a| a == b.as_str())
         }
@@ -86,13 +111,18 @@ pub(super) fn syntax_pattern_subsumes_variant(
             let Some(name) = pattern.text.as_deref() else {
                 return false;
             };
-            name == head
+            constructor_pattern_atom_name(name) == *head
                 && pattern.children.len() == variant_items.len().saturating_sub(1)
                 && pattern
                     .children
                     .iter()
                     .zip(variant_items.iter().skip(1))
                     .all(|(p, t)| syntax_pattern_subsumes_variant(p, t, aliases))
+        }
+        (SyntaxPatternKind::Constructor, Type::LiteralAtom(head)) => {
+            pattern.text.as_deref().is_some_and(|name| {
+                pattern.children.is_empty() && constructor_pattern_atom_name(name) == head
+            })
         }
         (SyntaxPatternKind::Tuple, Type::Tuple(variant_items)) => {
             if pattern.children.len() != variant_items.len() {
@@ -119,6 +149,39 @@ pub(super) fn syntax_pattern_subsumes_variant(
             .any(|v| syntax_pattern_subsumes_variant(pattern, v, aliases)),
         _ => false,
     }
+}
+
+fn constructor_pattern_alias_subsumes_variant(
+    pattern: &SyntaxPatternOutput,
+    variant: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+) -> bool {
+    let Some(name) = pattern.text.as_deref() else {
+        return false;
+    };
+    let Some(schemes) = alias_constructor_schemes(name, aliases) else {
+        return false;
+    };
+
+    schemes.into_iter().any(|scheme| {
+        if pattern.children.len() != scheme.fixed_params.len() {
+            return false;
+        }
+
+        let mut subst = HashMap::new();
+        if unify(&scheme.ret, variant, &mut subst).is_err() {
+            return false;
+        }
+
+        pattern
+            .children
+            .iter()
+            .zip(scheme.fixed_params.iter())
+            .all(|(child, param)| {
+                let expected = apply_subst(param, &subst);
+                syntax_pattern_subsumes_variant(child, &expected, aliases)
+            })
+    })
 }
 
 /// Flattens a type into the variants relevant for exhaustiveness checks.
@@ -170,6 +233,7 @@ fn syntax_pattern_shape_type(pattern: &SyntaxPatternOutput) -> Type {
     match pattern.kind {
         SyntaxPatternKind::Int => Type::Int,
         SyntaxPatternKind::Float => Type::Float,
+        SyntaxPatternKind::String | SyntaxPatternKind::StringPattern => Type::Binary,
         SyntaxPatternKind::Atom => {
             let atom = pattern.text.as_deref().unwrap_or_default();
             if atom == "true" || atom == "false" {
@@ -187,6 +251,11 @@ fn syntax_pattern_shape_type(pattern: &SyntaxPatternOutput) -> Type {
                 .map(syntax_pattern_shape_type)
                 .collect(),
         ),
+        SyntaxPatternKind::Alias => pattern
+            .children
+            .first()
+            .map(syntax_pattern_shape_type)
+            .unwrap_or(Type::Dynamic),
         SyntaxPatternKind::List | SyntaxPatternKind::ListCons => Type::List(Box::new(
             pattern
                 .children
@@ -207,6 +276,8 @@ fn syntax_pattern_shape_type(pattern: &SyntaxPatternOutput) -> Type {
         ),
         SyntaxPatternKind::Wildcard
         | SyntaxPatternKind::Var
+        | SyntaxPatternKind::StringCapture
+        | SyntaxPatternKind::BinaryLayout
         | SyntaxPatternKind::Constructor
         | SyntaxPatternKind::Ignore
         | SyntaxPatternKind::Placeholder
@@ -241,6 +312,23 @@ pub(super) fn check_syntax_pattern(
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<(), String> {
     let expected = apply_subst(&expand_type_aliases(expected, aliases), subst);
+    if let Some(union) = pattern
+        .text
+        .as_deref()
+        .and_then(|text| text.strip_prefix("$const:"))
+        .and_then(|qualified| qualified.rsplit_once('.').map(|(union, _)| union))
+    {
+        let (module, name) = split_module_name(union);
+        return unify(
+            &expected,
+            &Type::Named {
+                module,
+                name,
+                args: Vec::new(),
+            },
+            subst,
+        );
+    }
 
     match pattern.kind {
         SyntaxPatternKind::Var => {
@@ -250,11 +338,32 @@ pub(super) fn check_syntax_pattern(
             );
             Ok(())
         }
+        SyntaxPatternKind::Alias => {
+            locals.insert(
+                pattern.text.clone().unwrap_or_default(),
+                apply_subst(&expected, subst),
+            );
+            let child = pattern
+                .children
+                .first()
+                .ok_or_else(|| "alias pattern requires one child pattern".to_string())?;
+            check_syntax_pattern(child, &expected, aliases, ctx, locals, subst)
+        }
         SyntaxPatternKind::Wildcard
         | SyntaxPatternKind::Ignore
         | SyntaxPatternKind::Placeholder => Ok(()),
         SyntaxPatternKind::Int => unify(&expected, &Type::Int, subst),
         SyntaxPatternKind::Float => unify(&expected, &Type::Float, subst),
+        SyntaxPatternKind::String => unify(&expected, &Type::Binary, subst),
+        SyntaxPatternKind::StringPattern => {
+            check_string_capture_pattern(pattern, &expected, aliases, locals, subst)
+        }
+        SyntaxPatternKind::StringCapture => {
+            Err("string capture nodes must appear inside a string pattern".to_string())
+        }
+        SyntaxPatternKind::BinaryLayout => {
+            check_binary_layout_pattern(pattern, &expected, locals, subst)
+        }
         SyntaxPatternKind::Atom => {
             let atom = pattern.text.as_deref().unwrap_or_default();
             if atom.starts_with('_') {
@@ -276,6 +385,16 @@ pub(super) fn check_syntax_pattern(
             }
         }
         SyntaxPatternKind::Constructor => {
+            if pattern
+                .text
+                .as_deref()
+                .is_some_and(|name| name.starts_with("$const:"))
+            {
+                let child = pattern.children.first().ok_or_else(|| {
+                    "constant value pattern requires its substituted literal".to_string()
+                })?;
+                return check_syntax_pattern(child, &expected, aliases, ctx, locals, subst);
+            }
             if let Some(result) = check_structural_constructor_pattern(
                 pattern, &expected, aliases, ctx, locals, subst,
             ) {
@@ -698,6 +817,7 @@ fn check_syntax_constructor_pattern(
                 .or(instantiated.vararg.as_ref())
                 .cloned()
                 .unwrap_or(Type::Dynamic);
+            let expected_arg = apply_subst(&expected_arg, &trial_subst);
             if let Err(message) = check_syntax_pattern(
                 arg,
                 &expected_arg,

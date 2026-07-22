@@ -1,5 +1,7 @@
 use super::*;
 
+#[path = "callables/body.rs"]
+mod body;
 #[path = "callables/constructor.rs"]
 mod constructor;
 mod constructor_validation;
@@ -7,6 +9,31 @@ mod constructor_validation;
 mod receiver_method;
 
 impl Parser {
+    /// Consumes a clause guard introducer.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned before a possible guard keyword.
+    ///
+    /// Output:
+    /// - `true` when `where` was consumed.
+    /// - Stable diagnostic when legacy `when` syntax is encountered.
+    ///
+    /// Transformation:
+    /// - Keeps Terlan on a single guard spelling. Older `when` syntax is
+    ///   rejected so guards do not inherit Erlang surface syntax.
+    pub(super) fn consume_guard_intro(&mut self) -> ParseResult<bool> {
+        if self.consume_if(TokenKind::Where) {
+            return Ok(true);
+        }
+        if self.check(TokenKind::When) {
+            return Err(ParseError {
+                message: "Terlan clause guards use `where`; `when` is not supported".to_string(),
+                span: self.current().span(),
+            });
+        }
+        Ok(false)
+    }
+
     /// Parses optional square-bracket type parameters.
     ///
     /// Inputs:
@@ -120,6 +147,17 @@ impl Parser {
         let mut generic_bounds = self.consume_angle_generic_params_if_present()?;
 
         self.expect(TokenKind::LParen)?;
+        if !self.check(TokenKind::RParen) && self.reverse_alias_parameter_starts() {
+            return Err(ParseError {
+                message:
+                    "migration.function_head_pattern.invalid_alias_style: reverse alias function-head pattern syntax is rejected; use pattern-first aliasing `{pattern} = name: Type`; docs docs/language/function_heads.md#migrationfunction_head_patterninvalid_alias_style"
+                        .to_string(),
+                span: self
+                    .tokens
+                    .get(self.pos + 1)
+                    .map_or_else(|| self.current().span(), |token| token.span()),
+            });
+        }
         if !self.check(TokenKind::RParen) && !self.is_typed_param_start() {
             return self.parse_untyped_function_decl_after_name(
                 start,
@@ -131,12 +169,22 @@ impl Parser {
             );
         }
         let mut params = Vec::new();
+        let mut param_patterns = Vec::new();
         if !self.check(TokenKind::RParen) {
+            let mut pattern_index = 0;
             loop {
-                params.push(self.parse_param()?);
+                if self.function_head_pattern_parameter_starts() {
+                    let (param, pattern) = self.parse_function_head_pattern_param(pattern_index)?;
+                    params.push(param);
+                    param_patterns.push(pattern);
+                } else {
+                    params.push(self.parse_param()?);
+                    param_patterns.push(None);
+                }
                 if !self.consume_if(TokenKind::Comma) {
                     break;
                 }
+                pattern_index += 1;
             }
         }
         self.expect(TokenKind::RParen)?;
@@ -162,7 +210,12 @@ impl Parser {
             clauses.push(FunctionClause {
                 patterns: params
                     .iter()
-                    .map(|param| Pattern::Var(param.name.clone()))
+                    .zip(param_patterns.iter())
+                    .map(|(param, pattern)| {
+                        pattern
+                            .clone()
+                            .unwrap_or_else(|| Pattern::Var(param.name.clone()))
+                    })
                     .collect(),
                 body,
                 guard: None,
@@ -205,12 +258,19 @@ impl Parser {
                 }
             }
             self.expect(TokenKind::RParen)?;
+
+            let guard = if self.consume_guard_intro()? {
+                Some(Box::new(self.parse_expr()?))
+            } else {
+                None
+            };
+
             self.expect(TokenKind::Arrow)?;
             let body = self.parse_body_expr_with_clause_sep(Some(name.as_str()), false)?;
             clauses.push(FunctionClause {
                 patterns: clause_patterns,
                 body,
-                guard: None,
+                guard,
                 span: Span::new(start, self.previous().end),
             });
 
@@ -265,6 +325,7 @@ impl Parser {
     ) -> ParseResult<Decl> {
         let mut clauses = Vec::new();
         let mut arity = None;
+        let mut explicit_return_type: Option<TypeExpr> = None;
 
         loop {
             let clause_start = if clauses.is_empty() {
@@ -298,10 +359,23 @@ impl Parser {
             }
 
             if self.consume_if(TokenKind::Colon) {
-                self.parse_type_expr(&[TokenKind::Arrow])?;
+                let return_type = self.parse_type_expr(&[TokenKind::Arrow])?;
+                if let Some(expected_return_type) = &explicit_return_type {
+                    if expected_return_type.text != return_type.text {
+                        return Err(ParseError {
+                            message: format!(
+                                "clause for {name} has return type {}, expected {}",
+                                return_type.text, expected_return_type.text
+                            ),
+                            span: return_type.span,
+                        });
+                    }
+                } else {
+                    explicit_return_type = Some(return_type);
+                }
             }
 
-            let guard = if self.consume_if(TokenKind::When) {
+            let guard = if self.consume_guard_intro()? {
                 Some(Box::new(self.parse_expr()?))
             } else {
                 None
@@ -348,10 +422,10 @@ impl Parser {
                     span: Span::new(start, start),
                 })
                 .collect(),
-            return_type: TypeExpr {
+            return_type: explicit_return_type.unwrap_or(TypeExpr {
                 text: "Dynamic".to_string(),
                 span: Span::new(start, start),
-            },
+            }),
             is_public,
             is_macro,
             generic_bounds,
@@ -412,7 +486,7 @@ impl Parser {
                 });
             }
 
-            let guard = if self.consume_if(TokenKind::When) {
+            let guard = if self.consume_guard_intro()? {
                 Some(Box::new(self.parse_expr()?))
             } else {
                 None
@@ -464,6 +538,14 @@ impl Parser {
         }
         let is_mutable = self.consume_keyword("mut");
         let name = self.expect_ident()?;
+        if self.check(TokenKind::Equals) {
+            return Err(ParseError {
+                message:
+                    "reverse alias function-head pattern syntax is rejected; use pattern-first aliasing `{pattern} = name: Type` when pattern parameters land"
+                        .to_string(),
+                span: self.current().span(),
+            });
+        }
         self.expect(TokenKind::Colon)?;
         let annotation = if self.check(TokenKind::RParen) {
             TypeExpr {
@@ -486,6 +568,133 @@ impl Parser {
             default,
             span: Span::new(start, self.previous().end),
         })
+    }
+
+    /// Parses a pattern parameter for function heads and rejects unsupported
+    /// shape-level defaults while preserving alias syntax.
+    ///
+    /// Inputs:
+    /// - `pattern_index`: zero-based parameter position for synthetic names when
+    ///   no alias is supplied.
+    ///
+    /// Output:
+    /// - A `Param` using either the alias name or a synthetic `_ArgN` fallback
+    ///   with the parsed annotation text, plus the original parsed pattern for
+    ///   non-alias parameters.
+    ///
+    /// Transformation:
+    /// - Parses either `{pattern} = alias: Type` or `{pattern}: Type` and
+    ///   rejects defaulted pattern parameters to keep later type-inference rules
+    ///   unambiguous until dedicated pattern-binding support is implemented.
+    fn parse_function_head_pattern_param(
+        &mut self,
+        pattern_index: usize,
+    ) -> ParseResult<(Param, Option<Pattern>)> {
+        let start = self.current().start;
+        let pattern = self.parse_pattern()?;
+
+        let (name, annotation, clause_pattern) = if self.consume_if(TokenKind::Equals) {
+            let name = self.expect_ident()?;
+            self.expect(TokenKind::Colon)?;
+            let annotation =
+                self.parse_type_expr(&[TokenKind::Comma, TokenKind::RParen, TokenKind::Equals])?;
+            (
+                name.clone(),
+                annotation,
+                Some(Pattern::Alias {
+                    alias: name,
+                    pattern: Box::new(pattern),
+                }),
+            )
+        } else {
+            if !self.consume_if(TokenKind::Colon) {
+                return Err(ParseError {
+                    message:
+                        "function-head pattern parameters require a type annotation for the whole pattern"
+                            .to_string(),
+                    span: self.current().span(),
+                });
+            }
+
+            let annotation =
+                self.parse_type_expr(&[TokenKind::Comma, TokenKind::RParen, TokenKind::Equals])?;
+            (
+                format!("_Arg{}", pattern_index + 1),
+                annotation,
+                Some(pattern),
+            )
+        };
+
+        if self.consume_if(TokenKind::Equals) {
+            return Err(ParseError {
+                message:
+                    "function-head pattern parameters do not support defaults in 0.0.7; use plain named parameters for defaults"
+                        .to_string(),
+                span: self.current().span(),
+            });
+        }
+
+        Ok((
+            Param {
+                name,
+                annotation,
+                is_mutable: false,
+                default: None,
+                span: Span::new(start, self.previous().end),
+            },
+            clause_pattern,
+        ))
+    }
+
+    /// Reports whether the cursor starts a reserved function-head pattern.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned at a callable parameter.
+    ///
+    /// Output:
+    /// - `true` for collection, literal, wildcard, or constructor-shaped
+    ///   parameter patterns that are reserved for 0.0.7.
+    ///
+    /// Transformation:
+    /// - Keeps the parser diagnostic stable while the AST/typechecker still
+    ///   represent callable parameters as simple named bindings.
+    fn function_head_pattern_parameter_starts(&self) -> bool {
+        match self.current().kind {
+            TokenKind::LBrace
+            | TokenKind::LBracket
+            | TokenKind::Colon
+            | TokenKind::Int
+            | TokenKind::Float
+            | TokenKind::String
+            | TokenKind::Binary => true,
+            TokenKind::Atom if self.current().text == "_" => true,
+            TokenKind::Var => self
+                .tokens
+                .get(self.pos + 1)
+                .is_some_and(|token| matches!(token.kind, TokenKind::LParen | TokenKind::LBrace)),
+            _ => false,
+        }
+    }
+
+    /// Reports whether a parameter starts the permanently rejected reverse
+    /// alias shape.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned inside a callable parameter list.
+    ///
+    /// Output:
+    /// - `true` for `name = ...` before the type annotation.
+    ///
+    /// Transformation:
+    /// - Reserves pattern-first aliasing as the only future spelling and keeps
+    ///   assignment-shaped aliases from leaking into the grammar.
+    fn reverse_alias_parameter_starts(&self) -> bool {
+        if !matches!(self.current().kind, TokenKind::Atom | TokenKind::Var) {
+            return false;
+        }
+        self.tokens
+            .get(self.pos + 1)
+            .is_some_and(|token| token.kind == TokenKind::Equals)
     }
 
     /// Validates default-parameter ordering for function-like parameters.
@@ -530,6 +739,9 @@ impl Parser {
         if self.check(TokenKind::Ellipsis) {
             return true;
         }
+        if self.function_head_pattern_parameter_starts() {
+            return self.function_head_pattern_parameter_has_type_annotation();
+        }
         if !matches!(self.current().kind, TokenKind::Atom | TokenKind::Var) {
             return false;
         }
@@ -537,6 +749,63 @@ impl Parser {
             self.tokens.get(self.pos + 1),
             Some(token) if token.kind == TokenKind::Colon
         )
+    }
+
+    /// Reports whether a pattern-head parameter is followed by type metadata.
+    ///
+    /// Inputs:
+    /// - Parser cursor positioned at a possible function-head pattern.
+    ///
+    /// Output:
+    /// - `true` for `Pattern: Type` and `Pattern = alias: Type` shapes.
+    ///
+    /// Transformation:
+    /// - Uses bounded balanced-token lookahead so typed pattern parameters are
+    ///   routed through the typed callable path while untyped function clauses
+    ///   remain on the clause parser path.
+    fn function_head_pattern_parameter_has_type_annotation(&self) -> bool {
+        let mut parens = 0usize;
+        let mut brackets = 0usize;
+        let mut braces = 0usize;
+        let mut pos = self.pos;
+        while let Some(token) = self.tokens.get(pos) {
+            if pos != self.pos && parens == 0 && brackets == 0 && braces == 0 {
+                match token.kind {
+                    TokenKind::Colon | TokenKind::Equals => return true,
+                    TokenKind::Comma | TokenKind::RParen => return false,
+                    TokenKind::LParen | TokenKind::LBracket | TokenKind::LBrace => {}
+                    _ => return false,
+                }
+            }
+
+            match token.kind {
+                TokenKind::LParen => parens += 1,
+                TokenKind::RParen => {
+                    if parens == 0 {
+                        return false;
+                    }
+                    parens -= 1;
+                }
+                TokenKind::LBracket => brackets += 1,
+                TokenKind::RBracket => {
+                    if brackets == 0 {
+                        return false;
+                    }
+                    brackets -= 1;
+                }
+                TokenKind::LBrace => braces += 1,
+                TokenKind::RBrace => {
+                    if braces == 0 {
+                        return false;
+                    }
+                    braces -= 1;
+                }
+                TokenKind::Comma if parens == 0 && brackets == 0 && braces == 0 => return false,
+                _ => {}
+            }
+            pos += 1;
+        }
+        false
     }
     /// Consumes square-bracket generic syntax when present.
     ///
@@ -666,139 +935,5 @@ impl Parser {
             message: "unterminated generic parameter list".to_string(),
             span: Span::new(start, self.current().end),
         })
-    }
-    /// Parses a canonical post-parameter trait constraint list.
-    ///
-    /// Inputs:
-    /// - Parser cursor immediately after a callable parameter list.
-    ///
-    /// Output:
-    /// - Constraint type-expression texts such as `Eq[A]` or `Show[A]`, or an
-    ///   empty list when no constraint list is present.
-    ///
-    /// Transformation:
-    /// - Consumes `[Constraint, ...]` only in callable constraint position and
-    ///   preserves each constraint as type-expression text for later semantic
-    ///   conversion into typechecker `FunctionBound` values.
-    pub(super) fn consume_constraint_list_if_present(&mut self) -> ParseResult<Vec<String>> {
-        if !self.consume_if(TokenKind::LBracket) {
-            return Ok(Vec::new());
-        }
-
-        let mut constraints = Vec::new();
-        if self.consume_if(TokenKind::RBracket) {
-            return Ok(constraints);
-        }
-
-        loop {
-            constraints.push(
-                self.parse_type_expr(&[TokenKind::Comma, TokenKind::RBracket])?
-                    .text,
-            );
-            if self.consume_if(TokenKind::Comma) {
-                continue;
-            }
-            self.expect(TokenKind::RBracket)?;
-            break;
-        }
-
-        Ok(constraints)
-    }
-    /// Parses a declaration body expression.
-    ///
-    /// Inputs:
-    /// - Parser cursor positioned at the first body expression token.
-    ///
-    /// Output:
-    /// - A single expression or sequence expression for semicolon-separated
-    ///   body forms.
-    ///
-    /// Transformation:
-    /// - Delegates to body parsing without clause-separator lookahead.
-    pub(super) fn parse_body_expr(&mut self) -> ParseResult<Expr> {
-        self.parse_body_expr_with_clause_sep(None, false)
-    }
-
-    /// Parses a declaration body expression with optional clause separation.
-    ///
-    /// Inputs:
-    /// - `clause_name`: function name that starts the next clause, when body
-    ///   parsing occurs inside a function group.
-    /// - `is_constructor_clause`: whether `(` starts the next constructor arm.
-    /// - Parser cursor positioned at the first body expression token.
-    ///
-    /// Output:
-    /// - Parsed body expression, possibly wrapped as `Expr::Sequence`.
-    ///
-    /// Transformation:
-    /// - Consumes semicolon-separated body expressions until it reaches a
-    ///   token sequence that belongs to the next function/constructor clause.
-    fn parse_body_expr_with_clause_sep(
-        &mut self,
-        clause_name: Option<&str>,
-        is_constructor_clause: bool,
-    ) -> ParseResult<Expr> {
-        let mut expr = self.parse_single_expr()?;
-        while self.consume_if(TokenKind::Equals) {
-            expr = self.parse_body_expr_with_clause_sep(clause_name, is_constructor_clause)?;
-        }
-
-        while self.consume_if(TokenKind::Comma) {
-            let rest = self.parse_body_expr_with_clause_sep(clause_name, is_constructor_clause)?;
-            expr = rest;
-        }
-
-        let mut expressions = Vec::new();
-        while self.check(TokenKind::Semicolon) {
-            if self.is_clause_separator_ahead(clause_name, is_constructor_clause) {
-                break;
-            }
-
-            self.bump();
-            expressions.push(self.parse_single_expr()?);
-        }
-
-        if !expressions.is_empty() {
-            let mut values = vec![expr];
-            values.append(&mut expressions);
-            expr = Expr::Sequence(values);
-        }
-        Ok(expr)
-    }
-    /// Reports whether the current semicolon introduces the next clause.
-    ///
-    /// Inputs:
-    /// - `clause_name`: expected repeated function name, when parsing
-    ///   function clauses.
-    /// - `is_constructor_clause`: whether constructor clause syntax is active.
-    ///
-    /// Output:
-    /// - `true` when the current semicolon should stop body parsing.
-    ///
-    /// Transformation:
-    /// - Performs non-consuming lookahead for function and constructor clause
-    ///   boundaries.
-    fn is_clause_separator_ahead(
-        &self,
-        clause_name: Option<&str>,
-        is_constructor_clause: bool,
-    ) -> bool {
-        if !matches!(self.current().kind, TokenKind::Semicolon) {
-            return false;
-        }
-
-        let next = self.tokens.get(self.pos + 1);
-        let next_next = self.tokens.get(self.pos + 2);
-
-        if is_constructor_clause {
-            return matches!(next, Some(token) if token.kind == TokenKind::LParen);
-        }
-
-        let Some(clause_name) = clause_name else {
-            return false;
-        };
-
-        matches!(next, Some(token) if token.kind == TokenKind::Atom && token.text == clause_name)
-            && matches!(next_next, Some(token) if token.kind == TokenKind::LParen)
     }
 }

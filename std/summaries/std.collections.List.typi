@@ -21,7 +21,19 @@ pub opaque type List[T].
 /// Transformation: lowers through the compiler-owned `core.list.clear`
 /// intrinsic and updates the receiver binding so it becomes empty.
 
+@pure
 pub (mut list: List[T]) clear(): Unit.
+
+/// Concatenates two lists in source order.
+///
+/// Input: a `List[T]` receiver and a second `List[T]`.
+/// Output: a new list containing the receiver values followed by the second
+/// list values.
+/// Transformation: lowers through the compiler-owned `core.list.concat`
+/// intrinsic and leaves both input lists unchanged.
+
+@pure
+pub (list: List[T]) concat(other: List[T]): List[T].
 
 /// Applies a callback to each value in a list.
 ///
@@ -31,24 +43,29 @@ pub (mut list: List[T]) clear(): Unit.
 /// delegates to `std.collections.Iterator.each`, preserving list contents while the
 /// callback performs any requested effects.
 
-pub (list: List[T]) each(cb: (T ) -> Unit): Unit.
+@pure
+pub (list: List[T]) each(cb: (T) -> Unit): Unit.
 
 /// Returns the first value in a list.
 ///
 /// Input: one `List[T]`.
-/// Output: `Some(value)` when the list is non-empty; otherwise `None`.
+/// Output: `Some(value)` when the list is non-empty;
+/// otherwise `None`.
 /// Transformation: lowers through the compiler-owned `core.list.first`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (list: List[T]) first(): Option[T].
 
 /// Returns whether a list contains no values.
 ///
 /// Input: one `List[T]`.
-/// Output: `true` when the list is empty; otherwise `false`.
+/// Output: `true` when the list is empty;
+/// otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.list.is_empty`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (list: List[T]) is_empty(): Bool.
 
 /// Returns an iterator over the list.
@@ -57,9 +74,11 @@ pub (list: List[T]) is_empty(): Bool.
 /// Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
 /// of the list.
 /// Transformation: lowers through the compiler-owned `core.list.iterator`
-/// intrinsic. The source-level iterator state is immutable; backends choose
+/// intrinsic. The source-level iterator state is immutable;
+/// backends choose
 /// the efficient representation behind the opaque iterator type.
 
+@pure
 pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T].
 
 /// Returns the number of values in a list.
@@ -69,6 +88,7 @@ pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T].
 /// Transformation: lowers through the compiler-owned `core.list.length`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (list: List[T]) length(): Int.
 
 /// Creates an empty list.
@@ -78,6 +98,7 @@ pub (list: List[T]) length(): Int.
 /// Transformation: lowers through the compiler-owned `core.list.new`
 /// intrinsic, using the selected backend's canonical empty-list value.
 
+@pure
 pub new[T](): List[T].
 
 /// Appends a value to the end of a list.
@@ -88,7 +109,30 @@ pub new[T](): List[T].
 /// intrinsic and updates the receiver binding in source order. Pipe chains
 /// continue with the updated receiver.
 
+@pure
 pub (mut list: List[T]) push(value: T): Unit.
+
+/// Returns every value after the first.
+///
+/// Input: one `List[T]`.
+/// Output: `Some(rest)` for a non-empty list, including `Some([])` for a
+/// singleton list; otherwise `None`.
+/// Transformation: lowers through the compiler-owned `core.list.rest`
+/// intrinsic without changing the receiver.
+
+@pure
+pub (list: List[T]) rest(): Option[List[T]].
+
+/// Removes the first matching occurrence for each supplied value.
+///
+/// Input: a `List[T]` receiver and a list of values to remove.
+/// Output: a new list with one matching occurrence removed in removal-list
+/// order for each supplied value.
+/// Transformation: lowers through the compiler-owned `core.list.subtract`
+/// intrinsic, uses structural value equality, and leaves both inputs unchanged.
+
+@pure
+pub (list: List[T]) subtract(values: List[T]): List[T].
 
 /// Constructs a list from positional values.
 ///

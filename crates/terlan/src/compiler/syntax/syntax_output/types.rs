@@ -35,6 +35,8 @@ pub struct SyntaxTypeOutput {
 /// - Preserves receiver/parameter mutability and default metadata before
 ///   typechecking. `default` keeps the structured expression tree, while
 ///   `default_text` keeps a source-like spelling for interface summaries.
+///   `pattern_text` keeps source-shaped destructuring parameters for editor
+///   display without changing the ABI parameter name consumed downstream.
 pub struct SyntaxParamOutput {
     pub name: String,
     pub annotation: SyntaxTypeOutput,
@@ -46,6 +48,8 @@ pub struct SyntaxParamOutput {
     pub default: Option<SyntaxExprOutput>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_text: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern_text: Option<String>,
     pub span: EbnfSourceSpan,
 }
 

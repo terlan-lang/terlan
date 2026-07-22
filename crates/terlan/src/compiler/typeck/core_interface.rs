@@ -237,6 +237,8 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
             name: name.clone(),
             arity: *arity,
             public: signature.public,
+            generic_params: signature.generic_params.clone(),
+            native_operation: None,
             params: signature
                 .params
                 .iter()

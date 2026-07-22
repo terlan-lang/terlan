@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGTransform
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12616935471278722740
-interface_hash=6082511029387700464
-interface_doc_hash=6082511029387700464
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5831270738254354369
+interface_hash=12871585992518236778
+interface_doc_hash=12871585992518236778
 deps=0

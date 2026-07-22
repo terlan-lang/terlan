@@ -1,8 +1,8 @@
 module=std.js.Dom.IDBKeyRange
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=17233759922564951787
-interface_hash=16098098961641841242
-interface_doc_hash=16098098961641841242
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=9127933829132783392
+interface_hash=16449690128582329863
+interface_doc_hash=16449690128582329863
 deps=0

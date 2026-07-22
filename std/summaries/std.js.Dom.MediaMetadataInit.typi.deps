@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaMetadataInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=2798875749589841231
-interface_hash=18296047471858326214
-interface_doc_hash=18296047471858326214
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=8522898845725839170
+interface_hash=14781210544659544910
+interface_doc_hash=14781210544659544910
 deps=0

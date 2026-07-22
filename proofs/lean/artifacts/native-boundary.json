@@ -1,0 +1,48 @@
+{
+  "schema": "terlan.lean-proof-replay.v1",
+  "family": "native-boundary",
+  "theorem_names": [
+    "Terlan.Runtime.NativeBoundary.admissionRequiresCapability",
+    "Terlan.Runtime.NativeBoundary.admissionRequiresScheduler",
+    "Terlan.Runtime.NativeBoundary.admissionRequiresValidatedArguments",
+    "Terlan.Runtime.NativeBoundary.admissionRequiresResourceOwnership",
+    "Terlan.Runtime.NativeBoundary.foreignOwnerRejected",
+    "Terlan.Runtime.NativeBoundary.ownerAccepted",
+    "Terlan.Runtime.NativeBoundary.completionPreservesCredits",
+    "Terlan.Runtime.NativeBoundary.cancellationPreservesCredits"
+  ],
+  "manifest_fingerprints": {
+    "crates/terlan/src/runtime/native_boundary/metadata.rs": "sha256:7386be27c1d980f24a8091ff99ca9f618e7ccac1d6147fa8c349f92e390959af",
+    "crates/terlan/src/runtime/native_boundary/worker.rs": "sha256:b79d5d2039ffe84cfd3147e36b18eb71bd13d3ca8eccfa89027ff3e64a34e7c4",
+    "docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md": "sha256:8b02d8dd8e34cc0bbd3d3b95ff61e06d4fa75a94281f7ff78b95a4e2b4515616",
+    "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:78a4b54b5dd4f87041b9a9622432493cc69de91d0ce260efed9415d506ea337a"
+  },
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "source_digest": "sha256:2c7c8dd87ad70bba20ae805eb13e972160c5dacadbd1983155559ceaf71fb3f4",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "Terlan/Runtime/NativeBoundary.lean"
+  ],
+  "working_directory": "proofs/lean",
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "output_signature": {
+    "stdout_class": "empty",
+    "stderr_class": "empty",
+    "exit_class": "success"
+  },
+  "toolchain": {
+    "lean_version": "4.31.0",
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ]
+  }
+}

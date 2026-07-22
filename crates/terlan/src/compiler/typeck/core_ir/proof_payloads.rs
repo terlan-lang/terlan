@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Proof coverage classification for CoreIR expressions.
 ///
 /// Inputs:
@@ -41,7 +41,7 @@ impl CoreProofCoverage {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Module-level proof readiness classification.
 ///
 /// Inputs:
@@ -85,7 +85,7 @@ impl CoreProofReadiness {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Kind of checked-preservation evidence attached to CoreIR payloads.
 ///
 /// Inputs:
@@ -101,7 +101,7 @@ pub enum CoreCheckedPreservationEvidenceKind {
     StructuralCorePattern,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Substitution-freshness obligation carried by proof evidence.
 ///
 /// Inputs:
@@ -193,7 +193,7 @@ impl CoreCheckedPreservationEvidenceKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Checked-preservation evidence for one CoreIR target.
 ///
 /// Inputs:

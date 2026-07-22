@@ -10,8 +10,9 @@ use crate::support::sha256sum_file;
 
 pub(crate) use super::status::{
     applied_migration_from_history_row, migration_history_insert_sql, migration_history_select_sql,
-    migration_history_table_sql, migration_status, pending_migration_engine_inputs,
-    AppliedMigration, MigrationStatusEntry, MigrationStatusState, MIGRATION_HISTORY_TABLE,
+    migration_history_table_sql, migration_matches_applied, migration_out_of_order_message,
+    migration_status, pending_migration_engine_inputs, AppliedMigration, MigrationStatusEntry,
+    MigrationStatusState, MIGRATION_HISTORY_TABLE,
 };
 
 /// Parsed Terlan migration filename.
@@ -324,12 +325,19 @@ pub(crate) fn discover_migration_files(
         if pair[0].parsed.version == pair[1].parsed.version {
             return Err(discovery_diagnostic(
                 pair[1].path.clone(),
-                "duplicate migration timestamp in migration filenames",
+                &duplicate_migration_id_message(&pair[1].parsed.version),
             ));
         }
     }
 
     Ok(migrations)
+}
+
+/// Formats the stable duplicate local migration-id diagnostic.
+pub(crate) fn duplicate_migration_id_message(version: &str) -> String {
+    format!(
+        "error[db.migration.duplicate_id]: Migration id `{version}` is used by multiple local files."
+    )
 }
 
 /// Loads and parses one discovered migration file.

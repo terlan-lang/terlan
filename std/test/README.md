@@ -14,7 +14,11 @@ Terlan source instead of relying on ad hoc host scripts.
 
 ## Public Surface
 
-- `std.test.Test`: assertion helper module.
+- `std.test.Test`: assertion, table, and lifecycle helper module.
+- `std.test.Gen`: deterministic generator helper module for property-style
+  tests.
+- `std.test.Shrink`: deterministic shrinker helper module for property-style
+  tests.
 
 ## Core Model
 
@@ -22,9 +26,14 @@ Tests are normal Terlan source functions marked with `@test`. Assertion helpers
 return `Bool` for the current runner contract, allowing test results to be
 validated consistently across supported targets.
 
+Deterministic generators are finite by design in the initial property-test
+surface. That keeps replay behavior explicit while shrinking, seeds,
+max-success limits, discard limits, and distribution diagnostics are added in
+later slices.
+
 The main flow is:
 
-1. A test module imports `std.test.Test`.
+1. A test module imports `std.test.Test` and, when needed, `std.test.Gen`.
 2. A `@test` function calls assertion helpers.
 3. `terlc test` compiles and runs the test for the selected target.
 
@@ -52,9 +61,19 @@ Important invariants:
 `Test`
 : Source-level assertion helper module.
 
+`Gen`
+: Source-level deterministic generator helper module.
+
+`Shrink`
+: Source-level deterministic shrinker helper module.
+
 ## Testing Notes
 
 - `std/test/AssertionsTest.terl` validates the assertion helper surface.
+- `std/test/GenTest.terl` and `std/test/PropertyTest.terl` validate the
+  deterministic property-test base surface.
+- `std/test/ShrinkTest.terl` validates the deterministic shrinker base
+  surface.
 - New std modules should add adjacent tests rather than relying only on release
   orchestration.
 - Doctest-style examples belong to later CLI/docs work.

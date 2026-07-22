@@ -33,16 +33,18 @@ pub(super) fn infer_syntax_index(
     match target_type {
         Type::FixedArray { size, elem } => match index_type {
             Type::LiteralInt(index) => {
-                if index < 0 || index as usize >= size {
-                    errors.push(format!(
-                        "index {} is out of bounds for {}\nvalid indices: 0..{}",
-                        index,
-                        pretty_type(&Type::FixedArray {
-                            size,
-                            elem: elem.clone(),
-                        }),
-                        size.saturating_sub(1)
-                    ));
+                if let types::FixedArraySize::Known(size_value) = size {
+                    if index < 0 || index as usize >= size_value {
+                        errors.push(format!(
+                            "index {} is out of bounds for {}\nvalid indices: 0..{}",
+                            index,
+                            pretty_type(&Type::FixedArray {
+                                size,
+                                elem: elem.clone(),
+                            }),
+                            size_value.saturating_sub(1)
+                        ));
+                    }
                 }
                 *elem
             }

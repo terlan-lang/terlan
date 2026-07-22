@@ -1,0 +1,54 @@
+{
+  "schema": "terlan.rust-build-features.v1",
+  "package": "terlan",
+  "version": "0.0.7",
+  "default_features": [],
+  "features": [
+    {
+      "name": "default",
+      "classification": "default"
+    },
+    {
+      "name": "acme-live",
+      "classification": "optional"
+    },
+    {
+      "name": "editor-lsp",
+      "classification": "tooling-only"
+    }
+  ],
+  "release_profiles": [
+    {
+      "name": "release",
+      "cargo_package": "terlan",
+      "profile": "release",
+      "feature_set": [
+        "editor-lsp"
+      ],
+      "binaries": [
+        "terlc",
+        "terlan-vm",
+        "terlan-lsp"
+      ],
+      "artifact_smoke_tests": [
+        "release-artifact-smoke",
+        "release-artifact-installer-smoke",
+        "terlc-build-executable-check",
+        "terlan-vm-run-command-check"
+      ]
+    }
+  ],
+  "release_metadata_required": [
+    "cargo_features",
+    "target_triple",
+    "profile",
+    "source_revision",
+    "crate_versions",
+    "binaries"
+  ],
+  "policy": {
+    "unclassified_cargo_features": "error",
+    "workspace_build_only_validation": "error",
+    "unsupported_feature_advertising": "error"
+  }
+}

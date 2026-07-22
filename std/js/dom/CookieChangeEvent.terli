@@ -1,0 +1,37 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CookieChangeEvent
+ */
+module std.js.Dom.CookieChangeEvent.
+
+import type std.js.{Array}.
+
+/**
+ * The **`CookieChangeEvent`** interface of the Cookie Store API is the event type of the CookieStore/change_event event fired at a CookieStore when any cookies are created or deleted.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieChangeEvent)
+ */
+pub opaque type CookieChangeEvent.
+
+/**
+ * The **`changed`** read-only property of the CookieChangeEvent interface returns an array of the cookies that have been changed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieChangeEvent/changed)
+ */
+pub (value: CookieChangeEvent) changed(): Array[CookieListItem].
+
+/**
+ * The **`deleted`** read-only property of the CookieChangeEvent interface returns an array of the cookies that have been deleted by the given `CookieChangeEvent` instance.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieChangeEvent/deleted)
+ */
+pub (value: CookieChangeEvent) deleted(): Array[CookieListItem].

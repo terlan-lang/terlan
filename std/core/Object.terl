@@ -5,12 +5,12 @@
  * Structs remain fixed typed records; `Object[V]` is for JSON-like payloads,
  * configuration fragments, OpenAPI data, and other variable-key values.
  */
-
 module std.core.Object.
 
-import type std.collections.List.
 import std.collections.Map.
-import std.core.Option.{Option}.
+import std.core.Option.
+
+import type std.collections.List.
 
 /**
  * Object represents a dynamic string-keyed value map.
@@ -22,8 +22,7 @@ import std.core.Option.{Option}.
  * deterministic map storage without introducing a separate target-specific
  * object model.
  */
-pub type Object[V] =
-    std.collections.Map.Map[String, V].
+pub type Object[V] = std.collections.Map.Map[String, V].
 
 /**
  * Constructs an object from explicit string-keyed entry tuples.

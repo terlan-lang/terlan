@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaKeyStatusMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=2222989178603723912
-interface_hash=3791797174593408102
-interface_doc_hash=3791797174593408102
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=18059139773885811257
+interface_hash=15812319658517773913
+interface_doc_hash=15812319658517773913
 deps=0

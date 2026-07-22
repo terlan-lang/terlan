@@ -18,6 +18,8 @@ typed request, response, and error modules rather than backend server values.
 - `std.http.Request.Request`: opaque request handle.
 - `std.http.Response.Response`: opaque response handle.
 - `std.http.Session.Session`: opaque VM-owned session actor handle.
+- `std.http.Sse.Event`: opaque server-sent event descriptor.
+- `std.http.Sse.Endpoint`: opaque VM-owned SSE endpoint plan.
 - `std.http.Router.Router`: opaque route builder contract.
 - `std.http.Router.Handler`: typed route handler function shape.
 - `std.http.Error.HttpError`: portable HTTP helper error.
@@ -41,11 +43,53 @@ typed request, response, and error modules rather than backend server values.
 - `std.http.Response.cookie`, `std.http.Response.cookie_with_options`, and
   `std.http.Response.delete_cookie`: validated response cookie helpers backed
   by `std.http.Cookies`.
+- `std.http.Sse.data`, event receiver metadata helpers, queued
+  `std.http.Sse.response`, and endpoint-plan constructors: typed SSE surface
+  for VM-owned `text/event-stream` responses.
 - `std.http.Session.current`, session receiver `get`, `set`, `delete`,
   `rotate`, `expire`, and `with_response`: source-facing actor-backed session
   helpers with explicit response cookie threading.
-- `std.http.Router.new`, method route builders, and `fallback`: typed route
-  builder contract for generated web manifests.
+- `std.http.Router.new`, method route builders, `sse`, `websocket`, and
+  `fallback`: typed route builder contract for generated web manifests and
+  VM-owned long-lived channel routes.
+
+## Router And Middleware Composition
+
+`Router.use` installs request middleware in declaration order. Each callback
+returns either `Continue` or `Respond(Response)`, so authorization, timeout,
+and recovery policies cannot accidentally fall through after producing a
+response. `Router.map_response` performs typed response post-processing in
+reverse order. This is the header-normalization and trace-response hook;
+`Router.error` is the panic/error boundary. Request headers provide normalized
+trace input, while side effects remain behind explicit NativeBoundary or actor
+capabilities rather than the ordinary `Handler` function type.
+
+Application-wide middleware belongs on the root router. A `Router.group`
+builder adds scoped middleware and nested routes without new routing grammar:
+
+```text
+pub require_user(_request: Request): MiddlewareResult ->
+    Continue.
+
+pub api(router: Router): Router ->
+    router
+    |> Router.use(require_user)
+    |> Router.get("/users/:id", show_user).
+
+pub application_router(): Router ->
+    Router.new()
+    |> Router.use(propagate_trace)
+    |> Router.map_response(normalize_headers)
+    |> Router.group("/api", api)
+    |> Router.error(recover_http_error).
+```
+
+The VM prefixes group paths, preserves parameter captures, rejects ambiguous
+normalized route shapes, and dispatches root middleware before scoped
+middleware. Bounded SSE and WebSocket endpoint plans survive router
+materialization and open live-session state with the source-declared queue and
+message limits. `LiveChannelTest.terl` is the executable nested-channel
+example; `RouterTest.terl` covers typed response short-circuit composition.
 
 ## Core Model
 
@@ -79,8 +123,11 @@ Important invariants:
 - `with_status` and `with_header` are pure source ergonomics over mutable
   receiver continuation; they do not introduce a separate response storage
   model.
-- `std.http.Router` is a source-visible route builder contract. Compiler
-  lowering from router values into route manifests is pending.
+- `std.http.Router` is a source-visible route builder contract. Its
+  `sse` and `websocket` builders accept endpoint plans from `std.http.Sse` and
+  `std.http.WebSocket` while the VM owns stream/socket state. The compiler
+  discovers route manifests, and production VM serving rematerializes the
+  source graph before middleware and endpoint admission.
 - `set_cookie_header` accepts a complete header value for low-level escape
   hatches. Normal handler code should prefer `cookie`, `cookie_with_options`,
   and `delete_cookie`, which reuse `std.http.Cookies` validation.
@@ -90,6 +137,9 @@ Important invariants:
 - `std.http.Tls` is source-visible configuration shape and helper
   constructors only. `terlan.toml` parsing, rustls/ACME integration, and
   certificate cache state remain implementation work.
+- `std.http.Sse` endpoint plans open bounded VM-owned live-session streams.
+  Cancellation, scheduler wakeups, and socket emission remain runtime-owned and
+  are never exposed as source-side host handles.
 
 ## Integration Points
 
@@ -114,7 +164,8 @@ Important invariants:
 : Opaque response handle returned by handlers.
 
 `Router`
-: Opaque route builder contract consumed by future route-manifest lowering.
+: Opaque route builder contract materialized by compiler discovery and VM
+  dispatch.
 
 `Handler`
 : Function type for handlers that accept `Request` and return `Response`.
@@ -124,6 +175,12 @@ Important invariants:
 
 `Cookies.Options`
 : Typed cookie mutation options for the future cookie jar API.
+
+`Sse.Event`
+: Opaque server-sent event descriptor.
+
+`Sse.Endpoint`
+: Opaque bounded server-sent event route policy.
 
 `Tls.Config`
 : Typed TLS configuration record for auto, manual, and internal TLS modes.

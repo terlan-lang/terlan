@@ -5,10 +5,10 @@ This directory owns `terlc init`, the release project scaffolder.
 ## Responsibilities
 
 - Create a minimal manifest-backed Terlan project.
-- Use the default BEAM executable package layout unless another profile is
-  selected.
+- Use the default Terlan VM project layout unless another profile is selected.
 - Support `--profile web` for the smallest browser-plus-handler project shape.
 - Support `--profile static` for the smallest static-site project shape.
+- Support `--profile mobile` for the smallest mobile-shell project shape.
 - Refuse to overwrite existing project files.
 - Keep generated source target-neutral with an explicit
   `std.io.Console.{println}` import.
@@ -27,6 +27,7 @@ The command accepts exactly one new project name/path and an optional profile:
 terlc init hello
 terlc init hello-web --profile web
 terlc init docs-site --profile static
+terlc init mobile-app --profile mobile
 ```
 
 The command creates that directory and writes the scaffold inside it. Existing
@@ -62,7 +63,7 @@ make clean
 
 Each target delegates directly to `terlc`; `make` defaults to `make build`.
 
-The web profile adds a browser-side Terlan module and a BEAM-backed handler
+The web profile adds a browser-side Terlan module and a typed HTTP handler
 module, plus the default asset directory declared by `terlan.toml`:
 
 ```text
@@ -81,14 +82,15 @@ Package names may contain lowercase ASCII letters, digits, `_`, and `-`, and
 must start with a lowercase ASCII letter. Source module roots replace `-` with
 `_` because Terlan module path segments are identifiers.
 
-The web profile keeps all Terlan source under `src` so
-`terlc build --target erlang` can produce BEAM handler artifacts and
-`terlc build --target js.browser` can produce the browser package. It also
-creates one typed HTML template and a small `std.http.Router` example with an
-exact route, parameter route, and fallback route so generated projects exercise
-the intended web source surface from the start. The generated router uses the
-canonical receiver-chain style (`Router.new().get(...).fallback(...)`) rather
-than the older static-call helper style. It adds the minimal web asset contract:
+The web profile keeps all Terlan source under `src` so `terlc build` can produce
+VM artifacts by default, `terlc build --target js.browser` can produce the
+browser package, and the explicit Erlang migration target can still produce
+temporary handler artifacts while that bridge exists. It also creates one typed
+HTML template and a small `std.http.Router` example with an exact route,
+parameter route, and fallback route so generated projects exercise the intended
+web source surface from the start. The generated router uses the canonical
+receiver-chain style (`Router.new().get(...).fallback(...)`) rather than the
+older static-call helper style. It adds the minimal web asset contract:
 
 ```toml
 [web.assets]
@@ -127,6 +129,27 @@ The generated `Site.terl` can be passed to `terlc static emit` and previewed
 with `terlc static serve`, which renders into `_build/web`, serves the
 generated directory, and watches source changes.
 
+The mobile profile reuses the current web scaffold and adds a mobile shell
+source module plus project-owned shell metadata:
+
+```text
+mobile-app/
+  terlan.toml
+  docker-compose.yml
+  assets/
+  mobile/shell.toml
+  templates/page.terl.html
+  src/mobile_app/Main.terl
+  src/mobile_app/Web.terl
+  src/mobile_app/Http.terl
+  src/mobile_app/Mobile.terl
+  tests/mobile_app/MainTest.terl
+```
+
+The profile does not advertise a `mobile.shell` build command yet. It keeps
+the generated project on implemented commands while the target-profile planning
+slice defines mobile build artifacts.
+
 ## Integration Points
 
 - `main.rs`: routes the `init` verb here.
@@ -143,5 +166,6 @@ generated directory, and watches source changes.
 ## Testing Notes
 
 - Unit tests cover argument parsing, profile selection, invalid names, file
-  generation, web-profile files, static-profile files, next steps, and
+  generation, web-profile files, static-profile files, mobile-profile files,
+  next steps, and
   overwrite refusal.

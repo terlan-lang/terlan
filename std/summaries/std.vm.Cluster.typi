@@ -1,0 +1,549 @@
+//! Terlan VM cluster coordination contract.
+//!
+//! `std.vm.Cluster` exposes the first typed source-level surface for VM-owned
+//! distributed node coordination. It models profiles, membership views, and
+//! transport sessions as ordinary VM descriptors while the VM owns protocol
+//! framing, delivery classification, and lifecycle checks.
+//!
+//! Bootstrap is explicit: each VM starts from its local `Profile`, creates a
+//! `Membership`, and joins compatible seed profiles learned from deployment
+//! configuration or an authenticated transport. Seeds are discovery inputs,
+//! not permanent leaders or consensus authorities. Identity, cluster id,
+//! runtime version, capability, and epoch checks remain mandatory for every
+//! joined peer.
+//!
+//! Rolling restart preserves stable application, VM, and node identity while
+//! advancing the incarnation with `Profile.next_epoch`. A peer first becomes
+//! unreachable, then `Membership.restart` admits only the strictly newer,
+//! compatible, unfenced profile and preserves its declared roles. Leadership
+//! hints are deterministic routing hints over active role tags; they are not a
+//! consensus or replicated-state guarantee.
+
+module std.vm.Cluster.
+
+/// AcceptResult carries delivery classification and the advanced session.
+///
+/// Transformation: preserves duplicate and ordering history without relying on
+/// process-global mutable transport state.
+
+pub struct AcceptResult {
+    session: Session,
+    outcome: InboundOutcome
+}.
+
+/// Accepted identifies a frame consumed in the expected message order.
+
+pub type Accepted =
+    Atom["accepted"].
+
+/// AcknowledgeResult carries the advanced session and acknowledged message id.
+
+pub struct AcknowledgeResult {
+    session: Session,
+    message_id: Int
+}.
+
+/// Active identifies a node currently eligible for cluster work.
+
+pub type Active =
+    Atom["active"].
+
+/// AlreadyConnected identifies a reconnect request that required no transition.
+
+pub type AlreadyConnected =
+    Atom["already_connected"].
+
+/// AtMostOnce sends a frame without retaining acknowledgement state.
+
+pub type AtMostOnce =
+    Atom["at_most_once"].
+
+/// ClusterHealth is the closed aggregate membership health domain.
+
+pub type ClusterHealth =
+    Healthy
+  | Degraded.
+
+/// Connected identifies a transport session that permits message operations.
+
+pub type Connected =
+    Atom["connected"].
+
+/// Degraded identifies a membership view containing any non-active node.
+
+pub type Degraded =
+    Atom["degraded"].
+
+/// Delivery is the closed distributed message-delivery policy domain.
+
+pub type Delivery =
+    AtMostOnce
+  | NeedsAck.
+
+/// DisconnectEvent is the inspectable result of closing one session.
+
+pub struct DisconnectEvent {
+    reason: DisconnectReason,
+    tick: Int,
+    pending_ack_count: Int
+}.
+
+/// DisconnectReason is the closed transport shutdown reason domain.
+
+pub type DisconnectReason =
+    LocalClose
+  | RemoteClose
+  | TransportFailure
+  | HeartbeatTimeout
+  | SessionFenced.
+
+/// DisconnectResult carries an advanced session and its disconnect event.
+
+pub struct DisconnectResult {
+    session: Session,
+    event: DisconnectEvent
+}.
+
+/// Disconnected identifies a transport session waiting for reconnection.
+
+pub type Disconnected =
+    Atom["disconnected"].
+
+/// Duplicate identifies a frame whose message was already consumed.
+
+pub type Duplicate =
+    Atom["duplicate"].
+
+/// Fenced identifies a node identity prohibited from rejoining.
+
+pub type Fenced =
+    Atom["fenced"].
+
+/// Frame represents one encoded distributed transport frame.
+///
+/// Input: produced by a VM transport session.
+/// Output: an opaque frame descriptor addressed between two VM nodes.
+/// Transformation: preserves encoded payload and message identity so the remote
+/// session can classify delivery deterministically.
+
+pub opaque type Frame.
+
+/// Healthy identifies a membership view where every known node is active.
+
+pub type Healthy =
+    Atom["healthy"].
+
+/// HeartbeatTimeout identifies a session closed after peer liveness expiry.
+
+pub type HeartbeatTimeout =
+    Atom["heartbeat_timeout"].
+
+/// InboundOutcome is the closed inbound delivery classification domain.
+
+pub type InboundOutcome =
+    Accepted
+  | Duplicate
+  | OutOfOrder.
+
+/// Left identifies a node that departed intentionally.
+
+pub type Left =
+    Atom["left"].
+
+/// LocalClose identifies an intentional local session shutdown.
+
+pub type LocalClose =
+    Atom["local_close"].
+
+/// Membership represents a deterministic cluster membership view.
+///
+/// Input: one local profile plus heartbeat policy.
+/// Output: an opaque membership descriptor with VM-owned node states.
+/// Transformation: records node lifecycle transitions without embedding
+/// consensus or network transport in user source.
+
+pub opaque type Membership.
+
+/// Missing identifies a node absent from the membership view.
+
+pub type Missing =
+    Atom["missing"].
+
+/// NeedsAck retains a frame id until the session records its acknowledgement.
+
+pub type NeedsAck =
+    Atom["needs_ack"].
+
+/// Node is one inspectable entry in a deterministic membership view.
+///
+/// Input: produced by `Membership.view`.
+/// Output: node identity, typed lifecycle state, last observed VM tick, and
+/// sorted role tags.
+/// Transformation: exposes stable cluster metadata without exposing the VM's
+/// internal membership table or transport handles.
+
+pub struct Node {
+    node_id: String,
+    state: NodeState,
+    last_seen_tick: Int,
+    roles: List[String]
+}.
+
+/// NodeState is the closed source-level cluster lifecycle domain.
+///
+/// Input: produced by membership inspection.
+/// Output: exactly one lifecycle singleton.
+/// Transformation: keeps exhaustive source matching aligned with the VM-owned
+/// `VmClusterNodeState` state machine while representing an absent lookup
+/// explicitly as `Missing`.
+
+pub type NodeState =
+    Active
+  | Left
+  | Unreachable
+  | Fenced
+  | Missing.
+
+/// OutOfOrder identifies a frame received before its predecessor.
+///
+/// Input: produced by `Session.accept`.
+/// Output: the next message id required by the session.
+/// Transformation: keeps ordering diagnostics typed and preserves the session
+/// so the missing frame can be accepted before retrying.
+
+pub struct OutOfOrder {
+    expected_message_id: Int
+}.
+
+/// Profile represents one VM node identity in a cluster.
+///
+/// Input: application, VM, node, cluster, runtime version, and capability names.
+/// Output: an opaque coordination profile.
+/// Transformation: keeps identity and compatibility checks in the VM while
+/// allowing Terlan source to describe a two-node cluster scenario.
+
+pub opaque type Profile.
+
+/// ReconnectOutcome is the closed reconnect classification domain.
+
+pub type ReconnectOutcome =
+    AlreadyConnected
+  | Reconnected.
+
+/// ReconnectResult carries an advanced session and typed reconnect outcome.
+
+pub struct ReconnectResult {
+    session: Session,
+    outcome: ReconnectOutcome
+}.
+
+/// Reconnected identifies a successful disconnected-to-connected transition.
+
+pub struct Reconnected {
+    pending_ack_count: Int
+}.
+
+/// RemoteClose identifies an intentional remote session shutdown.
+
+pub type RemoteClose =
+    Atom["remote_close"].
+
+/// SendResult carries an encoded frame and the advanced outbound session.
+///
+/// Transformation: makes immutable session rebinding explicit so message ids
+/// remain monotonic across successive source-level sends.
+
+pub struct SendResult {
+    session: Session,
+    frame: Frame
+}.
+
+/// Session represents a bounded distributed transport session.
+///
+/// Input: local and remote profiles plus a maximum message size.
+/// Output: an opaque transport session descriptor.
+/// Transformation: gives source-level tests a VM-owned transport path without
+/// exposing socket, scheduler, or wire-format internals.
+
+pub opaque type Session.
+
+/// SessionFenced identifies a session closed by node fencing policy.
+
+pub type SessionFenced =
+    Atom["session_fenced"].
+
+/// SessionState is the closed transport lifecycle state domain.
+
+pub type SessionState =
+    Connected
+  | Disconnected.
+
+/// TransportFailure identifies an underlying transport failure.
+
+pub type TransportFailure =
+    Atom["transport_failure"].
+
+/// Unreachable identifies a node whose heartbeat deadline expired.
+
+pub type Unreachable =
+    Atom["unreachable"].
+
+/// Accepts one inbound frame on a session.
+///
+/// Input: session receiver and frame descriptor.
+/// Output: advanced session plus `Accepted`, `Duplicate`, or `OutOfOrder`.
+/// Transformation: delegates delivery classification to the VM distributed
+/// transport session.
+
+pub (session: Session) accept(frame: Frame): AcceptResult.
+
+/// Records one outbound frame acknowledgement.
+///
+/// Input: session receiver and a frame emitted by that session.
+/// Output: advanced session and the acknowledged message id.
+/// Transformation: validates frame ownership and removes exactly one pending id;
+/// duplicate or unrelated acknowledgements fail with a stable VM diagnostic.
+
+pub (session: Session) acknowledge(frame: Frame): AcknowledgeResult.
+
+/// Returns the closed delivery policy encoded in one frame.
+
+pub (frame: Frame) delivery(): Delivery.
+
+/// Disconnects one transport session with an inspectable typed reason.
+///
+/// Input: session receiver, typed reason, and monotonic VM tick.
+/// Output: advanced disconnected session and its immutable event.
+/// Transformation: preserves pending acknowledgement state while the VM blocks
+/// message operations until a valid reconnect.
+
+pub (session: Session) disconnect(reason: DisconnectReason, tick: Int): DisconnectResult.
+
+/// Returns the positive restart epoch carried by one profile.
+
+pub (profile: Profile) epoch(): Int.
+
+/// Applies heartbeat timeout policy to the membership view.
+///
+/// Input: membership receiver and current monotonic VM tick.
+/// Output: updated membership descriptor with stale peers unreachable.
+/// Transformation: preserves the exact VM timeout boundary while leaving the
+/// local node active and retaining peer identity for later recovery.
+
+pub (membership: Membership) expire(current_tick: Int): Membership.
+
+/// Fences one known peer identity.
+///
+/// Input: membership receiver, peer node id, and monotonic VM tick.
+/// Output: updated membership descriptor with the peer in `fenced` state.
+/// Transformation: prevents the same peer identity from rejoining and makes
+/// administrative isolation explicit in source-level cluster control.
+
+pub (membership: Membership) fence(node_id: String, tick: Int): Membership.
+
+/// Heals one unreachable peer.
+///
+/// Input: membership receiver, peer node id, and monotonic VM tick.
+/// Output: updated membership with the peer `Active`.
+/// Transformation: accepts only an unreachable peer and preserves identity,
+/// epoch, and role tags across the simulated partition interval.
+
+pub (membership: Membership) heal(node_id: String, tick: Int): Membership.
+
+/// Returns aggregate membership health.
+///
+/// Input: one membership receiver.
+/// Output: `Healthy` when every node is active, otherwise `Degraded`.
+/// Transformation: derives health only from typed membership state.
+
+pub (membership: Membership) health(): ClusterHealth.
+
+/// Records a heartbeat for one known peer.
+///
+/// Input: membership receiver, peer node id, and monotonic VM tick.
+/// Output: updated membership descriptor with the peer active.
+/// Transformation: rejects stale or ineligible heartbeats through the same
+/// VM-owned membership state machine used by distributed scheduling.
+
+pub (membership: Membership) heartbeat(node_id: String, tick: Int): Membership.
+
+/// Adds a compatible peer to the membership view.
+///
+/// Input: membership receiver, peer profile, VM tick, and role tag.
+/// Output: updated membership descriptor.
+/// Transformation: applies VM-owned compatibility and role-tag ordering rules.
+
+pub (membership: Membership) join(peer: Profile, tick: Int, role: String): Membership.
+
+/// Returns a deterministic active leadership hint.
+///
+/// Input: one membership receiver.
+/// Output: the first active node tagged `leader`, ordered by node id, or `None`.
+/// Transformation: exposes a routing hint only; it does not implement consensus
+/// or claim authoritative leadership.
+
+pub (membership: Membership) leader_hint(): Option[String].
+
+/// Marks one known peer as intentionally departed.
+///
+/// Input: membership receiver, peer node id, and monotonic VM tick.
+/// Output: updated membership descriptor with the peer in `left` state.
+/// Transformation: distinguishes an orderly departure from heartbeat failure
+/// while preserving the peer snapshot for deterministic diagnostics.
+
+pub (membership: Membership) leave(node_id: String, tick: Int): Membership.
+
+/// Creates a membership view rooted at a local profile.
+///
+/// Input: local profile and non-zero heartbeat timeout in VM ticks.
+/// Output: membership descriptor containing the local node as active.
+/// Transformation: validates membership policy through the VM coordination
+/// layer before source code can join peers.
+
+pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership.
+
+/// Returns the stable message id assigned to one frame.
+
+pub (frame: Frame) message_id(): Int.
+
+/// Returns whether one outbound frame still requires acknowledgement.
+
+pub (session: Session) needs_ack(frame: Frame): Bool.
+
+/// Advances a profile to its next node incarnation.
+///
+/// Input: one profile receiver.
+/// Output: the same stable identity with a strictly newer epoch.
+/// Transformation: provides explicit rolling-restart identity without changing
+/// application, VM, node, cluster, runtime, or capability metadata.
+
+pub (profile: Profile) next_epoch(): Profile.
+
+/// Returns the explicit node identity stored in a profile.
+///
+/// Input: one validated `Profile` receiver.
+/// Output: the profile's node id.
+/// Transformation: reads VM-owned coordination metadata without consulting
+/// process-global state or synthesizing an implicit local node name.
+
+pub (profile: Profile) node_id(): String.
+
+/// Opens a bounded transport session.
+///
+/// Input: local profile, remote profile, and maximum encoded message bytes.
+/// Output: session descriptor.
+/// Transformation: validates profile compatibility and message-size policy
+/// through the VM distributed transport layer.
+
+pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session.
+
+/// Simulates loss of connectivity to one active peer.
+///
+/// Input: membership receiver, peer node id, and monotonic VM tick.
+/// Output: updated membership with the peer `Unreachable`.
+/// Transformation: keeps identity and role metadata while making partition
+/// behavior deterministic and observable to placement and failover policy.
+
+pub (membership: Membership) partition(node_id: String, tick: Int): Membership.
+
+/// Returns the number of outstanding acknowledgements retained by the session.
+
+pub (session: Session) pending_ack_count(): Int.
+
+/// Builds one VM coordination profile.
+///
+/// Input: application id, VM id, node id, cluster id, runtime version, and one
+/// advertised capability.
+/// Output: a profile descriptor.
+/// Transformation: normalizes the minimum identity tuple required to open a
+/// VM-owned distributed transport session.
+
+pub profile(app_id: String, vm_id: String, node_id: String, cluster_id: String, runtime_version: String, capability: String): Profile.
+
+/// Prunes stale departed or unreachable peer snapshots after a retention window.
+///
+/// Input: membership receiver, current monotonic VM tick, and non-zero retention
+/// ticks.
+/// Output: updated membership descriptor without expired terminal snapshots.
+/// Transformation: retains the local node plus every active and fenced identity;
+/// pruning occurs only after the exact retention boundary has passed.
+
+pub (membership: Membership) prune(current_tick: Int, retention_ticks: Int): Membership.
+
+/// Reconnects one transport session to its original compatible remote profile.
+///
+/// Input: session receiver, remote profile, and monotonic VM tick.
+/// Output: advanced session and `AlreadyConnected` or `Reconnected` outcome.
+/// Transformation: validates stable remote identity and retains transport
+/// continuity state across the disconnected interval.
+
+pub (session: Session) reconnect(remote: Profile, tick: Int): ReconnectResult.
+
+/// Replaces one known peer with a strictly newer profile incarnation.
+///
+/// Input: membership receiver, same peer identity at a newer epoch, and VM tick.
+/// Output: updated membership with the peer active and its roles preserved.
+/// Transformation: rejects stale, unknown, mismatched, incompatible, or fenced
+/// identities before replacing restart state.
+
+pub (membership: Membership) restart(peer: Profile, tick: Int): Membership.
+
+/// Sends one at-most-once message frame.
+///
+/// Input: session receiver, target capability, and typed payload.
+/// Output: encoded frame descriptor plus the advanced session.
+/// Transformation: uses the VM distributed transport session to assign message
+/// identity, validate target capability, and produce a bounded frame.
+
+pub (session: Session) send[Payload]<SendAcrossNode[Payload]>(capability: String, payload: Payload): SendResult.
+
+/// Sends one message with an explicit closed delivery policy.
+///
+/// Input: session receiver, target capability, typed payload, and delivery
+/// policy.
+/// Output: encoded frame descriptor plus the advanced session.
+/// Transformation: `NeedsAck` retains the frame message id in the VM-owned
+/// session snapshot until `acknowledge` consumes it.
+
+pub (session: Session) send_with[Payload]<SendAcrossNode[Payload]>(capability: String, payload: Payload, delivery: Delivery): SendResult.
+
+/// Returns the current transport session lifecycle state.
+///
+/// Input: one session receiver.
+/// Output: `Connected` or `Disconnected`.
+/// Transformation: exposes lifecycle state without leaking descriptor fields.
+
+pub (session: Session) state(): SessionState.
+
+/// Reads the current state for one node.
+///
+/// Input: membership receiver and node id.
+/// Output: `Active`, `Left`, `Unreachable`, `Fenced`, or `Missing`.
+/// Transformation: exposes a closed lifecycle domain without leaking the
+/// internal membership table representation.
+
+pub (membership: Membership) state(node_id: String): NodeState.
+
+/// Returns all known nodes in deterministic node-id order.
+///
+/// Input: one membership receiver.
+/// Output: typed node snapshots including the local node.
+/// Transformation: projects the VM-owned ordered membership view into ordinary
+/// immutable Terlan records.
+
+pub (membership: Membership) view(): List[Node].
+
+/// SendAcrossNode marks payloads that may cross a VM cluster boundary.
+///
+/// Input: distributed payload type `T`.
+/// Output: an identity proof method used by generic node transport boundaries.
+/// Transformation: lets ordinary values use the default transport encoding
+/// while allowing a concrete `impl not SendAcrossNode[LocalType]` declaration
+/// to prohibit cross-node delivery at compile time.
+
+pub trait SendAcrossNode[T] {
+    transfer(value: T): T.
+}.
+
+pub impl SendAcrossNode[T] for T {
+}.

@@ -1,20 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCDtlsTransport
  */
 module std.js.Dom.RTCDtlsTransportTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.RTCDtlsTransport.{RTCDtlsTransport}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.RTCDtlsTransport.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub ice_transport_typechecks(receiver: RTCDtlsTransport): RTCIceTransport ->
     receiver.ice_transport().
@@ -25,8 +27,18 @@ pub state_typechecks(receiver: RTCDtlsTransport): RTCDtlsTransportState ->
 pub get_remote_certificates_typechecks(receiver: RTCDtlsTransport): std.js.Array[ArrayBuffer] ->
     receiver.get_remote_certificates().
 
-pub add_event_listener_typechecks(receiver: RTCDtlsTransport, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: RTCDtlsTransport,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: RTCDtlsTransport, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: RTCDtlsTransport,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

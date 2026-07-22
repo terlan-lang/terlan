@@ -1,0 +1,229 @@
+/**
+ * Property-style testing helper coverage.
+ *
+ * `std.test.PropertyTest` validates the first explicit `for_all` surface over
+ * deterministic generators.
+ */
+module std.test.PropertyTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.test.Gen.{case_count, classify, collect, cover, discard_report, elements, expect_failure, filter, for_all, for_all_limit, implies, int_range, label, replay, report, run_report, sample, shrink_failure, shrink_report, step_report}.
+import std.test.Shrink.{shrink_int}.
+import std.test.Test.{assert_equal, assert_false, lifecycle}.
+
+/**
+ * Verifies a property passes for every generated value.
+ *
+ * Input: deterministic range generator and positive-value predicate.
+ * Output: `true` when every generated value satisfies the predicate.
+ * Transformation: checks the base `for_all` success path.
+ */
+@test
+pub for_all_accepts_all_generated_values(): Bool ->
+    for_all(int_range(1, 3), (value) -> value > 0).
+
+/**
+ * Verifies a failed generated case fails the property.
+ *
+ * Input: deterministic range generator containing a negative value.
+ * Output: `true` when `for_all` returns `false`.
+ * Transformation: checks the base `for_all` failure path.
+ */
+@test
+pub for_all_reports_generated_failure(): Bool ->
+    assert_false(for_all(int_range(-1, 1), (value) -> value > 0)).
+
+/**
+ * Verifies generated case counts are observable.
+ *
+ * Input: deterministic range generator.
+ * Output: `true` when the generated sample count is stable.
+ * Transformation: checks property runs can report case count without runner
+ * internals.
+ */
+@test
+pub case_count_reports_generated_sample_count(): Bool ->
+    assert_equal(3, case_count(int_range(1, 3))).
+
+/**
+ * Verifies maximum-success limits bound property execution.
+ *
+ * Input: deterministic range generator and bounded predicates.
+ * Output: `true` when zero and prefix limits pass while a larger selected
+ * prefix observes the failing value.
+ * Transformation: checks max-success behavior through `for_all_limit`.
+ */
+@test
+pub for_all_limit_checks_selected_prefix_only(): Bool ->
+    for_all_limit(int_range(1, 3), 0, (value) -> value == 0) and for_all_limit(int_range(1, 3), 2, (value) -> value < 3) and assert_false(for_all_limit(int_range(1, 3), 3, (value) -> value < 3)).
+
+/**
+ * Verifies deterministic step-limit reports.
+ *
+ * Input: deterministic generators, step limits, and property callbacks.
+ * Output: `true` when reports distinguish success, limit exhaustion,
+ * property failure, and an empty-generator boundary.
+ * Transformation: checks step-limit diagnostics without wall-clock time.
+ */
+@test
+pub step_report_records_limit_and_property_failures(): Bool ->
+    assert_equal({true, 3, "ok"}, step_report(int_range(1, 3), 3, (value) -> value > 0)) and assert_equal({false, 2, "step limit exceeded"}, step_report(int_range(1, 3), 2, (value) -> value > 0)) and assert_equal({false, 3, "property failed"}, step_report(int_range(1, 3), 3, (value) -> value < 3)) and assert_equal({true, 0, "ok"}, step_report(elements([]), 0, (value) -> value == value)).
+
+/**
+ * Verifies filtered generators compose with `for_all`.
+ *
+ * Input: deterministic range generator filtered to values greater than two.
+ * Output: `true` when every filtered sample satisfies the property.
+ * Transformation: checks generator filtering before property evaluation.
+ */
+@test
+pub for_all_accepts_filtered_generated_values(): Bool ->
+    for_all(filter(int_range(1, 6), (value) -> value > 2), (value) -> value > 2).
+
+/**
+ * Verifies seeded replay produces stable sample order.
+ *
+ * Input: explicit sample generator and replay seed.
+ * Output: `true` when equivalent replay seeds produce the same rotated sample
+ * order.
+ * Transformation: checks that property generators can expose reproducible
+ * seed behavior without hidden randomness.
+ */
+@test
+pub deterministic_seed_replay_is_stable(): Bool ->
+    assert_equal([2, 3, 1], sample(replay(1, elements([1, 2, 3])))) and assert_equal([2, 3, 1], sample(replay(4, elements([1, 2, 3])))).
+
+/**
+ * Verifies shrinking reports smaller candidates that still fail.
+ *
+ * Input: failing integer sample, failing predicate, and integer shrinker.
+ * Output: `true` when the shrink path contains the smaller failing zero.
+ * Transformation: checks the first observable property-shrinking integration.
+ */
+@test
+pub shrink_failure_reports_smaller_failing_case(): Bool ->
+    assert_equal([0], shrink_failure(elements([42]), (value) -> value < 0, (value) -> shrink_int(value))).
+
+/**
+ * Verifies shrink reports expose minimal failing input and path.
+ *
+ * Input: failing and passing generated samples with an integer shrinker.
+ * Output: `true` when failing reports carry `Some(minimal)` and passing
+ * reports carry `None`.
+ * Transformation: checks shrink-path report data before richer runner
+ * diagnostics are introduced.
+ */
+@test
+pub shrink_report_records_minimal_failure_and_path(): Bool ->
+    assert_equal({false, Some(0), [0]}, shrink_report(elements([42]), (value) -> value < 0, (value) -> shrink_int(value))) and assert_equal({true, None, List.new[Int]()}, shrink_report(elements([1]), (value) -> value > 0, (value) -> shrink_int(value))).
+
+/**
+ * Verifies property reports expose stable reproduction commands.
+ *
+ * Input: replay seed, generator, and failing predicate.
+ * Output: `true` when the report records failure and command text with seed.
+ * Transformation: checks stable property-report data before richer runner
+ * diagnostics are introduced.
+ */
+@test
+pub property_report_includes_reproduction_command(): Bool ->
+    case report(5, int_range(-1, 1), (value) -> value > 0) {
+        {false, 5, command} -> assert_equal("terlc test --seed 5", command);
+        _ -> false
+    }.
+
+/**
+ * Verifies property run reports expose case counts.
+ *
+ * Input: replay seed, explicit generator, and passing predicate.
+ * Output: `true` when the report records pass/fail, seed, case count, and
+ * reproduction command.
+ * Transformation: checks the richer report shape without changing the older
+ * `PropertyReport` contract.
+ */
+@test
+pub property_run_report_includes_case_count(): Bool ->
+    case run_report(1, elements([1, 2, 3]), (value) -> value > 0) {
+        {true, 1, 3, command} -> assert_equal("terlc test --seed 1", command);
+        _ -> false
+    }.
+
+/**
+ * Verifies distribution metadata helpers expose stable observations.
+ *
+ * Input: explicit labels, observed values, and coverage counts.
+ * Output: `true` when labels are retained and weak coverage fails.
+ * Transformation: checks first-class property distribution report data.
+ */
+@test
+pub property_distribution_observations_are_stable(): Bool ->
+    assert_equal({true, ["positive"]}, label("positive", true)) and assert_equal({true, ["small"]}, classify(true, "small", true)) and assert_equal({true, List.new[String]()}, classify(false, "large", true)) and assert_equal({true, ["size=3"]}, collect("size=3", true)) and assert_equal({true, ["small"]}, cover(2, 3, "small", true)) and assert_equal({false, ["large"]}, cover(4, 3, "large", true)).
+
+/**
+ * Verifies discard-limit reports are stable.
+ *
+ * Input: generator, discard limits, and predicate accepting one value.
+ * Output: `true` when the report records discard counts and limit failure.
+ * Transformation: checks conditional property discard diagnostics.
+ */
+@test
+pub discard_report_counts_rejected_samples(): Bool ->
+    assert_equal({true, 2, "ok"}, discard_report(int_range(1, 3), 2, (value) -> value == 3)) and assert_equal({false, 2, "discard limit exceeded"}, discard_report(int_range(1, 3), 1, (value) -> value == 3)).
+
+/**
+ * Verifies property checks compose with lifecycle setup and cleanup.
+ *
+ * Input: lifecycle seed and callbacks that produce a numeric fixture.
+ * Output: `true` when setup feeds the property and cleanup still observes the
+ * fixture values.
+ * Transformation: checks property execution inside explicit test lifecycle
+ * hooks.
+ */
+@test
+pub property_lifecycle_threads_generated_fixture(): Bool ->
+    lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (fixture) -> for_all(int_range(1, fixture), (value) -> value <= fixture), (fixture) -> fixture == 3, (suite) -> suite == 2).
+
+/**
+ * Verifies `implies` skips properties whose precondition is false.
+ *
+ * Input: deterministic range and a precondition that never holds.
+ * Output: `true` when skipped false assertions do not fail the property.
+ * Transformation: checks conditional property skip behavior.
+ */
+@test
+pub implies_skips_false_preconditions(): Bool ->
+    for_all(int_range(1, 3), (value) -> implies(value > 10, false)).
+
+/**
+ * Verifies `implies` enforces properties whose precondition is true.
+ *
+ * Input: deterministic range and a precondition that holds for one value.
+ * Output: `true` when the enforced false assertion fails the property.
+ * Transformation: checks conditional property enforcement behavior.
+ */
+@test
+pub implies_checks_true_preconditions(): Bool ->
+    assert_false(for_all(int_range(1, 3), (value) -> implies(value == 2, false))).
+
+/**
+ * Verifies expected failures pass when the property fails.
+ *
+ * Input: one failing assertion.
+ * Output: `true` when `expect_failure` accepts the failure.
+ * Transformation: checks the expected-failure success path.
+ */
+@test
+pub expect_failure_accepts_failed_property(): Bool ->
+    expect_failure(false).
+
+/**
+ * Verifies expected failures fail when the property passes.
+ *
+ * Input: one passing assertion.
+ * Output: `true` when `expect_failure` rejects the unexpected success.
+ * Transformation: checks the expected-failure failure path.
+ */
+@test
+pub expect_failure_rejects_passing_property(): Bool ->
+    assert_false(expect_failure(true)).

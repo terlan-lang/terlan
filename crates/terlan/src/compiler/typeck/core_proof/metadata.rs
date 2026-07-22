@@ -615,8 +615,10 @@ fn count_core_expr_local_constructor_identities(
                 counts.unresolved_constructor_chain_candidate += 1;
             }
         }
-        CoreExpr::ListComprehension { pattern, .. } => {
-            count_core_pattern_constructor_identities(pattern, counts);
+        CoreExpr::ListComprehension { generators, .. } => {
+            for generator in generators {
+                count_core_pattern_constructor_identities(&generator.pattern, counts);
+            }
         }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
@@ -696,11 +698,17 @@ fn count_core_pattern_constructor_identities(
         | CorePattern::Var(_)
         | CorePattern::Int(_)
         | CorePattern::Float(_)
+        | CorePattern::String(_)
+        | CorePattern::StringPattern(_)
+        | CorePattern::BinaryLayout { .. }
         | CorePattern::Atom(_) => {}
         CorePattern::Tuple(elements) | CorePattern::List(elements) => {
             for element in elements {
                 count_core_pattern_constructor_identities(element, counts);
             }
+        }
+        CorePattern::Alias { pattern, .. } => {
+            count_core_pattern_constructor_identities(pattern, counts);
         }
         CorePattern::ListCons { head, tail } => {
             count_core_pattern_constructor_identities(head, counts);

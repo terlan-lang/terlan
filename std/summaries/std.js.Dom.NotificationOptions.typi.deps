@@ -1,8 +1,8 @@
 module=std.js.Dom.NotificationOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=11229126558916052231
-interface_hash=17310251219646591052
-interface_doc_hash=17310251219646591052
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6522077546694354401
+interface_hash=6482346522870550436
+interface_doc_hash=6482346522870550436
 deps=0

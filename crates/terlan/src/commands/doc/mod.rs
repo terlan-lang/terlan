@@ -157,6 +157,19 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                 return ExitCode::from(1);
             }
         }
+        let (syntax_output, const_diagnostics) =
+            crate::terlan_typeck::prepare_syntax_constants(&syntax_output);
+        if let Some(diagnostic) = const_diagnostics.first() {
+            crate::support::emit_diagnostic(
+                "const_error",
+                &diagnostic.message,
+                &path_text,
+                diagnostic.span.start,
+                diagnostic.span.end,
+                state.diagnostic_format,
+            );
+            return ExitCode::from(1);
+        }
         let (contents, extension) = match state.doc_format {
             DocFormat::Markdown => (render_syntax_module_docs_markdown(&syntax_output), "md"),
             DocFormat::Html => (render_syntax_module_docs_html(&syntax_output), "html"),
@@ -235,6 +248,12 @@ fn resolve_doc_input_path(input_path: &str) -> PathBuf {
         let local_std = Path::new("std");
         if local_std.exists() {
             return local_std.to_path_buf();
+        }
+        if let Some(installed_std) = crate::commands::release_layout::installed_share_root()
+            .map(|root| root.join("std"))
+            .filter(|path| path.is_dir())
+        {
+            return installed_std;
         }
         let workspace_std = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../std");
         if workspace_std.exists() {

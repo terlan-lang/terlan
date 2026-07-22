@@ -1,8 +1,8 @@
 module=std.js.Dom.CountQueuingStrategy
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=13555233309361184114
-interface_hash=11920588784607504545
-interface_doc_hash=11920588784607504545
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=9939182265832153512
+interface_hash=11815473136210725797
+interface_doc_hash=11815473136210725797
 deps=0

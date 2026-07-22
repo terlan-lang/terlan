@@ -14,7 +14,7 @@ module std.vm.GenServer.
 /// backend tuple shape used by the VM implementation.
 
 pub type CallReply[State, Reply] =
-    {state : State, reply : Reply}.
+    {state: State, reply: Reply}.
 
 /// ServerRef represents a running GenServer process.
 ///

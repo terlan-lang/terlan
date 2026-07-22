@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSMathInvert
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8778968872127136476
-interface_hash=13879204974629019965
-interface_doc_hash=13879204974629019965
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3859673544993263951
+interface_hash=3338839147398347958
+interface_doc_hash=3338839147398347958
 deps=0

@@ -4,6 +4,7 @@
 //! stable input shape before the live Postgres client opens sockets.
 
 use super::PostgresError;
+use serde::{Deserialize, Serialize};
 
 const DEFAULT_MIN_CONNECTIONS: usize = 1;
 const DEFAULT_MAX_CONNECTIONS: usize = 16;
@@ -11,7 +12,8 @@ const DEFAULT_WAIT_TIMEOUT_MS: u64 = 5_000;
 const DEFAULT_CONNECT_TIMEOUT_MS: u64 = 5_000;
 
 /// Postgres connection configuration.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     url: String,
     min_connections: usize,
@@ -243,8 +245,8 @@ fn validate_postgres_url_identity(url: &url::Url) -> Result<(), PostgresError> {
 /// - Stable pool config error otherwise.
 ///
 /// Transformation:
-/// - Rejects invalid Terlan-facing pool settings before constructing
-///   `deadpool-postgres` resources.
+/// - Rejects invalid Terlan-facing pool settings before constructing VM-owned
+///   libpq resources.
 fn validate_pool_config(config: &Config) -> Result<(), PostgresError> {
     if config.max_connections() == 0 {
         return Err(PostgresError::new(

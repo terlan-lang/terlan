@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface XPathEvaluatorBase
  */
 module std.js.Dom.XPathEvaluatorBase.
 
@@ -25,5 +33,11 @@ pub (value: XPathEvaluatorBase) create_ns_resolver(node_resolver: Node): Node ->
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/evaluate)
  */
-pub (value: XPathEvaluatorBase) evaluate(expression: JsString, context_node: Node, resolver: Option[XPathNSResolver], type_: std.js.Number.JsNumber, result: Option[XPathResult]): XPathResult ->
+pub (value: XPathEvaluatorBase) evaluate(
+    expression: JsString,
+    context_node: Node,
+    resolver: Option[XPathNSResolver],
+    type_: std.js.Number.JsNumber,
+    result: Option[XPathResult]
+): XPathResult ->
     native.

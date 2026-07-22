@@ -1,0 +1,80 @@
+/**
+ * Property-based Result invariants.
+ *
+ * `std.core.ResultPropertyTest` validates generated success and error values
+ * against the public Result API so both branches are covered by the shared
+ * property-testing machinery.
+ */
+module std.core.ResultPropertyTest.
+
+import std.core.Result.{Err, Ok, is_err, is_ok, map, map_error, with_default}.
+import std.test.Gen.{elements, for_all, result_of}.
+import std.test.Test.{each}.
+
+/**
+ * Increments an integer payload.
+ *
+ * Input: one integer.
+ * Output: the next integer.
+ * Transformation: adds one to the input value.
+ */
+pub add_one(value: Int): Int ->
+    value + 1.
+
+/**
+ * Verifies generated results are classified as exactly one shape.
+ *
+ * Input: generated integer results.
+ * Output: `true` when each result is either successful or failed, but not
+ * both.
+ * Transformation: checks `is_ok` and `is_err` against the Result shape.
+ */
+@test
+pub generated_results_are_classified_by_shape(): Bool ->
+    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
+        Ok(_) -> is_ok(value) and is_err(value) == false;
+        Err(_) -> is_err(value) and is_ok(value) == false
+    }).
+
+/**
+ * Verifies generated results use defaults only when failed.
+ *
+ * Input: generated integer results.
+ * Output: `true` when `Ok(value)` returns the payload and `Err(reason)`
+ * returns the supplied default.
+ * Transformation: checks `with_default` over both generated Result shapes.
+ */
+@test
+pub generated_results_with_default_respects_shape(): Bool ->
+    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
+        Ok(payload) -> with_default(value, 7) == payload;
+        Err(_) -> with_default(value, 7) == 7
+    }).
+
+/**
+ * Verifies `map` transforms only successful generated values.
+ *
+ * Input: generated integer results.
+ * Output: `true` when successes are incremented and errors are preserved.
+ * Transformation: applies `Result.map` with `add_one`.
+ */
+@test
+pub generated_results_map_only_success_values(): Bool ->
+    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
+        Ok(payload) -> map(value, (item) -> item + 1) == Ok(payload + 1);
+        Err(reason) -> map(value, (item) -> item + 1) == Err(reason)
+    }).
+
+/**
+ * Verifies `map_error` transforms only generated error values.
+ *
+ * Input: generated integer results.
+ * Output: `true` when successes are preserved and errors are incremented.
+ * Transformation: applies `Result.map_error` with `add_one`.
+ */
+@test
+pub generated_results_map_error_only_error_values(): Bool ->
+    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
+        Ok(payload) -> map_error(value, (item) -> item + 1) == Ok(payload);
+        Err(reason) -> map_error(value, (item) -> item + 1) == Err(reason + 1)
+    }).

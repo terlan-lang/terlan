@@ -1,13 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGTextPositioningElement
  */
 module std.js.Dom.SVGTextPositioningElement.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
+import type std.core.{Bool, Unit}.
 import type std.js.String.{JsString}.
 
 /**
@@ -57,8 +62,16 @@ pub (value: SVGTextPositioningElement) x(): SVGAnimatedLengthList ->
 pub (value: SVGTextPositioningElement) y(): SVGAnimatedLengthList ->
     native.
 
-pub (value: SVGTextPositioningElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub (value: SVGTextPositioningElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     native.
 
-pub (value: SVGTextPositioningElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub (value: SVGTextPositioningElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     native.

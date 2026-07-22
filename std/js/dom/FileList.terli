@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileList
+ */
+module std.js.Dom.FileList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`FileList`** interface represents an object of this type returned by the `files` property of the HTML input element; this lets you access the list of files selected with the `<input type='file'>` element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileList)
+ */
+pub opaque type FileList.
+
+/**
+ * The **`length`** read-only property of the FileList interface returns the number of files in the `FileList`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileList/length)
+ */
+pub (value: FileList) length(): JsNumber.
+
+/**
+ * The **`item()`** method of the FileList interface returns a File object representing the file at the specified index in the file list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileList/item)
+ */
+pub (value: FileList) item(index: JsNumber): Option[File].

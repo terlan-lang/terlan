@@ -1,0 +1,65 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RemotePlayback
+ */
+module std.js.Dom.RemotePlayback.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+import type std.js.{Promise}.
+
+/**
+ * The **`RemotePlayback`** interface of the Remote Playback API allows the page to detect availability of remote playback devices, then connect to and control playing on these devices.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RemotePlayback)
+ */
+pub opaque type RemotePlayback.
+
+/**
+ * The **`state`** read-only property of the RemotePlayback interface returns the current state of the `RemotePlayback` connection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RemotePlayback/state)
+ */
+pub (value: RemotePlayback) state(): RemotePlaybackState.
+
+/**
+ * The **`cancelWatchAvailability()`** method of the RemotePlayback interface cancels the request to watch for one or all available devices.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RemotePlayback/cancelWatchAvailability)
+ */
+pub (value: RemotePlayback) cancel_watch_availability(id: JsNumber): Promise[Unit].
+
+/**
+ * The **`prompt()`** method of the RemotePlayback interface prompts the user to select an available remote playback device and give permission for the current media to be played using that device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RemotePlayback/prompt)
+ */
+pub (value: RemotePlayback) prompt(): Promise[Unit].
+
+/**
+ * The **`watchAvailability()`** method of the RemotePlayback interface watches the list of available remote playback devices and returns a Promise that resolves with the `callbackId` of a remote playback device.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RemotePlayback/watchAvailability)
+ */
+pub (value: RemotePlayback) watch_availability(callback: RemotePlaybackAvailabilityCallback): Promise[JsNumber].
+
+pub (value: RemotePlayback) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: RemotePlayback) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

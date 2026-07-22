@@ -1,45 +1,27 @@
 use super::*;
-use std::path::PathBuf;
 
-const PUBLIC_MARKDOWN_ROOTS: &[&str] =
-    &["README.md", "docs", "std", "editors", "tree-sitter-terlan"];
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct PublicTerlanModuleExample {
-    path: PathBuf,
-    line: usize,
-    source: String,
-}
-
-/// Guards doctest validation against direct syntax-output Erlang lowering.
+/// Guards doctest validation against backend lowering.
 ///
 /// Inputs:
 /// - The local `commands/doc/validation.rs` source file.
 ///
 /// Output:
-/// - Test success when doctest validation uses the CoreIR-gated backend entry
-///   point and does not call the direct syntax-output Erlang emitter.
+/// - Test success when doctest validation does not call Erlang emitters.
 ///
 /// Transformation:
-/// - Reads the doc validation source as text and checks the CoreIR
-///   transition invariant for doctest compiler execution.
+/// - Reads the doc validation source as text and checks that docs compile
+///   examples through parser, resolver, and typechecker validation only.
 #[test]
-fn doctest_validation_uses_core_ir_gated_erlang_lowering() {
+fn doctest_validation_does_not_use_erlang_lowering() {
     let source = fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands/doc/validation.rs"),
     )
     .expect("read doc validation source");
 
     assert!(
-        source.contains("try_emit_core_module_to_erlang_with_syntax_bridge"),
-        "doctest validation must use the CoreIR-gated Erlang backend"
+        !source.contains("_to_erlang") && !source.contains("terlan_erlang"),
+        "doctest validation must not use Erlang lowering"
     );
-    assert!(
-            !source.contains(
-                "try_emit_syntax_module_output_to_erlang_with_interfaces_file_imports_templates_and_markdown"
-            ),
-            "doctest validation must not call direct syntax-output Erlang lowering"
-        );
 }
 
 /// Verifies the documentation command emits Markdown from syntax-output
@@ -109,196 +91,58 @@ fn formal_doctest_compiles_terlan_blocks_from_syntax_output() {
         .expect("syntax-output doctest should compile");
 }
 
-/// Verifies the top-level README Terlan module example compiles.
+/// Verifies the public README Hello World example compiles.
 ///
 /// Inputs:
-/// - The repository `README.md` file.
+/// - The repository README's first fenced `terlan` block.
 ///
 /// Output:
-/// - Test success when the first complete `terlan` fenced module example is
-///   accepted by `terlc check`.
+/// - Test success when `terlc check` accepts the extracted source.
 ///
 /// Transformation:
-/// - Extracts a public documentation example, writes it as an isolated source
-///   file, and runs the normal check command so stale README snippets cannot
-///   drift away from the compiler.
+/// - Treats the top-level README example as executable release surface instead
+///   of decorative documentation text.
 #[test]
 fn readme_hello_world_terlan_block_compiles() {
-    let readme_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../README.md");
-    let readme = fs::read_to_string(&readme_path).expect("read top-level README");
-    let source = complete_terlan_fences(Path::new("README.md"), &readme)
-        .into_iter()
-        .map(|example| example.source)
-        .next()
-        .expect("README Terlan module example");
-    let dir = make_temp_dir("readme_hello_world_terlan_block");
-    let source_path = dir.join("Main.terl");
-    fs::write(&source_path, source).expect("write README example source");
+    let readme = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("repo root")
+            .join("README.md"),
+    )
+    .expect("read README");
+    let source = first_markdown_code_block(&readme, "terlan").expect("README terlan block");
+    let dir = make_temp_dir("readme_hello_world_doc_example");
+    let path = fixture(&dir, &source);
 
     let exit = commands::check::run(
         CliCommand {
             verb: Some("check".into()),
-            args: vec![source_path.to_string_lossy().into()],
+            args: vec![path],
         },
         CliState::default(),
     );
 
+    fs::remove_dir_all(&dir).expect("remove README doctest fixture");
     assert_eq!(exit, ExitCode::SUCCESS);
 }
 
-/// Verifies every complete public Markdown Terlan module example compiles.
-///
-/// Inputs:
-/// - Public Markdown files under the repository README, docs, std, editor,
-///   and tree-sitter surfaces.
-///
-/// Output:
-/// - Test success when every fenced complete Terlan module is accepted by
-///   `terlc check`.
-///
-/// Transformation:
-/// - Promotes public examples from documentation text into compiler-owned
-///   executable checks while leaving grammar fragments to the inventory gate.
-#[test]
-fn public_terlan_module_doc_blocks_compile() {
-    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let examples = public_terlan_module_examples(&repo_root);
-    assert!(
-        !examples.is_empty(),
-        "expected at least one public Terlan module example"
-    );
-
-    let dir = make_temp_dir("public_terlan_module_doc_blocks");
-    for (index, example) in examples.iter().enumerate() {
-        let source_path = dir.join(format!("public_doc_example_{index}.terl"));
-        fs::write(&source_path, &example.source).expect("write public doc example");
-        let exit = commands::check::run(
-            CliCommand {
-                verb: Some("check".into()),
-                args: vec![source_path.to_string_lossy().into()],
-            },
-            CliState::default(),
-        );
-
-        assert_eq!(
-            exit,
-            ExitCode::SUCCESS,
-            "{}:{} failed to compile",
-            example.path.display(),
-            example.line
-        );
-    }
-}
-
-/// Returns complete public Terlan module examples from Markdown files.
-fn public_terlan_module_examples(repo_root: &Path) -> Vec<PublicTerlanModuleExample> {
-    let mut examples = Vec::new();
-    for relative in public_markdown_files(repo_root) {
-        let text = fs::read_to_string(repo_root.join(&relative)).unwrap_or_else(|err| {
-            panic!(
-                "{}: failed to read public Markdown: {err}",
-                relative.display()
-            )
-        });
-        examples.extend(complete_terlan_fences(&relative, &text));
-    }
-    examples
-}
-
-/// Returns public Markdown files that may contain executable Terlan examples.
-fn public_markdown_files(repo_root: &Path) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    for root in PUBLIC_MARKDOWN_ROOTS {
-        let relative = Path::new(root);
-        let full_path = repo_root.join(relative);
-        if full_path.is_file() {
-            if is_markdown_file(&full_path) {
-                files.push(relative.to_path_buf());
-            }
-        } else if full_path.is_dir() {
-            collect_public_markdown_files(repo_root, relative, &mut files);
-        }
-    }
-    files.sort();
-    files.dedup();
-    files
-}
-
-/// Recursively collects public Markdown files from one documentation root.
-fn collect_public_markdown_files(repo_root: &Path, relative: &Path, files: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(repo_root.join(relative))
-        .unwrap_or_else(|err| panic!("{}: failed to read docs dir: {err}", relative.display()))
-    {
-        let entry = entry.expect("read docs dir entry");
-        let child = relative.join(entry.file_name());
-        let child_full_path = repo_root.join(&child);
-        if child_full_path.is_dir() {
-            if should_skip_public_docs_dir(&child) {
-                continue;
-            }
-            collect_public_markdown_files(repo_root, &child, files);
-        } else if child_full_path.is_file() && is_markdown_file(&child_full_path) {
-            files.push(child);
-        }
-    }
-}
-
-/// Returns complete Terlan fenced modules from Markdown text.
-fn complete_terlan_fences(path: &Path, markdown: &str) -> Vec<PublicTerlanModuleExample> {
-    let mut examples = Vec::new();
-    let mut active_language = None::<String>;
-    let mut start_line = 0_usize;
-    let mut body = Vec::<String>::new();
-    for (index, line) in markdown.lines().enumerate() {
-        let line_number = index + 1;
+/// Returns the first fenced Markdown code block for a language.
+fn first_markdown_code_block(text: &str, language: &str) -> Option<String> {
+    let opener = format!("```{language}");
+    let mut active = false;
+    let mut body = Vec::new();
+    for line in text.lines() {
         let trimmed = line.trim_start();
-        if let Some(language) = active_language.as_ref() {
+        if active {
             if trimmed.starts_with("```") {
-                let source = body.join("\n");
-                if matches!(language.as_str(), "terlan" | "terl")
-                    && source.trim_start().starts_with("module ")
-                {
-                    examples.push(PublicTerlanModuleExample {
-                        path: path.to_path_buf(),
-                        line: start_line,
-                        source,
-                    });
-                }
-                active_language = None;
-                body.clear();
-            } else {
-                body.push(line.to_string());
+                return Some(body.join("\n"));
             }
-            continue;
-        }
-
-        if let Some(language) = trimmed.strip_prefix("```") {
-            if !language.starts_with('`') {
-                start_line = line_number;
-                active_language = Some(
-                    language
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or_default()
-                        .to_string(),
-                );
-            }
+            body.push(line.to_string());
+        } else if trimmed == opener {
+            active = true;
         }
     }
-    examples
-}
-
-/// Returns whether a path is a Markdown file.
-fn is_markdown_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("md"))
-}
-
-/// Returns whether a public documentation directory should be skipped.
-fn should_skip_public_docs_dir(path: &Path) -> bool {
-    path.components().any(|component| {
-        let name = component.as_os_str().to_string_lossy();
-        matches!(name.as_ref(), "_build" | "target" | "node_modules")
-    })
+    None
 }

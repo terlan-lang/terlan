@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IDBFactory
  */
 module std.js.Dom.IDBFactoryTest.
 
-import type std.js.Dom.IDBFactory.{IDBFactory}.
-
+import type std.js.Dom.IDBFactory.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub databases_typechecks(receiver: IDBFactory): std.js.Promise[std.js.Array[IDBDatabaseInfo]] ->
     receiver.databases().
@@ -18,5 +23,9 @@ pub databases_typechecks(receiver: IDBFactory): std.js.Promise[std.js.Array[IDBD
 pub delete_database_typechecks(receiver: IDBFactory, name: JsString): IDBOpenDBRequest ->
     receiver.delete_database(name).
 
-pub open_typechecks(receiver: IDBFactory, name: JsString, version: std.js.Number.JsNumber): IDBOpenDBRequest ->
+pub open_typechecks(
+    receiver: IDBFactory,
+    name: JsString,
+    version: std.js.Number.JsNumber
+): IDBOpenDBRequest ->
     receiver.open(name, version).

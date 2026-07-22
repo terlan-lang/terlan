@@ -1,8 +1,5 @@
 use super::BenchmarkStatus;
 
-const VM_HTTP_UNAVAILABLE_REASON: &str = "terlan_vm_http_runtime_unavailable";
-const VM_HTTP_UNAVAILABLE_DETAIL: &str = "Terlan VM HTTP runtime lane is not implemented yet.";
-
 /// Runtime lane selected for capability reporting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RuntimeLaneKind {
@@ -54,10 +51,7 @@ impl RuntimeCapability {
 /// Typed availability decision for one runtime capability.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RuntimeCapabilityStatus {
-    Unavailable {
-        reason: &'static str,
-        detail: &'static str,
-    },
+    Available,
 }
 
 /// One runtime lane represented in benchmark or gate output.
@@ -77,11 +71,11 @@ impl RuntimeLane {
     /// - None.
     ///
     /// Output:
-    /// - Skipped VM HTTP lane with stable unavailable reason and detail.
+    /// - VM HTTP lane with executable capability status.
     ///
     /// Transformation:
     /// - Uses the typed capability decision instead of ad hoc string checks.
-    fn skipped_vm_http() -> Self {
+    fn vm_http() -> Self {
         Self::from_capability(
             RuntimeLaneKind::TerlanVm,
             RuntimeCapability::HttpRuntime,
@@ -106,13 +100,14 @@ impl RuntimeLane {
         capability: RuntimeCapability,
         capability_status: RuntimeCapabilityStatus,
     ) -> Self {
-        let RuntimeCapabilityStatus::Unavailable { reason, detail } = capability_status;
-        Self {
-            name: lane.name(),
-            capability: capability.name(),
-            status: BenchmarkStatus::Skipped,
-            reason: Some(reason),
-            detail: Some(detail),
+        match capability_status {
+            RuntimeCapabilityStatus::Available => Self {
+                name: lane.name(),
+                capability: capability.name(),
+                status: BenchmarkStatus::Completed,
+                reason: None,
+                detail: None,
+            },
         }
     }
 }
@@ -127,18 +122,15 @@ impl RuntimeLane {
 /// - Stable capability decision for the requested lane.
 ///
 /// Transformation:
-/// - Keeps the 0.0.7 VM HTTP lane explicit while the runtime is not yet
-///   implemented, without depending on the removed OTP HTTP benchmark.
+/// - Keeps the 0.0.7 VM HTTP lane explicit without depending on the removed
+///   OTP HTTP benchmark.
 fn runtime_capability_status(
     lane: RuntimeLaneKind,
     capability: RuntimeCapability,
 ) -> RuntimeCapabilityStatus {
     match (lane, capability) {
         (RuntimeLaneKind::TerlanVm, RuntimeCapability::HttpRuntime) => {
-            RuntimeCapabilityStatus::Unavailable {
-                reason: VM_HTTP_UNAVAILABLE_REASON,
-                detail: VM_HTTP_UNAVAILABLE_DETAIL,
-            }
+            RuntimeCapabilityStatus::Available
         }
     }
 }
@@ -147,24 +139,21 @@ fn runtime_capability_status(
 mod tests {
     use super::*;
 
-    /// Verifies the Terlan VM HTTP placeholder is a typed capability decision.
+    /// Verifies the Terlan VM HTTP lane is a typed executable capability.
     ///
     /// Inputs:
     /// - VM runtime lane and HTTP runtime capability.
     ///
     /// Output:
-    /// - Test passes when the capability reports the stable unavailable code.
+    /// - Test passes when the capability reports available.
     ///
     /// Transformation:
-    /// - Pins VM HTTP unavailability to an explicit runtime capability result.
+    /// - Pins VM HTTP availability to an explicit runtime capability result.
     #[test]
-    fn terlan_vm_http_runtime_capability_is_typed_unavailable() {
+    fn terlan_vm_http_runtime_capability_is_available() {
         assert_eq!(
             runtime_capability_status(RuntimeLaneKind::TerlanVm, RuntimeCapability::HttpRuntime),
-            RuntimeCapabilityStatus::Unavailable {
-                reason: VM_HTTP_UNAVAILABLE_REASON,
-                detail: VM_HTTP_UNAVAILABLE_DETAIL,
-            }
+            RuntimeCapabilityStatus::Available
         );
     }
 
@@ -174,19 +163,19 @@ mod tests {
     /// - No external runtime state.
     ///
     /// Output:
-    /// - Test passes when lane fields contain the stable VM HTTP skip status.
+    /// - Test passes when lane fields contain the executable VM HTTP status.
     ///
     /// Transformation:
     /// - Converts the typed capability decision into the report shape that
-    ///   future runtime benchmarks can reuse.
+    ///   runtime benchmarks can reuse.
     #[test]
     fn runtime_report_vm_lane_uses_typed_capability_status() {
-        let report = RuntimeLane::skipped_vm_http();
+        let report = RuntimeLane::vm_http();
 
         assert_eq!(report.name, "terlan-vm-http-runtime");
         assert_eq!(report.capability, "http_runtime");
-        assert!(matches!(report.status, BenchmarkStatus::Skipped));
-        assert_eq!(report.reason, Some(VM_HTTP_UNAVAILABLE_REASON));
-        assert_eq!(report.detail, Some(VM_HTTP_UNAVAILABLE_DETAIL));
+        assert!(matches!(report.status, BenchmarkStatus::Completed));
+        assert_eq!(report.reason, None);
+        assert_eq!(report.detail, None);
     }
 }

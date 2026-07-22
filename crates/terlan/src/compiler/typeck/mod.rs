@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_hir::{
-    syntax_module_output_to_interface, FunctionSymbol, ModuleInterface, ResolvedModule,
-    TypeVisibility,
+    syntax_module_output_to_interface, FunctionSymbol, ImportedItem, ModuleInterface,
+    ResolvedModule, TraitConformanceSignature, TypeVisibility,
 };
 use crate::terlan_syntax::{
     extract_native_function_signatures, span::Span, SyntaxConstructorParamOutput,
@@ -13,10 +13,15 @@ use crate::terlan_syntax::{
     SyntaxTypeOutput,
 };
 
+#[cfg(test)]
+#[path = "const_eval_test.rs"]
+mod const_eval_test;
 mod types;
 
 pub(crate) use types::StructFieldVisibility;
 pub use types::{pretty_type, DiagSeverity, Diagnostic, MapFieldType, Type, TypeVarId};
+
+pub(crate) const COMPLETED_GUARD_RESULT_TAG: &str = "guard_result";
 
 pub(crate) mod type_system;
 use type_system::*;
@@ -24,7 +29,7 @@ use type_system::*;
 mod raw_macros;
 pub use raw_macros::{
     collect_syntax_raw_macro_diagnostics, collect_syntax_unsupported_raw_declaration_diagnostics,
-    expand_syntax_raw_macros,
+    expand_syntax_macros_with_interfaces, expand_syntax_raw_macros,
 };
 
 mod sql_forms;
@@ -37,6 +42,9 @@ use import_diagnostics::*;
 
 mod field_visibility;
 use field_visibility::*;
+
+mod binary_layout;
+use binary_layout::*;
 
 mod expression;
 use expression::*;
@@ -55,6 +63,8 @@ use trait_conformance::*;
 
 mod html_typecheck;
 use html_typecheck::*;
+
+mod mobile_bridge_validation;
 
 mod patterns;
 use patterns::*;
@@ -119,6 +129,13 @@ struct FunctionBound {
     trait_name: String,
     trait_args: Vec<Type>,
 }
+
+/// Compiler-private bound identity for structural generic implications.
+///
+/// The spelling cannot be produced by Terlan trait syntax, which keeps
+/// structural evidence in the existing bound pipeline without exposing a
+/// synthetic trait to users.
+const STRUCTURAL_IMPLICATION_BOUND: &str = "$structural_implication";
 
 /// Constructor callable type scheme.
 ///
@@ -193,9 +210,19 @@ struct TemplatePropScheme {
 pub(crate) struct TypeAlias {
     params: Vec<TypeVarId>,
     param_variance: Vec<Variance>,
+    bounds: Vec<FunctionBound>,
     body: Type,
     constructor_param_names: Vec<String>,
     is_opaque: bool,
+}
+
+/// Generic struct field and implication metadata used during construction.
+#[derive(Debug, Clone)]
+pub(super) struct StructScheme {
+    generic_params: Vec<String>,
+    params: Vec<TypeVarId>,
+    fields: Vec<(String, Type)>,
+    bounds: Vec<FunctionBound>,
 }
 
 /// Variance declared for one generic type parameter.
@@ -247,6 +274,7 @@ struct QualifiedTypeName {
 ///   tested and refactored independently.
 #[derive(Debug, Clone)]
 struct TypeCheckInputs<'a> {
+    database_schema: Option<&'a crate::database_schema::DatabaseSchemaSnapshot>,
     import_maps: TypeCheckImportMaps,
     local_aliases: HashMap<String, TypeAlias>,
     alias_extra_names: HashSet<String>,
@@ -258,6 +286,7 @@ struct TypeCheckInputs<'a> {
     function_signatures: HashMap<(String, usize), Vec<FunctionScheme>>,
     constructor_signatures: HashMap<String, Vec<ConstructorScheme>>,
     struct_fields: HashMap<String, HashMap<String, Type>>,
+    struct_schemes: HashMap<String, StructScheme>,
     struct_field_visibility: HashMap<String, HashMap<String, StructFieldVisibility>>,
     receiver_methods: HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     template_schemes: HashMap<String, TemplateScheme>,
@@ -319,6 +348,7 @@ fn type_check_syntax_module_with_inputs<'a>(
     let function_signatures = inputs.function_signatures;
     let constructor_signatures = inputs.constructor_signatures;
     let struct_fields = inputs.struct_fields;
+    let struct_schemes = inputs.struct_schemes;
     let struct_field_visibility = inputs.struct_field_visibility;
     let receiver_methods = inputs.receiver_methods;
     let template_schemes = inputs.template_schemes;
@@ -331,8 +361,14 @@ fn type_check_syntax_module_with_inputs<'a>(
     let constructor_aliases = imported_type_names.clone();
     let trait_method_calls = inputs.trait_method_calls;
     let trait_bound_impl_type_args = collect_trait_bound_impl_type_args(&trait_method_calls);
+    let negative_trait_impl_type_args = collect_visible_negative_trait_impl_type_args(
+        inputs.syntax_function_module,
+        resolved,
+        &alias_names,
+    );
     let trait_lookup_cache = RefCell::new(TraitLookupCache::default());
     let expr_ctx = ExprInferContext {
+        database_schema: inputs.database_schema,
         local_fns: &resolved.function_symbols,
         signatures: &function_signatures,
         interface_map: &resolved.interface_map,
@@ -346,15 +382,18 @@ fn type_check_syntax_module_with_inputs<'a>(
         templates: &template_schemes,
         aliases: &aliases,
         struct_fields: &struct_fields,
+        struct_schemes: &struct_schemes,
         struct_field_visibility: &struct_field_visibility,
         receiver_methods: &receiver_methods,
         trait_method_calls: &trait_method_calls,
         trait_bound_impl_type_args: &trait_bound_impl_type_args,
+        negative_trait_impl_type_args: &negative_trait_impl_type_args,
         trait_signatures: &trait_signatures,
         alias_names: &alias_names,
         current_bounds: &[],
         current_constructor_target: None,
         trait_lookup_cache: &trait_lookup_cache,
+        effectful_calls: EffectfulCallFacts::default(),
     };
 
     diagnostics.extend(check_syntax_constructor_param_defaults(
@@ -385,6 +424,60 @@ pub fn type_check_syntax_module_output(
     module: &SyntaxModuleOutput,
     resolved: &ResolvedModule,
 ) -> Vec<Diagnostic> {
+    type_check_syntax_module_output_with_database_schema(module, resolved, None)
+}
+
+/// Typechecks syntax output with optional verified database schema evidence.
+pub(crate) fn type_check_syntax_module_output_with_database_schema(
+    module: &SyntaxModuleOutput,
+    resolved: &ResolvedModule,
+    database_schema: Option<&crate::database_schema::DatabaseSchemaSnapshot>,
+) -> Vec<Diagnostic> {
+    let (prepared, mut diagnostics) =
+        prepare_syntax_constants_with_interfaces(module, &resolved.interface_map);
+    diagnostics.extend(type_check_prepared_syntax_module_output(
+        &prepared,
+        resolved,
+        database_schema,
+    ));
+    diagnostics
+}
+
+pub fn prepare_syntax_constants(
+    module: &SyntaxModuleOutput,
+) -> (SyntaxModuleOutput, Vec<Diagnostic>) {
+    prepare_syntax_constants_with_interfaces(module, &HashMap::new())
+}
+
+fn prepare_syntax_constants_with_interfaces(
+    module: &SyntaxModuleOutput,
+    interfaces: &HashMap<String, ModuleInterface>,
+) -> (SyntaxModuleOutput, Vec<Diagnostic>) {
+    if !crate::value_lifecycle::module_requires_value_lifecycle_pass(module, interfaces) {
+        return (module.clone(), Vec::new());
+    }
+    let mut prepared = module.clone();
+    let report = crate::value_lifecycle::evaluate_and_substitute_module_constants_with_interfaces(
+        &mut prepared,
+        interfaces,
+    );
+    let diagnostics = report
+        .diagnostics
+        .into_iter()
+        .map(|diagnostic| Diagnostic {
+            span: diagnostic.span.into(),
+            message: format!("{}: {}", diagnostic.code, diagnostic.message),
+            severity: DiagSeverity::Error,
+        })
+        .collect();
+    (prepared, diagnostics)
+}
+
+fn type_check_prepared_syntax_module_output(
+    module: &SyntaxModuleOutput,
+    resolved: &ResolvedModule,
+    database_schema: Option<&crate::database_schema::DatabaseSchemaSnapshot>,
+) -> Vec<Diagnostic> {
     let local_aliases = collect_syntax_type_aliases(module);
     let imported_aliases = imported_type_aliases(resolved);
     let imported_names = imported_type_names(resolved);
@@ -402,12 +495,24 @@ pub fn type_check_syntax_module_output(
     let mut trait_decl_diagnostics = check_syntax_trait_decls(module, &trait_signatures);
     trait_decl_diagnostics.extend(check_syntax_struct_includes(module, resolved));
     trait_decl_diagnostics.extend(check_syntax_declared_implements(module, &trait_signatures));
-    let trait_impl_coherence_diagnostics = check_syntax_trait_impl_coherence(module);
-    let trait_impl_signature_diagnostics =
-        check_syntax_trait_impl_signatures(module, &trait_signatures);
+    let trait_impl_coherence_diagnostics =
+        check_syntax_trait_impl_coherence(module, &imported_names);
+    let trait_impl_signature_diagnostics = check_syntax_trait_impl_signatures(
+        module,
+        &trait_signatures,
+        &imported_names,
+        &alias_names,
+        &aliases,
+    );
     let receiver_method_diagnostics = check_syntax_receiver_methods(module, &local_type_names);
 
     let mut diagnostics = collect_syntax_unsupported_raw_declaration_diagnostics(module);
+    diagnostics.extend(check_syntax_negative_trait_impls(
+        module,
+        &trait_signatures,
+        &alias_names,
+        resolved,
+    ));
     diagnostics.extend(check_syntax_public_constructor_return_visibility(
         module,
         resolved,
@@ -416,10 +521,13 @@ pub fn type_check_syntax_module_output(
 
     let mut struct_fields = collect_imported_struct_fields(resolved, &alias_names);
     struct_fields.extend(collect_syntax_struct_fields(module, &alias_names));
+    let mut struct_schemes = collect_imported_struct_schemes(resolved, &alias_names);
+    struct_schemes.extend(collect_syntax_struct_schemes(module, &alias_names));
     let mut struct_field_visibility = collect_imported_struct_field_visibility(resolved);
     struct_field_visibility.extend(collect_syntax_struct_field_visibility(module));
 
     let inputs = TypeCheckInputs {
+        database_schema,
         import_maps: collect_syntax_import_maps(module, &resolved.interface_map),
         local_aliases: local_aliases.clone(),
         alias_extra_names: collect_syntax_alias_extra_names(module),
@@ -451,6 +559,7 @@ pub fn type_check_syntax_module_output(
             &aliases,
         ),
         struct_fields,
+        struct_schemes,
         struct_field_visibility,
         template_schemes: collect_syntax_template_schemes(module, &alias_names),
         syntax_function_module: module,
@@ -463,20 +572,19 @@ pub fn type_check_syntax_module_output(
     diagnostics
 }
 
-mod core_expr_lowering;
+pub(crate) mod core_expr_lowering;
 mod core_expr_proof;
 mod core_interface;
-mod core_intrinsic_lowering;
+pub(crate) mod core_intrinsic_lowering;
 mod core_lowering;
 mod core_pattern_lowering;
 mod core_proof;
 
+pub(crate) use core_intrinsic_lowering::core_intrinsic_is_pure;
 pub use core_intrinsic_lowering::core_primitive_intrinsic_return_type;
 pub use core_lowering::{lower_resolved_module_to_core, lower_syntax_module_output_to_core};
 pub use core_sql_lowering::sql_query_core_expr_from_syntax;
 
-#[cfg(test)]
-pub(crate) use core_expr_lowering::core_expr_from_syntax;
 #[cfg(test)]
 pub(crate) use core_expr_proof::{
     constructor_chain_proof_coverage_policy, core_expr_is_lean_modeled, core_expr_proof_coverage,
@@ -640,6 +748,7 @@ pub fn infer_syntax_expression_type(
     );
     let mut struct_fields = collect_imported_struct_fields(resolved, &alias_names);
     struct_fields.extend(collect_syntax_struct_fields(module, &alias_names));
+    let struct_schemes = collect_syntax_struct_schemes(module, &alias_names);
     let mut struct_field_visibility = collect_imported_struct_field_visibility(resolved);
     struct_field_visibility.extend(collect_syntax_struct_field_visibility(module));
     let receiver_methods = collect_syntax_receiver_method_dispatch_signatures_with_imports(
@@ -655,8 +764,11 @@ pub fn infer_syntax_expression_type(
     let imported_type_names = imported_type_names(resolved);
     let constructor_aliases = imported_type_names.clone();
     let trait_bound_impl_type_args = collect_trait_bound_impl_type_args(&trait_method_calls);
+    let negative_trait_impl_type_args =
+        collect_visible_negative_trait_impl_type_args(module, resolved, &alias_names);
     let trait_lookup_cache = RefCell::new(TraitLookupCache::default());
     let expr_ctx = ExprInferContext {
+        database_schema: None,
         local_fns: &resolved.function_symbols,
         signatures: &function_signatures,
         interface_map: &resolved.interface_map,
@@ -670,15 +782,18 @@ pub fn infer_syntax_expression_type(
         templates: &template_schemes,
         aliases: &aliases,
         struct_fields: &struct_fields,
+        struct_schemes: &struct_schemes,
         struct_field_visibility: &struct_field_visibility,
         receiver_methods: &receiver_methods,
         trait_method_calls: &trait_method_calls,
         trait_bound_impl_type_args: &trait_bound_impl_type_args,
+        negative_trait_impl_type_args: &negative_trait_impl_type_args,
         trait_signatures: &trait_signatures,
         alias_names: &alias_names,
         current_bounds: &[],
         current_constructor_target: None,
         trait_lookup_cache: &trait_lookup_cache,
+        effectful_calls: EffectfulCallFacts::default(),
     };
 
     let locals = HashMap::new();
@@ -717,6 +832,17 @@ pub fn infer_syntax_expression_type(
 ///   so signature and interface loaders share one stable type-variable key.
 fn normalize_type_param_name(param: &str) -> String {
     let trimmed = param.trim().trim_start_matches('-').trim_start_matches('+');
+    if let Some(rest) = trimmed.strip_prefix("const ") {
+        return rest
+            .split_once(':')
+            .map(|(name, _)| name.trim())
+            .unwrap_or(rest.trim())
+            .to_string();
+    }
+    let trimmed = trimmed
+        .split_once("=>")
+        .map(|(name, _)| name.trim())
+        .unwrap_or(trimmed);
     if let Some(open) = trimmed.find('[') {
         trimmed[..open].trim().to_string()
     } else {
@@ -768,7 +894,19 @@ fn type_param_variances(params: &[String]) -> Vec<Variance> {
 mod expression_test;
 
 #[cfg(test)]
+mod binary_layout_test;
+
+#[cfg(test)]
+mod comprehension_generator_test;
+
+#[cfg(test)]
+mod comprehension_guard_result_test;
+
+#[cfg(test)]
 mod import_test;
+
+#[cfg(test)]
+mod qualified_field_access_test;
 
 #[cfg(test)]
 mod core_lowering_test;
@@ -783,6 +921,9 @@ mod core_control_flow_test;
 mod core_intrinsic_test;
 
 #[cfg(test)]
+mod core_intrinsic_process_test;
+
+#[cfg(test)]
 mod constructor_test;
 
 #[cfg(test)]
@@ -790,18 +931,43 @@ mod adversarial_test;
 #[cfg(test)]
 mod diagnostic_test;
 #[cfg(test)]
+mod implication_test;
+#[cfg(test)]
+mod let_else_test;
+#[cfg(test)]
 mod macro_test;
 
 #[cfg(test)]
 mod pattern_test;
 
 #[cfg(test)]
+mod record_nominality_test;
+
+#[cfg(test)]
 mod primitive_test;
 
 #[cfg(test)]
+mod purity_function_value_test;
+#[cfg(test)]
+mod purity_imported_receiver_test;
+#[cfg(test)]
+mod purity_resolved_effect_test;
+#[cfg(test)]
+mod purity_test;
+#[cfg(test)]
+mod purity_trait_call_test;
+#[cfg(test)]
 mod receiver_method_test;
 #[cfg(test)]
+mod shape_purity_test;
+#[cfg(test)]
+mod sql_database_schema_test;
+#[cfg(test)]
 mod sql_forms_test;
+#[cfg(test)]
+mod sql_parameter_type_test;
+#[cfg(test)]
+mod sql_row_descriptor_test;
 #[cfg(test)]
 mod std_contract_test;
 #[cfg(test)]
@@ -811,6 +977,9 @@ mod test_support;
 
 #[cfg(test)]
 mod trait_test;
+
+#[cfg(test)]
+mod trait_negative_test;
 
 #[cfg(test)]
 mod type_model_test;

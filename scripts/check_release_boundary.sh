@@ -12,7 +12,7 @@ if [[ ! -f Cargo.toml || ! -d crates/terlan ]]; then
 fi
 
 scratch_file_pattern='(^|/)(__pycache__)(/|$)|\.pyc$|\.pyo$|\.log$|\.tmp$|\.beam$|^std/summaries/.*\.(erl|hrl)$'
-internal_tree_pattern='^(\.agents/|\.codex/|scratch/|gen/|proofs/|docs/roadmap/|docs/compiler/|docs/internal/|roadmap/)'
+internal_tree_pattern='^(\.agents/|\.codex/|scratch/|gen/|proofs/lean/\.lake/|docs/roadmap/|docs/internal/|roadmap/)'
 internal_file_pattern='(^|/)(ROADMAP|CHECKPOINT|BASELINE|BOOTSTRAP|TODO)[^/]*\.md$|^\.github/README\.md$'
 
 tracked_scratch="$(
@@ -68,9 +68,9 @@ working_scratch="$(
       -o -path './scripts/check_0_0_[0-3]*' \
       -o -path './scratch/*' \
       -o -path './gen/*' \
-      -o -path './proofs/*' \
+      -o -path './proofs/lean/.lake' \
+      -o -path './proofs/lean/.lake/*' \
       -o -path './docs/roadmap/*' \
-      -o -path './docs/compiler/*' \
       -o -path './docs/internal/*' \
       -o -path './roadmap/*' \
       -o -path './.github/README.md' \

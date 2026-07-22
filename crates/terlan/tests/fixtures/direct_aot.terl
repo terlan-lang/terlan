@@ -1,0 +1,694 @@
+module direct_aot.
+
+import std.vm.Process.
+import std.vm.Process.{ActorMessage}.
+import std.vm.Message.
+import type std.vm.Message.{Message}.
+import type std.vm.Process.{Entry, ExitReason, Monitor, Process, Resource, ResourceKind, SchedulingClass, Timer}.
+
+pub type Ready = Atom["ready"].
+
+pub atom_identity(value: Ready): Ready -> value.
+
+pub struct Pair {
+    left: Int,
+    right: Int
+}.
+
+pub constructor Pair {
+    (left: Int, right: Int): Pair ->
+        Pair {left: left, right: right}
+}.
+
+pub pair_identity(pair: Pair): Pair -> pair.
+pub map_identity(values: Map[String, Int]): Map[String, Int] -> values.
+pub set_identity(values: Set[String]): Set[String] -> values.
+
+pub managed_constructed(): Bool ->
+    let pair = Pair(20, 22);
+    let carried = pair_identity(pair);
+    true.
+
+pub managed_returned(): Pair -> Pair(20, 22).
+
+pub managed_yielded(): Bool ->
+    let pair = Pair(20, 22);
+    Process.yield_now();
+    let carried = pair_identity(pair);
+    true.
+
+pub managed_yield_value(value: Pair): Pair ->
+    Process.yield_now();
+    value.
+
+pub managed_entry_resume(): Pair ->
+    managed_yield_value(Pair(20, 22)).
+
+pub managed_branch_resume(flag: Bool): Pair ->
+    let pair = Pair(20, 22);
+    if {
+        flag -> (Process.yield_now(); pair);
+        true -> (Process.yield_now(); pair)
+    }.
+
+pub managed_branch_left(): Pair -> managed_branch_resume(true).
+
+pub managed_branch_right(): Pair -> managed_branch_resume(false).
+
+pub managed_nested_resume(flag: Bool): Pair ->
+    let pair = Pair(20, 22);
+    if {
+        flag -> if {
+            flag -> (Process.yield_now(); Process.yield_now(); pair);
+            true -> pair
+        };
+        true -> pair
+    }.
+
+pub managed_nested(): Pair -> managed_nested_resume(true).
+
+pub managed_repeated(): Pair ->
+    let pair = Pair(20, 22);
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    pair.
+
+pub managed_tail_resume(value: Pair): Pair ->
+    managed_yield_value(value).
+
+pub managed_tail(): Pair ->
+    managed_tail_resume(Pair(20, 22)).
+
+pub managed_non_tail(): Pair ->
+    let pair = Pair(20, 22);
+    let resumed = managed_yield_value(pair);
+    pair_identity(resumed).
+
+pub managed_non_tail_repeated(): Pair ->
+    let pair = Pair(20, 22);
+    let first = managed_yield_value(pair);
+    let second = managed_yield_value(first);
+    pair_identity(second).
+
+pub spawn_1(): Bool ->
+    Process.send_int(1, 73);
+    true.
+
+pub spawn_2(): Bool -> 1 div 0 == 0.
+
+pub spawn_4(): Bool ->
+    true.
+
+pub spawn_5(): Bool ->
+    true.
+
+pub spawn_6(): Bool ->
+    Process.fail(Process.exit_reason(7));
+    true.
+
+pub spawn_7(): Bool ->
+    Process.fail(Process.exit_reason(9));
+    true.
+
+pub spawn_8(): Bool -> managed_constructed().
+
+pub spawn_managed_child(): Bool ->
+    let child = Process.spawn[Pair](Process.entry[Pair](8));
+    true.
+
+pub add(x: Int, y: Int): Int -> x + y.
+pub subtract(x: Int, y: Int): Int -> x - y.
+pub multiply(x: Int, y: Int): Int -> x * y.
+pub divide(x: Int, y: Int): Int -> x div y.
+pub remainder(x: Int, y: Int): Int -> x rem y.
+pub negate(x: Int): Int -> -x.
+pub add_twice(x: Int, y: Int): Int -> add(add(x, y), y).
+pub float_add(x: Float, y: Float): Float -> x + y.
+pub float_mixed(x: Int, y: Float): Float -> x + y.
+pub float_compare(x: Float, y: Int): Bool -> x > y.
+pub float_divide(x: Float, y: Float): Float -> x / y.
+
+pub classify(x: Int): Int ->
+    let doubled = x * 2;
+    if { doubled > 10 -> doubled + 1; true -> 0 }.
+
+pub choose(flag: Bool): Int -> if { flag -> 1; true -> 0 }.
+pub only_true(flag: Bool): Int -> if { flag -> 1 }.
+pub bool_not(flag: Bool): Bool -> not flag.
+pub bool_and(left: Bool, right: Bool): Bool -> left and right.
+pub bool_or(left: Bool, right: Bool): Bool -> left or right.
+pub short_and(): Bool -> false and (1 div 0 == 0).
+pub short_or(): Bool -> true or (1 div 0 == 0).
+
+pub yielded(): Bool ->
+    Process.yield_now();
+    true.
+
+pub yield_only(): Unit -> Process.yield_now().
+
+pub send_to_self(): Bool ->
+    Process.send_int(1, 73);
+    true.
+
+pub send_capture_to_self(value: Int): Int ->
+    Process.send_int(1, value);
+    value + 1.
+
+pub send_unit(recipient: Int, payload: Int): Unit ->
+    Process.send_int(recipient, payload).
+
+pub send_call_capture_to_self(value: Int): Int ->
+    let delivered = send_unit(1, value);
+    value + 1.
+
+pub receive_capture(value: Int): Int ->
+    let received = Process.receive_int();
+    received + value.
+
+pub receive_int_only(): Int -> Process.receive_int().
+
+pub receive_call_capture(value: Int): Int ->
+    let received = receive_int_only();
+    received + value.
+
+pub send_then_receive_call(): Bool ->
+    Process.send_int(1, 41);
+    let received = receive_int_only();
+    received == 41.
+
+pub spawn_capture(entry: Entry[Int], value: Int): Int ->
+    let child = Process.spawn[Int](entry);
+    value + 1.
+
+pub spawn_only(entry: Entry[Int]): Process[Int] -> Process.spawn[Int](entry).
+
+pub spawn_call_capture(entry: Entry[Int], value: Int): Int ->
+    let child = spawn_only(entry);
+    value + 1.
+
+pub spawn_then_send(): Bool ->
+    let child = Process.spawn[Int](Process.entry[Int](1));
+    let received = Process.receive_int();
+    received == 73.
+
+pub spawn_invalid_entry(): Bool ->
+    let child = Process.spawn[Int](Process.entry[Int](9999));
+    true.
+
+pub spawn_failure_isolated(): Bool ->
+    let child = Process.spawn[Int](Process.entry[Int](2));
+    true.
+
+pub timer_capture(value: Int): Int ->
+    Process.sleep(Process.timer(3));
+    value + 1.
+
+pub sleep_only(timer: Timer): Unit -> Process.sleep(timer).
+
+pub timer_call_capture(value: Int): Int ->
+    let slept = sleep_only(Process.timer(3));
+    value + 1.
+
+pub timer_then_true(): Bool ->
+    Process.sleep(Process.timer(3));
+    true.
+
+pub timer_zero(): Bool ->
+    Process.sleep(Process.timer(0));
+    true.
+
+pub timer_negative(): Bool ->
+    Process.sleep(Process.timer(-1));
+    true.
+
+pub link_capture(peer: Process[Int], value: Int): Int ->
+    Process.link[Int](peer);
+    value + 1.
+
+pub link_only(peer: Process[Int]): Unit -> Process.link[Int](peer).
+
+pub link_call_capture(peer: Process[Int], value: Int): Int ->
+    let linked = link_only(peer);
+    value + 1.
+
+pub monitor_capture(target: Process[Int], value: Int): Int ->
+    let reference = Process.monitor[Int](target);
+    value + 1.
+
+pub monitor_only(target: Process[Int]): Monitor[Int] ->
+    Process.monitor[Int](target).
+
+pub monitor_call_capture(target: Process[Int], value: Int): Int ->
+    let reference = monitor_only(target);
+    value + 1.
+
+pub resource_capture(kind: ResourceKind[Int], value: Int): Int ->
+    let resource = Process.acquire[Int](kind);
+    value + 1.
+
+pub resource_only(kind: ResourceKind[Int]): Resource[Int] ->
+    Process.acquire[Int](kind).
+
+pub resource_call_capture(kind: ResourceKind[Int], value: Int): Int ->
+    let resource = resource_only(kind);
+    value + 1.
+
+pub resource_then_true(): Bool ->
+    let resource = Process.acquire[Int](Process.resource_kind[Int](7));
+    true.
+
+pub cancellation_capture(target: Process[Int], value: Int): Int ->
+    Process.cancel[Int](target);
+    value + 1.
+
+pub cancel_only(target: Process[Int]): Unit -> Process.cancel[Int](target).
+
+pub cancellation_call_capture(target: Process[Int], value: Int): Int ->
+    let cancelled = cancel_only(target);
+    value + 1.
+
+pub failure_capture(reason: ExitReason, value: Int): Int ->
+    Process.fail(reason);
+    value + 1.
+
+pub fail_only(reason: ExitReason): Unit -> Process.fail(reason).
+
+pub failure_call_capture(reason: ExitReason, value: Int): Int ->
+    let failed = fail_only(reason);
+    value + 1.
+
+pub spawn_failed_child(): Bool ->
+    let child = Process.spawn[Int](Process.entry[Int](6));
+    true.
+
+pub fail_self(): Bool ->
+    Process.fail(Process.exit_reason(7));
+    true.
+
+pub failure_zero_invalid(): Bool ->
+    Process.fail(Process.exit_reason(0));
+    true.
+
+pub scheduling_capture(class: SchedulingClass, value: Int): Int ->
+    Process.schedule(class);
+    value + 1.
+
+pub schedule_only(class: SchedulingClass): Unit ->
+    Process.schedule(class).
+
+pub scheduling_call_capture(class: SchedulingClass, value: Int): Int ->
+    let scheduled = schedule_only(class);
+    value + 1.
+
+pub schedule_priority_then_true(): Bool ->
+    Process.schedule(Process.priority());
+    true.
+
+pub schedule_normal_then_true(): Bool ->
+    Process.schedule(Process.normal());
+    true.
+
+pub schedule_background_then_true(): Bool ->
+    Process.schedule(Process.background());
+    true.
+
+pub resource_zero_invalid(): Bool ->
+    let resource = Process.acquire[Int](Process.resource_kind[Int](0));
+    true.
+
+pub unit_identity(value: Unit): Unit -> value.
+
+pub yield_unit_capture(value: Unit): Unit ->
+    Process.yield_now();
+    value.
+
+pub yield_unit_then_int(value: Int): Int ->
+    let ignored = yield_only();
+    value + 1.
+
+pub tail_yield_only(): Unit -> yield_only().
+
+pub two_unit_effects(value: Int): Int ->
+    let first = yield_only();
+    let second = yield_only();
+    value.
+
+pub eight_unit_effects(value: Int): Int ->
+    let first = yield_only();
+    let second = yield_only();
+    let third = yield_only();
+    let fourth = yield_only();
+    let fifth = yield_only();
+    let sixth = yield_only();
+    let seventh = yield_only();
+    let eighth = yield_only();
+    value.
+
+pub yielded_add(value: Int): Int ->
+    Process.yield_now();
+    value + 1.
+
+pub yielded_bool(flag: Bool): Bool ->
+    Process.yield_now();
+    flag.
+
+pub yielded_local(): Bool ->
+    let base = 40;
+    let unused = 999;
+    Process.yield_now();
+    base + 2 == 42.
+
+pub yielded_local_from(value: Int): Int ->
+    let doubled = value * 2;
+    let unused = value + 100;
+    Process.yield_now();
+    doubled + 1.
+
+pub yielded_twice(): Bool ->
+    Process.yield_now();
+    Process.yield_now();
+    true.
+
+pub yielded_add_twice(value: Int): Int ->
+    Process.yield_now();
+    let next = value + 1;
+    Process.yield_now();
+    next + 1.
+
+pub yielded_bool_twice(flag: Bool): Bool ->
+    Process.yield_now();
+    Process.yield_now();
+    flag.
+
+pub branch_yield(flag: Bool): Int ->
+    if { flag -> (Process.yield_now(); 41); true -> 7 }.
+
+pub branch_yield_local(flag: Bool, value: Int): Int ->
+    if {
+        flag -> (let next = value + 1; Process.yield_now(); next + 1);
+        true -> value
+    }.
+
+pub branch_yield_both(flag: Bool): Int ->
+    if {
+        flag -> (Process.yield_now(); 1);
+        true -> (Process.yield_now(); 2)
+    }.
+
+pub nested_branch_yield(outer: Bool, inner: Bool): Int ->
+    if {
+        outer -> if { inner -> (Process.yield_now(); 11); true -> 12 };
+        true -> 13
+    }.
+
+pub short_circuit_yield(left: Bool, right: Bool): Bool ->
+    left and (Process.yield_now(); right).
+
+pub yield_then_branch(flag: Bool): Int ->
+    Process.yield_now();
+    if { flag -> (Process.yield_now(); 21); true -> 22 }.
+
+pub branch_capture_pair(flag: Bool, left: Int, right: Int): Int ->
+    if { flag -> (Process.yield_now(); left + right); true -> 0 }.
+
+pub branch_yield_only(flag: Bool): Int ->
+    if { flag -> (Process.yield_now(); 1) }.
+
+pub yield_condition(flag: Bool): Int ->
+    if { (Process.yield_now(); flag) -> 31; true -> 32 }.
+
+pub yield_later_condition(first: Bool, second: Bool): Int ->
+    if {
+        first -> 33;
+        (Process.yield_now(); second) -> 34;
+        true -> 35
+    }.
+
+pub yield_condition_capture(flag: Bool, left: Int, right: Int): Int ->
+    if {
+        (Process.yield_now(); flag) -> left + right;
+        true -> left - right
+    }.
+
+pub yield_condition_local(value: Int): Int ->
+    if {
+        (let adjusted = value + 1;
+         let unused = value + 100;
+         Process.yield_now();
+         adjusted > 10) -> value;
+        true -> 0
+    }.
+
+pub yield_condition_prefix_error(divisor: Int): Int ->
+    if {
+        (let checked = 1 div divisor;
+         Process.yield_now();
+         checked > 0) -> 1;
+        true -> 0
+    }.
+
+pub yield_condition_twice(flag: Bool): Int ->
+    if {
+        (Process.yield_now(); Process.yield_now(); flag) -> 36;
+        true -> 37
+    }.
+
+pub yield_condition_then_body(flag: Bool): Int ->
+    if {
+        (Process.yield_now(); flag) -> (Process.yield_now(); 38);
+        true -> 39
+    }.
+
+pub nested_yield_condition(outer: Bool, inner: Bool): Int ->
+    if {
+        outer -> if {
+            (Process.yield_now(); inner) -> 40;
+            true -> 41
+        };
+        true -> 42
+    }.
+
+pub yield_short_circuit_left(left: Bool, right: Bool): Bool ->
+    (Process.yield_now(); left) and right.
+
+pub yield_short_circuit_left_guard(left: Bool): Bool ->
+    (Process.yield_now(); left) and (1 div 0 == 0).
+
+pub yield_short_circuit_or_left(left: Bool, right: Bool): Bool ->
+    (Process.yield_now(); left) or right.
+
+pub yield_short_circuit_or_guard(left: Bool): Bool ->
+    (Process.yield_now(); left) or (1 div 0 == 0).
+
+pub yield_condition_only(flag: Bool): Int ->
+    if { (Process.yield_now(); flag) -> 43 }.
+
+pub yield_comparison_condition(value: Int): Int ->
+    if { (Process.yield_now(); value) > 10 -> 51; true -> 52 }.
+
+pub yield_not_condition(flag: Bool): Int ->
+    if { not (Process.yield_now(); flag) -> 53; true -> 54 }.
+
+pub yield_and_rhs(left: Bool, right: Bool): Int ->
+    if { left and (Process.yield_now(); right) -> 55; true -> 56 }.
+
+pub yield_or_rhs(left: Bool, right: Bool): Int ->
+    if { left or (Process.yield_now(); right) -> 57; true -> 58 }.
+
+pub yield_and_rhs_only(left: Bool, right: Bool): Int ->
+    if { left and (Process.yield_now(); right) -> 59 }.
+
+pub yield_and_rhs_then_body(left: Bool, right: Bool): Int ->
+    if {
+        left and (Process.yield_now(); right) -> (Process.yield_now(); 60);
+        true -> 61
+    }.
+
+pub yield_or_rhs_then_body(left: Bool, right: Bool): Int ->
+    if {
+        left or (Process.yield_now(); right) -> (Process.yield_now(); 74);
+        true -> 75
+    }.
+
+pub yield_nested_and_rhs(first: Bool, second: Bool, third: Bool): Int ->
+    if {
+        first and (second and (Process.yield_now(); third)) -> 62;
+        true -> 63
+    }.
+
+pub checked_before_yield_rhs(divisor: Int, flag: Bool): Int ->
+    if {
+        (1 div divisor > 0) and (Process.yield_now(); flag) -> 64;
+        true -> 65
+    }.
+
+// The checked left operand executes before suspension and crosses the boundary
+// as a typed continuation capture for the eager comparison.
+pub yield_eager_right_condition(divisor: Int, value: Int): Int ->
+    if {
+        (1 div divisor) > (Process.yield_now(); value) -> 68;
+        true -> 69
+    }.
+
+pub yield_eager_value(divisor: Int, value: Int): Int ->
+    (1 div divisor) + (Process.yield_now(); value).
+
+pub yield_unary_value(value: Int): Int ->
+    -(Process.yield_now(); value).
+
+pub yield_second_call_argument(divisor: Int, value: Int): Int ->
+    add(1 div divisor, (Process.yield_now(); value)).
+
+pub yield_first_call_argument(value: Int, divisor: Int): Int ->
+    add((Process.yield_now(); value), 1 div divisor).
+
+pub call_yielding(flag: Bool): Int -> branch_yield(flag).
+
+pub tail_yielding_local(flag: Bool, value: Int): Int ->
+    branch_yield_local(flag, value).
+
+pub tail_yielding_branch(which: Bool, flag: Bool): Int ->
+    if {
+        which -> branch_yield(flag);
+        true -> yielded_add(41)
+    }.
+
+pub tail_yielding_chain(flag: Bool): Int -> call_yielding(flag).
+
+pub tail_yielding_bool(flag: Bool): Bool -> yielded_bool(flag).
+
+pub non_tail_yielding(flag: Bool): Int -> branch_yield(flag) + 1.
+
+pub non_tail_yielding_offset(flag: Bool, offset: Int): Int ->
+    branch_yield(flag) + offset.
+
+pub non_tail_nested(flag: Bool): Int -> (branch_yield(flag) + 1) * 2.
+
+pub non_tail_negated(flag: Bool): Int -> -branch_yield(flag).
+
+pub non_tail_call_argument(flag: Bool): Int -> add(branch_yield(flag), 1).
+
+pub non_tail_second_call_argument(divisor: Int, flag: Bool): Int ->
+    add(1 div divisor, branch_yield(flag)).
+
+pub non_tail_let(flag: Bool): Int ->
+    let value = branch_yield(flag);
+    value + 2.
+
+pub non_tail_later_let(divisor: Int, flag: Bool): Int ->
+    let checked = 1 div divisor;
+    let value = branch_yield(flag);
+    checked + value.
+
+pub non_tail_local_capture(flag: Bool, value: Int, offset: Int): Int ->
+    branch_yield_local(flag, value) + offset.
+
+pub non_tail_bool(flag: Bool): Bool -> not yielded_bool(flag).
+
+pub non_tail_condition(flag: Bool): Int ->
+    if { yielded_bool(flag) -> 70; true -> 71 }.
+
+pub non_tail_checked_argument(divisor: Int): Int ->
+    branch_yield(1 div divisor > 0) + 3.
+
+pub non_tail_branch(which: Bool, flag: Bool): Int ->
+    if { which -> branch_yield(flag) + 4; true -> 5 }.
+
+pub tail_composed_call(flag: Bool): Int -> non_tail_yielding(flag).
+
+// Multi-stage callees use bounded wrapper chains; eager-right calls preserve
+// checked left-side work in caller-owned continuation captures.
+pub non_tail_multi_stage(): Int -> yielded_add_twice(1) + 1.
+
+pub non_tail_multi_stage_offset(value: Int, offset: Int): Int ->
+    yielded_add_twice(value) + offset.
+
+pub non_tail_multi_stage_nested(value: Int): Int ->
+    (yielded_add_twice(value) + 1) * 2.
+
+pub non_tail_multi_stage_bool(flag: Bool): Bool ->
+    not yielded_bool_twice(flag).
+
+pub non_tail_multi_stage_condition(flag: Bool): Int ->
+    if { yielded_bool_twice(flag) -> 72; true -> 73 }.
+
+pub non_tail_multi_stage_branch(which: Bool, value: Int): Int ->
+    if { which -> yielded_add_twice(value) + 4; true -> 5 }.
+
+pub non_tail_multi_stage_checked(divisor: Int): Int ->
+    yielded_add_twice(1 div divisor) + 1.
+
+pub tail_multi_stage_composed(value: Int, offset: Int): Int ->
+    non_tail_multi_stage_offset(value, offset).
+
+pub yielded_eight(value: Int): Int ->
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    value.
+
+pub non_tail_eight(value: Int): Int -> yielded_eight(value) + 1.
+
+pub non_tail_eager_right(divisor: Int, flag: Bool): Int ->
+    (1 div divisor) + branch_yield(flag).
+
+pub non_tail_two_calls(first: Bool, second: Bool): Int ->
+    branch_yield(first) + branch_yield(second).
+
+pub call_then_direct_yield(flag: Bool, value: Int): Int ->
+    branch_yield(flag) + (Process.yield_now(); value).
+
+pub direct_yield_then_call(value: Int, flag: Bool): Int ->
+    (Process.yield_now(); value) + branch_yield(flag).
+
+pub non_tail_eight_calls(
+    a: Bool,
+    b: Bool,
+    c: Bool,
+    d: Bool,
+    e: Bool,
+    f: Bool,
+    g: Bool,
+    h: Bool
+): Int ->
+    add(branch_yield(a), add(branch_yield(b), add(branch_yield(c), add(branch_yield(d), add(branch_yield(e), add(branch_yield(f), add(branch_yield(g), branch_yield(h)))))))).
+
+pub main(): Bool -> classify(6) == 13.
+
+pub managed_identity(value: String): String -> value.
+
+pub send_string(recipient: Int, payload: String): Unit ->
+    Process.send_string(recipient, payload).
+
+pub receive_string(): String -> Process.receive_string().
+
+pub receive_string_composed(): String -> managed_identity(receive_string()).
+
+pub send_bytes(recipient: Int, payload: Bytes): Unit ->
+    Process.send_bytes(recipient, payload).
+
+pub receive_bytes(): Bytes -> Process.receive_bytes().
+
+pub send_binary(recipient: Int, payload: Binary): Unit ->
+    Process.send_binary(recipient, payload).
+
+pub receive_binary(): Binary -> Process.receive_binary().
+
+pub send_atom(recipient: Int, payload: Atom): Unit ->
+    Process.send_atom(recipient, payload).
+
+pub receive_atom(): Atom -> Process.receive_atom().
+
+pub send_pair(recipient: Process[Pair], payload: Pair): Unit ->
+    Process.send[Pair](recipient, Message.wrap[Pair](payload)).
+
+pub receive_pair(): Pair ->
+    Message.unwrap[Pair](Process.receive[Pair]()).
+
+pub list_identity(value: List[Int]): List[Int] -> value.

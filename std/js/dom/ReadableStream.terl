@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableStream
  */
 module std.js.Dom.ReadableStream.
 
@@ -30,7 +38,10 @@ pub (value: ReadableStream[R]) get_reader(options: ReadableStreamGetReaderOption
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeThrough)
  */
-pub (value: ReadableStream[R]) pipe_through(transform: ReadableWritablePair[T , R], options: StreamPipeOptions): ReadableStream[T] ->
+pub (value: ReadableStream[R]) pipe_through(
+    transform: ReadableWritablePair[T, R],
+    options: StreamPipeOptions
+): ReadableStream[T] ->
     native.
 
 /**
@@ -38,5 +49,8 @@ pub (value: ReadableStream[R]) pipe_through(transform: ReadableWritablePair[T , 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeTo)
  */
-pub (value: ReadableStream[R]) pipe_to(destination: WritableStream[R], options: StreamPipeOptions): std.js.Promise[std.core.Unit] ->
+pub (value: ReadableStream[R]) pipe_to(
+    destination: WritableStream[R],
+    options: StreamPipeOptions
+): std.js.Promise[std.core.Unit] ->
     native.

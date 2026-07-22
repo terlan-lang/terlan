@@ -2,9 +2,7 @@ use super::*;
 use crate::commands::static_site::*;
 use crate::support::test_fs;
 use crate::terlan_hir::resolve_syntax_module_output_with_interfaces;
-use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxModuleOutput,
-};
+use crate::terlan_syntax::parse_module_as_syntax_output;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -23,16 +21,17 @@ fn fixture(path: &Path, contents: &str) -> String {
     file.to_string_lossy().to_string()
 }
 
-mod check_beam_std_test;
 mod check_constructor_error_manifest_test;
 mod check_constructor_identity_manifest_test;
 mod check_incremental_test;
 mod check_language_feature_rejection_test;
 mod check_phase_manifest_smoke_test;
 mod check_phase_test;
+mod check_std_vm_test;
 mod check_target_profile_gate_test;
 mod check_target_profile_progression_test;
 mod command_transition_test;
+mod debug_cli_test;
 mod doc_test;
 mod emit_js_test;
 mod help_test;
@@ -261,149 +260,6 @@ fn normalize_golden_text(text: &str) -> String {
         + "\n"
 }
 
-/// Extracts the public source function surface from syntax output.
-fn syntax_public_function_surface_snapshot(module: &SyntaxModuleOutput) -> Vec<String> {
-    let mut entries = module
-        .declarations
-        .iter()
-        .filter_map(|decl| match &decl.payload {
-            SyntaxDeclarationPayload::Function {
-                name,
-                params,
-                is_public,
-                ..
-            } if *is_public => Some(format!("{}/{}", name, params.len())),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    entries.sort();
-    entries
-}
-
-/// Builds the expected exported Erlang function surface for one syntax
-/// fixture.
-///
-/// Inputs:
-/// - `module`: syntax-output module fixture.
-///
-/// Output:
-/// - Sorted Erlang export names including public source functions with
-///   hidden trait-evidence arguments and constructor helper exports.
-///
-/// Transformation:
-/// - Derives public function arity from source parameters plus runtime
-///   trait-evidence parameters, then appends deterministic constructor
-///   helper names for public constructors.
-fn syntax_public_erlang_surface_snapshot(module: &SyntaxModuleOutput) -> Vec<String> {
-    let mut entries = module
-        .declarations
-        .iter()
-        .filter_map(|decl| match &decl.payload {
-            SyntaxDeclarationPayload::Function {
-                name,
-                params,
-                generic_bounds,
-                is_public,
-                ..
-            } if *is_public => Some(format!("{}/{}", name, params.len() + generic_bounds.len())),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    for decl in &module.declarations {
-        match &decl.payload {
-            SyntaxDeclarationPayload::Constructor {
-                name,
-                is_public,
-                clauses,
-                ..
-            } if *is_public => {
-                for clause in clauses {
-                    let fixed_arity = clause
-                        .params
-                        .iter()
-                        .filter(|param| !param.is_varargs)
-                        .count();
-                    let varargs = clause.params.iter().any(|param| param.is_varargs);
-                    let emitted_arity = if varargs {
-                        fixed_arity + 1
-                    } else {
-                        fixed_arity
-                    };
-                    entries.push(format!(
-                        "{}/{}",
-                        phase_contract_constructor_function_name(name, fixed_arity, varargs),
-                        emitted_arity
-                    ));
-                }
-            }
-            _ => {}
-        }
-    }
-    entries.sort();
-    entries
-}
-
-/// Maps a public constructor declaration to the emitted helper name used by
-/// phase-contract backend surface checks.
-///
-/// Inputs:
-/// - `name`: source constructor name.
-/// - `fixed_arity`: number of non-vararg constructor parameters.
-/// - `varargs`: whether the constructor accepts a vararg parameter.
-///
-/// Output:
-/// - Erlang/JavaScript helper function name expected in backend exports.
-///
-/// Transformation:
-/// - Mirrors the backend's deterministic constructor helper naming scheme
-///   for phase-contract tests without depending on backend-private helpers.
-fn phase_contract_constructor_function_name(
-    name: &str,
-    fixed_arity: usize,
-    varargs: bool,
-) -> String {
-    if varargs {
-        format!(
-            "typer_ctor_{}_varargs_{}",
-            phase_contract_erlang_type_name(name),
-            fixed_arity
-        )
-    } else {
-        format!(
-            "typer_ctor_{}_{}",
-            phase_contract_erlang_type_name(name),
-            fixed_arity
-        )
-    }
-}
-
-/// Converts a source constructor name into the backend helper stem used by
-/// phase-contract tests.
-///
-/// Inputs:
-/// - `name`: source constructor name.
-///
-/// Output:
-/// - Lowercase snake-style backend type-name stem.
-///
-/// Transformation:
-/// - Inserts underscores before non-leading uppercase ASCII letters and
-///   lowercases uppercase ASCII letters, matching backend helper naming.
-fn phase_contract_erlang_type_name(name: &str) -> String {
-    let mut out = String::new();
-    for (idx, ch) in name.chars().enumerate() {
-        if ch.is_ascii_uppercase() {
-            if idx > 0 {
-                out.push('_');
-            }
-            out.push(ch.to_ascii_lowercase());
-        } else {
-            out.push(ch);
-        }
-    }
-    out
-}
-
 /// Renders a deterministic resolver-stage snapshot.
 fn resolve_stage_snapshot(resolved: &crate::terlan_hir::ResolvedModule) -> String {
     let mut out = Vec::new();
@@ -510,120 +366,6 @@ fn core_stage_snapshot(core: &crate::terlan_typeck::CoreModule) -> String {
     normalize_golden_text(&core.contract_text())
 }
 
-/// Extracts a deterministic backend emission surface snapshot.
-fn emit_stage_snapshot(path: &Path) -> String {
-    let source = fs::read_to_string(path).unwrap_or_else(|err| {
-        panic!("failed to read emitted file {path:?}: {err}");
-    });
-    let mut out = Vec::new();
-    for line in source.lines() {
-        let trimmed = line.trim_end();
-        if trimmed.starts_with("-module(")
-            || trimmed.starts_with("-export(")
-            || (trimmed.ends_with(" ->") && !trimmed.starts_with(" "))
-        {
-            out.push(trimmed.to_string());
-        }
-    }
-    if out.is_empty() {
-        panic!("no emit snapshot lines found in {path:?}");
-    }
-    normalize_golden_text(&out.join("\n"))
-}
-
-/// Parses exported Erlang function names from emitted source.
-fn parse_erlang_exported_function_surface(path: &Path) -> Vec<String> {
-    let source = fs::read_to_string(path).unwrap_or_else(|err| {
-        panic!("failed to read emitted erlang file {path:?}: {err}");
-    });
-    let mut exports = Vec::new();
-    for line in source.lines() {
-        let trimmed = line.trim();
-        let Some(body) = trimmed.strip_prefix("-export([") else {
-            continue;
-        };
-        let Some(body) = body.strip_suffix("]).") else {
-            continue;
-        };
-        if body.trim().is_empty() {
-            continue;
-        }
-        for entry in body.split(',') {
-            let entry = entry.trim();
-            if entry.is_empty() {
-                continue;
-            }
-            if let Some((name, arity)) = entry.rsplit_once('/') {
-                if !name.is_empty() && !arity.is_empty() {
-                    exports.push(entry.to_string());
-                }
-            }
-        }
-    }
-    exports.sort();
-    exports
-}
-
-/// Parses exported JavaScript function names from emitted source.
-fn parse_js_exported_function_surface(path: &Path) -> Vec<String> {
-    let source = fs::read_to_string(path).unwrap_or_else(|err| {
-        panic!("failed to read emitted js file {path:?}: {err}");
-    });
-    let mut exports = Vec::new();
-    for line in source.lines() {
-        let trimmed = line.trim();
-        let Some(rest) = trimmed.strip_prefix("export function ") else {
-            continue;
-        };
-        let Some(paren_start) = rest.find('(') else {
-            continue;
-        };
-        let function_name = rest[..paren_start].trim();
-        if function_name.is_empty() {
-            continue;
-        }
-        let rest = &rest[paren_start + 1..];
-        let Some(paren_end) = rest.find(')') else {
-            continue;
-        };
-        let params = rest[..paren_end].trim();
-        let arity = if params.is_empty() {
-            0
-        } else {
-            params.split(',').count()
-        };
-        exports.push(format!("{function_name}/{arity}"));
-    }
-    exports.sort();
-    exports
-}
-
-/// Extracts public function names from backend surface entries.
-///
-/// Inputs:
-/// - `surface`: sorted backend export entries formatted as `name/arity`.
-///
-/// Output:
-/// - Sorted function names with backend arity removed.
-///
-/// Transformation:
-/// - Splits each surface entry at the final `/`, keeps the function-name
-///   prefix, sorts the names, and removes duplicates so cross-backend
-///   checks compare source-visible names rather than backend ABI arity.
-fn public_function_names_from_surface(surface: &[String]) -> Vec<String> {
-    let mut names = surface
-        .iter()
-        .filter_map(|entry| {
-            entry
-                .rsplit_once('/')
-                .map(|(name, _arity)| name.to_string())
-        })
-        .collect::<Vec<_>>();
-    names.sort();
-    names.dedup();
-    names
-}
-
 /// Asserts one fixture matches every phase-contract golden snapshot.
 fn assert_phase_contract_golden(fixture: PhaseContractFixture) {
     let root = phase_contract_fixture_root();
@@ -672,31 +414,6 @@ fn assert_phase_contract_golden(fixture: PhaseContractFixture) {
         fs::write(&golden_path, &core_snapshot).expect("write core phase golden");
     } else {
         assert_eq!(core_snapshot, normalize_golden_text(&expected_core));
-    }
-
-    let out_dir = make_temp_dir("phase_contract_emit");
-    let exit = commands::emit::run(
-        CliCommand {
-            verb: Some("emit".into()),
-            args: vec![source_path.to_string_lossy().to_string()],
-        },
-        CliState {
-            out_dir: out_dir.clone(),
-            ..Default::default()
-        },
-    );
-    assert_eq!(exit, ExitCode::SUCCESS);
-    let emitted_path = out_dir.join(format!(
-        "{}.erl",
-        support::erlang_output_stem(&syntax_output.module_name)
-    ));
-    let emit_snapshot = emit_stage_snapshot(&emitted_path);
-    let expected_emit = read_phase_contract_golden(fixture.module_name, "emit");
-    if update_goldens {
-        let golden_path = root.join(format!("{}.emit.golden", fixture.module_name));
-        fs::write(&golden_path, &emit_snapshot).expect("write emit phase golden");
-    } else {
-        assert_eq!(emit_snapshot, normalize_golden_text(&expected_emit));
     }
 }
 
@@ -841,144 +558,5 @@ fn run_check_phase_contract_next_lean_model_candidates_emit_manifest_evidence() 
             |field| manifest_json["core_proof_coverage"][field].as_u64(),
         )
         .unwrap_or_else(|err| panic!("{err}"));
-    }
-}
-
-/// Verifies backend export surfaces remain aligned across supported backends.
-#[test]
-fn run_phase_contract_fixtures_backend_parity() {
-    for fixture in phase_contract_fixtures() {
-        let root = phase_contract_fixture_root();
-        let source_path = root.join(fixture.source_path);
-        let source = fs::read_to_string(&source_path)
-            .unwrap_or_else(|err| panic!("failed to read phase fixture {source_path:?}: {err}"));
-        let syntax_output =
-            formal_pipeline::parse_source_as_syntax_output(&source_path.to_string_lossy(), &source)
-                .unwrap_or_else(|err| {
-                    panic!(
-                        "failed to parse syntax output fixture {}: {err:?}",
-                        fixture.source_path
-                    )
-                });
-        let expected_js_surface = syntax_public_function_surface_snapshot(&syntax_output);
-        let expected_erlang_surface = syntax_public_erlang_surface_snapshot(&syntax_output);
-        let interfaces =
-            formal_pipeline::load_external_interfaces(&source_path.to_string_lossy(), None);
-        let resolved =
-            resolve_syntax_module_output_with_interfaces(&syntax_output, &interfaces).module;
-        let core =
-            crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax_output, &resolved);
-        let erlang_interfaces = interfaces.into_iter().collect::<BTreeMap<_, _>>();
-        let direct_erlang =
-                crate::terlan_erlang::try_emit_syntax_module_output_to_erlang_with_interfaces_file_imports_templates_and_markdown(
-                    &syntax_output,
-                    &erlang_interfaces,
-                    &BTreeMap::new(),
-                    &BTreeMap::new(),
-                    &BTreeMap::new(),
-                )
-                .unwrap_or_else(|err| {
-                    panic!("failed direct Erlang lowering for {source_path:?}: {err}")
-                });
-        let core_gated_erlang =
-            crate::terlan_erlang::try_emit_core_module_to_erlang_with_syntax_bridge(
-                &core,
-                &syntax_output,
-                &erlang_interfaces,
-                &BTreeMap::new(),
-                &BTreeMap::new(),
-                &BTreeMap::new(),
-            )
-            .unwrap_or_else(|err| {
-                panic!("failed CoreIR-gated Erlang lowering for {source_path:?}: {err}")
-            });
-        assert_eq!(
-            core_gated_erlang, direct_erlang,
-            "CoreIR-gated Erlang output drift for {:?}",
-            source_path
-        );
-
-        let erlang_dir = make_temp_dir("backend_parity_erlang");
-        assert_eq!(
-            commands::emit::run(
-                CliCommand {
-                    verb: Some("emit".into()),
-                    args: vec![source_path.to_string_lossy().to_string()],
-                },
-                CliState {
-                    out_dir: erlang_dir.clone(),
-                    ..Default::default()
-                },
-            ),
-            ExitCode::SUCCESS
-        );
-        let erlang_path = erlang_dir.join(format!(
-            "{}.erl",
-            support::erlang_output_stem(&syntax_output.module_name)
-        ));
-        let erlang_surface = parse_erlang_exported_function_surface(&erlang_path);
-        assert_eq!(
-            erlang_surface, expected_erlang_surface,
-            "erlang surface mismatch for {:?}",
-            source_path
-        );
-
-        let js_dir = make_temp_dir("backend_parity_js");
-        assert_eq!(
-            commands::emit_js::run(
-                &[
-                    source_path.to_string_lossy().to_string(),
-                    "--declarations".into(),
-                ],
-                &CliState {
-                    out_dir: js_dir.clone(),
-                    ..Default::default()
-                },
-            ),
-            ExitCode::SUCCESS
-        );
-        let js_path = js_dir.join(format!("{}.js", syntax_output.module_name));
-        let js_source = fs::read_to_string(&js_path)
-            .unwrap_or_else(|err| panic!("failed to read emitted js file {js_path:?}: {err}"));
-        commands::emit_js::assert_oxc_accepts_js_artifact(&js_path, &js_source);
-        let js_surface = parse_js_exported_function_surface(&js_path);
-        assert_eq!(
-            js_surface, expected_js_surface,
-            "js surface mismatch for {:?}",
-            source_path
-        );
-        let erlang_public_names = public_function_names_from_surface(&erlang_surface);
-        for public_function in public_function_names_from_surface(&js_surface) {
-            assert!(
-                erlang_public_names.contains(&public_function),
-                "Erlang surface missing public JS function name {public_function} for {:?}",
-                source_path
-            );
-        }
-
-        let declarations_path = js_dir.join(format!("{}.d.ts", syntax_output.module_name));
-        let declarations = fs::read_to_string(&declarations_path).unwrap_or_else(|err| {
-            panic!("failed to read ts declarations {declarations_path:?}: {err}")
-        });
-        let expected_declarations_empty =
-            core.types.iter().all(|type_decl| {
-                !matches!(
-                    type_decl.visibility,
-                    crate::terlan_typeck::CoreVisibility::Public
-                )
-            }) && core.functions.iter().all(|function| !function.public);
-        if expected_declarations_empty {
-            assert!(
-                    declarations.is_empty(),
-                    "expected empty declarations for fixture with no public CoreIR declaration surface {:?}",
-                    source_path
-                );
-        } else {
-            assert!(
-                !declarations.is_empty(),
-                "expected declarations for fixture with public CoreIR declaration surface {:?}",
-                source_path
-            );
-        }
     }
 }

@@ -1,14 +1,15 @@
 module std.core.FunctionalTest.
 
 import std.collections.List.
-import type std.collections.List.
 import std.core.Functional.{Applicative, Functor, Monad, ResultFunctor, ResultMonad}.
 import std.core.Option.{None, Option, Some}.
 import std.core.Result.{Err, Ok, Result}.
+import std.test.Test.{assert_equal}.
+
+import type std.collections.List.
 import type std.core.Result.
 
-pub type Problem =
-    Atom["problem"].
+pub type Problem.
 
 pub increment(value: Int): Int ->
     value + 1.
@@ -25,61 +26,67 @@ pub duplicate(value: Int): List[Int] ->
 pub result_positive(value: Int): Result[Int, Problem] ->
     Ok(value + 1).
 
-pub result_error_text(_problem: Problem): String ->
-    "problem".
+pub result_error_text(_problem: Problem): String -> "problem".
 
 @test
 pub functor_map_preserves_some(): Bool ->
-    std.test.Test.assert_equal(Functor[Option].map(Some(1), increment), Some(2)).
+    assert_equal(Functor[Option].map(Some(1), increment), Some(2)).
 
 @test
 pub functor_map_preserves_none(): Bool ->
-    std.test.Test.assert_equal(Functor[Option].map(None, increment), None).
+    assert_equal(Functor[Option].map(None, increment), None).
 
 @test
 pub applicative_apply_uses_wrapped_function(): Bool ->
-    std.test.Test.assert_equal(Applicative[Option].apply(Some(increment), Some(1)), Some(2)).
+    assert_equal(Applicative[Option].apply(Some(increment), Some(1)), Some(2)).
 
 @test
 pub applicative_apply_preserves_missing_function(): Bool ->
-    std.test.Test.assert_equal(Applicative[Option].apply(None, Some(1)), None).
+    assert_equal(Applicative[Option].apply(None, Some(1)), None).
 
 @test
 pub monad_flat_map_preserves_some(): Bool ->
-    std.test.Test.assert_equal(Monad[Option].flat_map(Some(1), positive), Some(1)).
+    assert_equal(Monad[Option].flat_map(Some(1), positive), Some(1)).
 
 @test
 pub monad_flat_map_preserves_none(): Bool ->
-    std.test.Test.assert_equal(Monad[Option].flat_map(None, positive), None).
+    assert_equal(Monad[Option].flat_map(None, positive), None).
 
 @test
 pub list_functor_map_transforms_values(): Bool ->
-    let mapped = Functor[List].map(List(1, 2), increment);
+    let mapped =
+        1
+        |> List(2)
+        |> Functor[List].map(increment);
     case mapped.first() {
-        Some(value) ->
-            std.test.Test.assert_equal(2, value);
-        None ->
-            false
+        Some(value) -> assert_equal(2, value);
+        None -> false
     }.
 
 @test
 pub list_applicative_apply_expands_function_values(): Bool ->
-    let applied = Applicative[List].apply(List(increment, double), List(1, 2));
-    std.test.Test.assert_equal(4, applied.length()).
+    let applied =
+        increment
+        |> List(double)
+        |> Applicative[List].apply(List(1, 2));
+    assert_equal(4, applied.length()).
 
 @test
 pub list_monad_flat_map_flattens_callback_lists(): Bool ->
-    let flattened = Monad[List].flat_map(List(1, 2), duplicate);
-    std.test.Test.assert_equal(4, flattened.length()).
+    let flattened =
+        1
+        |> List(2)
+        |> Monad[List].flat_map(duplicate);
+    assert_equal(4, flattened.length()).
 
 @test
 pub result_functor_map_transforms_success(): Bool ->
-    std.test.Test.assert_equal(ResultFunctor.map(Ok(1), increment), Ok(2)).
+    assert_equal(ResultFunctor.map(Ok(1), increment), Ok(2)).
 
 @test
 pub result_functor_map_error_transforms_error(): Bool ->
-    std.test.Test.assert_equal(ResultFunctor.map_error(Err(Problem), result_error_text), Err("problem")).
+    assert_equal(ResultFunctor.map_error(Err(Problem), result_error_text), Err("problem")).
 
 @test
 pub result_monad_flat_map_chains_success(): Bool ->
-    std.test.Test.assert_equal(ResultMonad.flat_map(Ok(1), result_positive), Ok(2)).
+    assert_equal(ResultMonad.flat_map(Ok(1), result_positive), Ok(2)).

@@ -1,20 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaStreamTrack
  */
 module std.js.Dom.MediaStreamTrackTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.MediaStreamTrack.{MediaStreamTrack}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.MediaStreamTrack.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub content_hint_typechecks(receiver: MediaStreamTrack): JsString ->
     receiver.content_hint().
@@ -37,7 +39,10 @@ pub muted_typechecks(receiver: MediaStreamTrack): Bool ->
 pub ready_state_typechecks(receiver: MediaStreamTrack): MediaStreamTrackState ->
     receiver.ready_state().
 
-pub apply_constraints_typechecks(receiver: MediaStreamTrack, constraints: MediaTrackConstraints): std.js.Promise[Unit] ->
+pub apply_constraints_typechecks(
+    receiver: MediaStreamTrack,
+    constraints: MediaTrackConstraints
+): std.js.Promise[Unit] ->
     receiver.apply_constraints(constraints).
 
 pub clone_typechecks(receiver: MediaStreamTrack): MediaStreamTrack ->
@@ -55,8 +60,18 @@ pub get_settings_typechecks(receiver: MediaStreamTrack): MediaTrackSettings ->
 pub stop_typechecks(receiver: MediaStreamTrack): Unit ->
     receiver.stop().
 
-pub add_event_listener_typechecks(receiver: MediaStreamTrack, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: MediaStreamTrack,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: MediaStreamTrack, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: MediaStreamTrack,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -1,27 +1,46 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileSystemDirectoryHandle
  */
 module std.js.Dom.FileSystemDirectoryHandleTest.
 
-import type std.js.Dom.FileSystemDirectoryHandle.{FileSystemDirectoryHandle}.
-
+import type std.js.Dom.FileSystemDirectoryHandle.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub get_directory_handle_typechecks(receiver: FileSystemDirectoryHandle, name: JsString, options: FileSystemGetDirectoryOptions): Promise[FileSystemDirectoryHandle] ->
+pub get_directory_handle_typechecks(
+    receiver: FileSystemDirectoryHandle,
+    name: JsString,
+    options: FileSystemGetDirectoryOptions
+): Promise[FileSystemDirectoryHandle] ->
     receiver.get_directory_handle(name, options).
 
-pub get_file_handle_typechecks(receiver: FileSystemDirectoryHandle, name: JsString, options: FileSystemGetFileOptions): Promise[FileSystemFileHandle] ->
+pub get_file_handle_typechecks(
+    receiver: FileSystemDirectoryHandle,
+    name: JsString,
+    options: FileSystemGetFileOptions
+): Promise[FileSystemFileHandle] ->
     receiver.get_file_handle(name, options).
 
-pub remove_entry_typechecks(receiver: FileSystemDirectoryHandle, name: JsString, options: FileSystemRemoveOptions): Promise[std.core.Unit] ->
+pub remove_entry_typechecks(
+    receiver: FileSystemDirectoryHandle,
+    name: JsString,
+    options: FileSystemRemoveOptions
+): Promise[std.core.Unit] ->
     receiver.remove_entry(name, options).
 
-pub resolve_typechecks(receiver: FileSystemDirectoryHandle, possible_descendant: FileSystemHandle): Promise[Option[std.js.Array[JsString]]] ->
+pub resolve_typechecks(
+    receiver: FileSystemDirectoryHandle,
+    possible_descendant: FileSystemHandle
+): Promise[Option[std.js.Array[JsString]]] ->
     receiver.resolve(possible_descendant).

@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DateConstructor
  */
 module std.js.DateConstructor.
 
@@ -28,7 +36,15 @@ pub (value: DateConstructor) parse(s: std.js.String.JsString): JsNumber ->
  * @param seconds Must be supplied if milliseconds is supplied. A number from 0 to 59 that specifies the seconds.
  * @param ms A number from 0 to 999 that specifies the milliseconds.
  */
-pub (value: DateConstructor) utc(year: JsNumber, month_index: JsNumber, date: JsNumber, hours: JsNumber, minutes: JsNumber, seconds: JsNumber, ms: JsNumber): JsNumber ->
+pub (value: DateConstructor) utc(
+    year: JsNumber,
+    month_index: JsNumber,
+    date: JsNumber,
+    hours: JsNumber,
+    minutes: JsNumber,
+    seconds: JsNumber,
+    ms: JsNumber
+): JsNumber ->
     native.
 
 /**

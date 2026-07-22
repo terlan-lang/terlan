@@ -1,0 +1,70 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface NavigationHistoryEntry
+ */
+module std.js.Dom.NavigationHistoryEntry.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`NavigationHistoryEntry`** interface of the Navigation API represents a single navigation history entry.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationHistoryEntry)
+ */
+pub opaque type NavigationHistoryEntry.
+
+/**
+ * The **`id`** read-only property of the NavigationHistoryEntry interface returns the `id` of the history entry, or an empty string if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationHistoryEntry/id)
+ */
+pub (value: NavigationHistoryEntry) id(): JsString.
+
+/**
+ * The **`index`** read-only property of the NavigationHistoryEntry interface returns the index of the history entry in the history entries list (that is, the list returned by Navigation.entries()), or `-1` if the entry does not appear in the list or if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationHistoryEntry/index)
+ */
+pub (value: NavigationHistoryEntry) index(): std.js.Number.JsNumber.
+
+/**
+ * The **`key`** read-only property of the NavigationHistoryEntry interface returns the `key` of the history entry, or an empty string if current document is not fully active.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationHistoryEntry/key)
+ */
+pub (value: NavigationHistoryEntry) key(): JsString.
+
+/**
+ * The **`sameDocument`** read-only property of the NavigationHistoryEntry interface returns `true` if this history entry is for the same `document` as the current Document value and current document is fully active, or `false` otherwise.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationHistoryEntry/sameDocument)
+ */
+pub (value: NavigationHistoryEntry) same_document(): Bool.
+
+/**
+ * The **`url`** read-only property of the NavigationHistoryEntry interface returns the absolute URL of this history entry.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationHistoryEntry/url)
+ */
+pub (value: NavigationHistoryEntry) url(): Option[JsString].
+
+pub (value: NavigationHistoryEntry) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: NavigationHistoryEntry) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

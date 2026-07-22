@@ -158,7 +158,7 @@ fn module_readmes_rejects_missing_rust_module_readme() -> io::Result<()> {
 #[test]
 fn module_readmes_checks_std_terlan_modules() -> io::Result<()> {
     let repo = TestRepo::new("std-clean")?;
-    repo.write("std/core/bool.terl", "module std.core.Bool.\n")?;
+    repo.write("std/core/Bool.terl", "module std.core.Bool.\n")?;
     repo.write("std/core/README.md", "# Core\n")?;
 
     let summary = run_module_readmes(repo.root()).expect("std readmes clean");

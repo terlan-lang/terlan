@@ -1,0 +1,640 @@
+/**
+ * Terlan VM persistent actor descriptor contract.
+ *
+ * `std.vm.PersistentActor` exposes source-visible descriptors for actor
+ * identity, snapshot schema identity, source-visible schema declarations,
+ * persistent actor declarations, retention policies, audit retention plans,
+ * redaction policies, actor-family retention defaults, snapshot plans,
+ * mailbox restore plans, migration rollback plans, package event variant
+ * schema ids, durable adapter schema metadata, package migration
+ * registrations, package retention policy bindings, model-sync retention
+ * continuity plans, durable resource restore plans, and package store
+ * bindings. The VM owns storage and replay mechanics; Terlan source owns
+ * declaring the typed persistence identity and export policy passed into those
+ * mechanics.
+ */
+module std.vm.PersistentActor.
+
+/**
+ * ActorId identifies one persistent actor instance.
+ *
+ * Input: actor family and actor id.
+ * Output: an opaque actor identity descriptor.
+ * Transformation: validates actor persistence identity through the VM.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ActorId.
+
+/**
+ * SchemaId identifies the typed snapshot schema for one actor family.
+ *
+ * Input: schema name and version.
+ * Output: an opaque schema identity descriptor.
+ * Transformation: keeps snapshot schema identity typed at the Terlan boundary.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type SchemaId.
+
+/**
+ * SchemaDeclaration describes a typed persistent actor schema surface.
+ *
+ * Input: schema id, state field names, event variant names, and mailbox schema.
+ * Output: an opaque schema declaration descriptor.
+ * Transformation: keeps persistent actor schema declarations source-visible
+ * before VM-owned migration planning accepts stored state.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type SchemaDeclaration.
+
+/**
+ * EventVariantSchemaId identifies one package-scoped actor event variant.
+ *
+ * Input: package id, actor id, owning schema id, event variant name, and
+ * variant schema version.
+ * Output: an opaque event variant schema id descriptor.
+ * Transformation: keeps package event variant identity typed across package
+ * boundaries before replay accepts persisted events.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type EventVariantSchemaId.
+
+/**
+ * DurableAdapterSchemaMetadata identifies one durable adapter schema contract.
+ *
+ * Input: package id, adapter name, expected schema id, storage lane, and
+ * metadata version.
+ * Output: an opaque durable adapter schema metadata descriptor.
+ * Transformation: keeps durable adapter schema identity source-visible before
+ * adapter restore accepts stored snapshots, events, or resource handles.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type DurableAdapterSchemaMetadata.
+
+/**
+ * PersistentActorDeclaration binds one actor id to its schema and store lane.
+ *
+ * Input: actor id, schema id, and storage lane.
+ * Output: an opaque persistent actor declaration descriptor.
+ * Transformation: keeps actor persistence declarations source-visible without
+ * exposing raw store internals or ORM identity maps.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type PersistentActorDeclaration.
+
+/**
+ * RetentionPolicy describes actor history retention bounds.
+ *
+ * Input: retain-from sequence, schema migration floor, and audit floor.
+ * Output: an opaque retention policy descriptor.
+ * Transformation: keeps compaction and retention policy source-visible before
+ * VM-owned compaction validates whether physical pruning is safe.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type RetentionPolicy.
+
+/**
+ * ActorFamilyRetentionDefaults binds bounded defaults to an actor family.
+ *
+ * Input: actor family plus local-development and production retention policies.
+ * Output: an opaque actor-family retention defaults descriptor.
+ * Transformation: keeps default retention policy selection source-visible
+ * before VM-owned compaction validates whether a concrete actor can prune.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ActorFamilyRetentionDefaults.
+
+/**
+ * AuditRetentionPlan binds event retention to an audit floor.
+ *
+ * Input: actor id, retention policy, and required audit event names.
+ * Output: an opaque audit retention plan descriptor.
+ * Transformation: keeps audit-preserving event-retention intent
+ * source-visible before VM-owned compaction validates retained event suffixes.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type AuditRetentionPlan.
+
+/**
+ * PackageRetentionPolicyBinding binds a package actor to a retention policy.
+ *
+ * Input: package id, actor id, and retention policy.
+ * Output: an opaque package retention policy binding descriptor.
+ * Transformation: keeps package-provided retention policy integration
+ * source-visible before VM-owned compaction resolves package store defaults.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type PackageRetentionPolicyBinding.
+
+/**
+ * ModelSyncRetentionContinuityPlan binds actor compaction to model streams.
+ *
+ * Input: actor id, retention policy, model name, and retained-from model
+ * version.
+ * Output: an opaque model-sync retention continuity descriptor.
+ * Transformation: keeps model-sync stream continuity source-visible before
+ * actor compaction prunes events that may still feed live model streams.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ModelSyncRetentionContinuityPlan.
+
+/**
+ * RedactionPolicy describes which actor export fields are hidden.
+ *
+ * Input: redacted field names plus mailbox/resource inclusion flags.
+ * Output: an opaque redaction policy descriptor.
+ * Transformation: keeps export redaction source-visible before VM-owned
+ * export decides what can be serialized into replay fixtures.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type RedactionPolicy.
+
+/**
+ * SnapshotPlan describes one actor snapshot write.
+ *
+ * Input: actor id, schema id, sequence, and state payload.
+ * Output: an opaque snapshot plan descriptor.
+ * Transformation: lets Terlan code declare snapshot schema identity without
+ * exposing raw storage internals.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type SnapshotPlan.
+
+/**
+ * Persistable marks values that may enter VM-owned durable actor state.
+ *
+ * Input: actor state type `T`.
+ * Output: an identity proof method used by generic persistence boundaries.
+ * Transformation: lets ordinary typed state use the default snapshot path
+ * while allowing `impl not Persistable[LocalType]` to prohibit persistence at
+ * compile time.
+ */
+@target.vm {process_mailbox: true}
+pub trait Persistable[T] {
+    persist(value: T): T.
+}.
+
+/**
+ * Provides persistence evidence for state without a concrete denial.
+ *
+ * Input: any actor state value of type `T`.
+ * Output: the same typed value.
+ * Transformation: supplies compile-time evidence only; serialization,
+ * durability, replay, and schema validation remain VM-owned.
+ */
+@target.vm {process_mailbox: true}
+pub impl Persistable[T] for T {
+    persist(value: T): T ->
+        value.
+}.
+
+/**
+ * ReplayPlan describes one actor replay request.
+ *
+ * Input: actor id and expected schema id.
+ * Output: an opaque replay plan descriptor.
+ * Transformation: keeps replay schema expectations source-visible.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ReplayPlan.
+
+/**
+ * ResourceCheckpoint identifies one actor-owned durable resource checkpoint.
+ *
+ * Input: actor id and durable resource handle.
+ * Output: an opaque resource checkpoint descriptor.
+ * Transformation: keeps actor restart resource restoration source-visible.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ResourceCheckpoint.
+
+/**
+ * ResourceRestorePlan describes one actor resource restore request.
+ *
+ * Input: actor id and resource checkpoint.
+ * Output: an opaque resource restore plan descriptor.
+ * Transformation: lets actor restart code request VM-owned resource recovery.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type ResourceRestorePlan.
+
+/**
+ * MailboxCheckpoint identifies one actor mailbox checkpoint.
+ *
+ * Input: actor id and checkpoint sequence.
+ * Output: an opaque mailbox checkpoint descriptor.
+ * Transformation: keeps actor restart mailbox restoration source-visible.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type MailboxCheckpoint.
+
+/**
+ * MailboxRestorePlan describes one actor mailbox restore request.
+ *
+ * Input: actor id and mailbox checkpoint.
+ * Output: an opaque mailbox restore plan descriptor.
+ * Transformation: lets actor restart code request VM-owned mailbox recovery.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type MailboxRestorePlan.
+
+/**
+ * MigrationRollbackPlan describes one failed schema migration rollback.
+ *
+ * Input: actor id, source schema, target schema, migration sequence, and
+ * reason.
+ * Output: an opaque rollback plan descriptor.
+ * Transformation: keeps failed migration rollback source-visible while the VM
+ * owns idempotent rollback ordering and state-table cleanup.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type MigrationRollbackPlan.
+
+/**
+ * PackageMigrationRegistration describes a package-provided schema migration.
+ *
+ * Input: package id, actor id, source schema, target schema, and migration
+ * name.
+ * Output: an opaque package migration registration descriptor.
+ * Transformation: keeps package-provided migration edges source-visible before
+ * VM-owned graph planning accepts package state.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type PackageMigrationRegistration.
+
+/**
+ * TimerCheckpoint identifies one actor-owned timer checkpoint.
+ *
+ * Input: actor id, timer name, and deadline in milliseconds.
+ * Output: an opaque timer checkpoint descriptor.
+ * Transformation: keeps actor restart timer restoration source-visible.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type TimerCheckpoint.
+
+/**
+ * TimerRestorePlan describes one actor timer restore request.
+ *
+ * Input: actor id and timer checkpoint.
+ * Output: an opaque timer restore plan descriptor.
+ * Transformation: lets actor restart code request VM-owned timer recovery.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type TimerRestorePlan.
+
+/**
+ * PackageStoreBinding identifies a package-owned persistent actor store lane.
+ *
+ * Input: package id, actor id, and expected schema id.
+ * Output: an opaque package store binding descriptor.
+ * Transformation: keeps package-backed actor storage source-visible without
+ * exposing package cache or registry internals.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type PackageStoreBinding.
+
+/**
+ * Builds a persistent actor id descriptor.
+ *
+ * Input: actor family and actor id.
+ * Output: actor id descriptor.
+ * Transformation: validates non-empty persistent actor identity through the VM.
+ */
+@target.vm {process_mailbox: true}
+pub actor_id(family: String, id: String): ActorId ->
+    native.
+
+/**
+ * Builds a typed snapshot schema id descriptor.
+ *
+ * Input: schema name and version.
+ * Output: schema id descriptor.
+ * Transformation: exposes typed actor snapshot schema ids to Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub schema_id(name: String, version: Int): SchemaId ->
+    native.
+
+/**
+ * Builds a persistent actor schema declaration descriptor.
+ *
+ * Input: schema id, state field names, event variant names, and mailbox schema.
+ * Output: schema declaration descriptor.
+ * Transformation: exposes the actor schema shape that migration planning must
+ * validate before replay or snapshot restore.
+ */
+@target.vm {process_mailbox: true}
+pub schema(
+    schema: SchemaId,
+    fields: List[String],
+    events: List[String],
+    mailbox_schema: SchemaId
+): SchemaDeclaration ->
+    native.
+
+/**
+ * Builds a package-scoped event variant schema id descriptor.
+ *
+ * Input: package id, actor id, owning schema id, event variant name, and
+ * variant schema version.
+ * Output: event variant schema id descriptor.
+ * Transformation: lets packages persist actor event variants with explicit
+ * typed identities before cross-package replay or migration.
+ */
+@target.vm {process_mailbox: true}
+pub event_variant_schema(
+    package_id: String,
+    actor: ActorId,
+    schema: SchemaId,
+    variant: String,
+    version: Int
+): EventVariantSchemaId ->
+    native.
+
+/**
+ * Builds durable adapter schema metadata for a package store lane.
+ *
+ * Input: package id, adapter name, expected schema id, storage lane, and
+ * metadata version.
+ * Output: durable adapter schema metadata descriptor.
+ * Transformation: lets durable adapters publish explicit schema metadata
+ * before VM-owned replay or restore accepts package-backed actor state.
+ */
+@target.vm {process_mailbox: true}
+pub durable_adapter_schema(
+    package_id: String,
+    adapter: String,
+    schema: SchemaId,
+    storage_lane: String,
+    metadata_version: Int
+): DurableAdapterSchemaMetadata ->
+    native.
+
+/**
+ * Declares a persistent actor and its durable storage lane.
+ *
+ * Input: actor id, schema id, and storage lane.
+ * Output: persistent actor declaration descriptor.
+ * Transformation: exposes persistent actor declarations before VM-owned replay
+ * validates snapshots, events, mailboxes, timers, and resource handles.
+ */
+@target.vm {process_mailbox: true}
+pub persistent_actor(
+    actor: ActorId,
+    schema: SchemaId,
+    storage_lane: String
+): PersistentActorDeclaration ->
+    native.
+
+/**
+ * Builds a persistent actor retention policy descriptor.
+ *
+ * Input: retain-from sequence, schema migration floor, and audit floor.
+ * Output: retention policy descriptor.
+ * Transformation: exposes the history-retention bounds that compaction must
+ * validate before pruning snapshots, events, checkpoints, or resources.
+ */
+@target.vm {process_mailbox: true}
+pub retention_policy(
+    retain_from_sequence: Int,
+    schema_migration_floor: Int,
+    audit_floor: Int
+): RetentionPolicy ->
+    native.
+
+/**
+ * Builds actor-family retention defaults from explicit policy descriptors.
+ *
+ * Input: actor family plus local-development and production retention
+ * policies.
+ * Output: actor-family retention defaults descriptor.
+ * Transformation: makes fallback retention policy selection explicit before
+ * compaction evaluates actor-specific schema, audit, and recovery floors.
+ */
+@target.vm {process_mailbox: true}
+pub family_retention_defaults(
+    family: String,
+    local: RetentionPolicy,
+    production: RetentionPolicy
+): ActorFamilyRetentionDefaults ->
+    native.
+
+/**
+ * Builds an audit-preserving event retention plan.
+ *
+ * Input: actor id, retention policy, and event names that must remain
+ * audit-visible after compaction.
+ * Output: audit retention plan descriptor.
+ * Transformation: makes audit-preserving event-retention requirements explicit
+ * before compaction chooses a retained event suffix.
+ */
+@target.vm {process_mailbox: true}
+pub audit_retention(
+    actor: ActorId,
+    policy: RetentionPolicy,
+    required_events: List[String]
+): AuditRetentionPlan ->
+    native.
+
+/**
+ * Binds a package-provided retention policy to a persistent actor.
+ *
+ * Input: package id, actor id, and retention policy.
+ * Output: package retention policy binding descriptor.
+ * Transformation: makes package retention ownership explicit before
+ * compaction merges actor, actor-family, and package defaults.
+ */
+@target.vm {process_mailbox: true}
+pub package_retention_policy(
+    package_id: String,
+    actor: ActorId,
+    policy: RetentionPolicy
+): PackageRetentionPolicyBinding ->
+    native.
+
+/**
+ * Builds a model-sync stream retention continuity plan.
+ *
+ * Input: actor id, retention policy, model name, and retained-from model
+ * version.
+ * Output: model-sync retention continuity descriptor.
+ * Transformation: makes model stream continuity explicit before compaction
+ * chooses retained actor events and model-sync change stream windows.
+ */
+@target.vm {process_mailbox: true}
+pub model_sync_retention_continuity(
+    actor: ActorId,
+    policy: RetentionPolicy,
+    model: String,
+    retained_from_version: Int
+): ModelSyncRetentionContinuityPlan ->
+    native.
+
+/**
+ * Builds a persistent actor export redaction policy descriptor.
+ *
+ * Input: redacted field names plus mailbox/resource inclusion flags.
+ * Output: redaction policy descriptor.
+ * Transformation: exposes actor export redaction decisions before export
+ * manifest generation serializes actor state, mailboxes, timers, or resources.
+ */
+@target.vm {process_mailbox: true}
+pub redaction_policy(
+    redacted_fields: List[String],
+    include_mailbox: Bool,
+    include_resources: Bool
+): RedactionPolicy ->
+    native.
+
+/**
+ * Builds a snapshot write plan.
+ *
+ * Input: actor id, schema id, sequence, and actor state payload.
+ * Output: snapshot plan descriptor.
+ * Transformation: pairs actor state with an explicit typed schema id.
+ */
+@target.vm {process_mailbox: true}
+pub snapshot[State](
+    actor: ActorId,
+    schema: SchemaId,
+    sequence: Int,
+    state: State
+)[Persistable[State]]: SnapshotPlan ->
+    native.
+
+/**
+ * Builds a replay request plan.
+ *
+ * Input: actor id and expected schema id.
+ * Output: replay plan descriptor.
+ * Transformation: requires restore callers to state the schema they expect.
+ */
+@target.vm {process_mailbox: true}
+pub replay(actor: ActorId, expected_schema: SchemaId): ReplayPlan ->
+    native.
+
+/**
+ * Builds a durable resource checkpoint descriptor for an actor restart.
+ *
+ * Input: actor id and durable resource handle.
+ * Output: resource checkpoint descriptor.
+ * Transformation: exposes typed resource checkpoint identity to Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub resource_checkpoint(actor: ActorId, handle: String): ResourceCheckpoint ->
+    native.
+
+/**
+ * Builds a resource restore plan for an actor restart.
+ *
+ * Input: actor id and resource checkpoint descriptor.
+ * Output: resource restore plan descriptor.
+ * Transformation: pairs actor restart replay with VM-owned resource recovery.
+ */
+@target.vm {process_mailbox: true}
+pub restore_resource(actor: ActorId, checkpoint: ResourceCheckpoint): ResourceRestorePlan ->
+    native.
+
+/**
+ * Builds a mailbox checkpoint descriptor for an actor restart.
+ *
+ * Input: actor id and checkpoint sequence.
+ * Output: mailbox checkpoint descriptor.
+ * Transformation: exposes typed mailbox checkpoint identity to Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub mailbox_checkpoint(actor: ActorId, sequence: Int): MailboxCheckpoint ->
+    native.
+
+/**
+ * Builds a mailbox restore plan for an actor restart.
+ *
+ * Input: actor id and mailbox checkpoint descriptor.
+ * Output: mailbox restore plan descriptor.
+ * Transformation: pairs actor restart replay with VM-owned mailbox recovery.
+ */
+@target.vm {process_mailbox: true}
+pub restore_mailbox(actor: ActorId, checkpoint: MailboxCheckpoint): MailboxRestorePlan ->
+    native.
+
+/**
+ * Builds a failed schema migration rollback plan.
+ *
+ * Input: actor id, source schema, target schema, migration sequence, and
+ * reason.
+ * Output: migration rollback plan descriptor.
+ * Transformation: exposes rollback after failed migration to Terlan code
+ * without exposing in-flight VM migration tables.
+ */
+@target.vm {process_mailbox: true}
+pub migration_rollback(
+    actor: ActorId,
+    from_schema: SchemaId,
+    to_schema: SchemaId,
+    sequence: Int,
+    reason: String
+): MigrationRollbackPlan ->
+    native.
+
+/**
+ * Registers a package-provided schema migration edge.
+ *
+ * Input: package id, actor id, source schema, target schema, and migration
+ * name.
+ * Output: package migration registration descriptor.
+ * Transformation: exposes package-provided migration registration to Terlan
+ * code before VM-owned migration graph planning accepts package state.
+ */
+@target.vm {process_mailbox: true}
+pub register_package_migration(
+    package_id: String,
+    actor: ActorId,
+    from_schema: SchemaId,
+    to_schema: SchemaId,
+    migration_name: String
+): PackageMigrationRegistration ->
+    native.
+
+/**
+ * Builds a timer checkpoint descriptor for an actor restart.
+ *
+ * Input: actor id, timer name, and deadline in milliseconds.
+ * Output: timer checkpoint descriptor.
+ * Transformation: exposes typed timer checkpoint identity to Terlan source.
+ */
+@target.vm {process_mailbox: true}
+pub timer_checkpoint(actor: ActorId, name: String, deadline_millis: Int): TimerCheckpoint ->
+    native.
+
+/**
+ * Builds a timer restore plan for an actor restart.
+ *
+ * Input: actor id and timer checkpoint descriptor.
+ * Output: timer restore plan descriptor.
+ * Transformation: pairs actor restart replay with VM-owned timer recovery.
+ */
+@target.vm {process_mailbox: true}
+pub restore_timer(actor: ActorId, checkpoint: TimerCheckpoint): TimerRestorePlan ->
+    native.
+
+/**
+ * Binds a persistent actor to a package-owned store lane.
+ *
+ * Input: package id, actor id, and expected schema id.
+ * Output: package store binding descriptor.
+ * Transformation: lets Terlan code declare package-provided actor persistence
+ * without depending on hidden storage globals or ORM identity maps.
+ */
+@target.vm {process_mailbox: true}
+pub package_store(package_id: String, actor: ActorId, schema: SchemaId): PackageStoreBinding ->
+    native.
+
+/**
+ * Returns true when two schema ids can be used for the same snapshot lane.
+ *
+ * Input: expected and actual schema ids.
+ * Output: schema compatibility predicate.
+ * Transformation: gives source code a typed preflight for schema drift checks.
+ */
+@target.vm {process_mailbox: true}
+pub compatible_schema(expected: SchemaId, actual: SchemaId): Bool ->
+    native.

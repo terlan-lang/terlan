@@ -10,7 +10,7 @@ use crate::commands::web_route::{route_ambiguity_key, route_param_types, validat
 use super::super::js::JsModuleArtifact;
 use super::manifest::{
     WebErrorHandlerArtifact, WebFileResponseArtifact, WebHandlerArtifact, WebSocketArtifact,
-    WebStaticResponseArtifact,
+    WebSseArtifact, WebStaticResponseArtifact,
 };
 use super::WebRouteSourceArtifact;
 
@@ -21,14 +21,15 @@ mod validation;
 use validation::{
     apply_router_handler_arities, validate_discovered_web_handler_routes,
     validate_discovered_web_routes, validate_router_error_handler, validate_router_handler_rows,
-    validate_router_middleware,
+    validate_router_middleware, validate_router_response_middleware,
 };
 
 use helpers::{
-    is_http_error_type, is_request_type, is_response_type, is_router_builder_receiver,
-    prefix_web_route_manifest_rows, prefixed_router_route, route_source_context,
-    router_group_body_expr, router_handler_name, router_middleware_from_expr,
-    router_receiver_method_name, router_route_literal, source_span_for_expr, WebRouteSourceContext,
+    is_http_error_type, is_middleware_result_type, is_request_type, is_response_type,
+    is_router_builder_receiver, prefix_web_route_manifest_rows, prefixed_router_route,
+    route_source_context, router_group_body_expr, router_handler_name, router_middleware_from_expr,
+    router_receiver_method_name, router_response_middleware_from_expr, router_route_literal,
+    source_span_for_expr, WebRouteSourceContext,
 };
 use responses::{file_response_from_handler, static_response_from_handler};
 
@@ -41,12 +42,13 @@ use responses::{file_response_from_handler, static_response_from_handler};
 /// - Dynamic handler rows plus cacheable static and file response rows.
 ///
 /// Transformation:
-/// - Keeps compile-time constant responses out of the BEAM handler path while
-///   preserving normal dynamic handlers for non-constant response functions.
+/// - Keeps compile-time response payloads in the manifest while preserving
+///   their source router ownership for middleware-aware VM serving.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(super) struct WebRouteManifestRows {
     pub(super) handlers: Vec<WebHandlerArtifact>,
     pub(super) websockets: Vec<WebSocketArtifact>,
+    pub(super) sse: Vec<WebSseArtifact>,
     pub(super) static_responses: Vec<WebStaticResponseArtifact>,
     pub(super) file_responses: Vec<WebFileResponseArtifact>,
 }
@@ -63,7 +65,7 @@ pub(super) struct WebRouteManifestRows {
 /// Transformation:
 /// - Classifies handler functions whose body is a constant `Response.text` or
 ///   `Response.html` builder as static responses and keeps all other supported
-///   routes as dynamic BEAM-backed handlers.
+///   routes as dynamic VM handler routes.
 pub(super) fn discover_web_route_manifest_from_sources(
     sources: &[WebRouteSourceArtifact],
 ) -> Result<WebRouteManifestRows, String> {
@@ -437,6 +439,7 @@ fn websocket_from_source(
         ));
     }
     Ok(Some(WebSocketArtifact {
+        module: source_artifact.module.clone(),
         route,
         protocol,
         source: Some(source_span_for_expr(source, route_body)),
@@ -572,16 +575,23 @@ fn collect_router_routes_from_expr(
     if let Some(middleware) = router_middleware_from_expr(expr) {
         validate_router_middleware(module_name, middleware, signatures)?;
     }
+    if let Some(middleware) = router_response_middleware_from_expr(expr) {
+        validate_router_response_middleware(module_name, middleware, signatures)?;
+    }
     if let Some((prefix, body)) = router_group_body_expr(expr) {
         let mut grouped_rows = WebRouteManifestRows::default();
         collect_router_routes_from_expr(module_name, body, source, signatures, &mut grouped_rows)?;
         prefix_web_route_manifest_rows(&prefix, &mut grouped_rows);
         rows.handlers.append(&mut grouped_rows.handlers);
         rows.websockets.append(&mut grouped_rows.websockets);
+        rows.sse.append(&mut grouped_rows.sse);
         rows.static_responses
             .append(&mut grouped_rows.static_responses);
         rows.file_responses.append(&mut grouped_rows.file_responses);
         return Ok(());
+    }
+    if let Some(endpoint) = router_sse_from_expr(module_name, expr, source) {
+        rows.sse.push(endpoint);
     }
     if let Some(handlers) = router_handler_from_expr(module_name, expr, source) {
         validate_router_handler_rows(module_name, &handlers, signatures)?;
@@ -601,6 +611,35 @@ fn collect_router_routes_from_expr(
         collect_router_routes_from_expr(module_name, child, source, signatures, rows)?;
     }
     Ok(())
+}
+
+/// Converts one direct or receiver-style `Router.sse` call into manifest metadata.
+fn router_sse_from_expr(
+    module_name: &str,
+    expr: &SyntaxExprOutput,
+    source: &WebRouteSourceContext<'_>,
+) -> Option<WebSseArtifact> {
+    if expr.kind != SyntaxExprKind::Call {
+        return None;
+    }
+    let (method_name, route_index) = if expr.remote.as_deref() == Some("Router") {
+        (expr.children.first()?.text.as_deref()?, 2)
+    } else {
+        let callee = expr.children.first()?;
+        let method_name = router_receiver_method_name(callee)?;
+        if !is_router_builder_receiver(callee.children.first()?) {
+            return None;
+        }
+        (method_name, 1)
+    };
+    if method_name != "sse" {
+        return None;
+    }
+    Some(WebSseArtifact {
+        module: module_name.to_string(),
+        route: router_route_literal(expr.children.get(route_index)?)?,
+        source: Some(source_span_for_expr(source, expr)),
+    })
 }
 
 /// Recursively collects route-builder calls from a syntax expression.
@@ -626,6 +665,9 @@ fn collect_router_handlers_from_expr(
 ) -> Result<(), String> {
     if let Some(middleware) = router_middleware_from_expr(expr) {
         validate_router_middleware(module_name, middleware, signatures)?;
+    }
+    if let Some(middleware) = router_response_middleware_from_expr(expr) {
+        validate_router_response_middleware(module_name, middleware, signatures)?;
     }
     if let Some((prefix, body)) = router_group_body_expr(expr) {
         let mut grouped_handlers = Vec::new();

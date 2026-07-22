@@ -135,6 +135,7 @@ pub(crate) fn core_syntax_trait_conformances(
         if let SyntaxDeclarationPayload::TraitImpl {
             trait_ref,
             for_type,
+            is_negative: false,
             is_public,
             ..
         } = &declaration.payload
@@ -203,7 +204,9 @@ fn core_import_identity(
     source_path: &Option<String>,
 ) -> String {
     match kind {
-        SyntaxImportKind::Module => module_import_identity(module_name, items),
+        SyntaxImportKind::Module => {
+            crate::terlan_syntax::syntax_module_import_identity(module_name, items)
+        }
         SyntaxImportKind::File | SyntaxImportKind::Css | SyntaxImportKind::Markdown => {
             let alias = items
                 .first()
@@ -212,41 +215,5 @@ fn core_import_identity(
             let source = source_path.as_deref().unwrap_or("<missing-source>");
             format!("{alias}<-{source}")
         }
-    }
-}
-
-/// Builds the CoreIR identity for a source module import.
-///
-/// Inputs:
-/// - `module_name`: parser-preserved import module prefix.
-/// - `items`: selected/default import items.
-///
-/// Output:
-/// - Fully qualified module identity used by CoreIR imports.
-///
-/// Transformation:
-/// - Preserves braced selected imports such as `std.core.Option.{Some}` as the
-///   provider module `std.core.Option`.
-/// - Reconstructs default-export module imports such as `std.data.Json.` from
-///   parser parts `std.data` + `Json` when the prefix ends in a lower-case
-///   package segment.
-fn module_import_identity(
-    module_name: &str,
-    items: &[crate::terlan_syntax::SyntaxImportItem],
-) -> String {
-    let Some(item) = items.first() else {
-        return module_name.to_string();
-    };
-    if items.len() == 1
-        && item.as_alias.is_none()
-        && module_name
-            .rsplit('.')
-            .next()
-            .and_then(|segment| segment.chars().next())
-            .is_some_and(|first| first.is_ascii_lowercase())
-    {
-        format!("{module_name}.{}", item.name)
-    } else {
-        module_name.to_string()
     }
 }

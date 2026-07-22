@@ -1,0 +1,18 @@
+module tests.language.EffectfulComprehensionFailureTest.
+
+import std.core.Effect.
+import std.core.GuardResult.{GuardResult}.
+
+@test
+pub propagates_typed_guard_failure(): Bool ->
+    let values = [1];
+    let planned = [value | value <- values, Effect.fail("denied")];
+    let _result = Effect.run(planned);
+    true.
+
+@test
+pub propagates_guard_cancellation(): Bool ->
+    let values = [1];
+    let planned = [value | value <- values, Effect.cancelled()];
+    let _result = Effect.run(planned);
+    true.

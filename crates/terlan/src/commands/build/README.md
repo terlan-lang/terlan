@@ -4,66 +4,99 @@ This module owns `terlc build`.
 
 ## Current Scope
 
-The release-candidate build command supports single-file builds and recursive
-directory source discovery for the Erlang backend:
+The 0.0.7 build command emits a target-native `.tvm` application image.
+Single-file and manifest-backed builds lower supported scalar functions from
+CoreIR through Terlan NativeIR and Cranelift into a relocatable object, perform
+one native link for the application, embed and seal the canonical binary TVM
+descriptor, and record public typed exports for runtime worker dispatch. The
+resulting `.tvm` is a statically admissible, self-describing native image that
+`terlan-vm run` and `terlan-vm load` consume directly.
+
+The current direct profile includes checked integer and Boolean values,
+arithmetic and comparisons, local calls, sequential scalar `let` bindings, and
+ordered scalar `if` branches. A branch set with no matching condition returns a
+typed native status rather than falling back to interpretation.
 
 ```sh
 terlc build
-terlc build path/to/module.terl --target erlang --out-dir build/terlan
-terlc build path/to/project --target erlang --out-dir build/terlan
+terlc build path/to/module.terl
+terlc build path/to/project
+terlc build path/to/project --release
 ```
 
-It writes:
+Development builds are the default. They use fast Cranelift code generation
+and independently reusable module objects so an implementation-only edit can
+rebuild one module before the final application link. `--release` selects
+speed-optimized Cranelift lowering, emits one whole-application object, and
+enables native-linker optimization. Cranelift objects do not carry LLVM IR, so
+the release path does not claim an external LLVM LTO stage. Development and
+release policy identities are included in object, image, and warm-reuse cache
+keys and can never share a cached native image.
+
+The default VM path writes:
 
 ```text
 _build/
-  terlan-debug-map.json
-  terlan-package-build.json   # manifest-backed project builds only
-  bin/<package>               # manifest-backed beam-thin launcher only
-  src/<module>.erl
-  ebin/<module>.beam
+  vm/<application>.tvm
+  .terlan/native-aot/<digest>/<application>.native.o
+  .terlan/native-aot/<digest>/<application>.descriptor.o
 ```
 
-`terlan-debug-map.json` is a build-local source-to-artifact map. It records the
-Terlan module name, source path, CoreIR hash, generated Erlang source path, and
-generated BEAM path for each emitted module. Manifest-backed project builds also
-record project package name and declared source roots. This artifact is required
-by the debuggability contract so backend output can be traced back to formal
-compiler identity without rerunning validation.
+The application-code path does not generate Rust or invoke `rustc`; Cranelift
+object emission occurs in the compiler process. Native objects and descriptor
+objects are content-addressed compiler cache entries and are not runtime
+artifacts. Manifest-backed executable packages also bundle `terlan-vm`,
+`terlan-native-worker`, a launcher, and metadata naming all package members.
 
 `terlan-package-build.json` is a manifest-backed package/build metadata file,
 not a debug map and not a package-manager lockfile. It records the package name,
 version, selected target, selected artifact mode, executable artifact metadata,
 declared source roots, and normalized dependency metadata from `terlan.toml`.
-Downstream tools can consume this file to distinguish package shape from
-generated-source traceability.
-When `[target.erlang.package] adapter = "rebar3-compatible"` is present, the
-file records that adapter marker under package adapters.
-
+Downstream tools can consume this file to distinguish package shape from VM,
+JavaScript, mobile, Wasm, and future target-specific artifact metadata.
 The directory slice recursively scans package-rooted source layouts for `.terl`
-files, validates that source-root-relative paths match declared module names
-through the existing directory check path using an interface cache, then emits
-and compiles modules that the current Erlang backend can compile independently.
+files, validates that source-root-relative paths match declared module names,
+then emits VM artifacts by default.
+
+A direct source-file build inside a manifest-backed project discovers the
+nearest owning `terlan.toml`, prepares interfaces for its resolved source and
+dependency roots, validates the selected file against the owning package
+namespace, and emits only that file's artifact. This lets `terlc run
+path/to/Entry.terl` resolve sibling and dependency modules without executing or
+emitting every source file as another entrypoint. A direct file with no owning
+manifest remains an isolated single-file build.
 
 Directories containing `terlan.toml` use the project-manifest path instead of
 this plain source-root path. The current project path parses package metadata,
 manifest-declared source roots, and dependency metadata. Local `path`
-dependencies are recursively resolved before backend emission: dependency
+dependencies are recursively resolved before artifact emission: dependency
 manifests must exist, dependency source roots are validated before dependents,
 dependency source roots are emitted before dependents, and local dependency
-cycles are rejected. Project builds still write one combined debug map across
-all selected source roots. Target-scoped external dependency metadata for
+cycles are rejected. Target-scoped external dependency metadata for
 `hex`, `npm`, and `cargo` is parsed and preserved by the manifest layer, but
-current builds reject those entries with stable diagnostics before backend
+current builds reject those entries with stable diagnostics before artifact
 emission. Fetching, linking, or packaging those dependencies here would make
 `terlc build <project>` look more complete than it is.
-The Erlang backend also rejects `std.native.*` modules and imports before
-lowering because those packages require the Rust/native target capability.
+
+`terlc build --target mobile.android` and `terlc build --target mobile.ios` are
+currently planning targets. They emit `_build/mobile/<platform>/plan.json` with
+the selected source path and mobile shell planning fields, and they
+intentionally do not invoke Erlang emission, JavaScript bundling, Gradle, Apple
+build tooling, or native shell tooling yet. When `_build/web` already exists,
+the mobile planner copies it into
+`_build/mobile/<platform>/shell-inputs/web` and records that relative shell
+input path in the mobile plan. The planner also emits first-slice shell
+metadata under `_build/mobile/<platform>/metadata`: route configuration,
+bridge manifest, explicit native service capability resource manifest, native
+shell config, and source identity metadata. The compiler-owned native shell
+layout generators are written under
+`_build/mobile/<platform>/shell` as a build artifact smoke target, without
+invoking native build tools.
 
 Manifest-backed source roots are package-namespace-rooted. For a package named
 `app`, a source file under `src/app/Main.terl` declares `module app.Main.`. A
 source file under `src/other/Main.terl` is rejected before module-layout
-validation, CoreIR lowering, or backend emission. Package names that contain
+validation, CoreIR lowering, or artifact emission. Package names that contain
 `-` use `_` for the default source package namespace because Terlan module path
 segments are `LowerIdent` tokens. A manifest can override the source namespace
 without changing the package-manager-safe package name:
@@ -83,48 +116,50 @@ Local `path` dependencies are emitted in package dependency order, but
 `terlan-package-build.json` records the root package manifest's dependency
 metadata rather than pretending to be a full dependency lockfile.
 
-Manifest-backed `beam-thin` builds emit `bin/<package>` as the single
-user-facing executable artifact. It is a small launcher that expects
-Erlang/ERTS on the target machine and starts `erl` with the generated `ebin`
-directory on the BEAM code path. A0.46 defines the boring project entrypoint
-convention: the launcher must invoke `<namespace>.Main.main(): Unit`, where the
-namespace is either `[package] namespace` or the manifest package name with `-`
-converted to `_`. Manifest-backed executable builds must reject missing,
-private, argument-taking, or non-`Unit` entrypoints before writing the launcher.
-Library artifacts skip entrypoint validation and launcher generation. The A0.46
+The legacy `beam-thin` artifact is rejected at manifest parse time.
+A0.46 defines the historical project entrypoint convention:
+`<namespace>.Main.main(): Unit`, where the namespace is either `[package]
+namespace` or the manifest package name with `-` converted to `_`. Library
+artifacts skip entrypoint validation and launcher generation. The A0.46
 hello-world surface is `std.io.Console.println(value: String): Unit`; Terlan
-source must not call Erlang `io` directly. The BEAM backend owns the lowering
-to `io:format("~ts~n", [Text])` or an equivalent runtime helper. Generated
-`.erl` and `.beam` files remain intermediate compiler artifacts.
-
-Erlang package adapter metadata is also metadata-only in the current build
-path. A manifest can reserve `rebar3-compatible` adapter intent, but `terlc
-build --target erlang` does not generate `rebar.config`, `.app.src`, release
-files, or invoke Rebar3.
+source must not call Erlang `io` directly.
 
 ## Responsibilities
 
 - Parse command-local build arguments.
 - Compile Terlan source files through the formal compiler pipeline.
-- Emit Erlang source into the build `src` directory.
-- Invoke `erlc` to produce BEAM artifacts in the build `ebin` directory.
-- Emit a source-to-artifact debug map after successful artifact generation.
-- Emit a single `beam-thin` executable launcher for successful manifest-backed
-  project builds.
+- Emit one descriptor-bearing native application image for supported scalar
+  exports and expose only public functions at the worker boundary.
+- Reject legacy `beam-thin` launcher generation from the public build path.
 - Emit package/build metadata for successful manifest-backed project builds.
-- Reject backend targets and target profiles that are not Erlang-compatible.
+- Reject target profiles that are incompatible with the
+  selected target.
 - For JS browser builds, emit `_build/web/manifest.json` with copied assets,
-  static responses, dynamic BEAM-backed route handlers, and source metadata
-  that `terlc serve` can use for request logs and development errors.
+  static responses, dynamic VM handler routes, and source metadata that
+  `terlc serve` can use for request logs and development errors.
+- For Android and iOS mobile builds, emit a mobile shell planning manifest
+  without routing through Erlang, JS, or native shell build tools, and package
+  any existing browser output as a native shell input.
+- Emit mobile route, bridge, native capability resource, native shell, and
+  source identity metadata files with stable paths that later source collection
+  can populate.
+- Emit Android and iOS shell skeletons from compiler-owned layout generators so
+  build tests can smoke-check native project shape.
+- Keep ordinary `js.browser` builds web-only; they must not emit mobile shell
+  artifacts unless the user selected a mobile target.
 
 ## File Layout
 
 - `mod.rs` routes build command execution and coordinates target-specific
   output.
-- `project_roots.rs` resolves manifest source roots and local path dependency
-  closures for both Erlang and JavaScript project builds.
-- `package_artifact.rs` validates manifest-backed executable entrypoints,
-  writes beam-thin launchers, and writes package metadata.
+- `project_roots.rs` resolves manifest source roots, local path dependencies,
+  and locked Git package closures for VM, JavaScript, and future
+  target-specific project builds.
+- `package_git.rs` owns explicit immutable Git fetching, deterministic
+  `terlan.lock` generation, cache provenance/checksum validation, and
+  network-free build resolution.
+- `mobile.rs` owns first-slice mobile shell build planning for
+  `--target mobile.android` and `--target mobile.ios`.
 - `target_gate.rs` owns build-target compatibility checks for native packages
   and target-specific std imports.
 - `project_manifest.rs` parses `terlan.toml`, assigns TOML keys to typed
@@ -141,10 +176,14 @@ files, or invoke Rebar3.
 ## Boundaries
 
 - Do not fetch external registries or generate target package-manager files
-  here until the roadmap explicitly opens those slices. Project-manifest builds
-  may walk local `path` dependency manifests only.
-- Do not generate Rebar3 or OTP application files from adapter metadata until
-  the Erlang target packaging adapter slice explicitly opens that work.
+  here until the roadmap explicitly opens those slices. Git network access is
+  restricted to explicit `terlc package fetch`. That command also admits local
+  target archives through `--artifact`, verifies their manifest and complete
+  payload checksum inventory, and records their content-addressed cache entry
+  in `terlan.lock`. Build, run, and test consume only locked, reverified cache
+  entries for the active target.
+- Do not restore removed OTP/Rebar adapter generation here. Future package
+  publishing work must enter through target-neutral package metadata.
 - Do not bypass the formal pipeline; `build` must use the same checked artifacts
   as release-supported compiler commands.
 - Keep command-specific process execution local unless another release command

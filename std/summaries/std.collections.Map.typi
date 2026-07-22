@@ -21,15 +21,18 @@ pub opaque type Map[K, V].
 /// Transformation: lowers through the compiler-owned `core.map.clear`
 /// intrinsic and updates the receiver binding so it becomes empty.
 
+@pure
 pub (mut map: Map[K, V]) clear(): Unit.
 
 /// Returns whether a key exists.
 ///
 /// Input: one `Map[K, V]` receiver and one key of type `K`.
-/// Output: `true` when the key exists; otherwise `false`.
+/// Output: `true` when the key exists;
+/// otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.map.contains_key`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (map: Map[K, V]) contains_key(key: K): Bool.
 
 /// Creates a map from explicit key-value entry tuples.
@@ -40,24 +43,29 @@ pub (map: Map[K, V]) contains_key(key: K): Bool.
 /// intrinsic. Backends choose the efficient map representation and duplicate
 /// key handling behind the portable `Map[K, V]` contract.
 
+@pure
 pub from_entries[K, V](entries: List[{K, V}]): Map[K, V].
 
 /// Looks up a value by key.
 ///
 /// Input: one `Map[K, V]` receiver and one key of type `K`.
-/// Output: `Some(value)` when the key exists; otherwise `None`.
+/// Output: `Some(value)` when the key exists;
+/// otherwise `None`.
 /// Transformation: lowers through the compiler-owned `core.map.get`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (map: Map[K, V]) get(key: K): Option[V].
 
 /// Returns whether a map contains no entries.
 ///
 /// Input: one `Map[K, V]`.
-/// Output: `true` when the map has no entries; otherwise `false`.
+/// Output: `true` when the map has no entries;
+/// otherwise `false`.
 /// Transformation: lowers through the compiler-owned `core.map.is_empty`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (map: Map[K, V]) is_empty(): Bool.
 
 /// Creates an iterator over key-value entries.
@@ -68,6 +76,7 @@ pub (map: Map[K, V]) is_empty(): Bool.
 /// intrinsic. Backends choose their own traversal order and representation while
 /// preserving the portable pair-yielding contract.
 
+@pure
 pub (map: Map[K, V]) iterator(): Iterator[{K, V}].
 
 /// Creates an empty map.
@@ -77,6 +86,7 @@ pub (map: Map[K, V]) iterator(): Iterator[{K, V}].
 /// Transformation: lowers through the compiler-owned `core.map.new`
 /// intrinsic, using the selected backend's canonical empty-map value.
 
+@pure
 pub new[K, V](): Map[K, V].
 
 /// Inserts or replaces a key-value entry.
@@ -87,6 +97,7 @@ pub new[K, V](): Map[K, V].
 /// intrinsic and updates the receiver binding in source order. Pipe chains
 /// continue with the updated receiver.
 
+@pure
 pub (mut map: Map[K, V]) put(key: K, value: V): Unit.
 
 /// Removes a key-value entry if it exists.
@@ -96,6 +107,7 @@ pub (mut map: Map[K, V]) put(key: K, value: V): Unit.
 /// Transformation: lowers through the compiler-owned `core.map.remove`
 /// intrinsic and updates the receiver binding in source order.
 
+@pure
 pub (mut map: Map[K, V]) remove(key: K): Unit.
 
 /// Returns the number of entries in a map.
@@ -105,7 +117,19 @@ pub (mut map: Map[K, V]) remove(key: K): Unit.
 /// Transformation: lowers through the compiler-owned `core.map.size`
 /// intrinsic and observes the receiver without changing its contents.
 
+@pure
 pub (map: Map[K, V]) size(): Int.
+
+/// Returns a value and a map without the requested key.
+///
+/// Input: one `Map[K, V]` and one key of type `K`.
+/// Output: `{Some(value), remaining}` when the key exists, otherwise
+/// `{None, original}`.
+/// Transformation: observes the value before removing the key from a local
+/// persistent map value. The input map remains available to the caller.
+
+@pure
+pub take[K, V](map: Map[K, V], key: K): {Option[V], Map[K, V]}.
 
 /// Constructs a map from explicit key-value entry tuples.
 ///

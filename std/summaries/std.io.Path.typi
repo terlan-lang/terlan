@@ -1,7 +1,7 @@
 //! Portable lexical path contract.
 //!
 //! `std.io.Path` exposes path parsing, rendering, and lexical component helpers
-//! through a target-neutral Terlan API. Its first backend is Rust/SafeNative
+//! through a target-neutral Terlan API. Its first backend is Rust/NativeBoundary
 //! with `std::path`; source code sees only `Path`, `PathError`, `Option`, and
 //! `Result`.
 

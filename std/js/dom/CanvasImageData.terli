@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasImageData
+ */
+module std.js.Dom.CanvasImageData.
+
+import type std.core.{Unit}.
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasImageData.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createImageData)
+ */
+pub (value: CanvasImageData) create_image_data(sw: JsNumber, sh: JsNumber, settings: ImageDataSettings): ImageData.
+
+pub (value: CanvasImageData) create_image_data(image_data: ImageData): ImageData.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getImageData)
+ */
+pub (value: CanvasImageData) get_image_data(
+    sx: JsNumber,
+    sy: JsNumber,
+    sw: JsNumber,
+    sh: JsNumber,
+    settings: ImageDataSettings
+): ImageData.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/putImageData)
+ */
+pub (value: CanvasImageData) put_image_data(image_data: ImageData, dx: JsNumber, dy: JsNumber): Unit.
+
+pub (value: CanvasImageData) put_image_data(
+    image_data: ImageData,
+    dx: JsNumber,
+    dy: JsNumber,
+    dirty_x: JsNumber,
+    dirty_y: JsNumber,
+    dirty_width: JsNumber,
+    dirty_height: JsNumber
+): Unit.

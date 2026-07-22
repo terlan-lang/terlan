@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WebTransportOptions
  */
 module std.js.Dom.WebTransportOptionsTest.
 
 import type std.core.{Bool}.
+import type std.js.Dom.WebTransportOptions.
 
-import type std.js.Dom.WebTransportOptions.{WebTransportOptions}.
-
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub allow_pooling_typechecks(receiver: WebTransportOptions): Bool ->
     receiver.allow_pooling().
@@ -21,5 +26,7 @@ pub congestion_control_typechecks(receiver: WebTransportOptions): WebTransportCo
 pub require_unreliable_typechecks(receiver: WebTransportOptions): Bool ->
     receiver.require_unreliable().
 
-pub server_certificate_hashes_typechecks(receiver: WebTransportOptions): std.js.Array[WebTransportHash] ->
+pub server_certificate_hashes_typechecks(
+    receiver: WebTransportOptions
+): std.js.Array[WebTransportHash] ->
     receiver.server_certificate_hashes().

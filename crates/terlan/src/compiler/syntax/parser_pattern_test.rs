@@ -4,19 +4,19 @@ mod tests {
     use crate::terlan_syntax::parse_tree::{Decl, Expr};
 
     #[test]
-    fn formal_raw_atom_patterns_are_literal_patterns() {
+    fn formal_atom_literal_patterns_are_literal_patterns() {
         let module = parse_module(
             r#"
             module atoms.
 
             value(Status: Status): Int ->
                 case Status {
-                    :none -> 0;
-                    :empty -> 1
+                    Atom["none"] -> 0;
+                    Atom["empty"] -> 1
                 }.
             "#,
         )
-        .expect("parse raw atom patterns");
+        .expect("parse canonical atom patterns");
 
         let Decl::Function(function) = &module.declarations[0] else {
             panic!("expected function");
@@ -25,11 +25,43 @@ mod tests {
             panic!("expected case expression");
         };
         assert!(
-            matches!(&clauses[0].pattern, crate::terlan_syntax::parse_tree::Pattern::Atom(name) if name == "none")
+            matches!(&clauses[0].pattern, crate::terlan_syntax::parse_tree::Pattern::AtomLiteral(name) if name == "none")
         );
         assert!(
-            matches!(&clauses[1].pattern, crate::terlan_syntax::parse_tree::Pattern::Atom(name) if name == "empty")
+            matches!(&clauses[1].pattern, crate::terlan_syntax::parse_tree::Pattern::AtomLiteral(name) if name == "empty")
         );
+    }
+
+    #[test]
+    fn small_maps_parity_decodes_expression_and_pattern_string_keys_once() {
+        let module = parse_module(
+            r#"
+            module small_maps_key_identity.
+
+            value(): Int ->
+                case {"line\nkey": 1} {
+                    {"line\nkey": found} -> found
+                }.
+            "#,
+        )
+        .expect("parse matching escaped map keys");
+
+        let Decl::Function(function) = &module.declarations[0] else {
+            panic!("expected function");
+        };
+        let Expr::Case { scrutinee, clauses } = &function.clauses[0].body else {
+            panic!("expected case expression");
+        };
+        let Expr::Map(expression_fields) = scrutinee.as_ref() else {
+            panic!("expected map expression");
+        };
+        let crate::terlan_syntax::parse_tree::Pattern::Map(pattern_fields) = &clauses[0].pattern
+        else {
+            panic!("expected map pattern");
+        };
+
+        assert_eq!(expression_fields[0].key, "line\nkey");
+        assert_eq!(pattern_fields[0].key, expression_fields[0].key);
     }
 
     /// Verifies expanded pattern families accepted by the A0.25 syntax
@@ -53,19 +85,19 @@ mod tests {
 
             map_pattern(value: Map): Int ->
               case value {
-                {kind: :ok, count: n} when n > 0 -> n;
+                {kind: Atom["ok"], count: n} where n > 0 -> n;
                 {} -> 0
               }.
 
             list_cons_pattern(values: List[Int]): Int ->
               case values {
-                [head | tail] when head > 0 -> head;
+                [head | tail] where head > 0 -> head;
                 [] -> 0
               }.
 
             literal_patterns(value: Dynamic): Int ->
               case value {
-                :none -> 0;
+                Atom["none"] -> 0;
                 1.5 -> 1;
                 {left, right} -> 2
               }.
@@ -112,7 +144,7 @@ mod tests {
             panic!("expected literal pattern case");
         };
         assert!(
-            matches!(&clauses[0].pattern, crate::terlan_syntax::parse_tree::Pattern::Atom(name) if name == "none")
+            matches!(&clauses[0].pattern, crate::terlan_syntax::parse_tree::Pattern::AtomLiteral(name) if name == "none")
         );
         assert!(
             matches!(&clauses[1].pattern, crate::terlan_syntax::parse_tree::Pattern::Float(value) if (*value - 1.5).abs() < f64::EPSILON)
@@ -144,10 +176,10 @@ mod tests {
     }
 
     #[test]
-    fn formal_nullary_constructor_pattern_call_is_rejected() {
-        let err = parse_module(
+    fn parses_nullary_constructor_pattern_call() {
+        let module = parse_module(
             r#"
-            module bad_constructor_pattern.
+            module nullary_constructor_pattern.
 
             value(Option: Option): Int ->
                 case Option {
@@ -155,11 +187,18 @@ mod tests {
                 }.
             "#,
         )
-        .expect_err("reject nullary constructor pattern call");
-        assert_eq!(
-            err.message,
-            "constructor patterns require at least one argument"
-        );
+        .expect("parse nullary constructor pattern call");
+        let Decl::Function(function) = &module.declarations[0] else {
+            panic!("expected function declaration");
+        };
+        let Expr::Case { clauses, .. } = &function.clauses[0].body else {
+            panic!("expected case expression");
+        };
+        assert!(matches!(
+            &clauses[0].pattern,
+            crate::terlan_syntax::parse_tree::Pattern::Tuple(items)
+                if matches!(items.as_slice(), [crate::terlan_syntax::parse_tree::Pattern::Atom(name)] if name == "None")
+        ));
     }
 
     #[test]
@@ -187,7 +226,7 @@ module syntax.
 
 pub simplify(E: Expr): Expr ->
     case E {
-        Call(:atom, [x, y]) ->
+        Call(Atom["atom"], [x, y]) ->
             call(x, y);
         _ ->
             E
@@ -215,10 +254,10 @@ pub simplify(E: Expr): Expr ->
                     _ => panic!("expected constructor atom"),
                 }
                 match &items[1] {
-                    crate::terlan_syntax::parse_tree::Pattern::Atom(name) => {
+                    crate::terlan_syntax::parse_tree::Pattern::AtomLiteral(name) => {
                         assert_eq!(name, "atom")
                     }
-                    _ => panic!("expected raw atom argument"),
+                    _ => panic!("expected canonical atom-literal argument"),
                 }
             }
             _ => panic!("expected tuple pattern"),

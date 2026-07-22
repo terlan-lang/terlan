@@ -1,0 +1,33 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CSSNumericType
+ */
+module std.js.Dom.CSSNumericType.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CSSNumericType.
+
+pub (value: CSSNumericType) angle(): JsNumber.
+
+pub (value: CSSNumericType) flex(): JsNumber.
+
+pub (value: CSSNumericType) frequency(): JsNumber.
+
+pub (value: CSSNumericType) length(): JsNumber.
+
+pub (value: CSSNumericType) percent(): JsNumber.
+
+pub (value: CSSNumericType) percent_hint(): CSSNumericBaseType.
+
+pub (value: CSSNumericType) resolution(): JsNumber.
+
+pub (value: CSSNumericType) time(): JsNumber.

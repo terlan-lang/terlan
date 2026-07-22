@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioNodeOptions
+ */
+module std.js.Dom.AudioNodeOptions.
+
+pub opaque type AudioNodeOptions.
+
+pub (value: AudioNodeOptions) channel_count(): std.js.Number.JsNumber.
+
+pub (value: AudioNodeOptions) channel_count_mode(): ChannelCountMode.
+
+pub (value: AudioNodeOptions) channel_interpretation(): ChannelInterpretation.

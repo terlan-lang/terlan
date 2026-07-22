@@ -1,0 +1,53 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Clipboard
+ */
+module std.js.Dom.Clipboard.
+
+import type std.core.{Unit}.
+import type std.js.String.{JsString}.
+import type std.js.{Promise}.
+
+/**
+ * The **`Clipboard`** interface of the Clipboard API provides read and write access to the contents of the system clipboard.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard)
+ */
+pub opaque type Clipboard.
+
+/**
+ * The **`read()`** method of the Clipboard interface requests a copy of the clipboard's contents, fulfilling the returned Promise with the data.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/read)
+ */
+pub (value: Clipboard) read(): Promise[ClipboardItems].
+
+/**
+ * The **`readText()`** method of the Clipboard interface returns a Promise which fulfills with a copy of the textual contents of the system clipboard.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/readText)
+ */
+pub (value: Clipboard) read_text(): Promise[JsString].
+
+/**
+ * The **`write()`** method of the Clipboard interface writes arbitrary ClipboardItem data such as images and text to the clipboard, fulfilling the returned Promise on completion.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/write)
+ */
+pub (value: Clipboard) write(data: ClipboardItems): Promise[Unit].
+
+/**
+ * The **`writeText()`** method of the Clipboard interface writes the specified text to the system clipboard, returning a Promise that is resolved once the system clipboard has been updated.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Clipboard/writeText)
+ */
+pub (value: Clipboard) write_text(data: JsString): Promise[Unit].

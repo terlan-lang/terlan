@@ -3,14 +3,20 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-use regex::Regex;
-
 use crate::terlan_quality::{render_failure, QualityResult};
+
+const EXACT_SELECTOR_SOURCES: &[&str] = &["crates/terlan/cli.mk", "Makefile"];
+
+const REQUIRED_EXACT_SELECTORS: &[&str] = &[
+    "runtime::vm::http::http_test::vm_http_roundtrips_request_and_response_over_vm_tcp_streams",
+    "commands::serve::serve_test::vm_stream_request_executes_dynamic_handler_without_hyper",
+    "commands::serve::serve_test::vm_stream_request_returns_websocket_upgrade_handshake_without_hyper",
+];
 
 /// Summary produced by the CLI exact-selector check.
 ///
 /// Inputs:
-/// - `selector_count`: number of exact selectors referenced by `cli.mk`.
+/// - `selector_count`: number of exact selectors referenced by release gates.
 ///
 /// Output:
 /// - Stable success metric rendered by the command-line wrapper.
@@ -26,24 +32,34 @@ pub struct CliExactSelectorSummary {
 /// Runs the CLI exact-test selector validation.
 ///
 /// Inputs:
-/// - `root`: repository root containing `crates/terlan/cli.mk`.
+/// - `root`: repository root containing release Makefiles.
 ///
 /// Output:
 /// - Success summary when every exact selector resolves to a Cargo test.
 /// - Diagnostics when any selector is stale or Cargo test discovery fails.
 ///
 /// Transformation:
-/// - Extracts `TERLC_EXACT_TEST` selectors from the CLI Makefile.
+/// - Extracts exact test selectors from the CLI Makefile and root Makefile.
 /// - Discovers current `terlan` tests using Cargo's `--list` mode.
 /// - Compares the two sets so Make gates cannot silently drift after test
 ///   extraction or module renames.
 pub fn run_cli_exact_selectors(root: &Path) -> QualityResult<CliExactSelectorSummary> {
-    let makefile = root.join("crates/terlan/cli.mk");
-    let makefile_text = fs::read_to_string(&makefile)
-        .map_err(|err| format!("{}: failed to read CLI Makefile: {err}", makefile.display()))?;
-    let selectors = extract_cli_exact_selectors(&makefile_text)?;
+    let mut selectors = Vec::new();
+    let mut grouped_filters = Vec::new();
+    for source in EXACT_SELECTOR_SOURCES {
+        let path = root.join(source);
+        let text = fs::read_to_string(&path).map_err(|err| {
+            format!(
+                "{}: failed to read exact-selector source: {err}",
+                path.display()
+            )
+        })?;
+        selectors.extend(extract_cli_exact_selectors(&text)?);
+        grouped_filters.extend(extract_grouped_test_filters(&text));
+    }
     let tests = cargo_test_names(root)?;
-    let missing = stale_selectors(&selectors, &tests);
+    let mut missing = stale_selectors(&selectors, &tests);
+    missing.extend(missing_required_test_coverage(&selectors, &grouped_filters));
 
     if !missing.is_empty() {
         return Err(render_failure("cli-exact-selector", &missing));
@@ -52,6 +68,22 @@ pub fn run_cli_exact_selectors(root: &Path) -> QualityResult<CliExactSelectorSum
     Ok(CliExactSelectorSummary {
         selector_count: selectors.len(),
     })
+}
+
+/// Extracts module-level Cargo test filters from Make recipes.
+pub(crate) fn extract_grouped_test_filters(makefile_text: &str) -> Vec<String> {
+    makefile_text
+        .lines()
+        .filter(|line| line.contains("RUST_TEST"))
+        .filter_map(|line| {
+            let tokens = line.split_whitespace().collect::<Vec<_>>();
+            let bin = tokens.iter().position(|token| *token == "--bin")?;
+            tokens
+                .get(bin + 2)
+                .filter(|filter| filter.contains("::"))
+                .map(|filter| (*filter).to_string())
+        })
+        .collect()
 }
 
 /// Extracts exact-test selectors from CLI Makefile text.
@@ -63,15 +95,30 @@ pub fn run_cli_exact_selectors(root: &Path) -> QualityResult<CliExactSelectorSum
 /// - Ordered selector strings as accepted by `cargo test -- --exact`.
 ///
 /// Transformation:
-/// - Applies the same Make-recipe regex as the original Python gate without
-///   interpreting shell commands or Make variables.
+/// - Reads exact-test recipe lines without interpreting shell commands or Make
+///   variables.
 pub(crate) fn extract_cli_exact_selectors(makefile_text: &str) -> QualityResult<Vec<String>> {
-    let pattern = Regex::new(r"TERLC_EXACT_TEST\)\s+([^\s]+)\s+--\s+--exact")
-        .map_err(|err| format!("failed to compile exact-selector regex: {err}"))?;
-    Ok(pattern
-        .captures_iter(makefile_text)
-        .filter_map(|capture| capture.get(1).map(|selector| selector.as_str().to_owned()))
+    Ok(makefile_text
+        .lines()
+        .filter(|line| {
+            line.contains("TERLC_EXACT_TEST)")
+                || line.contains("EXACT_CARGO_TEST)")
+                || line.contains("scripts/run_exact_cargo_test.sh")
+        })
+        .filter_map(exact_selector_from_make_recipe)
         .collect())
+}
+
+/// Extracts one exact selector from a Make recipe line.
+fn exact_selector_from_make_recipe(line: &str) -> Option<String> {
+    let tokens = line.split_whitespace().collect::<Vec<_>>();
+    let exact_marker = tokens
+        .windows(2)
+        .position(|window| window == ["--", "--exact"])?;
+    exact_marker
+        .checked_sub(1)
+        .and_then(|index| tokens.get(index))
+        .map(|selector| (*selector).to_string())
 }
 
 /// Discovers current `terlan` test names using Cargo.
@@ -86,8 +133,12 @@ pub(crate) fn extract_cli_exact_selectors(makefile_text: &str) -> QualityResult<
 /// - Runs `cargo test -p terlan -- --list`.
 /// - Parses the standard test-list output into exact-selector names.
 fn cargo_test_names(root: &Path) -> QualityResult<BTreeSet<String>> {
+    cargo_test_names_for_args(root, &["test", "-p", "terlan", "--", "--list"])
+}
+
+fn cargo_test_names_for_args(root: &Path, args: &[&str]) -> QualityResult<BTreeSet<String>> {
     let output = Command::new("cargo")
-        .args(["test", "-p", "terlan", "--", "--list"])
+        .args(args)
         .current_dir(root)
         .output()
         .map_err(|err| format!("failed to run cargo test list for terlan: {err}"))?;
@@ -142,6 +193,27 @@ pub(crate) fn stale_selectors(selectors: &[String], tests: &BTreeSet<String>) ->
         .iter()
         .filter(|selector| !tests.contains(*selector))
         .cloned()
+        .collect()
+}
+
+/// Returns required tests not covered by exact selectors or grouped filters.
+pub(crate) fn missing_required_test_coverage(
+    selectors: &[String],
+    grouped_filters: &[String],
+) -> Vec<String> {
+    let present = selectors
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    REQUIRED_EXACT_SELECTORS
+        .iter()
+        .filter(|selector| {
+            !present.contains(**selector)
+                && !grouped_filters
+                    .iter()
+                    .any(|filter| selector.starts_with(filter))
+        })
+        .map(|selector| format!("Makefile: missing required exact selector `{selector}`"))
         .collect()
 }
 

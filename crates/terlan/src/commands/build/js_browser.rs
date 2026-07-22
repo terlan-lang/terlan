@@ -134,7 +134,7 @@ pub(super) fn write_browser_package(
 ///
 /// Transformation:
 /// - Copies only browser JS artifacts while extracting HTTP routes from the
-///   separate route-source list, allowing BEAM-backed handlers to shape the web
+///   separate route-source list, allowing VM handler routes to shape the web
 ///   manifest without being emitted as JavaScript.
 pub(super) fn write_browser_package_with_route_sources(
     js_root: &Path,
@@ -188,6 +188,7 @@ pub(super) fn write_browser_package_with_route_sources(
         assets,
         route_manifest.handlers,
         route_manifest.websockets,
+        route_manifest.sse,
         route_manifest.static_responses,
         route_manifest.file_responses,
         error_handler,
@@ -215,10 +216,11 @@ fn write_browser_index(
 ) -> Result<(), String> {
     let script_tags = assets
         .iter()
+        .filter(|asset| asset.kind == "javascript-module")
         .map(|asset| {
             format!(
-                r#"    <script type="module" src="./{}"></script>"#,
-                asset.web_relative_path
+                r#"    <script type="module" src="./{}" integrity="{}"></script>"#,
+                asset.web_relative_path, asset.integrity
             )
         })
         .collect::<Vec<_>>()

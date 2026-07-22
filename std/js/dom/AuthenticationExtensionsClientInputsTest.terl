@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AuthenticationExtensionsClientInputs
  */
 module std.js.Dom.AuthenticationExtensionsClientInputsTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.AuthenticationExtensionsClientInputs.{AuthenticationExtensionsClientInputs}.
-
+import type std.js.Dom.AuthenticationExtensionsClientInputs.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub appid_typechecks(receiver: AuthenticationExtensionsClientInputs): JsString ->
     receiver.appid().
@@ -20,20 +24,28 @@ pub appid_typechecks(receiver: AuthenticationExtensionsClientInputs): JsString -
 pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool ->
     receiver.cred_props().
 
-pub credential_protection_policy_typechecks(receiver: AuthenticationExtensionsClientInputs): JsString ->
+pub credential_protection_policy_typechecks(
+    receiver: AuthenticationExtensionsClientInputs
+): JsString ->
     receiver.credential_protection_policy().
 
-pub enforce_credential_protection_policy_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool ->
+pub enforce_credential_protection_policy_typechecks(
+    receiver: AuthenticationExtensionsClientInputs
+): Bool ->
     receiver.enforce_credential_protection_policy().
 
 pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool ->
     receiver.hmac_create_secret().
 
-pub large_blob_typechecks(receiver: AuthenticationExtensionsClientInputs): AuthenticationExtensionsLargeBlobInputs ->
+pub large_blob_typechecks(
+    receiver: AuthenticationExtensionsClientInputs
+): AuthenticationExtensionsLargeBlobInputs ->
     receiver.large_blob().
 
 pub min_pin_length_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool ->
     receiver.min_pin_length().
 
-pub prf_typechecks(receiver: AuthenticationExtensionsClientInputs): AuthenticationExtensionsPRFInputs ->
+pub prf_typechecks(
+    receiver: AuthenticationExtensionsClientInputs
+): AuthenticationExtensionsPRFInputs ->
     receiver.prf().

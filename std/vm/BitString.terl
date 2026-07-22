@@ -1,0 +1,190 @@
+/**
+ * Immutable VM-owned bitstring values.
+ *
+ * Bitstrings preserve an exact logical bit length and use network bit order
+ * inside each packed byte. They remain distinct from byte-aligned `Bytes`.
+ */
+module std.vm.BitString.
+
+import std.vm.Bytes.
+
+/**
+ * Exact-length immutable bit storage owned by the Terlan VM.
+ */
+@target.vm {process_mailbox: true}
+pub opaque type BitString.
+
+/**
+ * Builds a bitstring from the leading `bit_length` bits of packed bytes.
+ */
+@target.vm {process_mailbox: true}
+pub from_bytes(bytes: Bytes, bit_length: Int): BitString ->
+    native.
+
+/**
+ * Encodes one unsigned integer in big-endian wire order.
+ */
+@target.vm {process_mailbox: true}
+pub from_uint_be(value: Int, bit_width: Int): BitString ->
+    native.
+
+/**
+ * Encodes one signed two's-complement integer in big-endian wire order.
+ */
+@target.vm {process_mailbox: true}
+pub from_int_be(value: Int, bit_width: Int): BitString ->
+    native.
+
+/**
+ * Encodes one unsigned integer in little-endian wire order.
+ */
+@target.vm {process_mailbox: true}
+pub from_uint_le(value: Int, bit_width: Int): BitString ->
+    native.
+
+/**
+ * Encodes one signed two's-complement integer in little-endian wire order.
+ */
+@target.vm {process_mailbox: true}
+pub from_int_le(value: Int, bit_width: Int): BitString ->
+    native.
+
+/**
+ * Encodes one Unicode scalar as a byte-aligned UTF-8 bitstring.
+ */
+@target.vm {process_mailbox: true}
+pub utf8_scalar(value: Int): BitString ->
+    native.
+
+/**
+ * Decodes one exact byte-aligned UTF-8 scalar to its integer value.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_utf8_scalar(): Int ->
+    native.
+
+/**
+ * Encodes one Unicode scalar as big-endian UTF-16 code units.
+ */
+@target.vm {process_mailbox: true}
+pub utf16_be_scalar(value: Int): BitString ->
+    native.
+
+/**
+ * Encodes one Unicode scalar as little-endian UTF-16 code units.
+ */
+@target.vm {process_mailbox: true}
+pub utf16_le_scalar(value: Int): BitString ->
+    native.
+
+/**
+ * Decodes exactly one big-endian UTF-16 scalar.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_utf16_be_scalar(): Int ->
+    native.
+
+/**
+ * Decodes exactly one little-endian UTF-16 scalar.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_utf16_le_scalar(): Int ->
+    native.
+
+/**
+ * Encodes one Unicode scalar as one big-endian UTF-32 code unit.
+ */
+@target.vm {process_mailbox: true}
+pub utf32_be_scalar(value: Int): BitString ->
+    native.
+
+/**
+ * Encodes one Unicode scalar as one little-endian UTF-32 code unit.
+ */
+@target.vm {process_mailbox: true}
+pub utf32_le_scalar(value: Int): BitString ->
+    native.
+
+/**
+ * Decodes exactly one big-endian UTF-32 scalar.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_utf32_be_scalar(): Int ->
+    native.
+
+/**
+ * Decodes exactly one little-endian UTF-32 scalar.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_utf32_le_scalar(): Int ->
+    native.
+
+/**
+ * Returns the exact logical bit length.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) bit_length(): Int ->
+    native.
+
+/**
+ * Returns the packed storage length rounded up to complete bytes.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) byte_length(): Int ->
+    native.
+
+/**
+ * Reports whether the logical value ends on a byte boundary.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) is_byte_aligned(): Bool ->
+    native.
+
+/**
+ * Copies a checked bit range into a new zero-based immutable value.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) slice(start: Int, bit_length: Int): BitString ->
+    native.
+
+/**
+ * Concatenates exact logical bits without inserting byte padding.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) concat(suffix: BitString): BitString ->
+    native.
+
+/**
+ * Converts an aligned bitstring to Bytes and rejects partial final bytes.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_bytes(): Bytes ->
+    native.
+
+/**
+ * Decodes the exact bitstring as an unsigned big-endian integer.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_uint_be(): Int ->
+    native.
+
+/**
+ * Decodes the exact bitstring as a signed big-endian integer.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_int_be(): Int ->
+    native.
+
+/**
+ * Decodes the exact bitstring as an unsigned little-endian integer.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_uint_le(): Int ->
+    native.
+
+/**
+ * Decodes the exact bitstring as a signed little-endian integer.
+ */
+@target.vm {process_mailbox: true}
+pub (bits: BitString) to_int_le(): Int ->
+    native.

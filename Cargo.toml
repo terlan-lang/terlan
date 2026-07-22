@@ -2,8 +2,9 @@
 resolver = "2"
 members = [
   "crates/terlan",
+  "std/native/libpq/generated/native/rust",
 ]
 
 [workspace.package]
-version = "0.0.6"
+version = "0.0.7"
 edition = "2021"

@@ -6,6 +6,35 @@ mod macro_call;
 mod pipe;
 mod receiver;
 mod remote;
+
+/// Enforces concrete type metadata for parameterized AOT process operations.
+fn require_explicit_process_value_type(
+    module: &str,
+    function: &str,
+    type_args: &[SyntaxTypeOutput],
+) -> Result<(), String> {
+    let typed_process_operation = (module == "std.vm.Process"
+        && matches!(
+            function,
+            "entry"
+                | "spawn"
+                | "send"
+                | "receive"
+                | "link"
+                | "monitor"
+                | "resource_kind"
+                | "acquire"
+                | "cancel"
+        ))
+        || (module == "std.vm.Message" && matches!(function, "wrap" | "unwrap"));
+    if typed_process_operation && type_args.len() != 1 {
+        return Err(format!(
+            "{}.{} requires exactly one explicit concrete type argument",
+            module, function
+        ));
+    }
+    Ok(())
+}
 mod template;
 
 pub(super) use function_value::*;
@@ -202,11 +231,27 @@ fn infer_syntax_call_with_arg_types(
         {
             return ty;
         }
+        if let Some(ty) =
+            infer_syntax_trait_receiver_method_call(expr, arg_types, locals, ctx, subst, errors)
+        {
+            return ty;
+        }
     }
 
     let Some(function_name) = syntax_callee_name(expr) else {
         return Type::Dynamic;
     };
+
+    if expr.remote.is_none() && function_name == "String" && arg_types.len() == 1 {
+        return Type::Binary;
+    }
+    if expr.remote.is_none() {
+        if let Some(return_type) =
+            infer_primitive_from_string_constructor(function_name, arg_types, errors)
+        {
+            return return_type;
+        }
+    }
 
     if expr.remote.is_none() && syntax_callee_is_var(expr) {
         if let Some(template_result) =
@@ -350,6 +395,32 @@ fn infer_syntax_call_with_arg_types(
     )
 }
 
+/// Infers primitive constructors backed by `from_string`.
+fn infer_primitive_from_string_constructor(
+    function_name: &str,
+    arg_types: &[Type],
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    let inner = match function_name {
+        "Bool" => Type::Bool,
+        "Int" => Type::Int,
+        "Float" => Type::Float,
+        _ => return None,
+    };
+    if arg_types.len() != 1 {
+        return None;
+    }
+    if !matches!(arg_types[0], Type::Binary | Type::Dynamic) {
+        errors.push(format!(
+            "{} constructor expects String, found {}",
+            function_name,
+            pretty_type(&arg_types[0])
+        ));
+        return Some(Type::Dynamic);
+    }
+    Some(structural_option_type(inner))
+}
+
 /// Infers one receiver-method candidate with linked receiver generics.
 ///
 /// Inputs:
@@ -486,6 +557,18 @@ fn infer_default_struct_constructor_call(
             function_name
         ));
         return Some(Type::Dynamic);
+    }
+    let named_arguments = arg_types
+        .iter()
+        .zip(arg_names)
+        .filter_map(|(ty, name)| name.as_ref().map(|name| (name.clone(), ty.clone())))
+        .collect::<Vec<_>>();
+    if named_arguments.len() == arg_types.len() {
+        if let Some(inferred) =
+            infer_generic_struct_construction(function_name, &named_arguments, ctx, subst, errors)
+        {
+            return Some(inferred);
+        }
     }
     let mut supplied = HashSet::new();
 

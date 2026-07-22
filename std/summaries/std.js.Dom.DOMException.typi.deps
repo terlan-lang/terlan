@@ -1,8 +1,8 @@
 module=std.js.Dom.DOMException
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=8846036345138129262
-interface_hash=2192315294368452489
-interface_doc_hash=2192315294368452489
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10553963858461757856
+interface_hash=2500379861088248445
+interface_doc_hash=2500379861088248445
 deps=0

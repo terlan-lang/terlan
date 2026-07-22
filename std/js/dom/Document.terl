@@ -1,17 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Document
  */
 module std.js.Dom.Document.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
+import type std.core.{Bool, Unit}.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
 /**
@@ -411,7 +414,11 @@ pub (value: Document) capture_events(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/caretPositionFromPoint)
  */
-pub (value: Document) caret_position_from_point(x: JsNumber, y: JsNumber, options: CaretPositionFromPointOptions): Option[CaretPosition] ->
+pub (value: Document) caret_position_from_point(
+    x: JsNumber,
+    y: JsNumber,
+    options: CaretPositionFromPointOptions
+): Option[CaretPosition] ->
     native.
 
 /**
@@ -480,10 +487,18 @@ pub (value: Document) create_document_fragment(): DocumentFragment ->
 pub (value: Document) create_element(tag_name: JsString, options: ElementCreationOptions): HTMLElement ->
     native.
 
-pub (value: Document) create_element_ns(namespace_uri: Option[JsString], qualified_name: JsString, options: ElementCreationOptions): Element ->
+pub (value: Document) create_element_ns(
+    namespace_uri: Option[JsString],
+    qualified_name: JsString,
+    options: ElementCreationOptions
+): Element ->
     native.
 
-pub (value: Document) create_element_ns(namespace: Option[JsString], qualified_name: JsString, options: ElementCreationOptions | JsString): Element ->
+pub (value: Document) create_element_ns(
+    namespace: Option[JsString],
+    qualified_name: JsString,
+    options: ElementCreationOptions | JsString
+): Element ->
     native.
 
 pub (value: Document) create_event(event_interface: JsString): Event ->
@@ -494,7 +509,11 @@ pub (value: Document) create_event(event_interface: JsString): Event ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createNodeIterator)
  */
-pub (value: Document) create_node_iterator(root: Node, what_to_show: JsNumber, filter: Option[NodeFilter]): NodeIterator ->
+pub (value: Document) create_node_iterator(
+    root: Node,
+    what_to_show: JsNumber,
+    filter: Option[NodeFilter]
+): NodeIterator ->
     native.
 
 /**
@@ -584,7 +603,10 @@ pub (value: Document) get_elements_by_name(element_name: JsString): NodeListOf[H
 pub (value: Document) get_elements_by_tag_name(qualified_name: JsString): HTMLCollectionOf[Element] ->
     native.
 
-pub (value: Document) get_elements_by_tag_name_ns(namespace: Option[JsString], local_name: JsString): HTMLCollectionOf[Element] ->
+pub (value: Document) get_elements_by_tag_name_ns(
+    namespace: Option[JsString],
+    local_name: JsString
+): HTMLCollectionOf[Element] ->
     native.
 
 /**
@@ -688,7 +710,9 @@ pub (value: Document) request_storage_access(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/startViewTransition)
  */
-pub (value: Document) start_view_transition(callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback): ViewTransition ->
+pub (value: Document) start_view_transition(
+    callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback
+): ViewTransition ->
     native.
 
 /**
@@ -708,8 +732,16 @@ pub (value: Document) write(): Unit ->
 pub (value: Document) writeln(): Unit ->
     native.
 
-pub (value: Document) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub (value: Document) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     native.
 
-pub (value: Document) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub (value: Document) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     native.

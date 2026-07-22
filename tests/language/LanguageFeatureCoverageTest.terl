@@ -1,0 +1,49 @@
+module tests.language.LanguageFeatureCoverageTest.
+
+import std.core.Option.{None, Option, Some}.
+import std.test.Test.{assert_equal}.
+
+import type std.core.Option.
+
+pub identity[T](value: T): T ->
+    value.
+
+helper(value: Int): Int ->
+    value + 1.
+
+pub type NumberAlias = Int.
+
+pub module_value(): Int -> 1.
+
+@test
+pub module_import_public_private_let_sequence_execute(): Bool ->
+    let a = module_value(); let b = helper(a); assert_equal(2, b).
+
+@test
+pub generic_alias_and_type_import_execute(): Bool ->
+    let value = identity(4); assert_equal(4, value).
+
+@test
+pub lambda_and_closure_execute(): Bool ->
+    let double = ((value) -> value + value); assert_equal(20, double(10)).
+
+@test
+pub conditional_and_case_execute(): Bool ->
+    let value = Some(3);
+    case value {
+        Some(count) ->
+            if {
+            count == 3 -> assert_equal(4, count + 1);
+            true -> false
+            };
+        None -> false
+    }.
+
+@test
+pub collection_tuple_list_map_index_execute(): Bool ->
+    let items = [10, 20, 30];
+    assert_equal(true, items[1] == 20 and {1, "a"} == {1, "a"} and {name: "Ada"} == {name: "Ada"}).
+
+@test
+pub string_receiver_and_constructor_execute(): Bool ->
+    assert_equal(true, "password=secret".contains("password") and String(123) == "123").

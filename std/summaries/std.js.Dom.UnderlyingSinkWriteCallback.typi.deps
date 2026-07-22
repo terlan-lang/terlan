@@ -1,8 +1,8 @@
 module=std.js.Dom.UnderlyingSinkWriteCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=390250064878631357
-interface_hash=390250064878631357
-interface_doc_hash=390250064878631357
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3307670516913382647
+interface_hash=2083754528640776707
+interface_doc_hash=2083754528640776707
 deps=0

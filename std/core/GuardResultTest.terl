@@ -1,0 +1,28 @@
+module std.core.GuardResultTest.
+
+import std.core.GuardResult.{accept, both, either, from_bool, reject, value}.
+import std.test.Test.{assert_equal}.
+
+@test
+pub from_bool_wraps_completed_decision(): Bool ->
+    assert_equal(true, value(from_bool(3 > 1))).
+
+@test
+pub accept_records_true_decision(): Bool ->
+    assert_equal(true, value(accept())).
+
+@test
+pub reject_records_false_decision(): Bool ->
+    assert_equal(false, value(reject())).
+
+@test
+pub both_requires_two_completed_accepts(): Bool ->
+    let accepted = accept();
+    let rejected = reject();
+    assert_equal(false, value(both(accepted, rejected))).
+
+@test
+pub either_accepts_one_completed_accept(): Bool ->
+    let accepted = accept();
+    let rejected = reject();
+    assert_equal(true, value(either(rejected, accepted))).

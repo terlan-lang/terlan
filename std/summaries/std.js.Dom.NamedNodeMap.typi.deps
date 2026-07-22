@@ -1,8 +1,8 @@
 module=std.js.Dom.NamedNodeMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=15646195186322930800
-interface_hash=9807414620303362083
-interface_doc_hash=9807414620303362083
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=5951464477580616009
+interface_hash=16139112051193247380
+interface_doc_hash=16139112051193247380
 deps=0

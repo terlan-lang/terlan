@@ -15,8 +15,9 @@ Outputs:
 
 Transformation:
 - Parses Cargo lockfile package names and crate manifest dependency names, then
-  compares both against the runtime crate contract required before 0.0.5 can
-  ship live Postgres, HTTPS, and crate-backed HTTP runtime hardening. Local
+  compares both against the runtime crate contract required before the current
+  release can ship live Postgres, HTTPS, and crate-backed HTTP runtime
+  hardening. Local
   Cargo registry source copies are intentionally ignored; only checked-in
   manifests plus the committed lockfile define the release dependency set.
 """
@@ -100,15 +101,9 @@ class RequiredRuntimeDependency:
 
 REQUIRED_DEPENDENCIES = (
     RequiredRuntimeDependency(
-        name="tokio-postgres",
+        name="terlan-libpq",
         feature="postgres",
-        reason="live std.db.Postgres client I/O",
-        manifest=CLI_MANIFEST,
-    ),
-    RequiredRuntimeDependency(
-        name="deadpool-postgres",
-        feature="postgres",
-        reason="live std.db.Postgres pooling",
+        reason="generated libpq C ABI with VM-owned std.db.Postgres pooling",
         manifest=CLI_MANIFEST,
     ),
     RequiredRuntimeDependency(
@@ -119,12 +114,6 @@ REQUIRED_DEPENDENCIES = (
     ),
     RequiredRuntimeDependency(
         name="rustls",
-        feature="https",
-        reason="live HTTPS serving",
-        manifest=CLI_MANIFEST,
-    ),
-    RequiredRuntimeDependency(
-        name="tokio-rustls",
         feature="https",
         reason="live HTTPS serving",
         manifest=CLI_MANIFEST,
@@ -490,19 +479,19 @@ def run_self_test() -> None:
     ) == []
     aliased_manifest = """
 [dependencies]
-postgres_client = { package = "tokio-postgres", version = "0.0.0" }
+postgres_pool = { package = "terlan-libpq", version = "0.0.0" }
 """
     aliased_manifest_names = parse_manifest_dependency_names(aliased_manifest)
-    assert "postgres_client" in aliased_manifest_names
-    assert "tokio-postgres" in aliased_manifest_names
+    assert "postgres_pool" in aliased_manifest_names
+    assert "terlan-libpq" in aliased_manifest_names
     table_manifest = """
 [dependencies.postgres_pool]
-package = "deadpool-postgres"
+package = "terlan-libpq"
 version = "0.0.0"
 """
     table_manifest_names = parse_manifest_dependency_names(table_manifest)
     assert "postgres_pool" in table_manifest_names
-    assert "deadpool-postgres" in table_manifest_names
+    assert "terlan-libpq" in table_manifest_names
     target_manifest = """
 [target.'cfg(unix)'.dependencies]
 notify = "0.0.0"
@@ -516,11 +505,11 @@ version = "0.0.0"
     assert "cookie_impl" in target_manifest_names
     assert "cookie" in target_manifest_names
 
-    partial_names = {"tokio-postgres", "rustls"}
+    partial_names = {"terlan-libpq", "rustls"}
     missing = missing_dependencies(partial_names)
     missing_names = [dependency.name for dependency in missing]
-    assert "deadpool-postgres" in missing_names
-    assert "tokio-postgres" not in missing_names
+    assert "refinery" in missing_names
+    assert "terlan-libpq" not in missing_names
     assert "rustls" not in missing_names
     assert missing[0].missing_lockfile_message().startswith(
         "runtime-release-dependency-check missing:"
@@ -528,12 +517,12 @@ version = "0.0.0"
     assert "Cargo.lock" in missing[0].missing_lockfile_message()
 
     partial_manifest_names = {
-        CLI_MANIFEST: {"tokio-postgres", "rustls"},
+        CLI_MANIFEST: {"terlan-libpq", "rustls"},
     }
     manifest_missing = missing_manifest_dependencies(partial_manifest_names)
     manifest_missing_names = [dependency.name for dependency in manifest_missing]
-    assert "deadpool-postgres" in manifest_missing_names
-    assert "tokio-postgres" not in manifest_missing_names
+    assert "refinery" in manifest_missing_names
+    assert "terlan-libpq" not in manifest_missing_names
     assert manifest_missing[0].missing_manifest_message().startswith(
         "runtime-release-dependency-check missing:"
     )
@@ -549,17 +538,17 @@ version = "0.0.0"
         == "runtime-release-dependency-check open completion gates: 2, 5, 9, 10, 11, 21."
     )
     assert (
-        open_completion_gate_message([REQUIRED_DEPENDENCIES[3]])
+        open_completion_gate_message([REQUIRED_DEPENDENCIES[2]])
         == "runtime-release-dependency-check open completion gates: 5, 21."
     )
     assert open_completion_gate_message([]) is None
     next_actions = next_action_messages(
-        [REQUIRED_DEPENDENCIES[0], REQUIRED_DEPENDENCIES[3]],
-        [REQUIRED_DEPENDENCIES[1], REQUIRED_DEPENDENCIES[2]],
+        [REQUIRED_DEPENDENCIES[0], REQUIRED_DEPENDENCIES[2]],
+        [REQUIRED_DEPENDENCIES[1], REQUIRED_DEPENDENCIES[3]],
     )
     assert next_actions == [
-        "runtime-release-dependency-check next action: add deadpool-postgres, refinery directly to crates/terlan/Cargo.toml.",
-        "runtime-release-dependency-check next action: resolve rustls, tokio-postgres into Cargo.lock with the selected crate versions.",
+        "runtime-release-dependency-check next action: add instant-acme, refinery directly to crates/terlan/Cargo.toml.",
+        "runtime-release-dependency-check next action: resolve rustls, terlan-libpq into Cargo.lock with the selected crate versions.",
     ]
 
 

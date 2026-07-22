@@ -1,8 +1,8 @@
 module=std.js.Dom.MessageEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=15775786083689067069
-interface_hash=6841670424382210221
-interface_doc_hash=6841670424382210221
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3058899413543440724
+interface_hash=1713570968064214483
+interface_doc_hash=1713570968064214483
 deps=0

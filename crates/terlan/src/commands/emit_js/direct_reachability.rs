@@ -84,13 +84,15 @@ fn collect_core_expr_local_calls<'a>(
         }
         CoreExpr::ListComprehension {
             expr,
-            source,
-            guard,
+            generators,
+            guards,
             ..
         } => {
             collect_core_expr_local_calls(expr, functions_by_name, pending);
-            collect_core_expr_local_calls(source, functions_by_name, pending);
-            if let Some(guard) = guard.as_ref() {
+            for generator in generators {
+                collect_core_expr_local_calls(&generator.source, functions_by_name, pending);
+            }
+            for guard in guards {
                 collect_core_expr_local_calls(guard, functions_by_name, pending);
             }
         }
@@ -186,6 +188,11 @@ fn collect_core_expr_local_calls<'a>(
         CoreExpr::Lam { body, .. } | CoreExpr::UnaryOp { operand: body, .. } => {
             collect_core_expr_local_calls(body, functions_by_name, pending);
         }
+        CoreExpr::SqlQuery { parameters, .. } => {
+            for parameter in parameters {
+                collect_core_expr_local_calls(parameter, functions_by_name, pending);
+            }
+        }
         CoreExpr::BinaryOp { left, right, .. } => {
             collect_core_expr_local_calls(left, functions_by_name, pending);
             collect_core_expr_local_calls(right, functions_by_name, pending);
@@ -195,7 +202,6 @@ fn collect_core_expr_local_calls<'a>(
         | CoreExpr::Binary(_)
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
-        | CoreExpr::RemoteFunRef { .. }
-        | CoreExpr::SqlQuery { .. } => {}
+        | CoreExpr::RemoteFunRef { .. } => {}
     }
 }

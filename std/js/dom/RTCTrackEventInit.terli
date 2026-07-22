@@ -1,0 +1,23 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCTrackEventInit
+ */
+module std.js.Dom.RTCTrackEventInit.
+
+pub opaque type RTCTrackEventInit.
+
+pub (value: RTCTrackEventInit) receiver(): RTCRtpReceiver.
+
+pub (value: RTCTrackEventInit) streams(): std.js.Array[MediaStream].
+
+pub (value: RTCTrackEventInit) track(): MediaStreamTrack.
+
+pub (value: RTCTrackEventInit) transceiver(): RTCRtpTransceiver.

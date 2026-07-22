@@ -15,10 +15,13 @@ EXPECTED_HEADER = ["module", "source", "crate", "operation", "function", "arity"
 ALLOWED_CRATES = {
     "serde_json",
     "base64",
+    "md-5",
     "std::path",
     "url",
+    "rand_chacha",
+    "regex",
     "std::http",
-    "tokio-postgres",
+    "postgres-native",
     "std::vec",
     "terlan-vm",
 }
@@ -31,6 +34,10 @@ ADAPTERS = {
         "base64",
         ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "base64.rs",
     ),
+    "std.encoding.Md5": (
+        "md-5",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "md5.rs",
+    ),
     "std.io.Path": (
         "std::path",
         ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "path.rs",
@@ -38,6 +45,14 @@ ADAPTERS = {
     "std.net.Uri": (
         "url",
         ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "uri.rs",
+    ),
+    "std.random.Random": (
+        "rand_chacha",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "random.rs",
+    ),
+    "std.regex.Regex": (
+        "regex",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "regex.rs",
     ),
     "std.http.Request": (
         "std::http",
@@ -55,8 +70,16 @@ ADAPTERS = {
         "terlan-vm",
         ROOT / "crates" / "terlan" / "src" / "runtime" / "vm" / "http_session.rs",
     ),
+    "std.http.Sse": (
+        "terlan-vm",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "vm" / "sse.rs",
+    ),
+    "std.http.WebSocket": (
+        "terlan-vm",
+        ROOT / "crates" / "terlan" / "src" / "runtime" / "vm" / "websocket.rs",
+    ),
     "std.db.Postgres": (
-        "tokio-postgres",
+        "postgres-native",
         ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "postgres.rs",
     ),
     "std.native.collections.Vector": (
@@ -280,22 +303,43 @@ def parse_native_operations(path: Path) -> tuple[str | None, list[NativeOperatio
     operations: list[NativeOperation] = []
     errors: list[str] = []
 
-    for line_no, raw in enumerate(source.splitlines(), 1):
-        line = raw.strip()
+    lines = source.splitlines()
+    index = 0
+    while index < len(lines):
+        line_no = index + 1
+        line = lines[index].strip()
         native = re.match(r"^@compiler\.native\s+\{([^}]+)\}$", line)
         if native:
             if pending is not None:
                 errors.append(f"{path}:{line_no}: previous @compiler.native has no signature")
             pending = (native.group(1).strip(), line_no)
+            index += 1
             continue
 
         if pending is None:
+            index += 1
             continue
-        signature = parse_pub_signature(line)
+        signature_text = line
+        if line.startswith("pub ") and re.search(r"\)\s*:", line) is None:
+            signature_parts = [line]
+            lookahead = index + 1
+            while lookahead < len(lines):
+                part = lines[lookahead].strip()
+                signature_parts.append(part)
+                if re.search(r"\)\s*:", " ".join(signature_parts)):
+                    break
+                lookahead += 1
+            signature_text = " ".join(signature_parts)
+            index = lookahead
+
+        signature = parse_pub_signature(signature_text)
         if signature is None:
             if line.startswith("@compiler.") or line.startswith("pub "):
-                errors.append(f"{path}:{line_no}: cannot parse native signature `{line}`")
+                errors.append(
+                    f"{path}:{line_no}: cannot parse native signature `{signature_text}`"
+                )
                 pending = None
+            index += 1
             continue
 
         operation, _annotation_line = pending
@@ -310,6 +354,7 @@ def parse_native_operations(path: Path) -> tuple[str | None, list[NativeOperatio
             )
         )
         pending = None
+        index += 1
 
     if pending is not None:
         operation, line_no = pending
@@ -377,10 +422,10 @@ def validate_manifest(rows: list[ManifestRow]) -> list[str]:
 
 
 def rust_public_functions(path: Path) -> tuple[set[str], list[str]]:
-    """Parse public Rust adapter function names from one SafeNative file.
+    """Parse public Rust adapter function names from one NativeBoundary file.
 
     Inputs:
-    - `path`: absolute path to a Rust SafeNative adapter module.
+    - `path`: absolute path to a Rust NativeBoundary adapter module.
 
     Outputs:
     - Public function names defined in the adapter module.
@@ -394,7 +439,7 @@ def rust_public_functions(path: Path) -> tuple[set[str], list[str]]:
     """
 
     if not path.is_file():
-        return set(), [f"missing SafeNative adapter: {path.relative_to(ROOT)}"]
+        return set(), [f"missing NativeBoundary adapter: {path.relative_to(ROOT)}"]
 
     source = path.read_text(encoding="utf-8")
     functions = set()
@@ -418,7 +463,7 @@ def rust_public_functions(path: Path) -> tuple[set[str], list[str]]:
 
 
 def validate_adapter_symbols(rows: list[ManifestRow]) -> list[str]:
-    """Validate manifest rows against concrete SafeNative adapter modules.
+    """Validate manifest rows against concrete NativeBoundary adapter modules.
 
     Inputs:
     - `rows`: parsed manifest rows.
@@ -441,7 +486,7 @@ def validate_adapter_symbols(rows: list[ManifestRow]) -> list[str]:
     for module, module_rows in sorted(rows_by_module.items()):
         adapter = ADAPTERS.get(module)
         if adapter is None:
-            errors.append(f"{module}: missing SafeNative adapter mapping")
+            errors.append(f"{module}: missing NativeBoundary adapter mapping")
             continue
 
         expected_crate, adapter_path = adapter
@@ -459,7 +504,7 @@ def validate_adapter_symbols(rows: list[ManifestRow]) -> list[str]:
         for row in module_rows:
             if row.function not in functions:
                 errors.append(
-                    f"{row.source}: `{row.operation}` maps to missing SafeNative "
+                    f"{row.source}: `{row.operation}` maps to missing NativeBoundary "
                     f"function `{row.function}` in {adapter_path.relative_to(ROOT)}"
                 )
 
@@ -470,7 +515,7 @@ def rust_test_path(adapter_path: Path) -> Path:
     """Return the adjacent Rust test module path for one adapter.
 
     Inputs:
-    - `adapter_path`: absolute SafeNative adapter path.
+    - `adapter_path`: absolute NativeBoundary adapter path.
 
     Outputs:
     - Absolute adjacent test path with `_test.rs` suffix.
@@ -498,7 +543,7 @@ def rust_test_references(path: Path) -> tuple[str, list[str]]:
     """
 
     if not path.is_file():
-        return "", [f"missing SafeNative adapter test: {path.relative_to(ROOT)}"]
+        return "", [f"missing NativeBoundary adapter test: {path.relative_to(ROOT)}"]
     source = path.read_text(encoding="utf-8")
     if "#[test]" not in source:
         return source, [f"{path.relative_to(ROOT)}: missing #[test] functions"]
@@ -526,7 +571,7 @@ def references_function(source: str, function: str) -> bool:
 
 
 def validate_adapter_tests(rows: list[ManifestRow]) -> list[str]:
-    """Validate adjacent SafeNative test coverage for manifest functions.
+    """Validate adjacent NativeBoundary test coverage for manifest functions.
 
     Inputs:
     - `rows`: parsed Rust-backed manifest rows.

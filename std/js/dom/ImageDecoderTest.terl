@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ImageDecoder
  */
 module std.js.Dom.ImageDecoderTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.ImageDecoder.{ImageDecoder}.
-
+import type std.js.Dom.ImageDecoder.
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub complete_typechecks(receiver: ImageDecoder): std.core.Bool ->
     receiver.complete().
@@ -29,7 +33,10 @@ pub type__typechecks(receiver: ImageDecoder): std.js.String.JsString ->
 pub close_typechecks(receiver: ImageDecoder): Unit ->
     receiver.close().
 
-pub decode_typechecks(receiver: ImageDecoder, options: ImageDecodeOptions): Promise[ImageDecodeResult] ->
+pub decode_typechecks(
+    receiver: ImageDecoder,
+    options: ImageDecodeOptions
+): Promise[ImageDecodeResult] ->
     receiver.decode(options).
 
 pub reset_typechecks(receiver: ImageDecoder): Unit ->

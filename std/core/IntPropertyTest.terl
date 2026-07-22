@@ -1,0 +1,60 @@
+/**
+ * Property-based Int invariants.
+ *
+ * `std.core.IntPropertyTest` validates generated integer values against the
+ * public Int API and primitive arithmetic so core numeric behavior is covered
+ * by the shared property-testing machinery.
+ */
+module std.core.IntPropertyTest.
+
+import std.core.Int.{abs, max, min}.
+import std.test.Gen.{for_all, int_range}.
+import std.test.Test.{each}.
+
+/**
+ * Verifies zero is the additive identity for generated integers.
+ *
+ * Input: generated integer values.
+ * Output: `true` when adding zero on either side preserves each value.
+ * Transformation: checks left and right additive identity over generated
+ * inputs.
+ */
+@test
+pub generated_ints_add_zero_preserves_value(): Bool ->
+    for_all(int_range(-3, 3), (value) -> value + 0 == value and 0 + value == value).
+
+/**
+ * Verifies one is the multiplicative identity for generated integers.
+ *
+ * Input: generated integer values.
+ * Output: `true` when multiplying by one on either side preserves each value.
+ * Transformation: checks left and right multiplicative identity over generated
+ * inputs.
+ */
+@test
+pub generated_ints_multiply_one_preserves_value(): Bool ->
+    for_all(int_range(-3, 3), (value) -> value * 1 == value and 1 * value == value).
+
+/**
+ * Verifies min and max are idempotent for generated integers.
+ *
+ * Input: generated integer values.
+ * Output: `true` when `min(value, value)` and `max(value, value)` both return
+ * the original value.
+ * Transformation: checks idempotence of the public Int helpers.
+ */
+@test
+pub generated_ints_min_max_are_idempotent(): Bool ->
+    for_all(int_range(-3, 3), (value) -> min(value, value) == value and max(value, value) == value).
+
+/**
+ * Verifies absolute value is non-negative and symmetric.
+ *
+ * Input: generated integer values.
+ * Output: `true` when absolute values are non-negative and match the absolute
+ * value of the negated input.
+ * Transformation: checks the public `Int.abs` helper over generated inputs.
+ */
+@test
+pub generated_ints_abs_is_non_negative_and_symmetric(): Bool ->
+    for_all(int_range(-3, 3), (value) -> abs(value) >= 0 and abs(value) == abs(0 - value)).

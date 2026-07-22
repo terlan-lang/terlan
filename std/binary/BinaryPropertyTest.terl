@@ -1,0 +1,249 @@
+/**
+ * Property-based binary descriptor invariants.
+ *
+ * `std.binary.BinaryPropertyTest` validates generated descriptor widths,
+ * protocol names, and opaque payload samples against the descriptor and
+ * VM-owned protocol encoding/decoding contract.
+ */
+module std.binary.BinaryPropertyTest.
+
+import std.binary.Binary.{BigEndian, BitsSegment, BytesSegment, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, DuplicateShape, IntSegment, InvalidAlignment, InvalidWidth, LittleEndian, RestNotTerminal, UIntSegment, UnknownShape, UnsupportedRuntime, compact_frame_shape, construct, decode_exact, decode_fixed_header, decode_prefix, decode_prefixed_body, decoded_protocol_remaining_bytes, decoded_protocol_value, descriptor_is_terminal, descriptor_kind, descriptor_width, encode_exact, encode_prefix, make_bit_span, make_byte_span, make_int_bits, make_rest, make_uint, protocol_field, protocol_shape, protocol_shape_alias, protocol_shape_endian, protocol_shape_fields, protocol_shape_has_terminal_rest, protocol_shape_name, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_resolve, split_protocol_header, validate_descriptor, validate_protocol_shape}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.test.Gen.{elements, for_all, int_range, strings}.
+import std.test.Test.{assert_equal}.
+import std.vm.Bytes.
+
+pub property_decoded_field(name: String, value: DecodedValue): DecodedField ->
+    {name, value}.
+
+pub property_decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol ->
+    {fields, body}.
+
+/**
+ * Verifies generated positive widths survive every fixed descriptor helper.
+ *
+ * Input: generated positive descriptor widths.
+ * Output: `true` when each fixed descriptor records the expected kind, width,
+ * and non-terminal marker.
+ * Transformation: checks the public descriptor constructors over generated
+ * widths instead of one hand-picked width per kind.
+ */
+@test
+pub generated_positive_widths_build_fixed_descriptors(): Bool ->
+    for_all(int_range(1, 4), (width) -> let uint_descriptor = make_uint(width);
+    let int_descriptor = make_int_bits(width);
+    let byte_descriptor = make_byte_span(width);
+    let bit_descriptor = make_bit_span(width);
+    assert_equal(UIntSegment, descriptor_kind(uint_descriptor)) and assert_equal(width, descriptor_width(uint_descriptor)) and assert_equal(false, descriptor_is_terminal(uint_descriptor)) and assert_equal(IntSegment, descriptor_kind(int_descriptor)) and assert_equal(width, descriptor_width(int_descriptor)) and assert_equal(false, descriptor_is_terminal(int_descriptor)) and assert_equal(BytesSegment, descriptor_kind(byte_descriptor)) and assert_equal(width, descriptor_width(byte_descriptor)) and assert_equal(false, descriptor_is_terminal(byte_descriptor)) and assert_equal(BitsSegment, descriptor_kind(bit_descriptor)) and assert_equal(width, descriptor_width(bit_descriptor)) and assert_equal(false, descriptor_is_terminal(bit_descriptor))).
+
+/**
+ * Verifies generated invalid widths are rejected for every fixed descriptor.
+ *
+ * Input: generated non-positive descriptor widths.
+ * Output: `true` when every fixed-width descriptor reports `InvalidWidth`.
+ * Transformation: checks all fixed descriptor helpers against the same invalid
+ * width space.
+ */
+@test
+pub generated_non_positive_widths_are_rejected(): Bool ->
+    for_all(int_range(-2, 0), (width) -> case validate_descriptor(make_uint(width)) {
+        Err(uint_reason) ->
+            case validate_descriptor(make_int_bits(width)) {
+                Err(int_reason) ->
+                    case validate_descriptor(make_byte_span(width)) {
+                        Err(byte_reason) ->
+                            case validate_descriptor(make_bit_span(width)) {
+                                Err(bit_reason) ->
+                                    assert_equal(InvalidWidth, uint_reason) and assert_equal(InvalidWidth, int_reason) and assert_equal(InvalidWidth, byte_reason) and assert_equal(InvalidWidth, bit_reason);
+                                Ok(_descriptor) -> false
+                            };
+                        Ok(_descriptor) -> false
+                    };
+                Ok(_descriptor) -> false
+            };
+        Ok(_descriptor) -> false
+    }).
+
+/**
+ * Verifies generated protocol names preserve shape metadata.
+ *
+ * Input: generated short protocol names.
+ * Output: `true` when each generated shape validates and preserves name,
+ * endian, terminal-rest, and field-count metadata.
+ * Transformation: builds protocol shapes through public constructors before
+ * validating getter invariants.
+ */
+@test
+pub generated_protocol_names_preserve_shape_metadata(): Bool ->
+    for_all(elements(["frame", "packet", "message"]), (name) -> let shape = protocol_shape(name, LittleEndian, List(protocol_field("kind", make_uint(8)), protocol_field("payload", make_rest())), true);
+    case validate_protocol_shape(shape) {
+        Ok(validated) ->
+            assert_equal(name, protocol_shape_name(validated)) and assert_equal(LittleEndian, protocol_shape_endian(validated)) and assert_equal(true, protocol_shape_has_terminal_rest(validated)) and assert_equal(2, protocol_shape_fields(validated).length());
+        Err(_reason) -> false
+    }).
+
+/**
+ * Verifies generated aliases resolve exact direct targets without prefix drift.
+ *
+ * Input: generated alias names that do not overlap direct shape names.
+ * Output: `true` when each alias resolves `frame_v2`, while `frame` remains a
+ * separate exact direct lookup and unknown prefixes remain rejected.
+ * Transformation: exercises deterministic shape-set resolution over generated
+ * aliases and adversarial direct-name prefixes.
+ */
+@test
+pub generated_protocol_aliases_resolve_exact_targets(): Bool ->
+    for_all(elements(["current", "latest", "stable"]), (alias_name) -> let frame = protocol_shape("frame", BigEndian, List(protocol_field("kind", make_uint(8))), false);
+    let frame_v2 = protocol_shape("frame_v2", BigEndian, List(protocol_field("kind", make_uint(16))), false);
+    case protocol_shape_set("frames", List(frame, frame_v2), List(protocol_shape_alias(alias_name, "frame_v2"))) {
+        Err(_reason) -> false;
+        Ok(set) ->
+            case {protocol_shape_set_resolve(set, alias_name), protocol_shape_set_resolve(set, "frame"), protocol_shape_set_resolve(set, "frame_")} {
+                {Ok(alias), Ok(direct), Err(unknown)} ->
+                    assert_equal("frame_v2", protocol_shape_name(alias)) and assert_equal("frame", protocol_shape_name(direct)) and assert_equal(UnknownShape, unknown);
+                _ -> false
+            }
+    }).
+
+/**
+ * Verifies generated aliases cannot shadow direct protocol shapes.
+ */
+@test
+pub generated_protocol_aliases_reject_direct_name_collisions(): Bool ->
+    for_all(elements(["frame", "frame_v2"]), (alias_name) -> let frame = protocol_shape("frame", BigEndian, List(protocol_field("kind", make_uint(8))), false);
+    let frame_v2 = protocol_shape("frame_v2", BigEndian, List(protocol_field("kind", make_uint(16))), false);
+    case protocol_shape_set("frames", List(frame, frame_v2), List(protocol_shape_alias(alias_name, "frame"))) {
+        Err(reason) -> assert_equal(DuplicateShape, reason);
+        Ok(_set) -> false
+    }).
+
+/**
+ * Verifies generated scalar values roundtrip through registered aliases.
+ */
+@test
+pub generated_protocol_aliases_roundtrip_registered_codecs(): Bool ->
+    for_all(elements(["current", "latest", "stable"]), (alias_name) -> for_all(int_range(0, 3), (version) -> let decoded = property_decoded_protocol(List(property_decoded_field("version", version), property_decoded_field("kind", 2), property_decoded_field("length", 1)), Bytes.from_list([version]));
+    case protocol_shape_set("frames", List(compact_frame_shape()), List(protocol_shape_alias(alias_name, "compact_frame"))) {
+        Err(_reason) -> false;
+        Ok(set) ->
+            case protocol_shape_set_encode_exact(set, alias_name, decoded) {
+                Err(_reason) -> false;
+                Ok(encoded) ->
+                    case protocol_shape_set_decode(set, alias_name, encoded) {
+                        Err(_reason) -> false;
+                        Ok(roundtrip) ->
+                            decoded_protocol_value(roundtrip, "version") == Some(version) and assert_equal(Bytes.from_list([version]), decoded_protocol_remaining_bytes(roundtrip))
+                    }
+            }
+    })).
+
+/**
+ * Verifies generated duplicate field names are rejected.
+ *
+ * Input: generated short field names.
+ * Output: `true` when a repeated generated field label reports
+ * `DuplicateField`.
+ * Transformation: builds invalid protocol shapes through public constructors
+ * so duplicate-name validation is exercised by generated values.
+ */
+@test
+pub generated_duplicate_field_names_are_rejected(): Bool ->
+    for_all(elements(["id", "kind", "length"]), (name) -> let shape = protocol_shape("duplicate_field_shape", BigEndian, List(protocol_field(name, make_uint(8)), protocol_field(name, make_uint(16))), false);
+    case validate_protocol_shape(shape) {
+        Err(reason) -> assert_equal(DuplicateField, reason);
+        Ok(_validated) -> false
+    }).
+
+/**
+ * Verifies generated widths reject rest fields that are not terminal.
+ *
+ * Input: generated positive widths for the field after rest.
+ * Output: `true` when a non-terminal rest field reports `RestNotTerminal`.
+ * Transformation: creates a rest-then-fixed-field shape for each generated
+ * width and checks the ordered protocol validation error.
+ */
+@test
+pub generated_rest_then_field_shapes_are_rejected(): Bool ->
+    for_all(int_range(1, 4), (width) -> let shape = protocol_shape("rest_then_field_shape", BigEndian, List(protocol_field("payload", make_rest()), protocol_field("checksum", make_uint(width))), true);
+    case validate_protocol_shape(shape) {
+        Err(reason) -> assert_equal(RestNotTerminal, reason);
+        Ok(_validated) -> false
+    }).
+
+/**
+ * Verifies generated payloads keep the typed unsupported-runtime surface.
+ *
+ * Input: generated opaque payload strings.
+ * Output: `true` when every reserved descriptor-level runtime API reports
+ * `UnsupportedRuntime`.
+ * Transformation: checks decode and construct placeholders against generated
+ * payload samples without depending on host runtime errors.
+ */
+@test
+pub generated_payloads_keep_descriptor_runtime_unsupported(): Bool ->
+    for_all(strings(), (payload) -> case decode_exact(make_rest(), payload) {
+        Err(exact_reason) ->
+            case decode_prefix(make_rest(), payload) {
+                Err(prefix_reason) ->
+                    case construct(make_rest(), payload) {
+                        Err(construct_reason) ->
+                            assert_equal(UnsupportedRuntime, exact_reason) and assert_equal(UnsupportedRuntime, prefix_reason) and assert_equal(UnsupportedRuntime, construct_reason);
+                        Ok(_value) -> false
+                    };
+                Ok(_value) -> false
+            };
+        Ok(_value) -> false
+    }).
+
+/**
+ * Verifies generated scalar payloads decode through protocol descriptors.
+ *
+ * Input: generated unsigned byte values.
+ * Output: `true` when each byte becomes the named decoded field and the suffix
+ * remains an immutable VM byte body.
+ * Transformation: exercises descriptor-directed field decoding across the
+ * complete unsigned octet range.
+ */
+@test
+pub generated_byte_values_decode_prefixed_protocol_fields(): Bool ->
+    generated_byte_range_decodes(0, 63) and generated_byte_range_decodes(64, 127) and generated_byte_range_decodes(128, 191) and generated_byte_range_decodes(192, 255).
+
+/**
+ * Verifies one bounded range of unsigned byte payloads.
+ */
+pub generated_byte_range_decodes(min: Int, max: Int): Bool ->
+    for_all(int_range(min, max), (value) -> let shape = protocol_shape("generated_byte", BigEndian, List(protocol_field("value", make_uint(8)), protocol_field("body", make_rest())), true);
+    let payload = Bytes.from_list([value, 9]);
+    let decoded = property_decoded_protocol(List(property_decoded_field("value", value)), Bytes.from_list([9]));
+    case {encode_exact(shape, decoded), decode_prefixed_body(shape, payload)} {
+        {Err(_reason), _} -> false;
+        {_, Err(_reason)} -> false;
+        {Ok(encoded), Ok(roundtrip)} ->
+            assert_equal(payload, encoded) and decoded_protocol_value(roundtrip, "value") == Some(value) and assert_equal(Bytes.from_list([9]), decoded_protocol_remaining_bytes(roundtrip))
+    }).
+
+/**
+ * Verifies generated byte-width descriptors choose the expected boundary.
+ */
+@test
+pub generated_byte_widths_split_protocol_headers(): Bool ->
+    for_all(int_range(1, 4), (width) -> let payload = Bytes.from_list([1, 2, 3, 4, 5]);
+    let shape = protocol_shape("generated_byte_prefix", BigEndian, List(protocol_field("prefix", make_byte_span(width)), protocol_field("body", make_rest())), true);
+    case {split_protocol_header(shape, payload), decode_fixed_header(shape, payload)} {
+        {Ok({split_header, split_body}), Ok({decoded_header, decoded_body})} ->
+            split_header.length() == width and split_body.length() == 5 - width and assert_equal(split_header, decoded_header) and assert_equal(split_body, decoded_body);
+        _ -> false
+    }).
+
+/**
+ * Verifies generated non-byte-aligned fixed headers fail before slicing.
+ */
+@test
+pub generated_unaligned_widths_are_rejected_before_split(): Bool ->
+    for_all(int_range(1, 7), (width) -> let shape = protocol_shape("generated_unaligned", BigEndian, List(protocol_field("bits", make_uint(width))), false);
+    case split_protocol_header(shape, Bytes.from_list([255])) {
+        Err(reason) -> assert_equal(InvalidAlignment, reason);
+        Ok(_parts) -> false
+    }).

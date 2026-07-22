@@ -44,6 +44,37 @@ hidden(x: Int): Int ->
     assert!(rust.contains("fn hidden(x: i64) -> i64"), "{rust}");
 }
 
+/// Verifies unsupported native lowering fails instead of emitting a callable
+/// placeholder body.
+#[test]
+fn emit_core_module_to_rust_fails_closed_for_unsupported_body() {
+    let module = core_module_with_functions(
+        "rust_probe_reject_unsupported",
+        vec![CoreFunction {
+            name: "unsupported".to_string(),
+            arity: 0,
+            public: true,
+            generic_params: Vec::new(),
+            native_operation: None,
+            params: Vec::new(),
+            return_type: "Term".to_string(),
+            core_return_type: Some(CoreType::Term),
+            clauses: vec![CoreFunctionClause {
+                patterns: Vec::new(),
+                core_patterns: Vec::new(),
+                pattern_proof_coverage: Vec::new(),
+                pattern_checked_preservation_evidence: Vec::new(),
+                guard: None,
+                body: direct_expr_summary(CoreExpr::Tuple(vec![CoreExpr::Int(1)])),
+            }],
+        }],
+    );
+
+    let error = emit_core_module_to_rust(&module).expect_err("unsupported lowering must fail");
+
+    assert!(error.contains("cannot lower CoreIR function `unsupported/0`"));
+}
+
 /// Verifies Rust probe emission handles direct pipe-forward CoreIR.
 ///
 /// Inputs:
@@ -66,6 +97,8 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
                 name: "add".to_string(),
                 arity: 2,
                 public: true,
+                generic_params: Vec::new(),
+                native_operation: None,
                 params: vec![
                     CoreParam {
                         name: "x".to_string(),
@@ -100,6 +133,8 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
                 name: "piped".to_string(),
                 arity: 0,
                 public: true,
+                generic_params: Vec::new(),
+                native_operation: None,
                 params: Vec::new(),
                 return_type: "Int".to_string(),
                 core_return_type: Some(CoreType::Int),
@@ -122,7 +157,7 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
         ],
     );
 
-    let rust = emit_core_module_to_rust(&module);
+    let rust = emit_core_module_to_rust(&module).expect("emit real Rust probe");
 
     assert!(rust.contains("pub fn piped() -> i64"), "{rust}");
     assert!(rust.contains("add(1, 2)"), "{rust}");
@@ -148,6 +183,8 @@ fn emit_core_module_to_rust_handles_function_value_call() {
             name: "apply".to_string(),
             arity: 1,
             public: true,
+            generic_params: Vec::new(),
+            native_operation: None,
             params: vec![CoreParam {
                 name: "f".to_string(),
                 ty: "Term".to_string(),
@@ -172,7 +209,7 @@ fn emit_core_module_to_rust_handles_function_value_call() {
         }],
     );
 
-    let rust = emit_core_module_to_rust(&module);
+    let rust = emit_core_module_to_rust(&module).expect("emit real Rust probe");
 
     assert!(rust.contains("(f)(10)"), "{rust}");
     assert_rust_probe_compiles(&rust);
@@ -198,6 +235,8 @@ fn emit_core_module_to_rust_escapes_binary_literals_portably() {
             name: "escaped".to_string(),
             arity: 0,
             public: true,
+            generic_params: Vec::new(),
+            native_operation: None,
             params: Vec::new(),
             return_type: "Binary".to_string(),
             core_return_type: Some(CoreType::Binary),
@@ -214,7 +253,7 @@ fn emit_core_module_to_rust_escapes_binary_literals_portably() {
         }],
     );
 
-    let rust = emit_core_module_to_rust(&module);
+    let rust = emit_core_module_to_rust(&module).expect("emit real Rust probe");
 
     assert!(
         rust.contains(r#"String::from("quote \" slash \\ newline \n carriage \r tab \t")"#),
@@ -337,7 +376,7 @@ fn compile_source_to_rust_probe(path: &str, source: &str) -> String {
     )
     .expect("compile source to CoreIR");
 
-    emit_core_module_to_rust(&artifacts.core)
+    emit_core_module_to_rust(&artifacts.core).expect("emit real Rust probe")
 }
 
 /// Builds a focused CoreModule for direct Rust probe tests.
@@ -358,6 +397,7 @@ fn core_module_with_functions(module: &str, functions: Vec<CoreFunction>) -> Cor
         module: module.to_string(),
         source: CoreSourceIdentity {
             source_kind: "direct-test".to_string(),
+            source_path: None,
             syntax_contract_fingerprint: None,
         },
         imports: Vec::new(),
@@ -374,6 +414,7 @@ fn core_module_with_functions(module: &str, functions: Vec<CoreFunction>) -> Cor
         types: Vec::new(),
         functions,
         constructors: Vec::new(),
+        templates: Vec::new(),
         trait_conformances: Vec::new(),
         metadata: empty_core_metadata(),
         interface: empty_interface(module),
@@ -477,11 +518,17 @@ fn empty_interface(module: &str) -> ModuleInterface {
         type_bodies: HashMap::new(),
         struct_fields: HashMap::new(),
         type_docs: HashMap::new(),
+        shapes: HashMap::new(),
         traits: HashMap::new(),
         trait_conformances: Vec::new(),
         constructors: HashMap::new(),
         functions: HashMap::new(),
         function_overloads: HashMap::new(),
+        constants: HashMap::new(),
+        const_functions: HashMap::new(),
+        expression_macros: HashMap::new(),
+        valued_unions: HashMap::new(),
+        associated_constants: HashMap::new(),
     }
 }
 

@@ -1,0 +1,153 @@
+/**
+ * Portable random generator contract.
+ *
+ * `std.random.Random` exposes deterministic seeded generators and OS-seeded
+ * entropy generators through explicit VM-owned generator state. The VM
+ * implementation delegates random generation to maintained Rust `rand` and
+ * `rand_chacha` crates.
+ */
+module std.random.Random.
+
+import type std.collections.List.
+import type std.core.{Error, Result}.
+
+/**
+ * Generator represents explicit random generator state.
+ *
+ * Input: no type parameter.
+ * Output: an opaque generator value whose state advances only when returned
+ * by a draw operation.
+ * Transformation: hides the selected target generator behind a stable
+ * portable API without using hidden global mutable RNG state.
+ */
+pub opaque type Generator.
+
+/**
+ * RandomError is the portable error returned by random operations.
+ *
+ * Input: includes the neutral `code` and `message` fields from
+ * `std.core.Error.Error` and adds an offset field for diagnostic consistency
+ * with other Rust-backed std modules.
+ * Output: a typed error value usable anywhere `Error`-including values are
+ * accepted.
+ * Transformation: maps invalid random API inputs into stable typed errors.
+ */
+pub struct RandomError includes Error {
+    offset: Int
+}.
+
+/**
+ * Creates a deterministic random generator.
+ *
+ * Input: one non-negative integer seed.
+ * Output: `Ok(generator)` when the seed is valid, otherwise
+ * `Err(RandomError)`.
+ * Transformation: delegates seed expansion to the selected maintained Rust RNG
+ * crate and keeps the returned generator state explicit.
+ */
+@compiler.native {std.random.random.seed}
+pub seed(seed: Int): Result[Generator, RandomError] ->
+    native.
+
+/**
+ * Creates a generator seeded from OS randomness.
+ *
+ * Input: no value input.
+ * Output: one explicit generator seeded from production entropy.
+ * Transformation: delegates entropy acquisition to maintained Rust RNG
+ * support and returns ordinary VM-owned generator state.
+ */
+@compiler.native {std.random.random.entropy}
+pub entropy(): Generator ->
+    native.
+
+/**
+ * Draws one random integer.
+ *
+ * Input: one generator.
+ * Output: `{next_generator, value}`.
+ * Transformation: advances the explicit generator state and returns the new
+ * state with the drawn integer.
+ */
+@compiler.native {std.random.random.int}
+pub int(generator: Generator): {Generator, Int} ->
+    native.
+
+/**
+ * Draws one bounded random integer.
+ *
+ * Input: one generator, inclusive lower bound, and exclusive upper bound.
+ * Output: `Ok({next_generator, value})` when `min < max`, otherwise
+ * `Err(RandomError)`.
+ * Transformation: delegates bounded sampling to maintained Rust RNG range
+ * support.
+ */
+@compiler.native {std.random.random.bounded_int}
+pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, Int}, RandomError] ->
+    native.
+
+/**
+ * Draws one random float.
+ *
+ * Input: one generator.
+ * Output: `{next_generator, value}` where `value` is in `[0.0, 1.0)`.
+ * Transformation: advances explicit generator state and returns a finite
+ * float.
+ */
+@compiler.native {std.random.random.float}
+pub float(generator: Generator): {Generator, Float} ->
+    native.
+
+/**
+ * Draws one random boolean.
+ *
+ * Input: one generator.
+ * Output: `{next_generator, value}`.
+ * Transformation: advances explicit generator state and returns a boolean.
+ */
+@compiler.native {std.random.random.bool}
+pub bool(generator: Generator): {Generator, Bool} ->
+    native.
+
+/**
+ * Chooses one value from a non-empty list.
+ *
+ * Input: one generator and one non-empty list.
+ * Output: `Ok({next_generator, value})` when the list is non-empty, otherwise
+ * `Err(RandomError)`.
+ * Transformation: selects a list index with maintained Rust RNG range support
+ * and returns the selected VM value unchanged.
+ */
+@compiler.native {std.random.random.choice}
+pub choice[T](generator: Generator, values: List[T]): Result[{Generator, T}, RandomError] ->
+    native.
+
+/**
+ * Shuffles a list.
+ *
+ * Input: one generator and one list.
+ * Output: `{next_generator, values}` with all input values preserved exactly
+ * once.
+ * Transformation: delegates index permutation to maintained Rust RNG shuffle
+ * support and reorders VM values by the generated indices.
+ */
+@compiler.native {std.random.random.shuffle}
+pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]} ->
+    native.
+
+/**
+ * Samples values without replacement.
+ *
+ * Input: one generator, one list, and a non-negative sample size.
+ * Output: `Ok({next_generator, values})` when the requested size is valid,
+ * otherwise `Err(RandomError)`.
+ * Transformation: shuffles indices through maintained Rust RNG support and
+ * returns the requested prefix without mutating the source list.
+ */
+@compiler.native {std.random.random.sample}
+pub sample[T](
+    generator: Generator,
+    values: List[T],
+    count: Int
+): Result[{Generator, List[T]}, RandomError] ->
+    native.

@@ -38,7 +38,7 @@ fn route_param_names_extracts_ordered_captures() {
 ///   preserve their declared type.
 ///
 /// Transformation:
-/// - Locks the type metadata consumed by route handler validation and BEAM
+/// - Locks the type metadata consumed by route handler validation and VM
 ///   route argument decoding.
 #[test]
 fn route_param_types_extracts_defaults_and_typed_captures() {
@@ -62,7 +62,7 @@ fn route_param_types_extracts_defaults_and_typed_captures() {
 ///
 /// Transformation:
 /// - Locks the 0.0.5 route-param boundary to the types the local server can
-///   actually decode before invoking BEAM handlers.
+///   actually decode before invoking VM handlers.
 #[test]
 fn validate_route_pattern_rejects_unsupported_route_param_type() {
     let error =

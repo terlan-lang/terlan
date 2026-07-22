@@ -1,21 +1,29 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DocumentFragment
  */
 module std.js.Dom.DocumentFragmentTest.
 
-import type std.js.Dom.DocumentFragment.{DocumentFragment}.
-
+import type std.js.Dom.DocumentFragment.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub owner_document_typechecks(receiver: DocumentFragment): Document ->
     receiver.owner_document().
 
-pub get_element_by_id_typechecks(receiver: DocumentFragment, element_id: JsString): Option[HTMLElement] ->
+pub get_element_by_id_typechecks(
+    receiver: DocumentFragment,
+    element_id: JsString
+): Option[HTMLElement] ->
     receiver.get_element_by_id(element_id).
 
 pub text_content_typechecks(receiver: DocumentFragment): JsString ->

@@ -1,8 +1,8 @@
 module=std.js.Dom.AssignedNodesOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16742856612848882796
-interface_hash=7007124413780525936
-interface_doc_hash=7007124413780525936
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=6110385079484005814
+interface_hash=17707210845765629037
+interface_doc_hash=17707210845765629037
 deps=0

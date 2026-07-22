@@ -56,6 +56,18 @@ impl Parser {
                     declarations.push(attach_docs(self.parse_import()?, docs));
                     declaration_annotations.push(annotations);
                 }
+                TokenKind::Atom if self.current().text == "shape" => {
+                    if self.looks_like_reserved_shape_synonym_decl() {
+                        declarations.push(attach_docs(
+                            self.parse_shape_synonym_raw_decl(false, self.current().start)?,
+                            docs,
+                        ));
+                    } else {
+                        declarations
+                            .push(attach_docs(self.parse_function_decl(false, false)?, docs));
+                    }
+                    declaration_annotations.push(annotations);
+                }
                 TokenKind::Pub => {
                     let declaration = attach_docs(self.parse_pub_decl()?, docs);
                     match declaration {
@@ -81,6 +93,10 @@ impl Parser {
                 }
                 TokenKind::Type => {
                     declarations.push(attach_docs(self.parse_type_decl(false, false)?, docs));
+                    declaration_annotations.push(annotations);
+                }
+                TokenKind::Const => {
+                    declarations.push(attach_docs(self.parse_constant_decl(false)?, docs));
                     declaration_annotations.push(annotations);
                 }
                 TokenKind::Opaque => {
@@ -156,7 +172,7 @@ impl Parser {
                             self.current().kind
                         ),
                         span: self.current().span(),
-                    })
+                    });
                 }
             }
         }
@@ -213,6 +229,20 @@ impl Parser {
                     declarations.push(attach_docs(self.parse_import()?, docs));
                     declaration_annotations.push(annotations);
                 }
+                TokenKind::Atom if self.current().text == "shape" => {
+                    if self.looks_like_reserved_shape_synonym_decl() {
+                        declarations.push(attach_docs(
+                            self.parse_shape_synonym_raw_decl(false, self.current().start)?,
+                            docs,
+                        ));
+                    } else {
+                        declarations.push(attach_docs(
+                            self.parse_function_signature_decl(false, false)?,
+                            docs,
+                        ));
+                    }
+                    declaration_annotations.push(annotations);
+                }
                 TokenKind::Export => {
                     declarations.push(attach_docs(self.parse_interface_export()?, docs));
                     declaration_annotations.push(annotations);
@@ -225,8 +255,22 @@ impl Parser {
                     declarations.push(attach_docs(self.parse_trait_decl(true)?, docs));
                     declaration_annotations.push(annotations);
                 }
+                TokenKind::Impl => {
+                    declarations.push(attach_docs(
+                        self.parse_trait_impl_interface_decl(false)?,
+                        docs,
+                    ));
+                    declaration_annotations.push(annotations);
+                }
                 TokenKind::Type => {
                     declarations.push(attach_docs(self.parse_type_decl(false, false)?, docs));
+                    declaration_annotations.push(annotations);
+                }
+                TokenKind::Const => {
+                    declarations.push(attach_docs(
+                        self.parse_constant_interface_decl(false)?,
+                        docs,
+                    ));
                     declaration_annotations.push(annotations);
                 }
                 TokenKind::Opaque => {

@@ -1,4 +1,0 @@
--module(phase_named_call).
--export([call_it/0]).
-identity(X) ->
-call_it() ->

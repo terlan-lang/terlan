@@ -1,0 +1,43 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "data",
+      "operation": "std.http.sse.data"
+    },
+    {
+      "arity": 2,
+      "name": "with_id",
+      "operation": "std.http.sse.with_id"
+    },
+    {
+      "arity": 2,
+      "name": "with_name",
+      "operation": "std.http.sse.with_name"
+    },
+    {
+      "arity": 2,
+      "name": "with_retry_ms",
+      "operation": "std.http.sse.with_retry_ms"
+    },
+    {
+      "arity": 2,
+      "name": "response",
+      "operation": "std.http.sse.response"
+    },
+    {
+      "arity": 2,
+      "name": "endpoint",
+      "operation": "std.http.sse.endpoint"
+    },
+    {
+      "arity": 3,
+      "name": "endpoint_with_keep_alive",
+      "operation": "std.http.sse.endpoint_with_keep_alive"
+    }
+  ],
+  "module": "std_http_sse_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.http.Sse"
+}

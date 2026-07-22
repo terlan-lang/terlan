@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface NodeList
+ */
+module std.js.Dom.NodeList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * **`NodeList`** objects are collections of nodes, usually returned by properties such as Node.childNodes and methods such as document.querySelectorAll().
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeList)
+ */
+pub opaque type NodeList.
+
+/**
+ * The **`NodeList.length`** property returns the number of items in a NodeList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeList/length)
+ */
+pub (value: NodeList) length(): JsNumber.
+
+/**
+ * Returns a node from a `NodeList` by index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeList/item)
+ */
+pub (value: NodeList) item(index: JsNumber): Option[Node].

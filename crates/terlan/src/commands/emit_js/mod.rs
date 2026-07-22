@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::process::ExitCode;
 
 mod cast_semantics;
@@ -10,9 +11,10 @@ mod direct_reachability;
 mod oxc_backend;
 mod std_core_string_intrinsics;
 pub(crate) mod target_contract;
+mod template_runtime;
 
 pub(crate) use declarations::emit_core_module_to_typescript_declarations;
-pub(crate) use oxc_backend::{emit_core_module_with_direct_oxc_ast, validate_js_module_with_oxc};
+pub(crate) use oxc_backend::validate_js_module_with_oxc;
 
 #[cfg(test)]
 pub(crate) use oxc_backend::assert_oxc_accepts_js_artifact;
@@ -24,6 +26,27 @@ use crate::{
     formal_pipeline::compile_syntax_module_through_phases_with_profile,
     support::write_if_changed_or_forced, CliState,
 };
+
+/// Emits a direct JavaScript module with generated typed-template renderers.
+pub(crate) fn emit_core_module_with_template_runtime(
+    core: &crate::terlan_typeck::CoreModule,
+    syntax: &crate::terlan_syntax::SyntaxModuleOutput,
+    source_path: &Path,
+) -> Result<Option<String>, String> {
+    let Some(module_source) = oxc_backend::emit_core_module_with_direct_oxc_ast(core) else {
+        return Ok(None);
+    };
+    let runtime_source = format!(
+        "{}\n{}",
+        template_runtime::emit_template_runtime(syntax, source_path)?,
+        template_runtime::emit_structured_artifact_runtime(syntax, source_path)?
+    );
+    if runtime_source.is_empty() {
+        return Ok(Some(module_source));
+    }
+    let combined = format!("{runtime_source}\n{module_source}");
+    oxc_backend::emit_js_with_oxc_codegen(&combined).map(Some)
+}
 
 /// Executes the `emit-js` CLI command.
 ///
@@ -69,15 +92,25 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
         Ok(compiled) => compiled,
         Err(exit_code) => return exit_code,
     };
-    let crate::formal_pipeline::CheckedSyntaxModuleArtifacts { core, .. } = artifacts;
     if let Err(err) = fs::create_dir_all(&state.out_dir) {
         eprintln!("cannot create output directory: {}", err);
         return ExitCode::from(1);
     }
 
-    let js_target = state.out_dir.join(format!("{}.js", core.module));
-    let js = match oxc_backend::emit_core_module_with_oxc_codegen(&core) {
-        Ok(js) => js,
+    let js_target = state.out_dir.join(format!("{}.js", artifacts.core.module));
+    let js = match emit_core_module_with_template_runtime(
+        &artifacts.core,
+        &artifacts.syntax_output,
+        Path::new(&args.path),
+    ) {
+        Ok(Some(js)) => js,
+        Ok(None) => match oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core) {
+            Ok(js) => js,
+            Err(message) => {
+                eprintln!("Oxc rejected generated JavaScript: {message}");
+                return ExitCode::from(1);
+            }
+        },
         Err(message) => {
             eprintln!("Oxc rejected generated JavaScript: {message}");
             return ExitCode::from(1);
@@ -89,8 +122,11 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
     }
 
     if args.declarations {
-        let declarations_target = state.out_dir.join(format!("{}.d.ts", core.module));
-        let declarations = declarations::emit_core_module_to_typescript_declarations(&core);
+        let declarations_target = state
+            .out_dir
+            .join(format!("{}.d.ts", artifacts.core.module));
+        let declarations =
+            declarations::emit_core_module_to_typescript_declarations(&artifacts.core);
         if let Err(err) = write_if_changed_or_forced(
             &declarations_target,
             declarations.as_bytes(),
@@ -170,6 +206,18 @@ mod direct_ast_test;
 #[cfg(test)]
 #[path = "emit_js_test.rs"]
 mod emit_js_test;
+
+#[cfg(test)]
+#[path = "record_template_emit_test.rs"]
+mod record_template_emit_test;
+
+#[cfg(test)]
+#[path = "comprehension_guard_result_emit_test.rs"]
+mod comprehension_guard_result_emit_test;
+
+#[cfg(test)]
+#[path = "comprehension_pattern_emit_test.rs"]
+mod comprehension_pattern_emit_test;
 
 #[cfg(test)]
 #[path = "std_core_string_intrinsic_test.rs"]

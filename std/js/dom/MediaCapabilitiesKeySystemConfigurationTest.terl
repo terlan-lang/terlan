@@ -1,21 +1,28 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MediaCapabilitiesKeySystemConfiguration
  */
 module std.js.Dom.MediaCapabilitiesKeySystemConfigurationTest.
 
-import type std.js.Dom.MediaCapabilitiesKeySystemConfiguration.{MediaCapabilitiesKeySystemConfiguration}.
-
+import type std.js.Dom.MediaCapabilitiesKeySystemConfiguration.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub audio_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): KeySystemTrackConfiguration ->
     receiver.audio().
 
-pub distinctive_identifier_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): MediaKeysRequirement ->
+pub distinctive_identifier_typechecks(
+    receiver: MediaCapabilitiesKeySystemConfiguration
+): MediaKeysRequirement ->
     receiver.distinctive_identifier().
 
 pub init_data_type_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): JsString ->
@@ -24,10 +31,14 @@ pub init_data_type_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration)
 pub key_system_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): JsString ->
     receiver.key_system().
 
-pub persistent_state_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): MediaKeysRequirement ->
+pub persistent_state_typechecks(
+    receiver: MediaCapabilitiesKeySystemConfiguration
+): MediaKeysRequirement ->
     receiver.persistent_state().
 
-pub session_types_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): std.js.Array[JsString] ->
+pub session_types_typechecks(
+    receiver: MediaCapabilitiesKeySystemConfiguration
+): std.js.Array[JsString] ->
     receiver.session_types().
 
 pub video_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): KeySystemTrackConfiguration ->

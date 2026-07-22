@@ -1,6 +1,57 @@
 #[cfg(test)]
 mod tests {
+    use crate::terlan_syntax::parse_tree::Expr;
     use crate::terlan_syntax::{parse_module, parse_terlan_expr};
+
+    #[test]
+    fn formal_typed_sql_raw_macro_expr_ignores_dollar_quoted_interpolation_text() {
+        let expr =
+            parse_terlan_expr("sql[UserRow] {select $body$${ignored}$body$ where id = ${user.id}}")
+                .expect("parse typed SQL dollar-quoted interpolation text");
+        let Expr::RawMacro { interpolations, .. } = expr else {
+            panic!("expected typed SQL raw macro expression");
+        };
+
+        assert_eq!(interpolations.len(), 1);
+        assert!(matches!(
+            &interpolations[0],
+            Expr::FieldAccess { field, .. } if field == "id"
+        ));
+    }
+
+    #[test]
+    fn formal_typed_sql_raw_macro_expr_ignores_nested_comment_interpolation_text() {
+        let expr = parse_terlan_expr(
+            "sql[UserRow] {/* outer /* ${ignored} */ outer */ select ${user.id}}",
+        )
+        .expect("parse typed SQL nested comment interpolation text");
+        let Expr::RawMacro { interpolations, .. } = expr else {
+            panic!("expected typed SQL raw macro expression");
+        };
+
+        assert_eq!(interpolations.len(), 1);
+    }
+
+    #[test]
+    fn formal_list_comprehension_accepts_ordered_generators() {
+        let expr = parse_terlan_expr("[{Item, Other} | Item <- Items, Other <- Others]")
+            .expect("multiple generators should parse");
+        let Expr::ListComprehension { generators, .. } = expr else {
+            panic!("expected list comprehension");
+        };
+
+        assert_eq!(generators.len(), 2);
+    }
+
+    #[test]
+    fn formal_list_comprehension_rejects_generator_after_filter() {
+        let error = parse_terlan_expr("[Other | Item <- Items, Item > 0, Other <- Others]")
+            .expect_err("generator after filter should fail");
+
+        assert!(error
+            .message
+            .contains("list comprehension generators must precede filter expressions"));
+    }
 
     /// Verifies malformed nesting fails as a parse error without panicking.
     ///
@@ -132,16 +183,16 @@ pub hello(): String ->
         .expect("Unicode string payload should parse");
     }
 
-    /// Verifies removed Erlang source syntax remains rejected.
+    /// Verifies removed Vm source syntax remains rejected.
     ///
     /// Inputs:
-    /// - Source using raw Erlang send/receive and binary pattern shapes.
+    /// - Source using raw Vm send/receive and binary pattern shapes.
     ///
     /// Output:
     /// - Test passes when canonical Terlan parsing rejects each module.
     ///
     /// Transformation:
-    /// - Protects the source grammar from reintroducing BEAM-only syntax as a
+    /// - Protects the source grammar from reintroducing VM-only syntax as a
     ///   side effect of backend work.
     #[test]
     fn adversarial_module_rejects_removed_erlang_source_grammar() {
@@ -167,7 +218,7 @@ pub decode(value: Binary): Int ->
     }.
 "#,
         ] {
-            let error = parse_module(source).expect_err("removed Erlang grammar parsed");
+            let error = parse_module(source).expect_err("removed Vm grammar parsed");
             assert!(
                 !error.message.trim().is_empty(),
                 "empty parse error for {source:?}"

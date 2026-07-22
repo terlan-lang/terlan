@@ -1,0 +1,72 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface GeolocationCoordinates
+ */
+module std.js.Dom.GeolocationCoordinates.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`GeolocationCoordinates`** interface represents the position and altitude of the device on Earth, as well as the accuracy with which these properties are calculated.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates)
+ */
+pub opaque type GeolocationCoordinates.
+
+/**
+ * The **`accuracy`** read-only property of the GeolocationCoordinates interface is a strictly positive `double` representing the accuracy, with a 95% confidence level, of the GeolocationCoordinates.latitude and GeolocationCoordinates.longitude properties expressed in meters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/accuracy)
+ */
+pub (value: GeolocationCoordinates) accuracy(): JsNumber.
+
+/**
+ * The **`altitude`** read-only property of the GeolocationCoordinates interface is a `double` representing the altitude of the position in meters above the WGS84 ellipsoid (which defines the nominal sea level surface).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitude)
+ */
+pub (value: GeolocationCoordinates) altitude(): Option[JsNumber].
+
+/**
+ * The **`altitudeAccuracy`** read-only property of the GeolocationCoordinates interface is a strictly positive `double` representing the accuracy, with a 95% confidence level, of the `altitude` expressed in meters.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitudeAccuracy)
+ */
+pub (value: GeolocationCoordinates) altitude_accuracy(): Option[JsNumber].
+
+/**
+ * The **`heading`** read-only property of the GeolocationCoordinates interface is a `double` representing the direction in which the device is traveling.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/heading)
+ */
+pub (value: GeolocationCoordinates) heading(): Option[JsNumber].
+
+/**
+ * The **`latitude`** read-only property of the GeolocationCoordinates interface is a `double` representing the latitude of the position in decimal degrees.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/latitude)
+ */
+pub (value: GeolocationCoordinates) latitude(): JsNumber.
+
+/**
+ * The **`longitude`** read-only property of the GeolocationCoordinates interface is a number which represents the longitude of a geographical position, specified in decimal degrees.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/longitude)
+ */
+pub (value: GeolocationCoordinates) longitude(): JsNumber.
+
+/**
+ * The **`speed`** read-only property of the GeolocationCoordinates interface is a `double` representing the velocity of the device in meters per second.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/speed)
+ */
+pub (value: GeolocationCoordinates) speed(): Option[JsNumber].

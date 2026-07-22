@@ -1,8 +1,8 @@
 module=std.js.Dom.KeyframeEffectOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=13514859154773023989
-interface_hash=16503924538182323463
-interface_doc_hash=16503924538182323463
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15210354551135064833
+interface_hash=7163577544247234784
+interface_doc_hash=7163577544247234784
 deps=0

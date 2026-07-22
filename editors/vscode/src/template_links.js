@@ -3,6 +3,16 @@
 const path = require("path");
 
 const TERLAN_TEMPLATE_SUFFIXES = [".terl.html", ".terl.md"];
+const TERLAN_RENDER_MODE_BY_SUFFIX = new Map([
+  [".terl.html", "staticHtml"],
+  [".terl.md", "documentationExample"],
+  [".terl.json", "structuredArtifact"],
+  [".terl.toml", "structuredArtifact"],
+  [".terl.yaml", "structuredArtifact"],
+  [".terl.yml", "structuredArtifact"],
+  [".terl.txt", "structuredArtifact"],
+  [".terl.xml", "structuredArtifact"]
+]);
 const HTML_VOID_OR_BUILTIN_TAGS = new Set([
   "a",
   "abbr",
@@ -130,7 +140,9 @@ const HTML_VOID_OR_BUILTIN_TAGS = new Set([
  */
 function templateTagFromPath(templatePath) {
   const fileName = path.basename(String(templatePath));
-  const suffix = TERLAN_TEMPLATE_SUFFIXES.find((candidate) => fileName.endsWith(candidate));
+  const suffix = TERLAN_TEMPLATE_SUFFIXES.find((candidate) =>
+    fileName.endsWith(candidate)
+  );
   if (!suffix) {
     return undefined;
   }
@@ -165,11 +177,40 @@ function templateTagFromPath(templatePath) {
 }
 
 /**
+ * Infers the compiler-visible render mode for a Terlan template path.
+ *
+ * @param {string} templatePath Source path ending in a `.terl.*` template suffix.
+ * @returns {string | undefined} Stable render-mode name used by docs/editor reports.
+ *
+ * @description
+ * Mirrors the release quality gate render-mode inventory so editor links expose
+ * the same mode classification as generated docs and compiler reports.
+ */
+function templateRenderModeFromPath(templatePath) {
+  const fileName = path.basename(String(templatePath));
+  for (const [suffix, renderMode] of TERLAN_RENDER_MODE_BY_SUFFIX.entries()) {
+    if (fileName.endsWith(suffix)) {
+      return renderMode;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Parses `template Name from "..."` declarations from one Terlan module.
  *
  * @param {string} text Terlan module source.
  * @param {string} filePath Filesystem path for the Terlan module.
- * @returns {Array<{name: string, tag: string, sourcePath: string, sourceFile: string, filePath: string, line: number, character: number}>}
+ * @returns {Array<{
+ *   name: string,
+ *   tag: string,
+ *   renderMode: string,
+ *   sourcePath: string,
+ *   sourceFile: string,
+ *   filePath: string,
+ *   line: number,
+ *   character: number
+ * }>}
  *
  * @description
  * Extracts the declaration data needed by the VS Code template document-link
@@ -188,12 +229,14 @@ function parseTemplateDeclarations(text, filePath) {
     const character = match.index + match[0].indexOf(match[1]) - lineStart;
     const sourcePath = match[2];
     const tag = templateTagFromPath(sourcePath);
-    if (!tag) {
+    const renderMode = templateRenderModeFromPath(sourcePath);
+    if (!tag || !renderMode) {
       continue;
     }
     declarations.push({
       name: match[1],
       tag,
+      renderMode,
       sourcePath,
       sourceFile: path.resolve(path.dirname(filePath), sourcePath),
       filePath,
@@ -249,5 +292,6 @@ function findTemplateComponentTagLinks(html, declarationsByTag) {
 module.exports = {
   findTemplateComponentTagLinks,
   parseTemplateDeclarations,
+  templateRenderModeFromPath,
   templateTagFromPath
 };

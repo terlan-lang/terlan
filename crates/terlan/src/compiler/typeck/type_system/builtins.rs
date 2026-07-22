@@ -49,7 +49,7 @@ pub(crate) fn builtin_call(name: &str, arity: usize) -> Option<FunctionScheme> {
 /// - `arity`: number of source arguments.
 ///
 /// Output:
-/// - `true` for legacy Erlang-shaped helper names that are no longer admitted
+/// - `true` for legacy Vm-shaped helper names that are no longer admitted
 ///   into Terlan's implicit prelude.
 ///
 /// Transformation:

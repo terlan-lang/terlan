@@ -11,6 +11,4 @@ pub converts_to_core(value: JsString): String ->
 pub converts_from_core(value: String): JsString ->
     std.js.String.from_core(value).
 
-@test
-pub generated_surface_is_declared(): Bool ->
-    true.
+pub generated_surface_contract(): Bool -> true.

@@ -100,6 +100,35 @@ fn mutable_object_builder_puts_values() {
     );
 }
 
+/// Validates object keys stay plain JSON strings even when they look like
+/// runtime atom-construction names.
+///
+/// Inputs:
+/// - JSON object keys named like unsafe Vm atom constructors.
+///
+/// Output:
+/// - Test passes when lookup and rendering preserve the keys as ordinary text.
+///
+/// Transformation:
+/// - Exercises the serde-backed object path without introducing atom
+///   conversion or symbol interning semantics.
+#[test]
+fn object_keys_that_look_like_atom_builders_remain_strings() {
+    let json = parsed_fixture(r#"{"binary_to_atom":"blocked","list_to_atom":"blocked"}"#);
+    let binary_to_atom =
+        get(&json, "binary_to_atom").unwrap_or_else(|_| Json::from_serde(Value::Null));
+    let list_to_atom = get(&json, "list_to_atom").unwrap_or_else(|_| Json::from_serde(Value::Null));
+
+    assert_eq!(as_string(&binary_to_atom), Ok(String::from("blocked")));
+    assert_eq!(as_string(&list_to_atom), Ok(String::from("blocked")));
+    assert_eq!(
+        stringify(&json),
+        Ok(String::from(
+            r#"{"binary_to_atom":"blocked","list_to_atom":"blocked"}"#
+        ))
+    );
+}
+
 /// Validates wrong-kind mutation errors.
 ///
 /// Inputs:

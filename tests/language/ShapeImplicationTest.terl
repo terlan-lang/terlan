@@ -1,0 +1,71 @@
+module tests.language.ShapeImplicationTest.
+
+import std.test.Test.{assert_equal}.
+
+pub struct Profile {
+    title: String
+}.
+
+pub struct User {
+    name: String,
+    profile: Profile
+}.
+
+pub struct Presenter {
+    prefix: String
+}.
+
+pub struct Page[T => {title: String}] {
+    model: T
+}.
+
+pub type Titled[T => {title: String}] = T.
+
+pub trait Render[T] {
+    render(value: T): String.
+}.
+
+pub impl Render[T => {title: String}] for T {
+    render(value: T): String -> value.title.
+}.
+
+pub titled_name(value: Titled[Profile]): String -> value.title.
+
+pub display_name[T => {name: String}](value: T): String ->
+    value.name.
+
+pub profile_title[T => {profile: {title: String}}](value: T): String ->
+    value.profile.title.
+
+pub (presenter: Presenter) present_name[T => {name: String}](value: T): String ->
+    presenter.prefix + value.name.
+
+@test
+pub structural_implication_executes_on_vm(): Bool ->
+    let user = User {name: "Ada", profile: Profile {title: "Engineer"}};
+    assert_equal("Ada", display_name(user)).
+
+@test
+pub nested_structural_implication_executes_on_vm(): Bool ->
+    let user = User {name: "Ada", profile: Profile {title: "Engineer"}};
+    assert_equal("Engineer", profile_title(user)).
+
+@test
+pub receiver_method_structural_implication_executes_on_vm(): Bool ->
+    let presenter = Presenter {prefix: "User: "};
+    let user = User {name: "Ada", profile: Profile {title: "Engineer"}};
+    assert_equal("User: Ada", presenter.present_name(user)).
+
+@test
+pub generic_struct_structural_implication_executes_on_vm(): Bool ->
+    let profile = Profile {title: "Engineer"};
+    let page = Page {model: profile};
+    assert_equal("Engineer", page.model.title).
+
+@test
+pub type_alias_structural_implication_executes_on_vm(): Bool ->
+    titled_name(Profile {title: "Alias"}) == "Alias".
+
+@test
+pub generic_impl_structural_implication_executes_on_vm(): Bool ->
+    Render.render(Profile {title: "Rendered"}) == "Rendered".

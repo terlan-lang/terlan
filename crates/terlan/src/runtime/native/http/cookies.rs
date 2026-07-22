@@ -155,16 +155,18 @@ impl CookieSameSite {
 ///
 /// Transformation:
 /// - Delegates cookie-pair parsing to the maintained `cookie` crate while
-///   retaining the SafeNative-owned boundary used by the BEAM HTTP bridge.
+///   retaining the NativeBoundary-owned boundary used by the VM HTTP bridge.
 pub fn parse_request_cookie_header(cookie_header: &str) -> Vec<(String, String)> {
-    cookie_header
-        .split(';')
-        .filter_map(|pair| match Cookie::parse(pair.trim().to_string()) {
-            Ok(cookie) if !cookie.name().trim().is_empty() => Some((
-                cookie.name().trim().to_string(),
-                cookie.value().trim().to_string(),
-            )),
-            _ => None,
+    Cookie::split_parse(cookie_header.to_string())
+        .filter_map(|cookie| {
+            cookie.ok().and_then(|cookie| {
+                (!cookie.name().trim().is_empty()).then(|| {
+                    (
+                        cookie.name().trim().to_string(),
+                        cookie.value().trim().to_string(),
+                    )
+                })
+            })
         })
         .collect()
 }

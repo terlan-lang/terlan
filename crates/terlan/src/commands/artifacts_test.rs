@@ -1,10 +1,38 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
-use super::{collect_syntax_markdown_frontend_inputs, collect_syntax_template_frontend_inputs};
+use super::{
+    collect_syntax_dependency_hashes, collect_syntax_markdown_frontend_inputs,
+    collect_syntax_template_frontend_inputs,
+};
+
+#[test]
+fn value_lifecycle_export_change_invalidates_dependent_artifact_hash() {
+    let consumer = parse_module_as_syntax_output(
+        "module cache.consumer.\nimport cache.provider.{ANSWER}.\npub run(): Int -> ANSWER.\n",
+    )
+    .expect("parse cache consumer");
+    let provider = |value| {
+        let module = parse_module_as_syntax_output(&format!(
+            "module cache.provider.\npub const ANSWER: Int = {value}.\n"
+        ))
+        .expect("parse cache provider");
+        crate::terlan_hir::syntax_module_output_to_interface(&module)
+    };
+    let old = HashMap::from([("cache.provider".to_string(), provider(42))]);
+    let new = HashMap::from([("cache.provider".to_string(), provider(43))]);
+
+    let old_hash = collect_syntax_dependency_hashes(&consumer, &old, None, None);
+    let new_hash = collect_syntax_dependency_hashes(&consumer, &new, None, None);
+    assert_ne!(
+        old_hash, new_hash,
+        "inlined constant changes must invalidate consumers"
+    );
+}
 
 /// Builds a unique temporary directory for artifact tests.
 ///

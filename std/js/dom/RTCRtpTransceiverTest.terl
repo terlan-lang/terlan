@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCRtpTransceiver
  */
 module std.js.Dom.RTCRtpTransceiverTest.
 
 import type std.core.{Unit}.
+import type std.js.Dom.RTCRtpTransceiver.
 
-import type std.js.Dom.RTCRtpTransceiver.{RTCRtpTransceiver}.
-
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub current_direction_typechecks(receiver: RTCRtpTransceiver): Option[RTCRtpTransceiverDirection] ->
     receiver.current_direction().
@@ -27,7 +32,10 @@ pub receiver_typechecks(receiver: RTCRtpTransceiver): RTCRtpReceiver ->
 pub sender_typechecks(receiver: RTCRtpTransceiver): RTCRtpSender ->
     receiver.sender().
 
-pub set_codec_preferences_typechecks(receiver: RTCRtpTransceiver, codecs: std.js.Array[RTCRtpCodec]): Unit ->
+pub set_codec_preferences_typechecks(
+    receiver: RTCRtpTransceiver,
+    codecs: std.js.Array[RTCRtpCodec]
+): Unit ->
     receiver.set_codec_preferences(codecs).
 
 pub stop_typechecks(receiver: RTCRtpTransceiver): Unit ->

@@ -15,16 +15,18 @@ set -euo pipefail
 #   or exceeds the timeout.
 #
 # Transformation:
-# - Derives the unique stdlib release-test file set from the manifest and
-#   executes those Terlan test modules through the compiler's test command with
-#   the owning target profile and a bounded runtime so a stuck test cannot hang
-#   release automation.
+# - Executes each manifest-listed Terlan @test function through the compiler's
+#   test command with a bounded runtime so a stuck test cannot hang release
+#   automation.
+# - Generated JS interface rows are contract-surface checks validated by
+#   `stdlib-release-api-tests-check`, not executable VM-default tests.
 
 manifest="tests/std/RELEASE_API_TESTS.tsv"
 test_timeout_seconds="${TERLAN_STD_TEST_TIMEOUT_SECONDS:-120}"
 terlc_bin="${TERLC_BIN:-${CARGO_TARGET_DIR:-target}/debug/terlc}"
 failures=0
 release_cache_home=""
+declare -A executed_test_files=()
 
 # Inputs:
 # - Cargo workspace metadata from the current checkout.
@@ -86,12 +88,12 @@ if [[ ! -x "$terlc_bin" ]]; then
   exit 1
 fi
 
-test_files="$(mktemp -t terlan-std-tests.XXXXXX)"
+test_rows="$(mktemp -t terlan-std-tests.XXXXXX)"
 if [[ -z "${XDG_CACHE_HOME:-}" ]]; then
   release_cache_home="$(mktemp -d /tmp/terlan-std-release-cache.XXXXXX)"
   export XDG_CACHE_HOME="$release_cache_home"
 fi
-trap 'rm -f "$test_files"; if [[ -n "$release_cache_home" ]]; then rm -rf "$release_cache_home"; fi' EXIT
+trap 'rm -f "$test_rows"; if [[ -n "$release_cache_home" ]]; then rm -rf "$release_cache_home"; fi' EXIT
 
 awk -F '\t' '
   /^[[:space:]]*#/ || /^[[:space:]]*$/ {
@@ -99,16 +101,27 @@ awk -F '\t' '
   }
 
   NF >= 3 {
-    print $2
+    kind = ($1 ~ /^std\.js\..*\.generated_surface$/) ? "contract" : "test"
+    print kind "\t" $2 "\t" $3
   }
-' "$manifest" | sort -u > "$test_files"
+' "$manifest" | sort -u > "$test_rows"
 
-while IFS= read -r test_file; do
+while IFS=$'\t' read -r row_kind test_file test_function; do
   if [[ ! -f "$test_file" ]]; then
     printf 'stdlib release test file is missing: %s\n' "$test_file" >&2
     failures=1
     continue
   fi
+
+  if [[ "$row_kind" == contract ]]; then
+    printf '[stdlib-release-contract] %s %s\n' "$test_file" "$test_function"
+    continue
+  fi
+
+  if [[ -n "${executed_test_files[$test_file]:-}" ]]; then
+    continue
+  fi
+  executed_test_files["$test_file"]=1
 
   printf '[stdlib-release-test] %s\n' "$test_file"
   status=0
@@ -125,7 +138,7 @@ while IFS= read -r test_file; do
   else
     failures=1
   fi
-done < "$test_files"
+done < "$test_rows"
 
 if [[ "$failures" -ne 0 ]]; then
   exit 1

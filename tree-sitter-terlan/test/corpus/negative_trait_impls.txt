@@ -1,0 +1,26 @@
+==================
+negative trait implementation facts
+==================
+
+module app.NegativeFacts.
+
+pub impl not JsonEncode[SecretKey].
+impl not Copy[Box[SecretKey]].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (impl_declaration
+    (pub_keyword)
+    (type_identifier)
+    (type_expression
+      (type_identifier)))
+  (impl_declaration
+    (type_identifier)
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))))))

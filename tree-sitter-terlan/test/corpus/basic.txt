@@ -23,7 +23,7 @@ pub main(): Unit ->
     (identifier)
     (parameters)
     (type_expression
-      (qualified_identifier))
+      (type_identifier))
     (expression
       (call_expression
         (identifier)
@@ -64,31 +64,31 @@ pub struct User implements Show[User] {
         (parameter
           (identifier)
           (type_expression
-            (qualified_identifier))))
+            (type_identifier))))
       (type_expression
-        (qualified_identifier))))
+        (type_identifier))))
   (struct_declaration
     (pub_keyword)
     (type_identifier)
     (implements_clause
       (type_expression
         (generic_type
-          (qualified_identifier)
+          (type_identifier)
           (type_expression
-            (qualified_identifier)))))
+            (type_identifier)))))
     (field_declaration
       (identifier)
       (type_expression
-        (qualified_identifier)))
+        (type_identifier)))
     (field_declaration
       (identifier)
       (type_expression
-        (qualified_identifier)))
+        (type_identifier)))
     (field_declaration
       (private_field_identifier
         (identifier))
       (type_expression
-        (qualified_identifier)))))
+        (type_identifier)))))
 
 ==================
 template declaration
@@ -118,7 +118,7 @@ pub page(): Template.Html ->
     (template_parameter
       (identifier)
       (type_expression
-        (qualified_identifier))))
+        (type_identifier))))
   (function_declaration
     (pub_keyword)
     (identifier)
@@ -127,7 +127,7 @@ pub page(): Template.Html ->
       (qualified_identifier))
     (expression
       (call_expression
-        (qualified_identifier)
+        (type_identifier)
         (arguments
           (argument
             (identifier)
@@ -144,12 +144,14 @@ ${count.to_string()}
 
 (source_file
   (interpolation
+    (interpolation_start)
     (expression
       (method_call_expression
         (expression
           (identifier))
-        (identifier)
-        (arguments)))))
+        (field_identifier)
+        (arguments)))
+    (interpolation_end)))
 
 ==================
 0.0.5 web handler syntax
@@ -214,9 +216,9 @@ pub lookup(): Query ->
       (parameter
         (identifier)
         (type_expression
-          (qualified_identifier))))
+          (type_identifier))))
     (type_expression
-      (qualified_identifier))
+      (type_identifier))
     (expression
       (call_expression
         (qualified_identifier)
@@ -233,18 +235,18 @@ pub lookup(): Query ->
     (receiver
       (identifier)
       (type_expression
-        (qualified_identifier)))
+        (type_identifier)))
     (identifier)
     (parameters)
     (type_expression
-      (qualified_identifier))
+      (type_identifier))
     (expression
       (case_expression
         (expression
           (field_expression
             (expression
               (identifier))
-            (identifier)))
+            (field_identifier)))
         (case_arm
           (pattern
             (string))
@@ -256,23 +258,22 @@ pub lookup(): Query ->
             (field_expression
               (expression
                 (identifier))
-              (identifier)))))))
+              (field_identifier)))))))
   (function_declaration
     (pub_keyword)
     (receiver
       (identifier)
       (type_expression
-        (qualified_identifier)))
+        (type_identifier)))
     (identifier)
     (parameters)
     (type_expression
-      (qualified_identifier))
+      (type_identifier))
     (expression
       (field_expression
         (expression
           (identifier))
-        (private_field_identifier
-          (identifier)))))
+        (private_field_selector))))
   (function_declaration
     (pub_keyword)
     (identifier)
@@ -280,9 +281,9 @@ pub lookup(): Query ->
       (parameter
         (identifier)
         (type_expression
-          (qualified_identifier))))
+          (type_identifier))))
     (type_expression
-      (qualified_identifier))
+      (type_identifier))
     (expression
       (if_expression
         (case_arm
@@ -292,7 +293,7 @@ pub lookup(): Query ->
             (method_call_expression
               (expression
                 (identifier))
-              (identifier)
+              (field_identifier)
               (arguments))))
         (case_arm
           (pattern)
@@ -303,7 +304,519 @@ pub lookup(): Query ->
     (identifier)
     (parameters)
     (type_expression
-      (qualified_identifier))
+      (type_identifier))
     (expression
       (raw_macro_expression
         (identifier)))))
+
+==================
+[fixture:nested_expression]
+==================
+
+${case value { _ -> "}" }}
+
+---
+
+(source_file
+  (interpolation
+    (interpolation_start)
+    (expression
+      (case_expression
+        (expression
+          (identifier))
+        (case_arm
+          (pattern)
+          (expression
+            (string)))))
+    (interpolation_end)))
+
+==================
+[fixture:text_slot]
+==================
+
+<p>Hello ${name}</p>
+
+---
+
+(source_file
+  (template_element
+    (template_tag_name)
+    (template_text)
+    (template_text_interpolation
+      (template_interpolation_start)
+      (expression
+        (identifier))
+      (interpolation_end))
+    (template_tag_name)))
+
+==================
+[fixture:attribute_slot]
+==================
+
+<a href="${url}">Link</a>
+
+---
+
+(source_file
+  (template_element
+    (template_tag_name)
+    (template_attribute
+      (template_attribute_name)
+      (template_attribute_value
+        (template_attribute_interpolation
+          (template_interpolation_start)
+          (expression
+            (identifier))
+          (interpolation_end))))
+    (template_text)
+    (template_tag_name)))
+
+==================
+[fixture:html_native_text]
+==================
+
+<h1>{user.name}</h1>
+
+---
+
+(source_file
+  (template_element
+    (template_tag_name)
+    (template_text_interpolation
+      (template_interpolation_start)
+      (expression
+        (field_expression
+          (expression
+            (identifier))
+          (field_identifier)))
+      (interpolation_end))
+    (template_tag_name)))
+
+==================
+[fixture:html_native_attribute]
+==================
+
+<a href={profile_url(user.id)}>Profile</a>
+
+---
+
+(source_file
+  (template_element
+    (template_tag_name)
+    (template_attribute
+      (template_attribute_name)
+      (template_attribute_value
+        (template_attribute_interpolation
+          (template_interpolation_start)
+          (expression
+            (call_expression
+              (identifier)
+              (arguments
+                (argument
+                  (expression
+                    (field_expression
+                      (expression
+                        (identifier))
+                      (field_identifier)))))))
+          (interpolation_end))))
+    (template_text)
+    (template_tag_name)))
+
+==================
+string capture patterns
+==================
+
+module app.StringPattern.
+
+pub route(path: String): String ->
+  case path {
+    "users/${id: Int}/${name}.json" where id > 0 -> name;
+    _ -> "missing"
+  }.
+
+pub named("users/${id: Int}/${name}.json"): String ->
+  name.
+
+pub bind(path: String): String ->
+  (let "users/${id: Int}/${name}.json" = path;
+  "ok").
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (case_expression
+        (expression
+          (identifier))
+        (case_arm
+          (pattern
+            (string_pattern))
+          (guard_clause
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (number)))))
+          (expression
+            (identifier)))
+        (case_arm
+          (pattern)
+          (expression
+            (string))))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (pattern
+          (string_pattern))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (identifier)))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (expression
+        (let_expression
+          (let_binding
+            (pattern
+              (string_pattern))
+            (expression
+              (identifier)))
+          (expression
+            (string)))))))
+
+==================
+shape synonym declaration
+==================
+
+module app.Shapes.
+
+pub shape OkResponse(body) = {status, body}.
+shape Success(body) = {status, body} where status in 200..299.
+shape UserAsset(id, file) = "users/${id: Int}/assets/${file}".
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (shape_declaration
+    (pub_keyword)
+    (type_identifier)
+    (shape_parameters
+      (identifier))
+    (shape_pattern
+      (pattern
+        (tuple_pattern
+          (pattern
+            (identifier))
+          (pattern
+            (identifier))))))
+  (shape_declaration
+    (type_identifier)
+    (shape_parameters
+      (identifier))
+    (shape_pattern
+      (pattern
+        (tuple_pattern
+          (pattern
+            (identifier))
+          (pattern
+            (identifier)))))
+    (shape_guard_clause
+      (shape_guard_expression
+        (shape_guard_binary_expression
+          (shape_guard_expression
+            (shape_guard_binary_expression
+              (shape_guard_expression
+                (identifier))
+              (shape_guard_expression
+                (number))))
+          (shape_guard_expression
+            (number))))))
+  (shape_declaration
+    (type_identifier)
+    (shape_parameters
+      (identifier)
+      (identifier))
+    (shape_pattern
+      (pattern
+        (string_pattern)))))
+
+==================
+long-tail string capture contexts
+==================
+
+module app.StringPatternLongTail.
+
+pub lambda(path: String): String ->
+  (let render = ("docs/${section}/${slug}.html") -> section + "/" + slug;
+  render(path)).
+
+<p>${case route {
+    "users/${id: Int}" -> id;
+    _ -> 0
+  }}</p>
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (expression
+        (let_expression
+          (let_binding
+            (pattern
+              (identifier))
+            (expression
+              (lambda_expression
+                (parameters
+                  (parameter
+                    (pattern
+                      (string_pattern))))
+                (expression
+                  (binary_expression
+                    (expression
+                      (binary_expression
+                        (expression
+                          (identifier))
+                        (expression
+                          (string))))
+                    (expression
+                      (identifier)))))))
+          (expression
+            (call_expression
+              (identifier)
+              (arguments
+                (argument
+                  (expression
+                    (identifier))))))))))
+  (template_element
+    (template_tag_name)
+    (template_text_interpolation
+      (template_interpolation_start)
+      (expression
+        (case_expression
+          (expression
+            (identifier))
+          (case_arm
+            (pattern
+              (string_pattern))
+            (expression
+              (identifier)))
+          (case_arm
+            (pattern)
+            (expression
+              (number)))))
+      (interpolation_end))
+    (template_tag_name)))
+
+==================
+guarded list comprehension
+==================
+
+module app.Comprehensions.
+
+pub visible(values: List[Int]): List[Int] ->
+  [value | value <- values, value > 1, is_visible(value)].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))))
+    (expression
+      (list_expression
+        (list_comprehension_body
+          (expression
+            (identifier))
+          (comprehension_clause
+            (comprehension_generator
+              (pattern
+                (identifier))
+              (expression
+                (identifier))))
+          (comprehension_clause
+            (comprehension_filter
+              (expression
+                (binary_expression
+                  (expression
+                    (identifier))
+                  (expression
+                    (number))))))
+          (comprehension_clause
+            (comprehension_filter
+              (expression
+                (call_expression
+                  (identifier)
+                  (arguments
+                    (argument
+                      (expression
+                        (identifier)))))))))))))
+
+==================
+scientific float literals
+==================
+
+module app.ScientificFloat.
+
+pub tiny(): Float ->
+  5.0e-324.
+
+pub thousand(): Float ->
+  1E+3.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number)))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))))
+
+==================
+Compile-time constants
+==================
+
+module app.Constants.
+pub const ANSWER: Int = 42.
+pub const twice(value: Int): Int -> value * 2.
+pub type Buffer[const SIZE: Int, T] = {T}.
+pub type Status: Int = OK = 200 | NOT_FOUND = 404.
+pub trait HasCode { const CODE: Int = ANSWER. }.
+impl HasCode for Int { const CODE = ANSWER. }.
+
+---
+
+(source_file
+  (module_declaration
+    name: (qualified_identifier))
+  (constant_declaration
+    (pub_keyword)
+    name: (type_identifier)
+    type: (type_expression
+      (type_identifier))
+    value: (expression
+      (number)))
+  (const_function_declaration
+    (pub_keyword)
+    name: (identifier)
+    (parameters
+      (parameter
+        name: (identifier)
+        (type_expression
+          (type_identifier))))
+    type: (type_expression
+      (type_identifier))
+    body: (expression
+      (binary_expression
+        (expression
+          (identifier))
+        (expression
+          (number)))))
+  (type_declaration
+    (pub_keyword)
+    name: (type_identifier)
+    (type_parameters
+      (const_type_parameter
+        name: (type_identifier))
+      (type_identifier))
+    body: (type_expression
+      (tuple_type
+        (type_expression
+          (type_identifier)))))
+  (type_declaration
+    (pub_keyword)
+    name: (type_identifier)
+    representation: (type_expression
+      (type_identifier))
+    (valued_union_arm
+      name: (type_identifier)
+      value: (expression
+        (number)))
+    (valued_union_arm
+      name: (type_identifier)
+      value: (expression
+        (number))))
+  (trait_declaration
+    (pub_keyword)
+    name: (type_identifier)
+    (associated_constant_declaration
+      name: (type_identifier)
+      (type_expression
+        (type_identifier))
+      (expression
+        (type_identifier))))
+  (impl_declaration
+    trait: (impl_trait_ref
+      (type_identifier))
+    target: (type_expression
+      (type_identifier))
+    (impl_constant_declaration
+      name: (type_identifier)
+      (expression
+        (type_identifier)))))

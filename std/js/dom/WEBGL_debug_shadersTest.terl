@@ -1,14 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WEBGL_debug_shaders
  */
 module std.js.Dom.WEBGL_debug_shadersTest.
 
-import type std.js.Dom.WEBGL_debug_shaders.{WEBGL_debug_shaders}.
+import type std.js.Dom.WEBGL_debug_shaders.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub get_translated_shader_source_typechecks(receiver: WEBGL_debug_shaders, shader: WebGLShader): std.js.String.JsString ->
+pub get_translated_shader_source_typechecks(
+    receiver: WEBGL_debug_shaders,
+    shader: WebGLShader
+): std.js.String.JsString ->
     receiver.get_translated_shader_source(shader).

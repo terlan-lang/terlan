@@ -1,0 +1,8 @@
+module=std.http.Sse
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=9027638955569118659
+interface_hash=95949176219420953
+interface_doc_hash=11019622797931668551
+deps=0

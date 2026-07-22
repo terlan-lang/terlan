@@ -1,0 +1,195 @@
+{
+  "changed_feature_classes": [],
+  "proof_deltas": [],
+  "gap_delta_reasons": [
+    "EBNF syntax preservation remains unresolved",
+    "typed CoreIR preservation remains unresolved",
+    "target-profile inference remains unresolved",
+    "VM execution subset remains unresolved",
+    "pattern and operator coverage remains unresolved",
+    "native-boundary contracts remains unresolved",
+    "Wasm CoreIR lowering remains unresolved",
+    "Aeneas Rust verification bridge remains unresolved"
+  ],
+  "owners": [
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/Terlan/Core/Arithmetic.lean",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep the CoreIR arithmetic proof executable and synchronized with its targeted type contracts.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/Terlan/FeatureCull/LegacyBoundaries.lean",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 21"
+      ],
+      "required_gates": [
+        "lean-proof-feature-cull-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep retired-feature rejection theorems synchronized with the machine-readable cull map and replacement gates.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/Terlan/Runtime/NativeBoundary.lean",
+      "owner_bucket": "runtime",
+      "feature_slices": [
+        "Slice 42"
+      ],
+      "required_gates": [
+        "lean-proof-track-check",
+        "native-boundary-security-check",
+        "vm-native-boundary-contract-check"
+      ],
+      "next_action": "Keep NativeBoundary admission, ownership, and credit theorems synchronized with fingerprinted runtime contracts.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/Terlan/Type/ShapeImplication.lean",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Shape Implications"
+      ],
+      "required_gates": [
+        "lean-proof-track-check",
+        "shape-implications-check"
+      ],
+      "next_action": "Keep structural implication evidence, lexical scope, result preservation, and non-conversion theorems synchronized with the canonical type specification and EBNF.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/lakefile.lean",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 2"
+      ],
+      "required_gates": [
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep Lake configuration synchronized with replay dependency hashes.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "EBNF syntax preservation",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "lean-proof-track-check"
+      ],
+      "next_action": "Restore syntax preservation proofs against the current EBNF and parser contracts.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "typed CoreIR preservation",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "core-typing-spec-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Restore CoreIR preservation proofs against the current type specification.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "target-profile inference",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "target-inference-contract-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Restore target-inference proofs for the default VM profile.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "VM execution subset",
+      "owner_bucket": "vm",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "vm-runtime-semantics-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Restore VM execution subset proofs once VM semantics are stable.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "pattern and operator coverage",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "language-feature-coverage-100-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Restore pattern and operator proof coverage from the coverage matrices.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "native-boundary contracts",
+      "owner_bucket": "runtime",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "native-boundary-security-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Refine the fingerprinted NativeBoundary admission, ownership, and credit model against the Rust implementation through Aeneas.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "Wasm CoreIR lowering",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "wasm-coreir-lowering-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Restore portable Wasm lowering proof obligations.",
+      "exception": null
+    },
+    {
+      "subject_type": "gap",
+      "subject": "Aeneas Rust verification bridge",
+      "owner_bucket": "runtime",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "lean-proof-track-check"
+      ],
+      "next_action": "Restore the bridge artifact that connects Rust verification to Terlan semantics.",
+      "exception": null
+    }
+  ]
+}

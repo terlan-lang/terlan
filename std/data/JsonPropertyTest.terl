@@ -1,0 +1,32 @@
+/**
+ * Property-based JSON parser and serializer invariants.
+ *
+ * `std.data.JsonPropertyTest` validates JSON roundtrip behavior through the
+ * shared property-testing machinery and the VM-backed JSON implementation.
+ */
+module std.data.JsonPropertyTest.
+
+import std.core.Result.{Err, Ok, with_default}.
+import std.data.Json.
+import std.test.Gen.{elements, for_all}.
+import std.test.Test.{assert_equal}.
+
+import type std.core.Result.
+import type std.data.Json.{Json, JsonError}.
+
+/**
+ * Verifies generated strings survive JSON stringify/parse roundtrips.
+ *
+ * Input: generated string values.
+ * Output: `true` when each value serializes to JSON text, parses back, and
+ * reads as the original string.
+ * Transformation: checks the parser/serializer roundtrip invariant for JSON
+ * string values.
+ */
+@test
+pub generated_strings_roundtrip_through_json_text(): Bool ->
+    for_all(elements(["Ada", "Grace", "Linus"]), (text) -> let encoded = with_default(Json.stringify(Json.string(text)), "");
+    case Json.parse(encoded) {
+        Ok(value) -> assert_equal(text, with_default(value.as_string(), ""));
+        Err(_reason) -> false
+    }).

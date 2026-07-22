@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use crate::terlan_hir::{ConstructorSignature, FunctionSignature, FunctionSymbol, ModuleInterface};
 
+mod application;
+use application::apply_type_constructor_subst;
 mod builtins;
 mod interface;
 mod map_fields;
@@ -37,6 +39,7 @@ pub(super) use text::{
     compact_spaces, split_module_name, split_top_level_csv, split_top_level_plus,
 };
 
+use crate::terlan_typeck::types::FixedArraySize;
 use crate::terlan_typeck::{
     pretty_type, ConstructorScheme, MapFieldType, QualifiedTypeName, Type, TypeAlias, TypeVarId,
     Variance,
@@ -551,6 +554,24 @@ pub(super) fn unify(
             }
         }
         (
+            Type::Apply { constructor, args },
+            Type::Named {
+                module,
+                name,
+                args: named_args,
+            },
+        )
+        | (
+            Type::Named {
+                module,
+                name,
+                args: named_args,
+            },
+            Type::Apply { constructor, args },
+        ) => {
+            unify_type_constructor_application(*constructor, args, module, name, named_args, subst)
+        }
+        (
             Type::Apply {
                 constructor: left_constructor,
                 args: left_args,
@@ -605,19 +626,21 @@ pub(super) fn unify(
                 elem: elem_b,
             },
         ) => {
-            if size_a != size_b {
-                return Err(format!(
+            let resolved_size_a = size_a.substitute(subst);
+            let resolved_size_b = size_b.substitute(subst);
+            unify_fixed_array_sizes(resolved_size_a, resolved_size_b, subst).map_err(|()| {
+                format!(
                     "expected {} found {}",
                     pretty_type(&Type::FixedArray {
-                        size: *size_a,
+                        size: resolved_size_a,
                         elem: elem_a.clone(),
                     }),
                     pretty_type(&Type::FixedArray {
-                        size: *size_b,
+                        size: resolved_size_b,
                         elem: elem_b.clone(),
                     })
-                ));
-            }
+                )
+            })?;
             unify(elem_a, elem_b, subst)
         }
         _ => Err(format!(
@@ -625,6 +648,93 @@ pub(super) fn unify(
             pretty_type(&left),
             pretty_type(&right)
         )),
+    }
+}
+
+/// Unifies an applied constructor variable with a concrete named type.
+///
+/// Inputs:
+/// - `constructor` and `args`: higher-kinded application such as `F[Bool]`.
+/// - `module`, `name`, and `named_args`: concrete application such as
+///   `Deferred[Bool]`.
+/// - `subst`: active inference substitutions.
+///
+/// Output:
+/// - Successful constructor and argument bindings, or an arity mismatch.
+///
+/// Transformation:
+/// - Binds `F` to the unapplied named constructor and unifies the applied
+///   suffix. Leading named arguments remain on a partially applied constructor.
+fn unify_type_constructor_application(
+    constructor: TypeVarId,
+    args: &[Type],
+    module: &Option<String>,
+    name: &str,
+    named_args: &[Type],
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    let Some(split) = named_args.len().checked_sub(args.len()) else {
+        return Err(format!(
+            "type-constructor arity mismatch: expected at least {} arguments, found {}",
+            args.len(),
+            named_args.len()
+        ));
+    };
+    bind_var(
+        constructor,
+        Type::Named {
+            module: module.clone(),
+            name: name.to_string(),
+            args: named_args[..split].to_vec(),
+        },
+        subst,
+    )?;
+    for (expected, actual) in args.iter().zip(&named_args[split..]) {
+        unify(expected, actual, subst)?;
+    }
+    Ok(())
+}
+
+/// Unifies the compile-time size component of two fixed-array types.
+///
+/// Const-generic parameters deliberately retain their integer singleton value;
+/// ordinary type-variable binding widens integer literals to `Int`, which would
+/// erase the array identity needed by `FixedArray[N, T]`.
+fn unify_fixed_array_sizes(
+    left: FixedArraySize,
+    right: FixedArraySize,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), ()> {
+    match (left, right) {
+        (FixedArraySize::Known(left), FixedArraySize::Known(right)) if left == right => Ok(()),
+        (FixedArraySize::Param(left), FixedArraySize::Param(right)) if left == right => Ok(()),
+        (FixedArraySize::Param(id), FixedArraySize::Known(value))
+        | (FixedArraySize::Known(value), FixedArraySize::Param(id)) => bind_fixed_array_size(
+            id,
+            Type::LiteralInt(i64::try_from(value).map_err(|_| ())?),
+            subst,
+        ),
+        (FixedArraySize::Param(left), FixedArraySize::Param(right)) => {
+            bind_fixed_array_size(left, Type::Var(right), subst)
+        }
+        (FixedArraySize::Known(_), FixedArraySize::Known(_)) => Err(()),
+    }
+}
+
+fn bind_fixed_array_size(
+    id: TypeVarId,
+    value: Type,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), ()> {
+    let Some(existing) = subst.get(&id).cloned() else {
+        subst.insert(id, value);
+        return Ok(());
+    };
+    match (existing, value) {
+        (Type::LiteralInt(left), Type::LiteralInt(right)) if left == right => Ok(()),
+        (Type::Var(next), value) if next != id => bind_fixed_array_size(next, value, subst),
+        (existing, Type::Var(next)) if next != id => bind_fixed_array_size(next, existing, subst),
+        _ => Err(()),
     }
 }
 
@@ -863,61 +973,9 @@ pub(super) fn apply_subst(ty: &Type, subst: &HashMap<TypeVarId, Type>) -> Type {
             ret: Box::new(apply_subst(ret, subst)),
         },
         Type::FixedArray { size, elem } => Type::FixedArray {
-            size: *size,
+            size: size.substitute(subst),
             elem: Box::new(apply_subst(elem, subst)),
         },
         other => other.clone(),
-    }
-}
-
-/// Applies inference substitutions to a higher-kinded constructor application.
-///
-/// Inputs:
-/// - `constructor`: type variable id used as an applied type constructor.
-/// - `args`: applied type arguments.
-/// - `subst`: inference substitution table produced by unification.
-///
-/// Output:
-/// - A concrete named type when the constructor variable has been inferred as
-///   a named type constructor.
-/// - A still-higher-kinded application when the constructor remains a type
-///   variable.
-///
-/// Transformation:
-/// - Mirrors `substitute_type_constructor_application` for inference-time
-///   substitutions so `F[A]` and values of type `Option[A]` can unify through
-///   ordinary trait dispatch and receiver checking.
-fn apply_type_constructor_subst(
-    constructor: TypeVarId,
-    args: &[Type],
-    subst: &HashMap<TypeVarId, Type>,
-) -> Type {
-    let args = args
-        .iter()
-        .map(|arg| apply_subst(arg, subst))
-        .collect::<Vec<_>>();
-
-    match subst.get(&constructor) {
-        Some(Type::Named {
-            module,
-            name,
-            args: constructor_args,
-        }) => {
-            let mut applied_args = constructor_args
-                .iter()
-                .map(|arg| apply_subst(arg, subst))
-                .collect::<Vec<_>>();
-            applied_args.extend(args);
-            Type::Named {
-                module: module.clone(),
-                name: name.clone(),
-                args: applied_args,
-            }
-        }
-        Some(Type::Var(next_constructor)) => Type::Apply {
-            constructor: *next_constructor,
-            args,
-        },
-        _ => Type::Apply { constructor, args },
     }
 }

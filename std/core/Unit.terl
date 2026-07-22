@@ -3,12 +3,12 @@
  *
  * `std.core.Unit` defines the conventional no-information return value.
  */
-
 module std.core.Unit.
 
 import std.core.Option.{None, Some}.
-import type std.core.Option.
 import std.core.Ordering.{Eq}.
+
+import type std.core.Option.
 
 /**
  * Unit is the type of the singleton `Atom["unit"]` value.
@@ -25,7 +25,7 @@ import std.core.Ordering.{Eq}.
  *    Unit.
  * ```
  */
-pub type Unit = Atom["unit"].
+pub type Unit.
 
 /**
  * Returns whether two `Unit` values are equal.
@@ -42,8 +42,7 @@ pub type Unit = Atom["unit"].
  *     std.core.Unit.equal(Unit, Unit).
  * ```
  */
-pub equal(_left: Unit, _right: Unit): Bool ->
-    true.
+pub equal(_left: Unit, _right: Unit): Bool -> true.
 
 /**
  * Compares two `Unit` values.
@@ -82,8 +81,7 @@ pub compare(_left: Unit, _right: Unit): std.core.Ordering.Comparison ->
  *    std.core.Unit.to_string(Unit).
  * ```
  */
-pub to_string(value: Unit): String ->
-    "unit".
+pub to_string(value: Unit): String -> "unit".
 
 /**
  * Parses a canonical UTF-8 `String` into `Unit`.
@@ -103,9 +101,6 @@ pub to_string(value: Unit): String ->
  */
 pub from_string(value: String): Option[Unit] ->
     case value == "unit" {
-        true ->
-            Some(Unit);
-
-        false ->
-            None
+        true -> Some(Unit);
+        false -> None
     }.

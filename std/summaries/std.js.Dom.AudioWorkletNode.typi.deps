@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioWorkletNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=18184993508463900665
-interface_hash=16410011821327739007
-interface_doc_hash=16410011821327739007
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=10007167390952343043
+interface_hash=13947458993851152300
+interface_doc_hash=13947458993851152300
 deps=0

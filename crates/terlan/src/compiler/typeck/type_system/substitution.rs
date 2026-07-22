@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{MapFieldType, Type, TypeAlias, TypeVarId};
 
@@ -16,6 +16,15 @@ use crate::terlan_typeck::{MapFieldType, Type, TypeAlias, TypeVarId};
 ///   generic arity, and recursively expands nested arguments and structural
 ///   type members.
 pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> Type {
+    expand_type_aliases_inner(ty, aliases, &mut HashSet::new())
+}
+
+/// Expands aliases while preserving references that close a recursive cycle.
+fn expand_type_aliases_inner(
+    ty: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+    active_aliases: &mut HashSet<String>,
+) -> Type {
     match ty {
         Type::Named {
             module: None,
@@ -29,16 +38,19 @@ pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
                         name: name.clone(),
                         args: args
                             .iter()
-                            .map(|arg| expand_type_aliases(arg, aliases))
+                            .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                             .collect(),
                     };
                 }
                 if alias.params.len() != args.len() {
                     return ty.clone();
                 }
+                if !active_aliases.insert(name.clone()) {
+                    return ty.clone();
+                }
                 let args = args
                     .iter()
-                    .map(|arg| expand_type_aliases(arg, aliases))
+                    .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                     .collect::<Vec<_>>();
                 let mapping = alias
                     .params
@@ -46,14 +58,20 @@ pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
                     .cloned()
                     .zip(args)
                     .collect::<HashMap<_, _>>();
-                expand_type_aliases(&substitute_type_vars(&alias.body, &mapping), aliases)
+                let expanded = expand_type_aliases_inner(
+                    &substitute_type_vars(&alias.body, &mapping),
+                    aliases,
+                    active_aliases,
+                );
+                active_aliases.remove(name);
+                expanded
             } else {
                 Type::Named {
                     module: None,
                     name: name.clone(),
                     args: args
                         .iter()
-                        .map(|arg| expand_type_aliases(arg, aliases))
+                        .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                         .collect(),
                 }
             }
@@ -71,16 +89,19 @@ pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
                         name: name.clone(),
                         args: args
                             .iter()
-                            .map(|arg| expand_type_aliases(arg, aliases))
+                            .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                             .collect(),
                     };
                 }
                 if alias.params.len() != args.len() {
                     return ty.clone();
                 }
+                if !active_aliases.insert(qualified_name.clone()) {
+                    return ty.clone();
+                }
                 let args = args
                     .iter()
-                    .map(|arg| expand_type_aliases(arg, aliases))
+                    .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                     .collect::<Vec<_>>();
                 let mapping = alias
                     .params
@@ -88,14 +109,20 @@ pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
                     .cloned()
                     .zip(args)
                     .collect::<HashMap<_, _>>();
-                expand_type_aliases(&substitute_type_vars(&alias.body, &mapping), aliases)
+                let expanded = expand_type_aliases_inner(
+                    &substitute_type_vars(&alias.body, &mapping),
+                    aliases,
+                    active_aliases,
+                );
+                active_aliases.remove(&qualified_name);
+                expanded
             } else {
                 Type::Named {
                     module: Some(module.clone()),
                     name: name.clone(),
                     args: args
                         .iter()
-                        .map(|arg| expand_type_aliases(arg, aliases))
+                        .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                         .collect(),
                 }
             }
@@ -104,18 +131,22 @@ pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
             constructor: *constructor,
             args: args
                 .iter()
-                .map(|arg| expand_type_aliases(arg, aliases))
+                .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                 .collect(),
         },
         Type::Existential { params, body } => Type::Existential {
             params: params.clone(),
-            body: Box::new(expand_type_aliases(body, aliases)),
+            body: Box::new(expand_type_aliases_inner(body, aliases, active_aliases)),
         },
-        Type::List(inner) => Type::List(Box::new(expand_type_aliases(inner, aliases))),
+        Type::List(inner) => Type::List(Box::new(expand_type_aliases_inner(
+            inner,
+            aliases,
+            active_aliases,
+        ))),
         Type::Tuple(items) => Type::Tuple(
             items
                 .iter()
-                .map(|item| expand_type_aliases(item, aliases))
+                .map(|item| expand_type_aliases_inner(item, aliases, active_aliases))
                 .collect(),
         ),
         Type::Map(fields) => Type::Map(
@@ -123,7 +154,7 @@ pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
                 .iter()
                 .map(|field| MapFieldType {
                     key: field.key.clone(),
-                    value: expand_type_aliases(&field.value, aliases),
+                    value: expand_type_aliases_inner(&field.value, aliases, active_aliases),
                     required: field.required,
                 })
                 .collect(),
@@ -131,19 +162,19 @@ pub(crate) fn expand_type_aliases(ty: &Type, aliases: &HashMap<String, TypeAlias
         Type::Union(items) => Type::Union(
             items
                 .iter()
-                .map(|item| expand_type_aliases(item, aliases))
+                .map(|item| expand_type_aliases_inner(item, aliases, active_aliases))
                 .collect(),
         ),
         Type::Function { params, ret } => Type::Function {
             params: params
                 .iter()
-                .map(|param| expand_type_aliases(param, aliases))
+                .map(|param| expand_type_aliases_inner(param, aliases, active_aliases))
                 .collect(),
-            ret: Box::new(expand_type_aliases(ret, aliases)),
+            ret: Box::new(expand_type_aliases_inner(ret, aliases, active_aliases)),
         },
         Type::FixedArray { size, elem } => Type::FixedArray {
             size: *size,
-            elem: Box::new(expand_type_aliases(elem, aliases)),
+            elem: Box::new(expand_type_aliases_inner(elem, aliases, active_aliases)),
         },
         other => other.clone(),
     }
@@ -213,7 +244,7 @@ pub(crate) fn substitute_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, Type>
             ret: Box::new(substitute_type_vars(ret, mapping)),
         },
         Type::FixedArray { size, elem } => Type::FixedArray {
-            size: *size,
+            size: size.substitute(mapping),
             elem: Box::new(substitute_type_vars(elem, mapping)),
         },
         other => other.clone(),
@@ -370,7 +401,7 @@ fn rename_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, TypeVarId>) -> Type 
             ret: Box::new(rename_type_vars(ret, mapping)),
         },
         Type::FixedArray { size, elem } => Type::FixedArray {
-            size: *size,
+            size: size.rename(mapping),
             elem: Box::new(rename_type_vars(elem, mapping)),
         },
         other => other.clone(),

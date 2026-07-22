@@ -34,6 +34,23 @@ pub(crate) fn core_io_effect_set() -> CoreEffectSet {
     }
 }
 
+/// Builds the canonical VM effect-execution Core effect set.
+///
+/// Inputs:
+/// - None.
+///
+/// Output:
+/// - `CoreEffectSet` containing the stable `vm_effect_execution` label.
+///
+/// Transformation:
+/// - Distinguishes executing an inert Effect value from pure Effect
+///   construction and inspection in CoreIR proof and optimization metadata.
+pub(crate) fn core_vm_effect_execution_set() -> CoreEffectSet {
+    CoreEffectSet {
+        effects: vec!["vm_effect_execution".to_string()],
+    }
+}
+
 /// Builds the canonical mutable receiver Core effect set.
 ///
 /// Inputs:

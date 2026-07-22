@@ -1,0 +1,36 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CSSRuleList
+ */
+module std.js.Dom.CSSRuleList.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * A `CSSRuleList` represents an ordered collection of read-only CSSRule objects.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRuleList)
+ */
+pub opaque type CSSRuleList.
+
+/**
+ * The **`length`** property of the CSSRuleList interface returns the number of CSSRule objects in the list.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRuleList/length)
+ */
+pub (value: CSSRuleList) length(): JsNumber.
+
+/**
+ * The **`item()`** method of the CSSRuleList interface returns the CSSRule object at the specified `index` or `null` if the specified `index` doesn't exist.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRuleList/item)
+ */
+pub (value: CSSRuleList) item(index: JsNumber): Option[CSSRule].

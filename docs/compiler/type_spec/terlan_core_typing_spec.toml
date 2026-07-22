@@ -1,0 +1,89 @@
+schema = 1
+
+[[forms]]
+name = "IntLiteral"
+ebnf = "Int"
+type_rule = "T-IntLiteral"
+core_ir = "Expr.int"
+status = "lean-covered"
+lean_anchor = "Expr.int"
+gate = "formal-cli-phase-contract-gate"
+
+[[forms]]
+name = "StringLiteral"
+ebnf = "StringLiteral"
+type_rule = "T-StringLiteral"
+core_ir = "Expr.binary"
+status = "lean-covered"
+lean_anchor = "Expr.binary"
+gate = "formal-cli-phase-contract-gate"
+
+[[forms]]
+name = "VariableReference"
+ebnf = "Binding"
+type_rule = "T-Var"
+core_ir = "Expr.var"
+status = "lean-covered"
+lean_anchor = "Expr.var"
+gate = "formal-cli-phase-contract-gate"
+
+[[forms]]
+name = "TupleExpression"
+ebnf = "TupleExpr"
+type_rule = "T-Tuple"
+core_ir = "Expr.tuple"
+status = "lean-covered"
+lean_anchor = "Expr.tuple"
+gate = "formal-cli-a0-59-data-form-contract-gate"
+
+[[forms]]
+name = "ListExpression"
+ebnf = "ListExpr"
+type_rule = "T-List"
+core_ir = "Expr.list"
+status = "lean-covered"
+lean_anchor = "Expr.list"
+gate = "formal-cli-a0-59-data-form-contract-gate"
+
+[[forms]]
+name = "NamedCall"
+ebnf = "CallExpr"
+type_rule = "T-Call"
+core_ir = "Expr.call"
+status = "lean-covered"
+lean_anchor = "Expr.call"
+gate = "formal-cli-a0-58-calls-and-references-contract-gate"
+
+[[forms]]
+name = "CaseExpression"
+ebnf = "CaseExpr"
+type_rule = "T-Case"
+core_ir = "Expr.caseOf"
+status = "lean-covered"
+lean_anchor = "Expr.caseOf"
+gate = "formal-cli-a0-57-keyword-expression-contract-gate"
+
+[[forms]]
+name = "ConstructorPattern"
+ebnf = "ConstructorPattern"
+type_rule = "T-ConstructorPattern"
+core_ir = "Pattern.constructor"
+status = "lean-covered"
+lean_anchor = "Pattern.constructor"
+gate = "formal-cli-a0-60-pattern-contract-gate"
+
+[[forms]]
+name = "TraitTargetCall"
+ebnf = "TraitTargetCallExpr"
+type_rule = "T-TraitTargetCall"
+core_ir = "CoreCall.trait"
+status = "proof-model-required"
+gate = "formal-cli-a0-58-calls-and-references-contract-gate"
+
+[[forms]]
+name = "TypeParameters"
+ebnf = "TypeParams"
+type_rule = "K-TypeParams"
+core_ir = "CoreType.params"
+status = "proof-model-required"
+gate = "formal-cli-a0-55-function-clause-contract-gate"

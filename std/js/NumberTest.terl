@@ -11,6 +11,4 @@ pub converts_to_float(value: JsNumber): Float ->
 pub converts_from_float(value: Float): JsNumber ->
     std.js.Number.from_float(value).
 
-@test
-pub generated_surface_is_declared(): Bool ->
-    true.
+pub generated_surface_contract(): Bool -> true.

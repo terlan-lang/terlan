@@ -5,13 +5,10 @@
  * applications. Runtime execution is target-owned: the VM path uses a typed
  * NativeBoundary worker backed by the maintained Postgres adapter.
  */
-
 module std.db.Postgres.
 
 import type std.collections.List.
-import type std.core.Error.
-import type std.core.Option.
-import type std.core.Result.
+import type std.core.{Error, Option, Result}.
 import type std.data.Json.
 
 /**
@@ -52,9 +49,7 @@ pub opaque type Row.
  * Transformation: keeps the first connection surface intentionally small
  * while leaving pool tuning and TLS options for later explicit fields.
  */
-pub type Config = {
-    url: String
-}.
+pub type Config = {url: String}.
 
 /**
  * Connects to Postgres and returns a pool.
@@ -71,37 +66,44 @@ pub connect(config: Config): Result[Pool, Error] ->
 /**
  * Runs a SQL query and returns all rows.
  *
- * Input: one pool, SQL text, and JSON-encoded parameter values.
+ * Input: one pool or transaction connection, SQL text, and JSON-encoded
+ * parameter values.
  * Output: `Ok(rows)` when the query succeeds, otherwise `Err(Error)`.
  * Transformation: delegates SQL execution and row decoding to the Postgres
  * adapter while preserving a portable row handle surface.
  */
 @compiler.native {std.db.postgres.query}
-pub query(pool: Pool, sql: String, params: List[Json]): Result[List[Row], Error] ->
+pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[List[Row], Error] ->
     native.
 
 /**
  * Runs a SQL query and returns at most one row.
  *
- * Input: one pool, SQL text, and JSON-encoded parameter values.
+ * Input: one pool or transaction connection, SQL text, and JSON-encoded
+ * parameter values.
  * Output: `Ok(Some(row))`, `Ok(None)`, or `Err(Error)`.
  * Transformation: delegates SQL execution to the adapter and normalizes the
  * single-row result shape into `Option`.
  */
 @compiler.native {std.db.postgres.query_one}
-pub query_one(pool: Pool, sql: String, params: List[Json]): Result[Option[Row], Error] ->
+pub query_one(
+    target: Pool | Connection,
+    sql: String,
+    params: List[Json]
+): Result[Option[Row], Error] ->
     native.
 
 /**
  * Runs a SQL command and returns the affected row count.
  *
- * Input: one pool, SQL text, and JSON-encoded parameter values.
+ * Input: one pool or transaction connection, SQL text, and JSON-encoded
+ * parameter values.
  * Output: `Ok(count)` when the command succeeds, otherwise `Err(Error)`.
  * Transformation: delegates command execution to the adapter and exposes only
  * the portable affected-row count.
  */
 @compiler.native {std.db.postgres.execute}
-pub execute(pool: Pool, sql: String, params: List[Json]): Result[Int, Error] ->
+pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[Int, Error] ->
     native.
 
 /**

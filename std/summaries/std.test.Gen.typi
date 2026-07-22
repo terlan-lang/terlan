@@ -1,0 +1,653 @@
+//! Deterministic property-test generators.
+//!
+//! `std.test.Gen` provides the first source-level generator surface for
+//! property-style tests. Generators are explicit finite values in this initial
+//! slice so tests remain replayable without hidden global randomness.
+
+module std.test.Gen.
+
+/// DiscardReport records conditional-property discard diagnostics.
+///
+/// Input: no runtime input; this is a public tuple alias.
+/// Output: `{within_limit, discarded_count, message}`.
+/// Transformation: keeps discard-limit diagnostics stable before richer test
+/// runner rendering is introduced.
+
+pub type DiscardReport =
+    {Bool, Int, String}.
+
+/// Gen represents a deterministic finite generator.
+///
+/// Input: generated value type `T`.
+/// Output: a tagged tuple carrying generated sample values.
+/// Transformation: keeps the initial generator model explicit and replayable.
+
+pub type Gen[T] =
+    {Atom["gen"], List[T]}.
+
+/// PropertyObservation records one property result with distribution metadata.
+///
+/// Input: no runtime input; this is a public tuple alias.
+/// Output: `{passed, observations}` where observations are stable labels.
+/// Transformation: keeps distribution data explicit until the test runner
+/// renders richer property reports.
+
+pub type PropertyObservation =
+    {Bool, List[String]}.
+
+/// PropertyReport records a stable property execution summary.
+///
+/// Input: no runtime input; this is a public tuple alias.
+/// Output: `{passed, seed, reproduction_command}`.
+/// Transformation: keeps initial property reports source-level and stable
+/// before richer runner diagnostics are introduced.
+
+pub type PropertyReport =
+    {Bool, Int, String}.
+
+/// PropertyRunReport records a stable property execution summary with counts.
+///
+/// Input: no runtime input; this is a public tuple alias.
+/// Output: `{passed, seed, case_count, reproduction_command}`.
+/// Transformation: extends the stable source-level report shape without
+/// breaking callers that still consume `PropertyReport`.
+
+pub type PropertyRunReport =
+    {Bool, Int, Int, String}.
+
+/// PropertyShrinkReport records deterministic shrink diagnostics.
+///
+/// Input: failing value type `T`.
+/// Output: `{passed, minimal_failing_input, shrink_path}`.
+/// Transformation: records shrink-path data without forcing callers to parse
+/// test-runner output.
+
+pub type PropertyShrinkReport[T] =
+    {Bool, Option[T], List[T]}.
+
+/// StepReport records bounded property execution diagnostics.
+///
+/// Input: no runtime input; this is a public tuple alias.
+/// Output: `{passed, executed_count, message}`.
+/// Transformation: keeps step-limit diagnostics stable before wall-clock time
+/// limits are introduced by the test runner.
+
+pub type StepReport =
+    {Bool, Int, String}.
+
+/// Appends deterministic generator sample lists.
+///
+/// Input: left and right sample lists.
+/// Output: left samples followed by right samples.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub append(left: List[T], right: List[T]): List[T].
+
+/// Builds the canonical atom generator.
+///
+/// Input: no runtime input.
+/// Output: generator containing representative finite atom samples.
+/// Transformation: keeps atom generation explicit and bounded so runtime text
+/// never creates new atom values.
+
+@pure
+pub atoms(): Gen[Atom].
+
+/// Builds the canonical boolean generator.
+///
+/// Input: no runtime input.
+/// Output: generator containing `false` followed by `true`.
+/// Transformation: provides a deterministic core-value generator for Bool.
+
+@pure
+pub booleans(): Gen[Bool].
+
+/// Counts generated samples.
+///
+/// Input: one deterministic generator.
+/// Output: number of generated samples.
+/// Transformation: records the case count explicitly for property reports and
+/// max-success limits without depending on runner internals.
+
+@pure
+pub case_count(generator: Gen[T]): Int.
+
+/// Conditionally attaches one stable classification label.
+///
+/// Input: condition, label text, and property assertion.
+/// Output: property result paired with the label when the condition holds.
+/// Transformation: models QuickCheck-style classification with explicit
+/// distribution metadata.
+
+pub classify(condition: Bool, name: String, property: std.test.Test.Assertion): PropertyObservation.
+
+/// Records one observed value as distribution metadata.
+///
+/// Input: observed value text and property assertion.
+/// Output: property result paired with the observed value text.
+/// Transformation: models QuickCheck-style collection as stable report data.
+
+@pure
+pub collect(value: String, property: std.test.Test.Assertion): PropertyObservation.
+
+/// Builds a generator that always yields one value.
+///
+/// Input: one value.
+/// Output: generator containing exactly that value.
+/// Transformation: stores the value as the only sample.
+
+@pure
+pub constant(value: T): Gen[T].
+
+/// Counts sample values.
+///
+/// Input: sample values.
+/// Output: number of values in the list.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub count_values(values: List[T]): Int.
+
+/// Enforces a minimum observed coverage count.
+///
+/// Input: required count, observed count, coverage label, and property
+/// assertion.
+/// Output: property result paired with the coverage label; result is false
+/// when observed coverage is below the required count.
+/// Transformation: makes weak generated distributions fail explicitly.
+
+@pure
+pub cover(required: Int, observed: Int, name: String, property: std.test.Test.Assertion): PropertyObservation.
+
+/// Counts generated samples rejected by a predicate.
+///
+/// Input: sample values and predicate callback.
+/// Output: number of values where the predicate returns `false`.
+/// Transformation: supports stable discard-limit diagnostics.
+
+pub discard_count(values: List[T], predicate: (T) -> std.test.Test.Assertion): Int.
+
+/// Reports whether discarded generated samples stay within a percentage ratio.
+///
+/// Input: generator, maximum discarded sample percent, and predicate callback.
+/// Output: stable discard report with pass/fail, discard count, and message.
+/// Transformation: compares `discarded * 100` with `total * max_percent` so
+/// ratio limits remain integer-only and deterministic.
+
+pub discard_ratio_report(generator: Gen[T], max_discard_percent: Int, predicate: (T) -> std.test.Test.Assertion): DiscardReport.
+
+/// Reports whether discarded generated samples stay within a limit.
+///
+/// Input: generator, maximum discarded sample count, and predicate callback.
+/// Output: stable discard report with pass/fail, discard count, and message.
+/// Transformation: counts samples rejected by the predicate and fails when the
+/// count exceeds the explicit limit.
+
+pub discard_report(generator: Gen[T], max_discards: Int, predicate: (T) -> std.test.Test.Assertion): DiscardReport.
+
+/// Builds a generator from explicit values.
+///
+/// Input: finite list of values.
+/// Output: generator containing the supplied values in source order.
+/// Transformation: keeps caller-provided examples unchanged.
+
+@pure
+pub elements(values: List[T]): Gen[T].
+
+/// Wraps one value as a typed error result value.
+///
+/// Input: one error payload.
+/// Output: `Err(value)` as `Result[T, E]`.
+/// Transformation: gives generic list construction an explicit result type.
+
+pub err_value(value: E): Result[T, E].
+
+/// Wraps error samples as `Err` result values.
+///
+/// Input: error samples.
+/// Output: samples wrapped with `Err`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub err_values(values: List[E]): List[Result[T, E]].
+
+/// Expects a property to fail.
+///
+/// Input: one property assertion.
+/// Output: `true` when the property is false; otherwise `false`.
+/// Transformation: makes known-bad examples explicit without inverting a test
+/// at the call site.
+
+@pure
+pub expect_failure(property: std.test.Test.Assertion): std.test.Test.Assertion.
+
+/// Keeps generated samples accepted by a predicate.
+///
+/// Input: one generator and one predicate callback.
+/// Output: generator containing only samples where the predicate returns
+/// `true`.
+/// Transformation: filters deterministic samples in source order without
+/// hidden randomness.
+
+pub filter(generator: Gen[T], predicate: (T) -> std.test.Test.Assertion): Gen[T].
+
+/// Filters a sample list with a predicate callback.
+///
+/// Input: sample values and predicate callback.
+/// Output: values accepted by the predicate.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub filter_values(values: List[T], predicate: (T) -> std.test.Test.Assertion): List[T].
+
+/// Builds the canonical finite float generator.
+///
+/// Input: no runtime input.
+/// Output: generator containing zero, positive, and negative finite floats.
+/// Transformation: provides deterministic core-value generation for Float
+/// while keeping non-finite values outside this source-level generator.
+
+@pure
+pub floats(): Gen[Float].
+
+/// Verifies a property for every generated sample.
+///
+/// Input: one generator and one property callback.
+/// Output: `true` when every sample satisfies the property; otherwise `false`.
+/// Transformation: delegates to `std.test.Test.each` so property checks share
+/// table-helper assertion semantics.
+
+pub for_all(generator: Gen[T], property: (T) -> std.test.Test.Assertion): std.test.Test.Assertion.
+
+/// Verifies a property for at most `max_success` generated samples.
+///
+/// Input: generator, maximum successful case count, and property callback.
+/// Output: `true` when every selected sample satisfies the property; otherwise
+/// `false`.
+/// Transformation: evaluates a deterministic prefix of generated samples so
+/// maximum-success behavior is explicit and replayable.
+
+pub for_all_limit(generator: Gen[T], max_success: Int, property: (T) -> std.test.Test.Assertion): std.test.Test.Assertion.
+
+/// Combines weighted deterministic generators.
+///
+/// Input: list of `{weight, generator}` pairs.
+/// Output: generator containing each generator's samples repeated by weight.
+/// Transformation: expands weights deterministically in source order. Zero and
+/// negative weights contribute no samples.
+
+@pure
+pub frequency(weighted: List[{Int, Gen[T]}]): Gen[T].
+
+/// Expands weighted generator rows into sample values.
+///
+/// Input: list of `{weight, generator}` pairs.
+/// Output: flattened weighted samples.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub frequency_values(weighted: List[{Int, Gen[T]}]): List[T].
+
+/// Applies a conditional property precondition.
+///
+/// Input: precondition result and property assertion.
+/// Output: `property` when `condition` is true; otherwise `true`.
+/// Transformation: models QuickCheck-style implication without silently
+/// executing a property whose precondition does not hold.
+
+@pure
+pub implies(condition: Bool, property: std.test.Test.Assertion): std.test.Test.Assertion.
+
+/// Builds an inclusive integer-range generator.
+///
+/// Input: inclusive `min` and `max` bounds.
+/// Output: generator containing every integer from `min` through `max`.
+/// Transformation: expands the range deterministically in ascending order.
+
+@pure
+pub int_range(min: Int, max: Int): Gen[Int].
+
+/// Expands inclusive integer-range values.
+///
+/// Input: current value and inclusive maximum.
+/// Output: all values from `current` through `max`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub int_range_values(current: Int, max: Int): List[Int].
+
+/// Attaches one stable label to a property result.
+///
+/// Input: label text and property assertion.
+/// Output: property result paired with the label.
+/// Transformation: records distribution metadata without changing the
+/// property truth value.
+
+@pure
+pub label(name: String, property: std.test.Test.Assertion): PropertyObservation.
+
+/// Returns the last value in a list, or a default when the list is empty.
+///
+/// Input: default value and candidate values.
+/// Output: last candidate, or the default value when there are no candidates.
+/// Transformation: supports deterministic minimal-failure reporting for finite
+/// shrink paths.
+
+@pure
+pub last_or_default(default: T, values: List[T]): T.
+
+/// Builds a list generator from one element generator.
+///
+/// Input: one element generator.
+/// Output: generator containing an empty list and one list with all element
+/// samples in deterministic source order.
+/// Transformation: establishes the first bounded list-generation rule before
+/// later sized/recursive generator slices add more list shapes.
+
+pub list_of(generator: Gen[T]): Gen[List[T]].
+
+/// Maps generated samples through a callback.
+///
+/// Input: source generator and mapper callback.
+/// Output: generator containing mapped sample values in source order.
+/// Transformation: lets tests build domain-specific generators from simpler
+/// primitive generators.
+
+pub map(generator: Gen[A], mapper: (A) -> B): Gen[B].
+
+/// Builds a map generator from key and value generators.
+///
+/// Input: key and value generators.
+/// Output: generator containing an empty map and one map built from every
+/// generated key/value pair.
+/// Transformation: establishes bounded map generation without hidden randomness
+/// or unbounded growth.
+
+pub map_of(keys: Gen[K], values: Gen[V]): Gen[std.collections.Map.Map[K, V]].
+
+/// Maps sample values through a callback.
+///
+/// Input: sample values and mapper callback.
+/// Output: mapped values in source order.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub map_values(values: List[A], mapper: (A) -> B): List[B].
+
+/// Returns a typed missing optional value.
+///
+/// Input: no runtime input.
+/// Output: `None` as `Option[T]`.
+/// Transformation: gives generic list construction an explicit option type.
+
+@pure
+pub none_value(): Option[T].
+
+/// Builds an object generator from string-key and value generators.
+///
+/// Input: string-key and value generators.
+/// Output: generator containing an empty object and one object built from every
+/// generated key/value pair.
+/// Transformation: establishes bounded object generation on top of the
+/// map-backed `std.core.Object` surface.
+
+pub object_of(keys: Gen[String], values: Gen[V]): Gen[Object[V]].
+
+/// Wraps one value as a typed successful result value.
+///
+/// Input: one success payload.
+/// Output: `Ok(value)` as `Result[T, E]`.
+/// Transformation: gives generic list construction an explicit result type.
+
+pub ok_value(value: T): Result[T, E].
+
+/// Wraps success samples as `Ok` result values.
+///
+/// Input: success samples.
+/// Output: samples wrapped with `Ok`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub ok_values(values: List[T]): List[Result[T, E]].
+
+/// Combines two deterministic generators.
+///
+/// Input: two generators of the same output type.
+/// Output: generator containing all left samples followed by all right samples.
+/// Transformation: preserves deterministic order without random selection.
+
+@pure
+pub one_of(left: Gen[T], right: Gen[T]): Gen[T].
+
+/// Builds an optional-value generator from one payload generator.
+///
+/// Input: one payload generator.
+/// Output: generator containing `None` followed by `Some(value)` for every
+/// payload sample.
+/// Transformation: provides deterministic option generation without hidden
+/// randomness.
+
+pub option_of(generator: Gen[T]): Gen[Option[T]].
+
+/// Builds pairs for one left value and every right value.
+///
+/// Input: one left value and right sample list.
+/// Output: pairs using the same left value and each right value.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub pair_left(left: A, right_values: List[B]): List[{A, B}].
+
+/// Builds a pair generator from two generators.
+///
+/// Input: left and right generators.
+/// Output: generator containing every `{left, right}` pair in deterministic
+/// left-major order.
+/// Transformation: establishes tuple generation through a bounded Cartesian
+/// product of finite sample lists.
+
+@pure
+pub pair_of(left: Gen[A], right: Gen[B]): Gen[{A, B}].
+
+/// Builds all deterministic pairs from two sample lists.
+///
+/// Input: left and right sample lists.
+/// Output: Cartesian product of left and right values in left-major order.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub pair_values(left_values: List[A], right_values: List[B]): List[{A, B}].
+
+/// Builds a generator for public range values.
+///
+/// Input: start and stop integer bounds.
+/// Output: generator containing inclusive and exclusive range values.
+/// Transformation: constructs ranges through the public `Range` constructor so
+/// range generation follows the standard library contract under VM execution.
+
+pub range_of(start: Int, stop: Int): Gen[std.range.Range.Range].
+
+/// Applies a recursive generator step a bounded number of times.
+///
+/// Input: recursion depth, base generator, and step callback.
+/// Output: `base` when depth is zero or negative; otherwise the generator
+/// produced after applying `step` repeatedly.
+/// Transformation: makes recursive generation explicit and finite so property
+/// tests cannot accidentally create unbounded sample spaces.
+
+pub recursive(depth: Int, base: Gen[T], step: (Gen[T]) -> Gen[T]): Gen[T].
+
+/// Repeats a sample list by a deterministic count.
+///
+/// Input: repetition count and sample values.
+/// Output: samples repeated `count` times.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub repeat_samples(count: Int, values: List[T]): List[T].
+
+/// Replays a generator with deterministic seed-based sample order.
+///
+/// Input: seed value and generator.
+/// Output: generator containing the same samples rotated by the seed.
+/// Transformation: makes seed replay observable while keeping generator values
+/// finite and deterministic.
+
+@pure
+pub replay(seed: Int, generator: Gen[T]): Gen[T].
+
+/// Rotates sample values by a deterministic seed.
+///
+/// Input: seed count and sample values.
+/// Output: values rotated left one position per positive seed step.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+@pure
+pub replay_values(seed: Int, values: List[T]): List[T].
+
+/// Runs a property and returns a stable report.
+///
+/// Input: replay seed, generator, and property callback.
+/// Output: report containing pass/fail, seed, and reproduction command.
+/// Transformation: applies deterministic replay before evaluating the property.
+
+pub report(seed: Int, generator: Gen[T], property: (T) -> std.test.Test.Assertion): PropertyReport.
+
+/// Builds a stable reproduction command for a property seed.
+///
+/// Input: replay seed.
+/// Output: command text containing the seed value.
+/// Transformation: keeps seed reporting deterministic and human-readable.
+
+pub reproduction_command(seed: Int): String.
+
+/// Builds a result-value generator from success and error generators.
+///
+/// Input: one success generator and one error generator.
+/// Output: generator containing `Ok(value)` samples followed by `Err(reason)`
+/// samples.
+/// Transformation: provides deterministic Result generation without hidden
+/// randomness.
+
+pub result_of(ok_generator: Gen[T], err_generator: Gen[E]): Gen[Result[T, E]].
+
+/// Runs a property and returns a stable report with case count.
+///
+/// Input: replay seed, generator, and property callback.
+/// Output: report containing pass/fail, seed, case count, and reproduction
+/// command.
+/// Transformation: applies deterministic replay once, evaluates the property,
+/// and records the replayed sample count used by the run.
+
+pub run_report(seed: Int, generator: Gen[T], property: (T) -> std.test.Test.Assertion): PropertyRunReport.
+
+/// Returns all generated samples.
+///
+/// Input: one deterministic generator.
+/// Output: generated sample list.
+/// Transformation: unwraps the explicit generator tuple.
+
+@pure
+pub sample(generator: Gen[T]): List[T].
+
+/// Shrinks the first generated failure.
+///
+/// Input: generator, property callback, and shrinker callback.
+/// Output: shrink candidates for the first failing sample that still fail the
+/// property.
+/// Transformation: makes shrink paths observable before richer property
+/// reports are introduced.
+
+pub shrink_failure(generator: Gen[T], property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): List[T].
+
+/// Finds shrink candidates for the first failing sample.
+///
+/// Input: sample values, property callback, and shrinker callback.
+/// Output: failing shrink candidates for the first value whose property fails.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub shrink_failure_values(values: List[T], property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): List[T].
+
+/// Runs a property and returns deterministic shrink diagnostics.
+///
+/// Input: generator, property callback, and shrinker callback.
+/// Output: shrink report with pass/fail, minimal failing input, and shrink
+/// path.
+/// Transformation: finds the first failing sample and records the last failing
+/// shrink candidate as the minimal failing input for this deterministic path.
+
+pub shrink_report(generator: Gen[T], property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): PropertyShrinkReport[T].
+
+/// Builds a shrink report from sample values.
+///
+/// Input: sample values, property callback, and shrinker callback.
+/// Output: shrink report for the first failing sample, or a passing report.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub shrink_report_values(values: List[T], property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): PropertyShrinkReport[T].
+
+/// Builds a generator from an explicit size.
+///
+/// Input: size bound and a callback that builds a generator for that size.
+/// Output: generator returned by the callback.
+/// Transformation: threads deterministic size control through source-level
+/// callbacks without hidden randomness.
+
+pub sized(size: Int, builder: (Int) -> Gen[T]): Gen[T].
+
+/// Wraps one value as a typed present optional value.
+///
+/// Input: one payload value.
+/// Output: `Some(value)` as `Option[T]`.
+/// Transformation: gives generic list construction an explicit option type.
+
+pub some_value(value: T): Option[T].
+
+/// Wraps payload samples as `Some` option values.
+///
+/// Input: payload samples.
+/// Output: samples wrapped with `Some`.
+/// Transformation: public implementation helper for VM std execution paths
+/// that currently load public std functions only.
+
+pub some_values(values: List[T]): List[Option[T]].
+
+/// Runs a property with a deterministic step limit.
+///
+/// Input: generator, maximum step count, and property callback.
+/// Output: stable step report with pass/fail, executed count, and message.
+/// Transformation: evaluates only the selected prefix, reports property
+/// failures before limit exhaustion, and never depends on wall-clock time.
+
+pub step_report(generator: Gen[T], max_steps: Int, property: (T) -> std.test.Test.Assertion): StepReport.
+
+/// Builds the canonical string generator.
+///
+/// Input: no runtime input.
+/// Output: generator containing empty and short ASCII string samples.
+/// Transformation: provides deterministic core-value generation for String
+/// without hidden randomness.
+
+@pure
+pub strings(): Gen[String].
+
+/// Takes a deterministic prefix of sample values.
+///
+/// Input: maximum count and sample values.
+/// Output: at most `max` values in source order.
+/// Transformation: supports bounded property execution without introducing
+/// test-runner-specific selection semantics.
+
+@pure
+pub take_values(max: Int, values: List[T]): List[T].

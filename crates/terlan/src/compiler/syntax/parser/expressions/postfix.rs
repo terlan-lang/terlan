@@ -101,19 +101,11 @@ impl Parser {
                         if dot.end == token.start && token.kind == TokenKind::LParen
                 )
             {
-                self.bump();
-                self.expect(TokenKind::LParen)?;
-                let (args, arg_names) = self.parse_call_arg_list(TokenKind::RParen)?;
-                self.expect(TokenKind::RParen)?;
-                expr = Expr::Call {
-                    callee: Box::new(expr),
-                    type_args: Vec::new(),
-                    args,
-                    arg_names,
-                    remote: None,
-                    is_fun_value: true,
-                };
-                continue;
+                return Err(ParseError {
+                    message: "function-value dot-call syntax was removed; use `callee(args)`"
+                        .to_string(),
+                    span: self.current().span(),
+                });
             }
 
             if self.check(TokenKind::Dot)
@@ -182,7 +174,15 @@ impl Parser {
                 )
             {
                 self.bump();
-                let field = self.expect_lower_ident("expected lower-case field name")?;
+                let field_token = self.current().clone();
+                let field = if field_token.kind == TokenKind::Var
+                    && super::super::constants::is_screaming_snake_case(&field_token.text)
+                {
+                    self.bump();
+                    field_token.text
+                } else {
+                    self.expect_lower_ident("expected lower-case field name or constant name")?
+                };
                 expr = Expr::FieldAccess {
                     value: Box::new(expr),
                     field,
@@ -194,6 +194,20 @@ impl Parser {
                 let index = self.parse_expr()?;
                 self.expect(TokenKind::RBracket)?;
                 expr = Expr::Index(Box::new(expr), Box::new(index));
+                continue;
+            }
+
+            if self.consume_if(TokenKind::LParen) {
+                let (args, arg_names) = self.parse_call_arg_list(TokenKind::RParen)?;
+                self.expect(TokenKind::RParen)?;
+                expr = Expr::Call {
+                    callee: Box::new(expr),
+                    type_args: Vec::new(),
+                    args,
+                    arg_names,
+                    remote: None,
+                    is_fun_value: true,
+                };
                 continue;
             }
 
@@ -251,7 +265,7 @@ impl Parser {
     }
 
     /// Parses one expression field in a map, Terlan record/template, or
-    /// Erlang record interop expression.
+    /// Vm record interop expression.
     ///
     /// Inputs: the parser cursor must point at the field key and `kind`
     /// selects the grammar context for accepted key classes and separators.
@@ -304,10 +318,16 @@ impl Parser {
         };
 
         let value = self.parse_expr()?;
-        let key = parsed_key
-            .as_ref()
-            .map(Self::field_key_text)
-            .unwrap_or_else(|| key_token.text);
+        let key = if let Some(parsed_key) = parsed_key.as_ref() {
+            Self::field_key_text(parsed_key)
+        } else if let Some(key) = Self::map_field_key_text(&key_token) {
+            key
+        } else {
+            return Err(ParseError {
+                message: "invalid keyed field name".to_string(),
+                span: key_token.span(),
+            });
+        };
         Ok(MapExprField {
             key,
             value: Box::new(value),

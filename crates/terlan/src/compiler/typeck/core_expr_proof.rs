@@ -111,6 +111,7 @@ pub(crate) fn core_expr_proof_coverage(
             _ => CoreProofCoverage::ProofModelRequired,
         },
         SyntaxExprKind::Float
+        | SyntaxExprKind::BinaryLayout
         | SyntaxExprKind::Map
         | SyntaxExprKind::RecordConstruct
         | SyntaxExprKind::RecordAccess

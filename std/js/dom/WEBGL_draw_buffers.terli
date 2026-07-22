@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WEBGL_draw_buffers
+ */
+module std.js.Dom.WEBGL_draw_buffers.
+
+/**
+ * The **`WEBGL_draw_buffers`** extension is part of the WebGL API and enables a fragment shader to write to several textures, which is useful for deferred shading, for example.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_draw_buffers)
+ */
+pub opaque type WEBGL_draw_buffers.
+
+/**
+ * The **`WEBGL_draw_buffers.drawBuffersWEBGL()`** method is part of the WebGL API and allows you to define the draw buffers to which all fragment colors are written.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_draw_buffers/drawBuffersWEBGL)
+ */
+pub (value: WEBGL_draw_buffers) draw_buffers_webgl(buffers: std.js.Array[GLenum]): std.core.Unit.

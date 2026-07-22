@@ -15,10 +15,12 @@ use super::render_values::{
 use super::TEMPLATE_CHILDREN_SLOT;
 use crate::terlan_html::{escape_html_attr, escape_html_text};
 
+mod attributes;
 mod eval;
 #[path = "template_calls.rs"]
 mod template_calls;
 
+use attributes::render_static_template_attribute;
 use eval::eval_syntax_static_template_expr;
 use template_calls::syntax_static_template_call_fields;
 
@@ -325,24 +327,20 @@ fn render_syntax_static_template_node(
             out.push('<');
             out.push_str(&element.name);
             for attr in &element.attrs {
-                out.push(' ');
-                out.push_str(&attr.name);
-                if let Some(value) = &attr.value {
-                    out.push_str("=\"");
-                    match value {
-                        crate::terlan_html::HtmlAttrValue::Text(text) => {
-                            out.push_str(&escape_html_attr(text));
-                        }
-                        crate::terlan_html::HtmlAttrValue::Slot(slot) => {
-                            let value = static_template_slot_value(values, slot)
-                                .map_err(StaticSyntaxRenderError::Invalid)?;
-                            out.push_str(&escape_html_attr(
-                                &static_template_value_text(&value)
-                                    .map_err(StaticSyntaxRenderError::Invalid)?,
-                            ));
-                        }
+                let rendered = match &attr.value {
+                    Some(crate::terlan_html::HtmlAttrValue::Text(text)) => {
+                        Some(format!("{}=\"{}\"", attr.name, escape_html_attr(text)))
                     }
-                    out.push('"');
+                    Some(crate::terlan_html::HtmlAttrValue::Slot(slot)) => {
+                        let value = static_template_slot_value(values, slot)
+                            .map_err(StaticSyntaxRenderError::Invalid)?;
+                        render_static_template_attribute(&attr.name, &value)?
+                    }
+                    None => Some(attr.name.clone()),
+                };
+                if let Some(rendered) = rendered {
+                    out.push(' ');
+                    out.push_str(&rendered);
                 }
             }
             out.push('>');
@@ -854,3 +852,7 @@ fn render_syntax_static_inline_template_component_children(
 #[cfg(test)]
 #[path = "render_test.rs"]
 mod render_test;
+
+#[cfg(test)]
+#[path = "render_attribute_test.rs"]
+mod render_attribute_test;

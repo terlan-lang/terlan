@@ -1,0 +1,40 @@
+{
+  "schema": "terlan.lean-proof-replay.v1",
+  "family": "coreir-arithmetic",
+  "theorem_names": [
+    "Terlan.Core.addEvaluationPreservesInteger",
+    "Terlan.Core.typedIntegerExpressionEvaluates"
+  ],
+  "manifest_fingerprints": {
+    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md": "sha256:7405d0f3c400fba6c027c05961cfb541d6b4813fe01b4dd8be90e077e10b6b6f",
+    "docs/compiler/type_spec/terlan_core_typing_spec.toml": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+  },
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "source_digest": "sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "Terlan/Core/Arithmetic.lean"
+  ],
+  "working_directory": "proofs/lean",
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "output_signature": {
+    "stdout_class": "empty",
+    "stderr_class": "empty",
+    "exit_class": "success"
+  },
+  "toolchain": {
+    "lean_version": "4.31.0",
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ]
+  }
+}

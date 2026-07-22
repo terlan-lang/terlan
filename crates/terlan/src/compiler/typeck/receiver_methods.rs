@@ -7,9 +7,10 @@ use crate::terlan_syntax::{
 
 use super::{
     collect_local_syntax_struct_fields, expand_imported_aliases_except_named,
-    normalize_trait_type_text, parse_generic_bounds, parse_interface_signature, parse_type_expr,
-    qualify_type_names, FunctionBound, FunctionScheme, QualifiedTypeName, Type, TypeAlias,
-    TypeVarId,
+    imported_type_aliases, normalize_trait_type_text, normalize_type_param_name,
+    parse_generic_bounds, parse_interface_signature, parse_structural_implication_bounds,
+    parse_type_expr, qualify_type_names, FunctionBound, FunctionScheme, QualifiedTypeName, Type,
+    TypeAlias, TypeVarId,
 };
 
 /// Receiver-method candidate used by expression dispatch.
@@ -162,10 +163,12 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
     resolved: &ResolvedModule,
     methods: &mut HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) {
+    let global_aliases = imported_type_aliases(resolved);
     let imported = resolved
         .interface_map
         .values()
         .flat_map(|interface| {
+            let global_aliases = &global_aliases;
             interface
                 .function_overloads
                 .values()
@@ -175,7 +178,7 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
                         .filter(|signature| signature.public && signature.receiver_method)
                         .filter_map(move |signature| {
                             let scheme =
-                                parse_interface_signature(signature, interface, &HashMap::new())?;
+                                parse_interface_signature(signature, interface, global_aliases)?;
                             let mut params = scheme.params;
                             if params.is_empty() {
                                 return None;
@@ -296,6 +299,7 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures(
         let SyntaxDeclarationPayload::Method {
             receiver,
             name,
+            generic_params,
             params,
             return_type,
             generic_bounds,
@@ -309,6 +313,7 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures(
             receiver,
             params,
             return_type,
+            generic_params,
             generic_bounds,
             alias_names,
             imported_type_names,
@@ -349,6 +354,8 @@ fn extend_receiver_method_dispatch_with_imported_struct_includes(
     resolved: &ResolvedModule,
     methods: &mut HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) {
+    let global_aliases = imported_type_aliases(resolved);
+    let global_aliases = &global_aliases;
     let inherited = module
         .declarations
         .iter()
@@ -376,7 +383,7 @@ fn extend_receiver_method_dispatch_with_imported_struct_includes(
                             .is_some_and(|param| param.annotation == parent_source_name)
                 })
                 .filter_map(move |signature| {
-                    let scheme = parse_interface_signature(signature, interface, &HashMap::new())?;
+                    let scheme = parse_interface_signature(signature, interface, global_aliases)?;
                     let mut params = scheme.params;
                     if params.is_empty() {
                         return None;
@@ -539,6 +546,7 @@ fn receiver_type_matches_local_struct(name: &str, ty: &Type) -> bool {
 /// - `receiver`: declared receiver parameter.
 /// - `params`: non-receiver method parameters.
 /// - `return_type`: declared method return type.
+/// - `generic_params`: method generic parameters, including implications.
 /// - `generic_bounds`: callable generic bounds from the method declaration.
 /// - `alias_names`, `imported_type_names`, `imported_type_aliases`, and
 ///   `local_aliases`: visible type-resolution context.
@@ -557,6 +565,7 @@ fn receiver_method_dispatch_signature(
     receiver: &SyntaxParamOutput,
     params: &[SyntaxParamOutput],
     return_type: &SyntaxTypeOutput,
+    generic_params: &[String],
     generic_bounds: &[String],
     alias_names: &HashSet<String>,
     imported_type_names: &HashMap<String, QualifiedTypeName>,
@@ -565,6 +574,10 @@ fn receiver_method_dispatch_signature(
 ) -> Option<ReceiverMethodDispatchSignature> {
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
+    for param in generic_params {
+        vars.insert(normalize_type_param_name(param), next_var);
+        next_var += 1;
+    }
 
     let receiver_type = parse_type_expr(
         &receiver.annotation.text,
@@ -618,7 +631,13 @@ fn receiver_method_dispatch_signature(
     );
     let ret = qualify_type_names(&ret, imported_type_names);
 
-    let bounds = parse_generic_bounds(generic_bounds, &vars, alias_names)
+    let mut parsed_bounds = parse_generic_bounds(generic_bounds, &vars, alias_names);
+    parsed_bounds.extend(parse_structural_implication_bounds(
+        generic_params,
+        &vars,
+        alias_names,
+    ));
+    let bounds = parsed_bounds
         .into_iter()
         .map(|bound| FunctionBound {
             trait_name: bound.trait_name,
@@ -643,7 +662,7 @@ fn receiver_method_dispatch_signature(
         scheme: FunctionScheme {
             params,
             ret,
-            generic_params: Vec::new(),
+            generic_params: generic_params.to_vec(),
             bounds,
         },
         param_names,

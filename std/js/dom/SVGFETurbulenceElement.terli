@@ -1,0 +1,77 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGFETurbulenceElement
+ */
+module std.js.Dom.SVGFETurbulenceElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGFETurbulenceElement`** interface corresponds to the feTurbulence element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement)
+ */
+pub opaque type SVGFETurbulenceElement.
+
+/**
+ * The **`baseFrequencyX`** read-only property of the SVGFETurbulenceElement interface reflects the X component of the baseFrequency attribute of the given feTurbulence element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/baseFrequencyX)
+ */
+pub (value: SVGFETurbulenceElement) base_frequency_x(): SVGAnimatedNumber.
+
+/**
+ * The **`baseFrequencyY`** read-only property of the SVGFETurbulenceElement interface reflects the Y component of the baseFrequency attribute of the given feTurbulence element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/baseFrequencyY)
+ */
+pub (value: SVGFETurbulenceElement) base_frequency_y(): SVGAnimatedNumber.
+
+/**
+ * The **`numOctaves`** read-only property of the SVGFETurbulenceElement interface reflects the numOctaves attribute of the given feTurbulence element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/numOctaves)
+ */
+pub (value: SVGFETurbulenceElement) num_octaves(): SVGAnimatedInteger.
+
+/**
+ * The **`seed`** read-only property of the SVGFETurbulenceElement interface reflects the seed attribute of the given feTurbulence element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/seed)
+ */
+pub (value: SVGFETurbulenceElement) seed(): SVGAnimatedNumber.
+
+/**
+ * The **`stitchTiles`** read-only property of the SVGFETurbulenceElement interface reflects the stitchTiles attribute of the given feTurbulence element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/stitchTiles)
+ */
+pub (value: SVGFETurbulenceElement) stitch_tiles(): SVGAnimatedEnumeration.
+
+/**
+ * The **`type`** read-only property of the SVGFETurbulenceElement interface reflects the type attribute of the given feTurbulence element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/type)
+ */
+pub (value: SVGFETurbulenceElement) type_(): SVGAnimatedEnumeration.
+
+pub (value: SVGFETurbulenceElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SVGFETurbulenceElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

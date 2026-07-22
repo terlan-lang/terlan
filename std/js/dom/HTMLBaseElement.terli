@@ -1,0 +1,49 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLBaseElement
+ */
+module std.js.Dom.HTMLBaseElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLBaseElement`** interface contains the base URI for a document.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement)
+ */
+pub opaque type HTMLBaseElement.
+
+/**
+ * The **`href`** property of the HTMLBaseElement interface contains a string that is the URL to use as the base for relative URLs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement/href)
+ */
+pub (value: HTMLBaseElement) href(): JsString.
+
+/**
+ * The `target` property of the HTMLBaseElement interface is a string that represents the default target tab to show the resulting output for hyperlinks and form elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement/target)
+ */
+pub (value: HTMLBaseElement) target_(): JsString.
+
+pub (value: HTMLBaseElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLBaseElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

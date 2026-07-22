@@ -64,25 +64,43 @@ fn imported_function_pipe_target_matches(
     ctx: &ExprInferContext,
     subst: &HashMap<TypeVarId, Type>,
 ) -> bool {
-    let Some(target) = ctx.function_imports.get(function_name) else {
+    let Some(targets) = ctx.function_imports.get(function_name) else {
         return false;
     };
-    let resolved_module = ctx
-        .module_aliases
-        .get(&target.module)
-        .map(String::as_str)
-        .unwrap_or(target.module.as_str());
-    let Some(interface) = ctx.interface_map.get(resolved_module) else {
-        return false;
-    };
-    infer_imported_function_candidate_matches(
-        interface,
-        &target.function,
-        function_name,
-        arg_types,
-        ctx,
-        subst,
-    )
+    targets.iter().any(|target| {
+        let resolved_module = ctx
+            .module_aliases
+            .get(&target.module)
+            .map(String::as_str)
+            .unwrap_or(target.module.as_str());
+        let Some(interface) = ctx.interface_map.get(resolved_module) else {
+            return false;
+        };
+        infer_imported_function_candidate_matches(
+            interface,
+            &target.function,
+            function_name,
+            arg_types,
+            ctx,
+            subst,
+        )
+    })
+}
+
+/// Returns whether ordinary pipe insertion has a declared target at this arity.
+fn ordinary_function_pipe_target_exists(
+    function_name: &str,
+    arity: usize,
+    ctx: &ExprInferContext,
+) -> bool {
+    if ctx
+        .signatures
+        .contains_key(&(function_name.to_string(), arity))
+    {
+        return true;
+    }
+
+    ctx.function_imports.contains_key(function_name)
 }
 
 /// Infers pipe-forward syntax that targets a receiver method.
@@ -187,6 +205,10 @@ fn infer_syntax_receiver_method_pipe_forward(
         return Some(pipe_type);
     }
 
+    if ordinary_function_pipe_target_exists(method, pipe_inserted_arg_types.len(), ctx) {
+        return None;
+    }
+
     let candidate_types = candidates
         .iter()
         .map(|candidate| pretty_type(&candidate.receiver_type))
@@ -200,6 +222,133 @@ fn infer_syntax_receiver_method_pipe_forward(
         candidate_types
     ));
     Some(Type::Dynamic)
+}
+
+/// Returns the module alias from a field-access callee.
+///
+/// Inputs:
+/// - `expr`: syntax-output field access such as `Module.member`.
+///
+/// Output:
+/// - The source receiver name when it is a module-shaped name.
+///
+/// Transformation:
+/// - Accepts both atom and variable receiver nodes because uppercase module
+///   aliases are represented as name-like atoms in syntax output.
+fn syntax_module_member_receiver_name(expr: &SyntaxExprOutput) -> Option<&str> {
+    let receiver = expr.children.first()?;
+    match receiver.kind {
+        SyntaxExprKind::Atom | SyntaxExprKind::Var => receiver.text.as_deref(),
+        _ => None,
+    }
+}
+
+/// Infers pipe-forward syntax targeting an imported module member.
+///
+/// Inputs:
+/// - `left`: pipe input expression inserted as the first call argument.
+/// - `right`: call expression whose callee may be `Module.function`.
+/// - `locals`, `ctx`, `subst`, and `errors`: active expression inference
+///   state.
+///
+/// Output:
+/// - `Some(Type)` when the right-side callee is an imported module member.
+/// - `None` when the right side is not an imported module-member call.
+///
+/// Transformation:
+/// - Converts `value |> Module.function(args...)` into the same typechecking
+///   shape as `Module.function(value, args...)`, preserving explicit arguments
+///   and type arguments on the pipe stage.
+fn infer_syntax_imported_module_member_pipe_forward(
+    left: &SyntaxExprOutput,
+    right: &SyntaxExprOutput,
+    locals: &HashMap<String, Type>,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    let (module_alias, member) = if let Some(remote) = right.remote.as_deref() {
+        (remote, syntax_callee_name(right)?)
+    } else {
+        let callee = right.children.first()?;
+        if !matches!(callee.kind, SyntaxExprKind::FieldAccess) {
+            return None;
+        }
+        (
+            syntax_module_member_receiver_name(callee)?,
+            callee.text.as_deref()?,
+        )
+    };
+    let display_name = format!("{}.{}", module_alias, member);
+    let mut arg_types = Vec::with_capacity(right.children.len());
+    arg_types.push(infer_syntax_expr(left, locals, ctx, subst, errors));
+    arg_types.extend(
+        right
+            .children
+            .iter()
+            .skip(1)
+            .map(|arg| infer_syntax_expr(arg, locals, ctx, subst, errors)),
+    );
+    let mut arg_names = Vec::with_capacity(right.arg_names.len() + 1);
+    arg_names.push(None);
+    arg_names.extend(right.arg_names.iter().cloned());
+
+    infer_syntax_imported_module_member_function_call(
+        module_alias,
+        member,
+        &display_name,
+        &arg_types,
+        &right.type_args,
+        &arg_names,
+        ctx,
+        subst,
+        errors,
+    )
+}
+
+/// Infers pipe-forward syntax targeting a selected imported function.
+fn infer_syntax_selected_import_pipe_forward(
+    left: &SyntaxExprOutput,
+    right: &SyntaxExprOutput,
+    locals: &HashMap<String, Type>,
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    if right.remote.is_some() || !syntax_callee_is_var(right) {
+        return None;
+    }
+    let function_name = syntax_callee_name(right)?;
+    if !ctx.function_imports.contains_key(function_name) {
+        return None;
+    }
+
+    let mut arg_types = Vec::with_capacity(right.children.len());
+    arg_types.push(infer_syntax_expr(left, locals, ctx, subst, errors));
+    arg_types.extend(
+        right
+            .children
+            .iter()
+            .skip(1)
+            .map(|arg| infer_syntax_expr(arg, locals, ctx, subst, errors)),
+    );
+    let mut arg_names = Vec::with_capacity(right.arg_names.len() + 1);
+    arg_names.push(None);
+    arg_names.extend(right.arg_names.iter().cloned());
+
+    if !imported_function_pipe_target_matches(function_name, &arg_types, ctx, subst) {
+        return None;
+    }
+
+    infer_syntax_imported_function_call(
+        function_name,
+        &arg_types,
+        &right.type_args,
+        &arg_names,
+        ctx,
+        subst,
+        errors,
+    )
 }
 
 /// Infers a pipe-forwarding expression.
@@ -241,6 +390,16 @@ pub(crate) fn infer_syntax_pipe_forward(
         if let Some(ty) =
             infer_syntax_receiver_method_pipe_forward(left, right, locals, ctx, subst, errors)
         {
+            return ty;
+        }
+        if let Some(ty) =
+            infer_syntax_selected_import_pipe_forward(left, right, locals, ctx, subst, errors)
+        {
+            return ty;
+        }
+        if let Some(ty) = infer_syntax_imported_module_member_pipe_forward(
+            left, right, locals, ctx, subst, errors,
+        ) {
             return ty;
         }
     }

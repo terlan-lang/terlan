@@ -17,8 +17,8 @@ OUT_DIR = STD_DIR / "summaries"
 RELEASE_SUMMARY_SUFFIXES = (
     ".typi",
     ".typi.deps",
-    ".safe_native.json",
-    ".safe_native.rs",
+    ".native_boundary.json",
+    ".native_boundary.rs",
 )
 
 
@@ -81,7 +81,7 @@ def source_contains_compiler_native(source: Path) -> bool:
     - `source`: stdlib source file.
 
     Output:
-    - `True` when SafeNative metadata artifacts should be generated.
+    - `True` when NativeBoundary metadata artifacts should be generated.
 
     Transformation:
     - Scans source text for `@compiler.native` annotations without parsing.
@@ -103,7 +103,7 @@ def run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
     - Completed subprocess with captured output.
 
     Transformation:
-    - Applies stable environment defaults shared by interface and SafeNative
+    - Applies stable environment defaults shared by interface and NativeBoundary
       metadata generation.
     """
 
@@ -128,14 +128,14 @@ def run_emit(source: Path, out_dir: Path) -> str | None:
     - `out_dir`: output directory for generated summary artifacts.
 
     Outputs:
-    - `None` when `terlc interface` and optional SafeNative metadata emission
+    - `None` when `terlc interface` and optional NativeBoundary metadata emission
       succeeds.
     - A diagnostic string when generation fails.
 
     Transformation:
     - Runs the local `terlc interface` command with the std summary output
       directory so std interfaces can be regenerated from source. Sources with
-      compiler-native annotations also emit checked SafeNative metadata.
+      compiler-native annotations also emit checked NativeBoundary metadata.
     """
 
     result = run_command(
@@ -154,7 +154,7 @@ def run_emit(source: Path, out_dir: Path) -> str | None:
             [
                 *compiler_command(),
                 "--native-policy",
-                "safe_native_optional",
+                "native_boundary_optional",
                 "emit-native-metadata",
                 str(source.relative_to(ROOT)),
                 "--out-dir",
@@ -163,9 +163,61 @@ def run_emit(source: Path, out_dir: Path) -> str | None:
         )
         if result.returncode != 0:
             return (
-                f"{source}: SafeNative metadata generation failed\n"
+                f"{source}: NativeBoundary metadata generation failed\n"
                 f"{(result.stdout + result.stderr).rstrip()}"
             )
+    return None
+
+
+def run_interface_batch(sources: list[Path], out_dir: Path) -> str | None:
+    """Emit all std interfaces through one compiler process.
+
+    Inputs:
+    - `sources`: sorted release stdlib sources.
+    - `out_dir`: output directory for generated summaries.
+
+    Outputs:
+    - `None` on success or a combined compiler diagnostic on failure.
+
+    Transformation:
+    - Passes every source to the compiler's batch interface command so parsing,
+      embedded-interface loading, and dependency graph construction happen
+      once instead of once per module.
+    """
+
+    result = run_command(
+        [
+            *compiler_command(),
+            "interface",
+            *(str(source.relative_to(ROOT)) for source in sources),
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    if result.returncode != 0:
+        return (result.stdout + result.stderr).rstrip()
+    return None
+
+
+def run_native_emit(source: Path, out_dir: Path) -> str | None:
+    """Emit NativeBoundary metadata for one compiler-native std source."""
+
+    result = run_command(
+        [
+            *compiler_command(),
+            "--native-policy",
+            "native_boundary_optional",
+            "emit-native-metadata",
+            str(source.relative_to(ROOT)),
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    if result.returncode != 0:
+        return (
+            f"{source}: NativeBoundary metadata generation failed\n"
+            f"{(result.stdout + result.stderr).rstrip()}"
+        )
     return None
 
 
@@ -176,7 +228,7 @@ def is_release_summary_artifact(path: Path) -> bool:
     - `path`: generated file path inside the selected output directory.
 
     Outputs:
-    - `True` for release-owned summary and SafeNative metadata artifacts.
+    - `True` for release-owned summary and NativeBoundary metadata artifacts.
     - `False` for backend scratch artifacts such as `.erl` and `.hrl`.
 
     Transformation:
@@ -200,7 +252,7 @@ def remove_non_summary_artifacts(out_dir: Path) -> list[Path]:
 
     Transformation:
     - Iterates direct child files and unlinks non-release-owned artifacts while
-      keeping `.typi`, `.typi.deps`, `.safe_native.json`, and `.safe_native.rs`.
+      keeping `.typi`, `.typi.deps`, `.native_boundary.json`, and `.native_boundary.rs`.
     """
 
     removed: list[Path] = []
@@ -239,10 +291,41 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--jobs",
         type=int,
-        default=max(1, min(8, os.cpu_count() or 1)),
+        default=default_interface_jobs(),
         help="maximum parallel compiler interface jobs per dependency pass",
     )
     return parser.parse_args()
+
+
+def default_interface_jobs() -> int:
+    """Return the bounded stdlib interface-generation worker count.
+
+    Inputs:
+    - Optional `TERLAN_STDLIB_INTERFACE_JOBS` environment override.
+    - Host logical CPU count.
+
+    Outputs:
+    - A positive worker count capped at 16 by default.
+
+    Transformation:
+    - Uses enough independent compiler processes to keep prerelease summary
+      drift checks bounded without inheriting an unbounded host CPU count.
+    """
+
+    configured = os.environ.get("TERLAN_STDLIB_INTERFACE_JOBS")
+    if configured is not None:
+        try:
+            jobs = int(configured)
+        except ValueError as error:
+            raise ValueError(
+                "TERLAN_STDLIB_INTERFACE_JOBS must be a positive integer"
+            ) from error
+        if jobs < 1:
+            raise ValueError(
+                "TERLAN_STDLIB_INTERFACE_JOBS must be greater than zero"
+            )
+        return jobs
+    return max(1, min(16, os.cpu_count() or 1))
 
 
 def is_std_release_source(path: Path) -> bool:
@@ -352,6 +435,26 @@ def emit_pass(sources: list[Path], out_dir: Path, jobs: int) -> tuple[int, list[
     return emitted_count, next_pending
 
 
+def emit_native_pass(
+    sources: list[Path], out_dir: Path, jobs: int
+) -> list[tuple[Path, str]]:
+    """Emit compiler-native metadata concurrently after batch interfaces."""
+
+    failures: list[tuple[Path, str]] = []
+    with ThreadPoolExecutor(max_workers=max(1, jobs)) as executor:
+        futures = {
+            executor.submit(run_native_emit, source, out_dir): source
+            for source in sources
+            if source_contains_compiler_native(source)
+        }
+        for future in as_completed(futures):
+            source = futures[future]
+            if output := future.result():
+                failures.append((source, output))
+    failures.sort(key=lambda item: item[0])
+    return failures
+
+
 def main() -> int:
     """Regenerate checked-in stdlib interface summaries.
 
@@ -390,25 +493,14 @@ def main() -> int:
     ]
 
     failures: list[str] = []
-    env = os.environ.copy()
-    env.setdefault("CARGO_TERM_COLOR", "never")
-
-    pending = sorted(sources)
-    while pending:
-        emitted_count, next_pending = emit_pass(pending, out_dir, args.jobs)
-
-        if not next_pending:
-            break
-
-        if emitted_count == 0:
-            failures = [output for _source, output in next_pending]
-            break
-
-        pending = [source for source, _output in next_pending]
-
-    if not failures:
-        _emitted_count, final_pending = emit_pass(sorted(sources), out_dir, args.jobs)
-        failures = [output for _source, output in final_pending]
+    sources.sort()
+    if failure := run_interface_batch(sources, out_dir):
+        failures.append(failure)
+    else:
+        failures.extend(
+            output
+            for _source, output in emit_native_pass(sources, out_dir, args.jobs)
+        )
 
     if failures:
         print("[build-stdlib-interfaces] failures:", file=sys.stderr)

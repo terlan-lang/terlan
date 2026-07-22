@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableStreamBYOBRequest
+ */
+module std.js.Dom.ReadableStreamBYOBRequest.
+
+import type std.core.{Unit}.
+
+/**
+ * The **`ReadableStreamBYOBRequest`** interface of the Streams API represents a 'pull request' for data from an underlying source that will made as a zero-copy transfer to a consumer (bypassing the stream's internal queues).
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest)
+ */
+pub opaque type ReadableStreamBYOBRequest.
+
+/**
+ * The **`view`** getter property of the ReadableStreamBYOBRequest interface returns the current view.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/view)
+ */
+pub (value: ReadableStreamBYOBRequest) view(): Option[ArrayBufferView[ArrayBuffer]].
+
+/**
+ * The **`respond()`** method of the ReadableStreamBYOBRequest interface is used to signal to the associated readable byte stream that the specified number of bytes were written into the ReadableStreamBYOBRequest.view.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respond)
+ */
+pub (value: ReadableStreamBYOBRequest) respond(bytes_written: std.js.Number.JsNumber): Unit.
+
+/**
+ * The **`respondWithNewView()`** method of the ReadableStreamBYOBRequest interface specifies a new view that the consumer of the associated readable byte stream should write to instead of ReadableStreamBYOBRequest.view.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respondWithNewView)
+ */
+pub (value: ReadableStreamBYOBRequest) respond_with_new_view(view: ArrayBufferView[ArrayBuffer]): Unit.

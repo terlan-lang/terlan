@@ -1,0 +1,94 @@
+/**
+ * Executable release checks for `std.io.Path`.
+ *
+ * These tests exercise the VM-owned lexical Path std bridge over the Rust
+ * `std::path` adapter and keep public Result/Error/opaque-value shapes visible
+ * to release coverage.
+ */
+module std.io.PathTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.io.Path.
+import std.test.Test.{assert_equal}.
+
+import type std.core.{Option, Result}.
+import type std.io.Path.{Path, PathError}.
+
+/**
+ * Accepts one Path value and returns it unchanged.
+ *
+ * Input: one opaque `Path`.
+ * Output: the same path value.
+ * Transformation: proves the public Path type is importable and usable in
+ * signatures without exposing native adapter internals.
+ */
+pub accepts_path(value: Path): Path ->
+    value.
+
+/**
+ * Accepts one Path error value and returns it unchanged.
+ *
+ * Input: one portable `PathError`.
+ * Output: the same error value.
+ * Transformation: proves the public Path error shape is importable and usable
+ * in signatures without exposing native adapter internals.
+ */
+pub accepts_path_error(value: PathError): PathError ->
+    value.
+
+/**
+ * Accepts one Path result and returns it unchanged.
+ *
+ * Input: one `Result[Path, PathError]`.
+ * Output: the same result value.
+ * Transformation: proves path-producing operations expose the expected
+ * portable result shape.
+ */
+pub accepts_path_result(value: Result[Path, PathError]): Result[Path, PathError] ->
+    value.
+
+pub option_equals(value: Option[String], expected: String): Bool ->
+    case value {
+        Some(text) -> assert_equal(expected, text);
+        None -> false
+    }.
+
+pub option_path_to_string_equals(value: Option[Path], expected: String): Bool ->
+    case value {
+        Some(path) -> assert_equal(expected, path.to_string());
+        None -> false
+    }.
+
+@test
+pub parse_and_to_string_roundtrip_relative_path(): Bool ->
+    case accepts_path_result(Path.from_string("src/main.terl")) {
+        Ok(path) -> assert_equal("src/main.terl", accepts_path(path).to_string());
+        Err(_reason) -> false
+    }.
+
+@test
+pub join_and_components_are_lexical(): Bool ->
+    case Path.from_string("src") {
+        Ok(base) ->
+            case base.join("main.terl") {
+                Ok(joined) ->
+                    assert_equal("src/main.terl", joined.to_string()) and option_equals(joined.file_name(), "main.terl") and option_equals(joined.extension(), "terl") and option_path_to_string_equals(joined.parent(), "src");
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub absolute_paths_are_classified_without_io(): Bool ->
+    case Path.from_string("/tmp/terlan") {
+        Ok(path) -> assert_equal(true, path.is_absolute());
+        Err(_reason) -> false
+    }.
+
+@test
+pub relative_paths_are_not_absolute(): Bool ->
+    case Path.from_string("tmp/terlan") {
+        Ok(path) -> assert_equal(false, path.is_absolute());
+        Err(_reason) -> false
+    }.

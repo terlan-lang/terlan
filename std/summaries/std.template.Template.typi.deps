@@ -1,8 +1,8 @@
 module=std.template.Template
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=5590116426635828535
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=12497722516177790278
 interface_hash=16686016148349826625
 interface_doc_hash=11346321523522405138
 deps=0

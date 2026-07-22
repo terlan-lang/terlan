@@ -1,0 +1,49 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGElement
+ */
+module std.js.Dom.SVGElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * All of the SVG DOM interfaces that correspond directly to elements in the SVG language derive from the `SVGElement` interface.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGElement)
+ */
+pub opaque type SVGElement.
+
+/**
+ * The **`ownerSVGElement`** property of the SVGElement interface reflects the nearest ancestor svg element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGElement/ownerSVGElement)
+ */
+pub (value: SVGElement) owner_svg_element(): Option[SVGSVGElement].
+
+/**
+ * The **`viewportElement`** property of the SVGElement interface represents the `SVGElement` which established the current viewport.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGElement/viewportElement)
+ */
+pub (value: SVGElement) viewport_element(): Option[SVGElement].
+
+pub (value: SVGElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SVGElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

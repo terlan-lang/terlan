@@ -1,17 +1,27 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AuthenticationExtensionsPRFInputsJSON
  */
 module std.js.Dom.AuthenticationExtensionsPRFInputsJSONTest.
 
-import type std.js.Dom.AuthenticationExtensionsPRFInputsJSON.{AuthenticationExtensionsPRFInputsJSON}.
+import type std.js.Dom.AuthenticationExtensionsPRFInputsJSON.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
-pub eval_typechecks(receiver: AuthenticationExtensionsPRFInputsJSON): AuthenticationExtensionsPRFValuesJSON ->
+pub eval_typechecks(
+    receiver: AuthenticationExtensionsPRFInputsJSON
+): AuthenticationExtensionsPRFValuesJSON ->
     receiver.eval().
 
-pub eval_by_credential_typechecks(receiver: AuthenticationExtensionsPRFInputsJSON): Record[std.js.String.JsString , AuthenticationExtensionsPRFValuesJSON] ->
+pub eval_by_credential_typechecks(
+    receiver: AuthenticationExtensionsPRFInputsJSON
+): Record[std.js.String.JsString, AuthenticationExtensionsPRFValuesJSON] ->
     receiver.eval_by_credential().

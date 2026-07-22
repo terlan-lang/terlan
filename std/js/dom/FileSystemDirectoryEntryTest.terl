@@ -1,24 +1,40 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileSystemDirectoryEntry
  */
 module std.js.Dom.FileSystemDirectoryEntryTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.FileSystemDirectoryEntry.{FileSystemDirectoryEntry}.
-
+import type std.js.Dom.FileSystemDirectoryEntry.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub create_reader_typechecks(receiver: FileSystemDirectoryEntry): FileSystemDirectoryReader ->
     receiver.create_reader().
 
-pub get_directory_typechecks(receiver: FileSystemDirectoryEntry, path: Option[JsString], options: FileSystemFlags, success_callback: FileSystemEntryCallback, error_callback: ErrorCallback): Unit ->
+pub get_directory_typechecks(
+    receiver: FileSystemDirectoryEntry,
+    path: Option[JsString],
+    options: FileSystemFlags,
+    success_callback: FileSystemEntryCallback,
+    error_callback: ErrorCallback
+): Unit ->
     receiver.get_directory(path, options, success_callback, error_callback).
 
-pub get_file_typechecks(receiver: FileSystemDirectoryEntry, path: Option[JsString], options: FileSystemFlags, success_callback: FileSystemEntryCallback, error_callback: ErrorCallback): Unit ->
+pub get_file_typechecks(
+    receiver: FileSystemDirectoryEntry,
+    path: Option[JsString],
+    options: FileSystemFlags,
+    success_callback: FileSystemEntryCallback,
+    error_callback: ErrorCallback
+): Unit ->
     receiver.get_file(path, options, success_callback, error_callback).

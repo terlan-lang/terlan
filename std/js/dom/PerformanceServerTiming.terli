@@ -1,0 +1,43 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PerformanceServerTiming
+ */
+module std.js.Dom.PerformanceServerTiming.
+
+import type std.js.String.{JsString}.
+
+/**
+ * The **`PerformanceServerTiming`** interface surfaces server metrics that are sent with the response in the Server-Timing HTTP header.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceServerTiming)
+ */
+pub opaque type PerformanceServerTiming.
+
+/**
+ * The **`description`** read-only property returns a string value of the server-specified metric description, or an empty string.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceServerTiming/description)
+ */
+pub (value: PerformanceServerTiming) description(): JsString.
+
+/**
+ * The **`duration`** read-only property returns a double that contains the server-specified metric duration, or the value `0.0`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceServerTiming/duration)
+ */
+pub (value: PerformanceServerTiming) duration(): DOMHighResTimeStamp.
+
+/**
+ * The **`name`** read-only property returns a string value of the server-specified metric name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceServerTiming/name)
+ */
+pub (value: PerformanceServerTiming) name(): JsString.

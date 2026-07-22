@@ -4,7 +4,7 @@
 # callable from the repository root while stdlib recipes live with stdlib
 # sources and policy documents.
 
-.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
+.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-release-runtime-check stdlib-release-runtime-owned-by-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-embedded-interface-contract-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
 
 stdlib-help:
 	@echo "  make stdlib-check      - verify fast stdlib drift, manifest, and API coverage checks"
@@ -13,11 +13,12 @@ stdlib-help:
 	@echo "  make stdlib-doc-format-check - verify stdlib TypeDoc block marker spacing"
 	@echo "  make stdlib-summary-inventory-check - verify stdlib sources have checked-in summaries"
 	@echo "  make stdlib-summary-drift-check - verify regenerated stdlib summaries match committed artifacts"
+	@echo "  make stdlib-embedded-interface-contract-check - verify canonical embedded std summaries"
 	@echo "  make stdlib-js-bindings-drift-check - verify generated std.js bindings match pinned TypeScript inputs"
 	@echo "  make stdlib-js-review-surface-check - verify generated std.js manifests and provenance headers"
 	@echo "  make stdlib-release-manifest-check - verify stdlib source/summary/test/docs release manifest"
 	@echo "  make stdlib-rust-backed-manifest-check - verify Rust-backed std native operation inventory"
-	@echo "  make stdlib-native-artifacts-check - verify Rust-backed std SafeNative artifacts match generated output"
+	@echo "  make stdlib-native-artifacts-check - verify Rust-backed std NativeBoundary artifacts match generated output"
 	@echo "  make stdlib-io-negative-api-tests-check - verify std.io misuse diagnostics"
 	@echo "  make stdlib-release-api-tests-check - verify stdlib release API examples"
 	@echo "  make stdlib-negative-api-tests-check - verify constrained stdlib API diagnostics"
@@ -34,7 +35,16 @@ stdlib-help:
 
 stdlib-check: stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-io-negative-api-tests-check
 
-stdlib-release-check: stdlib-check stdlib-release-contracts-check stdlib-release-tests
+stdlib-release-check: stdlib-check stdlib-release-runtime-check
+
+stdlib-release-runtime-check: stdlib-release-contracts-check stdlib-release-tests
+
+stdlib-release-runtime-owned-by-check:
+	@test "$(TERLAN_CHECK_ALREADY_RUN)" = "1" || { \
+		echo "stdlib release runtime ownership requires TERLAN_CHECK_ALREADY_RUN=1" >&2; \
+		exit 1; \
+	}
+	@echo "[stdlib-release-runtime] canonical check already passed contracts and VM-default release tests."
 
 stdlib-build-interfaces:
 	@$(PYTHON) std/scripts/build_interfaces.py
@@ -47,6 +57,9 @@ stdlib-summary-inventory-check:
 
 stdlib-summary-drift-check:
 	@$(PYTHON) std/scripts/check_summary_drift.py
+
+stdlib-embedded-interface-contract-check: $(CANONICAL_RUST_SUITE_OWNER)
+	@$(PYTHON) std/scripts/check_embedded_interface_contracts.py
 
 stdlib-js-bindings-drift-check:
 	@$(PYTHON) std/scripts/check_js_bindings_drift.py
@@ -94,13 +107,13 @@ stdlib-http-check:
 
 stdlib-log-check:
 	@$(TERLC) test std/log/LogTest.terl
-	@$(EXACT_CARGO_TEST) -p terlan terlan_typeck::core_intrinsic_test::syntax_output_lowering_to_core_maps_all_std_log_levels_to_runtime_capability -- --exact
+	@$(EXACT_CARGO_TEST) -p terlan compiler::typeck::core_intrinsic_test::syntax_output_lowering_to_core_maps_all_std_log_levels_to_runtime_capability -- --exact
 
 stdlib-sync-check:
 	@$(TERLC) test std/sync
 
 stdlib-release-contracts-check:
-	@$(EXACT_CARGO_TEST) -p terlan terlan_typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
+	@$(EXACT_CARGO_TEST) -p terlan --bin terlc compiler::typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
 
 stdlib-release-tests:
 	@bash std/scripts/run_release_tests.sh

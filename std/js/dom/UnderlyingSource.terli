@@ -1,0 +1,25 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface UnderlyingSource
+ */
+module std.js.Dom.UnderlyingSource.
+
+pub opaque type UnderlyingSource[R].
+
+pub (value: UnderlyingSource[R]) auto_allocate_chunk_size(): std.js.Number.JsNumber.
+
+pub (value: UnderlyingSource[R]) cancel(): UnderlyingSourceCancelCallback.
+
+pub (value: UnderlyingSource[R]) pull(): UnderlyingSourcePullCallback[R].
+
+pub (value: UnderlyingSource[R]) start(): UnderlyingSourceStartCallback[R].
+
+pub (value: UnderlyingSource[R]) type_(): ReadableStreamType.

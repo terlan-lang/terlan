@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 
+use crate::terlan_typeck::types::FixedArraySize;
 use crate::terlan_typeck::{
     apply_subst, call_has_named_args, complete_defaulted_call_arg_types, expand_type_aliases,
     infer_syntax_expr, instantiate_constructor_scheme, instantiate_type, is_constructor_name,
@@ -307,7 +308,7 @@ pub(super) fn infer_opaque_constructor(
                 normalize_union(items.clone())
             };
             return Some(Type::FixedArray {
-                size: items.len(),
+                size: FixedArraySize::Known(items.len()),
                 elem: Box::new(elem),
             });
         }

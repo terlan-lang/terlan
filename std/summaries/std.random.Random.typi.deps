@@ -1,0 +1,8 @@
+module=std.random.Random
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=18311656958514041211
+interface_hash=11172019779348086577
+interface_doc_hash=11251716362706807027
+deps=0

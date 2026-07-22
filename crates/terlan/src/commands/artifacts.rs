@@ -4,6 +4,7 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
+use crate::terlan_hir::parse_interface_dependency_entries;
 use crate::terlan_hir::ModuleInterface;
 use crate::terlan_syntax::{
     syntax_contract_identity_from_fingerprint, SyntaxContractIdentity, SyntaxDeclarationPayload,
@@ -137,8 +138,7 @@ impl DependencyManifest {
         let mut source_hash = None;
         let mut interface_hash = None;
         let mut interface_doc_hash = None;
-        let mut deps_expected = None;
-        let mut dependencies = Vec::new();
+        let dependencies = parse_interface_dependency_entries(contents)?;
         let mut lines = contents.lines();
 
         for line in lines.by_ref() {
@@ -171,16 +171,10 @@ impl DependencyManifest {
                 continue;
             }
             if let Some(value) = line.strip_prefix("deps=") {
-                deps_expected = value.parse::<usize>().ok();
+                value.parse::<usize>().ok()?;
                 break;
             }
             return None;
-        }
-
-        for line in lines.by_ref().take(deps_expected.unwrap_or(0)) {
-            let (name, hash_text) = line.split_once('=')?;
-            let hash = hash_text.parse::<u64>().ok()?;
-            dependencies.push((name.to_string(), hash));
         }
 
         let mut syntax_contract_identity =
@@ -200,24 +194,6 @@ impl DependencyManifest {
             interface_doc_hash: interface_doc_hash?,
             dependencies,
         })
-    }
-
-    /// Returns whether dependents should be rechecked against a prior manifest.
-    ///
-    /// Inputs:
-    /// - `self`: current dependency manifest.
-    /// - `previous`: prior dependency manifest from the cache.
-    ///
-    /// Output:
-    /// - `true` when downstream modules must be rechecked.
-    ///
-    /// Transformation:
-    /// - Compares syntax contract identity, emitted interface hash, and resolved
-    ///   dependency hashes while ignoring source-only changes.
-    pub(crate) fn should_recheck_dependents(&self, previous: &DependencyManifest) -> bool {
-        self.syntax_contract_identity != previous.syntax_contract_identity
-            || self.interface_hash != previous.interface_hash
-            || self.dependencies != previous.dependencies
     }
 }
 
@@ -332,84 +308,6 @@ pub(crate) fn collect_syntax_dependency_hashes(
     }
     out.sort();
     out
-}
-
-/// Loads file and CSS imports declared by a syntax module.
-///
-/// Inputs:
-/// - `module`: formal syntax output containing import declarations.
-/// - `source_path`: source file path used as the relative import base.
-///
-/// Output:
-/// - Imported bytes keyed by import alias, or a user-facing error string.
-///
-/// Transformation:
-/// - Resolves source-relative paths, reads imported files, validates CSS imports
-///   as UTF-8 and syntactically valid CSS, and returns raw bytes for emission.
-pub(crate) fn collect_syntax_file_import_bytes(
-    module: &SyntaxModuleOutput,
-    source_path: &Path,
-) -> Result<BTreeMap<String, Vec<u8>>, String> {
-    let base_dir = source_path.parent().unwrap_or_else(|| Path::new("."));
-    let mut imports = BTreeMap::new();
-
-    for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Import {
-            import_kind,
-            items,
-            source_path,
-            ..
-        } = &declaration.payload
-        else {
-            continue;
-        };
-        if !matches!(import_kind, SyntaxImportKind::File | SyntaxImportKind::Css) {
-            continue;
-        }
-
-        let alias = items
-            .first()
-            .map(|item| item.name.as_str())
-            .ok_or_else(|| "file import is missing an alias".to_string())?;
-        let source = source_path
-            .as_deref()
-            .ok_or_else(|| format!("file import `{}` is missing a source path", alias))?;
-        let resolved_path = resolve_import_path(base_dir, source);
-        let bytes = fs::read(&resolved_path).map_err(|err| {
-            format!(
-                "failed to read imported file `{}` for `{}`: {}",
-                resolved_path.display(),
-                alias,
-                err
-            )
-        })?;
-        if *import_kind == SyntaxImportKind::Css {
-            let source = std::str::from_utf8(&bytes).map_err(|err| {
-                format!(
-                    "imported CSS file `{}` for `{}` must be valid UTF-8: {}",
-                    resolved_path.display(),
-                    alias,
-                    err
-                )
-            })?;
-            crate::terlan_html::validate_css(source, &resolved_path).map_err(|diagnostics| {
-                diagnostics
-                    .into_iter()
-                    .map(|diagnostic| {
-                        let path = diagnostic
-                            .path
-                            .map(|path| path.display().to_string())
-                            .unwrap_or_else(|| resolved_path.display().to_string());
-                        format!("{path}: {}", diagnostic.message)
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            })?;
-        }
-        imports.insert(alias.to_string(), bytes);
-    }
-
-    Ok(imports)
 }
 
 /// Loads source asset imports declared by a syntax module.
@@ -644,30 +542,6 @@ fn validate_imported_markdown(
                 .collect::<Vec<_>>()
                 .join("\n")
         })
-}
-
-/// Loads and parses Markdown imports declared by a syntax module.
-///
-/// Inputs:
-/// - `module`: formal syntax output containing Markdown import declarations.
-/// - `source_path`: source file path used as the relative import base.
-///
-/// Output:
-/// - Parsed Markdown documents keyed by import alias, or a user-facing error.
-///
-/// Transformation:
-/// - Resolves source-relative Markdown paths, enforces UTF-8, parses Markdown,
-///   and normalizes parser diagnostics into command-ready error text.
-pub(crate) fn collect_syntax_markdown_inputs(
-    module: &SyntaxModuleOutput,
-    source_path: &Path,
-) -> Result<BTreeMap<String, crate::terlan_html::MarkdownDocument>, String> {
-    collect_syntax_markdown_frontend_inputs(module, source_path).map(|inputs| {
-        inputs
-            .into_iter()
-            .map(|input| (input.alias, input.document))
-            .collect()
-    })
 }
 
 /// Loads Markdown imports with source metadata preserved.

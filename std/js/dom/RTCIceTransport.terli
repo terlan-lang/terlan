@@ -1,0 +1,56 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface RTCIceTransport
+ */
+module std.js.Dom.RTCIceTransport.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`RTCIceTransport`** interface provides access to information about the ICE transport layer over which the data is being sent and received.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceTransport)
+ */
+pub opaque type RTCIceTransport.
+
+/**
+ * The **`gatheringState`** read-only property of the RTCIceTransport interface returns a string that indicates the current gathering state of the ICE agent for this transport: `'new'`, `'gathering'`, or `'complete'`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceTransport/gatheringState)
+ */
+pub (value: RTCIceTransport) gathering_state(): RTCIceGathererState.
+
+/**
+ * The **`state`** read-only property of the RTCIceTransport interface returns the current state of the ICE transport, so you can determine the state of ICE gathering in which the ICE agent currently is operating.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceTransport/state)
+ */
+pub (value: RTCIceTransport) state(): RTCIceTransportState.
+
+/**
+ * The **`getSelectedCandidatePair()`** method of the RTCIceTransport interface returns an RTCIceCandidatePair object containing the current best-choice pair of ICE candidates describing the configuration of the endpoints of the transport.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceTransport/getSelectedCandidatePair)
+ */
+pub (value: RTCIceTransport) get_selected_candidate_pair(): Option[RTCIceCandidatePair].
+
+pub (value: RTCIceTransport) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: RTCIceTransport) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

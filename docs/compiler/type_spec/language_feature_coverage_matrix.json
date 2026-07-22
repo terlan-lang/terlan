@@ -1,0 +1,541 @@
+{
+  "schema": "terlan.language-feature-coverage.v1",
+  "positive_test_files": [
+    "tests/language/LanguageFeatureCoverageTest.terl",
+    "tests/operator/OperatorCoverageTest.terl",
+    "tests/pattern/PatternMatchingTest.terl",
+    "tests/comparison/ComparisonTest.terl"
+  ],
+  "features": [
+    {
+      "id": "module_declaration",
+      "feature": "module declarations",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["module_import_public_private_let_sequence_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct Module",
+        "crates/terlan/src/runtime/vm.rs::pub(crate) fn load_module"
+      ]
+    },
+    {
+      "id": "value_import",
+      "feature": "value imports",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["module_import_public_private_let_sequence_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct ImportDecl",
+        "crates/terlan/src/runtime/vm.rs::evaluate_imported_std_call"
+      ]
+    },
+    {
+      "id": "type_import",
+      "feature": "type imports",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "not-applicable",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["generic_alias_and_type_import_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct ImportDecl",
+        "crates/terlan/src/compiler/typeck/import_maps.rs::TypeCheckImportMaps"
+      ]
+    },
+    {
+      "id": "type_alias",
+      "feature": "type aliases",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "not-applicable",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["generic_alias_and_type_import_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct TypeDecl",
+        "crates/terlan/src/compiler/typeck/mod.rs::pub(crate) struct TypeAlias"
+      ]
+    },
+    {
+      "id": "public_function",
+      "feature": "public functions",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["module_import_public_private_let_sequence_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct FunctionDecl",
+        "crates/terlan/src/runtime/vm.rs::fn apply_core_function"
+      ]
+    },
+    {
+      "id": "private_function",
+      "feature": "private functions",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["module_import_public_private_let_sequence_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct FunctionDecl",
+        "crates/terlan/src/runtime/vm.rs::fn evaluate_call"
+      ]
+    },
+    {
+      "id": "generic_function",
+      "feature": "generic functions",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["generic_alias_and_type_import_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub generic_params",
+        "crates/terlan/src/compiler/typeck/type_instantiation.rs::Remaps every type variable"
+      ]
+    },
+    {
+      "id": "let_binding",
+      "feature": "let bindings",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["module_import_public_private_let_sequence_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::Let { bindings, body }",
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Let"
+      ]
+    },
+    {
+      "id": "sequencing",
+      "feature": "sequencing",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["module_import_public_private_let_sequence_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::evaluate_exprs",
+        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::explicit result expression"
+      ]
+    },
+    {
+      "id": "lambda_inline",
+      "feature": "inline lambdas and function-value calls",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["lambda_and_closure_execute", "lambda_variable_pattern_binds_argument"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::Lam { params, body }",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::fn evaluate_function_call"
+      ]
+    },
+    {
+      "id": "if_expression",
+      "feature": "if expressions",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["conditional_and_case_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct IfClause",
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::If { clauses }"
+      ]
+    },
+    {
+      "id": "case_expression",
+      "feature": "case expressions",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["conditional_and_case_execute", "case_custom_constructor_pattern_binds_payloads"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct CaseClause",
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::Case { scrutinee, clauses }"
+      ]
+    },
+    {
+      "id": "constructor_call",
+      "feature": "constructor calls",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["conditional_and_case_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::ConstructorCall",
+        "crates/terlan/src/runtime/vm.rs::fn evaluate_constructor_call"
+      ]
+    },
+    {
+      "id": "pattern_matching",
+      "feature": "pattern matching",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["case_custom_constructor_pattern_binds_payloads", "let_tuple_destructuring_binds_values"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub enum Pattern",
+        "crates/terlan/src/runtime/vm/patterns.rs::bind_repl_pattern"
+      ]
+    },
+    {
+      "id": "list_literal",
+      "feature": "list literals",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["collection_tuple_list_map_index_execute", "list_equality_compares_structure"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::List(items)",
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::List"
+      ]
+    },
+    {
+      "id": "tuple_literal",
+      "feature": "tuple literals",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["collection_tuple_list_map_index_execute", "tuple_equality_compares_structure"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::Tuple(items)",
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Tuple"
+      ]
+    },
+    {
+      "id": "map_literal",
+      "feature": "map literals",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["collection_tuple_list_map_index_execute", "map_equality_compares_structure"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::CoreExpr::Map(fields)",
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::Map"
+      ]
+    },
+    {
+      "id": "index_access",
+      "feature": "index access",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "partial",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["collection_tuple_list_map_index_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::(\"IndexGet.get_at\", [collection, ReplValue::Int(index)])",
+        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::IndexGet.get_at"
+      ]
+    },
+    {
+      "id": "operator_expressions",
+      "feature": "operator expressions",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["arithmetic_addition_executes", "integer_greater_than_compares_order"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "docs/compiler/type_spec/operator_coverage_matrix.json::terlan.operator-coverage.v1",
+        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::fn evaluate_binary"
+      ]
+    },
+    {
+      "id": "string_receiver",
+      "feature": "built-in string receiver calls",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["string_receiver_and_constructor_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm/std_remote.rs::Evaluates a VM-facing dynamic receiver call",
+        "crates/terlan/src/runtime/vm.rs::ReplValue::String(value)"
+      ]
+    },
+    {
+      "id": "primitive_constructor",
+      "feature": "primitive constructors",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": null,
+      "positive_tests": ["string_receiver_and_constructor_execute"],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/runtime/vm.rs::if function == \"to_string\"",
+        "crates/terlan/src/tests/check_std_vm_test.rs::String(1) == \\\"1\\\""
+      ]
+    },
+    {
+      "id": "struct_declaration",
+      "feature": "struct declarations and constructor encoding",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "supported",
+      "vm": "partial",
+      "js": "partial",
+      "lsp": "supported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/runtime/vm_test.rs::record field access `name` expects record receiver"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct StructDecl",
+        "crates/terlan/src/runtime/vm.rs::record field access `{field}` expects record receiver"
+      ]
+    },
+    {
+      "id": "receiver_methods",
+      "feature": "user receiver methods",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "supported",
+      "vm": "partial",
+      "js": "partial",
+      "lsp": "supported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/runtime/vm/std_remote.rs::receiver call `{function}` for"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct MethodDecl",
+        "crates/terlan/src/runtime/vm/std_remote.rs::receiver call `{function}` for"
+      ]
+    },
+    {
+      "id": "trait_impl_dispatch",
+      "feature": "traits and impl dispatch",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "partial",
+      "target_profile": "partial",
+      "vm": "partial",
+      "js": "partial",
+      "lsp": "supported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/typeck/trait_test.rs::Verifies immutable receivers do not satisfy mutable trait requirements"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct TraitDecl",
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct TraitImplDecl"
+      ]
+    },
+    {
+      "id": "pipe_forward",
+      "feature": "pipe forward",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "partial",
+      "target_profile": "vm-gated",
+      "vm": "unsupported",
+      "js": "supported",
+      "lsp": "supported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/typeck/expression_test.rs::syntax_output_infers_pipe_forward_on_formal_path",
+        "docs/compiler/type_spec/operator_coverage_matrix.json::pipe_forward"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::PipeForward",
+        "crates/terlan/src/compiler/typeck/expression/calls/pipe.rs::right side of |> must be a function call"
+      ]
+    },
+    {
+      "id": "index_assignment",
+      "feature": "index assignment",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "partial",
+      "core_ir": "partial",
+      "target_profile": "vm-gated",
+      "vm": "unsupported",
+      "js": "unsupported",
+      "lsp": "supported",
+      "diagnostic": "unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/typeck/core_expr_test.rs::syntax_output_lowering_to_core_index_assignment_uses_index_set_call",
+        "docs/compiler/type_spec/operator_coverage_matrix.json::index_assignment"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::IndexSet.set_at",
+        "crates/terlan/src/runtime/vm.rs::IndexSet.set_at expects assignable indexed receiver"
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "feature": "user-facing diagnostics",
+      "parse": "supported",
+      "format": "not-applicable",
+      "typecheck": "supported",
+      "core_ir": "not-applicable",
+      "target_profile": "supported",
+      "vm": "diagnostic-only",
+      "js": "diagnostic-only",
+      "lsp": "supported",
+      "diagnostic": "parse_error,type_error,unsupported_vm_feature",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected",
+        "crates/terlan/src/compiler/typeck/diagnostic_test.rs::unknown constructor Some / 1",
+        "crates/terlan/src/runtime/vm.rs::unsupported_vm_feature"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/formal_pipeline.rs::parse_error",
+        "crates/terlan/src/formal_pipeline.rs::type_error",
+        "crates/terlan/src/runtime/vm.rs::const UNSUPPORTED_VM_FEATURE_CODE"
+      ]
+    }
+  ]
+}

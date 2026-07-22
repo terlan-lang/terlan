@@ -1,5 +1,61 @@
 use super::*;
 
+mod abi;
+
+use crate::database_schema::DatabaseColumnCodec;
+use crate::terlan_typeck::sql_forms::database::SqlDatabaseProjectionColumn;
+use abi::{
+    sql_row_decode_type_is_supported, sql_scalar_abi_type_is_supported, structural_option_inner,
+    SQL_ROW_DECODE_ABI_TYPE_SUMMARY, SQL_SCALAR_ABI_TYPE_SUMMARY,
+};
+
+/// Validates inferred SQL interpolation types against the first VM binding ABI.
+///
+/// Inputs:
+/// - `expr`: compiler-known SQL form containing interpolation children.
+/// - `parameter_types`: normal type-inference result for each child in source order.
+/// - `ctx`: expression context containing visible aliases.
+/// - `subst`: substitutions learned while inferring all interpolation children.
+/// - `errors`: mutable expression diagnostic sink.
+///
+/// Output:
+/// - No direct return value; one indexed, source-spanned error is emitted for
+///   every parameter that cannot cross the current scalar SQL boundary.
+///
+/// Transformation:
+/// - Applies final substitutions and transparent aliases before accepting the
+///   runtime's JSON-safe scalar set. Structured values, nullable wrappers,
+///   dynamic values, functions, and unresolved generics remain rejected until
+///   their database codecs are explicit compiler/runtime contracts.
+pub(super) fn validate_sql_form_parameter_types(
+    expr: &SyntaxExprOutput,
+    parameter_types: &[Type],
+    ctx: &ExprInferContext,
+    subst: &HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) {
+    if expr.kind != SyntaxExprKind::RawMacro || expr.text.as_deref() != Some("sql") {
+        return;
+    }
+    debug_assert_eq!(expr.children.len(), parameter_types.len());
+
+    for (index, (parameter, inferred)) in expr.children.iter().zip(parameter_types).enumerate() {
+        let resolved = expand_type_aliases(&apply_subst(inferred, subst), ctx.aliases);
+        if sql_scalar_abi_type_is_supported(&resolved) {
+            continue;
+        }
+        errors.push(spanned_expression_error(
+            parameter.span.into(),
+            format!(
+                "SQL parameter {} has non-bindable type {}; expected {}",
+                index + 1,
+                pretty_type(&resolved),
+                SQL_SCALAR_ABI_TYPE_SUMMARY
+            ),
+        ));
+    }
+}
+
 /// Validates that a SQL form row type names a visible type.
 ///
 /// Inputs:
@@ -13,10 +69,10 @@ use super::*;
 /// - No direct return value.
 ///
 /// Transformation:
-/// - Reads the SQL-form analysis payload and emits a source-spanned diagnostic
-///   when `sql[RowType]` does not reference a visible local struct, local type
-///   alias, or imported type. SQL result columns are intentionally left for the
-///   later Postgres-backed validation path.
+/// - Reads the SQL-form analysis payload and emits source-spanned diagnostics
+///   unless `sql[RowType]` resolves to a visible named row or a non-empty tuple
+///   whose fields cross the current scalar decode ABI. Local struct fields and
+///   AST-visible projection arity are checked before database-backed validation.
 pub(super) fn validate_sql_form_row_type(
     expr: &SyntaxExprOutput,
     ctx: &ExprInferContext,
@@ -32,23 +88,283 @@ pub(super) fn validate_sql_form_row_type(
         return;
     };
 
-    let Some((module, name)) = sql_row_type_reference(row_type) else {
+    let database_projection = match ctx.database_schema {
+        Some(snapshot) => {
+            let Ok(statement) = crate::terlan_typeck::sql_forms::parse_single_postgres_statement(
+                &analysis.binding.sql,
+            ) else {
+                return;
+            };
+            match crate::terlan_typeck::sql_forms::statement_schema_projection(
+                &statement, &snapshot,
+            ) {
+                Ok(projection) => projection,
+                Err(error) => {
+                    errors.push(spanned_expression_error(expr.span.into(), error.message()));
+                    return;
+                }
+            }
+        }
+        None => None,
+    };
+    let database_field_names = database_projection.as_ref().map(|projection| {
+        projection
+            .iter()
+            .map(|column| column.output_name.clone())
+            .collect::<Vec<_>>()
+    });
+    let selected_fields = database_field_names
+        .as_deref()
+        .or(analysis.projection_fields.as_deref());
+
+    let Some((parsed, resolved)) = parse_sql_row_descriptor(row_type, ctx) else {
         errors.push(spanned_expression_error(
             expr.span.into(),
-            format!("SQL row type `{row_type}` must be a named visible row type"),
+            format!("SQL row type `{row_type}` is not a valid type expression"),
         ));
         return;
     };
 
-    if sql_row_type_is_visible(module.as_deref(), &name, ctx) {
-        validate_sql_form_row_projection(expr, row_type, module.as_deref(), &name, ctx, errors);
+    match resolved {
+        Type::Tuple(items) => validate_sql_tuple_row_descriptor(
+            expr,
+            row_type,
+            &items,
+            selected_fields,
+            database_projection.as_deref(),
+            ctx,
+            errors,
+        ),
+        Type::Named { module, name, .. }
+            if sql_row_type_is_visible(module.as_deref(), &name, ctx) =>
+        {
+            validate_sql_form_row_projection(
+                expr,
+                row_type,
+                module.as_deref(),
+                &name,
+                selected_fields,
+                ctx,
+                errors,
+            );
+            validate_sql_struct_row_field_types(
+                expr,
+                row_type,
+                module.as_deref(),
+                &name,
+                database_projection.as_deref(),
+                ctx,
+                errors,
+            );
+        }
+        Type::Named { .. } => errors.push(spanned_expression_error(
+            expr.span.into(),
+            format!(
+                "SQL row type `{row_type}` is not a visible struct, type alias, or imported type"
+            ),
+        )),
+        _ => errors.push(spanned_expression_error(
+            expr.span.into(),
+            format!(
+                "SQL row type `{}` must resolve to a visible named row type or non-empty scalar tuple",
+                pretty_type(&parsed)
+            ),
+        )),
+    }
+}
+
+fn validate_sql_tuple_row_descriptor(
+    expr: &SyntaxExprOutput,
+    row_type: &str,
+    items: &[Type],
+    selected_fields: Option<&[String]>,
+    database_projection: Option<&[SqlDatabaseProjectionColumn]>,
+    ctx: &ExprInferContext,
+    errors: &mut Vec<String>,
+) {
+    if items.is_empty() {
+        errors.push(spanned_expression_error(
+            expr.span.into(),
+            format!("SQL tuple row type `{row_type}` must contain at least one field"),
+        ));
         return;
     }
 
+    if let Some(selected_fields) = selected_fields {
+        if selected_fields.len() != items.len() {
+            errors.push(spanned_expression_error(
+                expr.span.into(),
+                format!(
+                    "SQL projection has {} column(s), but tuple row type `{row_type}` has {} field(s)",
+                    selected_fields.len(),
+                    items.len()
+                ),
+            ));
+        }
+    }
+
+    for (index, item) in items.iter().enumerate() {
+        if !sql_row_decode_type_is_supported_in_context(item, ctx) {
+            errors.push(spanned_expression_error(
+                expr.span.into(),
+                format!(
+                    "SQL tuple row field {} has non-decodable type {}; expected {}",
+                    index + 1,
+                    pretty_type(item),
+                    SQL_ROW_DECODE_ABI_TYPE_SUMMARY
+                ),
+            ));
+        }
+    }
+
+    if let Some(projection) = database_projection {
+        if projection.len() == items.len() {
+            for (index, (column, item)) in projection.iter().zip(items).enumerate() {
+                validate_sql_database_column_type(
+                    expr,
+                    column,
+                    item,
+                    &format!("tuple row field {}", index + 1),
+                    ctx,
+                    errors,
+                );
+            }
+        }
+    }
+}
+
+fn validate_sql_struct_row_field_types(
+    expr: &SyntaxExprOutput,
+    row_type: &str,
+    module: Option<&str>,
+    name: &str,
+    database_projection: Option<&[SqlDatabaseProjectionColumn]>,
+    ctx: &ExprInferContext,
+    errors: &mut Vec<String>,
+) {
+    if module.is_some() {
+        return;
+    }
+    let Some(row_fields) = ctx.struct_fields.get(name) else {
+        return;
+    };
+    let mut fields = row_fields.iter().collect::<Vec<_>>();
+    fields.sort_by(|(left, _), (right, _)| left.cmp(right));
+    for (field, ty) in fields {
+        let resolved = expand_type_aliases(ty, ctx.aliases);
+        if !sql_row_decode_type_is_supported_in_context(&resolved, ctx) {
+            errors.push(spanned_expression_error(
+                expr.span.into(),
+                format!(
+                    "SQL row type `{row_type}` field `{field}` has non-decodable type {}; expected {}",
+                    pretty_type(&resolved),
+                    SQL_ROW_DECODE_ABI_TYPE_SUMMARY
+                ),
+            ));
+        }
+    }
+
+    let Some(projection) = database_projection else {
+        return;
+    };
+    for column in projection {
+        let Some(field_type) = row_fields.get(&column.output_name) else {
+            continue;
+        };
+        let resolved = expand_type_aliases(field_type, ctx.aliases);
+        validate_sql_database_column_type(
+            expr,
+            column,
+            &resolved,
+            &format!("row type `{row_type}` field `{}`", column.output_name),
+            ctx,
+            errors,
+        );
+    }
+}
+
+fn validate_sql_database_column_type(
+    expr: &SyntaxExprOutput,
+    column: &SqlDatabaseProjectionColumn,
+    row_field_type: &Type,
+    row_field_label: &str,
+    ctx: &ExprInferContext,
+    errors: &mut Vec<String>,
+) {
+    if !sql_row_decode_type_is_supported_in_context(row_field_type, ctx) {
+        return;
+    }
+    let Some(codec) = DatabaseColumnCodec::for_schema_column(&column.source_column) else {
+        errors.push(spanned_expression_error(
+            expr.span.into(),
+            format!(
+                "SQL selected column `{}` uses unsupported PostgreSQL type `{}`; no typed Terlan row codec is available",
+                column.output_name,
+                column.source_column.qualified_database_type()
+            ),
+        ));
+        return;
+    };
+
+    let (actual_nullable, actual_base) = structural_option_inner(row_field_type)
+        .map_or((false, row_field_type), |inner| (true, inner));
+    let expected_nullable = column.source_column.nullable;
+    if actual_nullable == expected_nullable
+        && sql_database_codec_matches_type(codec, actual_base, ctx)
+    {
+        return;
+    }
+
+    let base = codec.terlan_type_name();
+    let expected = if expected_nullable {
+        format!("Option[{base}]")
+    } else {
+        base.to_string()
+    };
     errors.push(spanned_expression_error(
         expr.span.into(),
-        format!("SQL row type `{row_type}` is not a visible struct, type alias, or imported type"),
+        format!(
+            "SQL selected column `{}` decodes as {expected}, but {row_field_label} has type {}",
+            column.output_name,
+            pretty_type(row_field_type)
+        ),
     ));
+}
+
+fn sql_database_codec_matches_type(
+    codec: DatabaseColumnCodec,
+    ty: &Type,
+    ctx: &ExprInferContext,
+) -> bool {
+    match codec {
+        DatabaseColumnCodec::Binary => matches!(ty, Type::Binary),
+        DatabaseColumnCodec::Bool => matches!(ty, Type::Bool),
+        DatabaseColumnCodec::Int => matches!(ty, Type::Int),
+        DatabaseColumnCodec::Json => sql_json_type_is_visible(ty, ctx),
+    }
+}
+
+fn sql_row_decode_type_is_supported_in_context(ty: &Type, ctx: &ExprInferContext) -> bool {
+    sql_row_decode_type_is_supported(ty)
+        || sql_json_type_is_visible(ty, ctx)
+        || structural_option_inner(ty).is_some_and(|inner| sql_json_type_is_visible(inner, ctx))
+}
+
+fn sql_json_type_is_visible(ty: &Type, ctx: &ExprInferContext) -> bool {
+    let Type::Named { module, name, args } = ty else {
+        return false;
+    };
+    if name != "Json" || !args.is_empty() {
+        return false;
+    }
+    match module.as_deref() {
+        Some("std.data.Json") => true,
+        Some(_) => false,
+        None => ctx
+            .imported_type_names
+            .get("Json")
+            .is_some_and(|imported| imported.module == "std.data.Json" && imported.name == "Json"),
+    }
 }
 
 /// Validates simple SQL projections against local row struct fields.
@@ -58,6 +374,7 @@ pub(super) fn validate_sql_form_row_type(
 /// - `row_type`: source row type text used in diagnostics.
 /// - `module`: optional module path from the row type.
 /// - `name`: base row type name.
+/// - `selected_fields`: compiler-visible output names derived from the SQL AST.
 /// - `ctx`: expression inference context containing local struct fields.
 /// - `errors`: mutable expression error sink.
 ///
@@ -74,6 +391,7 @@ fn validate_sql_form_row_projection(
     row_type: &str,
     module: Option<&str>,
     name: &str,
+    selected_fields: Option<&[String]>,
     ctx: &ExprInferContext,
     errors: &mut Vec<String>,
 ) {
@@ -83,11 +401,7 @@ fn validate_sql_form_row_projection(
     let Some(row_fields) = ctx.struct_fields.get(name) else {
         return;
     };
-    let Some(raw) = expr.raw.as_deref() else {
-        return;
-    };
-    let Some(selected_fields) = crate::terlan_typeck::sql_forms::simple_sql_projection_fields(raw)
-    else {
+    let Some(selected_fields) = selected_fields else {
         return;
     };
 
@@ -147,17 +461,33 @@ pub(super) fn infer_sql_form_result_type(
     let plan = crate::terlan_typeck::sql_forms::build_sql_wrapper_plan(expr, expr.children.len())
         .ok()
         .flatten()?;
-    let (module, name) = sql_row_type_reference(&plan.row_type)?;
-    if !sql_row_type_is_visible(module.as_deref(), &name, ctx) {
+    let (parsed, resolved) = parse_sql_row_descriptor(&plan.row_type, ctx)?;
+    if !sql_row_descriptor_is_supported(&resolved, ctx) {
         return None;
     }
+    Some(sql_result_type_for_cardinality(plan.cardinality, parsed))
+}
 
-    let row_type = parse_sql_row_type(&plan.row_type, ctx, &name).unwrap_or_else(|| Type::Named {
-        module,
-        name,
-        args: Vec::new(),
-    });
-    Some(sql_result_type_for_cardinality(plan.cardinality, row_type))
+fn parse_sql_row_descriptor(row_type: &str, ctx: &ExprInferContext) -> Option<(Type, Type)> {
+    let row_type_name = sql_row_type_reference(row_type)
+        .map(|(_, name)| name)
+        .unwrap_or_default();
+    let parsed = parse_sql_row_type(row_type, ctx, &row_type_name)?;
+    let resolved = expand_type_aliases(&parsed, ctx.aliases);
+    Some((parsed, resolved))
+}
+
+fn sql_row_descriptor_is_supported(row_type: &Type, ctx: &ExprInferContext) -> bool {
+    match row_type {
+        Type::Tuple(items) => {
+            !items.is_empty()
+                && items
+                    .iter()
+                    .all(|item| sql_row_decode_type_is_supported_in_context(item, ctx))
+        }
+        Type::Named { module, name, .. } => sql_row_type_is_visible(module.as_deref(), name, ctx),
+        _ => false,
+    }
 }
 
 /// Parses a SQL row type annotation into a typechecker type.

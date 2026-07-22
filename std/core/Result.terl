@@ -3,7 +3,6 @@
  *
  * `std.core.Result` represents either a successful value or an error value.
  */
-
 module std.core.Result.
 
 /**
@@ -21,8 +20,7 @@ module std.core.Result.
  *    Ok(value).
  * ```
  */
-pub type Ok[T] =
-    {Atom["ok"], value: T}.
+pub type Ok[T] = {Atom["ok"], value: T}.
 
 /**
  * Err represents a failed result value.
@@ -41,8 +39,7 @@ pub type Ok[T] =
  *    Err(reason).
  * ```
  */
-pub type Err[E] =
-    {Atom["error"], reason: E}.
+pub type Err[E] = {Atom["error"], reason: E}.
 
 /**
  * Result represents a computation that can succeed or fail.
@@ -72,9 +69,7 @@ pub type Err[E] =
  *    Err(problem).
  * ```
  */
-pub type Result[T, E] =
-      Ok[T]
-    | Err[E].
+pub type Result[T, E] = Ok[T] | Err[E].
 
 /**
  * Returns whether a result is successful.
@@ -86,11 +81,8 @@ pub type Result[T, E] =
  */
 pub is_ok(value: Result[A, E]): Bool ->
     case value {
-        Ok(_x) ->
-            true;
-
-        Err(_reason) ->
-            false
+        Ok(_x) -> true;
+        Err(_reason) -> false
     }.
 
 /**
@@ -103,11 +95,8 @@ pub is_ok(value: Result[A, E]): Bool ->
  */
 pub is_err(value: Result[A, E]): Bool ->
     case value {
-        Ok(_x) ->
-            false;
-
-        Err(_reason) ->
-            true
+        Ok(_x) -> false;
+        Err(_reason) -> true
     }.
 
 /**
@@ -134,11 +123,8 @@ pub is_err(value: Result[A, E]): Bool ->
  */
 pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
     case value {
-        Ok(x) ->
-            Ok(f(x));
-
-        Err(reason) ->
-            Err(reason)
+        Ok(x) -> Ok(f(x));
+        Err(reason) -> Err(reason)
     }.
 
 /**
@@ -165,11 +151,8 @@ pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
  */
 pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
     case value {
-        Ok(x) ->
-            Ok(x);
-
-        Err(reason) ->
-            Err(f(reason))
+        Ok(x) -> Ok(x);
+        Err(reason) -> Err(f(reason))
     }.
 
 /**
@@ -200,11 +183,8 @@ pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
  */
 pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
     case value {
-        Ok(x) ->
-            f(x);
-
-        Err(reason) ->
-            Err(reason)
+        Ok(x) -> f(x);
+        Err(reason) -> Err(reason)
     }.
 
 /**
@@ -231,9 +211,6 @@ pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
  */
 pub with_default(value: Result[A, E], default: A): A ->
     case value {
-        Ok(x) ->
-            x;
-
-        Err(_reason) ->
-            default
+        Ok(x) -> x;
+        Err(_reason) -> default
     }.

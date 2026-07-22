@@ -14,7 +14,7 @@
       "patterns": [
         {
           "name": "meta.interpolation.terlan-template-html",
-          "begin": "\\$\\{",
+          "begin": "\\$?\\{",
           "beginCaptures": {
             "0": {
               "name": "punctuation.section.embedded.begin.terlan"

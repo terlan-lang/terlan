@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLTimeElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=18142541685460165223
-interface_hash=16814739780640488014
-interface_doc_hash=16814739780640488014
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15135047398237389821
+interface_hash=13861548846166929
+interface_doc_hash=13861548846166929
 deps=0

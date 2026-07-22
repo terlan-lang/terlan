@@ -1,0 +1,24 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind summary
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ValueTypeMap
+ */
+
+module std.js.Dom.WebAssembly.ValueTypeMap.
+
+pub opaque type ValueTypeMap.
+
+pub (value: ValueTypeMap) anyfunc(): Function.
+
+pub (value: ValueTypeMap) f32(): std.js.Number.JsNumber.
+
+pub (value: ValueTypeMap) f64(): std.js.Number.JsNumber.
+
+pub (value: ValueTypeMap) i32(): std.js.Number.JsNumber.

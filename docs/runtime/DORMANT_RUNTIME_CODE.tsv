@@ -1,0 +1,4 @@
+# VM runtime implementation modules that exist but are not wired into active non-test runtime paths.
+# New rows are allowed only when the module is deliberately design-only, experimental, or pending wiring.
+# Remove a row as soon as the module is used by active runtime code.
+path	classification	reason	next_action

@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SecurityPolicyViolationEvent
  */
 module std.js.Dom.SecurityPolicyViolationEventTest.
 
-import type std.js.Dom.SecurityPolicyViolationEvent.{SecurityPolicyViolationEvent}.
-
+import type std.js.Dom.SecurityPolicyViolationEvent.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub blocked_uri_typechecks(receiver: SecurityPolicyViolationEvent): JsString ->
     receiver.blocked_uri().
@@ -20,7 +24,9 @@ pub blocked_uri_typechecks(receiver: SecurityPolicyViolationEvent): JsString ->
 pub column_number_typechecks(receiver: SecurityPolicyViolationEvent): JsNumber ->
     receiver.column_number().
 
-pub disposition_typechecks(receiver: SecurityPolicyViolationEvent): SecurityPolicyViolationEventDisposition ->
+pub disposition_typechecks(
+    receiver: SecurityPolicyViolationEvent
+): SecurityPolicyViolationEventDisposition ->
     receiver.disposition().
 
 pub document_uri_typechecks(receiver: SecurityPolicyViolationEvent): JsString ->

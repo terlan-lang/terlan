@@ -1,8 +1,8 @@
 module=std.js.Dom.PerformanceEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=14907388724125031299
-interface_hash=17165291711779710868
-interface_doc_hash=17165291711779710868
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3708775654229542603
+interface_hash=7190458052724712943
+interface_doc_hash=7190458052724712943
 deps=0

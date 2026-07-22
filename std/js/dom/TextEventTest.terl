@@ -1,21 +1,32 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface TextEvent
  */
 module std.js.Dom.TextEventTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.TextEvent.{TextEvent}.
-
+import type std.js.Dom.TextEvent.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub data_typechecks(receiver: TextEvent): JsString ->
     receiver.data().
 
-pub init_text_event_typechecks(receiver: TextEvent, type_: JsString, bubbles: Bool, cancelable: Bool, view: Option[Window], data: JsString): std.core.Unit ->
+pub init_text_event_typechecks(
+    receiver: TextEvent,
+    type_: JsString,
+    bubbles: Bool,
+    cancelable: Bool,
+    view: Option[Window],
+    data: JsString
+): std.core.Unit ->
     receiver.init_text_event(type_, bubbles, cancelable, view, data).

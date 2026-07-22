@@ -1,6 +1,14 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface BiquadFilterNode
  */
 module std.js.Dom.BiquadFilterNode.
 
@@ -56,5 +64,9 @@ pub (value: BiquadFilterNode) type_(): BiquadFilterType ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/getFrequencyResponse)
  */
-pub (value: BiquadFilterNode) get_frequency_response(frequency_hz: Float32Array[ArrayBuffer], mag_response: Float32Array[ArrayBuffer], phase_response: Float32Array[ArrayBuffer]): std.core.Unit ->
+pub (value: BiquadFilterNode) get_frequency_response(
+    frequency_hz: Float32Array[ArrayBuffer],
+    mag_response: Float32Array[ArrayBuffer],
+    phase_response: Float32Array[ArrayBuffer]
+): std.core.Unit ->
     native.

@@ -153,54 +153,32 @@ impl Parser {
     /// - Parser cursor positioned after `(receiver:`.
     ///
     /// Output:
-    /// - A `TypeExpr` whose text preserves the receiver type constructor and
-    ///   optional type arguments.
+    /// - A `TypeExpr` preserving the complete receiver type expression.
     ///
     /// Transformation:
-    /// - Requires the receiver type head to be an upper-case Terlan type name,
-    ///   then consumes optional bracketed type arguments before the receiver
-    ///   closing parenthesis.
+    /// - Reuses the canonical type-expression parser so qualified, generic,
+    ///   and nested receiver types follow the same grammar as parameters and
+    ///   return types.
     fn parse_receiver_type_expr(&mut self) -> ParseResult<TypeExpr> {
-        let start = self.current().start;
-        let name = self.expect_type_name()?;
-        let args = self.parse_optional_type_arg_text()?;
-        Ok(TypeExpr {
-            text: format!("{name}{args}"),
-            span: Span::new(start, self.previous().end),
-        })
-    }
-
-    /// Parses optional type arguments while preserving their source text.
-    ///
-    /// Inputs:
-    /// - Parser cursor at `[` or the next token after a type constructor.
-    ///
-    /// Output:
-    /// - Bracketed type-argument text such as `[T, U]`, or an empty string when
-    ///   no type-argument list is present.
-    ///
-    /// Transformation:
-    /// - Consumes a balanced bracketed type-expression list and joins each
-    ///   argument through the parser's canonical type-expression formatter.
-    fn parse_optional_type_arg_text(&mut self) -> ParseResult<String> {
-        if !self.consume_if(TokenKind::LBracket) {
-            return Ok(String::new());
+        let receiver_type = self.parse_type_expr(&[TokenKind::RParen])?;
+        let type_name = receiver_type
+            .text
+            .split(['[', '(', ' ', '|'])
+            .next()
+            .unwrap_or_default()
+            .rsplit('.')
+            .next()
+            .unwrap_or_default();
+        if !type_name
+            .chars()
+            .next()
+            .is_some_and(|first| first.is_ascii_uppercase())
+        {
+            return Err(ParseError {
+                message: "expected upper-case type name".to_string(),
+                span: receiver_type.span,
+            });
         }
-
-        let mut args = Vec::new();
-        if !self.check(TokenKind::RBracket) {
-            loop {
-                args.push(
-                    self.parse_type_expr(&[TokenKind::Comma, TokenKind::RBracket])?
-                        .text,
-                );
-                if !self.consume_if(TokenKind::Comma) {
-                    break;
-                }
-            }
-        }
-        self.expect(TokenKind::RBracket)?;
-
-        Ok(format!("[{}]", args.join(", ")))
+        Ok(receiver_type)
     }
 }

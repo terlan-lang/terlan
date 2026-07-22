@@ -1,0 +1,44 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DeviceMotionEventAcceleration
+ */
+module std.js.Dom.DeviceMotionEventAcceleration.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`DeviceMotionEventAcceleration`** interface of the Device Orientation Events provides information about the amount of acceleration the device is experiencing along all three axes.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration)
+ */
+pub opaque type DeviceMotionEventAcceleration.
+
+/**
+ * The **`x`** read-only property of the DeviceMotionEventAcceleration interface indicates the amount of acceleration that occurred along the X axis in a `DeviceMotionEventAcceleration` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/x)
+ */
+pub (value: DeviceMotionEventAcceleration) x(): Option[JsNumber].
+
+/**
+ * The **`y`** read-only property of the DeviceMotionEventAcceleration interface indicates the amount of acceleration that occurred along the Y axis in a `DeviceMotionEventAcceleration` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/y)
+ */
+pub (value: DeviceMotionEventAcceleration) y(): Option[JsNumber].
+
+/**
+ * The **`z`** read-only property of the DeviceMotionEventAcceleration interface indicates the amount of acceleration that occurred along the Z axis in a `DeviceMotionEventAcceleration` object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/z)
+ */
+pub (value: DeviceMotionEventAcceleration) z(): Option[JsNumber].

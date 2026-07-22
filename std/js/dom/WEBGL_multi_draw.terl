@@ -1,13 +1,19 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface WEBGL_multi_draw
  */
 module std.js.Dom.WEBGL_multi_draw.
 
 import type std.core.{Unit}.
-
 import type std.js.Number.{JsNumber}.
-
 import type std.js.{Array}.
 
 /**
@@ -22,7 +28,16 @@ pub opaque type WEBGL_multi_draw.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawArraysInstancedWEBGL)
  */
-pub (value: WEBGL_multi_draw) multi_draw_arrays_instanced_webgl(mode: GLenum, firsts_list: Int32Array[ArrayBufferLike] | Array[GLint], firsts_offset: JsNumber, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], instance_counts_offset: JsNumber, drawcount: GLsizei): Unit ->
+pub (value: WEBGL_multi_draw) multi_draw_arrays_instanced_webgl(
+    mode: GLenum,
+    firsts_list: Int32Array[ArrayBufferLike] | Array[GLint],
+    firsts_offset: JsNumber,
+    counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    counts_offset: JsNumber,
+    instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    instance_counts_offset: JsNumber,
+    drawcount: GLsizei
+): Unit ->
     native.
 
 /**
@@ -30,7 +45,14 @@ pub (value: WEBGL_multi_draw) multi_draw_arrays_instanced_webgl(mode: GLenum, fi
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawArraysWEBGL)
  */
-pub (value: WEBGL_multi_draw) multi_draw_arrays_webgl(mode: GLenum, firsts_list: Int32Array[ArrayBufferLike] | Array[GLint], firsts_offset: JsNumber, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, drawcount: GLsizei): Unit ->
+pub (value: WEBGL_multi_draw) multi_draw_arrays_webgl(
+    mode: GLenum,
+    firsts_list: Int32Array[ArrayBufferLike] | Array[GLint],
+    firsts_offset: JsNumber,
+    counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    counts_offset: JsNumber,
+    drawcount: GLsizei
+): Unit ->
     native.
 
 /**
@@ -38,7 +60,17 @@ pub (value: WEBGL_multi_draw) multi_draw_arrays_webgl(mode: GLenum, firsts_list:
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawElementsInstancedWEBGL)
  */
-pub (value: WEBGL_multi_draw) multi_draw_elements_instanced_webgl(mode: GLenum, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, type_: GLenum, offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei], offsets_offset: JsNumber, instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], instance_counts_offset: JsNumber, drawcount: GLsizei): Unit ->
+pub (value: WEBGL_multi_draw) multi_draw_elements_instanced_webgl(
+    mode: GLenum,
+    counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    counts_offset: JsNumber,
+    type_: GLenum,
+    offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    offsets_offset: JsNumber,
+    instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    instance_counts_offset: JsNumber,
+    drawcount: GLsizei
+): Unit ->
     native.
 
 /**
@@ -46,5 +78,13 @@ pub (value: WEBGL_multi_draw) multi_draw_elements_instanced_webgl(mode: GLenum, 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_multi_draw/multiDrawElementsWEBGL)
  */
-pub (value: WEBGL_multi_draw) multi_draw_elements_webgl(mode: GLenum, counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei], counts_offset: JsNumber, type_: GLenum, offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei], offsets_offset: JsNumber, drawcount: GLsizei): Unit ->
+pub (value: WEBGL_multi_draw) multi_draw_elements_webgl(
+    mode: GLenum,
+    counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    counts_offset: JsNumber,
+    type_: GLenum,
+    offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
+    offsets_offset: JsNumber,
+    drawcount: GLsizei
+): Unit ->
     native.

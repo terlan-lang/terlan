@@ -1,8 +1,8 @@
 module=std.js.Dom.AnimationTimeline
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16579547829417370138
-interface_hash=709101631583418529
-interface_doc_hash=709101631583418529
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=16937438328819131868
+interface_hash=11138504423316345681
+interface_doc_hash=11138504423316345681
 deps=0

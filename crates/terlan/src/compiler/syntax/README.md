@@ -3,7 +3,7 @@
 This directory owns lexical analysis, parsing, formatting, native metadata
 parsing, syntax contract validation, and syntax-output construction. It is the
 source-language boundary for the compiler and must not depend on target
-backends such as Erlang, JavaScript, Oxc, Rust emission, or SafeNative runtime
+backends such as Erlang, JavaScript, Oxc, Rust emission, or NativeBoundary runtime
 code.
 
 ## Responsibilities

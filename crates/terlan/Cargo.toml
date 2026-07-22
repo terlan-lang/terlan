@@ -5,6 +5,7 @@ edition.workspace = true
 
 [lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
+warnings = "deny"
 
 [[bin]]
 name = "terlc"
@@ -15,16 +16,38 @@ name = "terlan-vm"
 path = "src/vm/main.rs"
 
 [[bin]]
+name = "terlan-native-worker"
+path = "src/native_worker/main.rs"
+
+[[bin]]
 name = "terlan-lsp"
 path = "src/lsp/main.rs"
+required-features = ["editor-lsp"]
 
 [[bin]]
 name = "terlan-quality"
 path = "src/quality/main.rs"
 
 [[bin]]
+name = "terlan-test-orchestrator"
+path = "src/quality/test_orchestrator_main.rs"
+
+[[bin]]
+name = "terlan-native-target-feasibility"
+path = "src/quality/native_no_std_target_feasibility_main.rs"
+
+[[bin]]
+name = "terlan-lean-proof-closeout"
+path = "src/quality/lean_proof_closeout_main.rs"
+
+[[bin]]
 name = "terlan-benchmark"
 path = "src/benchmark/main.rs"
+
+[features]
+default = []
+acme-live = ["dep:tokio"]
+editor-lsp = ["dep:tower-lsp", "dep:tokio", "tokio/io-std"]
 
 [dependencies]
 ammonia = "4.1.2"
@@ -32,10 +55,16 @@ base64 = "0.22.1"
 basic-toml = "0.1.10"
 comrak = "0.52"
 cookie = "0.18"
+cranelift-codegen = "=0.133.1"
+cranelift-frontend = "=0.133.1"
+cranelift-module = "=0.133.1"
+cranelift-native = "=0.133.1"
+cranelift-object = "=0.133.1"
+crossterm = "0.28.1"
 cssparser = "0.35.0"
-deadpool-postgres = "0.14"
 html5ever = "0.35.0"
 mime_guess = "2"
+md-5 = "0.11.0"
 oxc_allocator = "0.134.0"
 oxc_ast = "0.134.0"
 oxc_codegen = "0.134.0"
@@ -43,35 +72,48 @@ oxc_parser = "0.134.0"
 oxc_span = "0.134.0"
 oxc_syntax = "0.134.0"
 bytes = "1"
-futures-util = "0.3"
 http = "1.3.1"
+http-body = "1.0.1"
 http-body-util = { version = "0.1.3", features = ["channel", "full"] }
-hyper = { version = "1.10.1", features = ["http1", "server"] }
-hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"] }
+httparse = "1.10.1"
+hyper = { version = "1.10.1", features = ["client", "http1", "server"] }
 instant-acme = "0.7"
+libloading = "=0.9.0"
 notify = "8"
+object = { version = "=0.39.1", default-features = false, features = ["read", "write", "std"] }
 openapiv3 = "2.2.0"
 percent-encoding = "2.3.2"
+quick-xml = "0.39.4"
 rcgen = "0.13"
+rand = "0.9.4"
+rand_chacha = "0.9.0"
 refinery = "0.8"
 regex = "1"
 rustls = "0.23"
 rustls-pemfile = "2"
+rustls-webpki = "0.103.13"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { version = "1.0", features = ["unbounded_depth"] }
 serde_yaml = "0.9.34"
+sha2 = "0.11.0"
 shell-words = "1.1.1"
+sqlparser = "=0.60.0"
+tar = "0.4.44"
+terlan-libpq = { path = "../../std/native/libpq/generated/native/rust" }
 time = { version = "0.3", features = ["formatting", "parsing"] }
-tokio = { version = "1", features = ["io-std", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
-tokio-postgres = { version = "0.7", features = ["with-serde_json-1"] }
-tokio-rustls = "0.26"
-tokio-tungstenite = "0.28"
-tower-lsp = "0.20"
+tokio = { version = "1", features = ["rt"], optional = true }
+tower-lsp = { version = "0.20", optional = true }
+tungstenite = "0.28"
 url = "2.5.8"
 docker-compose-types = "0.24.0"
 wasm-encoder = "0.252.0"
 wasmparser = "0.252.0"
 yaml-rust = "0.4.5"
+ratatui = "0.29.0"
+zstd = "0.13.3"
 
 [dev-dependencies]
+cxx = "=1.0.197"
+cxx-build = "=1.0.197"
+tokio = { version = "1", features = ["io-util", "macros", "time"] }
 wat = "1.252.0"

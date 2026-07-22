@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFESpotLightElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=17437729838815328384
-interface_hash=3964650912252372300
-interface_doc_hash=3964650912252372300
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=16366701889595478531
+interface_hash=9731919091230978138
+interface_doc_hash=9731919091230978138
 deps=0

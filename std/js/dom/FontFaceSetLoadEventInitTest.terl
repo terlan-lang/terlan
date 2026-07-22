@@ -1,14 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FontFaceSetLoadEventInit
  */
 module std.js.Dom.FontFaceSetLoadEventInitTest.
 
-import type std.js.Dom.FontFaceSetLoadEventInit.{FontFaceSetLoadEventInit}.
+import type std.js.Dom.FontFaceSetLoadEventInit.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub fontfaces_typechecks(receiver: FontFaceSetLoadEventInit): std.js.Array[FontFace] ->
     receiver.fontfaces().

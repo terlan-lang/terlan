@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface XSLTProcessor
  */
 module std.js.Dom.XSLTProcessorTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.XSLTProcessor.{XSLTProcessor}.
-
+import type std.js.Dom.XSLTProcessor.
 import type std.js.String.{JsString}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub clear_parameters_typechecks(receiver: XSLTProcessor): Unit ->
     receiver.clear_parameters().
@@ -20,7 +24,11 @@ pub clear_parameters_typechecks(receiver: XSLTProcessor): Unit ->
 pub import_stylesheet_typechecks(receiver: XSLTProcessor, style: Node): Unit ->
     receiver.import_stylesheet(style).
 
-pub remove_parameter_typechecks(receiver: XSLTProcessor, namespace_uri: Option[JsString], local_name: JsString): Unit ->
+pub remove_parameter_typechecks(
+    receiver: XSLTProcessor,
+    namespace_uri: Option[JsString],
+    local_name: JsString
+): Unit ->
     receiver.remove_parameter(namespace_uri, local_name).
 
 pub reset_typechecks(receiver: XSLTProcessor): Unit ->
@@ -29,5 +37,9 @@ pub reset_typechecks(receiver: XSLTProcessor): Unit ->
 pub transform_to_document_typechecks(receiver: XSLTProcessor, source: Node): Document ->
     receiver.transform_to_document(source).
 
-pub transform_to_fragment_typechecks(receiver: XSLTProcessor, source: Node, output: Document): DocumentFragment ->
+pub transform_to_fragment_typechecks(
+    receiver: XSLTProcessor,
+    source: Node,
+    output: Document
+): DocumentFragment ->
     receiver.transform_to_fragment(source, output).

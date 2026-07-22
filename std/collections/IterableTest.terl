@@ -1,0 +1,35 @@
+module std.collections.IterableTest.
+
+import std.collections.Iterator.{next}.
+import std.collections.{Iterable, List, Map, Set}.
+import std.core.Option.{None, Some}.
+import std.test.Test.{assert_equal}.
+
+import type std.collections.{Iterator, List, Map, Set}.
+
+sum_values(iterator: std.collections.Iterator.Iterator[Int], sum: Int): Int ->
+    case next(iterator) {
+        None -> sum;
+        Some({value: value, next: rest}) -> sum_values(rest, sum + value)
+    }.
+
+sum_entry_values(iterator: std.collections.Iterator.Iterator[{Binary, Int}], sum: Int): Int ->
+    case next(iterator) {
+        None -> sum;
+        Some({value: {_key, value}, next: rest}) -> sum_entry_values(rest, sum + value)
+    }.
+
+@test
+pub list_iterable_yields_values(): Bool ->
+    let values = List(1, 2, 3);
+    assert_equal(6, values |> Iterable.iterator() |> sum_values(0)).
+
+@test
+pub map_iterable_yields_entries(): Bool ->
+    let users = Map({"alice", 1}, {"bob", 2});
+    assert_equal(3, users |> Iterable.iterator() |> sum_entry_values(0)).
+
+@test
+pub set_iterable_yields_unique_values(): Bool ->
+    let values = Set(1, 1, 2);
+    assert_equal(3, values |> Iterable.iterator() |> sum_values(0)).

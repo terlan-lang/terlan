@@ -1,0 +1,59 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGStyleElement
+ */
+module std.js.Dom.SVGStyleElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGStyleElement`** interface corresponds to the SVG style element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement)
+ */
+pub opaque type SVGStyleElement.
+
+pub (value: SVGStyleElement) disabled(): Bool.
+
+/**
+ * The **`SVGStyleElement.media`** property is a media query string corresponding to the `media` attribute of the given SVG style element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/media)
+ */
+pub (value: SVGStyleElement) media(): JsString.
+
+/**
+ * The **`SVGStyleElement.title`** property is a string corresponding to the `title` attribute of the given SVG style element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/title)
+ */
+pub (value: SVGStyleElement) title(): JsString.
+
+/**
+ * The **`SVGStyleElement.type`** property returns the type of the current style.
+ * @deprecated
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/type)
+ */
+pub (value: SVGStyleElement) type_(): JsString.
+
+pub (value: SVGStyleElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SVGStyleElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use serde::Serialize;
 
 /// Serializable package metadata for a reserved Wasm target.

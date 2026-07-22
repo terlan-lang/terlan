@@ -14,12 +14,12 @@ internal.
 - Validate `_build/web/manifest.json` before serving.
 - Validate adjacent web-profile Docker Compose metadata when a project
   manifest is found.
-- Start the validated project-owned Postgres Compose service before binding in
-  normal serve mode.
+- Start the validated project-owned Postgres Compose service and wait for its
+  healthcheck before binding in normal serve mode.
 - Serve packaged files with predictable MIME types and safe path handling.
 - Validate manifest-declared dynamic handler route patterns before serving.
-- Dispatch manifest-declared handler routes through generated BEAM artifacts
-  without hard-coding application route behavior in the server.
+- Compile each source-backed dynamic-handler generation into a native image,
+  while keeping route metadata validation deterministic.
 - Reserve the local live-reload endpoint and inject reload wiring into HTML.
 - Keep reload watching behind `watch.rs`; the current polling backend is a
   compatibility implementation for generated `_build/web` files until the
@@ -45,16 +45,21 @@ internal.
   material all use deterministic `.terlan/tls/acme` cache paths. The issuance
   boundary uses `instant-acme` for ACME account/order/challenge/finalization
   protocol work and `rcgen` for CSR/key generation.
-- `handler::beam_eval`: temporary BEAM handler request-map and `erl -eval`
-  bridge rendering.
+- `handler`: route metadata validation and native managed-value orchestration
+  kept out of the public handler runtime.
 
 ## Core Model
 
 The command treats `_build/web` as the release-facing browser package. The web
 manifest is authoritative for the package schema, entry HTML file, asset files
-copied by `terlc build --target js.browser`, and dynamic handler route metadata
-that dispatches into BEAM-backed Terlan modules when sibling `_build/ebin`
-artifacts are present.
+copied by `terlc build --target js.browser`, and dynamic handler route metadata.
+Static and manifest-cached responses are the public Rust HTTP path. Dynamic
+handler metadata may be present in generated packages, and `terlc serve`
+loads source-backed handlers through the VM runtime when manifest source
+metadata resolves to an adjacent project file. Each cached source generation
+owns a descriptor-admitted native image. Request, Response, Router,
+middleware, template, WebSocket, and SSE values cross the canonical managed
+ABI and generated callbacks execute under request-owned shards.
 
 The main flow is:
 
@@ -62,30 +67,17 @@ The main flow is:
 2. Validate the package manifest and referenced files.
 3. In normal mode, bind a Hyper HTTP listener and serve package files.
 4. Route `/__terlan/reload` to the server-sent-events reload stream.
-5. Dispatch declared handler routes by resolving exact, parameter, wildcard, and
-   fallback route patterns, then invoking `erl -noshell -pa _build/ebin` with
-   the manifest target module/function and a small request map containing
-   method, path, buffered body text, route params, raw query text, decoded
-   query params, raw cookie header text, and parsed request cookies.
+5. Dispatch declared dynamic handler routes through the captured native
+   generation and its managed HTTP ABI.
 6. Start the reload watcher through the `watch.rs` boundary and broadcast
    reload events when that backend reports package changes.
 
-The temporary handler ABI is intentionally narrow:
-
-```erlang
-{terlan_response, Status, ContentTypeBinary, BodyBinary}
-```
-
-The server converts that ABI to an HTTP response. BEAM-backed handlers remain
-authorable as Terlan functions compiled to BEAM. Public `std.http.Request` and
-`std.http.Response` stay Rust-native server/runtime values; later bridge work
-should adapt native HTTP values to BEAM-callable handler functions without
-exposing the tuple protocol as the user-facing HTTP model.
-
-The bridge uses Rust-native request/response snapshots for the current adapter
-boundary: request method/path are rendered into the BEAM request map, and parsed
-BEAM response output flows through the same native response snapshot before the
-HTTP writer receives it.
+Dynamic handlers are authorable as Terlan functions in package metadata, and
+serving them belongs to the VM-owned HTTP handler runtime. Public
+`std.http.Request` and `std.http.Response` stay Rust-native server/runtime
+values; VM runtime work should adapt native HTTP values to VM-callable handler
+functions without exposing an intermediate protocol as the user-facing HTTP
+model.
 
 Important invariants:
 
@@ -96,17 +88,16 @@ Important invariants:
   fallback.
 - Captured handler params are UTF-8 percent-decoded with path semantics before
   they are passed to Terlan handlers.
-- Handler query params are decoded with standard URL query semantics and passed
-  alongside the raw query string in the temporary BEAM bridge request map.
-- Handler body text is split from the buffered request after the HTTP header
-  terminator and passed through the temporary BEAM bridge request map. Full
-  streaming, multipart handling, and large body limits belong to the later
-  production HTTP stack.
+- Handler query params are decoded with standard URL query semantics before VM
+  handler dispatch.
+- Handler body text handling for dynamic routes is buffered at the VM request
+  boundary. Full streaming, multipart handling, and large body limits belong to
+  the later production HTTP stack.
 - Request cookies are split from the `Cookie` header into the handler request
   map. Dynamic handler response headers are validated and forwarded, so
   `Set-Cookie` can pass through the bridge. Public response cookie helpers now
   reuse `std.http.Cookies` validation before appending response headers; request
-  jar mutation application still belongs to the later SafeNative resource
+  jar mutation application still belongs to the later NativeBoundary resource
   bridge.
 - Same-shape parameter routes for one method are ambiguous and fail package
   validation before serving.
@@ -116,8 +107,7 @@ Important invariants:
   validates that metadata before serving. Dynamic-handler logs, static-route
   logs, file-route logs, and development error pages include source metadata
   when the selected manifest row provides it.
-- Handler execution resolves BEAM modules through the sibling build `ebin`
-  directory, so `_build/web` and `_build/ebin` stay part of one build root.
+- Dynamic handler serving must not require sibling BEAM artifacts.
 - Auto TLS projects reserve `/.well-known/acme-challenge/<token>` before
   static or handler routing. Challenge bodies are read from
   `.terlan/tls/acme/http-01/<token>` and token names must stay URL-safe.
@@ -127,17 +117,17 @@ Important invariants:
 - Reload watch integration must stay behind `watch.rs`; HTTP request routing
   should not depend on whether the active backend is temporary polling, Oxc, or
   Rsbuild/Rspack.
-- Handler failures, missing modules, and invalid return values must produce
-  stable `error[serve_handler]` diagnostics in the HTTP response body.
-- When a route manifest declares a router-level error handler, serve attempts
-  that typed `HttpError -> Response` callback before falling back to the built
-  in development error page.
+- Handler runtime failures must produce stable diagnostics.
+- Router-level error handlers belong to the VM handler runtime and are not
+  invoked by the static server lane.
 - `--check` must never bind a network port.
 - Adjacent Docker Compose validation checks only the project-owned Postgres
   development service contract.
-- Normal `terlc serve` may run only
-  `docker compose -f <project-compose> up -d postgres` for that validated
-  dependency. It is not a generic Docker command wrapper.
+- Normal `terlc serve` probes the validated Compose project for an existing
+  Postgres container, then may run only bounded `up -d --no-recreate --wait`
+  and redacted `logs --tail` operations. Existing containers are external and
+  preserved; only a container created by the active command session is removed
+  on exit. This is not a generic Docker command wrapper.
 - Missing or malformed packages must fail before serving starts.
 - Live reload wiring must be local-dev-only server behavior and must not mutate
   the packaged files on disk.
@@ -147,26 +137,22 @@ Important invariants:
 - `commands::build::js`: produces `_build/web` and the initial empty handler
   list in the web manifest.
 - `main`: routes `terlc serve` to this module.
-- Hyper plus `tokio::net`: provide the async local HTTP listener and protocol
-  boundary.
+- Hyper plus maintained HTTP crates provide the local HTTP protocol boundary.
 - `logging`: owns local source-aware request logs and dev error page rendering.
 - `response`: owns socket response bytes, content type selection, and reload
   response helpers.
-- `handler::beam_eval`: owns the temporary BEAM process invocation expression
-  and request map literal formatting.
 - `handler::response_bridge`: owns the internal handler response wrapper and
-  response-header safety validation shared by BEAM, native HTTP snapshots, and
-  static manifest responses.
+  response-header safety validation shared by native HTTP snapshots and static
+  manifest responses.
 
 ## File Layout
 
 - `mod.rs`: serve command dispatch, package validation, listener setup, request
   routing, and Docker-aware local dependency startup.
-- `compose_check.rs`: Docker Compose validation for project-owned development
-  dependencies.
-- `handler.rs`: manifest handler validation, manifest route lookup, BEAM
-  handler invocation, and response ABI parsing.
-- `handler/beam_eval.rs`: BEAM request-map and `erl -eval` rendering.
+- `../dev_dependencies.rs`: shared Docker Compose validation and readiness
+  startup for project-owned development dependencies.
+- `handler.rs`: manifest handler validation and manifest route lookup for the
+  VM handler runtime.
 - `handler/response_bridge.rs`: handler response wrapper plus response header
   validation.
 - `handler/route.rs`: route selection, precedence, captured params, and
@@ -197,13 +183,13 @@ Important invariants:
 : Minimal deserialized subset of `_build/web/manifest.json`.
 
 `WebPackageHandler`
-: Manifest-declared dynamic route target dispatched through BEAM artifacts.
+: Manifest-declared dynamic route target reserved for the VM handler runtime.
 
 `MatchedWebPackageHandler`
 : Request-selected handler plus captured route parameters.
 
-`BeamHandlerResponse`
-: Parsed response returned by the current BEAM handler ABI.
+`HandlerResponse`
+: Internal response wrapper for VM/native handler output validation.
 
 ## Testing Notes
 
@@ -211,12 +197,11 @@ Important invariants:
   helpers.
 - `manifest_test.rs` covers manifest-driven static routing.
 - `handler_test.rs` covers dynamic route matching, route params, ambiguity
-  checks, BEAM handler metadata, runner protocol helpers, BEAM eval request map
-  formatting, and router error-handler eval formatting.
+  checks, handler metadata, and response validation helpers.
 - `watch_test.rs` covers the reload watcher boundary and temporary polling
   snapshot behavior.
-- Server socket behavior should stay thin so live reload and BEAM-backed
-  handler routing can be added on the same Tokio boundary.
+- Server socket behavior should stay thin so live reload and migration handler
+  routing can use the same temporary async serve boundary.
 - Release preflight should use `terlc serve --check` before adding live server
   smoke tests.
 - Rsbuild/Rspack remains hidden behind Terlan web packaging. Ordinary users

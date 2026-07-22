@@ -1,0 +1,1507 @@
+{
+  "schema": "terlan.c-abi.binding.v1",
+  "package": {
+    "namespace": "terlan_libpq",
+    "adapter": "c-abi",
+    "crate_name": "terlan-libpq",
+    "workspace_member": true,
+    "rust_extension": {
+      "source": "libpq_readiness.rs",
+      "dependencies": {
+        "polling": "3.11.0"
+      }
+    }
+  },
+  "validation": {
+    "deterministic_regeneration": true,
+    "warning_denied_build": true,
+    "ownership_lifecycle": true,
+    "error_translation": true,
+    "smoke": "package_owned_live"
+  },
+  "c_metadata": {
+    "schema": "terlan.c.metadata.v1",
+    "producer": {
+      "name": "terlan-curated-metadata",
+      "version": "1",
+      "format": "reviewed-declaration-json"
+    },
+    "abi_version": 1,
+    "header": "libpq-fe.h",
+    "sources": [
+      "terlan_libpq.c"
+    ],
+    "aliases": {},
+    "external_link": {
+      "root_env": null,
+      "pkg_config": {
+        "package": "libpq",
+        "min_version": "14.0"
+      },
+      "include_dirs": [],
+      "library_dirs": [],
+      "libraries": [],
+      "runtime_library_dirs": []
+    },
+    "symbols": [
+      {
+        "id": "record.connection",
+        "c_name": "TerlanLibpqConnection",
+        "kind": "opaque_struct",
+        "status": "bind",
+        "ownership": "owned",
+        "destructor_symbol": "function.connection_destroy",
+        "thread_safety": "send_only",
+        "returns": null,
+        "error_model": null,
+        "success_code": null,
+        "parameters": [],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "record.result",
+        "c_name": "TerlanLibpqResult",
+        "kind": "opaque_struct",
+        "status": "bind",
+        "ownership": "owned",
+        "destructor_symbol": "function.result_destroy",
+        "thread_safety": "thread_confined",
+        "returns": null,
+        "error_model": null,
+        "success_code": null,
+        "parameters": [],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_start",
+        "c_name": "terlan_libpq_connection_start",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "url",
+            "c_type": "const char *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_connection",
+            "c_type": "TerlanLibpqConnection **",
+            "direction": "output",
+            "ownership": "transfer_full",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_destroy",
+        "c_name": "terlan_libpq_connection_destroy",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "transfer_full",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_socket",
+        "c_name": "terlan_libpq_connection_socket",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "const TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_socket",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_poll",
+        "c_name": "terlan_libpq_connection_poll",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_state",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_error_length",
+        "c_name": "terlan_libpq_connection_error_length",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_length",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_error_bytes",
+        "c_name": "terlan_libpq_connection_error_bytes",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_bytes",
+            "c_type": "int64_t **",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": {
+              "owner_parameter": "connection",
+              "length_symbol": "function.connection_error_length",
+              "copy": "immediate"
+            },
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_clear_parameters",
+        "c_name": "terlan_libpq_connection_clear_parameters",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_push_null",
+        "c_name": "terlan_libpq_connection_push_null",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_push_text",
+        "c_name": "terlan_libpq_connection_push_text",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "value",
+            "c_type": "const char *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_send_query",
+        "c_name": "terlan_libpq_connection_send_query",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "sql",
+            "c_type": "const char *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_send_batch",
+        "c_name": "terlan_libpq_connection_send_batch",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "sql",
+            "c_type": "const char *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_consume_input",
+        "c_name": "terlan_libpq_connection_consume_input",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_is_busy",
+        "c_name": "terlan_libpq_connection_is_busy",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "const TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_busy",
+            "c_type": "bool *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_next_result",
+        "c_name": "terlan_libpq_connection_next_result",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_result",
+            "c_type": "TerlanLibpqResult **",
+            "direction": "output",
+            "ownership": "transfer_full",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.connection_abort",
+        "c_name": "terlan_libpq_connection_abort",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "connection",
+            "c_type": "TerlanLibpqConnection *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_destroy",
+        "c_name": "terlan_libpq_result_destroy",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "transfer_full",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_status",
+        "c_name": "terlan_libpq_result_status",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_status",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_row_count",
+        "c_name": "terlan_libpq_result_row_count",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_count",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_column_count",
+        "c_name": "terlan_libpq_result_column_count",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_count",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_select_column_name",
+        "c_name": "terlan_libpq_result_select_column_name",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "column",
+            "c_type": "int64_t",
+            "direction": "input",
+            "ownership": "value",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_column_oid",
+        "c_name": "terlan_libpq_result_column_oid",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "column",
+            "c_type": "int64_t",
+            "direction": "input",
+            "ownership": "value",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_oid",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_select_value",
+        "c_name": "terlan_libpq_result_select_value",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "row",
+            "c_type": "int64_t",
+            "direction": "input",
+            "ownership": "value",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "column",
+            "c_type": "int64_t",
+            "direction": "input",
+            "ownership": "value",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_value_length",
+        "c_name": "terlan_libpq_result_value_length",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_length",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_value_bytes",
+        "c_name": "terlan_libpq_result_value_bytes",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_bytes",
+            "c_type": "int64_t **",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": {
+              "owner_parameter": "result",
+              "length_symbol": "function.result_value_length",
+              "copy": "immediate"
+            },
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_value_is_null",
+        "c_name": "terlan_libpq_result_value_is_null",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_null",
+            "c_type": "bool *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      },
+      {
+        "id": "function.result_affected_rows",
+        "c_name": "terlan_libpq_result_affected_rows",
+        "kind": "function",
+        "status": "bind",
+        "ownership": null,
+        "destructor_symbol": null,
+        "thread_safety": null,
+        "returns": "int32_t",
+        "error_model": "status_code",
+        "success_code": 0,
+        "parameters": [
+          {
+            "name": "result",
+            "c_type": "const TerlanLibpqResult *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          },
+          {
+            "name": "out_count",
+            "c_type": "int64_t *",
+            "direction": "output",
+            "ownership": "borrowed_call",
+            "borrowed_array": null,
+            "input_array": null,
+            "fixed": null
+          }
+        ],
+        "variadic": false,
+        "callback": false,
+        "unsupported_shape": null,
+        "detail": null
+      }
+    ]
+  },
+  "modules": [
+    {
+      "module": "terlan_libpq.Driver",
+      "documentation": "Generated stable libpq C ABI boundary for the VM Postgres driver.",
+      "types": [
+        {
+          "name": "Connection",
+          "c_symbol": "record.connection",
+          "documentation": "VM-confined nonblocking libpq connection."
+        },
+        {
+          "name": "QueryResult",
+          "c_symbol": "record.result",
+          "documentation": "Owned libpq query result copied into VM values before disposal."
+        }
+      ],
+      "functions": [
+        {
+          "name": "start",
+          "operation": "postgres.libpq.connection.start",
+          "c_symbol": "function.connection_start",
+          "role": "constructor",
+          "args": [
+            {
+              "name": "url",
+              "ty": "String"
+            }
+          ],
+          "returns": "Connection",
+          "blocking": "fast",
+          "resource": "opaque_handle",
+          "documentation": "Starts a nonblocking libpq connection.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "dispose_connection",
+          "operation": "postgres.libpq.connection.dispose",
+          "c_symbol": "function.connection_destroy",
+          "role": "dispose",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "dispose_handle",
+          "documentation": "Closes and frees a libpq connection.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "socket",
+          "operation": "postgres.libpq.connection.socket",
+          "c_symbol": "function.connection_socket",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns the socket watched by the VM reactor.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "poll_connect",
+          "operation": "postgres.libpq.connection.poll_connect",
+          "c_symbol": "function.connection_poll",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "async",
+          "resource": "mutable_handle",
+          "documentation": "Advances nonblocking connection setup once.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "error_length",
+          "operation": "postgres.libpq.connection.error_length",
+          "c_symbol": "function.connection_error_length",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Copies the current driver error into adapter scratch storage.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "error_bytes",
+          "operation": "postgres.libpq.connection.error_bytes",
+          "c_symbol": "function.connection_error_bytes",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "List[Int]",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Copies current driver error bytes into Rust-owned storage.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "clear_parameters",
+          "operation": "postgres.libpq.connection.clear_parameters",
+          "c_symbol": "function.connection_clear_parameters",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Clears pending query parameters.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "push_null",
+          "operation": "postgres.libpq.connection.push_null",
+          "c_symbol": "function.connection_push_null",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Appends a null query parameter.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "push_text",
+          "operation": "postgres.libpq.connection.push_text",
+          "c_symbol": "function.connection_push_text",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            },
+            {
+              "name": "value",
+              "ty": "String"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Appends a text-format query parameter.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "send_query",
+          "operation": "postgres.libpq.connection.send_query",
+          "c_symbol": "function.connection_send_query",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            },
+            {
+              "name": "sql",
+              "ty": "String"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "async",
+          "resource": "mutable_handle",
+          "documentation": "Submits a parameterized query without blocking.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "send_batch",
+          "operation": "postgres.libpq.connection.send_batch",
+          "c_symbol": "function.connection_send_batch",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            },
+            {
+              "name": "sql",
+              "ty": "String"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "async",
+          "resource": "mutable_handle",
+          "documentation": "Submits a trusted multi-statement SQL batch without parameters.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "consume_input",
+          "operation": "postgres.libpq.connection.consume_input",
+          "c_symbol": "function.connection_consume_input",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "async",
+          "resource": "mutable_handle",
+          "documentation": "Consumes currently readable query bytes.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "is_busy",
+          "operation": "postgres.libpq.connection.is_busy",
+          "c_symbol": "function.connection_is_busy",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Bool",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Reports whether the current query needs more input.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "next_result",
+          "operation": "postgres.libpq.connection.next_result",
+          "c_symbol": "function.connection_next_result",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "QueryResult",
+          "blocking": "fast",
+          "resource": "transferable_handle",
+          "documentation": "Takes the next completed query result.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "abort",
+          "operation": "postgres.libpq.connection.abort",
+          "c_symbol": "function.connection_abort",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "connection",
+              "ty": "Connection"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Cancels work by closing the connection immediately.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "dispose_result",
+          "operation": "postgres.libpq.result.dispose",
+          "c_symbol": "function.result_destroy",
+          "role": "dispose",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "dispose_handle",
+          "documentation": "Clears and frees a query result.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "status",
+          "operation": "postgres.libpq.result.status",
+          "c_symbol": "function.result_status",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns the libpq result status.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "row_count",
+          "operation": "postgres.libpq.result.row_count",
+          "c_symbol": "function.result_row_count",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns tuple count.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "column_count",
+          "operation": "postgres.libpq.result.column_count",
+          "c_symbol": "function.result_column_count",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns field count.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "select_column_name",
+          "operation": "postgres.libpq.result.select_column_name",
+          "c_symbol": "function.result_select_column_name",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            },
+            {
+              "name": "column",
+              "ty": "Int"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Selects and copies one field name into adapter scratch storage.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "column_oid",
+          "operation": "postgres.libpq.result.column_oid",
+          "c_symbol": "function.result_column_oid",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            },
+            {
+              "name": "column",
+              "ty": "Int"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns the stable PostgreSQL field type OID.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "select_value",
+          "operation": "postgres.libpq.result.select_value",
+          "c_symbol": "function.result_select_value",
+          "role": "mutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            },
+            {
+              "name": "row",
+              "ty": "Int"
+            },
+            {
+              "name": "column",
+              "ty": "Int"
+            }
+          ],
+          "returns": "Unit",
+          "blocking": "fast",
+          "resource": "mutable_handle",
+          "documentation": "Selects and copies one result value into adapter scratch storage.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "value_length",
+          "operation": "postgres.libpq.result.value_length",
+          "c_symbol": "function.result_value_length",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns selected value byte length.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "value_bytes",
+          "operation": "postgres.libpq.result.value_bytes",
+          "c_symbol": "function.result_value_bytes",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "List[Int]",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Copies selected value bytes into Rust-owned storage.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "value_is_null",
+          "operation": "postgres.libpq.result.value_is_null",
+          "c_symbol": "function.result_value_is_null",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "Bool",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Reports selected SQL null state.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        },
+        {
+          "name": "affected_rows",
+          "operation": "postgres.libpq.result.affected_rows",
+          "c_symbol": "function.result_affected_rows",
+          "role": "immutable_method",
+          "args": [
+            {
+              "name": "result",
+              "ty": "QueryResult"
+            }
+          ],
+          "returns": "Int",
+          "blocking": "fast",
+          "resource": "borrowed_handle",
+          "documentation": "Returns command affected-row count.",
+          "dispatcher": null,
+          "generated_smoke": "package_owned"
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaTrackSettings
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=2408424982294040998
-interface_hash=5208734228483295578
-interface_doc_hash=5208734228483295578
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=12136786271523980060
+interface_hash=16790128340261899285
+interface_doc_hash=16790128340261899285
 deps=0

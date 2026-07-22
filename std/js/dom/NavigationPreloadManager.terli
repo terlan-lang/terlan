@@ -1,0 +1,52 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface NavigationPreloadManager
+ */
+module std.js.Dom.NavigationPreloadManager.
+
+import type std.core.{Unit}.
+import type std.js.{Promise}.
+
+/**
+ * The **`NavigationPreloadManager`** interface of the Service Worker API provides methods for managing the preloading of resources in parallel with service worker bootup.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager)
+ */
+pub opaque type NavigationPreloadManager.
+
+/**
+ * The **`disable()`** method of the NavigationPreloadManager interface halts the automatic preloading of service-worker-managed resources previously started using NavigationPreloadManager.enable() It returns a promise that resolves with `undefined`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/disable)
+ */
+pub (value: NavigationPreloadManager) disable(): Promise[Unit].
+
+/**
+ * The **`enable()`** method of the NavigationPreloadManager interface is used to enable preloading of resources managed by the service worker.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/enable)
+ */
+pub (value: NavigationPreloadManager) enable(): Promise[Unit].
+
+/**
+ * The **`getState()`** method of the NavigationPreloadManager interface returns a Promise that resolves to an object with properties that indicate whether preload is enabled and what value will be sent in the Service-Worker-Navigation-Preload HTTP header.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/getState)
+ */
+pub (value: NavigationPreloadManager) get_state(): Promise[NavigationPreloadState].
+
+/**
+ * The **`setHeaderValue()`** method of the NavigationPreloadManager interface sets the value of the Service-Worker-Navigation-Preload header that will be sent with requests resulting from a Window/fetch operation made during service worker navigation preloading.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/setHeaderValue)
+ */
+pub (value: NavigationPreloadManager) set_header_value(value: std.js.String.JsString): Promise[Unit].

@@ -1,5 +1,6 @@
 use super::SyntaxTypeOutput;
 use crate::terlan_syntax::parse_tree::{BinaryOp, Expr, Pattern, TypeExpr, UnaryOp};
+use crate::terlan_syntax::quoted_string_literal;
 
 /// Renders parser expression text for syntax-output summaries.
 ///
@@ -43,21 +44,45 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
             expr_to_output_text(index),
             expr_to_output_text(value)
         ),
-        Expr::Let { bindings, body } => {
-            let mut parts = bindings
-                .iter()
-                .map(|binding| {
-                    format!(
-                        "{} = {}",
-                        pattern_to_output_text(&binding.pattern),
-                        expr_to_output_text(&binding.value)
-                    )
-                })
-                .collect::<Vec<_>>();
+        Expr::Let {
+            bindings,
+            else_clauses,
+            body,
+        } => {
+            let mut parts = if else_clauses.is_empty() {
+                bindings
+                    .iter()
+                    .map(|binding| {
+                        format!(
+                            "let {} = {}",
+                            pattern_to_output_text(&binding.pattern),
+                            expr_to_output_text(&binding.value)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                let bindings = bindings
+                    .iter()
+                    .map(|binding| {
+                        format!(
+                            "{} <- {}",
+                            pattern_to_output_text(&binding.pattern),
+                            expr_to_output_text(&binding.value)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                let clauses = else_clauses
+                    .iter()
+                    .map(case_clause_to_output_text)
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                vec![format!("let {{ {bindings} }} else {{ {clauses} }}")]
+            };
             if let Some(body) = body {
                 parts.push(expr_to_output_text(body));
             }
-            format!("let {}", parts.join("; "))
+            parts.join("; ")
         }
         Expr::Call {
             callee,
@@ -98,7 +123,7 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
                     rendered_type_args,
                     args
                 ),
-                None if *is_fun_value => format!("{}.({})", expr_to_output_text(callee), args),
+                None if *is_fun_value => format!("{}({})", expr_to_output_text(callee), args),
                 None => format!(
                     "{}{}({})",
                     expr_to_output_text(callee),
@@ -196,7 +221,29 @@ fn pattern_to_output_text(pattern: &Pattern) -> String {
         Pattern::Var(name) => name.clone(),
         Pattern::Int(value) => value.to_string(),
         Pattern::Float(value) => value.to_string(),
+        Pattern::String(value) => quoted_string_literal(value),
+        Pattern::StringPattern(segments) => {
+            let mut payload = String::new();
+            for segment in segments {
+                match segment {
+                    crate::terlan_syntax::parse_tree::StringPatternSegment::Literal(value) => {
+                        payload.push_str(value);
+                    }
+                    crate::terlan_syntax::parse_tree::StringPatternSegment::Capture(capture) => {
+                        payload.push_str("${");
+                        payload.push_str(&capture.name);
+                        if let Some(annotation) = &capture.annotation {
+                            payload.push_str(": ");
+                            payload.push_str(&annotation.text);
+                        }
+                        payload.push('}');
+                    }
+                }
+            }
+            quoted_string_literal(&payload)
+        }
         Pattern::Atom(value) => value.clone(),
+        Pattern::AtomLiteral(value) => format!("Atom[{}]", quoted_string_literal(value)),
         Pattern::Tuple(items) => {
             let parts = items
                 .iter()
@@ -204,6 +251,9 @@ fn pattern_to_output_text(pattern: &Pattern) -> String {
                 .collect::<Vec<_>>()
                 .join(", ");
             format!("{{{parts}}}")
+        }
+        Pattern::Alias { alias, pattern } => {
+            format!("{} = {}", pattern_to_output_text(pattern), alias)
         }
         Pattern::List(items) => {
             let parts = items
@@ -236,7 +286,28 @@ fn pattern_to_output_text(pattern: &Pattern) -> String {
                 .join(", ");
             format!("{name} {{{parts}}}")
         }
+        Pattern::BinaryLayout { endian, fields } => {
+            let parts = fields
+                .iter()
+                .map(|field| format!("{}: {}", field.name, field.descriptor.text))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("Binary[{endian}] {{{parts}}}")
+        }
     }
+}
+
+fn case_clause_to_output_text(clause: &crate::terlan_syntax::parse_tree::CaseClause) -> String {
+    let guard = clause
+        .guard
+        .as_deref()
+        .map(|guard| format!(" where {}", expr_to_output_text(guard)))
+        .unwrap_or_default();
+    format!(
+        "{}{guard} -> {}",
+        pattern_to_output_text(&clause.pattern),
+        expr_to_output_text(&clause.body)
+    )
 }
 
 /// Converts parser type text into syntax-output type metadata.
@@ -317,6 +388,8 @@ pub(crate) fn binary_op_text(op: &BinaryOp) -> &'static str {
         BinaryOp::GtEq => ">=",
         BinaryOp::DivRem => "div",
         BinaryOp::Rem => "rem",
+        BinaryOp::Range => "..",
+        BinaryOp::In => "in",
         BinaryOp::And => "and",
         BinaryOp::Or => "or",
         BinaryOp::PipeForward => "|>",

@@ -1,20 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CacheStorage
  */
 module std.js.Dom.CacheStorageTest.
 
 import type std.core.{Bool}.
-
-import type std.js.Dom.CacheStorage.{CacheStorage}.
-
+import type std.js.Dom.CacheStorage.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub delete_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[Bool] ->
     receiver.delete(cache_name).
@@ -25,7 +28,11 @@ pub has_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[Bool] 
 pub keys_typechecks(receiver: CacheStorage): Promise[std.js.Array[JsString]] ->
     receiver.keys().
 
-pub match_typechecks(receiver: CacheStorage, request: RequestInfo | URL, options: MultiCacheQueryOptions): Promise[Option[Response]] ->
+pub match_typechecks(
+    receiver: CacheStorage,
+    request: RequestInfo | URL,
+    options: MultiCacheQueryOptions
+): Promise[Option[Response]] ->
     receiver.match(request, options).
 
 pub open_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[Cache] ->

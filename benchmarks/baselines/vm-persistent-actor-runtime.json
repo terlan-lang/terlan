@@ -1,0 +1,10 @@
+{
+  "schema": "terlan.vm-persistent-actor-budget.v1",
+  "benchmark": "snapshot-append-replay",
+  "adapter": "vm-in-memory",
+  "required_run_count": 3,
+  "minimum_samples_per_run": 100,
+  "events_per_sample": 64,
+  "maximum_p99_ns": 500000,
+  "minimum_throughput_events_per_second": 200000
+}

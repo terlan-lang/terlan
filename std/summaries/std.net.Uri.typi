@@ -1,7 +1,7 @@
 //! Portable URI parsing contract.
 //!
 //! `std.net.Uri` exposes URI parsing, rendering, and common component accessors
-//! through a target-neutral Terlan API. Its first backend is Rust/SafeNative
+//! through a target-neutral Terlan API. Its first backend is Rust/NativeBoundary
 //! with the `url` crate; source code sees only `Uri`, `UriError`, `Option`,
 //! and `Result`.
 

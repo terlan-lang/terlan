@@ -22,7 +22,8 @@ and target paths that can provide efficient vector-like memory.
 - `std.native.collections.Vector.from_list`: portable list to vector
   conversion.
 - `std.native.collections.Vector.to_list`: vector to portable list conversion.
-- Vector receiver methods for length, index read/write, swap, and push.
+- Vector receiver methods for length, recoverable `Option` reads, strict index
+  read/write, swap, and push.
 
 ## Core Model
 
@@ -41,12 +42,15 @@ Important invariants:
 - Native vectors are not portable `std.collections.List` values.
 - Mutating vector operations require `mut` receiver methods.
 - Bracket access is trait-backed, not a special vector-only parser path.
+- `get(index)` is the default recoverable lookup surface; `get_at(index)` and
+  bracket syntax remain strict operations for callers that already establish
+  the index invariant.
 - Unsupported targets must fail before artifact emission.
 
 ## Integration Points
 
 - `std.collections.Index`: supplies index get/set traits for bracket syntax.
-- `terlan_safenative`: owns Rust-native operation implementations when the
+- `terlan_native_boundary`: owns Rust-native operation implementations when the
   target supports them.
 - `std/RUST_BACKED_MANIFEST.tsv`: records native operation ownership.
 - Target-profile validation: rejects native collection APIs on unsupported

@@ -5,8 +5,12 @@ mod effects;
 mod registry;
 mod return_types;
 
+#[cfg(test)]
+mod effect_test;
+
 pub(crate) use effects::{
     core_io_effect_set, core_pure_effect_set, core_receiver_mutation_effect_set,
+    core_vm_effect_execution_set,
 };
 pub(crate) use registry::core_primitive_intrinsic;
 use registry::core_runtime_capability;
@@ -32,6 +36,66 @@ pub(crate) fn core_intrinsic_call_expr_from_syntax(expr: &SyntaxExprOutput) -> O
     core_remote_intrinsic_call_expr_from_syntax(expr)
         .or_else(|| core_receiver_intrinsic_call_expr_from_syntax(expr))
         .or_else(|| core_local_intrinsic_call_expr_from_syntax(expr))
+}
+
+/// Reports whether a compiler-owned intrinsic identity is known and pure.
+///
+/// Runtime capabilities are effectful even when their std declarations carry
+/// placeholder bodies. Unknown intrinsic declarations remain conservatively
+/// unproven instead of being inferred pure from those placeholders.
+pub(crate) fn core_intrinsic_is_pure(module: &str, function: &str, arity: usize) -> bool {
+    if module == "std.vm.Message" && matches!((function, arity), ("wrap", 1) | ("unwrap", 1)) {
+        return true;
+    }
+    if module == "std.vm.Process" {
+        if matches!(
+            (function, arity),
+            ("entry", 1)
+                | ("timer", 1)
+                | ("resource_kind", 1)
+                | ("exit_reason", 1)
+                | ("priority", 0)
+                | ("normal", 0)
+                | ("background", 0)
+        ) {
+            return true;
+        }
+        if matches!(
+            (function, arity),
+            ("send", 2)
+                | ("receive", 0)
+                | ("spawn", 1)
+                | ("sleep", 1)
+                | ("link", 1)
+                | ("monitor", 1)
+                | ("acquire", 1)
+                | ("cancel", 1)
+                | ("fail", 1)
+                | ("schedule", 1)
+        ) {
+            return false;
+        }
+    }
+    if let Some(intrinsic) = core_primitive_intrinsic(module, function, arity) {
+        return !matches!(
+            intrinsic,
+            CorePrimitiveIntrinsic::VmEffectRun
+                | CorePrimitiveIntrinsic::VmProcessYield
+                | CorePrimitiveIntrinsic::VmProcessSendInt
+                | CorePrimitiveIntrinsic::VmProcessSendString
+                | CorePrimitiveIntrinsic::VmProcessReceiveString
+                | CorePrimitiveIntrinsic::VmProcessSendBytes
+                | CorePrimitiveIntrinsic::VmProcessReceiveBytes
+                | CorePrimitiveIntrinsic::VmProcessSendBinary
+                | CorePrimitiveIntrinsic::VmProcessReceiveBinary
+                | CorePrimitiveIntrinsic::VmProcessSendAtom
+                | CorePrimitiveIntrinsic::VmProcessReceiveAtom
+                | CorePrimitiveIntrinsic::VmProcessSleep
+                | CorePrimitiveIntrinsic::VmProcessFail
+                | CorePrimitiveIntrinsic::VmProcessSchedule
+        );
+    }
+    core_runtime_capability(module, function, arity).is_none() && !module.starts_with("std.")
 }
 
 /// Converts a local syntax-output call into a compiler-owned intrinsic call.
@@ -63,6 +127,32 @@ fn core_local_intrinsic_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option
         .iter()
         .map(core_expr_from_syntax)
         .collect::<Option<Vec<_>>>()?;
+    if function == "String" && args.len() == 1 {
+        return Some(CoreExpr::Intrinsic(CoreIntrinsicCall {
+            id: CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ValueToString),
+            args,
+            return_type: CoreType::String,
+            effects: core_pure_effect_set(),
+            span: expr.span.into(),
+        }));
+    }
+    if args.len() == 1 {
+        let intrinsic = match function {
+            "Bool" => Some(CorePrimitiveIntrinsic::BoolFromString),
+            "Int" => Some(CorePrimitiveIntrinsic::IntFromString),
+            "Float" => Some(CorePrimitiveIntrinsic::FloatFromString),
+            _ => None,
+        };
+        if let Some(intrinsic) = intrinsic {
+            return Some(CoreExpr::Intrinsic(CoreIntrinsicCall {
+                return_type: core_primitive_intrinsic_return_type(&intrinsic),
+                id: CoreIntrinsicId::Primitive(intrinsic),
+                args,
+                effects: core_pure_effect_set(),
+                span: expr.span.into(),
+            }));
+        }
+    }
     core_intrinsic_expr_from_parts("std.core.Type", function, args, expr.span.into())
 }
 
@@ -95,7 +185,115 @@ fn core_remote_intrinsic_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Optio
         .iter()
         .map(core_expr_from_syntax)
         .collect::<Option<Vec<_>>>()?;
-    core_intrinsic_expr_from_parts(module, function.as_str(), args, expr.span.into())
+    core_typed_process_intrinsic_expr_from_parts(
+        module,
+        function.as_str(),
+        &expr.type_args,
+        args.clone(),
+        expr.span.into(),
+    )
+    .or_else(|| {
+        core_typed_message_expr_from_parts(module, function.as_str(), &expr.type_args, args.clone())
+    })
+    .or_else(|| core_intrinsic_expr_from_parts(module, function.as_str(), args, expr.span.into()))
+}
+
+/// Lowers an explicitly specialized process mailbox operation into typed CoreIR.
+fn core_typed_process_intrinsic_expr_from_parts(
+    module: &str,
+    function: &str,
+    type_args: &[crate::terlan_syntax::SyntaxTypeOutput],
+    args: Vec<CoreExpr>,
+    span: Span,
+) -> Option<CoreExpr> {
+    if module != "std.vm.Process" {
+        return None;
+    }
+    if type_args.is_empty() {
+        return core_process_lifecycle_value(function, args);
+    }
+    if type_args.len() != 1 {
+        return None;
+    }
+    let value_type = core_type_from_text(&type_args[0].text)?;
+    let (id, return_type) = match (function, args.len()) {
+        ("entry", 1) | ("resource_kind", 1) => return args.into_iter().next(),
+        ("send", 2) => (
+            CoreIntrinsicId::VmProcessSendMessage(value_type),
+            CoreType::Named("Unit".to_string()),
+        ),
+        ("receive", 0) => (
+            CoreIntrinsicId::VmProcessReceiveMessage(value_type.clone()),
+            CoreType::Apply {
+                constructor: "Message".to_string(),
+                args: vec![value_type],
+            },
+        ),
+        ("spawn", 1) => (
+            CoreIntrinsicId::VmProcessSpawn(value_type.clone()),
+            CoreType::Apply {
+                constructor: "Process".to_string(),
+                args: vec![value_type],
+            },
+        ),
+        ("link", 1) => (
+            CoreIntrinsicId::VmProcessLink(value_type),
+            CoreType::Named("Unit".to_string()),
+        ),
+        ("monitor", 1) => (
+            CoreIntrinsicId::VmProcessMonitor(value_type.clone()),
+            CoreType::Apply {
+                constructor: "Monitor".to_string(),
+                args: vec![value_type],
+            },
+        ),
+        ("acquire", 1) => (
+            CoreIntrinsicId::VmProcessAcquireResource(value_type.clone()),
+            CoreType::Apply {
+                constructor: "Resource".to_string(),
+                args: vec![value_type],
+            },
+        ),
+        ("cancel", 1) => (
+            CoreIntrinsicId::VmProcessCancel(value_type),
+            CoreType::Named("Unit".to_string()),
+        ),
+        _ => return None,
+    };
+    Some(CoreExpr::Intrinsic(CoreIntrinsicCall {
+        id,
+        args,
+        return_type,
+        effects: core_vm_effect_execution_set(),
+        span,
+    }))
+}
+
+/// Erases typed lifecycle descriptors whose runtime representation is one word.
+fn core_process_lifecycle_value(function: &str, args: Vec<CoreExpr>) -> Option<CoreExpr> {
+    match (function, args.len()) {
+        ("timer", 1) | ("exit_reason", 1) => args.into_iter().next(),
+        ("priority", 0) => Some(CoreExpr::Int(1)),
+        ("normal", 0) => Some(CoreExpr::Int(2)),
+        ("background", 0) => Some(CoreExpr::Int(3)),
+        _ => None,
+    }
+}
+
+/// Erases one explicitly typed public message wrapper operation into its value.
+fn core_typed_message_expr_from_parts(
+    module: &str,
+    function: &str,
+    type_args: &[crate::terlan_syntax::SyntaxTypeOutput],
+    args: Vec<CoreExpr>,
+) -> Option<CoreExpr> {
+    if module != "std.vm.Message" || type_args.len() != 1 || args.len() != 1 {
+        return None;
+    }
+    core_type_from_text(&type_args[0].text)?;
+    matches!(function, "wrap" | "unwrap")
+        .then(|| args.into_iter().next())
+        .flatten()
 }
 
 /// Converts a mutable receiver-method call into effectful CoreIR.
@@ -115,7 +313,7 @@ fn core_remote_intrinsic_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Optio
 /// - Preserves the receiver expression separately from non-receiver arguments
 ///   and attaches the stable receiver-mutation effect label so later lowering
 ///   can choose target-specific rebinding or in-place mutation semantics.
-pub(crate) fn core_mutable_receiver_call_expr_from_syntax(
+pub(super) fn core_mutable_receiver_call_expr_from_syntax(
     expr: &SyntaxExprOutput,
     receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) -> Option<CoreExpr> {
@@ -318,12 +516,30 @@ fn core_intrinsic_expr_from_parts(
 ) -> Option<CoreExpr> {
     if let Some(intrinsic) = core_primitive_intrinsic(module, function, args.len()) {
         let return_type = core_primitive_intrinsic_return_type(&intrinsic);
+        let effects = match intrinsic {
+            CorePrimitiveIntrinsic::VmEffectRun
+            | CorePrimitiveIntrinsic::VmProcessYield
+            | CorePrimitiveIntrinsic::VmProcessSendInt
+            | CorePrimitiveIntrinsic::VmProcessReceiveInt
+            | CorePrimitiveIntrinsic::VmProcessSendString
+            | CorePrimitiveIntrinsic::VmProcessReceiveString
+            | CorePrimitiveIntrinsic::VmProcessSendBytes
+            | CorePrimitiveIntrinsic::VmProcessReceiveBytes
+            | CorePrimitiveIntrinsic::VmProcessSendBinary
+            | CorePrimitiveIntrinsic::VmProcessReceiveBinary
+            | CorePrimitiveIntrinsic::VmProcessSendAtom
+            | CorePrimitiveIntrinsic::VmProcessReceiveAtom
+            | CorePrimitiveIntrinsic::VmProcessSleep
+            | CorePrimitiveIntrinsic::VmProcessFail
+            | CorePrimitiveIntrinsic::VmProcessSchedule => core_vm_effect_execution_set(),
+            _ => core_pure_effect_set(),
+        };
 
         return Some(CoreExpr::Intrinsic(CoreIntrinsicCall {
             id: CoreIntrinsicId::Primitive(intrinsic),
             args,
             return_type,
-            effects: core_pure_effect_set(),
+            effects,
             span,
         }));
     }
@@ -357,6 +573,7 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         CorePrimitiveIntrinsic::IsType => CoreType::Bool,
         CorePrimitiveIntrinsic::BoolToString
         | CorePrimitiveIntrinsic::AtomToString
+        | CorePrimitiveIntrinsic::ValueToString
         | CorePrimitiveIntrinsic::IntToString
         | CorePrimitiveIntrinsic::FloatToString
         | CorePrimitiveIntrinsic::StringToString
@@ -364,6 +581,7 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         | CorePrimitiveIntrinsic::StringConcat
         | CorePrimitiveIntrinsic::StringLowercase
         | CorePrimitiveIntrinsic::StringUppercase
+        | CorePrimitiveIntrinsic::StringReverse
         | CorePrimitiveIntrinsic::StringTrim
         | CorePrimitiveIntrinsic::StringTrimStart
         | CorePrimitiveIntrinsic::StringTrimEnd
@@ -379,18 +597,29 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             constructor: "Option".to_string(),
             args: vec![CoreType::Bool],
         },
+        CorePrimitiveIntrinsic::IntToStringBase => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::String],
+        },
         CorePrimitiveIntrinsic::StringFromString => CoreType::Apply {
             constructor: "Option".to_string(),
             args: vec![CoreType::String],
         },
-        CorePrimitiveIntrinsic::IntFromString => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::Int],
-        },
+        CorePrimitiveIntrinsic::IntFromString | CorePrimitiveIntrinsic::IntFromStringBase => {
+            CoreType::Apply {
+                constructor: "Option".to_string(),
+                args: vec![CoreType::Int],
+            }
+        }
         CorePrimitiveIntrinsic::FloatFromString => CoreType::Apply {
             constructor: "Option".to_string(),
             args: vec![CoreType::Float],
         },
+        CorePrimitiveIntrinsic::FloatFloor
+        | CorePrimitiveIntrinsic::FloatCeil
+        | CorePrimitiveIntrinsic::FloatLog
+        | CorePrimitiveIntrinsic::FloatPi
+        | CorePrimitiveIntrinsic::FloatTau => CoreType::Float,
         CorePrimitiveIntrinsic::StringEqual
         | CorePrimitiveIntrinsic::StringIsEmpty
         | CorePrimitiveIntrinsic::StringContains
@@ -408,6 +637,8 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             ])],
         },
         CorePrimitiveIntrinsic::ListNew
+        | CorePrimitiveIntrinsic::ListConcat
+        | CorePrimitiveIntrinsic::ListSubtract
         | CorePrimitiveIntrinsic::ListIterator
         | CorePrimitiveIntrinsic::ListPush
         | CorePrimitiveIntrinsic::ListClear => {
@@ -418,6 +649,12 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         CorePrimitiveIntrinsic::ListFirst => CoreType::Apply {
             constructor: "Option".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
+        },
+        CorePrimitiveIntrinsic::ListRest => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::List(Box::new(CoreType::Named(
+                "Dynamic".to_string(),
+            )))],
         },
         CorePrimitiveIntrinsic::IteratorNext => CoreType::Apply {
             constructor: "Option".to_string(),
@@ -436,6 +673,13 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             constructor: "Option".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
+        CorePrimitiveIntrinsic::MapTake => CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::Apply {
+                constructor: "Option".to_string(),
+                args: vec![CoreType::Named("Dynamic".to_string())],
+            }),
+            CoreTupleTypeElem::Type(CoreType::Named("Map".to_string())),
+        ]),
         CorePrimitiveIntrinsic::MapIterator => CoreType::List(Box::new(CoreType::Tuple(vec![
             CoreTupleTypeElem::Type(CoreType::Named("Dynamic".to_string())),
             CoreTupleTypeElem::Type(CoreType::Named("Dynamic".to_string())),
@@ -454,6 +698,10 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             constructor: "Task".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
+        CorePrimitiveIntrinsic::TaskFailed => CoreType::Apply {
+            constructor: "Task".to_string(),
+            args: vec![CoreType::Named("Dynamic".to_string())],
+        },
         CorePrimitiveIntrinsic::TaskResult => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
@@ -461,7 +709,22 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamAgentStart => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmEffectRun => CoreType::Dynamic,
+        CorePrimitiveIntrinsic::VmProcessYield
+        | CorePrimitiveIntrinsic::VmProcessSendInt
+        | CorePrimitiveIntrinsic::VmProcessSendString
+        | CorePrimitiveIntrinsic::VmProcessSendBytes
+        | CorePrimitiveIntrinsic::VmProcessSendBinary
+        | CorePrimitiveIntrinsic::VmProcessSendAtom
+        | CorePrimitiveIntrinsic::VmProcessSleep
+        | CorePrimitiveIntrinsic::VmProcessFail
+        | CorePrimitiveIntrinsic::VmProcessSchedule => CoreType::Named("Unit".to_string()),
+        CorePrimitiveIntrinsic::VmProcessReceiveInt => CoreType::Int,
+        CorePrimitiveIntrinsic::VmProcessReceiveString => CoreType::String,
+        CorePrimitiveIntrinsic::VmProcessReceiveBytes => CoreType::Named("Bytes".to_string()),
+        CorePrimitiveIntrinsic::VmProcessReceiveBinary => CoreType::Binary,
+        CorePrimitiveIntrinsic::VmProcessReceiveAtom => CoreType::Atom,
+        CorePrimitiveIntrinsic::VmAgentStart => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Apply {
@@ -471,16 +734,16 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamAgentGet | CorePrimitiveIntrinsic::BeamAgentGetAndUpdate => {
+        CorePrimitiveIntrinsic::VmAgentGet | CorePrimitiveIntrinsic::VmAgentGetAndUpdate => {
             CoreType::Named("Dynamic".to_string())
         }
-        CorePrimitiveIntrinsic::BeamAgentUpdate
-        | CorePrimitiveIntrinsic::BeamAgentCast
-        | CorePrimitiveIntrinsic::BeamAgentStop => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmAgentUpdate
+        | CorePrimitiveIntrinsic::VmAgentCast
+        | CorePrimitiveIntrinsic::VmAgentStop => CoreType::Apply {
             constructor: "Agent".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
-        CorePrimitiveIntrinsic::BeamGenServerStart => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmGenServerStart => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Apply {
@@ -495,14 +758,14 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamGenServerCall => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmGenServerCall => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Dynamic".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamGenServerCast | CorePrimitiveIntrinsic::BeamGenServerStop => {
+        CorePrimitiveIntrinsic::VmGenServerCast | CorePrimitiveIntrinsic::VmGenServerStop => {
             CoreType::Apply {
                 constructor: "ServerRef".to_string(),
                 args: vec![
@@ -513,7 +776,7 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
                 ],
             }
         }
-        CorePrimitiveIntrinsic::BeamNativeBridgeStart => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmNativeBridgeStart => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Apply {
@@ -523,89 +786,134 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamNativeBridgeCall => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmNativeBridgeCall => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Dynamic".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamNativeBridgeDispose
-        | CorePrimitiveIntrinsic::BeamNativeBridgeStop => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmNativeBridgeDispose
+        | CorePrimitiveIntrinsic::VmNativeBridgeStop => CoreType::Apply {
             constructor: "NativeBridge".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
-        CorePrimitiveIntrinsic::BeamBytesFromList | CorePrimitiveIntrinsic::BeamBytesConcat => {
-            CoreType::Named("Bytes".to_string())
+        CorePrimitiveIntrinsic::VmBytesFromList
+        | CorePrimitiveIntrinsic::VmBytesConcat
+        | CorePrimitiveIntrinsic::VmBytesSlice => CoreType::Named("Bytes".to_string()),
+        CorePrimitiveIntrinsic::VmBytesToList => CoreType::List(Box::new(CoreType::Int)),
+        CorePrimitiveIntrinsic::VmBytesLength
+        | CorePrimitiveIntrinsic::VmBytesReadUintBe
+        | CorePrimitiveIntrinsic::VmBytesReadIntBe
+        | CorePrimitiveIntrinsic::VmBytesReadUintLe
+        | CorePrimitiveIntrinsic::VmBytesReadIntLe => CoreType::Int,
+        CorePrimitiveIntrinsic::VmBitStringFromBytes
+        | CorePrimitiveIntrinsic::VmBitStringFromAllBytes
+        | CorePrimitiveIntrinsic::VmBitStringFromExactBytes
+        | CorePrimitiveIntrinsic::VmBitStringRequireExactBits
+        | CorePrimitiveIntrinsic::VmBitStringFromUintBe
+        | CorePrimitiveIntrinsic::VmBitStringFromIntBe
+        | CorePrimitiveIntrinsic::VmBitStringFromUintLe
+        | CorePrimitiveIntrinsic::VmBitStringFromIntLe
+        | CorePrimitiveIntrinsic::VmBitStringUtf8Scalar
+        | CorePrimitiveIntrinsic::VmBitStringUtf16BeScalar
+        | CorePrimitiveIntrinsic::VmBitStringUtf16LeScalar
+        | CorePrimitiveIntrinsic::VmBitStringUtf32BeScalar
+        | CorePrimitiveIntrinsic::VmBitStringUtf32LeScalar
+        | CorePrimitiveIntrinsic::VmBitStringSlice
+        | CorePrimitiveIntrinsic::VmBitStringConcat => CoreType::Named("BitString".to_string()),
+        CorePrimitiveIntrinsic::VmBitStringBitLength
+        | CorePrimitiveIntrinsic::VmBitStringByteLength
+        | CorePrimitiveIntrinsic::VmBitStringToUtf8Scalar
+        | CorePrimitiveIntrinsic::VmBitStringToUtf16BeScalar
+        | CorePrimitiveIntrinsic::VmBitStringToUtf16LeScalar
+        | CorePrimitiveIntrinsic::VmBitStringToUtf32BeScalar
+        | CorePrimitiveIntrinsic::VmBitStringToUtf32LeScalar
+        | CorePrimitiveIntrinsic::VmBitStringToUintBe
+        | CorePrimitiveIntrinsic::VmBitStringToIntBe
+        | CorePrimitiveIntrinsic::VmBitStringToUintLe
+        | CorePrimitiveIntrinsic::VmBitStringToIntLe => CoreType::Int,
+        CorePrimitiveIntrinsic::VmBitStringIsByteAligned => CoreType::Bool,
+        CorePrimitiveIntrinsic::VmBitStringToBytes => CoreType::Named("Bytes".to_string()),
+        CorePrimitiveIntrinsic::VmTimeoutMilliseconds
+        | CorePrimitiveIntrinsic::VmTimeoutForever => CoreType::Named("Timeout".to_string()),
+        CorePrimitiveIntrinsic::VmTcpListen | CorePrimitiveIntrinsic::VmTcpListenWithBacklog => {
+            CoreType::Apply {
+                constructor: "Result".to_string(),
+                args: vec![
+                    CoreType::Named("TcpListener".to_string()),
+                    CoreType::Named("Error".to_string()),
+                ],
+            }
         }
-        CorePrimitiveIntrinsic::BeamBytesToList => CoreType::List(Box::new(CoreType::Int)),
-        CorePrimitiveIntrinsic::BeamBytesLength => CoreType::Int,
-        CorePrimitiveIntrinsic::BeamTimeoutMilliseconds
-        | CorePrimitiveIntrinsic::BeamTimeoutForever => CoreType::Named("Timeout".to_string()),
-        CorePrimitiveIntrinsic::BeamTcpConnect => CoreType::Apply {
-            constructor: "Result".to_string(),
-            args: vec![
-                CoreType::Named("TcpSocket".to_string()),
-                CoreType::Named("Error".to_string()),
-            ],
-        },
-        CorePrimitiveIntrinsic::BeamTcpSend => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmTcpAccept | CorePrimitiveIntrinsic::VmTcpConnect => {
+            CoreType::Apply {
+                constructor: "Result".to_string(),
+                args: vec![
+                    CoreType::Named("TcpSocket".to_string()),
+                    CoreType::Named("Error".to_string()),
+                ],
+            }
+        }
+        CorePrimitiveIntrinsic::VmTcpSend => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Unit".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamTcpReceive => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmTcpReceive => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Bytes".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamTcpClose => CoreType::Named("Unit".to_string()),
-        CorePrimitiveIntrinsic::BeamPortOpen => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmTcpClose | CorePrimitiveIntrinsic::VmTcpCloseListener => {
+            CoreType::Named("Unit".to_string())
+        }
+        CorePrimitiveIntrinsic::VmPortOpen => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Port".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamPortWrite => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmPortWrite => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Unit".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamPortRead => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmPortRead => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Bytes".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamPortClose => CoreType::Named("Unit".to_string()),
-        CorePrimitiveIntrinsic::BeamSupervisorStartRoot => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmPortClose => CoreType::Named("Unit".to_string()),
+        CorePrimitiveIntrinsic::VmSupervisorStartRoot => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Supervisor".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamSupervisorChildSpec => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmSupervisorChildSpec => CoreType::Apply {
             constructor: "ChildSpec".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
-        CorePrimitiveIntrinsic::BeamSupervisorStart => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmSupervisorStart => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Dynamic".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamSupervisorStop => CoreType::Named("Supervisor".to_string()),
-        CorePrimitiveIntrinsic::BeamTaskStart => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmSupervisorStop => CoreType::Named("Supervisor".to_string()),
+        CorePrimitiveIntrinsic::VmTaskStart => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Apply {
@@ -615,14 +923,14 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamTaskResult => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmTaskResult => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![
                 CoreType::Named("Dynamic".to_string()),
                 CoreType::Named("Error".to_string()),
             ],
         },
-        CorePrimitiveIntrinsic::BeamTaskCancel => CoreType::Apply {
+        CorePrimitiveIntrinsic::VmTaskCancel => CoreType::Apply {
             constructor: "Task".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },

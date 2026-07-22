@@ -10,10 +10,10 @@ use super::*;
 ///   Rust-owned state.
 ///
 /// Transformation:
-/// - Exercises the same line protocol used by the generated BEAM runtime.
+/// - Exercises the same line protocol used by the generated VM runtime.
 #[test]
 fn helper_line_protocol_preserves_vector_state() {
-    let mut worker = SafeNativeWorker::new(32);
+    let mut worker = NativeBoundaryWorker::new(32);
     let created = execute_line(&mut worker, 1, "from_list QQ==,Qg==");
     assert_eq!(created, "ok_handle 1 1");
 
@@ -22,6 +22,10 @@ fn helper_line_protocol_preserves_vector_state() {
 
     let value = execute_line(&mut worker, 3, "get_at 1 1 1");
     assert_eq!(value, "ok_term Qg==");
+
+    assert_eq!(execute_line(&mut worker, 4, "get 1 1 1"), "ok_terms Qg==");
+    assert_eq!(execute_line(&mut worker, 5, "get 1 1 -1"), "ok_terms ");
+    assert_eq!(execute_line(&mut worker, 6, "get 1 1 2"), "ok_terms ");
 }
 
 /// Verifies mutation updates the Rust-owned vector behind the same handle.
@@ -33,11 +37,11 @@ fn helper_line_protocol_preserves_vector_state() {
 /// - Test passes when `push` and `to_list` observe shared resource state.
 ///
 /// Transformation:
-/// - Ensures helper calls mutate the SafeNative resource store rather than
+/// - Ensures helper calls mutate the NativeBoundary resource store rather than
 ///   returning detached values.
 #[test]
 fn helper_line_protocol_mutates_vector_state() {
-    let mut worker = SafeNativeWorker::new(32);
+    let mut worker = NativeBoundaryWorker::new(32);
     assert_eq!(execute_line(&mut worker, 1, "new"), "ok_handle 1 1");
     assert_eq!(
         execute_line(&mut worker, 2, "push 1 1 QQ=="),
@@ -63,10 +67,10 @@ fn helper_line_protocol_mutates_vector_state() {
 ///   unchanged.
 ///
 /// Transformation:
-/// - Exercises handle isolation inside one Rust-owned SafeNative worker.
+/// - Exercises handle isolation inside one Rust-owned NativeBoundary worker.
 #[test]
 fn helper_line_protocol_isolates_multiple_vector_handles() {
-    let mut worker = SafeNativeWorker::new(32);
+    let mut worker = NativeBoundaryWorker::new(32);
     assert_eq!(
         execute_line(&mut worker, 1, "from_list QQ=="),
         "ok_handle 1 1"
@@ -100,7 +104,7 @@ fn helper_line_protocol_isolates_multiple_vector_handles() {
 ///   expose off-by-one or stale-handle mistakes.
 #[test]
 fn helper_line_protocol_sets_and_swaps_indexes() {
-    let mut worker = SafeNativeWorker::new(32);
+    let mut worker = NativeBoundaryWorker::new(32);
     assert_eq!(
         execute_line(&mut worker, 1, "from_list QQ==,Qg==,Qw=="),
         "ok_handle 1 1"
@@ -131,10 +135,10 @@ fn helper_line_protocol_sets_and_swaps_indexes() {
 ///
 /// Transformation:
 /// - Exercises helper-side protocol validation before requests reach the
-///   SafeNative worker.
+///   NativeBoundary worker.
 #[test]
 fn helper_line_protocol_rejects_malformed_commands() {
-    let mut worker = SafeNativeWorker::new(32);
+    let mut worker = NativeBoundaryWorker::new(32);
 
     assert!(execute_line(&mut worker, 1, "").starts_with("err native_vector_empty_command "));
     assert!(
@@ -162,14 +166,14 @@ fn helper_line_protocol_rejects_malformed_commands() {
 ///
 /// Output:
 /// - Test passes when stale handles and index failures are reported by
-///   SafeNative resource/vector diagnostics.
+///   NativeBoundary resource/vector diagnostics.
 ///
 /// Transformation:
 /// - Exercises the helper path through the worker so these failures cannot be
-///   hidden by BEAM-side list semantics.
+///   hidden by VM-side list semantics.
 #[test]
 fn helper_line_protocol_rejects_stale_handles_and_bad_indexes() {
-    let mut worker = SafeNativeWorker::new(32);
+    let mut worker = NativeBoundaryWorker::new(32);
     assert_eq!(
         execute_line(&mut worker, 1, "from_list QQ=="),
         "ok_handle 1 1"

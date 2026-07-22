@@ -2,8 +2,18 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use crate::runtime::vm::{ReplValue, TerlanVm};
+use crate::runtime::vm::code_server::VmCodeServerEvent;
+use crate::runtime::vm::pure_native::PureNativeExecutionShard;
+#[cfg(test)]
+use crate::runtime::vm::source_reload::VmSourceReloadAdapter;
+use crate::runtime::vm::source_reload::VmSourceReloadBatchReport;
+use crate::runtime::vm::ReplValue;
 use crate::{CliCommand, CliState};
+
+#[path = "vm/native_reload.rs"]
+mod native_reload;
+
+use native_reload::{VmNativeSourceReloadReport, VmNativeSourceReloadService};
 
 /// Runs the hidden experimental Rust VM command group.
 ///
@@ -15,9 +25,8 @@ use crate::{CliCommand, CliState};
 /// - Exit code for VM usage validation, compile/load failure, or execution.
 ///
 /// Transformation:
-/// - Compiles a Terlan source file through the normal frontend, loads its
-///   CoreIR into the in-process Rust VM, and executes a zero-arity entrypoint
-///   without emitting Erlang source or invoking BEAM.
+/// - Compiles a Terlan source file into a native image and executes a
+///   zero-arity native export. Runtime CoreIR execution is forbidden.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     if !state.experimental {
         eprintln!("terlc vm is experimental; rerun with --experimental to enable it.");
@@ -39,6 +48,24 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                 }
             }
         }
+        VmArgs::Reload {
+            sources,
+            diagnostics,
+        } => match reload_native_source_files_in_vm(&sources, &state) {
+            Ok(report) => {
+                for event in &report.sources.events {
+                    println!("{}", render_reload_event(&event));
+                }
+                if diagnostics {
+                    println!("{}", render_native_reload_diagnostics(&report));
+                }
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                eprintln!("{message}");
+                ExitCode::from(1)
+            }
+        },
         VmArgs::Error(message) => {
             eprintln!("{message}");
             print_vm_usage();
@@ -50,16 +77,24 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 /// Parsed hidden Rust VM command arguments.
 enum VmArgs {
     Help,
-    Run { source: PathBuf, entry: String },
+    Run {
+        source: PathBuf,
+        entry: String,
+    },
+    Reload {
+        sources: Vec<PathBuf>,
+        diagnostics: bool,
+    },
     Error(String),
 }
 
 /// Parses hidden Rust VM command arguments.
 fn parse_vm_args(args: &[String]) -> VmArgs {
     match args {
-        [] => VmArgs::Error("terlc vm requires a subcommand: run".to_string()),
+        [] => VmArgs::Error("terlc vm requires a subcommand: run or reload".to_string()),
         [flag] if matches!(flag.as_str(), "--help" | "-h") => VmArgs::Help,
         [subcommand, rest @ ..] if subcommand == "run" => parse_vm_run_args(rest),
+        [subcommand, rest @ ..] if subcommand == "reload" => parse_vm_reload_args(rest),
         [subcommand, ..] => VmArgs::Error(format!("unknown terlc vm subcommand: {subcommand}")),
     }
 }
@@ -100,7 +135,38 @@ fn parse_vm_run_args(args: &[String]) -> VmArgs {
     VmArgs::Run { source, entry }
 }
 
-/// Compiles, loads, and executes one source file with the Rust VM.
+/// Parses `terlc --experimental vm reload` arguments.
+fn parse_vm_reload_args(args: &[String]) -> VmArgs {
+    if args
+        .iter()
+        .any(|arg| matches!(arg.as_str(), "--help" | "-h"))
+    {
+        return VmArgs::Help;
+    }
+
+    let mut diagnostics = false;
+    let mut sources = Vec::new();
+    for arg in args {
+        match arg.as_str() {
+            "--diagnostics" => diagnostics = true,
+            option if option.starts_with('-') => {
+                return VmArgs::Error(format!("unknown terlc vm reload option: {option}"));
+            }
+            source => sources.push(PathBuf::from(source)),
+        }
+    }
+
+    if sources.is_empty() {
+        return VmArgs::Error("terlc vm reload requires at least one source file".to_string());
+    }
+
+    VmArgs::Reload {
+        sources,
+        diagnostics,
+    }
+}
+
+/// Compiles and executes one source file through its native image.
 ///
 /// Inputs:
 /// - `source`: path to a Terlan implementation source file.
@@ -113,8 +179,8 @@ fn parse_vm_run_args(args: &[String]) -> VmArgs {
 /// - Stable error text on source read, compile, load, or execution failure.
 ///
 /// Transformation:
-/// - Treats the checked CoreIR module as the VM load unit, keeping this first
-///   VM path tied to compiler output rather than backend-generated artifacts.
+/// - Uses CoreIR only as compiler input and requires the requested entry to be
+///   present in the emitted native image.
 fn run_source_file_in_vm(
     source: &Path,
     entry: &str,
@@ -140,14 +206,153 @@ fn run_source_file_in_vm(
         )
     })?;
     let module_name = artifacts.core.module.clone();
-    let mut vm = TerlanVm::new();
-    vm.load_module(artifacts.core);
-    vm.execute_zero_arity(&module_name, entry, output)
+    let module_stem = module_name.replace('.', "_");
+    let workspace = state.out_dir.join("vm-command-aot").join(&module_stem);
+    let image = crate::commands::build::vm_artifact::native_image::compile_repl_native_image(
+        &workspace,
+        &module_stem,
+        &artifacts.core,
+    )?
+    .ok_or_else(|| {
+        format!(
+            "error[vm.aot_required]: `{module_name}.{entry}/0` did not produce a native image; runtime CoreIR interpretation has been removed"
+        )
+    })?;
+    let mut shard = PureNativeExecutionShard::load_image(&image)?;
+    let qualified = format!("{module_name}.{entry}");
+    if !shard.has_export(&qualified, 0) {
+        return Err(format!(
+            "error[vm.aot_export_missing]: native image does not contain `{qualified}/0`; runtime CoreIR interpretation has been removed"
+        ));
+    }
+    let value = shard.call(&qualified, &[])?;
+    shard.shutdown()?;
+    let _ = output;
+    Ok(value)
+}
+
+/// Publishes changed source files through the VM source-reload adapter.
+///
+/// Inputs:
+/// - `sources`: changed source or asset paths reported by a caller.
+///
+/// Output:
+/// - Code-server publication events for changed Terlan sources.
+/// - Error text when no Terlan source was published or a source fails.
+///
+/// Transformation:
+/// - Gives the experimental command surface a concrete source-hot-reload
+///   boundary while keeping long-lived watcher state in the VM adapter.
+#[cfg(test)]
+fn reload_source_files_in_vm(sources: &[PathBuf]) -> Result<Vec<VmCodeServerEvent>, String> {
+    Ok(reload_source_files_in_vm_with_report(sources)?.events)
+}
+
+/// Publishes changed source files and returns an inspectable reload report.
+///
+/// Inputs:
+/// - `sources`: changed source or asset paths reported by a caller.
+///
+/// Output:
+/// - Batch diagnostics and code-server publication events.
+/// - Error text when no Terlan source was published or a source fails.
+///
+/// Transformation:
+/// - Keeps the command-facing reload path aligned with the VM adapter report so
+///   dev-server, CLI, and debugger tooling can share one diagnostic contract.
+#[cfg(test)]
+fn reload_source_files_in_vm_with_report(
+    sources: &[PathBuf],
+) -> Result<VmSourceReloadBatchReport, String> {
+    let mut adapter = VmSourceReloadAdapter::new();
+    let report = adapter.publish_changed_files_with_report(sources)?;
+
+    if report.events.is_empty() {
+        return Err("terlc vm reload did not receive any .terl source files".to_string());
+    }
+    Ok(report)
+}
+
+/// Compiles and admits one source batch as an executable native generation.
+fn reload_native_source_files_in_vm(
+    sources: &[PathBuf],
+    state: &CliState,
+) -> Result<VmNativeSourceReloadReport, String> {
+    VmNativeSourceReloadService::new().reload(sources, state)
+}
+
+/// Renders one VM source-reload event for command output.
+///
+/// Inputs:
+/// - `event`: code-server event returned by the source reload adapter.
+///
+/// Output:
+/// - Stable human-readable event summary.
+///
+/// Transformation:
+/// - Keeps the experimental command output source-facing instead of exposing
+///   internal Rust enum formatting as a CLI contract.
+fn render_reload_event(event: &VmCodeServerEvent) -> String {
+    match event {
+        VmCodeServerEvent::Published { module, generation } => {
+            format!("published {module} generation {}", generation.as_u64())
+        }
+        VmCodeServerEvent::HotReloaded {
+            module,
+            previous_generation,
+            active_generation,
+            ..
+        } => format!(
+            "hot-reloaded {module} generation {} -> {}",
+            previous_generation.as_u64(),
+            active_generation.as_u64()
+        ),
+        VmCodeServerEvent::GenerationRetired { module, generation } => {
+            format!("retired {module} generation {}", generation.as_u64())
+        }
+        VmCodeServerEvent::GenerationPurged { module, generation } => {
+            format!("purged {module} generation {}", generation.as_u64())
+        }
+    }
+}
+
+/// Renders VM source-reload batch diagnostics for command output.
+///
+/// Inputs:
+/// - `report`: source reload report returned by the VM adapter.
+///
+/// Output:
+/// - Stable single-line diagnostic summary.
+///
+/// Transformation:
+/// - Keeps diagnostic output field-based and script-readable without exposing
+///   the internal Rust struct formatting.
+fn render_reload_diagnostics(report: &VmSourceReloadBatchReport) -> String {
+    format!(
+        "reload diagnostics: changed_paths={} unique_sources={} ignored_paths={} duplicate_sources={} events={}",
+        report.changed_paths,
+        report.unique_source_paths,
+        report.ignored_paths,
+        report.duplicate_source_paths,
+        report.events.len()
+    )
+}
+
+/// Renders native generation and source batch reload diagnostics.
+fn render_native_reload_diagnostics(report: &VmNativeSourceReloadReport) -> String {
+    format!(
+        "{} native_generation={} native_image={} generation_references={}",
+        render_reload_diagnostics(&report.sources),
+        report.native_generation,
+        report.native_image.display(),
+        report.references.total()
+    )
 }
 
 /// Prints hidden Rust VM command usage.
 fn print_vm_usage() {
     println!("terlc --experimental vm run <file.terl> [--entry <function>]");
+    println!("terlc --experimental vm reload [--diagnostics] <file.terl> [file.terl ...]");
 }
 
 #[cfg(test)]

@@ -3,6 +3,40 @@ mod tests {
     use crate::terlan_syntax::parse_tree::Decl;
     use crate::terlan_syntax::{parse_interface_module, parse_module};
 
+    /// Verifies generated package interfaces preserve bodyless receiver methods.
+    ///
+    /// Inputs:
+    /// - A public opaque resource type and one receiver-method signature.
+    ///
+    /// Output:
+    /// - A method declaration with receiver metadata and no implementation
+    ///   clauses.
+    ///
+    /// Transformation:
+    /// - Locks the interface shape required by external native packages such as
+    ///   `terlan-polars` so their generated `.typi` files remain loadable by
+    ///   dependent projects.
+    #[test]
+    fn interface_parser_accepts_bodyless_receiver_method_signatures() {
+        let source = r#"
+module polars.DataFrame.
+
+pub opaque type DataFrame.
+
+pub (_df: DataFrame) height(): Int.
+"#;
+
+        let module = parse_interface_module(source).expect("parse receiver interface");
+        assert_eq!(module.declarations.len(), 2);
+        let Decl::Method(method) = &module.declarations[1] else {
+            panic!("expected receiver method declaration");
+        };
+        assert_eq!(method.receiver.name, "_df");
+        assert_eq!(method.name, "height");
+        assert_eq!(method.return_type.text, "Int");
+        assert!(method.clauses.is_empty());
+    }
+
     #[test]
     fn interface_parser_accepts_macros_and_types() {
         let source = r#"
@@ -474,15 +508,15 @@ pub put(Cache: Cache, Key: Binary, Value: Binary): ok.
         let contracts = [
             (
                 "std.collections.Map",
-                include_str!("../../../../../std/collections/map.terl"),
+                include_str!("../../../../../std/collections/Map.terl"),
             ),
             (
                 "std.collections.List",
-                include_str!("../../../../../std/collections/list.terl"),
+                include_str!("../../../../../std/collections/List.terl"),
             ),
             (
                 "std.collections.Set",
-                include_str!("../../../../../std/collections/set.terl"),
+                include_str!("../../../../../std/collections/Set.terl"),
             ),
         ];
 
@@ -511,11 +545,11 @@ pub put(Cache: Cache, Key: Binary, Value: Binary): ok.
         let contracts = [
             (
                 "std.collections.Iterator",
-                include_str!("../../../../../std/collections/iterator.terl"),
+                include_str!("../../../../../std/collections/Iterator.terl"),
             ),
             (
                 "std.collections.Iterable",
-                include_str!("../../../../../std/collections/iterable.terl"),
+                include_str!("../../../../../std/collections/Iterable.terl"),
             ),
         ];
 

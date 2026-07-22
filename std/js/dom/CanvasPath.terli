@@ -1,0 +1,86 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasPath
+ */
+module std.js.Dom.CanvasPath.
+
+import type std.core.{Bool, Unit}.
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasPath.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arc)
+ */
+pub (value: CanvasPath) arc(
+    x: JsNumber,
+    y: JsNumber,
+    radius: JsNumber,
+    start_angle: JsNumber,
+    end_angle: JsNumber,
+    counterclockwise: Bool
+): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arcTo)
+ */
+pub (value: CanvasPath) arc_to(x1: JsNumber, y1: JsNumber, x2: JsNumber, y2: JsNumber, radius: JsNumber): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/bezierCurveTo)
+ */
+pub (value: CanvasPath) bezier_curve_to(
+    cp1x: JsNumber,
+    cp1y: JsNumber,
+    cp2x: JsNumber,
+    cp2y: JsNumber,
+    x: JsNumber,
+    y: JsNumber
+): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/closePath)
+ */
+pub (value: CanvasPath) close_path(): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/ellipse)
+ */
+pub (value: CanvasPath) ellipse(
+    x: JsNumber,
+    y: JsNumber,
+    radius_x: JsNumber,
+    radius_y: JsNumber,
+    rotation: JsNumber,
+    start_angle: JsNumber,
+    end_angle: JsNumber,
+    counterclockwise: Bool
+): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineTo)
+ */
+pub (value: CanvasPath) line_to(x: JsNumber, y: JsNumber): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/moveTo)
+ */
+pub (value: CanvasPath) move_to(x: JsNumber, y: JsNumber): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/quadraticCurveTo)
+ */
+pub (value: CanvasPath) quadratic_curve_to(cpx: JsNumber, cpy: JsNumber, x: JsNumber, y: JsNumber): Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rect)
+ */
+pub (value: CanvasPath) rect(x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit.

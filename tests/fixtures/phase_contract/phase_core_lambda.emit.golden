@@ -1,3 +1,0 @@
--module(phase_core_lambda).
--export([id_fun/0]).
-id_fun() ->

@@ -1,8 +1,8 @@
 module=std.js.Dom.CanvasFilters
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=6336146977147518650
-interface_hash=9008055592407811860
-interface_doc_hash=9008055592407811860
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=4455856173037650836
+interface_hash=10310805788183992845
+interface_doc_hash=10310805788183992845
 deps=0

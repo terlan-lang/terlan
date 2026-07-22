@@ -1,8 +1,9 @@
 //! Portable Base64 encoding contract.
 //!
 //! `std.encoding.Base64` exposes text-oriented Base64 helpers through a
-//! target-neutral Terlan API. Its first backend is Rust/SafeNative with the
-//! `base64` crate; source code sees only `String`, `Base64Error`, and `Result`.
+//! target-neutral Terlan API. Its first backend is Rust/NativeBoundary with the
+//! `base64` crate; source code sees only `String`, `Bytes`, `Base64Error`, and
+//! `Result`.
 
 module std.encoding.Base64.
 
@@ -30,6 +31,15 @@ pub struct Base64Error {
 
 pub decode(text: String): Result[String, Base64Error].
 
+/// Decodes standard Base64 text into arbitrary VM-owned bytes.
+///
+/// Input: one strictly encoded standard Base64 string.
+/// Output: `Ok(bytes)` for valid input or `Err(Base64Error)` for malformed text.
+/// Transformation: decodes directly into VM-owned bytes without a UTF-8
+/// validation step.
+
+pub decode_bytes(text: String): Result[Bytes, Base64Error].
+
 /// Decodes URL-safe Base64 text into UTF-8 text.
 ///
 /// Input: one URL-safe Base64 `String`.
@@ -40,6 +50,15 @@ pub decode(text: String): Result[String, Base64Error].
 
 pub decode_url(text: String): Result[String, Base64Error].
 
+/// Decodes URL-safe Base64 text into arbitrary VM-owned bytes.
+///
+/// Input: one strictly encoded URL-safe Base64 string.
+/// Output: `Ok(bytes)` for valid input or `Err(Base64Error)` for malformed text.
+/// Transformation: decodes directly into VM-owned bytes without a UTF-8
+/// validation step.
+
+pub decode_url_bytes(text: String): Result[Bytes, Base64Error].
+
 /// Encodes UTF-8 text with the standard Base64 alphabet.
 ///
 /// Input: one UTF-8 `String`.
@@ -47,6 +66,15 @@ pub decode_url(text: String): Result[String, Base64Error].
 /// Transformation: delegates encoding to the selected target Base64 capability.
 
 pub encode(text: String): String.
+
+/// Encodes arbitrary VM-owned bytes with the standard Base64 alphabet.
+///
+/// Input: one immutable `Bytes` payload.
+/// Output: padded Base64 text using the standard alphabet.
+/// Transformation: passes the exact octets through the selected native
+/// capability without interpreting them as UTF-8.
+
+pub encode_bytes(bytes: Bytes): String.
 
 /// Encodes UTF-8 text with the URL-safe Base64 alphabet.
 ///
@@ -57,3 +85,12 @@ pub encode(text: String): String.
 /// capability.
 
 pub encode_url(text: String): String.
+
+/// Encodes arbitrary VM-owned bytes with the URL-safe Base64 alphabet.
+///
+/// Input: one immutable `Bytes` payload.
+/// Output: padded Base64 text using the URL-safe alphabet.
+/// Transformation: passes the exact octets through the selected URL-safe
+/// native capability without interpreting them as UTF-8.
+
+pub encode_url_bytes(bytes: Bytes): String.

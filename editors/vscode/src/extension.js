@@ -1,22 +1,36 @@
 "use strict";
 
+const fs = require("fs");
 const vscode = require("vscode");
 const { createClientOptions, createServerOptions } = require("./client_config");
 const {
+  RUN_COMMAND_IDS,
+  buildBuildCommandLine,
+  buildCheckCommandLine,
+  buildCleanCommandLine,
+  buildDebugBreakpointCommandLine,
+  buildDebugCommandLine,
+  buildDoctorCommandLine,
+  buildInspectCommandLine,
   buildRunCommandLine,
+  buildServeCommandLine,
+  buildTerminalLaunchDescriptor,
   buildTestFileCommandLine,
   buildTestNameCommandLine,
+  buildWatchCommandLine,
   discoverRunnableEntries,
   findQualifiedModuleReferenceAtLine,
   findModuleReferencePrefixAtPosition,
   findTestNameAtLine,
+  hasRunnableTestName,
   hasModuleImport,
   importInsertionLine,
+  isProjectScriptFilePath,
   isTerlanTestFilePath,
   moduleLeafName,
   parseModuleDeclaration,
-  resolveRunWorkspaceFolder,
-  withShellCommandCacheRefresh
+  resolveRunTargetPath,
+  resolveRunWorkspaceFolder
 } = require("./run_command");
 const {
   findTemplateComponentTagLinks,
@@ -42,16 +56,55 @@ let terlanTerminal;
  */
 function activate(context) {
   context.subscriptions.push(
-    vscode.commands.registerCommand("terlan.runMain", runMain)
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runMain, runMain)
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("terlan.runTestFile", runTestFile)
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runCheck, runCheck)
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("terlan.runTestAtCursor", runTestAtCursor)
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runBuild, runBuild)
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("terlan.runTestByName", runTestByName)
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runClean, runClean)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runServe, runServe)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runWatch, runWatch)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runDoctor, runDoctor)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runDebug, runDebug)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runDebugAtCursor, runDebugAtCursor)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.inspectRuntime, inspectRuntime)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.addMissingImport, () =>
+      vscode.commands.executeCommand("editor.action.quickFix"))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.formatDocument, () =>
+      vscode.commands.executeCommand("editor.action.formatDocument"))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.showDiagnostics, () =>
+      vscode.commands.executeCommand("workbench.actions.view.problems"))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runTestFile, runTestFile)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runTestAtCursor, runTestAtCursor)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_COMMAND_IDS.runTestByName, runTestByName)
   );
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider(
@@ -528,33 +581,323 @@ function startLanguageClient(context) {
 }
 
 /**
- * Runs the active Terlan workspace through `terlc run`.
+ * Runs a Terlan file or the active Terlan workspace through `terlc run`.
+ *
+ * Inputs:
+ * - Optional `filePath` supplied by CodeLens; otherwise reads the active
+ *   editor, workspace folders, and `terlan.run.command` configuration from VS
+ *   Code.
+ *
+ * Output:
+ * - Sends `terlc run <file-or-workspace>` to the shared Terlan terminal, or
+ *   shows a warning when no runnable target is available.
+ *
+ * Transformation:
+ * - Lets CodeLens launches carry the exact source file that declared `main`
+ *   while command-palette launches continue to use active workspace resolution.
+ */
+async function runMain(filePath = undefined) {
+  if (filePath) {
+    if (!String(filePath).endsWith(".terl")) {
+      vscode.window.showWarningMessage("Select a Terlan source file before running main.");
+      return;
+    }
+    await saveDocumentByPath(filePath);
+    sendTerlanTerminalCommand(buildRunCommandLine(terlanCommand(), filePath));
+    return;
+  }
+
+  const projectPath = activeRunTargetPath();
+  if (!projectPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before running.");
+    return;
+  }
+
+  await saveActiveTerlanDocument();
+  const editor = vscode.window.activeTextEditor;
+  const activeFilePath = editor && editor.document && editor.document.uri.fsPath;
+  const targetPath = isProjectScriptFilePath(activeFilePath, projectPath)
+    ? activeFilePath
+    : projectPath;
+  sendTerlanTerminalCommand(
+    buildRunCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/**
+ * Runs compiler-owned package checks for the active workspace.
  *
  * Inputs:
  * - No explicit input; reads the active editor, workspace folders, and
  *   `terlan.run.command` configuration from VS Code.
  *
  * Output:
- * - Sends a `terlc run <workspace>` command to the shared Terlan terminal, or
- *   shows a warning when no workspace folder is available.
+ * - Sends `terlc check <workspace>` to the shared Terlan terminal, or shows a
+ *   warning when no workspace folder is available.
  *
  * Transformation:
- * - Resolves the workspace that owns the active document, builds a shell-safe
- *   run command, and delegates execution to the shared integrated terminal.
+ * - Reuses the compiler's package/check path instead of maintaining
+ *   editor-owned validation.
  */
-async function runMain() {
-  const workspaceFolder = resolveRunWorkspaceFolder(
-    vscode.workspace,
-    vscode.window.activeTextEditor
-  );
-  if (!workspaceFolder) {
-    vscode.window.showWarningMessage("Open a Terlan workspace before running.");
+async function runCheck() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before checking.");
     return;
   }
 
   await saveActiveTerlanDocument();
   sendTerlanTerminalCommand(
-    buildRunCommandLine(terlanCommand(), workspaceFolder.uri.fsPath)
+    buildCheckCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/**
+ * Builds the active Terlan workspace through the compiler.
+ *
+ * Inputs:
+ * - No explicit input; reads the active editor, workspace folders, and
+ *   `terlan.run.command` configuration from VS Code.
+ *
+ * Output:
+ * - Sends `terlc build <workspace>` to the shared Terlan terminal, or shows a
+ *   warning when no workspace folder is available.
+ *
+ * Transformation:
+ * - Keeps artifact generation compiler-owned while exposing a stable editor
+ *   command for package workflows.
+ */
+async function runBuild() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before building.");
+    return;
+  }
+
+  await saveActiveTerlanDocument();
+  sendTerlanTerminalCommand(
+    buildBuildCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/**
+ * Cleans compiler-owned artifacts for the active Terlan workspace.
+ *
+ * Inputs:
+ * - No explicit input; reads the active editor, workspace folders, and
+ *   `terlan.run.command` configuration from VS Code.
+ *
+ * Output:
+ * - Sends `terlc clean <workspace>` to the shared Terlan terminal, or shows a
+ *   warning when no workspace folder is available.
+ *
+ * Transformation:
+ * - Delegates cleanup to the compiler command instead of deleting build
+ *   directories in the editor extension.
+ */
+async function runClean() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before cleaning.");
+    return;
+  }
+
+  await saveActiveTerlanDocument();
+  sendTerlanTerminalCommand(
+    buildCleanCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/**
+ * Starts the active Terlan web package through `terlc serve`.
+ *
+ * Inputs:
+ * - No explicit input; reads the active editor, workspace folders, and
+ *   `terlan.run.command` configuration from VS Code.
+ *
+ * Output:
+ * - Sends `terlc serve <workspace>` to the shared Terlan terminal, or shows a
+ *   warning when no workspace folder is available.
+ *
+ * Transformation:
+ * - Keeps HTTP serving compiler-owned while exposing a stable editor command
+ *   for local web application workflows.
+ */
+async function runServe() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before serving.");
+    return;
+  }
+
+  await saveActiveTerlanDocument();
+  sendTerlanTerminalCommand(
+    buildServeCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/**
+ * Starts the active Terlan web package in live-reload watch mode.
+ *
+ * Inputs:
+ * - No explicit input; reads the active editor, workspace folders, and
+ *   `terlan.run.command` configuration from VS Code.
+ *
+ * Output:
+ * - Sends compiler-owned `terlc serve <workspace> --poll-ms 250` to the shared
+ *   Terlan terminal, or shows a warning when no workspace folder is available.
+ *
+ * Transformation:
+ * - Exposes the existing serve watcher without adding editor-side file watching
+ *   or duplicate HTTP process management.
+ */
+async function runWatch() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before watching.");
+    return;
+  }
+
+  await saveActiveTerlanDocument();
+  sendTerlanTerminalCommand(
+    buildWatchCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/**
+ * Runs compiler-owned Terlan project diagnostics for the active workspace.
+ *
+ * Inputs:
+ * - No explicit input; reads the active editor, workspace folders, and
+ *   `terlan.run.command` configuration from VS Code.
+ *
+ * Output:
+ * - Sends `terlc doctor <workspace>` to the shared Terlan terminal, or shows a
+ *   warning when no workspace folder is available.
+ *
+ * Transformation:
+ * - Exposes the CLI doctor/support surface without duplicating VM-pivot,
+ *   generated-output, or support-bundle diagnostics in the editor extension.
+ */
+async function runDoctor() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before running doctor.");
+    return;
+  }
+
+  await saveActiveTerlanDocument();
+  sendTerlanTerminalCommand(
+    buildDoctorCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/** Runs a deterministic VM/runtime snapshot for the active workspace. */
+async function inspectRuntime() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before inspecting the runtime.");
+    return;
+  }
+  sendTerlanTerminalCommand(buildInspectCommandLine(terlanCommand(), targetPath));
+}
+
+/**
+ * Launches the compiler-owned Terlan debugger event stream for a workspace.
+ *
+ * Inputs:
+ * - No explicit input; reads the active editor, workspace folders, and
+ *   `terlan.run.command` configuration from VS Code.
+ *
+ * Output:
+ * - Sends `terlc debug <workspace> --json-events` to the shared Terlan
+ *   terminal, or shows a warning when no workspace folder is available.
+ *
+ * Transformation:
+ * - Provides a stable editor debugger launch target while keeping the VS Code
+ *   DAP contribution unpublished until a real adapter exists.
+ */
+async function runDebug() {
+  const targetPath = activeRunTargetPath();
+  if (!targetPath) {
+    vscode.window.showWarningMessage("Open a Terlan workspace before debugging.");
+    return;
+  }
+
+  await saveActiveTerlanDocument();
+  sendTerlanTerminalCommand(
+    buildDebugCommandLine(terlanCommand(), targetPath)
+  );
+}
+
+/**
+ * Launches the Terlan debugger with a breakpoint at the active cursor line.
+ *
+ * Inputs:
+ * - Active Terlan editor and cursor position.
+ *
+ * Output:
+ * - Sends `terlc debug <file> --break <file:line> --json-events` to the shared
+ *   Terlan terminal, or shows a warning when no Terlan source file is active.
+ *
+ * Transformation:
+ * - Converts VS Code's zero-based cursor line to the one-based compiler
+ *   breakpoint format while leaving breakpoint validation to `terlc debug`.
+ */
+async function runDebugAtCursor() {
+  const editor = vscode.window.activeTextEditor;
+  const filePath = editor && editor.document && editor.document.uri.fsPath;
+  if (!filePath || !String(filePath).endsWith(".terl")) {
+    vscode.window.showWarningMessage("Open a Terlan source file before debugging at cursor.");
+    return;
+  }
+
+  await saveDocumentByPath(filePath);
+  sendTerlanTerminalCommand(
+    buildDebugBreakpointCommandLine(
+      terlanCommand(),
+      filePath,
+      editor.selection.active.line + 1
+    )
+  );
+}
+
+/**
+ * Resolves the workspace folder used by run/serve/watch editor actions.
+ *
+ * Inputs:
+ * - Active VS Code editor and workspace folders.
+ *
+ * Output:
+ * - Workspace folder selected for compiler-owned runnable commands.
+ *
+ * Transformation:
+ * - Centralizes active-document workspace resolution so all workspace-level
+ *   commands use identical multi-root behavior.
+ */
+function activeRunWorkspaceFolder() {
+  return resolveRunWorkspaceFolder(vscode.workspace, vscode.window.activeTextEditor);
+}
+
+/**
+ * Resolves the package/workspace path used by workspace-level run actions.
+ *
+ * Inputs:
+ * - Active VS Code editor, workspace folders, and local filesystem metadata.
+ *
+ * Output:
+ * - Nearest active Terlan package root containing `terlan.toml`, or the owning
+ *   VS Code workspace root when no nested package manifest is present.
+ *
+ * Transformation:
+ * - Keeps package-root selection in the editor aligned with compiler-owned
+ *   package commands while preserving deterministic multi-root fallback.
+ */
+function activeRunTargetPath() {
+  return resolveRunTargetPath(
+    vscode.workspace,
+    vscode.window.activeTextEditor,
+    (filePath) => fs.existsSync(filePath)
   );
 }
 
@@ -645,6 +988,13 @@ async function runTestByName(filePath, testName) {
   }
 
   await saveDocumentByPath(filePath);
+  const document = openDocumentByPath(filePath);
+  if (document && !hasRunnableTestName(document.getText(), testName)) {
+    vscode.window.showWarningMessage(
+      `Terlan test '${testName}' no longer exists in this file.`
+    );
+    return;
+  }
   sendTerlanTerminalCommand(
     buildTestNameCommandLine(terlanCommand(), filePath, testName)
   );
@@ -687,12 +1037,29 @@ async function saveActiveTerlanDocument() {
  *   so CodeLens and command-palette test runs use current editor contents.
  */
 async function saveDocumentByPath(filePath) {
-  const document = vscode.workspace.textDocuments.find(
-    (candidate) => candidate.uri && candidate.uri.fsPath === filePath
-  );
+  const document = openDocumentByPath(filePath);
   if (document) {
     await saveDocument(document);
   }
+}
+
+/**
+ * Finds an already-open VS Code document by filesystem path.
+ *
+ * Inputs:
+ * - `filePath`: source path provided by a command or CodeLens argument.
+ *
+ * Output:
+ * - Matching open document, when VS Code currently has one.
+ *
+ * Transformation:
+ * - Keeps stale CodeLens validation scoped to open buffers and leaves closed
+ *   files to the compiler-owned `terlc test --name` selector.
+ */
+function openDocumentByPath(filePath) {
+  return vscode.workspace.textDocuments.find(
+    (candidate) => candidate.uri && candidate.uri.fsPath === filePath
+  );
 }
 
 /**
@@ -753,13 +1120,14 @@ function createTerlanCodeLensProvider() {
         if (entry.kind === "test") {
           return new vscode.CodeLens(range, {
             title: "$(play) Run Test",
-            command: "terlan.runTestByName",
+            command: RUN_COMMAND_IDS.runTestByName,
             arguments: [document.uri.fsPath, entry.name]
           });
         }
         return new vscode.CodeLens(range, {
           title: "$(play) Run",
-          command: "terlan.runMain"
+          command: RUN_COMMAND_IDS.runMain,
+          arguments: [document.uri.fsPath]
         });
       });
     }
@@ -798,8 +1166,9 @@ function terlanCommand() {
  */
 function sendTerlanTerminalCommand(commandLine) {
   const terminal = sharedTerlanTerminal();
+  const launch = buildTerminalLaunchDescriptor("command", undefined, commandLine);
   terminal.show();
-  terminal.sendText(withShellCommandCacheRefresh(commandLine));
+  terminal.sendText(launch.terminalCommandLine);
 }
 
 /**
@@ -848,10 +1217,20 @@ module.exports = {
   createTerlanCodeLensProvider,
   createTerlanTemplateHtmlDefinitionProvider,
   createTerlanTemplateHtmlDocumentLinkProvider,
+  runBuild,
+  runCheck,
+  runClean,
+  runDebug,
+  runDebugAtCursor,
+  runDoctor,
+  inspectRuntime,
   runMain,
+  runServe,
+  activeRunTargetPath,
   runTestAtCursor,
   runTestByName,
   runTestFile,
+  runWatch,
   saveActiveTerlanDocument,
   saveDocumentByPath,
   sendTerlanTerminalCommand,

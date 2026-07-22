@@ -1,0 +1,103 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLAreaElement
+ */
+module std.js.Dom.HTMLAreaElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLAreaElement`** interface provides special properties and methods (beyond those of the regular object HTMLElement interface it also has available to it by inheritance) for manipulating the layout and presentation of area elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement)
+ */
+pub opaque type HTMLAreaElement.
+
+/**
+ * The **`alt`** property of the HTMLAreaElement interface specifies the text of the hyperlink, defining the textual label for an image map's link.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/alt)
+ */
+pub (value: HTMLAreaElement) alt(): JsString.
+
+/**
+ * The **`coords`** property of the HTMLAreaElement interface specifies the coordinates of the element's shape as a list of floating-point numbers.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/coords)
+ */
+pub (value: HTMLAreaElement) coords(): JsString.
+
+/**
+ * The **`download`** property of the HTMLAreaElement interface is a string indicating that the linked resource is intended to be downloaded rather than displayed in the browser.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/download)
+ */
+pub (value: HTMLAreaElement) download(): JsString.
+
+/**
+ * @deprecated
+ */
+pub (value: HTMLAreaElement) no_href(): Bool.
+
+/**
+ * The **`ping`** property of the HTMLAreaElement interface is a space-separated list of URLs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/ping)
+ */
+pub (value: HTMLAreaElement) ping(): JsString.
+
+/**
+ * The **`HTMLAreaElement.referrerPolicy`** property reflect the HTML `referrerpolicy` attribute of the resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/referrerPolicy)
+ */
+pub (value: HTMLAreaElement) referrer_policy(): JsString.
+
+/**
+ * The **`HTMLAreaElement.rel`** property reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/rel)
+ */
+pub (value: HTMLAreaElement) rel(): JsString.
+
+/**
+ * The **`HTMLAreaElement.relList`** read-only property reflects the `rel` attribute.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/relList)
+ */
+pub (value: HTMLAreaElement) rel_list(): DOMTokenList.
+
+/**
+ * The **`shape`** property of the HTMLAreaElement interface specifies the shape of an image map area.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/shape)
+ */
+pub (value: HTMLAreaElement) shape(): JsString.
+
+/**
+ * The **`target`** property of the HTMLAreaElement interface is a string that indicates where to display the linked resource.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/target)
+ */
+pub (value: HTMLAreaElement) target_(): JsString.
+
+pub (value: HTMLAreaElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLAreaElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

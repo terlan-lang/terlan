@@ -3,10 +3,11 @@
  *
  * `std.core.Option` represents either no value or one present value.
  */
-
 module std.core.Option.
 
 import std.core.Ordering.{Eq, Gt, Lt}.
+
+import type std.core.Ordering.{Comparison}.
 
 /**
  * None represents a missing optional value.
@@ -24,8 +25,7 @@ import std.core.Ordering.{Eq, Gt, Lt}.
  *    None.
  * ```
  */
-pub type None =
-    Atom["none"].
+pub type None.
 
 /**
  * Some represents a present optional value.
@@ -42,8 +42,7 @@ pub type None =
  *    Some(value).
  * ```
  */
-pub type Some[T] =
-    {Atom["some"], value: T}.
+pub type Some[T] = {Atom["some"], value: T}.
 
 /**
  * Option represents an optional value.
@@ -71,9 +70,7 @@ pub type Some[T] =
  *    Some(x).
  * ```
  */
-pub type Option[T] =
-      None
-    | Some[T].
+pub type Option[T] = None | Some[T].
 
 /**
  * Returns whether an optional value is present.
@@ -92,11 +89,8 @@ pub type Option[T] =
  */
 pub is_some(value: Option[A]): Bool ->
     case value {
-        None ->
-            false;
-
-        Some(_) ->
-            true
+        None -> false;
+        Some(_) -> true
     }.
 
 /**
@@ -116,11 +110,8 @@ pub is_some(value: Option[A]): Bool ->
  */
 pub is_none(value: Option[A]): Bool ->
     case value {
-        None ->
-            true;
-
-        Some(_) ->
-            false
+        None -> true;
+        Some(_) -> false
     }.
 
 /**
@@ -154,11 +145,8 @@ pub is_none(value: Option[A]): Bool ->
  */
 pub map(value: Option[A], f: (A) -> B): Option[B] ->
     case value {
-        None ->
-            None;
-
-        Some(x) ->
-            Some(f(x))
+        None -> None;
+        Some(x) -> Some(f(x))
     }.
 
 /**
@@ -194,11 +182,8 @@ pub map(value: Option[A], f: (A) -> B): Option[B] ->
  */
 pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B] ->
     case value {
-        None ->
-            None;
-
-        Some(x) ->
-            f(x)
+        None -> None;
+        Some(x) -> f(x)
     }.
 
 /**
@@ -222,28 +207,17 @@ pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B] ->
  *    std.core.Option.compare(None, Some(1), compare_int).
  * ```
  */
-pub compare(
-    left: Option[A],
-    right: Option[A],
-    value_compare: (A, A) -> std.core.Ordering.Comparison
-): std.core.Ordering.Comparison ->
+pub compare(left: Option[A], right: Option[A], value_compare: (A, A) -> Comparison): Comparison ->
     case left {
         None ->
             case right {
-                None ->
-                    Eq;
-
-                Some(_) ->
-                    Lt
+                None -> Eq;
+                Some(_) -> Lt
             };
-
         Some(left_value) ->
             case right {
-                None ->
-                    Gt;
-
-                Some(right_value) ->
-                    value_compare(left_value, right_value)
+                None -> Gt;
+                Some(right_value) -> value_compare(left_value, right_value)
             }
     }.
 
@@ -278,9 +252,6 @@ pub compare(
  */
 pub with_default(value: Option[A], default: A): A ->
     case value {
-        None ->
-            default;
-
-        Some(x) ->
-            x
+        None -> default;
+        Some(x) -> x
     }.

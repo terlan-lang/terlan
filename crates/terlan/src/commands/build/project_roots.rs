@@ -1,11 +1,14 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use super::metadata::{ProjectBuildRoots, ProjectNativeRustDependency, ProjectSourceRoot};
+use super::metadata::{
+    ProjectBuildRoots, ProjectDependencyOrigin, ProjectNativeRustDependency, ProjectSourceRoot,
+};
+use super::package_git::GitDependencyCache;
 use super::package_layout::source_package_path;
 use super::{project_manifest, project_manifest_path, TERLAN_PROJECT_MANIFEST_FILE};
 
-/// Resolves project and local path dependency source roots.
+/// Resolves project, local path, and locked Git dependency source roots.
 ///
 /// Inputs:
 /// - `project_dir`: root package directory.
@@ -17,19 +20,22 @@ use super::{project_manifest, project_manifest_path, TERLAN_PROJECT_MANIFEST_FIL
 ///   `terlan.toml`, has a missing source root, or participates in a cycle.
 ///
 /// Transformation:
-/// - Recursively walks only local `path` dependencies and leaves target-scoped
-///   external dependency metadata for later target-adapter diagnostics.
+/// - Recursively walks local `path` dependencies and immutable Git revisions
+///   already verified by `terlc package fetch`; normal builds never access the
+///   network.
 pub(super) fn resolve_project_build_roots(
     project_dir: &Path,
     manifest: &project_manifest::ProjectManifest,
 ) -> Result<ProjectBuildRoots, String> {
     reject_unsupported_external_dependencies(manifest)?;
-    let mut resolver = LocalDependencyResolver::default();
     let root_dir = canonical_project_dir(project_dir)?;
-    resolver.resolve_package(&root_dir, manifest, false)?;
+    let git_cache = GitDependencyCache::load_if_present(&root_dir)?;
+    let mut resolver = LocalDependencyResolver::new(git_cache);
+    resolver.resolve_package(&root_dir, manifest, None)?;
     Ok(ProjectBuildRoots {
         source_roots: resolver.source_roots,
         native_rust_dependencies: resolver.native_rust_dependencies,
+        native_artifact_environment: resolver.native_artifact_environment,
     })
 }
 
@@ -46,7 +52,8 @@ pub(super) fn resolve_project_build_roots(
 /// Transformation:
 /// - Allows local path dependencies to continue into closure validation and
 ///   stops `hex`, `npm`, and `cargo` dependencies before backend emission until
-///   target package-manager adapters land.
+///   target package-manager adapters land. Git dependencies are accepted as
+///   Terlan package-source metadata but are not fetched by this resolver yet.
 pub(super) fn reject_unsupported_external_dependencies(
     manifest: &project_manifest::ProjectManifest,
 ) -> Result<(), String> {
@@ -74,7 +81,7 @@ pub(super) fn reject_unsupported_external_dependencies(
 /// Output:
 /// - Target name, source kind, package name, and version for external
 ///   dependencies.
-/// - `None` for local path dependencies.
+/// - `None` for local path or Git dependencies.
 ///
 /// Transformation:
 /// - Converts dependency enum variants into diagnostic strings without
@@ -83,12 +90,6 @@ fn external_dependency_metadata(
     dependency: &project_manifest::ProjectDependency,
 ) -> Option<(&'static str, &'static str, &str, &str)> {
     match (&dependency.scope, &dependency.source) {
-        (
-            project_manifest::ProjectDependencyScope::Target(
-                project_manifest::ProjectTarget::Erlang,
-            ),
-            project_manifest::ProjectDependencySource::Hex { package, version },
-        ) => Some(("erlang", "hex", package.as_str(), version.as_str())),
         (
             project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Js),
             project_manifest::ProjectDependencySource::Npm { package, version },
@@ -114,15 +115,27 @@ fn external_dependency_metadata(
 /// Transformation:
 /// - Tracks packages currently being visited separately from packages already
 ///   resolved, so dependency cycles can be rejected before backend emission.
-#[derive(Debug, Default)]
 struct LocalDependencyResolver {
     visiting: BTreeSet<PathBuf>,
     visited: BTreeSet<PathBuf>,
     source_roots: Vec<ProjectSourceRoot>,
     native_rust_dependencies: Vec<ProjectNativeRustDependency>,
+    native_artifact_environment: Vec<(String, PathBuf)>,
+    git_cache: GitDependencyCache,
 }
 
 impl LocalDependencyResolver {
+    fn new(git_cache: GitDependencyCache) -> Self {
+        Self {
+            visiting: BTreeSet::new(),
+            visited: BTreeSet::new(),
+            source_roots: Vec::new(),
+            native_rust_dependencies: Vec::new(),
+            native_artifact_environment: Vec::new(),
+            git_cache,
+        }
+    }
+
     /// Resolves one package and its local path dependencies.
     ///
     /// Inputs:
@@ -141,7 +154,7 @@ impl LocalDependencyResolver {
         &mut self,
         project_dir: &Path,
         manifest: &project_manifest::ProjectManifest,
-        is_local_dependency: bool,
+        dependency_origin: Option<ProjectDependencyOrigin>,
     ) -> Result<(), String> {
         if self.visited.contains(project_dir) {
             return Ok(());
@@ -155,31 +168,43 @@ impl LocalDependencyResolver {
         }
 
         for dependency in &manifest.dependencies {
-            if let project_manifest::ProjectDependencySource::Path { path } = &dependency.source {
-                let dependency_dir =
-                    canonical_dependency_dir(project_dir, &dependency.alias, path)?;
-                let dependency_manifest_path = project_manifest_path(&dependency_dir);
-                if !dependency_manifest_path.is_file() {
-                    return Err(format!(
-                        "terlc build local path dependency `{}` does not contain {}: {}",
-                        dependency.alias,
-                        TERLAN_PROJECT_MANIFEST_FILE,
-                        dependency_manifest_path.display()
-                    ));
+            let (dependency_dir, origin) = match &dependency.source {
+                project_manifest::ProjectDependencySource::Path { path } => (
+                    canonical_dependency_dir(project_dir, &dependency.alias, path)?,
+                    ProjectDependencyOrigin::Path,
+                ),
+                project_manifest::ProjectDependencySource::Git { url, rev } => {
+                    let resolved = self.git_cache.resolve(&dependency.alias, url, rev)?;
+                    self.native_artifact_environment
+                        .extend(resolved.artifact_environment);
+                    (resolved.package_dir, ProjectDependencyOrigin::Git)
                 }
-                let dependency_manifest =
-                    project_manifest::read_project_manifest(&dependency_manifest_path)?;
-                self.resolve_package(&dependency_dir, &dependency_manifest, true)?;
+                project_manifest::ProjectDependencySource::Npm { .. }
+                | project_manifest::ProjectDependencySource::Cargo { .. } => continue,
+            };
+            let dependency_manifest_path = project_manifest_path(&dependency_dir);
+            if !dependency_manifest_path.is_file() {
+                return Err(format!(
+                    "terlc build {} `{}` does not contain {}: {}",
+                    origin.diagnostic_name(),
+                    dependency.alias,
+                    TERLAN_PROJECT_MANIFEST_FILE,
+                    dependency_manifest_path.display()
+                ));
             }
+            let dependency_manifest =
+                project_manifest::read_project_manifest(&dependency_manifest_path)?;
+            self.resolve_package(&dependency_dir, &dependency_manifest, Some(origin))?;
         }
 
-        if is_local_dependency {
+        if let Some(origin) = dependency_origin {
             if let Some(native) = &manifest.native_rust {
                 self.native_rust_dependencies
                     .push(ProjectNativeRustDependency {
                         package: manifest.package.clone(),
                         package_dir: project_dir.to_path_buf(),
                         native: native.clone(),
+                        origin,
                     });
             }
         }

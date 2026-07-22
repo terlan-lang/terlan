@@ -1,8 +1,8 @@
 module=std.js.Dom.EcdsaParams
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12286725299180186012
-interface_hash=456913958011727912
-interface_doc_hash=456913958011727912
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15163154344747474323
+interface_hash=17408087113009958130
+interface_doc_hash=17408087113009958130
 deps=0

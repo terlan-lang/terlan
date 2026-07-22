@@ -7,6 +7,28 @@
 
 module std.http.Router.
 
+/// ChannelEndpoint represents any VM-owned long-lived HTTP channel endpoint.
+///
+/// Input: a route endpoint plan from a channel module such as
+/// `std.http.WebSocket` or `std.http.Sse`.
+/// Output: an opaque endpoint value accepted by channel-aware router helpers.
+/// Transformation: documents the shared channel category without erasing the
+/// stricter `websocket` and `sse` function signatures.
+
+pub type ChannelEndpoint =
+    WebSocketEndpoint
+  | SseEndpoint.
+
+/// Continue advances HTTP dispatch to the next middleware or route handler.
+///
+/// Input: no runtime input.
+/// Output: the singleton continuation result.
+/// Transformation: makes middleware continuation explicit instead of inferring
+/// it from an ordinary response value.
+
+pub type Continue =
+    Atom["continue"].
+
 /// ErrorHandler represents one router-level error handler.
 ///
 /// Input: one `HttpError`.
@@ -15,7 +37,7 @@ module std.http.Router.
 /// callback shape without exposing backend panic, bridge, or server internals.
 
 pub type ErrorHandler =
-    (HttpError ) -> Response.
+    (HttpError) -> Response.
 
 /// GroupBuilder configures a nested router scope.
 ///
@@ -25,7 +47,7 @@ pub type ErrorHandler =
 /// function value instead of special route-block syntax.
 
 pub type GroupBuilder =
-    (Router ) -> Router.
+    (Router) -> Router.
 
 /// Handler represents one HTTP route handler.
 ///
@@ -35,17 +57,139 @@ pub type GroupBuilder =
 /// the compiler can validate handler arity and return type.
 
 pub type Handler =
-    (Request ) -> Response.
+    (Request) -> Response.
+
+/// Allows one policy-sensitive lifecycle transition.
+///
+/// Input: no payload.
+/// Output: the singleton `lifecycle_allow` decision.
+/// Transformation: authorizes the current transition without changing it.
+
+pub type LifecycleAllow =
+    Atom["lifecycle_allow"].
+
+/// Result returned by source lifecycle middleware.
+///
+/// Input: no direct runtime input.
+/// Output: either allow or reject.
+/// Transformation: closes the policy result domain to explicit decisions.
+
+pub type LifecycleDecision =
+    LifecycleAllow
+  | LifecycleReject.
+
+/// LifecycleEvent is the closed source-visible VM HTTP transition domain.
+///
+/// Input: no direct runtime input.
+/// Output: one worker, request, channel, or shutdown transition.
+/// Transformation: exposes capabilities-only lifecycle metadata while keeping
+/// process and stream handles opaque numeric identities.
+
+pub type LifecycleEvent =
+    {Atom["worker_start"], process: Int}
+  | {Atom["request_start"], process: Int, method: String, path: String}
+  | {Atom["request_end"], process: Int, method: String, path: String, outcome: LifecycleRequestOutcome}
+  | {Atom["channel_bind"], process: Int, stream: Int}
+  | {Atom["channel_unbind"], process: Int, stream: Int, reason: LifecycleExitReason}
+  | {Atom["shutdown_handoff"], mode: Atom["drain"] | Atom["immediate"], active_handlers: Int}.
+
+/// LifecycleExitReason describes why a VM HTTP channel stopped.
+///
+/// Input: no direct runtime input.
+/// Output: the closed VM process-exit reason domain.
+/// Transformation: preserves cleanup diagnostics without exposing runtime
+/// implementation types.
+
+pub type LifecycleExitReason =
+    Atom["normal"]
+  | Atom["killed"]
+  | {Atom["error"], message: String}
+  | {Atom["shutdown_timeout"], timeout_ms: Int}
+  | {Atom["memory_limit_exceeded"], requested_bytes: Int, previous_bytes: Int, projected_bytes: Int}.
+
+/// Callback invoked once for every VM HTTP lifecycle transition.
+///
+/// Input: one typed lifecycle event.
+/// Output: one lifecycle decision.
+/// Transformation: lets source policy observe transitions without scheduler
+/// access.
+
+pub type LifecycleMiddleware =
+    (LifecycleEvent) -> LifecycleDecision.
+
+/// Rejects one policy-sensitive lifecycle transition with a stable reason.
+///
+/// Input: one source-owned diagnostic reason.
+/// Output: a tagged rejection decision.
+/// Transformation: stops policy-sensitive work before it owns runtime state.
+
+pub type LifecycleReject =
+    {Atom["reject"], reason: String}.
+
+/// LifecycleRequestOutcome describes one completed VM HTTP request.
+///
+/// Input: no direct runtime input.
+/// Output: a successful status or a typed handler error message.
+/// Transformation: keeps request completion observable without exposing host
+/// server response objects or scheduler state.
+
+pub type LifecycleRequestOutcome =
+    {Atom["response"], status: Int}
+  | {Atom["error"], message: String}.
 
 /// Middleware represents one router middleware callback.
 ///
 /// Input: one `Request`.
-/// Output: one `Response`.
-/// Transformation: gives middleware registration a typed callback shape while
-/// the compiler/runtime route manifest owns ordering and dispatch semantics.
+/// Output: one explicit `MiddlewareResult`.
+/// Transformation: gives middleware registration a typed callback shape with
+/// deterministic continuation and short-circuit semantics.
 
 pub type Middleware =
-    (Request ) -> Response.
+    (Request) -> MiddlewareResult.
+
+/// MiddlewareResult is the complete result domain for HTTP middleware.
+///
+/// Input: no direct runtime input.
+/// Output: either `Continue` or `Respond(Response)`.
+/// Transformation: prevents middleware from accidentally treating an ordinary
+/// response as continuation state.
+
+pub type MiddlewareResult =
+    Continue
+  | Respond.
+
+/// OverloadPolicy selects the VM action when a router's pending-work bound is
+/// reached.
+///
+/// Input: no direct runtime input.
+/// Output: one of `queue`, `reject`, or `spill`.
+/// Transformation: keeps overload behavior explicit and closed to unsupported
+/// policy atoms before the VM admission layer consumes the router descriptor.
+
+pub type OverloadPolicy =
+    Atom["queue"]
+  | Atom["reject"]
+  | Atom["spill"].
+
+/// Respond terminates HTTP dispatch with one typed response.
+///
+/// Input: one `Response`.
+/// Output: a tagged middleware result containing that response.
+/// Transformation: gives authorization, recovery, and timeout middleware a
+/// typed short-circuit path.
+
+pub type Respond =
+    {Atom["respond"], response: Response}.
+
+/// ResponseMiddleware represents one router response callback.
+///
+/// Input: the original `Request` and the current typed `Response`.
+/// Output: the response passed to the next outer response middleware.
+/// Transformation: supports deterministic post-processing without exposing
+/// transport buffers or weakening the typed response contract.
+
+pub type ResponseMiddleware =
+    (Request, Response) -> Response.
 
 /// Router represents an HTTP route table.
 ///
@@ -55,6 +199,26 @@ pub type Middleware =
 /// stable source-visible builder type.
 
 pub opaque type Router.
+
+/// SseEndpoint represents one VM-owned server-sent event endpoint plan.
+///
+/// Input: a bounded endpoint plan from `std.http.Sse`.
+/// Output: an opaque endpoint value accepted by `Router.sse`.
+/// Transformation: keeps router declarations independent from concrete stream
+/// state while preserving explicit channel endpoint typing.
+
+pub type SseEndpoint =
+    std.http.Sse.Endpoint.
+
+/// WebSocketEndpoint represents one VM-owned WebSocket endpoint plan.
+///
+/// Input: a bounded endpoint plan from `std.http.WebSocket`.
+/// Output: an opaque endpoint value accepted by `Router.websocket`.
+/// Transformation: keeps router declarations independent from concrete socket
+/// state while preserving explicit channel endpoint typing.
+
+pub type WebSocketEndpoint =
+    std.http.WebSocket.Endpoint.
 
 /// Adds a `DELETE` route.
 ///
@@ -110,6 +274,24 @@ pub (router: Router) group(prefix: String, configure: GroupBuilder): Router.
 
 pub (router: Router) head(pattern: String, handler: Handler): Router.
 
+/// Installs source lifecycle middleware for a root router.
+///
+/// Input: one `Router` and one typed lifecycle callback.
+/// Output: the updated `Router`.
+/// Transformation: records a single callback that the VM invokes before
+/// policy-sensitive transitions and after non-vetoable cleanup transitions.
+
+pub (router: Router) lifecycle(middleware: LifecycleMiddleware): Router.
+
+/// Adds response middleware to a router scope.
+///
+/// Input: one `Router` and one response middleware callback.
+/// Output: the updated `Router`.
+/// Transformation: records post-processing that unwinds in reverse declaration
+/// order after a handler or short-circuit response is produced.
+
+pub (router: Router) map_response(middleware: ResponseMiddleware): Router.
+
 /// Creates an empty router.
 ///
 /// Input: no value input.
@@ -127,6 +309,16 @@ pub new(): Router.
 /// generation while preserving source-level chaining.
 
 pub (router: Router) options(pattern: String, handler: Handler): Router.
+
+/// Configures bounded pending HTTP work for this router.
+///
+/// Input: one `Router`, a closed overload policy, and a positive pending-work
+/// limit.
+/// Output: the updated `Router`.
+/// Transformation: records VM-owned admission metadata without exposing
+/// scheduler internals or host-server implementation details.
+
+pub (router: Router) overload(policy: OverloadPolicy, max_pending: Int): Router.
 
 /// Adds a `PATCH` route.
 ///
@@ -155,6 +347,15 @@ pub (router: Router) post(pattern: String, handler: Handler): Router.
 
 pub (router: Router) put(pattern: String, handler: Handler): Router.
 
+/// Adds a server-sent event channel route.
+///
+/// Input: one `Router`, one route pattern, and one bounded SSE endpoint plan.
+/// Output: the updated `Router`.
+/// Transformation: records a channel route-builder step for compiler manifest
+/// generation while the VM runtime owns event-stream state and scheduling.
+
+pub (router: Router) sse(pattern: String, endpoint: SseEndpoint): Router.
+
 /// Adds middleware to a router scope.
 ///
 /// Input: one `Router` and one middleware callback.
@@ -163,3 +364,13 @@ pub (router: Router) put(pattern: String, handler: Handler): Router.
 /// generation while preserving source-level chaining today.
 
 pub (router: Router) use(middleware: Middleware): Router.
+
+/// Adds a WebSocket channel route.
+///
+/// Input: one `Router`, one route pattern, and one bounded channel endpoint
+/// plan.
+/// Output: the updated `Router`.
+/// Transformation: records a channel route-builder step for compiler manifest
+/// generation while the VM runtime owns upgrade, frame, and session state.
+
+pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Router.

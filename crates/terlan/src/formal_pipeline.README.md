@@ -41,14 +41,15 @@ Important invariants:
   implementation details.
 - Parser, resolver, and type diagnostics are preserved separately for phase
   manifest output.
-- Target-profile validation runs after CoreIR lowering. `erlang` remains the
-  permissive backend profile, while `core-v0` is the portable subset profile
-  used to reject broader CoreIR before backend emission experiments.
+- Target-profile validation runs after CoreIR lowering. The VM profile owns
+  the default runtime subset, while JavaScript and native profiles add
+  explicit platform constraints before backend emission experiments.
 
 ## Integration Points
 
 - `commands::check`: emits phase manifests and incremental dependency checks.
-- `commands::emit`: emits Erlang and interface artifacts from checked output.
+- `commands::build`: emits VM, JavaScript, or mobile planning artifacts from
+  checked output.
 - `commands::emit_js`: emits JavaScript from checked syntax output.
 - `commands::static_site`: renders static HTML from checked syntax output.
 - `commands::doc`: parses source through the formal parser and renders

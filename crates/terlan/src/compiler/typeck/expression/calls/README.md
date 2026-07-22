@@ -14,7 +14,7 @@ syntax routing and backend emission stay outside this module.
 ## Public Surface
 
 - `local`: local function and constructor-adjacent call inference.
-- `function_value`: dedicated function-value invocation such as `f.(args)`.
+- `function_value`: dedicated function-value invocation such as `f(args)`.
 - `imported`: selected import call inference.
 - `pipe`: pipe-forward insertion and receiver-method pipe resolution.
 - `macro_call`: source macro-call signature resolution.
@@ -42,7 +42,8 @@ Important invariants:
 
 - `terlan_syntax`: supplies call trees and argument names.
 - `terlan_hir`: supplies function and imported interface metadata.
-- `terlan_erlang`: later consumes validated call shapes for emission.
+- VM, JS, and native-boundary emitters later consume validated call shapes for
+  emission.
 
 ## Testing Notes
 

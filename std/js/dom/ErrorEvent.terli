@@ -1,0 +1,51 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ErrorEvent
+ */
+module std.js.Dom.ErrorEvent.
+
+import type std.js.Number.{JsNumber}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`ErrorEvent`** interface represents events providing information related to errors in scripts or in files.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent)
+ */
+pub opaque type ErrorEvent.
+
+/**
+ * The **`colno`** read-only property of the ErrorEvent interface returns an integer containing the column number of the script file on which the error occurred.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/colno)
+ */
+pub (value: ErrorEvent) colno(): JsNumber.
+
+/**
+ * The **`filename`** read-only property of the ErrorEvent interface returns a string containing the name of the script file in which the error occurred.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/filename)
+ */
+pub (value: ErrorEvent) filename(): JsString.
+
+/**
+ * The **`lineno`** read-only property of the ErrorEvent interface returns an integer containing the line number of the script file on which the error occurred.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/lineno)
+ */
+pub (value: ErrorEvent) lineno(): JsNumber.
+
+/**
+ * The **`message`** read-only property of the ErrorEvent interface returns a string containing a human-readable error message describing the problem.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/message)
+ */
+pub (value: ErrorEvent) message(): JsString.

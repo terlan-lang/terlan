@@ -1,0 +1,41 @@
+/**
+ * Stateful property coverage over VM-owned std values.
+ *
+ * `std.test.StatefulPropertyTest` validates that property checks can exercise
+ * mutation sequences against VM-owned resources without relying on literal
+ * pass-through assertions.
+ */
+module std.test.StatefulPropertyTest.
+
+import std.collections.{Map}.
+import std.test.Gen.{elements, for_all}.
+import std.test.Test.{assert_false}.
+
+/**
+ * Verifies generated values update map presence and size.
+ *
+ * Input: generated integer values.
+ * Output: `true` when each generated value produces one present entry.
+ * Transformation: models the map as a single-key mutable state machine and
+ * checks the observable state after mutation.
+ */
+@test
+pub map_put_tracks_generated_value_state(): Bool ->
+    for_all(elements([1, 2, 3]), (value) -> let state = Map.new[String, Int]();
+    state.put("id", value);
+    state.contains_key("id") and state.size() == 1).
+
+/**
+ * Verifies remove clears generated keys after insertion.
+ *
+ * Input: generated key names.
+ * Output: `true` when inserted keys are absent after removal.
+ * Transformation: checks the model transition from missing to present and
+ * back to missing through the mutable Map API.
+ */
+@test
+pub map_remove_returns_generated_key_to_missing(): Bool ->
+    for_all(elements(["a", "b", "c"]), (key) -> let state = Map.new[String, Int]();
+    state.put(key, 1);
+    state.remove(key);
+    assert_false(state.contains_key(key))).

@@ -1,0 +1,265 @@
+//! Terlan VM distributed fault and recovery contract.
+//!
+//! `std.vm.Fault` exposes typed descriptors for scheduler-owned fault
+//! classification, recovery windows, and migration rollback diagnostics. The VM
+//! owns event ordering, duplicate replay, and state-transition validation.
+
+module std.vm.Fault.
+
+/// Failure represents one replayable distributed failure envelope.
+///
+/// Input: heartbeat, partition, recovery, or migration failure data.
+/// Output: an opaque failure descriptor.
+/// Transformation: gives source and tooling a stable diagnostic shape while the
+/// VM owns failure ordering.
+
+pub opaque type Failure.
+
+/// Monitor is a VM-owned distributed fault state machine.
+///
+/// Input: active node identities and one validated fault policy.
+/// Output: a resource handle for heartbeat, partition, and recovery events.
+/// Transformation: delegates every transition, replay check, and diagnostic to
+/// the canonical distributed scheduler.
+
+pub opaque type Monitor.
+
+/// Policy represents distributed fault detection thresholds.
+///
+/// Input: heartbeat suspicion, isolation, and recovery-window ticks.
+/// Output: an opaque fault policy descriptor.
+/// Transformation: keeps threshold ordering and safe-default validation inside
+/// the VM scheduler.
+
+pub opaque type Policy.
+
+/// Recovery represents one bounded recovery attempt.
+///
+/// Input: node id and recovery tick.
+/// Output: an opaque recovery descriptor.
+/// Transformation: keeps recovery-window expiry and completion sequencing under
+/// VM ownership.
+
+pub opaque type Recovery.
+
+/// Rollback represents one migration rollback descriptor.
+///
+/// Input: actor id, migration sequence, phase, tick, and reason.
+/// Output: an opaque rollback descriptor.
+/// Transformation: records idempotent migration rollback metadata without
+/// exposing in-flight scheduler tables.
+
+pub opaque type Rollback.
+
+/// State represents one node fault state observation.
+///
+/// Input: node id and state tag.
+/// Output: an opaque fault state descriptor.
+/// Transformation: records `recovered`, `suspected`, `degraded`, `isolated`,
+/// and `recovering` observations without leaking scheduler internals.
+
+pub opaque type State.
+
+/// Transition represents one deterministic fault-state transition.
+///
+/// Input: node, tick, target state, and reason.
+/// Output: an opaque transition descriptor.
+/// Transformation: lets the VM validate monotonic ticks, legal transitions, and
+/// duplicate replay.
+
+pub opaque type Transition.
+
+/// Begins a bounded recovery attempt for one isolated node.
+
+pub (monitor: Monitor) begin_recovery(node_id: String, tick: Int, reason: String): Transition.
+
+/// Classifies a missed heartbeat.
+///
+/// Input: policy descriptor, node id, tick, heartbeat gap, and reason.
+/// Output: transition descriptor.
+/// Transformation: asks the VM scheduler to produce a deterministic suspected
+/// transition when the policy threshold is exceeded.
+
+pub classify_heartbeat(policy: Policy, node_id: String, tick: Int, heartbeat_gap_ticks: Int, reason: String): Transition.
+
+/// Releases the monitor resource; subsequent operations fail deterministically.
+
+pub (monitor: Monitor) close(): Unit.
+
+/// Classifies distributed compatibility as `supported`,
+/// `fallback_local_only`, or `feature_unsupported`.
+
+pub compatibility(partition_tolerant: Bool, local_fallback_available: Bool): String.
+
+/// Completes recovery and refreshes the node heartbeat.
+
+pub (monitor: Monitor) complete(node_id: String, tick: Int, reason: String): Transition.
+
+/// Completes one recovery attempt.
+///
+/// Input: recovery descriptor, completion tick, and reason.
+/// Output: transition descriptor.
+/// Transformation: delegates recovery completion and heartbeat refresh to the
+/// VM scheduler.
+
+pub complete_recovery(recovery: Recovery, tick: Int, reason: String): Transition.
+
+/// Marks a suspected node degraded before isolation.
+
+pub (monitor: Monitor) degrade(node_id: String, tick: Int, reason: String): Transition.
+
+/// Re-isolates a recovering node after its policy window expires.
+
+pub (monitor: Monitor) expire(node_id: String, tick: Int, reason: String): Option[Transition].
+
+/// Expires one recovery attempt.
+///
+/// Input: policy descriptor, recovery descriptor, expiry tick, and reason.
+/// Output: failure descriptor.
+/// Transformation: records deterministic recovery-window expiry diagnostics.
+
+pub expire_recovery(policy: Policy, recovery: Recovery, tick: Int, reason: String): Failure.
+
+/// Converts a rollback descriptor to a failure envelope descriptor.
+///
+/// Input: rollback descriptor.
+/// Output: failure descriptor.
+/// Transformation: exposes migration rollback as the same typed diagnostic
+/// stream used by heartbeat, partition, and recovery failures.
+
+pub failure(rollback: Rollback): Failure.
+
+/// Returns the stable operational diagnostic represented by a failure.
+
+pub failure_diagnostic_kind(failure: Failure): String.
+
+/// Returns the stable machine-readable failure kind.
+
+pub failure_kind(failure: Failure): String.
+
+/// Returns the node associated with a failure.
+
+pub failure_node_id(failure: Failure): String.
+
+/// Returns the stable reason associated with a failure.
+
+pub failure_reason(failure: Failure): String.
+
+/// Returns the scheduler tick associated with a failure.
+
+pub failure_tick(failure: Failure): Int.
+
+/// Replays ordered failure envelopes after an exclusive tick cursor.
+
+pub (monitor: Monitor) failures_after(tick: Int): List[Failure].
+
+/// Applies the isolation threshold and returns the resulting transition.
+
+pub (monitor: Monitor) isolate(node_id: String, tick: Int, reason: String): Option[Transition].
+
+/// Classifies partition isolation after suspicion.
+///
+/// Input: policy descriptor, node id, tick, heartbeat gap, and reason.
+/// Output: transition descriptor.
+/// Transformation: asks the VM scheduler to validate isolation threshold and
+/// legal state progression.
+
+pub isolate_partition(policy: Policy, node_id: String, tick: Int, heartbeat_gap_ticks: Int, reason: String): Transition.
+
+/// Builds a migration partial-commit rollback descriptor.
+///
+/// Input: actor id, migration sequence, source node, target node, phase, tick,
+/// and reason.
+/// Output: rollback descriptor.
+/// Transformation: records idempotent partial-commit rollback metadata for the
+/// VM migration safety lane.
+
+pub migration_partial_commit(actor_id: String, sequence: Int, from_node_id: String, to_node_id: String, phase: String, tick: Int, reason: String): Rollback.
+
+/// Builds a migration-timeout rollback descriptor.
+///
+/// Input: actor id, migration sequence, source node, target node, phase, tick,
+/// and reason.
+/// Output: rollback descriptor.
+/// Transformation: records idempotent timeout rollback metadata for the VM
+/// migration safety lane.
+
+pub migration_timeout(actor_id: String, sequence: Int, from_node_id: String, to_node_id: String, phase: String, tick: Int, reason: String): Rollback.
+
+/// Creates a VM-owned fault monitor for a non-empty set of unique nodes.
+
+pub monitor(node_ids: List[String], policy: Policy): Monitor.
+
+/// Builds a fault policy descriptor.
+///
+/// Input: suspicion threshold, isolation threshold, and recovery-window ticks.
+/// Output: policy descriptor.
+/// Transformation: delegates threshold validation to the VM fault scheduler.
+
+pub policy(suspicion_threshold_ticks: Int, isolation_threshold_ticks: Int, recovery_window_ticks: Int): Policy.
+
+/// Records a heartbeat and reports `recorded` or `duplicate_suppressed`.
+
+pub (monitor: Monitor) record_heartbeat(node_id: String, tick: Int): String.
+
+/// Resolves mismatched peer policies to the stricter threshold in each field.
+
+pub resolve_policy(local: Policy, peer: Policy): Policy.
+
+/// Builds a typed failure for a rejected stale placement update.
+
+pub stale_placement_update(actor_id: String, node_id: String, incoming_sequence: Int, current_sequence: Int, tick: Int, reason: String): Failure.
+
+/// Starts recovery for one isolated node.
+///
+/// Input: node id, tick, and reason.
+/// Output: recovery descriptor.
+/// Transformation: records a bounded recovery attempt for later completion or
+/// expiry.
+
+pub start_recovery(node_id: String, tick: Int, reason: String): Recovery.
+
+/// Builds a fault state descriptor.
+///
+/// Input: node id and state tag.
+/// Output: state descriptor.
+/// Transformation: normalizes source-visible fault states for diagnostics and
+/// test scenarios.
+
+pub state(node_id: String, state: String): State.
+
+/// Returns the canonical state name for one monitored node.
+
+pub (monitor: Monitor) state_name(node_id: String): String.
+
+/// Applies the suspicion threshold and returns the resulting transition.
+
+pub (monitor: Monitor) suspect(node_id: String, tick: Int, reason: String): Option[Transition].
+
+/// Returns the stable operational diagnostic represented by a transition.
+
+pub transition_diagnostic_kind(transition: Transition): String.
+
+/// Returns the state after a transition.
+
+pub transition_next_state(transition: Transition): String.
+
+/// Returns the node id recorded by a transition.
+
+pub transition_node_id(transition: Transition): String.
+
+/// Returns the state before a transition.
+
+pub transition_previous_state(transition: Transition): String.
+
+/// Returns the stable reason recorded by a transition.
+
+pub transition_reason(transition: Transition): String.
+
+/// Returns the scheduler tick recorded by a transition.
+
+pub transition_tick(transition: Transition): Int.
+
+/// Replays ordered transitions after an exclusive tick cursor.
+
+pub (monitor: Monitor) transitions_after(tick: Int): List[Transition].

@@ -1,0 +1,74 @@
+{
+  "schema": "terlan.lean-feature-cull.v1",
+  "terlan_version": "0.0.7",
+  "proof": "proofs/lean/Terlan/FeatureCull/LegacyBoundaries.lean",
+  "proof_artifact": "proofs/lean/artifacts/feature-cull-legacy-boundaries.json",
+  "features": [
+    {
+      "id": "beam_lowering",
+      "rejection_phase": "compile",
+      "replacement_contract": "direct CoreIR-to-VMIR lowering",
+      "replacement_gate": "tvm-aot-pivot-inventory-check",
+      "theorem": "Terlan.FeatureCull.bytecodeIntermediaryRejectedBeforeVm",
+      "forbidden_terms": ["@target.erlang", "BEAM lowering", "Erlang lowering"]
+    },
+    {
+      "id": "core_v0_profile",
+      "rejection_phase": "target-selection",
+      "replacement_contract": "inferred VM target",
+      "replacement_gate": "target-inference-default-vm-check",
+      "theorem": "Terlan.FeatureCull.explicitCoreTargetRejectedBeforeVm",
+      "forbidden_terms": ["CoreV0", "core-v0"]
+    },
+    {
+      "id": "legacy_import_namespace",
+      "rejection_phase": "parse",
+      "replacement_contract": "typed module import",
+      "replacement_gate": "target-inference-contract-check",
+      "theorem": "Terlan.FeatureCull.importNamespaceShortcutRejectedBeforeVm",
+      "forbidden_terms": ["legacy_import_namespace"]
+    },
+    {
+      "id": "legacy_test_runtime",
+      "rejection_phase": "compile",
+      "replacement_contract": "VM-owned test runner",
+      "replacement_gate": "all-terlan-tests-vm-check",
+      "theorem": "Terlan.FeatureCull.hostTestRuntimeRejectedBeforeVm",
+      "forbidden_terms": ["otp_application"]
+    },
+    {
+      "id": "legacy_tuple_destructuring_default",
+      "rejection_phase": "typecheck",
+      "replacement_contract": "explicit pattern binding",
+      "replacement_gate": "function-head-pattern-parameters-check",
+      "theorem": "Terlan.FeatureCull.tupleBindingWithoutPatternRejectedBeforeVm",
+      "forbidden_terms": ["legacy_tuple_destructuring_default"]
+    },
+    {
+      "id": "native_bridge",
+      "rejection_phase": "typecheck",
+      "replacement_contract": "typed NativeBoundary contract",
+      "replacement_gate": "native-boundary-terminology-check",
+      "theorem": "Terlan.FeatureCull.nativeBridgeShortcutRejectedBeforeVm",
+      "forbidden_terms": ["native_bridge"]
+    },
+    {
+      "id": "vm_profile",
+      "rejection_phase": "target-selection",
+      "replacement_contract": "inferred VM target",
+      "replacement_gate": "target-inference-default-vm-check",
+      "theorem": "Terlan.FeatureCull.profileSwitchRejectedBeforeVm",
+      "forbidden_terms": ["vm_profile"]
+    }
+  ],
+  "forbidden_make_targets": [
+    "beam-lowering-check",
+    "core-v0-check",
+    "erlang-lowering-check",
+    "legacy-import-namespace-check",
+    "legacy-test-runtime-check",
+    "legacy-tuple-destructuring-default-check",
+    "native-bridge-check",
+    "vm-profile-check"
+  ]
+}

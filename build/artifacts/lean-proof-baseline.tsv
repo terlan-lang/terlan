@@ -1,0 +1,9 @@
+feature_class	expected_status	last_confirmed_hash
+coreir	current	sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815
+lowering	incomplete	none
+rejection	current	sha256:2bd4f904792ad70cbca438b0b9463fe94fc2d1ec7ede553c43563e53a70306cd
+runtime	incomplete	none
+vm	incomplete	none
+native-boundary	current	sha256:2c7c8dd87ad70bba20ae805eb13e972160c5dacadbd1983155559ceaf71fb3f4
+wasm	incomplete	none
+aeneas-bridge	incomplete	none

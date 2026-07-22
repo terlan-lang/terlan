@@ -1,10 +1,10 @@
 module=std.http.Response
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=7264815154975932000
-interface_hash=7883205360159445734
-interface_doc_hash=3097686060207065317
+syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+source_hash=16111752761431891971
+interface_hash=12393233924834655406
+interface_doc_hash=15341305394600353946
 deps=2
-std.core.Unit=2105912563953161831
+std.core.Int=6981787512204747997
 std.http.Cookies=11000084392162342576

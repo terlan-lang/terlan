@@ -1,0 +1,54 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLOptionsCollection
+ */
+module std.js.Dom.HTMLOptionsCollection.
+
+import type std.core.{Unit}.
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The **`HTMLOptionsCollection`** interface represents a collection of `<option>` HTML elements (in document order) and offers methods and properties for selecting from the list as well as optionally altering its items.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection)
+ */
+pub opaque type HTMLOptionsCollection.
+
+/**
+ * The **`length`** property of the HTMLOptionsCollection interface returns the number of option elements in the collection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/length)
+ */
+pub (value: HTMLOptionsCollection) length(): JsNumber.
+
+/**
+ * The **`selectedIndex`** property of the HTMLOptionsCollection interface is the numeric index of the first selected option element, if any, or `−1` if no `<option>` is selected.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/selectedIndex)
+ */
+pub (value: HTMLOptionsCollection) selected_index(): JsNumber.
+
+/**
+ * The **`add()`** method of the HTMLOptionsCollection interface adds an HTMLOptionElement or HTMLOptGroupElement to this `HTMLOptionsCollection`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/add)
+ */
+pub (value: HTMLOptionsCollection) add(
+    element: HTMLOptGroupElement | HTMLOptionElement,
+    before: Option[HTMLElement | JsNumber]
+): Unit.
+
+/**
+ * The **`remove()`** method of the HTMLOptionsCollection interface removes the option element specified by the index from this collection.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/remove)
+ */
+pub (value: HTMLOptionsCollection) remove(index: JsNumber): Unit.

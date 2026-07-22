@@ -1,15 +1,19 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLSelectElement
  */
 module std.js.Dom.HTMLSelectElement.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
+import type std.core.{Bool, Unit}.
 import type std.js.Number.{JsNumber}.
-
 import type std.js.String.{JsString}.
 
 /**
@@ -152,7 +156,10 @@ pub (value: HTMLSelectElement) will_validate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/add)
  */
-pub (value: HTMLSelectElement) add(element: HTMLOptGroupElement | HTMLOptionElement, before: Option[HTMLElement | JsNumber]): Unit ->
+pub (value: HTMLSelectElement) add(
+    element: HTMLOptGroupElement | HTMLOptionElement,
+    before: Option[HTMLElement | JsNumber]
+): Unit ->
     native.
 
 /**
@@ -214,8 +221,16 @@ pub (value: HTMLSelectElement) set_custom_validity(error: JsString): Unit ->
 pub (value: HTMLSelectElement) show_picker(): Unit ->
     native.
 
-pub (value: HTMLSelectElement) add_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub (value: HTMLSelectElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     native.
 
-pub (value: HTMLSelectElement) remove_event_listener(type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub (value: HTMLSelectElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     native.

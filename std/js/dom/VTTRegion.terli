@@ -1,0 +1,38 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface VTTRegion
+ */
+module std.js.Dom.VTTRegion.
+
+import type std.js.Number.{JsNumber}.
+
+/**
+ * The `VTTRegion` interface of the WebVTT API describes a portion of the video to render a VTTCue onto.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTRegion)
+ */
+pub opaque type VTTRegion.
+
+pub (value: VTTRegion) id(): std.js.String.JsString.
+
+pub (value: VTTRegion) lines(): JsNumber.
+
+pub (value: VTTRegion) region_anchor_x(): JsNumber.
+
+pub (value: VTTRegion) region_anchor_y(): JsNumber.
+
+pub (value: VTTRegion) scroll(): ScrollSetting.
+
+pub (value: VTTRegion) viewport_anchor_x(): JsNumber.
+
+pub (value: VTTRegion) viewport_anchor_y(): JsNumber.
+
+pub (value: VTTRegion) width(): JsNumber.

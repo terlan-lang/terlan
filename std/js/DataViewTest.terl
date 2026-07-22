@@ -1,20 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface DataView
  */
 module std.js.DataViewTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.DataView.{DataView}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.DataView.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub buffer_typechecks(receiver: DataView[TArrayBuffer]): TArrayBuffer ->
     receiver.buffer().
@@ -25,50 +27,112 @@ pub byte_length_typechecks(receiver: DataView[TArrayBuffer]): JsNumber ->
 pub byte_offset_typechecks(receiver: DataView[TArrayBuffer]): JsNumber ->
     receiver.byte_offset().
 
-pub get_float32_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, little_endian: Bool): JsNumber ->
+pub get_float32_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    little_endian: Bool
+): JsNumber ->
     receiver.get_float32(byte_offset, little_endian).
 
-pub get_float64_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, little_endian: Bool): JsNumber ->
+pub get_float64_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    little_endian: Bool
+): JsNumber ->
     receiver.get_float64(byte_offset, little_endian).
 
 pub get_int8_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber): JsNumber ->
     receiver.get_int8(byte_offset).
 
-pub get_int16_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, little_endian: Bool): JsNumber ->
+pub get_int16_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    little_endian: Bool
+): JsNumber ->
     receiver.get_int16(byte_offset, little_endian).
 
-pub get_int32_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, little_endian: Bool): JsNumber ->
+pub get_int32_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    little_endian: Bool
+): JsNumber ->
     receiver.get_int32(byte_offset, little_endian).
 
 pub get_uint8_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber): JsNumber ->
     receiver.get_uint8(byte_offset).
 
-pub get_uint16_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, little_endian: Bool): JsNumber ->
+pub get_uint16_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    little_endian: Bool
+): JsNumber ->
     receiver.get_uint16(byte_offset, little_endian).
 
-pub get_uint32_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, little_endian: Bool): JsNumber ->
+pub get_uint32_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    little_endian: Bool
+): JsNumber ->
     receiver.get_uint32(byte_offset, little_endian).
 
-pub set_float32_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber, little_endian: Bool): Unit ->
+pub set_float32_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber,
+    little_endian: Bool
+): Unit ->
     receiver.set_float32(byte_offset, value, little_endian).
 
-pub set_float64_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber, little_endian: Bool): Unit ->
+pub set_float64_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber,
+    little_endian: Bool
+): Unit ->
     receiver.set_float64(byte_offset, value, little_endian).
 
-pub set_int8_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber): Unit ->
+pub set_int8_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber
+): Unit ->
     receiver.set_int8(byte_offset, value).
 
-pub set_int16_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber, little_endian: Bool): Unit ->
+pub set_int16_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber,
+    little_endian: Bool
+): Unit ->
     receiver.set_int16(byte_offset, value, little_endian).
 
-pub set_int32_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber, little_endian: Bool): Unit ->
+pub set_int32_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber,
+    little_endian: Bool
+): Unit ->
     receiver.set_int32(byte_offset, value, little_endian).
 
-pub set_uint8_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber): Unit ->
+pub set_uint8_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber
+): Unit ->
     receiver.set_uint8(byte_offset, value).
 
-pub set_uint16_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber, little_endian: Bool): Unit ->
+pub set_uint16_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber,
+    little_endian: Bool
+): Unit ->
     receiver.set_uint16(byte_offset, value, little_endian).
 
-pub set_uint32_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber, value: JsNumber, little_endian: Bool): Unit ->
+pub set_uint32_typechecks(
+    receiver: DataView[TArrayBuffer],
+    byte_offset: JsNumber,
+    value: JsNumber,
+    little_endian: Bool
+): Unit ->
     receiver.set_uint32(byte_offset, value, little_endian).

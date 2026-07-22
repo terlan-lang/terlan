@@ -1,0 +1,64 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FontFaceSet
+ */
+module std.js.Dom.FontFaceSet.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+import type std.js.{Promise}.
+
+/**
+ * The **`FontFaceSet`** interface of the CSS Font Loading API manages the loading of font-faces and querying of their download status.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet)
+ */
+pub opaque type FontFaceSet.
+
+/**
+ * The `ready` read-only property of the FontFaceSet interface returns a Promise that resolves to the given FontFaceSet.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/ready)
+ */
+pub (value: FontFaceSet) ready(): Promise[FontFaceSet].
+
+/**
+ * The **`status`** read-only property of the FontFaceSet interface returns the loading state of the fonts in the set.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/status)
+ */
+pub (value: FontFaceSet) status(): FontFaceSetLoadStatus.
+
+/**
+ * The `check()` method of the FontFaceSet returns `true` if you can render some text using the given font specification without attempting to use any fonts in this `FontFaceSet` that are not yet fully loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/check)
+ */
+pub (value: FontFaceSet) check(font: JsString, text: JsString): Bool.
+
+/**
+ * The `load()` method of the FontFaceSet forces all the fonts given in parameters to be loaded.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/load)
+ */
+pub (value: FontFaceSet) load(font: JsString, text: JsString): Promise[std.js.Array[FontFace]].
+
+pub (value: FontFaceSet) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: FontFaceSet) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

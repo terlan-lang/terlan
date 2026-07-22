@@ -1,14 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CallableFunction
  */
 module std.js.CallableFunctionTest.
 
-import type std.js.CallableFunction.{CallableFunction}.
+import type std.js.CallableFunction.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub apply_typechecks(receiver: CallableFunction, this_arg: T): R ->
     receiver.apply(this_arg).
@@ -19,5 +25,8 @@ pub apply_typechecks(receiver: CallableFunction, this_arg: T, args: A): R ->
 pub call_typechecks(receiver: CallableFunction, this_arg: T): R ->
     receiver.call(this_arg).
 
-pub bind_typechecks(receiver: CallableFunction, this_arg: ThisParameterType[T]): OmitThisParameter[T] ->
+pub bind_typechecks(
+    receiver: CallableFunction,
+    this_arg: ThisParameterType[T]
+): OmitThisParameter[T] ->
     receiver.bind(this_arg).

@@ -1,12 +1,16 @@
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
-use crate::terlan_syntax::{
-    parse_module_as_syntax_output, span::Span, SyntaxDeclarationPayload, SyntaxModuleOutput,
+use crate::terlan_syntax::{span::Span, SyntaxDeclarationPayload, SyntaxModuleOutput};
+use crate::terlan_typeck::{
+    type_check_syntax_module_output_with_database_schema, DiagSeverity, Diagnostic,
 };
-use crate::terlan_typeck::{type_check_syntax_module_output, DiagSeverity, Diagnostic};
 
+mod expression;
 mod slots;
+use expression::{
+    check_template_expression_as, TemplateExpressionCheck, TemplateExpressionContext,
+};
 use slots::{
     template_slot_location_suffix, template_slot_renderability_error, template_slot_uses,
     TemplateSlotContext, TemplateSlotUse,
@@ -30,51 +34,86 @@ pub(crate) fn type_check_syntax_module_output_with_templates(
     resolved: &crate::terlan_hir::ResolvedModule,
     source_path: &Path,
 ) -> Vec<Diagnostic> {
-    let mut diagnostics = type_check_syntax_module_output(module, resolved);
-    diagnostics.extend(check_template_declarations_syntax_output(
+    type_check_syntax_module_output_with_template_inputs(module, resolved, source_path).diagnostics
+}
+
+/// Result of typechecking source declarations and their external templates.
+///
+/// Inputs:
+/// - Produced from one syntax module, its resolved HIR, and its source path.
+///
+/// Output:
+/// - Combined diagnostics and the exact parsed template inputs those
+///   diagnostics checked.
+///
+/// Transformation:
+/// - Retains validated frontend values so later compiler phases never reopen
+///   template source after the contract check.
+pub(crate) struct TemplateTypeCheckResult {
+    pub(crate) diagnostics: Vec<Diagnostic>,
+    pub(crate) template_inputs: Vec<crate::commands::artifacts::SyntaxTemplateFrontendInput>,
+}
+
+/// Runs typechecking while retaining the exact external template inputs.
+///
+/// Inputs:
+/// - `module`: formal syntax-output module to validate.
+/// - `resolved`: resolved HIR module used by regular typechecking.
+/// - `source_path`: source path used to resolve external template files.
+///
+/// Output:
+/// - Diagnostics plus the parsed inputs checked by those diagnostics.
+///
+/// Transformation:
+/// - Collects each template once, validates clones of the collected values,
+///   and returns the originals for the CoreIR ownership handoff.
+pub(crate) fn type_check_syntax_module_output_with_template_inputs(
+    module: &SyntaxModuleOutput,
+    resolved: &crate::terlan_hir::ResolvedModule,
+    source_path: &Path,
+) -> TemplateTypeCheckResult {
+    let (database_schema, database_schema_error) =
+        match crate::database_schema::DatabaseSchemaSnapshot::discover_for_source(source_path) {
+            Ok(snapshot) => (snapshot, None),
+            Err(error) => (None, Some(error)),
+        };
+    let mut diagnostics = type_check_syntax_module_output_with_database_schema(
         module,
-        source_path,
+        resolved,
+        database_schema.as_ref(),
+    );
+    if let Some(message) = database_schema_error {
+        diagnostics.push(Diagnostic {
+            span: module.span.into(),
+            message,
+            severity: DiagSeverity::Error,
+        });
+    }
+    let collected =
+        crate::commands::artifacts::collect_syntax_template_frontend_inputs(module, source_path);
+    diagnostics.extend(collected.errors.into_iter().map(|error| Diagnostic {
+        span: error.span,
+        message: error.message,
+        severity: DiagSeverity::Error,
+    }));
+    diagnostics.extend(check_template_declarations_from_parts(
+        collected.inputs.clone(),
+        syntax_template_struct_fields(module),
+        Some(TemplateExpressionContext::new(module, resolved)),
     ));
-    diagnostics
+    TemplateTypeCheckResult {
+        diagnostics,
+        template_inputs: collected.inputs,
+    }
 }
 
 #[cfg(test)]
 #[path = "template_contract_test.rs"]
 mod template_contract_test;
 
-/// Checks template declarations in one syntax-output module.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing template declarations.
-/// - `source_path`: source path used to derive the template base directory.
-///
-/// Output:
-/// - Template-specific diagnostics.
-///
-/// Transformation:
-/// - Normalizes template declarations and struct fields before validating
-///   external template files.
-fn check_template_declarations_syntax_output(
-    module: &SyntaxModuleOutput,
-    source_path: &Path,
-) -> Vec<Diagnostic> {
-    let collected =
-        crate::commands::artifacts::collect_syntax_template_frontend_inputs(module, source_path);
-    let mut diagnostics = collected
-        .errors
-        .into_iter()
-        .map(|error| Diagnostic {
-            span: error.span,
-            message: error.message,
-            severity: DiagSeverity::Error,
-        })
-        .collect::<Vec<_>>();
-    diagnostics.extend(check_template_declarations_from_parts(
-        collected.inputs,
-        syntax_template_struct_fields(module),
-    ));
-    diagnostics
-}
+#[cfg(test)]
+#[path = "template_purity_test.rs"]
+mod template_purity_test;
 
 /// Template declaration shape used by the validator.
 ///
@@ -130,6 +169,7 @@ struct TemplateCheckProp {
 fn check_template_declarations_from_parts(
     templates: Vec<crate::commands::artifacts::SyntaxTemplateFrontendInput>,
     struct_fields: HashMap<String, HashMap<String, String>>,
+    expression_context: Option<TemplateExpressionContext<'_>>,
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     let mut checked_templates: Vec<CheckedTemplate> = Vec::new();
@@ -192,6 +232,7 @@ fn check_template_declarations_from_parts(
             &checked.template,
             &checked.parsed,
             &struct_fields,
+            expression_context,
         ));
         diagnostics.extend(check_template_component_tags(
             &checked.template,
@@ -199,6 +240,7 @@ fn check_template_declarations_from_parts(
             &templates_by_tag,
             &duplicate_tags,
             &struct_fields,
+            expression_context,
         ));
     }
 
@@ -237,6 +279,7 @@ fn check_template_slots(
     template: &TemplateCheckDecl,
     parsed: &crate::terlan_html::HtmlTemplate,
     struct_fields: &HashMap<String, HashMap<String, String>>,
+    expression_context: Option<TemplateExpressionContext<'_>>,
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     let mut prop_types = HashMap::new();
@@ -255,6 +298,7 @@ fn check_template_slots(
                 &slot_use,
                 &prop_types,
                 struct_fields,
+                expression_context,
             ));
             continue;
         }
@@ -319,35 +363,61 @@ fn check_template_slots(
 /// - `prop_types`: declared template prop types.
 /// - `struct_fields`: known struct field shapes available to the synthetic
 ///   expression module.
+/// - `expression_context`: real source-module context when validating a
+///   production template, or isolated context for focused tests.
 ///
 /// Output:
 /// - Diagnostics when the expression cannot parse or cannot typecheck as any
 ///   renderable target type for its context.
 ///
 /// Transformation:
-/// - Builds small syntax-output modules around the interpolation expression and
-///   asks the formal typechecker whether the expression can satisfy one of the
+/// - Checks the interpolation through generated function declarations and asks
+///   the formal typechecker whether it is pure and satisfies one of the
 ///   context-allowed scalar return types.
 fn check_template_expression_slot(
     template: &TemplateCheckDecl,
     slot_use: &TemplateSlotUse<'_>,
     prop_types: &HashMap<String, String>,
     struct_fields: &HashMap<String, HashMap<String, String>>,
+    expression_context: Option<TemplateExpressionContext<'_>>,
 ) -> Vec<Diagnostic> {
     let expected_types = match slot_use.context {
         TemplateSlotContext::Text => ["String", "Int", "Float", "Bool"].as_slice(),
         TemplateSlotContext::Attribute => ["String", "Int", "Float", "Bool"].as_slice(),
     };
 
+    let mut impure = None;
     if expected_types.iter().any(|expected_type| {
-        template_expression_typechecks_as(
+        match check_template_expression_as(
             &slot_use.slot.expression,
             expected_type,
             prop_types,
             struct_fields,
-        )
+            expression_context,
+        ) {
+            TemplateExpressionCheck::Valid => true,
+            TemplateExpressionCheck::Impure(detail) => {
+                impure.get_or_insert(detail);
+                false
+            }
+            TemplateExpressionCheck::Invalid => false,
+        }
     }) {
         return Vec::new();
+    }
+
+    if let Some(detail) = impure {
+        return vec![Diagnostic {
+            span: template.span,
+            message: format!(
+                "template `{}` slot expression `{}` must be pure; found {}{}",
+                template.name,
+                slot_use.slot.expression,
+                detail,
+                template_slot_location_suffix(slot_use.slot)
+            ),
+            severity: DiagSeverity::Error,
+        }];
     }
 
     vec![Diagnostic {
@@ -361,83 +431,6 @@ fn check_template_expression_slot(
         ),
         severity: DiagSeverity::Error,
     }]
-}
-
-/// Returns whether an interpolation expression typechecks as one expected type.
-///
-/// Inputs:
-/// - `expression`: raw interpolation expression without `${...}` delimiters.
-/// - `expected_type`: return type to check against.
-/// - `prop_types`: template props exposed as function parameters.
-/// - `struct_fields`: known structs emitted into the synthetic module.
-///
-/// Output:
-/// - `true` when the parser, resolver, and typechecker accept the expression
-///   as the requested type.
-///
-/// Transformation:
-/// - Generates a minimal module containing prop parameters and struct shapes,
-///   then validates the expression as a function body through the formal
-///   compiler path.
-fn template_expression_typechecks_as(
-    expression: &str,
-    expected_type: &str,
-    prop_types: &HashMap<String, String>,
-    struct_fields: &HashMap<String, HashMap<String, String>>,
-) -> bool {
-    let source =
-        template_expression_check_module(expression, expected_type, prop_types, struct_fields);
-    let Ok(module) = parse_module_as_syntax_output(&source) else {
-        return false;
-    };
-    let resolved = crate::terlan_hir::resolve_syntax_module_output(&module).module;
-    type_check_syntax_module_output(&module, &resolved).is_empty()
-}
-
-/// Builds the synthetic module used for expression-island typechecking.
-///
-/// Inputs:
-/// - `expression`: template interpolation expression.
-/// - `expected_type`: declared return type for the generated function.
-/// - `prop_types`: template props to expose as function parameters.
-/// - `struct_fields`: simple struct field metadata for local field access.
-///
-/// Output:
-/// - Terlan source text for a temporary module.
-///
-/// Transformation:
-/// - Emits deterministic struct declarations, a single function whose
-///   parameters mirror template props, and the expression as its body.
-fn template_expression_check_module(
-    expression: &str,
-    expected_type: &str,
-    prop_types: &HashMap<String, String>,
-    struct_fields: &HashMap<String, HashMap<String, String>>,
-) -> String {
-    let mut source = String::from("module template_slot_expr_check.\n\n");
-    let mut structs = struct_fields.iter().collect::<Vec<_>>();
-    structs.sort_by_key(|(name, _)| name.as_str());
-    for (name, fields) in structs {
-        source.push_str(&format!("struct {name} {{\n"));
-        let mut sorted_fields = fields.iter().collect::<Vec<_>>();
-        sorted_fields.sort_by_key(|(field, _)| field.as_str());
-        for (field, annotation) in sorted_fields {
-            source.push_str(&format!("    {field}: {annotation},\n"));
-        }
-        source.push_str("}.\n\n");
-    }
-
-    let mut props = prop_types.iter().collect::<Vec<_>>();
-    props.sort_by_key(|(name, _)| name.as_str());
-    let params = props
-        .into_iter()
-        .map(|(name, annotation)| format!("{name}: {annotation}"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    source.push_str(&format!(
-        "pub render({params}): {expected_type} ->\n    {expression}.\n"
-    ));
-    source
 }
 
 /// Returns a human-readable template slot context name.
@@ -614,6 +607,7 @@ fn check_template_component_tags(
     templates_by_tag: &HashMap<String, &TemplateCheckDecl>,
     duplicate_tags: &BTreeSet<String>,
     struct_fields: &HashMap<String, HashMap<String, String>>,
+    expression_context: Option<TemplateExpressionContext<'_>>,
 ) -> Vec<Diagnostic> {
     let prop_types = template
         .props
@@ -628,6 +622,7 @@ fn check_template_component_tags(
         duplicate_tags,
         &prop_types,
         struct_fields,
+        expression_context,
         &mut diagnostics,
     );
     diagnostics
@@ -657,6 +652,7 @@ fn check_template_component_nodes(
     duplicate_tags: &BTreeSet<String>,
     prop_types: &HashMap<String, String>,
     struct_fields: &HashMap<String, HashMap<String, String>>,
+    expression_context: Option<TemplateExpressionContext<'_>>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     for node in nodes {
@@ -672,6 +668,7 @@ fn check_template_component_nodes(
                 duplicate_tags,
                 prop_types,
                 struct_fields,
+                expression_context,
                 diagnostics,
             );
         }
@@ -683,6 +680,7 @@ fn check_template_component_nodes(
             duplicate_tags,
             prop_types,
             struct_fields,
+            expression_context,
             diagnostics,
         );
     }
@@ -712,6 +710,7 @@ fn check_template_component_element(
     duplicate_tags: &BTreeSet<String>,
     prop_types: &HashMap<String, String>,
     struct_fields: &HashMap<String, HashMap<String, String>>,
+    expression_context: Option<TemplateExpressionContext<'_>>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     if duplicate_tags.contains(&element.name) {
@@ -782,13 +781,28 @@ fn check_template_component_element(
             }
             Some(crate::terlan_html::HtmlAttrValue::Slot(slot)) => {
                 if slot.path.is_empty() {
-                    if !template_expression_typechecks_as(
+                    match check_template_expression_as(
                         &slot.expression,
                         expected_type,
                         prop_types,
                         struct_fields,
+                        expression_context,
                     ) {
-                        diagnostics.push(Diagnostic {
+                        TemplateExpressionCheck::Valid => {}
+                        TemplateExpressionCheck::Impure(detail) => diagnostics.push(Diagnostic {
+                            span: template.span,
+                            message: format!(
+                                "template `{}` component `<{}>` prop `{}` expression `{}` must be pure; found {}{}",
+                                template.name,
+                                element.name,
+                                attr.name,
+                                slot.expression,
+                                detail,
+                                template_slot_location_suffix(slot)
+                            ),
+                            severity: DiagSeverity::Error,
+                        }),
+                        TemplateExpressionCheck::Invalid => diagnostics.push(Diagnostic {
                             span: template.span,
                             message: format!(
                                 "template `{}` component `<{}>` prop `{}` expects `{}`, but expression `{}` does not typecheck as `{}`{}",
@@ -801,7 +815,7 @@ fn check_template_component_element(
                                 template_slot_location_suffix(slot)
                             ),
                             severity: DiagSeverity::Error,
-                        });
+                        }),
                     }
                     continue;
                 }

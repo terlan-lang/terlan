@@ -20,6 +20,8 @@ pub(super) enum StaticTemplateValue {
     Int(i64),
     Bool(bool),
     Html(String),
+    List(Vec<StaticTemplateValue>),
+    Optional(Option<Box<StaticTemplateValue>>),
     Record {
         name: String,
         fields: BTreeMap<String, StaticTemplateValue>,
@@ -105,6 +107,12 @@ pub(super) fn static_template_value_text(value: &StaticTemplateValue) -> Result<
         StaticTemplateValue::Int(value) => Ok(value.to_string()),
         StaticTemplateValue::Bool(value) => Ok(value.to_string()),
         StaticTemplateValue::Html(html) => Ok(html.clone()),
+        StaticTemplateValue::List(_) => {
+            Err("cannot render a static collection as text".to_string())
+        }
+        StaticTemplateValue::Optional(_) => {
+            Err("cannot render a static optional value as text".to_string())
+        }
         StaticTemplateValue::Record { name, .. } => {
             Err(format!("cannot render static record `{}` as text", name))
         }

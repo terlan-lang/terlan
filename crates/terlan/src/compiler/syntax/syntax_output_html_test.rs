@@ -10,7 +10,7 @@ mod tests {
             r#"
             module html_tree.
 
-            view(Title: Text): Html[:none] ->
+            view(Title: Text): Html[Atom["none"]] ->
                 html {
                     <section class={["hero", "compact"]}>
                         <h1>{Title}</h1>

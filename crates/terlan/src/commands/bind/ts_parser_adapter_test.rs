@@ -198,8 +198,8 @@ fn parses_generic_callback_and_record_type_shapes() {
 /// Verifies unsupported top-level declarations retain concrete source names.
 ///
 /// Inputs:
-/// - Inline `.d.ts` source with named variable, type alias, function, class,
-///   enum, and namespace declarations.
+/// - Inline `.d.ts` source with named variable, function, class, enum, and
+///   empty namespace declarations.
 ///
 /// Output:
 /// - Test passes when skip rows use declaration names instead of coarse kind
@@ -213,7 +213,6 @@ fn labels_named_unsupported_top_level_declarations() {
     let declarations = parse_ts_declaration_file(
         r#"
         declare var MapConstructor: MapConstructor;
-        type ArrayLike<T> = { length: number };
         declare function parseInt(value: string): number;
         declare class URLSearchParams {}
         declare enum ReadyState { Done }
@@ -228,12 +227,110 @@ fn labels_named_unsupported_top_level_declarations() {
         skipped,
         vec![
             "MapConstructor",
-            "ArrayLike",
             "parseInt",
             "URLSearchParams",
             "ReadyState",
             "Intl"
         ]
+    );
+}
+
+/// Verifies unsupported imports keep unique source labels.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with two TypeScript imports.
+///
+/// Output:
+/// - Test passes when import skips include the module specifier instead of a
+///   duplicate coarse `import` bucket.
+///
+/// Transformation:
+/// - Keeps generated skip manifests stable and auditable for real namespace
+///   files that contain many import declarations.
+#[test]
+fn labels_unsupported_imports_by_source_specifier() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        import type { Angular as TAngular } from "./angular.ts";
+        import type { Scope as TScope } from "./core/scope/scope.ts";
+        "#,
+    )
+    .expect("unsupported imports should become skip rows");
+
+    let skipped = unsupported_sources(&declarations);
+
+    assert_eq!(
+        skipped,
+        vec!["import:./angular.ts", "import:./core/scope/scope.ts"]
+    );
+}
+
+/// Verifies TypeScript type aliases become neutral declarations.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with a generic alias.
+///
+/// Output:
+/// - Test passes when the alias name, type parameter, and target type are
+///   preserved.
+///
+/// Transformation:
+/// - Pins the `.d.ts` alias path used by generated namespace facades.
+#[test]
+fn parses_type_alias_declarations() {
+    let declarations =
+        parse_ts_declaration_file("type Box<T> = Promise<T>;").expect("type alias should parse");
+    let alias = type_alias(&declarations, "Box");
+
+    assert_eq!(alias.namespace, "");
+    assert_eq!(alias.type_params, vec!["T"]);
+    assert_eq!(
+        alias.ty,
+        TsTypeRef::Generic {
+            name: "Promise".to_string(),
+            args: vec![TsTypeRef::Named("T".to_string())]
+        }
+    );
+}
+
+/// Verifies Angular-style global namespace aliases are parsed.
+///
+/// Inputs:
+/// - Inline `.d.ts` source with `declare global { export namespace ng { ... } }`.
+///
+/// Output:
+/// - Test passes when aliases under `ng` carry the namespace and target type.
+///
+/// Transformation:
+/// - Uses the real Angular namespace declaration shape as the contract for
+///   generated Terlan type facades.
+#[test]
+fn parses_exported_global_namespace_type_aliases() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        declare global {
+          export namespace ng {
+            type Angular = TAngular;
+            type HttpPromise<T> = Promise<T>;
+          }
+        }
+        "#,
+    )
+    .expect("global namespace aliases should parse");
+
+    let angular = type_alias(&declarations, "Angular");
+    let http_promise = type_alias(&declarations, "HttpPromise");
+
+    assert_eq!(angular.namespace, "ng");
+    assert_eq!(angular.ty, TsTypeRef::Named("TAngular".to_string()));
+    assert_eq!(http_promise.namespace, "ng");
+    assert_eq!(http_promise.type_params, vec!["T"]);
+    assert_eq!(
+        http_promise.ty,
+        TsTypeRef::Generic {
+            name: "Promise".to_string(),
+            args: vec![TsTypeRef::Named("T".to_string())]
+        }
     );
 }
 
@@ -319,6 +416,7 @@ fn interface_names(declarations: &TsDeclarationFile) -> Vec<&str> {
         .iter()
         .filter_map(|declaration| match declaration {
             TsDeclaration::Interface(interface) => Some(interface.name.as_str()),
+            TsDeclaration::TypeAlias(_) => None,
             TsDeclaration::Unsupported(_) => None,
         })
         .collect()
@@ -340,6 +438,7 @@ fn unsupported_sources(declarations: &TsDeclarationFile) -> Vec<&str> {
         .iter()
         .filter_map(|declaration| match declaration {
             TsDeclaration::Interface(_) => None,
+            TsDeclaration::TypeAlias(_) => None,
             TsDeclaration::Unsupported(unsupported) => Some(unsupported.source.as_str()),
         })
         .collect()
@@ -362,10 +461,35 @@ fn interface<'a>(declarations: &'a TsDeclarationFile, name: &str) -> &'a TsInter
         .iter()
         .filter_map(|declaration| match declaration {
             TsDeclaration::Interface(interface) => Some(interface),
+            TsDeclaration::TypeAlias(_) => None,
             TsDeclaration::Unsupported(_) => None,
         })
         .find(|interface| interface.name == name)
         .unwrap_or_else(|| panic!("missing interface {name}"))
+}
+
+/// Finds a type alias by name.
+///
+/// Inputs:
+/// - `declarations`: parsed neutral declaration file.
+/// - `name`: alias name to find.
+///
+/// Output:
+/// - Borrowed alias declaration.
+///
+/// Transformation:
+/// - Panics in tests when the expected alias is absent.
+fn type_alias<'a>(declarations: &'a TsDeclarationFile, name: &str) -> &'a TsTypeAliasDeclaration {
+    declarations
+        .declarations
+        .iter()
+        .filter_map(|declaration| match declaration {
+            TsDeclaration::Interface(_) => None,
+            TsDeclaration::TypeAlias(alias) => Some(alias),
+            TsDeclaration::Unsupported(_) => None,
+        })
+        .find(|alias| alias.name == name)
+        .unwrap_or_else(|| panic!("missing type alias {name}"))
 }
 
 /// Finds a property by name.

@@ -1,14 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ChannelSplitterOptions
  */
 module std.js.Dom.ChannelSplitterOptionsTest.
 
-import type std.js.Dom.ChannelSplitterOptions.{ChannelSplitterOptions}.
+import type std.js.Dom.ChannelSplitterOptions.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub number_of_outputs_typechecks(receiver: ChannelSplitterOptions): std.js.Number.JsNumber ->
     receiver.number_of_outputs().

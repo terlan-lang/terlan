@@ -1,14 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableStream
  */
 module std.js.Dom.ReadableStreamTest.
 
-import type std.js.Dom.ReadableStream.{ReadableStream}.
+import type std.js.Dom.ReadableStream.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub locked_typechecks(receiver: ReadableStream[R]): std.core.Bool ->
     receiver.locked().
@@ -16,11 +22,22 @@ pub locked_typechecks(receiver: ReadableStream[R]): std.core.Bool ->
 pub get_reader_typechecks(receiver: ReadableStream[R]): ReadableStreamDefaultReader[R] ->
     receiver.get_reader().
 
-pub get_reader_typechecks(receiver: ReadableStream[R], options: ReadableStreamGetReaderOptions): ReadableStreamReader[R] ->
+pub get_reader_typechecks(
+    receiver: ReadableStream[R],
+    options: ReadableStreamGetReaderOptions
+): ReadableStreamReader[R] ->
     receiver.get_reader(options).
 
-pub pipe_through_typechecks(receiver: ReadableStream[R], transform: ReadableWritablePair[T , R], options: StreamPipeOptions): ReadableStream[T] ->
+pub pipe_through_typechecks(
+    receiver: ReadableStream[R],
+    transform: ReadableWritablePair[T, R],
+    options: StreamPipeOptions
+): ReadableStream[T] ->
     receiver.pipe_through(transform, options).
 
-pub pipe_to_typechecks(receiver: ReadableStream[R], destination: WritableStream[R], options: StreamPipeOptions): std.js.Promise[std.core.Unit] ->
+pub pipe_to_typechecks(
+    receiver: ReadableStream[R],
+    destination: WritableStream[R],
+    options: StreamPipeOptions
+): std.js.Promise[std.core.Unit] ->
     receiver.pipe_to(destination, options).

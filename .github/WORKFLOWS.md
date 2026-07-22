@@ -2,8 +2,8 @@
 
 Terlan uses separate docs, compiler, and release flows so lightweight
 documentation checks do not run compiler builds, compiler-facing source changes
-are checked continuously, and release artifacts are built only for tagged
-releases or manual runs.
+are checked continuously, and release artifacts are built and published from the
+local release command, not by GitHub Actions.
 
 ## Docs CI
 
@@ -16,8 +16,8 @@ files change:
 - `.github/WORKFLOWS.md`
 - docs workflow configuration
 
-It performs lightweight Markdown hygiene only. It does not install Rust, Erlang,
-or run compiler release gates.
+It performs lightweight Markdown hygiene only. It does not install Rust or run
+compiler release gates.
 
 ## Compiler CI
 
@@ -36,28 +36,22 @@ change:
 - `Makefile`
 - compiler workflow configuration
 
-It installs Rust, Erlang/OTP 29, Node.js, and the local Tree-sitter package
-dependencies, then runs a fast developer gate followed by the release-scale
-gate:
+The direct-AOT matrix runs target-native validation on Linux, macOS, and Windows
+for x86-64 and AArch64. Each runner compiles, packages, installs, executes,
+reloads, crashes, and rejects incompatible native images before uploading one
+attestation. The aggregate accepts only the complete six-target set from one
+official GitHub workflow run, attempt, and commit, then retains the aggregate
+report for 90 days.
+
+The independent compiler job runs the reduced AOT release-candidate gate:
 
 ```sh
-make check
-make test          # fast workspace library tests plus CLI smoke tests
-make test-release  # full workspace tests plus ignored release-scale sweeps
-make editor-check
-make tree-sitter-cli-check
-make erlang-runtime-matrix-check  # when TERLAN_OTP_RUNTIME_BIN is configured
-make release-0-0-5-preflight
+make release-candidate-check
 ```
 
-The 0.0.5 preflight is the compiler CI gate for the JavaScript target path,
-generated `std.js` binding drift, Oxc validation, target-profile rejection
-fixtures, editor package checks, and current web/runtime regressions. Compiler
-CI installs the local `tree-sitter-terlan` npm dependencies before running the
-real Tree-sitter CLI grammar check; the default local `make editor-check` path
-stays dependency-free.
+Non-AOT feature jobs remain paused during the hard AOT cutover.
 
-## Release Artifacts
+## Release Validation
 
 `release.yml` runs manually or when a version tag is pushed:
 
@@ -65,36 +59,37 @@ stays dependency-free.
 v0.0.4
 ```
 
-It validates the compiler and generated std summaries with the same fast/full
-split:
+It runs the same six target-native AOT attestations and strict aggregate before
+the release validation job can execute. The validation job runs:
 
 ```sh
-make check
-make test
-make test-release
-make editor-check
-make tree-sitter-cli-check
-make erlang-runtime-matrix-check  # when TERLAN_OTP_RUNTIME_BIN is configured
-make release-0-0-5-preflight
+make release-candidate-check
 ```
 
-Then the release workflow builds platform artifacts through the release matrix:
+It does not build release artifacts and it does not publish GitHub releases.
+Publication is owned by the local release command:
 
 ```sh
-terlc-linux-x86_64.tar.gz
-terlc-linux-aarch64.tar.gz
-terlc-macos-x86_64.tar.gz
-terlc-macos-aarch64.tar.gz
-terlc-windows-x86_64.zip
+make publish VERSION=0.0.7
 ```
 
-Each matrix lane runs the current-platform package helper, smoke-tests the
-packaged artifact by extracting `terlc` and `terlan-vm`, checking their
-versions, initializing a web-profile project, building the project for Erlang
-and `js.browser`, validating the generated web artifact with
-`terlc serve --check`, running the packaged `terlan-vm`, and running the public
-installer against the artifact through a local file-backed release mirror.
+`make publish` runs the local preflight, builds the current-platform artifact
+into `dist/`, smoke-tests the artifact and installer, and seals the exact upload
+set in `dist/release-candidate.json`. The command verifies that manifest before
+pushing `main` and the tag, then creates or updates the GitHub release using only
+the checksummed files named by the manifest. Publication never discovers extra
+`dist/` files or rebuilds after the candidate is sealed.
 
-Tagged runs upload every matrix artifact to the matching GitHub release. The
-release body is generated from the matching `CHANGELOG.md` section, such as
-`## 0.0.4` for tag `v0.0.4`.
+Review the offline upload plan without contacting GitHub with:
+
+```sh
+make release-promotion-dry-run VERSION=0.0.7
+```
+
+The dry run writes `target/quality/release-promotion-pipeline-report.json` with
+the candidate seal, artifact checksums, and exact upload list.
+
+If a tag validation workflow fails after publication, fixing `main` no longer
+depends on a CI artifact rebuild. A release upload can be retried locally as
+long as the remote tag still points at `HEAD`; `make publish VERSION=<version>`
+updates the release notes and clobbers matching uploaded assets.

@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_syntax::span::Span;
+use crate::terlan_syntax::SyntaxExprOutput;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// Public module interface used by downstream resolver/typecheck phases.
 ///
 /// Inputs: syntax-output module or `.terli`/`.typi` summary. Output: importable
@@ -19,11 +20,63 @@ pub struct ModuleInterface {
     pub type_bodies: HashMap<String, Vec<String>>,
     pub struct_fields: HashMap<String, Vec<StructFieldSignature>>,
     pub type_docs: HashMap<String, Vec<String>>,
+    pub shapes: HashMap<String, ShapeSignature>,
     pub traits: HashMap<String, TraitSignature>,
     pub trait_conformances: Vec<TraitConformanceSignature>,
     pub constructors: HashMap<String, Vec<ConstructorSignature>>,
     pub functions: HashMap<(String, usize), FunctionSignature>,
     pub function_overloads: HashMap<(String, usize), Vec<FunctionSignature>>,
+    pub constants: HashMap<String, ConstantSignature>,
+    pub const_functions: HashMap<(String, usize), ConstFunctionSignature>,
+    pub expression_macros: HashMap<(String, usize), ExpressionMacroSignature>,
+    pub valued_unions: HashMap<String, ValuedUnionSignature>,
+    pub associated_constants: HashMap<String, ConstantSignature>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExpressionMacroSignature {
+    pub name: String,
+    pub params: Vec<ParamSignature>,
+    pub return_type: String,
+    pub template: SyntaxExprOutput,
+    pub fingerprint: String,
+    pub docs: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConstantSignature {
+    pub name: String,
+    pub annotation: String,
+    pub value: SyntaxExprOutput,
+    pub value_text: String,
+    pub fingerprint: String,
+    pub docs: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConstFunctionSignature {
+    pub name: String,
+    pub params: Vec<ParamSignature>,
+    pub return_type: String,
+    pub body: SyntaxExprOutput,
+    pub body_text: String,
+    pub fingerprint: String,
+    pub docs: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValuedUnionSignature {
+    pub name: String,
+    pub representation: String,
+    pub arms: Vec<ValuedUnionArmSignature>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValuedUnionArmSignature {
+    pub name: String,
+    pub value: SyntaxExprOutput,
+    pub value_text: String,
+    pub fingerprint: String,
 }
 
 /// Public field signature for a struct exported through a module interface.
@@ -43,6 +96,19 @@ pub struct StructFieldSignature {
     pub name: String,
     pub annotation: String,
     pub is_private: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// Shape signature exported through a module interface.
+///
+/// Inputs: public parse-preserved `shape` declaration. Output: source-shaped
+/// raw signature metadata. Transformation: keeps shape declarations visible in
+/// generated summaries and supplies canonical source to imported-shape
+/// expansion without exposing provider implementation bodies.
+pub struct ShapeSignature {
+    pub name: String,
+    pub signature: String,
+    pub docs: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -69,7 +135,7 @@ pub struct ConstructorSignature {
 ///
 /// Inputs: syntax-output function, method, or native config signature. Output:
 /// callable signature metadata. Transformation: records normalized parameter
-/// and return annotations plus receiver/visibility/doc metadata.
+/// and return annotations plus receiver/visibility/purity/doc metadata.
 pub struct FunctionSignature {
     pub name: String,
     pub generic_params: Vec<String>,
@@ -79,6 +145,7 @@ pub struct FunctionSignature {
     pub receiver_method: bool,
     pub receiver_mutable: bool,
     pub public: bool,
+    pub pure: bool,
     pub docs: Vec<String>,
 }
 
@@ -93,6 +160,15 @@ pub struct TraitSignature {
     pub type_params: Vec<String>,
     pub super_traits: Vec<String>,
     pub methods: HashMap<String, TraitMethodSignature>,
+    pub constants: HashMap<String, TraitConstantSignature>,
+    pub docs: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TraitConstantSignature {
+    pub annotation: String,
+    pub default: Option<SyntaxExprOutput>,
+    pub default_text: Option<String>,
     pub docs: Vec<String>,
 }
 
@@ -108,6 +184,7 @@ pub struct TraitMethodSignature {
     pub return_type: String,
     pub generic_bounds: Vec<String>,
     pub has_default: bool,
+    pub pure: bool,
     pub docs: Vec<String>,
 }
 
@@ -116,10 +193,12 @@ pub struct TraitMethodSignature {
 ///
 /// Inputs: declaration-site `implements` or explicit impl declaration. Output:
 /// normalized conformance metadata. Transformation: records trait, owner type,
-/// source category, and visibility for imported conformance checks.
+/// polarity, source category, and visibility for imported conformance checks.
 pub struct TraitConformanceSignature {
     pub trait_ref: String,
+    pub generic_params: Vec<String>,
     pub for_type: String,
+    pub is_negative: bool,
     pub source: TraitConformanceSource,
     pub public: bool,
 }
@@ -164,7 +243,7 @@ pub enum TypeVisibility {
 ///
 /// Inputs: syntax-output function or method declaration. Output: local symbol
 /// table entry. Transformation: records callable shape, export/public flags,
-/// docs, and source span for duplicate/export diagnostics.
+/// purity metadata, docs, and source span for duplicate/export diagnostics.
 pub struct FunctionSymbol {
     pub name: String,
     pub arity: usize,
@@ -176,6 +255,7 @@ pub struct FunctionSymbol {
     pub receiver_mutable: bool,
     pub public: bool,
     pub exported: bool,
+    pub pure: bool,
     pub docs: Vec<String>,
     pub span: Span,
 }
@@ -206,6 +286,7 @@ pub struct ResolvedModule {
     pub local_type_names: HashMap<String, TypeVisibility>,
     pub imported_types: HashMap<String, ImportedItem>,
     pub imported_traits: HashMap<String, ImportedItem>,
+    pub imported_constants: HashMap<String, ImportedItem>,
     pub interface_map: HashMap<String, ModuleInterface>,
     pub interface: ModuleInterface,
     pub diagnostics: Vec<Diagnostic>,

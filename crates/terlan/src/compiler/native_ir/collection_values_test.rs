@@ -1,0 +1,151 @@
+//! Source-to-NativeIR checks for persistent collection values.
+
+use crate::{
+    terlan_hir::resolve_syntax_module_output, terlan_syntax::parse_module_as_syntax_output,
+    terlan_typeck::lower_syntax_module_output_to_core,
+};
+
+use super::{NativeExpr, NativeModule};
+
+fn lower(source: &str) -> Vec<NativeModule> {
+    let syntax = parse_module_as_syntax_output(source).expect("parse collection source");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    NativeModule::lower_application(&[&core]).expect("collection NativeIR")
+}
+
+#[test]
+fn list_literal_and_cons_lower_to_managed_collection_operations() {
+    let modules = lower(
+        "module native_collections.\n\n\
+         pub values(): List[Int] -> [1, 2, 3].\n\n\
+         pub prepend(tail: List[Int]): List[Int] -> [0 | tail].\n",
+    );
+    let values = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "values")
+        .expect("list literal function");
+    let prepend = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "prepend")
+        .expect("list cons function");
+    assert!(matches!(
+        values.body,
+        NativeExpr::ManagedOperation { ref encoded, ref args }
+            if encoded.starts_with(b"TVMC") && encoded[6] == 1 && args.len() == 3
+    ));
+    assert!(matches!(
+        prepend.body,
+        NativeExpr::ManagedOperation { ref encoded, ref args }
+            if encoded.starts_with(b"TVMC") && encoded[6] == 2 && args.len() == 2
+    ));
+}
+
+#[test]
+fn typed_map_literal_lowers_in_source_field_order() {
+    let modules = lower(
+        "module native_map.\n\n\
+         pub values(): Map[String, Int] -> {first: 1, second: 2}.\n",
+    );
+    let values = &modules[0].functions[0];
+    assert!(matches!(
+        values.body,
+        NativeExpr::ManagedOperation { ref encoded, ref args }
+            if encoded.starts_with(b"TVMC") && encoded[6] == 3 && args.len() == 4
+    ));
+}
+
+fn contains_collection_tag(expr: &NativeExpr, tag: u8) -> bool {
+    match expr {
+        NativeExpr::ManagedOperation { encoded, args } => {
+            (encoded.starts_with(b"TVMC") && encoded.get(6) == Some(&tag))
+                || args.iter().any(|arg| contains_collection_tag(arg, tag))
+        }
+        NativeExpr::Let { bindings, body } => {
+            bindings
+                .iter()
+                .any(|binding| contains_collection_tag(binding, tag))
+                || contains_collection_tag(body, tag)
+        }
+        NativeExpr::If { clauses } => clauses.iter().any(|(condition, body)| {
+            contains_collection_tag(condition, tag) || contains_collection_tag(body, tag)
+        }),
+        NativeExpr::Call { args, .. } | NativeExpr::TailCall { args, .. } => {
+            args.iter().any(|arg| contains_collection_tag(arg, tag))
+        }
+        NativeExpr::Binary { left, right, .. } => {
+            contains_collection_tag(left, tag) || contains_collection_tag(right, tag)
+        }
+        _ => false,
+    }
+}
+
+#[test]
+fn pure_single_generator_comprehension_expands_to_private_native_recursion() {
+    let modules = lower(
+        "module native_comprehension.\n\n\
+         pub increment_positive(values: List[Int]): List[Int] ->\n\
+             [value + 1 | value <- values, value > 0].\n",
+    );
+    let functions = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .collect::<Vec<_>>();
+    let public = functions
+        .iter()
+        .find(|function| function.name == "increment_positive")
+        .expect("public comprehension");
+    let helper = functions
+        .iter()
+        .find(|function| function.name.starts_with("$aot_comprehension_"))
+        .expect("private comprehension helper");
+    assert!(matches!(public.body, NativeExpr::Call { .. }));
+    assert!(!helper.public);
+    for tag in [2, 4, 5, 6] {
+        assert!(
+            contains_collection_tag(&helper.body, tag),
+            "missing collection operation {tag}"
+        );
+    }
+}
+
+#[test]
+fn unsupported_comprehension_shape_has_stable_prelink_rejection() {
+    let syntax = parse_module_as_syntax_output(
+        "module comprehension_shape.\n\n\
+         pub pairs(left: List[Int], right: List[Int]): List[Int] ->\n\
+             [first + second | first <- left, second <- right].\n",
+    )
+    .expect("parse comprehension shape source");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let error = NativeModule::lower_application(&[&core]).expect_err("reject comprehension shape");
+
+    assert_eq!(
+        error,
+        "error[native_ir.comprehension_shape]: AOT comprehensions require one generator and no lifted result"
+    );
+}
+
+#[test]
+fn comprehension_expansion_budget_has_stable_prelink_rejection() {
+    let mut source = String::from("module comprehension_budget.\n\n");
+    for index in 0..=128 {
+        source.push_str(&format!(
+            "pub map_{index}(values: List[Int]): List[Int] ->\n\
+                 [value + {index} | value <- values].\n\n"
+        ));
+    }
+    let syntax = parse_module_as_syntax_output(&source).expect("parse comprehension budget source");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let error =
+        NativeModule::lower_application(&[&core]).expect_err("reject comprehension explosion");
+
+    assert!(
+        error.starts_with("error[native_ir.comprehension_budget]"),
+        "{error}"
+    );
+}

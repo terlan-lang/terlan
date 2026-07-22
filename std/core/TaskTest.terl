@@ -1,10 +1,10 @@
 module std.core.TaskTest.
 
-import std.core.Task.
 import std.core.Result.{Ok}.
-import type std.core.Error.
-import type std.core.Result.
-import type std.core.Task.
+import std.core.Task.
+import std.test.Test.{assert_equal}.
+
+import type std.core.{Error, Result, Task}.
 
 pub completed_task(): Task[Int] ->
     Task.done(7).
@@ -14,8 +14,8 @@ pub observe(task: Task[Int]): Result[Int, Error] ->
 
 @test
 pub done_creates_completed_task_result(): Bool ->
-    std.test.Test.assert_equal(Ok(7), observe(Task.done(7))).
+    assert_equal(Ok(7), observe(Task.done(7))).
 
 @test
 pub result_observes_completed_task(): Bool ->
-    std.test.Test.assert_equal(Ok(7), observe(completed_task())).
+    assert_equal(Ok(7), observe(completed_task())).

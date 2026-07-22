@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface MemoryDescriptor
+ */
+module std.js.Dom.WebAssembly.MemoryDescriptorTest.
+
+import type std.js.Dom.WebAssembly.MemoryDescriptor.
+import type std.js.Number.{JsNumber}.
+
+pub generated_binding_surface_contract(): Bool -> true.
+
+pub initial_typechecks(receiver: MemoryDescriptor): JsNumber ->
+    receiver.initial().
+
+pub maximum_typechecks(receiver: MemoryDescriptor): JsNumber ->
+    receiver.maximum().
+
+pub shared_typechecks(receiver: MemoryDescriptor): std.core.Bool ->
+    receiver.shared().

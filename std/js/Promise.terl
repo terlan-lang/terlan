@@ -8,7 +8,7 @@
  */
 module std.js.Promise.
 
-import type std.core.Task.{Task}.
+import type std.core.Task.
 
 /**
  * Represents a JavaScript-native promise.

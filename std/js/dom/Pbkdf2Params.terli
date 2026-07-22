@@ -1,0 +1,21 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface Pbkdf2Params
+ */
+module std.js.Dom.Pbkdf2Params.
+
+pub opaque type Pbkdf2Params.
+
+pub (value: Pbkdf2Params) hash(): HashAlgorithmIdentifier.
+
+pub (value: Pbkdf2Params) iterations(): std.js.Number.JsNumber.
+
+pub (value: Pbkdf2Params) salt(): BufferSource.

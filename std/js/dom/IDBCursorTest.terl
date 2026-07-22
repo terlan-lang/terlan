@@ -1,16 +1,21 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IDBCursor
  */
 module std.js.Dom.IDBCursorTest.
 
 import type std.core.{Unit}.
+import type std.js.Dom.IDBCursor.
 
-import type std.js.Dom.IDBCursor.{IDBCursor}.
-
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub direction_typechecks(receiver: IDBCursor): IDBCursorDirection ->
     receiver.direction().
@@ -33,5 +38,9 @@ pub advance_typechecks(receiver: IDBCursor, count: std.js.Number.JsNumber): Unit
 pub continue_typechecks(receiver: IDBCursor, key: IDBValidKey): Unit ->
     receiver.continue(key).
 
-pub continue_primary_key_typechecks(receiver: IDBCursor, key: IDBValidKey, primary_key: IDBValidKey): Unit ->
+pub continue_primary_key_typechecks(
+    receiver: IDBCursor,
+    key: IDBValidKey,
+    primary_key: IDBValidKey
+): Unit ->
     receiver.continue_primary_key(key, primary_key).

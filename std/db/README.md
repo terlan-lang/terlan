@@ -27,13 +27,13 @@ Postgres is a standard capability, not a core primitive. Terlan source owns
 business logic and transaction boundaries. A runtime adapter owns socket I/O,
 TLS, pooling, protocol/client library calls, row decoding, and backpressure.
 
-The default BEAM path must use a SafeNative supervised worker bridge rather
+The default BEAM path must use a NativeBoundary supervised worker bridge rather
 than NIFs.
 
 ## Pending Runtime Work
 
-- SafeNative worker metadata.
-- Rust/Tokio Postgres adapter.
+- NativeBoundary worker metadata.
+- Rust Postgres NativeBoundary adapter.
 - BEAM bridge lifecycle and stale-handle handling.
 - Target-profile rejection for unsupported targets.
 - Live database validation and integration tests.

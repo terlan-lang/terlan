@@ -1,0 +1,34 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface IdleDeadline
+ */
+module std.js.Dom.IdleDeadline.
+
+/**
+ * The `IdleDeadline` interface is used as the data type of the input parameter to idle callbacks established by calling Window.requestIdleCallback().
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IdleDeadline)
+ */
+pub opaque type IdleDeadline.
+
+/**
+ * The read-only **`didTimeout`** property on the **IdleDeadline** interface is a Boolean value which indicates whether or not the idle callback is being invoked because the timeout interval specified when Window.requestIdleCallback() was called has expired.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IdleDeadline/didTimeout)
+ */
+pub (value: IdleDeadline) did_timeout(): std.core.Bool.
+
+/**
+ * The **`timeRemaining()`** method on the IdleDeadline interface returns the estimated number of milliseconds remaining in the current idle period.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IdleDeadline/timeRemaining)
+ */
+pub (value: IdleDeadline) time_remaining(): DOMHighResTimeStamp.

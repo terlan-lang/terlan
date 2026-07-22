@@ -1,3 +1,0 @@
--module(phase_binary_literal).
--export([value/0]).
-value() ->

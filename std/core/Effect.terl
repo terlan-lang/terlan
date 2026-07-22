@@ -1,0 +1,114 @@
+/**
+ * Core effect description type.
+ *
+ * `std.core.Effect` represents an effect description that can be composed as a
+ * value. Effect descriptions execute through an explicit VM-owned boundary;
+ * VM scheduling of pending or external effects is owned by later runtime
+ * integration.
+ */
+module std.core.Effect.
+
+/**
+ * Pure represents a completed effect description.
+ *
+ * Input: one contained value.
+ * Output: a tagged effect descriptor.
+ * Transformation: records a value in the effect context without performing
+ * runtime work.
+ */
+pub type Pure[T] = {Atom["pure"], value: T}.
+
+/**
+ * Mapped records a mapper without invoking it.
+ *
+ * The descriptor deliberately erases its internal input type at the runtime
+ * boundary. The public `Effect[T]` result retains the eventual output type.
+ */
+pub type Mapped = {Atom["mapped"], effect: Dynamic, mapper: Dynamic}.
+
+/**
+ * FlatMap records an effect-producing continuation without invoking it.
+ */
+pub type FlatMap = {Atom["flat_map"], effect: Dynamic, next: Dynamic}.
+
+/**
+ * Failed records a typed VM-boundary failure without throwing in source.
+ */
+pub type Failed = {Atom["failed"], error: Dynamic}.
+
+/**
+ * Cancelled records cooperative cancellation for VM-owned scheduling.
+ */
+pub type Cancelled = {Atom["cancelled"], marker: Unit}.
+
+/**
+ * Effect represents a composable effect description.
+ *
+ * Input: type parameter for the eventual value.
+ * Output: an effect descriptor that can be mapped or sequenced.
+ * Transformation: keeps effect composition explicit without requiring ordinary
+ * Terlan code to use monadic style.
+ */
+pub type Effect[T] = Pure[T] | Mapped | FlatMap | Failed | Cancelled.
+
+/**
+ * Lifts a plain value into an effect description.
+ *
+ * Input: one value.
+ * Output: completed effect descriptor.
+ * Transformation: wraps the value without executing runtime work.
+ */
+@pure
+pub succeed(value: T): Effect[T] ->
+    Pure(value).
+
+/**
+ * Maps the eventual value inside an effect description.
+ *
+ * Input: effect descriptor and pure mapper function.
+ * Output: mapped effect descriptor.
+ * Transformation: records the mapper without invoking it. The mapper executes
+ * only when the resulting description crosses `Effect.run`.
+ */
+@pure
+pub map(effect: Effect[A], mapper: (A) -> B): Effect[B] ->
+    Mapped(effect, mapper).
+
+/**
+ * Chains an effect into another effect-producing computation.
+ *
+ * Input: effect descriptor and continuation.
+ * Output: flattened effect descriptor.
+ * Transformation: records the continuation without invoking it. The
+ * continuation and its returned description execute only at `Effect.run`.
+ */
+@pure
+pub flat_map(effect: Effect[A], next: (A) -> Effect[B]): Effect[B] ->
+    FlatMap(effect, next).
+
+/**
+ * Creates a deferred typed failure handled at the VM execution boundary.
+ */
+@pure
+pub fail(error: E): Effect[T] ->
+    Failed(error).
+
+/**
+ * Creates a cooperatively cancelled effect description.
+ */
+@pure
+pub cancelled(): Effect[T] ->
+    {Atom["cancelled"], Unit}.
+
+/**
+ * Executes an effect description.
+ *
+ * Input: one effect descriptor.
+ * Output: eventual value after crossing the VM execution boundary.
+ * Transformation: evaluates deferred maps and continuations in the VM. This
+ * operation is intentionally effectful so callers can distinguish inert
+ * planning from runtime execution.
+ */
+@target.vm {process_mailbox: true}
+pub run(effect: Effect[T]): T ->
+    native.

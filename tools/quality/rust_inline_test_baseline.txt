@@ -1,11 +1,12 @@
 # Repository-relative Rust files that currently contain inline #[cfg(test)].
-crates/terlan/src/commands/build/mod.rs
-crates/terlan/src/commands/emit_js/direct_ast.rs
-crates/terlan/src/commands/emit_js/oxc_backend.rs
-crates/terlan/src/main.rs
-crates/terlan/src/validation/target_profile/mod.rs
-crates/terlan/src/backends/erlang/emit.rs
-crates/terlan/src/backends/erlang/emit/core.rs
+crates/terlan/src/benchmark/http_runtime_lane.rs
+crates/terlan/src/benchmark/main.rs
+crates/terlan/src/benchmark/binary_protocol_http.rs
+crates/terlan/src/benchmark/binary_protocol_snapshot.rs
+crates/terlan/src/commands/source_layout.rs
 crates/terlan/src/compiler/syntax/ebnf.rs
 crates/terlan/src/compiler/syntax/parser_contract.rs
-crates/terlan/src/compiler/typeck/mod.rs
+crates/terlan/src/quality/cuda_package_availability.rs
+crates/terlan/src/quality/terlan_polars_package.rs
+crates/terlan/src/runtime/vm/distributed_scheduler/source_snapshot.rs
+crates/terlan/src/vm/main/framing_benchmark.rs

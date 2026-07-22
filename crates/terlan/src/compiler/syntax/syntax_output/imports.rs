@@ -38,6 +38,37 @@ pub struct SyntaxImportItem {
     pub span: EbnfSourceSpan,
 }
 
+/// Returns the provider module identity for a source module import.
+///
+/// Inputs:
+/// - `module_name`: parser-preserved module prefix.
+/// - `items`: selected or default import items.
+///
+/// Output:
+/// - Fully qualified provider module identity.
+///
+/// Transformation:
+/// - Reconstructs default imports such as `import std.core.Task.` from parser
+///   prefix `std.core` plus item `Task`.
+/// - Preserves the complete provider stored by selected imports.
+pub fn syntax_module_import_identity(module_name: &str, items: &[SyntaxImportItem]) -> String {
+    let Some(item) = items.first() else {
+        return module_name.to_string();
+    };
+    if items.len() == 1
+        && item.as_alias.is_none()
+        && module_name
+            .rsplit('.')
+            .next()
+            .and_then(|segment| segment.chars().next())
+            .is_some_and(|first| first.is_ascii_lowercase())
+    {
+        format!("{module_name}.{}", item.name)
+    } else {
+        module_name.to_string()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// One exported function item in interface syntax output.
 ///

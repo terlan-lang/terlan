@@ -1,11 +1,18 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind source
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AudioListener
  */
 module std.js.Dom.AudioListener.
 
 import type std.core.{Unit}.
-
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -93,7 +100,14 @@ pub (value: AudioListener) up_z(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/setOrientation)
  */
-pub (value: AudioListener) set_orientation(x: JsNumber, y: JsNumber, z: JsNumber, x_up: JsNumber, y_up: JsNumber, z_up: JsNumber): Unit ->
+pub (value: AudioListener) set_orientation(
+    x: JsNumber,
+    y: JsNumber,
+    z: JsNumber,
+    x_up: JsNumber,
+    y_up: JsNumber,
+    z_up: JsNumber
+): Unit ->
     native.
 
 /**

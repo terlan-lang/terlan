@@ -1,18 +1,22 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface AnalyserNode
  */
 module std.js.Dom.AnalyserNodeTest.
 
 import type std.core.{Unit}.
-
-import type std.js.Dom.AnalyserNode.{AnalyserNode}.
-
+import type std.js.Dom.AnalyserNode.
 import type std.js.Number.{JsNumber}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub fft_size_typechecks(receiver: AnalyserNode): JsNumber ->
     receiver.fft_size().
@@ -32,11 +36,20 @@ pub smoothing_time_constant_typechecks(receiver: AnalyserNode): JsNumber ->
 pub get_byte_frequency_data_typechecks(receiver: AnalyserNode, array: Uint8Array[ArrayBuffer]): Unit ->
     receiver.get_byte_frequency_data(array).
 
-pub get_byte_time_domain_data_typechecks(receiver: AnalyserNode, array: Uint8Array[ArrayBuffer]): Unit ->
+pub get_byte_time_domain_data_typechecks(
+    receiver: AnalyserNode,
+    array: Uint8Array[ArrayBuffer]
+): Unit ->
     receiver.get_byte_time_domain_data(array).
 
-pub get_float_frequency_data_typechecks(receiver: AnalyserNode, array: Float32Array[ArrayBuffer]): Unit ->
+pub get_float_frequency_data_typechecks(
+    receiver: AnalyserNode,
+    array: Float32Array[ArrayBuffer]
+): Unit ->
     receiver.get_float_frequency_data(array).
 
-pub get_float_time_domain_data_typechecks(receiver: AnalyserNode, array: Float32Array[ArrayBuffer]): Unit ->
+pub get_float_time_domain_data_typechecks(
+    receiver: AnalyserNode,
+    array: Float32Array[ArrayBuffer]
+): Unit ->
     receiver.get_float_time_domain_data(array).

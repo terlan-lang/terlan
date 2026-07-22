@@ -1,4 +1,33 @@
 use super::*;
+use crate::commands::build::metadata::build_package_metadata;
+
+/// Verifies default package metadata is no longer classified as Vm.
+///
+/// Inputs:
+/// - A minimal parsed project manifest with no explicit artifact.
+///
+/// Output:
+/// - Test assertion only; package metadata target and artifact both identify
+///   the compiler-owned VM lane.
+///
+/// Transformation:
+/// - Projects the manifest default through package metadata without invoking
+///   code generation.
+#[test]
+fn package_metadata_defaults_to_terlan_vm_target() {
+    let manifest = project_manifest::parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n",
+        std::path::Path::new("terlan.toml"),
+    )
+    .expect("manifest should parse");
+
+    let metadata = build_package_metadata(std::path::Path::new("."), &manifest, &[]);
+    let value = serde_json::to_value(metadata).expect("serialize package metadata");
+
+    assert_eq!(value["target"], "terlan-vm");
+    assert_eq!(value["artifact"], "terlan-vm");
+    assert!(value.get("executable").is_none());
+}
 
 /// Verifies Wasm manifest reservations are preserved in package metadata.
 ///
@@ -23,6 +52,7 @@ fn wasm_artifact_metadata_projects_wasm_browser_target() {
     let metadata = build_package_metadata(std::path::Path::new("."), &manifest, &[]);
     let value = serde_json::to_value(metadata).expect("serialize package metadata");
 
+    assert_eq!(value["target"], "wasm");
     assert_eq!(value["artifact"], "wasm-browser");
     assert_eq!(value["wasm"]["profile"], "browser");
     assert_eq!(value["wasm"]["exports"][0], "app.TodoList");
@@ -57,6 +87,7 @@ fn wasm_artifact_metadata_projects_wasi_cli_target() {
     let metadata = build_package_metadata(std::path::Path::new("."), &manifest, &[]);
     let value = serde_json::to_value(metadata).expect("serialize package metadata");
 
+    assert_eq!(value["target"], "wasi");
     assert_eq!(value["artifact"], "wasi-cli");
     assert_eq!(value["wasi"]["profile"], "cli");
     assert_eq!(value["wasi"]["world"], "wasi:cli/command");

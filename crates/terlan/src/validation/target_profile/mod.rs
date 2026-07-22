@@ -48,10 +48,15 @@ mod profile;
 pub(crate) use profile::{TargetFamily, TargetProfile};
 
 mod core_traversal;
+mod inference;
 mod std_runtime;
 mod summary_shape;
 
 use core_traversal::{validate_core_expr_summary, validate_core_pattern};
+pub(crate) use inference::{
+    explicit_target_profile_override_error, infer_target_profile_from_typed_evidence,
+    TargetInference, TargetInferenceInput,
+};
 use std_runtime::{std_call_heads, std_module_import_violation, validate_core_imports};
 
 /// Structured target-profile violation with enough context for diagnostics.
@@ -95,7 +100,7 @@ pub(crate) struct TargetProfileCheckOptions {
 /// - `None` when the profile and command options admit the std module.
 ///
 /// Transformation:
-/// - Lets build/test commands that own SafeNative packaging admit portable
+/// - Lets build/test commands that own NativeBoundary packaging admit portable
 ///   Rust-backed std modules while pure validation and incompatible targets
 ///   continue producing the same family diagnostic.
 pub(crate) fn target_profile_std_module_import_error_with_options(
@@ -313,6 +318,9 @@ pub(crate) fn target_profile_checks_with_options(
 
     violations
 }
+
+#[cfg(test)]
+mod inference_test;
 
 #[cfg(test)]
 mod target_profile_test;

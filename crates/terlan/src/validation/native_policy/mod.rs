@@ -1,31 +1,72 @@
 /// Native-code policy selected by CLI commands.
 ///
 /// The policy controls whether source files may contain native declarations and
-/// whether safe-native support is optional or required for the command.
+/// whether native-boundary support is optional or required for the command.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum NativePolicy {
     Pure,
     #[default]
-    SafeNativeOptional,
-    SafeNativeRequired,
+    NativeBoundaryOptional,
+    NativeBoundaryRequired,
 }
 
 impl NativePolicy {
-    /// Returns the CLI/API spelling for this native policy.
+    /// Parses a CLI native-policy value.
+    ///
+    /// Inputs:
+    /// - `value`: CLI value supplied to `--native-policy`.
+    ///
+    /// Output:
+    /// - Parsed policy for known native-boundary spellings.
+    /// - `None` for unsupported values.
+    ///
+    /// Transformation:
+    /// - Accepts the 0.0.7 native-boundary spelling as canonical and keeps the
+    ///   old bridge-name spelling as a temporary migration alias.
+    pub(crate) fn from_cli(value: &str) -> Option<Self> {
+        match value {
+            "pure" => Some(NativePolicy::Pure),
+            "native_boundary_optional" | "safe_native_optional" => {
+                Some(NativePolicy::NativeBoundaryOptional)
+            }
+            "native_boundary_required" | "safe_native_required" => {
+                Some(NativePolicy::NativeBoundaryRequired)
+            }
+            _ => None,
+        }
+    }
+
+    /// Returns the user-facing CLI spellings for native policies.
+    ///
+    /// Inputs:
+    /// - None.
+    ///
+    /// Output:
+    /// - Stable text for diagnostics and help.
+    ///
+    /// Transformation:
+    /// - Names only the canonical 0.0.7 spellings; migration aliases remain
+    ///   accepted by `from_cli`.
+    pub(crate) fn user_facing_values() -> &'static str {
+        "pure, native_boundary_optional, native_boundary_required"
+    }
+
+    /// Returns the canonical metadata spelling for this native policy.
     ///
     /// Inputs:
     /// - `self`: the native policy selected by parsed CLI state.
     ///
     /// Output:
-    /// - Static string spelling used in JSON metadata and CLI flag parsing.
+    /// - Static string spelling used in JSON metadata.
     ///
     /// Transformation:
-    /// - Maps the enum variant to the stable snake-case policy identifier.
+    /// - Maps the enum variant to the canonical 0.0.7 native-boundary artifact
+    ///   identifier.
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             NativePolicy::Pure => "pure",
-            NativePolicy::SafeNativeOptional => "safe_native_optional",
-            NativePolicy::SafeNativeRequired => "safe_native_required",
+            NativePolicy::NativeBoundaryOptional => "native_boundary_optional",
+            NativePolicy::NativeBoundaryRequired => "native_boundary_required",
         }
     }
 }
@@ -48,21 +89,21 @@ pub(crate) fn validate_native_policy(source: &str, policy: NativePolicy) -> Resu
         return Err("unsafe native declarations require an explicit unsafe mode".to_string());
     }
     if source_uses_native(source) && policy == NativePolicy::Pure {
-        return Err(
-            "native declarations require --native-policy safe_native_optional or safe_native_required"
-                .to_string(),
-        );
+        return Err(format!(
+            "native declarations require --native-policy {}",
+            NativePolicy::user_facing_values()
+        ));
     }
     Ok(())
 }
 
-/// Detects whether source text uses safe-native declarations.
+/// Detects whether source text uses native-boundary declarations.
 ///
 /// Inputs:
 /// - `source`: Terlan source text to scan.
 ///
 /// Output:
-/// - `true` when the source declares safe-native target support or a native
+/// - `true` when the source declares native-boundary target support or a native
 ///   declaration block.
 /// - `false` when no native marker is found.
 ///
@@ -70,7 +111,8 @@ pub(crate) fn validate_native_policy(source: &str, policy: NativePolicy) -> Resu
 /// - Performs a lightweight textual scan that is suitable for early CLI policy
 ///   checks before deeper compiler phases run.
 pub(crate) fn source_uses_native(source: &str) -> bool {
-    source.contains("target erlang with safe_native")
+    source.contains("target vm with native_boundary")
+        || source.contains("target vm with safe_native")
         || source.contains("@compiler.native")
         || source
             .lines()
@@ -88,7 +130,7 @@ pub(crate) fn source_uses_native(source: &str) -> bool {
 ///
 /// Transformation:
 /// - Performs a conservative textual scan for the unsafe-native spellings that
-///   should not pass the safe-native policy gate.
+///   should not pass the native-boundary policy gate.
 pub(crate) fn source_contains_unsafe_native(source: &str) -> bool {
     source.contains("unsafe_native")
         || source.contains("unsafe native")

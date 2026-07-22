@@ -26,7 +26,7 @@ impl Parser {
         }
         loop {
             let pattern = self.parse_pattern()?;
-            let guard = if self.consume_if(TokenKind::When) {
+            let guard = if self.consume_guard_intro()? {
                 Some(Box::new(self.parse_expr()?))
             } else {
                 None
@@ -234,14 +234,18 @@ impl Parser {
     ///   payload is non-empty, and converts supported string escapes into the
     ///   runtime atom text carried by the syntax tree.
     pub(super) fn parse_atom_literal_expr(&mut self) -> ParseResult<Expr> {
+        Ok(Expr::AtomLiteral(self.parse_atom_literal_payload()?))
+    }
+
+    /// Parses and validates the payload shared by atom expressions and patterns.
+    pub(crate) fn parse_atom_literal_payload(&mut self) -> ParseResult<String> {
         let start = self.expect(TokenKind::Var)?.span();
         self.expect(TokenKind::LBracket)?;
         let literal = self.expect(TokenKind::String)?;
         self.expect(TokenKind::RBracket)?;
-        let payload = parse_atom_string_literal_token(&literal).ok_or_else(|| ParseError {
+        parse_atom_string_literal_token(&literal).ok_or_else(|| ParseError {
             message: "expected non-empty atom string literal".to_string(),
             span: start,
-        })?;
-        Ok(Expr::AtomLiteral(payload))
+        })
     }
 }

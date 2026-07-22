@@ -1,0 +1,47 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface NumberFormatOptions
+ */
+module std.js.Intl.NumberFormatOptionsTest.
+
+import type std.js.Intl.NumberFormatOptions.
+import type std.js.Number.{JsNumber}.
+
+pub generated_binding_surface_contract(): Bool -> true.
+
+pub style_typechecks(receiver: NumberFormatOptions): Option[NumberFormatOptionsStyle] ->
+    receiver.style().
+
+pub currency_typechecks(receiver: NumberFormatOptions): Option[std.js.String.JsString] ->
+    receiver.currency().
+
+pub currency_display_typechecks(
+    receiver: NumberFormatOptions
+): Option[NumberFormatOptionsCurrencyDisplay] ->
+    receiver.currency_display().
+
+pub use_grouping_typechecks(receiver: NumberFormatOptions): Option[NumberFormatOptionsUseGrouping] ->
+    receiver.use_grouping().
+
+pub minimum_integer_digits_typechecks(receiver: NumberFormatOptions): Option[JsNumber] ->
+    receiver.minimum_integer_digits().
+
+pub minimum_fraction_digits_typechecks(receiver: NumberFormatOptions): Option[JsNumber] ->
+    receiver.minimum_fraction_digits().
+
+pub maximum_fraction_digits_typechecks(receiver: NumberFormatOptions): Option[JsNumber] ->
+    receiver.maximum_fraction_digits().
+
+pub minimum_significant_digits_typechecks(receiver: NumberFormatOptions): Option[JsNumber] ->
+    receiver.minimum_significant_digits().
+
+pub maximum_significant_digits_typechecks(receiver: NumberFormatOptions): Option[JsNumber] ->
+    receiver.maximum_significant_digits().

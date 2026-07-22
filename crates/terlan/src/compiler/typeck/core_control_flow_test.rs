@@ -187,7 +187,7 @@ module core_case_guard_boundary.\n\
 \
 pub choose(value: Int): Int ->\n\
     case value {\n\
-        value when is_type(value, Int) -> 1;\n\
+        value where is_type(value, Int) -> 1;\n\
         _ -> 0\n\
     }.\n",
     )
@@ -216,7 +216,7 @@ pub choose(value: Int): Int ->\n\
                         ],
                         return_type: CoreType::Bool,
                         effects: core_pure_effect_set(),
-                        span: Span::new(37, 123),
+                        span: Span::new(37, 124),
                     })),
                     body: CoreExpr::Int(1),
                 },
@@ -282,7 +282,7 @@ pub run(): Dynamic ->\n\
     catch\n\
         reason -> reason\n\
     after\n\
-        0 -> :done\n\
+        0 -> Atom[\"done\"]\n\
     }.\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));

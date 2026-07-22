@@ -66,7 +66,7 @@ pub type Option[T] =
 /// ```
 
 pub type Some[T] =
-    {Atom["some"], value : T}.
+    {Atom["some"], value: T}.
 
 /// Chains a present value into another optional computation.
 ///
@@ -98,7 +98,7 @@ pub type Some[T] =
 ///    and_then(value, f).
 /// ```
 
-pub and_then(value: Option[A], f: (A ) -> Option[B]): Option[B].
+pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B].
 
 /// Compares two optional values using `None < Some(_)`.
 ///
@@ -120,7 +120,7 @@ pub and_then(value: Option[A], f: (A ) -> Option[B]): Option[B].
 ///    std.core.Option.compare(None, Some(1), compare_int).
 /// ```
 
-pub compare(left: Option[A], right: Option[A], value_compare: (A, A ) -> std.core.Ordering.Comparison): std.core.Ordering.Comparison.
+pub compare(left: Option[A], right: Option[A], value_compare: (A, A) -> std.core.Ordering.Comparison): std.core.Ordering.Comparison.
 
 /// Returns whether an optional value is missing.
 ///
@@ -136,6 +136,7 @@ pub compare(left: Option[A], right: Option[A], value_compare: (A, A ) -> std.cor
 ///    std.core.Option.is_none(value).
 /// ```
 
+@pure
 pub is_none(value: Option[A]): Bool.
 
 /// Returns whether an optional value is present.
@@ -152,6 +153,7 @@ pub is_none(value: Option[A]): Bool.
 ///    std.core.Option.is_some(value).
 /// ```
 
+@pure
 pub is_some(value: Option[A]): Bool.
 
 /// Maps a present value and leaves `None` unchanged.
@@ -182,7 +184,7 @@ pub is_some(value: Option[A]): Bool.
 ///    map(value, f).
 /// ```
 
-pub map(value: Option[A], f: (A ) -> B): Option[B].
+pub map(value: Option[A], f: (A) -> B): Option[B].
 
 /// Extracts a present value or returns the provided default.
 ///
@@ -212,4 +214,5 @@ pub map(value: Option[A], f: (A ) -> B): Option[B].
 ///    with_default(value, 0).
 /// ```
 
+@pure
 pub with_default(value: Option[A], default: A): A.

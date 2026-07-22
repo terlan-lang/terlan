@@ -1,18 +1,25 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ReadableByteStreamController
  */
 module std.js.Dom.ReadableByteStreamControllerTest.
 
 import type std.core.{Unit}.
+import type std.js.Dom.ReadableByteStreamController.
 
-import type std.js.Dom.ReadableByteStreamController.{ReadableByteStreamController}.
+pub generated_binding_surface_contract(): Bool -> true.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
-
-pub byob_request_typechecks(receiver: ReadableByteStreamController): Option[ReadableStreamBYOBRequest] ->
+pub byob_request_typechecks(
+    receiver: ReadableByteStreamController
+): Option[ReadableStreamBYOBRequest] ->
     receiver.byob_request().
 
 pub desired_size_typechecks(receiver: ReadableByteStreamController): Option[std.js.Number.JsNumber] ->
@@ -21,5 +28,8 @@ pub desired_size_typechecks(receiver: ReadableByteStreamController): Option[std.
 pub close_typechecks(receiver: ReadableByteStreamController): Unit ->
     receiver.close().
 
-pub enqueue_typechecks(receiver: ReadableByteStreamController, chunk: ArrayBufferView[ArrayBuffer]): Unit ->
+pub enqueue_typechecks(
+    receiver: ReadableByteStreamController,
+    chunk: ArrayBufferView[ArrayBuffer]
+): Unit ->
     receiver.enqueue(chunk).

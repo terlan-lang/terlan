@@ -5,13 +5,127 @@
  * Runtime servers own the concrete response representation; source code works
  * with typed constructors and receiver methods.
  */
-
 module std.http.Response.
 
+import std.core.Int.{to_string}.
+import std.core.Unit.
 import std.http.Cookies.{delete_header, set_header, set_header_with_options}.
-import std.core.Unit.{Unit}.
+
+import type std.collections.List.
 import type std.data.Json.
 import type std.http.Cookies.Jar.
+
+/**
+ * Deny represents the strict frame-ancestor policy for secure responses.
+ *
+ * Input: no value input.
+ * Output: atom-backed frame option marker.
+ * Transformation: gives security-header policies a typed source-level value
+ * instead of requiring raw `X-Frame-Options` text.
+ */
+pub type Deny.
+
+/**
+ * SameOrigin represents the same-origin frame-ancestor policy.
+ *
+ * Input: no value input.
+ * Output: atom-backed frame option marker.
+ * Transformation: narrows frame embedding policy before it is serialized as a
+ * response header.
+ */
+pub type SameOrigin.
+
+/**
+ * FrameOptions represents the supported `X-Frame-Options` policy values.
+ *
+ * Input: no type parameter.
+ * Output: one of the supported frame option markers.
+ * Transformation: prevents handlers from spelling frame protection headers by
+ * hand while keeping the emitted HTTP header predictable.
+ */
+pub type FrameOptions = Deny | SameOrigin.
+
+/**
+ * NoReferrer represents the strictest referrer policy.
+ *
+ * Input: no value input.
+ * Output: atom-backed referrer policy marker.
+ * Transformation: makes referrer policy composition a typed choice instead of
+ * a raw header string.
+ */
+pub type NoReferrer.
+
+/**
+ * StrictOriginWhenCrossOrigin represents the modern practical referrer policy.
+ *
+ * Input: no value input.
+ * Output: atom-backed referrer policy marker.
+ * Transformation: records the source-level policy in a stable value that is
+ * later serialized to the HTTP header vocabulary.
+ */
+pub type StrictOriginWhenCrossOrigin.
+
+/**
+ * ReferrerPolicy represents supported `Referrer-Policy` values.
+ *
+ * Input: no type parameter.
+ * Output: one of the supported referrer policy markers.
+ * Transformation: narrows response security policy before header emission.
+ */
+pub type ReferrerPolicy = NoReferrer | StrictOriginWhenCrossOrigin.
+
+/**
+ * SecurityHeaders represents the typed secure-header policy for a response.
+ *
+ * Input: no type parameter.
+ * Output: typed response security policy.
+ * Transformation: groups the current response security headers so middleware,
+ * handlers, and future route manifests can compose one value instead of raw
+ * header mutations.
+ */
+pub struct SecurityHeaders {
+    content_type_options: Bool,
+    frame_options: FrameOptions,
+    referrer_policy: ReferrerPolicy,
+    hsts_max_age: Int,
+    hsts_include_subdomains: Bool
+}.
+
+/**
+ * Constructs a typed secure-header policy.
+ *
+ * Input: content sniffing flag, frame policy, referrer policy, HSTS max-age,
+ * and HSTS subdomain flag.
+ * Output: `SecurityHeaders`.
+ * Transformation: centralizes public construction so response policy values
+ * remain explicit and route-manifest-friendly.
+ */
+pub constructor SecurityHeaders {
+    (content_type_options: Bool, frame_options: FrameOptions, referrer_policy: ReferrerPolicy, hsts_max_age: Int, hsts_include_subdomains: Bool): SecurityHeaders ->
+        SecurityHeaders {content_type_options: content_type_options, frame_options: frame_options, referrer_policy: referrer_policy, hsts_max_age: hsts_max_age, hsts_include_subdomains: hsts_include_subdomains}
+}.
+
+/**
+ * Returns the conservative development security-header policy.
+ *
+ * Input: no value input.
+ * Output: `SecurityHeaders` without HSTS.
+ * Transformation: enables secure defaults for local HTTP without emitting HSTS
+ * on non-TLS development origins.
+ */
+pub default_security_headers(): SecurityHeaders ->
+    SecurityHeaders {content_type_options: true, frame_options: Deny, referrer_policy: StrictOriginWhenCrossOrigin, hsts_max_age: 0, hsts_include_subdomains: false}.
+
+/**
+ * Returns the production security-header policy.
+ *
+ * Input: no value input.
+ * Output: `SecurityHeaders` with a one-year HSTS policy.
+ * Transformation: gives production routes one typed policy value that can be
+ * composed through handlers and future route manifests.
+ */
+pub production_security_headers(): SecurityHeaders ->
+    SecurityHeaders {content_type_options: true, frame_options: Deny, referrer_policy: StrictOriginWhenCrossOrigin, hsts_max_age: 31536000, hsts_include_subdomains: true}.
 
 /**
  * Response represents one HTTP response returned by a Terlan handler.
@@ -108,6 +222,39 @@ pub file(path: String, status: Int = 200, content_type: String = ""): Response -
     native.
 
 /**
+ * Creates a bounded streaming response from available text chunks.
+ *
+ * Input: ordered UTF-8 chunks, HTTP status, content type, maximum emitted
+ * chunk size, and maximum pending write count.
+ * Output: a `Response` whose body is emitted through the VM-owned response
+ * stream and HTTP transport path.
+ * Transformation: records source chunks and explicit queue limits in a typed
+ * descriptor; the VM validates the limits, preserves chunk order, applies
+ * backpressure, and owns response completion.
+ */
+@compiler.native {std.http.response.stream}
+pub stream(
+    chunks: List[String],
+    status: Int,
+    content_type: String,
+    chunk_size: Int,
+    max_pending_writes: Int
+): Response ->
+    native.
+
+/**
+ * Creates a bounded streaming response with conservative defaults.
+ *
+ * Input: ordered UTF-8 chunks.
+ * Output: a `200 application/octet-stream` response with a 16 KiB emitted
+ * chunk limit and at most 128 pending writes.
+ * Transformation: delegates to the explicit bounded overload so the compact
+ * VM descriptor never has to infer omitted integer argument roles.
+ */
+pub stream(chunks: List[String]): Response ->
+    stream(chunks, 200, "application/octet-stream", 16384, 128).
+
+/**
  * Creates a redirect response.
  *
  * Input: one redirect location string and an optional HTTP redirect status.
@@ -123,7 +270,7 @@ pub redirect(location: String, status: Int = 302): Response ->
  * Sets the response status.
  *
  * Input: one mutable `Response` receiver and one HTTP status code.
- * Output: `Unit`.
+ * Output: the same `Response` value after secure-header metadata is appended.
  * Transformation: updates the target-owned response metadata through the
  * mutable receiver ABI.
  */
@@ -154,7 +301,8 @@ pub (mut response: Response) header(name: String, value: String): Unit ->
  * target-owned mutation path.
  */
 pub (mut response: Response) with_status(code: Int): Response ->
-    response |> status(code).
+    response
+    |> status(code).
 
 /**
  * Returns a response after setting one header.
@@ -167,7 +315,66 @@ pub (mut response: Response) with_status(code: Int): Response ->
  * storage.
  */
 pub (mut response: Response) with_header(name: String, value: String): Response ->
-    response |> header(name, value).
+    response
+    |> header(name, value).
+
+/**
+ * Applies typed secure response headers.
+ *
+ * Input: one mutable `Response` receiver and one `SecurityHeaders` policy.
+ * Output: `Unit`.
+ * Transformation: serializes typed policy values into validated response
+ * headers through the normal response metadata path.
+ */
+pub (mut response: Response) security_headers(policy: SecurityHeaders): Response ->
+    response
+    |> header("X-Frame-Options", frame_options_header(policy.frame_options))
+    |> header("Referrer-Policy", referrer_policy_header(policy.referrer_policy))
+    |> optional_content_type_options_header(policy.content_type_options)
+    |> optional_hsts_header(policy.hsts_max_age, policy.hsts_include_subdomains).
+
+/**
+ * Returns a response after applying typed secure response headers.
+ *
+ * Input: one mutable `Response` receiver and one `SecurityHeaders` policy.
+ * Output: the same `Response` value after secure-header metadata is appended.
+ * Transformation: keeps expression-style handlers on the typed policy path
+ * instead of forcing raw header calls.
+ */
+pub (mut response: Response) with_security_headers(policy: SecurityHeaders): Response ->
+    response
+    |> security_headers(policy).
+
+frame_options_header(value: FrameOptions): String ->
+    case value {
+        Deny -> "DENY";
+        SameOrigin -> "SAMEORIGIN"
+    }.
+
+referrer_policy_header(value: ReferrerPolicy): String ->
+    case value {
+        NoReferrer -> "no-referrer";
+        StrictOriginWhenCrossOrigin -> "strict-origin-when-cross-origin"
+    }.
+
+pub (mut response: Response) optional_content_type_options_header(enabled: Bool): Response ->
+    case enabled {
+        true -> response.header("X-Content-Type-Options", "nosniff");
+        false -> response
+    }.
+
+pub (mut response: Response) optional_hsts_header(max_age: Int, include_subdomains: Bool): Response ->
+    case max_age > 0 {
+        true ->
+            response.header("Strict-Transport-Security", hsts_header(max_age, include_subdomains));
+        false -> response
+    }.
+
+hsts_header(max_age: Int, include_subdomains: Bool): String ->
+    case include_subdomains {
+        true -> "max-age=" + to_string(max_age) + "; includeSubDomains";
+        false -> "max-age=" + to_string(max_age)
+    }.
 
 /**
  * Adds a `Set-Cookie` header value.
@@ -193,8 +400,15 @@ pub (mut response: Response) set_cookie_header(value: String): Unit ->
  * appends it to the response without requiring handler code to assemble raw
  * `Set-Cookie` text.
  */
-pub (mut response: Response) cookie(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): Unit ->
-    response |> set_cookie_header(set_header(name, value, path, http_only, secure)).
+pub (mut response: Response) cookie(
+    name: String,
+    value: String,
+    path: String = "/",
+    http_only: Bool = false,
+    secure: Bool = false
+): Unit ->
+    response
+    |> set_cookie_header(set_header(name, value, path, http_only, secure)).
 
 /**
  * Returns a response after adding a validated `Set-Cookie` header.
@@ -205,8 +419,15 @@ pub (mut response: Response) cookie(name: String, value: String, path: String = 
  * Transformation: uses the mutable receiver continuation rule so handlers can
  * write expression-style response builders without raw `Set-Cookie` headers.
  */
-pub (mut response: Response) with_cookie(name: String, value: String, path: String = "/", http_only: Bool = false, secure: Bool = false): Response ->
-    response |> cookie(name, value, path, http_only, secure).
+pub (mut response: Response) with_cookie(
+    name: String,
+    value: String,
+    path: String = "/",
+    http_only: Bool = false,
+    secure: Bool = false
+): Response ->
+    response
+    |> cookie(name, value, path, http_only, secure).
 
 /**
  * Adds a validated `Set-Cookie` header with the full option surface.
@@ -219,8 +440,20 @@ pub (mut response: Response) with_cookie(name: String, value: String, path: Stri
  * appends the serialized header to the response through the existing mutable
  * response metadata path.
  */
-pub (mut response: Response) cookie_with_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): Unit ->
-    response |> set_cookie_header(set_header_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site)).
+pub (mut response: Response) cookie_with_options(
+    name: String,
+    value: String,
+    path: String = "/",
+    domain: String = "",
+    max_age: Int = 0,
+    include_max_age: Bool = false,
+    expires: String = "",
+    http_only: Bool = false,
+    secure: Bool = false,
+    same_site: String = ""
+): Unit ->
+    response
+    |> set_cookie_header(set_header_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site)).
 
 /**
  * Returns a response after adding a validated `Set-Cookie` header with the
@@ -233,8 +466,20 @@ pub (mut response: Response) cookie_with_options(name: String, value: String, pa
  * Transformation: keeps expression-style HTTP handlers on the typed cookie
  * serialization path exposed by `std.http.Cookies`.
  */
-pub (mut response: Response) with_cookie_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): Response ->
-    response |> cookie_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site).
+pub (mut response: Response) with_cookie_options(
+    name: String,
+    value: String,
+    path: String = "/",
+    domain: String = "",
+    max_age: Int = 0,
+    include_max_age: Bool = false,
+    expires: String = "",
+    http_only: Bool = false,
+    secure: Bool = false,
+    same_site: String = ""
+): Response ->
+    response
+    |> cookie_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site).
 
 /**
  * Adds a validated cookie deletion header.
@@ -246,7 +491,8 @@ pub (mut response: Response) with_cookie_options(name: String, value: String, pa
  * metadata path.
  */
 pub (mut response: Response) delete_cookie(name: String, path: String = "/"): Unit ->
-    response |> set_cookie_header(delete_header(name, path)).
+    response
+    |> set_cookie_header(delete_header(name, path)).
 
 /**
  * Returns a response after adding a validated cookie deletion header.
@@ -257,7 +503,8 @@ pub (mut response: Response) delete_cookie(name: String, path: String = "/"): Un
  * deletion path instead of requiring raw expiring header text.
  */
 pub (mut response: Response) with_deleted_cookie(name: String, path: String = "/"): Response ->
-    response |> delete_cookie(name, path).
+    response
+    |> delete_cookie(name, path).
 
 /**
  * Returns a response after applying recorded cookie jar mutations.

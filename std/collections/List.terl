@@ -4,13 +4,13 @@
  * `std.collections.List` is the portable ordered collection surface for Terlan list
  * values.
  */
-
 module std.collections.List.
 
-import type std.collections.Iterator.
-import std.collections.Iterator.
+import std.collections.Iterator.{each}.
 import std.core.Option.{None, Option}.
-import std.core.Unit.{Unit}.
+import std.core.Unit.
+
+import type std.collections.Iterator.
 
 /**
  * List represents an ordered collection of values.
@@ -44,20 +44,19 @@ pub constructor List[T] {
  * intrinsic, using the selected backend's canonical empty-list value.
  */
 @compiler.intrinsic
-pub new[T](): List[T] ->
-    [].
+pub new[T](): List[T] -> [].
 
 /**
  * Returns whether a list contains no values.
  *
  * Input: one `List[T]`.
- * Output: `true` when the list is empty; otherwise `false`.
+ * Output: `true` when the list is empty;
+ * otherwise `false`.
  * Transformation: lowers through the compiler-owned `core.list.is_empty`
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (list: List[T]) is_empty(): Bool ->
-    true.
+pub (list: List[T]) is_empty(): Bool -> true.
 
 /**
  * Returns the number of values in a list.
@@ -68,14 +67,14 @@ pub (list: List[T]) is_empty(): Bool ->
  * intrinsic and observes the receiver without changing its contents.
  */
 @compiler.intrinsic
-pub (list: List[T]) length(): Int ->
-    0.
+pub (list: List[T]) length(): Int -> 0.
 
 /**
  * Returns the first value in a list.
  *
  * Input: one `List[T]`.
- * Output: `Some(value)` when the list is non-empty; otherwise `None`.
+ * Output: `Some(value)` when the list is non-empty;
+ * otherwise `None`.
  * Transformation: lowers through the compiler-owned `core.list.first`
  * intrinsic and observes the receiver without changing its contents.
  */
@@ -84,13 +83,53 @@ pub (list: List[T]) first(): Option[T] ->
     None.
 
 /**
+ * Returns every value after the first.
+ *
+ * Input: one `List[T]`.
+ * Output: `Some(rest)` for a non-empty list, including `Some([])` for a
+ * singleton list; otherwise `None`.
+ * Transformation: lowers through the compiler-owned `core.list.rest`
+ * intrinsic without changing the receiver.
+ */
+@compiler.intrinsic
+pub (list: List[T]) rest(): Option[List[T]] ->
+    None.
+
+/**
+ * Concatenates two lists in source order.
+ *
+ * Input: a `List[T]` receiver and a second `List[T]`.
+ * Output: a new list containing the receiver values followed by the second
+ * list values.
+ * Transformation: lowers through the compiler-owned `core.list.concat`
+ * intrinsic and leaves both input lists unchanged.
+ */
+@compiler.intrinsic
+pub (list: List[T]) concat(other: List[T]): List[T] ->
+    list.
+
+/**
+ * Removes the first matching occurrence for each supplied value.
+ *
+ * Input: a `List[T]` receiver and a list of values to remove.
+ * Output: a new list with one matching occurrence removed in removal-list
+ * order for each supplied value.
+ * Transformation: lowers through the compiler-owned `core.list.subtract`
+ * intrinsic, uses structural value equality, and leaves both inputs unchanged.
+ */
+@compiler.intrinsic
+pub (list: List[T]) subtract(values: List[T]): List[T] ->
+    list.
+
+/**
  * Returns an iterator over the list.
  *
  * Input: one `List[T]`.
  * Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
  * of the list.
  * Transformation: lowers through the compiler-owned `core.list.iterator`
- * intrinsic. The source-level iterator state is immutable; backends choose
+ * intrinsic. The source-level iterator state is immutable;
+ * backends choose
  * the efficient representation behind the opaque iterator type.
  */
 @compiler.intrinsic
@@ -107,7 +146,7 @@ pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T] ->
  * callback performs any requested effects.
  */
 pub (list: List[T]) each(cb: (T) -> Unit): Unit ->
-    Iterator.each(list.iterator(), cb).
+    each(iterator(list), cb).
 
 /**
  * Appends a value to the end of a list.

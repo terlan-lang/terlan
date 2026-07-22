@@ -1,0 +1,184 @@
+{
+  "artifactFilenameCoverage": 5,
+  "canonicalVersion": "0.0.7",
+  "channel": "dev",
+  "checkedFields": [
+    {
+      "expected": "0.0.7",
+      "field": "workspace.package.version",
+      "observed": "0.0.7",
+      "path": "Cargo.toml",
+      "status": "ok"
+    },
+    {
+      "expected": "0.0.7",
+      "field": "package.version",
+      "observed": "0.0.7",
+      "path": "std/manifest.toml",
+      "status": "ok"
+    },
+    {
+      "expected": "0.0.7",
+      "field": "version",
+      "observed": "0.0.7",
+      "path": "editors/vscode/package.json",
+      "status": "ok"
+    },
+    {
+      "expected": "0.0.7",
+      "field": "version",
+      "observed": "0.0.7",
+      "path": "tree-sitter-terlan/package.json",
+      "status": "ok"
+    },
+    {
+      "expected": "0.0.7",
+      "field": "version",
+      "observed": "0.0.7",
+      "path": "editors/vscode/package-lock.json",
+      "status": "ok"
+    },
+    {
+      "expected": "0.0.7",
+      "field": "packages[\"\"].version",
+      "observed": "0.0.7",
+      "path": "editors/vscode/package-lock.json",
+      "status": "ok"
+    },
+    {
+      "expected": "0.0.7",
+      "field": "version",
+      "observed": "0.0.7",
+      "path": "tree-sitter-terlan/package-lock.json",
+      "status": "ok"
+    },
+    {
+      "expected": "0.0.7",
+      "field": "packages[\"\"].version",
+      "observed": "0.0.7",
+      "path": "tree-sitter-terlan/package-lock.json",
+      "status": "ok"
+    },
+    {
+      "expected": "VERSION=\"${TERLAN_VERSION:-v0.0.7}\"",
+      "field": "default_tag",
+      "observed": "VERSION=\"${TERLAN_VERSION:-v0.0.7}\"",
+      "path": "install.sh",
+      "status": "ok"
+    },
+    {
+      "expected": "RELEASE_BASE_URL=\"${TERLAN_RELEASE_BASE_URL:-https://github.com/terlan-lang/terlan/releases/download}\"",
+      "field": "release_base_url",
+      "observed": "RELEASE_BASE_URL=\"${TERLAN_RELEASE_BASE_URL:-https://github.com/terlan-lang/terlan/releases/download}\"",
+      "path": "install.sh",
+      "status": "ok"
+    },
+    {
+      "expected": "$Version = \"v0.0.7\"",
+      "field": "default_tag",
+      "observed": "$Version = \"v0.0.7\"",
+      "path": "install.ps1",
+      "status": "ok"
+    },
+    {
+      "expected": "$releaseBaseUrl = \"https://github.com/terlan-lang/terlan/releases/download\"",
+      "field": "release_base_url",
+      "observed": "$releaseBaseUrl = \"https://github.com/terlan-lang/terlan/releases/download\"",
+      "path": "install.ps1",
+      "status": "ok"
+    },
+    {
+      "expected": "Current version: `0.0.7`.",
+      "field": "current_version",
+      "observed": "Current version: `0.0.7`.",
+      "path": "README.md",
+      "status": "ok"
+    },
+    {
+      "expected": "TERLAN_VERSION=v0.0.7 sh",
+      "field": "install_version",
+      "observed": "TERLAN_VERSION=v0.0.7 sh",
+      "path": "README.md",
+      "status": "ok"
+    },
+    {
+      "expected": "## 0.0.7",
+      "field": "release_heading",
+      "observed": "## 0.0.7",
+      "path": "CHANGELOG.md",
+      "status": "ok"
+    },
+    {
+      "expected": "version = \"0.0.7\"",
+      "field": "version",
+      "observed": "version = \"0.0.7\"",
+      "path": "editors/intellij/build.gradle.kts",
+      "status": "ok"
+    },
+    {
+      "expected": "true",
+      "field": "package.version.workspace",
+      "observed": "true",
+      "path": "crates/terlan/Cargo.toml",
+      "status": "ok"
+    },
+    {
+      "expected": "true",
+      "field": "runtime_version_source",
+      "observed": "true",
+      "path": "crates/terlan/src/main.rs",
+      "status": "ok"
+    },
+    {
+      "expected": "true",
+      "field": "runtime_version_source",
+      "observed": "true",
+      "path": "crates/terlan/src/vm/main.rs",
+      "status": "ok"
+    },
+    {
+      "expected": "dev",
+      "field": "channel",
+      "observed": "dev",
+      "path": "<release>",
+      "status": "ok"
+    }
+  ],
+  "installUrlMatrix": [
+    {
+      "arch": "x86_64",
+      "artifact": "terlc-linux-x86_64.tar.gz",
+      "os": "linux",
+      "url": "https://github.com/terlan-lang/terlan/releases/download/v0.0.7/terlc-linux-x86_64.tar.gz"
+    },
+    {
+      "arch": "aarch64",
+      "artifact": "terlc-linux-aarch64.tar.gz",
+      "os": "linux",
+      "url": "https://github.com/terlan-lang/terlan/releases/download/v0.0.7/terlc-linux-aarch64.tar.gz"
+    },
+    {
+      "arch": "x86_64",
+      "artifact": "terlc-macos-x86_64.tar.gz",
+      "os": "macos",
+      "url": "https://github.com/terlan-lang/terlan/releases/download/v0.0.7/terlc-macos-x86_64.tar.gz"
+    },
+    {
+      "arch": "aarch64",
+      "artifact": "terlc-macos-aarch64.tar.gz",
+      "os": "macos",
+      "url": "https://github.com/terlan-lang/terlan/releases/download/v0.0.7/terlc-macos-aarch64.tar.gz"
+    },
+    {
+      "arch": "x86_64",
+      "artifact": "terlc-windows-x86_64.zip",
+      "os": "windows",
+      "url": "https://github.com/terlan-lang/terlan/releases/download/v0.0.7/terlc-windows-x86_64.zip"
+    }
+  ],
+  "mismatches": [],
+  "packageIndexStatus": "not-published",
+  "schema": "terlan-release-version-channel-v1",
+  "status": "ok",
+  "tag": "v0.0.7"
+}

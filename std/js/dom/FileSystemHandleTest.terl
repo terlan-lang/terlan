@@ -1,14 +1,20 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface FileSystemHandle
  */
 module std.js.Dom.FileSystemHandleTest.
 
-import type std.js.Dom.FileSystemHandle.{FileSystemHandle}.
+import type std.js.Dom.FileSystemHandle.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub kind_typechecks(receiver: FileSystemHandle): FileSystemHandleKind ->
     receiver.kind().
@@ -16,5 +22,8 @@ pub kind_typechecks(receiver: FileSystemHandle): FileSystemHandleKind ->
 pub name_typechecks(receiver: FileSystemHandle): std.js.String.JsString ->
     receiver.name().
 
-pub is_same_entry_typechecks(receiver: FileSystemHandle, other: FileSystemHandle): std.js.Promise[std.core.Bool] ->
+pub is_same_entry_typechecks(
+    receiver: FileSystemHandle,
+    other: FileSystemHandle
+): std.js.Promise[std.core.Bool] ->
     receiver.is_same_entry(other).

@@ -72,23 +72,11 @@ pub(super) fn is_config_declaration_kind(kind: &str) -> bool {
 /// Extracts the config declaration target from preserved declaration text.
 ///
 /// Inputs:
-/// - `text`: parser-preserved config declaration text, such as
-///   `target erlang` or `target js { module: true }`.
-///
-/// Output:
-/// - The first target segment after the config declaration name, or an empty
-///   string when preserved declaration text is malformed.
-///
-/// Transformation:
-/// - Reads only the declaration head and leaves the full metadata body in
-///   `text`, so later structured metadata parsing can replace this shim without
-///   changing consumers that only need the target.
-
 /// Extracts the config declaration target from preserved declaration text.
 ///
 /// Inputs:
 /// - `text`: parser-preserved config declaration text, such as
-///   `target erlang` or `target js { module: true }`.
+///   `target vm` or `target js { module: true }`.
 ///
 /// Output:
 /// - The first target segment after the config declaration name, or an empty
@@ -107,23 +95,6 @@ pub(super) fn config_declaration_target(text: &str) -> String {
         })
         .unwrap_or_default()
 }
-
-/// Parses structured config entries from preserved config declaration text.
-///
-/// Inputs:
-/// - `text`: parser-preserved config declaration text.
-///
-/// Output:
-/// - Structured config entries when the text follows `ConfigDecl` metadata
-///   block syntax.
-/// - An empty entry list for empty blocks, blockless declarations, lexer
-///   errors, or raw declarations outside the formal config shape.
-///
-/// Transformation:
-/// - Re-lexes the preserved text, skips the config name and target path, and
-///   parses a metadata block only when it appears immediately after the target.
-///   This keeps target-specific semantics explicit while making the syntax
-///   contract structured enough for validators and phase manifests.
 
 /// Parses structured config entries from preserved config declaration text.
 ///

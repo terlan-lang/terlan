@@ -1,0 +1,77 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface HTMLDialogElement
+ */
+module std.js.Dom.HTMLDialogElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`HTMLDialogElement`** interface provides methods to manipulate dialog elements.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement)
+ */
+pub opaque type HTMLDialogElement.
+
+/**
+ * The **`open`** property of the `open` HTML attribute, indicating whether the dialog is available for interaction.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/open)
+ */
+pub (value: HTMLDialogElement) open(): Bool.
+
+/**
+ * The **`returnValue`** property of the HTMLDialogElement interface is a string representing the return value for a dialog element when it's closed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/returnValue)
+ */
+pub (value: HTMLDialogElement) return_value(): JsString.
+
+/**
+ * The **`close()`** method of the HTMLDialogElement interface closes the dialog.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/close)
+ */
+pub (value: HTMLDialogElement) close(return_value: JsString): Unit.
+
+/**
+ * The **`requestClose()`** method of the HTMLDialogElement interface requests to close the dialog.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/requestClose)
+ */
+pub (value: HTMLDialogElement) request_close(return_value: JsString): Unit.
+
+/**
+ * The **`show()`** method of the HTMLDialogElement interface displays the dialog modelessly, i.e., still allowing interaction with content outside of the dialog.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/show)
+ */
+pub (value: HTMLDialogElement) show(): Unit.
+
+/**
+ * The **`showModal()`** method of the of any other dialogs that might be present.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/showModal)
+ */
+pub (value: HTMLDialogElement) show_modal(): Unit.
+
+pub (value: HTMLDialogElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: HTMLDialogElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

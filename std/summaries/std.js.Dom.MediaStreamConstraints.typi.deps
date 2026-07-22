@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaStreamConstraints
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=18149213595393039661
-interface_hash=4898201817685156269
-interface_doc_hash=4898201817685156269
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=16892538203831270182
+interface_hash=6130443791524700028
+interface_doc_hash=6130443791524700028
 deps=0

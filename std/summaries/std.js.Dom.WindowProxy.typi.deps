@@ -1,0 +1,8 @@
+module=std.js.Dom.WindowProxy
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=13243169802771703645
+interface_hash=1585097796169164331
+interface_doc_hash=1585097796169164331
+deps=0

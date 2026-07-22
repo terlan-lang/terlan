@@ -1,0 +1,5 @@
+name	value
+warning_threshold_percent	5
+hard_threshold_percent	10
+monotonic_lane	EBNF syntax preservation
+history_retention_days	30

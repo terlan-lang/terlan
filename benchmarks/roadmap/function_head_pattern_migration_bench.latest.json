@@ -1,0 +1,67 @@
+{
+  "environment": {
+    "allocator": "system",
+    "cpu_target": "baseline",
+    "rustc": "baseline",
+    "terlan_version": "0.0.7"
+  },
+  "no_regression": {
+    "candidate_count_must_match_fixture": true,
+    "elapsed_headroom_percent": 25,
+    "memory_peak_headroom_percent": 25,
+    "sorted_deterministic_artifact": true
+  },
+  "scenarios": [
+    {
+      "auto_fixed_count": 80,
+      "candidate_count": 100,
+      "elapsed_threshold_ms": 250,
+      "file_count": 1,
+      "function_declaration_count": 100,
+      "memory_peak_threshold_kb": 4096,
+      "name": "large-module-0100",
+      "safe_rejected_count": 20
+    },
+    {
+      "auto_fixed_count": 400,
+      "candidate_count": 500,
+      "elapsed_threshold_ms": 900,
+      "file_count": 5,
+      "function_declaration_count": 500,
+      "memory_peak_threshold_kb": 8192,
+      "name": "large-module-0500",
+      "safe_rejected_count": 100
+    },
+    {
+      "auto_fixed_count": 800,
+      "candidate_count": 1000,
+      "elapsed_threshold_ms": 1800,
+      "file_count": 10,
+      "function_declaration_count": 1000,
+      "memory_peak_threshold_kb": 16384,
+      "name": "large-module-1000",
+      "safe_rejected_count": 200
+    },
+    {
+      "auto_fixed_count": 48,
+      "candidate_count": 64,
+      "elapsed_threshold_ms": 400,
+      "file_count": 4,
+      "function_declaration_count": 80,
+      "memory_peak_threshold_kb": 4096,
+      "name": "mixed-validity-recovery",
+      "safe_rejected_count": 16
+    },
+    {
+      "auto_fixed_count": 1600,
+      "candidate_count": 2000,
+      "elapsed_threshold_ms": 3200,
+      "file_count": 20,
+      "function_declaration_count": 2000,
+      "memory_peak_threshold_kb": 24576,
+      "name": "repeated-memory-pressure",
+      "safe_rejected_count": 400
+    }
+  ],
+  "schema": "terlan.function-head-pattern-migration-benchmark.v1"
+}

@@ -1,8 +1,8 @@
 module=std.js.Dom.HashChangeEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=6127007094149423350
-interface_hash=11613497899077883131
-interface_doc_hash=11613497899077883131
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=3307647286994890356
+interface_hash=14548717236209250130
+interface_doc_hash=14548717236209250130
 deps=0

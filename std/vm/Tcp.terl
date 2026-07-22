@@ -5,14 +5,10 @@
  * runtime-targeted integration tests and protocol adapters. It is not a portable
  * networking API.
  */
-
 module std.vm.Tcp.
 
-import std.vm.Bytes.{Bytes}.
-import std.vm.Timeout.{Timeout}.
-import std.core.Error.{Error}.
-import std.core.Result.{Result}.
-import std.core.Unit.{Unit}.
+import std.core.{Error, Result, Unit}.
+import std.vm.{Bytes, Timeout}.
 
 /**
  * TcpSocket represents a connected TCP socket owned by the selected VM runtime.
@@ -46,7 +42,7 @@ pub opaque type TcpListener.
  * diagnostics to the selected VM runtime.
  */
 @target.vm {process_mailbox: true}
-pub listen(address: String): Result<TcpListener, Error> ->
+pub listen(address: String): Result < TcpListener, Error > ->
     native.
 
 /**
@@ -59,7 +55,7 @@ pub listen(address: String): Result<TcpListener, Error> ->
  * overloaded listeners expose backpressure instead of hidden host queues.
  */
 @target.vm {process_mailbox: true}
-pub listen_with_backlog(address: String, backlog: Int): Result<TcpListener, Error> ->
+pub listen_with_backlog(address: String, backlog: Int): Result < TcpListener, Error > ->
     native.
 
 /**
@@ -72,7 +68,7 @@ pub listen_with_backlog(address: String, backlog: Int): Result<TcpListener, Erro
  * listener ownership inside the VM runtime.
  */
 @target.vm {process_mailbox: true}
-pub (listener: TcpListener) accept(timeout: Timeout): Result<TcpSocket, Error> ->
+pub (listener: TcpListener) accept(timeout: Timeout): Result < TcpSocket, Error > ->
     native.
 
 /**

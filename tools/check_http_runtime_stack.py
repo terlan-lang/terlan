@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
-"""Check that `terlc serve` stays on the approved HTTP runtime stack.
+"""Check that `terlc serve` stays on the approved VM-owned HTTP stack.
 
 Inputs:
 - `crates/terlan/Cargo.toml`.
 - Rust source files under `crates/terlan/src/commands/serve`.
+- `Makefile`.
 
 Outputs:
-- Exit status 0 when the serve command depends on and uses Hyper/Tokio/http.
+- Exit status 0 when the serve command uses the VM TCP/HTTP runtime with
+  maintained protocol parsers and boundary crates.
 - Exit status 1 with diagnostics when required stack markers are missing or
   obvious manual TCP/HTTP parsing paths appear in the serve implementation.
 
 Transformation:
-- Scans Cargo dependencies for the approved runtime crates.
-- Scans serve implementation files for required Hyper/Tokio markers.
-- Rejects manual stream/request parsing symbols while allowing the current
-  synchronous `std::net::TcpListener` bind that is immediately adopted by
-  `tokio::net::TcpListener`.
+- Scans Cargo dependencies for the approved protocol/runtime-boundary crates.
+- Scans serve implementation files for required VM TCP/HTTP markers.
+- Scans the Makefile for the VM-stream serve gate that proves the
+  production-facing Hyper-free adapter path.
+- Rejects ad hoc HTTP parsing while allowing the transitional synchronous host
+  socket/rustls adapters. Socket readiness migration is tracked separately;
+  this gate proves that request parsing and dispatch enter VM-owned HTTP.
 """
 
 from __future__ import annotations
@@ -25,51 +29,61 @@ from pathlib import Path
 import re
 import sys
 
+from makefile_contract import (
+    make_target_body,
+    make_target_prerequisites,
+    make_targets_from_text,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI_MANIFEST = ROOT / "crates" / "terlan" / "Cargo.toml"
+MAKEFILE = ROOT / "Makefile"
 SERVE_ROOT = ROOT / "crates" / "terlan" / "src" / "commands" / "serve"
 SERVE_MAIN = SERVE_ROOT / "mod.rs"
-SERVE_BEAM_EVAL = SERVE_ROOT / "handler" / "beam_eval.rs"
 SERVE_WATCH = SERVE_ROOT / "watch.rs"
 NATIVE_HTTP = ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http.rs"
 NATIVE_HTTP_COOKIES = (
     ROOT / "crates" / "terlan" / "src" / "runtime" / "native" / "http" / "cookies.rs"
 )
-REQUIRED_DEPENDENCIES = ("http", "http-body-util", "hyper", "hyper-util", "tokio")
+REQUIRED_DEPENDENCIES = ("http", "httparse")
 REQUIRED_SERVE_MARKERS = (
-    "use hyper::server::conn::http1;",
-    "use hyper::service::service_fn;",
-    "use hyper_util::rt::TokioIo;",
-    "use tokio::net::TcpListener;",
-    "async fn handle_hyper_request",
-    "http1::Builder::new().serve_connection",
+    "http::{write_http1_response, VmHttpTcpServer}",
+    "tcp::{VmTcpRuntime, VmTcpStream}",
+    "fn serve_bound_directory_vm_stream(",
+    "fn serve_vm_plain_http1_connection<S>",
+    "httparse::Request::new(&mut headers)",
+    "fn handle_vm_stream_http1_request(",
+    "VmHttpTcpServer::new(",
 )
-REQUIRED_SAFENATIVE_HTTP_MARKERS = (
+REQUIRED_TEST_ONLY_HYPER_MARKERS = (
+    "#[cfg(test)]\nuse hyper::{Request, Response};",
+    "#[cfg(test)]\nasync fn handle_hyper_request",
+)
+REQUIRED_NATIVE_BOUNDARY_HTTP_MARKERS = (
     "pub fn content_type_for_path",
     "mime_guess::from_path(path)",
 )
 REQUIRED_COOKIE_BOUNDARY_MARKERS = (
     (
-        SERVE_BEAM_EVAL,
-        "native_http::parse_request_cookie_header(cookie_header)",
-    ),
-    (
         NATIVE_HTTP_COOKIES,
-        "Cookie::parse(pair.trim().to_string())",
+        "Cookie::split_parse(cookie_header.to_string())",
     ),
 )
 REQUIRED_RELOAD_WATCH_BOUNDARY_MARKERS = (
     "pub(super) enum ReloadWatchBackend",
     "RecommendedWatcher::new",
     "RecursiveMode::Recursive",
-    "async fn watch_web_package_for_reload",
+    "fn watch_web_package_for_reload",
     "fn should_reload_for_event",
 )
+VM_STREAM_GATE = "vm-http-stream-serve-check"
+VM_HTTP_LANE_GATE = "terlan-vm-http-lane-check"
+VM_STREAM_TEST_COMMAND = (
+    "$(RUST_TEST) -p terlan --bin terlc "
+    "commands::serve::serve_test::vm_stream_ -- --quiet"
+)
 FORBIDDEN_IMPLEMENTATION_PATTERNS = (
-    re.compile(r"\bTcpStream\b"),
-    re.compile(r"\bstd::io::Read\b"),
-    re.compile(r"\bstd::io::Write\b"),
     re.compile(r"\bread_line\s*\("),
     re.compile(r"\bread_to_end\s*\("),
     re.compile(r"\bparse_http_request\b"),
@@ -184,7 +198,7 @@ def dependency_findings() -> list[Finding]:
 
 
 def serve_marker_findings() -> list[Finding]:
-    """Return missing Hyper/Tokio serve marker findings.
+    """Return missing VM HTTP serve marker findings.
 
     Inputs:
     - Main serve implementation source.
@@ -193,8 +207,8 @@ def serve_marker_findings() -> list[Finding]:
     - Finding records for missing required implementation markers.
 
     Transformation:
-    - Checks for explicit marker strings that encode the current approved
-      Hyper/Tokio request path.
+    - Checks for explicit marker strings that encode the VM-owned TCP/HTTP
+      request path and keep the comparison-only Hyper adapter test-scoped.
     """
 
     text = read_text(SERVE_MAIN)
@@ -206,6 +220,15 @@ def serve_marker_findings() -> list[Finding]:
                     path=relative(SERVE_MAIN),
                     line=None,
                     message=f"missing HTTP runtime marker `{marker}`",
+                )
+            )
+    for marker in REQUIRED_TEST_ONLY_HYPER_MARKERS:
+        if marker not in text:
+            findings.append(
+                Finding(
+                    path=relative(SERVE_MAIN),
+                    line=None,
+                    message=f"missing test-only Hyper boundary marker `{marker}`",
                 )
             )
     return findings
@@ -233,13 +256,13 @@ def serve_source_files() -> list[Path]:
 
 
 def forbidden_pattern_findings() -> list[Finding]:
-    """Return manual TCP/HTTP implementation findings.
+    """Return ad hoc HTTP implementation findings.
 
     Inputs:
     - Non-test serve implementation Rust files.
 
     Outputs:
-    - Finding records for obvious manual stream/request parsing paths.
+    - Finding records for obvious ad hoc request parsing paths.
 
     Transformation:
     - Searches line by line so violations point at the exact regression.
@@ -255,7 +278,7 @@ def forbidden_pattern_findings() -> list[Finding]:
                         Finding(
                             path=relative(path),
                             line=line_no,
-                            message="manual HTTP/TCP implementation marker is forbidden in serve runtime",
+                            message="ad hoc HTTP implementation marker is forbidden in serve runtime",
                         )
                     )
     return findings
@@ -279,7 +302,7 @@ def native_http_boundary_findings() -> list[Finding]:
 
     text = read_text(NATIVE_HTTP)
     findings: list[Finding] = []
-    for marker in REQUIRED_SAFENATIVE_HTTP_MARKERS:
+    for marker in REQUIRED_NATIVE_BOUNDARY_HTTP_MARKERS:
         if marker not in text:
             findings.append(
                 Finding(
@@ -295,16 +318,14 @@ def cookie_boundary_findings() -> list[Finding]:
     """Return cookie parsing boundary findings.
 
     Inputs:
-    - `crates/terlan/src/commands/serve/handler/beam_eval.rs`.
     - `crates/terlan/src/runtime/native/http/cookies.rs`.
 
     Outputs:
     - Finding records when request-cookie parsing is not routed through the
-      SafeNative HTTP boundary.
+      NativeBoundary HTTP boundary.
 
     Transformation:
-    - Requires the BEAM handler bridge to call the native cookie parser and
-      requires the native parser to retain its maintained-crate replacement
+    - Requires the native parser to retain its maintained-crate replacement
       note. Non-test serve files are also covered by the general forbidden
       pattern scan, which rejects local semicolon splitting.
     """
@@ -369,6 +390,63 @@ def reload_watch_boundary_findings() -> list[Finding]:
     return findings
 
 
+def vm_stream_gate_findings() -> list[Finding]:
+    """Return VM-stream serve gate findings.
+
+    Inputs:
+    - Repository `Makefile`.
+
+    Outputs:
+    - Finding records when the Hyper-free VM stream serve matrix is not exposed
+      as a named gate or prerequisite of the VM HTTP lane.
+
+    Transformation:
+    - Requires the target declaration, broad VM stream selector, and lane
+      prerequisite so production-facing VM stream behavior cannot remain
+      hidden as ad hoc inline tests.
+    """
+
+    text = read_text(MAKEFILE)
+    findings: list[Finding] = []
+    targets = make_targets_from_text(text)
+    if VM_STREAM_GATE not in targets:
+        findings.append(
+            Finding(
+                path=relative(MAKEFILE),
+                line=None,
+                message=f"missing VM stream serve gate `{VM_STREAM_GATE}`",
+            )
+        )
+        return findings
+
+    gate_body = make_target_body(text, VM_STREAM_GATE) or []
+    if VM_STREAM_TEST_COMMAND not in gate_body:
+        findings.append(
+            Finding(
+                path=relative(MAKEFILE),
+                line=None,
+                message=(
+                    f"VM stream serve gate `{VM_STREAM_GATE}` must run canonical "
+                    f"grouped selector `{VM_STREAM_TEST_COMMAND}`"
+                ),
+            )
+        )
+
+    lane_prerequisites = make_target_prerequisites(text, VM_HTTP_LANE_GATE) or []
+    if VM_STREAM_GATE not in lane_prerequisites:
+        findings.append(
+            Finding(
+                path=relative(MAKEFILE),
+                line=None,
+                message=(
+                    f"VM HTTP lane `{VM_HTTP_LANE_GATE}` must declare "
+                    f"`{VM_STREAM_GATE}` as a prerequisite"
+                ),
+            )
+        )
+    return findings
+
+
 def check_http_runtime_stack() -> list[Finding]:
     """Return all HTTP runtime stack findings.
 
@@ -389,6 +467,7 @@ def check_http_runtime_stack() -> list[Finding]:
         + native_http_boundary_findings()
         + cookie_boundary_findings()
         + reload_watch_boundary_findings()
+        + vm_stream_gate_findings()
     )
 
 

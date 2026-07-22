@@ -1,7 +1,7 @@
 use super::*;
 use crate::terlan_hir::ModuleInterface;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core module metadata and proof/readiness counters.
 ///
 /// Inputs: generated Core module summaries. Output: deterministic counts for
@@ -57,7 +57,7 @@ pub struct CoreModuleMetadata {
 /// Transformation:
 /// - Performs the current production handoff point between the typed resolver
 ///   phase and future backend-specific lowering.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CoreModule {
     /// Stable CoreIR schema identifier.
     pub schema: String,
@@ -75,11 +75,14 @@ pub struct CoreModule {
     pub functions: Vec<CoreFunction>,
     /// Constructor signatures represented by this Core module.
     pub constructors: Vec<CoreConstructorDecl>,
+    /// Validated external template render plans owned by this Core module.
+    pub templates: Vec<CoreTemplateRenderPlan>,
     /// Backend-neutral trait conformance facts represented by this Core module.
     pub trait_conformances: Vec<CoreTraitConformance>,
     /// Backend-independent counts and phase metadata.
     pub metadata: CoreModuleMetadata,
     /// Public interface snapshot for backend-independent emission.
+    #[serde(skip)]
     pub interface: ModuleInterface,
 }
 
@@ -167,6 +170,20 @@ impl CoreModule {
                 core_type_contract_text(decl.core_body.as_ref())
             )
         }));
+        lines.extend(self.templates.iter().map(|template| {
+            format!(
+                "template={} source={} props={} nodes={}",
+                template.name,
+                template.source_path,
+                template
+                    .props
+                    .iter()
+                    .map(|prop| format!("{}:{}", prop.name, prop.ty.contract_text()))
+                    .collect::<Vec<_>>()
+                    .join(","),
+                template.template.nodes.len()
+            )
+        }));
         lines.extend(self.functions.iter().map(|function| {
             let params = function
                 .params
@@ -174,7 +191,7 @@ impl CoreModule {
                 .map(core_param_contract_text)
                 .collect::<Vec<_>>()
                 .join(",");
-            format!(
+            let mut line = format!(
                 "function={}/{} public={} params={} return={} return_core={}",
                 function.name,
                 function.arity,
@@ -182,7 +199,16 @@ impl CoreModule {
                 params,
                 function.return_type,
                 core_type_contract_text(function.core_return_type.as_ref())
-            )
+            );
+            if !function.generic_params.is_empty() {
+                line.push_str(" generics=");
+                line.push_str(&function.generic_params.join(","));
+            }
+            if let Some(operation) = &function.native_operation {
+                line.push_str(" native_operation=");
+                line.push_str(operation);
+            }
+            line
         }));
         lines.extend(self.functions.iter().flat_map(|function| {
             function
@@ -367,15 +393,15 @@ fn core_expr_uses_sql_runtime(expr: &CoreExpr) -> bool {
         | CoreExpr::UnaryOp { operand: base, .. } => core_expr_uses_sql_runtime(base),
         CoreExpr::ListComprehension {
             expr,
-            source,
-            guard,
+            generators,
+            guards,
             ..
         } => {
             core_expr_uses_sql_runtime(expr)
-                || core_expr_uses_sql_runtime(source)
-                || guard
-                    .as_ref()
-                    .is_some_and(|guard| core_expr_uses_sql_runtime(guard))
+                || generators
+                    .iter()
+                    .any(|generator| core_expr_uses_sql_runtime(&generator.source))
+                || guards.iter().any(core_expr_uses_sql_runtime)
         }
         CoreExpr::Let { bindings, body } => {
             bindings

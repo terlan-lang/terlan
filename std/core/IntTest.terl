@@ -1,7 +1,10 @@
 module std.core.IntTest.
 
-import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import std.core.Int.{abs, compare, equal, from_string, from_string_base, max, min, to_string, to_string_base}.
 import std.core.Option.{None, Some}.
+import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import std.test.Test.{assert, assert_equal, assert_false, each_result, row}.
+
 import type std.core.Ordering.Comparison.
 
 pub ordering_compare(left: Int, right: Int): Comparison ->
@@ -9,87 +12,108 @@ pub ordering_compare(left: Int, right: Int): Comparison ->
 
 @test
 pub equal_accepts_matching_integers(): Bool ->
-    std.test.Test.assert(std.core.Int.equal(42, 42)).
+    assert(equal(42, 42)).
 
 @test
 pub equal_rejects_different_integers(): Bool ->
-    std.test.Test.assert_false(std.core.Int.equal(42, 7)).
+    assert_false(equal(42, 7)).
 
 @test
-pub min_returns_smaller_integer(): Bool ->
-    std.test.Test.assert_equal(3, std.core.Int.min(3, 7)).
+pub min_rows_return_expected_integer(): Bool ->
+    each_result([row("smaller left", {3, 7}, 3), row("equal values", {3, 3}, 3)], (input) -> case input {
+        {left, right} -> min(left, right)
+    }).
 
 @test
-pub min_accepts_equal_integers(): Bool ->
-    std.test.Test.assert_equal(3, std.core.Int.min(3, 3)).
+pub max_rows_return_expected_integer(): Bool ->
+    each_result([row("larger right", {3, 7}, 7), row("equal values", {7, 7}, 7)], (input) -> case input {
+        {left, right} -> max(left, right)
+    }).
 
 @test
-pub max_returns_larger_integer(): Bool ->
-    std.test.Test.assert_equal(7, std.core.Int.max(3, 7)).
-
-@test
-pub max_accepts_equal_integers(): Bool ->
-    std.test.Test.assert_equal(7, std.core.Int.max(7, 7)).
-
-@test
-pub abs_keeps_positive_integer(): Bool ->
-    std.test.Test.assert_equal(7, std.core.Int.abs(7)).
-
-@test
-pub abs_flips_negative_integer(): Bool ->
-    std.test.Test.assert_equal(7, std.core.Int.abs(-7)).
+pub abs_rows_return_expected_integer(): Bool ->
+    each_result([row("positive", 7, 7), row("negative", -7, 7)], (value) -> abs(value)).
 
 @test
 pub compare_orders_smaller_integer_first(): Bool ->
-    std.test.Test.assert_equal(Lt, std.core.Int.compare(1, 2)).
+    assert_equal(Lt, compare(1, 2)).
 
 @test
 pub compare_orders_larger_integer_after(): Bool ->
-    std.test.Test.assert_equal(Gt, std.core.Int.compare(2, 1)).
+    assert_equal(Gt, compare(2, 1)).
 
 @test
 pub compare_accepts_equal_integers(): Bool ->
-    std.test.Test.assert_equal(Eq, std.core.Int.compare(-7, -7)).
+    assert_equal(Eq, compare(-7, -7)).
 
 @test
 pub ordering_trait_orders_smaller_integer_first(): Bool ->
-    std.test.Test.assert_equal(Lt, ordering_compare(1, 2)).
+    assert_equal(Lt, ordering_compare(1, 2)).
 
 @test
 pub ordering_trait_orders_larger_integer_after(): Bool ->
-    std.test.Test.assert_equal(Gt, ordering_compare(2, 1)).
+    assert_equal(Gt, ordering_compare(2, 1)).
 
 @test
 pub to_string_renders_positive_integer(): Bool ->
-    std.test.Test.assert_equal("42", std.core.Int.to_string(42)).
+    assert_equal("42", to_string(42)).
 
 @test
 pub to_string_renders_negative_integer(): Bool ->
-    std.test.Test.assert_equal("-7", std.core.Int.to_string(-7)).
+    assert_equal("-7", to_string(-7)).
 
 @test
 pub from_string_parses_positive_integer(): Bool ->
-    case std.core.Int.from_string("42") {
-        Some(value) ->
-            std.test.Test.assert_equal(42, value);
-        None ->
-            false
+    case from_string("42") {
+        Some(value) -> assert_equal(42, value);
+        None -> false
     }.
 
 @test
 pub from_string_parses_negative_integer(): Bool ->
-    case std.core.Int.from_string("-7") {
-        Some(value) ->
-            std.test.Test.assert_equal(-7, value);
-        None ->
-            false
+    case from_string("-7") {
+        Some(value) -> assert_equal(-7, value);
+        None -> false
     }.
 
 @test
 pub from_string_rejects_unknown_text(): Bool ->
-    case std.core.Int.from_string("nope") {
-        None ->
-            true;
-        Some(_value) ->
-            false
+    case from_string("nope") {
+        None -> true;
+        Some(_value) -> false
     }.
+
+@test
+pub to_string_base_formats_signed_values_and_uppercase_digits(): Bool ->
+    case to_string_base(255, 16) {
+        Some(hexadecimal) ->
+            case to_string_base(-2, 2) {
+                Some(binary) -> assert_equal("FF", hexadecimal) and assert_equal("-10", binary);
+                None -> false
+            };
+        None -> false
+    }.
+
+@test
+pub to_string_base_rejects_out_of_range_bases(): Bool ->
+    assert_equal(None, to_string_base(1, 1)) and assert_equal(None, to_string_base(1, 37)).
+
+@test
+pub from_string_base_parses_signed_case_insensitive_digits(): Bool ->
+    case from_string_base("FF", 16) {
+        Some(uppercase) ->
+            case from_string_base("ff", 16) {
+                Some(lowercase) ->
+                    case from_string_base("-10", 2) {
+                        Some(signed) ->
+                            assert_equal(255, uppercase) and assert_equal(255, lowercase) and assert_equal(-2, signed);
+                        None -> false
+                    };
+                None -> false
+            };
+        None -> false
+    }.
+
+@test
+pub from_string_base_rejects_invalid_text_base_and_overflow(): Bool ->
+    assert_equal(None, from_string_base("12x", 10)) and assert_equal(None, from_string_base("1", 1)) and assert_equal(None, from_string_base("9223372036854775808", 10)).

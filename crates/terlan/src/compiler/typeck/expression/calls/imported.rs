@@ -27,22 +27,100 @@ pub(super) fn infer_syntax_imported_function_call(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Option<Type> {
-    let target = ctx.function_imports.get(function_name)?;
+    let targets = ctx.function_imports.get(function_name)?;
+    if targets.len() > 1 {
+        let mut matches = Vec::new();
+        let mut first_error = None;
+        for target in targets {
+            if !selected_import_target_matches_arg_types(target, arg_types) {
+                continue;
+            }
+            let mut trial_subst = subst.clone();
+            match infer_one_selected_imported_function_call(
+                function_name,
+                target,
+                arg_types,
+                type_args,
+                arg_names,
+                ctx,
+                &mut trial_subst,
+            ) {
+                Ok(ty) => matches.push((ty, trial_subst, target)),
+                Err(message) => {
+                    first_error.get_or_insert((target.span, message));
+                }
+            }
+        }
+
+        return Some(match matches.len() {
+            1 => {
+                let (ty, selected_subst, _) = matches.remove(0);
+                *subst = selected_subst;
+                ty
+            }
+            0 => {
+                if let Some((span, message)) = first_error {
+                    errors.push(spanned_expression_error(span, message));
+                }
+                Type::Dynamic
+            }
+            _ => {
+                let modules = matches
+                    .into_iter()
+                    .map(|(_, _, target)| format!("{}.{}", target.module, target.function))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                errors.push(spanned_expression_error(
+                    targets[0].span,
+                    format!(
+                        "selected imported function `{function_name}/{}` is ambiguous across {modules}",
+                        arg_types.len()
+                    ),
+                ));
+                Type::Dynamic
+            }
+        });
+    }
+
+    let target = &targets[0];
+    match infer_one_selected_imported_function_call(
+        function_name,
+        target,
+        arg_types,
+        type_args,
+        arg_names,
+        ctx,
+        subst,
+    ) {
+        Ok(ty) => Some(ty),
+        Err(message) => {
+            errors.push(spanned_expression_error(target.span, message));
+            Some(Type::Dynamic)
+        }
+    }
+}
+
+fn infer_one_selected_imported_function_call(
+    function_name: &str,
+    target: &ImportedFunctionTarget,
+    arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    arg_names: &[Option<String>],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<Type, String> {
     let resolved_module = ctx
         .module_aliases
         .get(&target.module)
         .map(String::as_str)
         .unwrap_or(target.module.as_str());
+    require_explicit_process_value_type(resolved_module, &target.function, type_args)?;
     let Some(interface) = ctx.interface_map.get(resolved_module) else {
-        errors.push(spanned_expression_error(
-            target.span,
-            missing_imported_function_interface_message(
-                resolved_module,
-                &target.function,
-                ctx.interface_map,
-            ),
+        return Err(missing_imported_function_interface_message(
+            resolved_module,
+            &target.function,
+            ctx.interface_map,
         ));
-        return Some(Type::Dynamic);
     };
 
     let candidate_signatures =
@@ -60,12 +138,9 @@ pub(super) fn infer_syntax_imported_function_call(
         ) {
             Some(arg_types) => arg_types,
             None => {
-                errors.extend(
-                    named_errors
-                        .into_iter()
-                        .map(|message| spanned_expression_error(target.span, message)),
-                );
-                return Some(Type::Dynamic);
+                return Err(named_errors.into_iter().next().unwrap_or_else(|| {
+                    format!("imported function `{function_name}` arguments did not match")
+                }));
             }
         }
     } else {
@@ -81,12 +156,9 @@ pub(super) fn infer_syntax_imported_function_call(
         ctx,
         subst,
     ) {
-        Ok(Some(ty)) => return Some(ty),
+        Ok(Some(ty)) => return Ok(ty),
         Ok(None) => {}
-        Err(message) => {
-            errors.push(spanned_expression_error(target.span, message));
-            return Some(Type::Dynamic);
-        }
+        Err(message) => return Err(message),
     }
 
     if !interface
@@ -96,13 +168,152 @@ pub(super) fn infer_syntax_imported_function_call(
             .function_overloads
             .contains_key(&(target.function.clone(), effective_arg_types.len()))
     {
-        errors.push(spanned_expression_error(
-            target.span,
-            missing_imported_function_message(
-                interface,
-                &target.function,
-                effective_arg_types.len(),
-            ),
+        return Err(missing_imported_function_message(
+            interface,
+            &target.function,
+            effective_arg_types.len(),
+        ));
+    }
+
+    Ok(Type::Dynamic)
+}
+
+fn selected_import_target_matches_arg_types(
+    target: &ImportedFunctionTarget,
+    arg_types: &[Type],
+) -> bool {
+    let Some(first) = arg_types.first() else {
+        return true;
+    };
+    match (target.module.as_str(), target.function.as_str(), first) {
+        ("std.core.Bool", "equal" | "compare" | "to_string", Type::Bool) => true,
+        (
+            "std.core.Int",
+            "equal" | "compare" | "min" | "max" | "abs" | "to_string" | "to_string_base",
+            Type::Int | Type::LiteralInt(_),
+        ) => true,
+        (
+            "std.core.Float",
+            "equal" | "compare" | "min" | "max" | "abs" | "to_string",
+            Type::Float,
+        ) => true,
+        ("std.core.String", "equal" | "compare" | "to_string", Type::Binary) => true,
+        ("std.core.Unit", "equal" | "compare" | "to_string", Type::Named { name, .. })
+            if name == "Unit" =>
+        {
+            true
+        }
+        (
+            "std.core.Ordering",
+            "equal" | "compare" | "to_string",
+            Type::Named { module, name, .. },
+        ) if module.as_deref() == Some("std.core.Ordering") && name == "Comparison" => true,
+        (
+            "std.core.Bool" | "std.core.Int" | "std.core.Float" | "std.core.String"
+            | "std.core.Unit" | "std.core.Ordering",
+            "from_string",
+            Type::Binary,
+        ) => true,
+        ("std.core.Int", "from_string_base", Type::Binary) => true,
+        ("std.core.Atom", "equal" | "to_string", Type::Atom | Type::LiteralAtom(_)) => true,
+        (
+            "std.core.Bool" | "std.core.Int" | "std.core.Float" | "std.core.String"
+            | "std.core.Unit" | "std.core.Ordering" | "std.core.Atom",
+            _,
+            _,
+        ) => false,
+        _ => true,
+    }
+}
+
+/// Infers an imported module-member function call.
+///
+/// Inputs:
+/// - `module_alias`: source module alias from `Module.function(...)`.
+/// - `member`: provider-side function name.
+/// - `display_name`: source text used in diagnostics.
+/// - `arg_types`, `type_args`, and `arg_names`: call-site argument metadata.
+/// - `ctx`, `subst`, and `errors`: active expression inference state.
+///
+/// Output:
+/// - `Some(Type)` when the module alias resolves to a loaded interface.
+/// - `None` when the receiver is not an imported module alias.
+///
+/// Transformation:
+/// - Resolves `Module.function(args...)` through the same interface overload
+///   machinery used by selected imports, preserving default arguments,
+///   explicit type arguments, and provider diagnostics.
+pub(super) fn infer_syntax_imported_module_member_function_call(
+    module_alias: &str,
+    member: &str,
+    display_name: &str,
+    arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    arg_names: &[Option<String>],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
+    let resolved_module = ctx.module_aliases.get(module_alias)?;
+    let Some(interface) = ctx.interface_map.get(resolved_module) else {
+        errors.push(missing_imported_function_interface_message(
+            resolved_module,
+            member,
+            ctx.interface_map,
+        ));
+        return Some(Type::Dynamic);
+    };
+
+    let candidate_signatures = interface_function_signatures(interface, member, arg_types.len());
+    let effective_arg_types = if !candidate_signatures.is_empty() {
+        let mut named_errors = Vec::new();
+        match complete_defaulted_imported_call_args_for_any_signature(
+            display_name,
+            arg_types,
+            arg_names,
+            &candidate_signatures,
+            interface,
+            ctx,
+            &mut named_errors,
+        ) {
+            Some(arg_types) => arg_types,
+            None => {
+                errors.extend(named_errors);
+                return Some(Type::Dynamic);
+            }
+        }
+    } else {
+        arg_types.to_vec()
+    };
+
+    match infer_interface_function_overload_with_explicit_type_args(
+        interface,
+        member,
+        display_name,
+        &effective_arg_types,
+        type_args,
+        ctx,
+        subst,
+    ) {
+        Ok(Some(ty)) => return Some(ty),
+        Ok(None) => {}
+        Err(message) => {
+            errors.push(message);
+            return Some(Type::Dynamic);
+        }
+    }
+
+    if !interface
+        .functions
+        .contains_key(&(member.to_string(), effective_arg_types.len()))
+        && !interface
+            .function_overloads
+            .contains_key(&(member.to_string(), effective_arg_types.len()))
+    {
+        errors.push(missing_imported_function_message(
+            interface,
+            member,
+            effective_arg_types.len(),
         ));
         return Some(Type::Dynamic);
     }

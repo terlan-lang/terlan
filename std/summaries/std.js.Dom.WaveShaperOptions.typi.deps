@@ -1,8 +1,8 @@
 module=std.js.Dom.WaveShaperOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16049183395991925238
-interface_hash=11992371939045221047
-interface_doc_hash=11992371939045221047
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=11388608068950171000
+interface_hash=13458049608098345332
+interface_doc_hash=13458049608098345332
 deps=0

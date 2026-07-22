@@ -1,0 +1,21 @@
+module purity_template.
+
+import std.template.Template.
+
+template Page from "./page.terl.html" {
+    value: Int
+}.
+
+normalize(value: Int): Int ->
+    value + 1.
+
+@pure
+asserted_normalize(value: Int): Int ->
+    value * 2.
+
+pub page(): Template.Html ->
+    Page(value = 41).
+
+@test
+pub inferred_and_asserted_pure_template_slots_execute(): Bool ->
+    page() == Template.trusted("<main><p>42</p><p>82</p></main>\n").

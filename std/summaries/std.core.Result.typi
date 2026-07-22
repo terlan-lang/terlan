@@ -21,7 +21,7 @@ module std.core.Result.
 /// ```
 
 pub type Err[E] =
-    {Atom["error"], reason : E}.
+    {Atom["error"], reason: E}.
 
 /// Ok represents a successful result value.
 ///
@@ -38,7 +38,7 @@ pub type Err[E] =
 /// ```
 
 pub type Ok[T] =
-    {Atom["ok"], value : T}.
+    {Atom["ok"], value: T}.
 
 /// Result represents a computation that can succeed or fail.
 ///
@@ -96,7 +96,7 @@ pub type Result[T, E] =
 ///    and_then(value, f).
 /// ```
 
-pub and_then(value: Result[A, E], f: (A ) -> Result[B, E]): Result[B, E].
+pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E].
 
 /// Returns whether a result is an error.
 ///
@@ -105,6 +105,7 @@ pub and_then(value: Result[A, E], f: (A ) -> Result[B, E]): Result[B, E].
 /// Transformation: pattern matches the result shape without inspecting the
 /// success value or error value.
 
+@pure
 pub is_err(value: Result[A, E]): Bool.
 
 /// Returns whether a result is successful.
@@ -114,6 +115,7 @@ pub is_err(value: Result[A, E]): Bool.
 /// Transformation: pattern matches the result shape without inspecting the
 /// success value or error value.
 
+@pure
 pub is_ok(value: Result[A, E]): Bool.
 
 /// Maps a successful value and leaves errors unchanged.
@@ -137,7 +139,7 @@ pub is_ok(value: Result[A, E]): Bool.
 ///    map(value, f).
 /// ```
 
-pub map(value: Result[A, E], f: (A ) -> B): Result[B, E].
+pub map(value: Result[A, E], f: (A) -> B): Result[B, E].
 
 /// Maps an error value and leaves successes unchanged.
 ///
@@ -160,7 +162,7 @@ pub map(value: Result[A, E], f: (A ) -> B): Result[B, E].
 ///    map_error(value, f).
 /// ```
 
-pub map_error(value: Result[A, E], f: (E ) -> G): Result[A, G].
+pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G].
 
 /// Extracts a successful value or returns the provided default.
 ///
@@ -183,4 +185,5 @@ pub map_error(value: Result[A, E], f: (E ) -> G): Result[A, G].
 ///    with_default(value, 0).
 /// ```
 
+@pure
 pub with_default(value: Result[A, E], default: A): A.

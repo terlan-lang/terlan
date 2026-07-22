@@ -1,22 +1,23 @@
 /**
  * @generated true
  * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CookieStore
  */
 module std.js.Dom.CookieStoreTest.
 
-import type std.core.{Bool}.
-
-import type std.core.{Unit}.
-
-import type std.js.Dom.CookieStore.{CookieStore}.
-
+import type std.core.{Bool, Unit}.
+import type std.js.Dom.CookieStore.
 import type std.js.String.{JsString}.
-
 import type std.js.{Promise}.
 
-@test
-pub generated_binding_surface_exists(): Bool ->
-    true.
+pub generated_binding_surface_contract(): Bool -> true.
 
 pub delete_typechecks(receiver: CookieStore, name: JsString): Promise[Unit] ->
     receiver.delete(name).
@@ -27,7 +28,10 @@ pub delete_typechecks(receiver: CookieStore, options: CookieStoreDeleteOptions):
 pub get_typechecks(receiver: CookieStore, name: JsString): Promise[Option[CookieListItem]] ->
     receiver.get(name).
 
-pub get_typechecks(receiver: CookieStore, options: CookieStoreGetOptions): Promise[Option[CookieListItem]] ->
+pub get_typechecks(
+    receiver: CookieStore,
+    options: CookieStoreGetOptions
+): Promise[Option[CookieListItem]] ->
     receiver.get(options).
 
 pub get_all_typechecks(receiver: CookieStore, name: JsString): Promise[CookieList] ->
@@ -42,8 +46,18 @@ pub set_typechecks(receiver: CookieStore, name: JsString, value: JsString): Prom
 pub set_typechecks(receiver: CookieStore, options: CookieInit): Promise[Unit] ->
     receiver.set(options).
 
-pub add_event_listener_typechecks(receiver: CookieStore, type_: JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | Bool): Unit ->
+pub add_event_listener_typechecks(
+    receiver: CookieStore,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(receiver: CookieStore, type_: JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | Bool): Unit ->
+pub remove_event_listener_typechecks(
+    receiver: CookieStore,
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit ->
     receiver.remove_event_listener(type_, listener, options).

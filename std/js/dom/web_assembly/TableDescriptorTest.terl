@@ -1,0 +1,27 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind test
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface TableDescriptor
+ */
+module std.js.Dom.WebAssembly.TableDescriptorTest.
+
+import type std.js.Dom.WebAssembly.TableDescriptor.
+import type std.js.Number.{JsNumber}.
+
+pub generated_binding_surface_contract(): Bool -> true.
+
+pub element_typechecks(receiver: TableDescriptor): TableKind ->
+    receiver.element().
+
+pub initial_typechecks(receiver: TableDescriptor): JsNumber ->
+    receiver.initial().
+
+pub maximum_typechecks(receiver: TableDescriptor): JsNumber ->
+    receiver.maximum().

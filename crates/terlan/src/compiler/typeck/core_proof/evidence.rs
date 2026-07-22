@@ -45,11 +45,13 @@ fn core_expr_substitution_freshness_evidence(expr: &CoreExpr) -> CoreSubstitutio
         | CoreExpr::Binary(_)
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
-        | CoreExpr::RemoteFunRef { .. }
-        | CoreExpr::SqlQuery { .. } => none,
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
-            combine_expr_freshness(items.iter().map(core_expr_substitution_freshness_evidence))
-        }
+        | CoreExpr::RemoteFunRef { .. } => none,
+        CoreExpr::Tuple(items)
+        | CoreExpr::List(items)
+        | CoreExpr::FixedArray(items)
+        | CoreExpr::SqlQuery {
+            parameters: items, ..
+        } => combine_expr_freshness(items.iter().map(core_expr_substitution_freshness_evidence)),
         CoreExpr::RemoteCall { args, .. }
         | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Call { args, .. }
@@ -80,18 +82,20 @@ fn core_expr_substitution_freshness_evidence(expr: &CoreExpr) -> CoreSubstitutio
             .combine(core_expr_substitution_freshness_evidence(tail)),
         CoreExpr::ListComprehension {
             expr,
-            pattern,
-            source,
-            guard,
+            generators,
+            guards,
+            ..
         } => core_expr_substitution_freshness_evidence(expr)
-            .combine(core_pattern_substitution_freshness_evidence(pattern))
-            .combine(core_expr_substitution_freshness_evidence(source))
-            .combine(
-                guard
-                    .as_ref()
-                    .map(|guard| core_expr_substitution_freshness_evidence(guard))
-                    .unwrap_or(none),
-            ),
+            .combine(generators.iter().fold(none, |evidence, generator| {
+                evidence
+                    .combine(core_pattern_substitution_freshness_evidence(
+                        &generator.pattern,
+                    ))
+                    .combine(core_expr_substitution_freshness_evidence(&generator.source))
+            }))
+            .combine(combine_expr_freshness(
+                guards.iter().map(core_expr_substitution_freshness_evidence),
+            )),
         CoreExpr::Let { bindings, body } => combine_expr_freshness(
             bindings
                 .iter()
@@ -284,16 +288,18 @@ fn core_expr_has_checked_preservation_evidence(expr: &CoreExpr) -> bool {
         }
         CoreExpr::ListComprehension {
             expr,
-            pattern,
-            source,
-            guard,
+            generators,
+            guards,
+            ..
         } => {
             core_expr_has_checked_preservation_evidence(expr)
-                && core_pattern_has_checked_preservation_evidence(pattern)
-                && core_expr_has_checked_preservation_evidence(source)
-                && guard
-                    .as_ref()
-                    .is_none_or(|guard| core_expr_has_checked_preservation_evidence(guard))
+                && generators.iter().all(|generator| {
+                    core_pattern_has_checked_preservation_evidence(&generator.pattern)
+                        && core_expr_has_checked_preservation_evidence(&generator.source)
+                })
+                && guards
+                    .iter()
+                    .all(core_expr_has_checked_preservation_evidence)
         }
         CoreExpr::Let { bindings, body } => {
             bindings
@@ -323,7 +329,9 @@ fn core_expr_has_checked_preservation_evidence(expr: &CoreExpr) -> bool {
                 && core_expr_has_checked_preservation_evidence(record)
         }
         CoreExpr::RemoteFunRef { .. } => true,
-        CoreExpr::SqlQuery { .. } => true,
+        CoreExpr::SqlQuery { parameters, .. } => parameters
+            .iter()
+            .all(core_expr_has_checked_preservation_evidence),
         CoreExpr::RemoteCall { args, .. } => {
             args.iter().all(core_expr_has_checked_preservation_evidence)
         }
@@ -483,13 +491,31 @@ fn core_pattern_substitution_freshness_evidence(
         CorePattern::Wildcard
         | CorePattern::Int(_)
         | CorePattern::Float(_)
+        | CorePattern::String(_)
         | CorePattern::Atom(_) => none,
+        CorePattern::StringPattern(segments) => {
+            if segments
+                .iter()
+                .any(|segment| matches!(segment, CoreStringPatternSegment::Capture(_)))
+            {
+                CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired
+            } else {
+                none
+            }
+        }
+        CorePattern::BinaryLayout { .. } => {
+            CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired
+        }
         CorePattern::Var(_) => CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired,
         CorePattern::Tuple(elements) | CorePattern::List(elements) => combine_expr_freshness(
             elements
                 .iter()
                 .map(core_pattern_substitution_freshness_evidence),
         ),
+        CorePattern::Alias { pattern, .. } => {
+            CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired
+                .combine(core_pattern_substitution_freshness_evidence(pattern))
+        }
         CorePattern::ListCons { head, tail } => core_pattern_substitution_freshness_evidence(head)
             .combine(core_pattern_substitution_freshness_evidence(tail)),
         CorePattern::Map(fields) => combine_expr_freshness(
@@ -526,10 +552,16 @@ fn core_pattern_has_checked_preservation_evidence(pattern: &CorePattern) -> bool
         | CorePattern::Var(_)
         | CorePattern::Int(_)
         | CorePattern::Float(_)
+        | CorePattern::String(_)
+        | CorePattern::StringPattern(_)
+        | CorePattern::BinaryLayout { .. }
         | CorePattern::Atom(_) => true,
         CorePattern::Tuple(elements) | CorePattern::List(elements) => elements
             .iter()
             .all(core_pattern_has_checked_preservation_evidence),
+        CorePattern::Alias { pattern, .. } => {
+            core_pattern_has_checked_preservation_evidence(pattern)
+        }
         CorePattern::ListCons { head, tail } => {
             core_pattern_has_checked_preservation_evidence(head)
                 && core_pattern_has_checked_preservation_evidence(tail)

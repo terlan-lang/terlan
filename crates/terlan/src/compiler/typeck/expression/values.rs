@@ -25,6 +25,7 @@ pub(super) fn infer_syntax_var(
         .or_else(|| infer_singleton_alias_value(name, ctx))
         .or_else(|| infer_implicit_unit_value(name))
         .or_else(|| infer_implicit_type_value(name))
+        .or_else(|| infer_unique_imported_function_value(name, ctx))
         .or_else(|| infer_unique_local_function_value(name, ctx))
         .or_else(|| ctx.file_imports.get(name).map(|_| Type::Binary))
         .or_else(|| {
@@ -35,6 +36,63 @@ pub(super) fn infer_syntax_var(
             })
         })
         .unwrap_or(Type::Dynamic)
+}
+
+/// Infers a selected imported function name used as a first-class value.
+///
+/// Inputs:
+/// - `name`: source identifier from a variable expression.
+/// - `ctx`: expression inference context containing selected function imports
+///   and provider interfaces.
+///
+/// Output:
+/// - `Some(Type::Function)` when exactly one imported public function signature
+///   is visible under `name`.
+/// - `None` when the name is not a selected function import, the provider
+///   interface is unavailable, or overloads make the value ambiguous.
+///
+/// Transformation:
+/// - Mirrors local function-value inference for selected imports so pipe forms
+///   such as `items |> next()` can typecheck the imported callee as a real
+///   function value instead of treating the name as an unresolved dynamic.
+fn infer_unique_imported_function_value(name: &str, ctx: &ExprInferContext<'_>) -> Option<Type> {
+    let targets = ctx.function_imports.get(name)?;
+    let [target] = targets.as_slice() else {
+        return None;
+    };
+    let resolved_module = ctx
+        .module_aliases
+        .get(&target.module)
+        .map(String::as_str)
+        .unwrap_or(target.module.as_str());
+    let interface = ctx.interface_map.get(resolved_module)?;
+    let mut signatures = interface
+        .function_overloads
+        .iter()
+        .filter(|((candidate, _arity), _signatures)| candidate == &target.function)
+        .flat_map(|(_key, signatures)| signatures.iter())
+        .filter(|signature| signature.public)
+        .collect::<Vec<_>>();
+    if signatures.is_empty() {
+        signatures = interface
+            .functions
+            .iter()
+            .filter(|((candidate, _arity), signature)| {
+                candidate == &target.function && signature.public
+            })
+            .map(|(_key, signature)| signature)
+            .collect();
+    }
+
+    let [signature] = signatures.as_slice() else {
+        return None;
+    };
+    let scheme = parse_interface_signature(signature, interface, ctx.aliases)?;
+    let instantiated = instantiate_function_scheme(&scheme);
+    Some(Type::Function {
+        params: instantiated.params,
+        ret: Box::new(instantiated.ret),
+    })
 }
 
 /// Checks whether a name has constructor spelling.

@@ -1,0 +1,100 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface PaymentResponse
+ */
+module std.js.Dom.PaymentResponse.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+import type std.js.{Promise}.
+
+/**
+ * The **`PaymentResponse`** interface of the Payment Request API is returned after a user selects a payment method and approves a payment request.
+ * Available only in secure contexts.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse)
+ */
+pub opaque type PaymentResponse.
+
+/**
+ * The **`methodName`** read-only property of the PaymentResponse interface returns a string uniquely identifying the payment handler selected by the user.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/methodName)
+ */
+pub (value: PaymentResponse) method_name(): JsString.
+
+/**
+ * The `payerEmail` read-only property of the PaymentResponse interface returns the email address supplied by the user.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerEmail)
+ */
+pub (value: PaymentResponse) payer_email(): Option[JsString].
+
+/**
+ * The **`payerName`** read-only property of the option is only present when the `requestPayerName` option is set to `true` in the options parameter of the A string containing the payer name.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerName)
+ */
+pub (value: PaymentResponse) payer_name(): Option[JsString].
+
+/**
+ * The `payerPhone` read-only property of the PaymentResponse interface returns the phone number supplied by the user.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerPhone)
+ */
+pub (value: PaymentResponse) payer_phone(): Option[JsString].
+
+/**
+ * The **`requestId`** read-only property of the the `PaymentResponse()` constructor by details.id.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/requestId)
+ */
+pub (value: PaymentResponse) request_id(): JsString.
+
+/**
+ * The **`shippingAddress`** read-only property of the `PaymentRequest` interface returns a PaymentAddress object containing the shipping address provided by the user.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/shippingAddress)
+ */
+pub (value: PaymentResponse) shipping_address(): Option[PaymentAddress].
+
+/**
+ * The **`shippingOption`** read-only property of the `PaymentRequest` interface returns the ID attribute of the shipping option selected by the user.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/shippingOption)
+ */
+pub (value: PaymentResponse) shipping_option(): Option[JsString].
+
+/**
+ * The PaymentRequest method **`complete()`** of the Payment Request API notifies the user interface to be closed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/complete)
+ */
+pub (value: PaymentResponse) complete(result: PaymentComplete): Promise[Unit].
+
+/**
+ * The PaymentResponse interface's **`retry()`** method makes it possible to ask the user to retry a payment after an error occurs during processing.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/retry)
+ */
+pub (value: PaymentResponse) retry(error_fields: PaymentValidationErrors): Promise[Unit].
+
+pub (value: PaymentResponse) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: PaymentResponse) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

@@ -14,10 +14,16 @@
 
 pub(crate) mod abi;
 pub(crate) mod backend_ir;
+pub(crate) mod contract;
 pub(crate) mod emit;
+pub(crate) mod lower;
 pub(crate) mod types;
 
 pub(crate) use abi::{validate_export_result_value, WasmAbiError, WasmFunctionAbi};
 pub(crate) use backend_ir::{WasmExport, WasmFunction, WasmModuleIr, WasmResultType};
+pub(crate) use contract::{
+    wasm_abi_contract_checksum, wasm_abi_signature_checksum, wasm_checksum, WasmAbiSignature,
+};
 pub(crate) use emit::{emit_module, validate_module, WasmEmitError};
+pub(crate) use lower::{lower_core_module, WasmLowerError};
 pub(crate) use types::{WasmAbiType, WasmValue};

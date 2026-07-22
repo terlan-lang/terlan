@@ -14,9 +14,14 @@ instead of hand-rolled SQL logic.
 ## Public Surface
 
 - `mod.rs`: SQL form typecheck entry points.
-- `projection.rs`: conservative projection extraction for simple SQL
-  `SELECT` and `RETURNING` forms.
-- `scanner.rs`: token-level SQL scanner helpers used by SQL form analysis.
+- `validation.rs`: maintained `sqlparser` PostgreSQL syntax boundary.
+- `classification.rs`: query-kind and cardinality inference over the parsed
+  SQL AST.
+- `projection.rs`: AST-owned output-name extraction and duplicate-name
+  validation for SQL `SELECT` and `RETURNING` forms.
+- `compiler/syntax/sql_regions.rs`: shared opaque-region and interpolation
+  cursor logic used by both syntax extraction and typecheck binding; it does
+  not classify statements, derive projections, or validate SQL syntax.
 
 ## Core Model
 
@@ -26,18 +31,22 @@ database adapters and generated clients.
 The main flow is:
 
 1. Inspect syntax calls or macro forms.
-2. Validate the accepted SQL shape.
-3. Extract conservative metadata, such as cardinality and simple projection
-   field names, when the SQL shape is unambiguous.
-4. Produce a typed expression for downstream lowering.
+2. Bind interpolation islands to PostgreSQL positional parameters.
+3. Parse exactly one statement through the maintained PostgreSQL parser.
+4. Derive query kind and conservative cardinality from AST nodes.
+5. Derive projection field metadata from AST nodes when every output name is
+   statically known, rejecting duplicate output names.
+6. Produce a typed expression for downstream lowering.
 
 Important invariants:
 
 - SQL forms must stay explicit in source.
 - Validation should be delegated to proven parser crates when available.
 - Unsupported SQL must not silently lower to runtime strings.
-- Projection extraction is compatibility metadata, not an authoritative SQL
-  parser.
+- User-authored `$N` placeholders are rejected; every bound parameter must
+  originate from a Terlan `${expression}` outside SQL quoted/comment regions.
+- Projection extraction consumes parser-owned AST metadata; it is not an authoritative SQL
+  parser or a substitute for live-schema validation.
 
 ## Integration Points
 

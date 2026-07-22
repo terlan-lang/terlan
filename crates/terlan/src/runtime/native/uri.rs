@@ -1,19 +1,19 @@
 //! URI adapter operations for `std.net.Uri`.
 //!
-//! This module is a concrete Rust/SafeNative runtime slice for the portable
+//! This module is a concrete Rust/NativeBoundary runtime slice for the portable
 //! `std.net.Uri` contract. It delegates parsing and rendering to the Rust
 //! `url` crate while exposing stable Terlan-facing values and errors.
 
 use url::Url;
 
-/// Parsed URI value owned by the SafeNative adapter.
+/// Parsed URI value owned by the NativeBoundary adapter.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Uri {
     value: Url,
 }
 
 impl Uri {
-    /// Builds a SafeNative URI value from a Rust `Url`.
+    /// Builds a NativeBoundary URI value from a Rust `Url`.
     ///
     /// Inputs:
     /// - `value`: backend URI value parsed by the `url` crate.
@@ -31,7 +31,7 @@ impl Uri {
     /// Returns the wrapped Rust URL by shared reference.
     ///
     /// Inputs:
-    /// - `self`: SafeNative URI wrapper.
+    /// - `self`: NativeBoundary URI wrapper.
     ///
     /// Output:
     /// - Shared reference to the backend URL value.
@@ -43,7 +43,7 @@ impl Uri {
     }
 }
 
-/// Portable URI error returned by SafeNative URI operations.
+/// Portable URI error returned by NativeBoundary URI operations.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UriError {
     code: &'static str,

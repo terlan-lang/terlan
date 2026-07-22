@@ -11,7 +11,7 @@ Outputs:
   process execution or lose the documented maintained-adapter markers.
 
 Transformation:
-- Requires the DB README to name the maintained Rust/Tokio Postgres adapter.
+- Requires the DB README to name the VM-owned nonblocking libpq worker.
 - Rejects `std::process::Command`, `Command::new("psql")`, and checked-in
   `psql.rs` so DB commands cannot regress to external database tooling.
 """
@@ -32,13 +32,19 @@ DB_PSQL = DB_ROOT / "psql.rs"
 REQUIRED_BOUNDARY_MARKERS = (
     (
         DB_README,
-        "maintained Rust/Tokio Postgres adapter",
+        "VM-owned nonblocking libpq worker",
     ),
 )
 
 FORBIDDEN_DB_PROCESS_PATTERNS = (
     re.compile(r"\buse\s+std::process::Command\b"),
     re.compile(r"\bCommand::new\s*\(\s*\"psql\"\s*\)"),
+)
+
+FORBIDDEN_COMPATIBILITY_ADAPTER_PATTERNS = (
+    re.compile(
+        r"\bpostgres::(?:connect|query|query_one|execute|batch_execute|transaction)\s*\("
+    ),
 )
 
 
@@ -145,7 +151,7 @@ def marker_findings() -> list[Finding]:
 
     Transformation:
     - Scans exact marker text so the checker locks the current documented
-      maintained Rust/Tokio adapter boundary.
+      VM-owned Postgres worker boundary.
     """
 
     findings: list[Finding] = []
@@ -190,18 +196,21 @@ def forbidden_process_findings() -> list[Finding]:
             Finding(
                 path=relative(DB_PSQL),
                 line=None,
-                message="DB commands must use the maintained Rust/Tokio Postgres adapter, not db/psql.rs",
+                message="DB commands must use the VM-owned Postgres worker, not db/psql.rs",
             )
         )
     for path in db_source_files():
         for line_no, line in enumerate(read_text(path).splitlines(), 1):
-            for pattern in FORBIDDEN_DB_PROCESS_PATTERNS:
+            for pattern in (
+                *FORBIDDEN_DB_PROCESS_PATTERNS,
+                *FORBIDDEN_COMPATIBILITY_ADAPTER_PATTERNS,
+            ):
                 if pattern.search(line):
                     findings.append(
                         Finding(
                             path=relative(path),
                             line=line_no,
-                            message="DB command process execution must use the maintained Rust/Tokio Postgres adapter",
+                            message="DB command database execution must use the VM-owned Postgres worker",
                         )
                     )
     return findings

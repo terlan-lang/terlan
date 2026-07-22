@@ -1,0 +1,41 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CSSStyleRule
+ */
+module std.js.Dom.CSSStyleRule.
+
+/**
+ * The **`CSSStyleRule`** interface represents a single CSS style rule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleRule)
+ */
+pub opaque type CSSStyleRule.
+
+/**
+ * The **`selectorText`** property of the CSSStyleRule interface gets and sets the selectors associated with the `CSSStyleRule`.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleRule/selectorText)
+ */
+pub (value: CSSStyleRule) selector_text(): std.js.String.JsString.
+
+/**
+ * The read-only **`style`** property is the CSSStyleDeclaration interface for the declaration block of the CSSStyleRule.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleRule/style)
+ */
+pub (value: CSSStyleRule) style(): CSSStyleDeclaration.
+
+/**
+ * The **`styleMap`** read-only property of the which provides access to the rule's property-value pairs.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleRule/styleMap)
+ */
+pub (value: CSSStyleRule) style_map(): StylePropertyMap.

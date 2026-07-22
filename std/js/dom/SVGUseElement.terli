@@ -1,0 +1,63 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface SVGUseElement
+ */
+module std.js.Dom.SVGUseElement.
+
+import type std.core.{Bool, Unit}.
+import type std.js.String.{JsString}.
+
+/**
+ * The **`SVGUseElement`** interface corresponds to the use element.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement)
+ */
+pub opaque type SVGUseElement.
+
+/**
+ * The **`height`** read-only property of the SVGUseElement interface describes the height of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/height)
+ */
+pub (value: SVGUseElement) height(): SVGAnimatedLength.
+
+/**
+ * The **`width`** read-only property of the SVGUseElement interface describes the width of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/width)
+ */
+pub (value: SVGUseElement) width(): SVGAnimatedLength.
+
+/**
+ * The **`x`** read-only property of the SVGUseElement interface describes the x-axis coordinate of the start point of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/x)
+ */
+pub (value: SVGUseElement) x(): SVGAnimatedLength.
+
+/**
+ * The **`y`** read-only property of the SVGUseElement interface describes the y-axis coordinate of the start point of the referenced element as an SVGAnimatedLength.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGUseElement/y)
+ */
+pub (value: SVGUseElement) y(): SVGAnimatedLength.
+
+pub (value: SVGUseElement) add_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: AddEventListenerOptions | Bool
+): Unit.
+
+pub (value: SVGUseElement) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: EventListenerOptions | Bool
+): Unit.

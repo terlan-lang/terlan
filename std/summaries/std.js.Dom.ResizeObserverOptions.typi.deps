@@ -1,8 +1,8 @@
 module=std.js.Dom.ResizeObserverOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16794508954273457360
-interface_hash=2042736366976197571
-interface_doc_hash=2042736366976197571
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=12757344891473847524
+interface_hash=14133533173100697631
+interface_doc_hash=14133533173100697631
 deps=0

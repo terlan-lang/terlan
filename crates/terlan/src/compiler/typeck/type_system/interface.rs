@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use super::*;
 use crate::terlan_typeck::{
-    normalize_type_param_name, parse_generic_bounds, primitive_type_names, type_param_variances,
-    FunctionBound, FunctionScheme,
+    normalize_type_param_name, parse_generic_bounds, parse_structural_implication_bounds,
+    primitive_type_names, type_param_variances, FunctionBound, FunctionScheme,
 };
 
 /// Parses a resolved function symbol into a callable type scheme.
@@ -35,11 +35,13 @@ pub(crate) fn parse_symbol_scheme(symbol: &FunctionSymbol) -> Option<FunctionSch
         &mut next_var,
     )?;
 
+    let bounds =
+        parse_structural_implication_bounds(&symbol.generic_params, &vars, &HashSet::new());
     Some(FunctionScheme {
         params,
         ret,
         generic_params: symbol.generic_params.clone(),
-        bounds: Vec::new(),
+        bounds,
     })
 }
 
@@ -68,15 +70,28 @@ pub(crate) fn parse_interface_signature(
         vars.insert(normalize_type_param_name(param), next_var);
         next_var += 1;
     }
-    let alias_names = interface_type_names(interface);
+    let local_type_names = interface_type_names(interface);
+    let mut alias_names = local_type_names.clone();
+    alias_names.extend(unique_global_alias_short_names(global_aliases));
     let qualified_names = interface_qualified_type_names(interface);
     let interface_aliases = interface_type_aliases(interface);
 
     let params = signature
         .params
         .iter()
-        .filter_map(|param| {
-            parse_type_expr(&param.annotation, &alias_names, &mut vars, &mut next_var)
+        .enumerate()
+        .filter_map(|(index, param)| {
+            let visible_type_names = if signature.receiver_method && index == 0 {
+                &local_type_names
+            } else {
+                &alias_names
+            };
+            parse_type_expr(
+                &param.annotation,
+                visible_type_names,
+                &mut vars,
+                &mut next_var,
+            )
         })
         .map(|param| expand_type_aliases(&param, &interface_aliases))
         .map(|param| expand_interface_global_aliases(&param, global_aliases))
@@ -92,7 +107,13 @@ pub(crate) fn parse_interface_signature(
     let ret = expand_type_aliases(&ret, &interface_aliases);
     let ret = expand_interface_global_aliases(&ret, global_aliases);
     let ret = qualify_type_names(&ret, &qualified_names);
-    let bounds = parse_generic_bounds(&signature.generic_bounds, &vars, &alias_names)
+    let mut parsed_bounds = parse_generic_bounds(&signature.generic_bounds, &vars, &alias_names);
+    parsed_bounds.extend(parse_structural_implication_bounds(
+        &signature.generic_params,
+        &vars,
+        &alias_names,
+    ));
+    let bounds = parsed_bounds
         .into_iter()
         .map(|bound| FunctionBound {
             trait_name: bound.trait_name,
@@ -111,6 +132,32 @@ pub(crate) fn parse_interface_signature(
         generic_params: signature.generic_params.clone(),
         bounds,
     })
+}
+
+/// Collects unambiguous short type names from the loaded interface graph.
+///
+/// Inputs:
+/// - `global_aliases`: aliases keyed by fully qualified provider type name.
+///
+/// Output:
+/// - Short names that occur in exactly one provider interface.
+///
+/// Transformation:
+/// - Lets interface signatures parse imported dependency types as named types
+///   before global alias expansion. Ambiguous short names remain unresolved
+///   rather than acquiring whichever provider appears first in a hash map.
+fn unique_global_alias_short_names(global_aliases: &HashMap<String, TypeAlias>) -> HashSet<String> {
+    let mut counts = HashMap::<&str, usize>::new();
+    for qualified in global_aliases.keys() {
+        let Some((_, short)) = qualified.rsplit_once('.') else {
+            continue;
+        };
+        *counts.entry(short).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .filter_map(|(short, count)| (count == 1).then(|| short.to_string()))
+        .collect()
 }
 
 /// Expands aliases visible through the global interface map.
@@ -395,7 +442,7 @@ pub(crate) fn interface_type_aliases(interface: &ModuleInterface) -> HashMap<Str
     let alias_names = interface_type_names(interface);
 
     for (name, variants) in &interface.type_bodies {
-        if interface.opaque_types.contains(name) {
+        if interface.opaque_types.contains(name) || interface.valued_unions.contains_key(name) {
             continue;
         }
 
@@ -424,6 +471,13 @@ pub(crate) fn interface_type_aliases(interface: &ModuleInterface) -> HashMap<Str
                     .type_params
                     .get(name)
                     .map(|params| type_param_variances(params))
+                    .unwrap_or_default(),
+                bounds: interface
+                    .type_params
+                    .get(name)
+                    .map(|generic_params| {
+                        parse_structural_implication_bounds(generic_params, &vars, &alias_names)
+                    })
                     .unwrap_or_default(),
                 body,
                 constructor_param_names: alias_constructor_param_names_from_variants(variants),

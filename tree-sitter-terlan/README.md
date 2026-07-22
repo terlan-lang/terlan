@@ -10,7 +10,7 @@ syntax highlighting, editor navigation, and mixed template-region support.
 - Advertise `.terl`, `.terli`, and `.terl.*` template suffixes through
   Tree-sitter package metadata.
 - Provide highlight queries for modules, imports, declarations, annotations,
-  types, strings, comments, and interpolation islands.
+  types, binary layouts, strings, comments, and interpolation islands.
 - Provide injection queries so `${...}` template expression islands reuse
   Terlan highlighting inside `.terl.*` template files.
 - Keep editor syntax support separate from compiler validation.
@@ -22,6 +22,8 @@ syntax highlighting, editor navigation, and mixed template-region support.
 - `queries/highlights.scm`: highlight query rules.
 - `queries/injections.scm`: template expression-island injection rules.
 - `test/corpus/basic.txt`: initial parser corpus.
+- `test/corpus/binary_layouts.txt`: binary constructor and shared pattern-position
+  corpus.
 - `test/package_smoke_test.js`: dependency-free package, script, corpus, and
   highlight query coverage smoke.
 - `test/pack_dry_run_test.js`: npm dry-run archive validator for the actual

@@ -36,7 +36,7 @@ pub main(): Int ->\n\
 /// - A source module with a CSS asset import and a simple function body.
 ///
 /// Output:
-/// - Test passes when Erlang target-profile validation reports a stable
+/// - Test passes when VM target-profile validation reports a stable
 ///   unsupported asset-import-resolution diagnostic.
 ///
 /// Transformation:
@@ -50,7 +50,7 @@ fn rejects_asset_import_resolution_for_generic_target_profile() {
         "profile_asset_import.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         violations.iter().any(|violation| {
@@ -63,6 +63,35 @@ fn rejects_asset_import_resolution_for_generic_target_profile() {
     );
 }
 
+/// Verifies browser target-profile validation accepts browser asset imports.
+///
+/// Inputs:
+/// - A source module with a CSS asset import and a simple function body.
+///
+/// Output:
+/// - Test passes when `js.browser` validation accepts the asset import.
+///
+/// Transformation:
+/// - Treats asset imports as browser target evidence while keeping non-browser
+///   target profiles strict.
+#[test]
+fn accepts_asset_import_resolution_for_browser_target_profile() {
+    let module = lower(
+        "module profile_browser_asset_import.\n\nimport css \"./style.css\" as PageCss.\n\npub main(): Int ->\n    1.\n",
+        "profile_browser_asset_import.terl",
+    );
+
+    let violations = target_profile_checks(&module, TargetProfile::JsBrowser);
+
+    assert!(
+        !violations.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation.message.contains("asset import resolution")
+        }),
+        "js.browser should accept browser asset imports, got {violations:?}"
+    );
+}
+
 /// Verifies unsupported concrete Task operations are blocked until a
 /// backend execution contract exists.
 ///
@@ -71,7 +100,7 @@ fn rejects_asset_import_resolution_for_generic_target_profile() {
 ///   its signature, and calls `Task.spawn(() -> 1)` in the body.
 ///
 /// Output:
-/// - Test passes when Erlang target-profile validation reports a stable
+/// - Test passes when VM target-profile validation reports a stable
 ///   unsupported Task-operation diagnostic.
 ///
 /// Transformation:
@@ -79,7 +108,7 @@ fn rejects_asset_import_resolution_for_generic_target_profile() {
 ///   CoreIR, then validates that executable Task calls cannot pass into
 ///   backend emission before the backend owns Task runtime semantics.
 #[test]
-fn rejects_std_core_task_operation_for_erlang_profile() {
+fn rejects_std_core_task_operation_for_vm_profile() {
     let module = lower(
         "\
 module profile_task_operation.\n\
@@ -88,10 +117,10 @@ import std.core.Task.\n\
 \n\
 pub complete(): Task[Int] ->\n\
 Task.spawn(() -> 1).\n",
-        "std/core/task.terl",
+        "std/core/Task.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         violations.iter().any(|violation| {
@@ -105,21 +134,21 @@ Task.spawn(() -> 1).\n",
 }
 
 /// Verifies Rust-backed portable std modules are rejected unless the command
-/// owns SafeNative packaging for the selected backend.
+/// owns NativeBoundary packaging for the selected backend.
 ///
 /// Inputs:
 /// - A source module that imports `std.data.Json` and calls `Json.parse`.
 ///
 /// Output:
-/// - Test passes when default Erlang validation rejects JSON and the explicit
-///   SafeNative-enabled Erlang option admits it.
+/// - Test passes when default VM validation rejects JSON and the explicit
+///   NativeBoundary-enabled VM option admits it.
 ///
 /// Transformation:
 /// - Resolves the portable JSON std contract from checked-in summaries,
 ///   lowers the module to CoreIR, and validates that executable JSON use is
-///   blocked until the selected command owns the Rust/SafeNative bridge.
+///   blocked until the selected command owns the Rust/NativeBoundary bridge.
 #[test]
-fn gates_rust_backed_json_std_module_for_erlang_profile() {
+fn gates_rust_backed_json_std_module_for_vm_profile() {
     let module = lower(
         "\
 module profile_json_operation.\n\
@@ -134,7 +163,7 @@ Json.parse(text).\n",
         "src/profile_json_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         violations.iter().any(|violation| {
@@ -148,7 +177,7 @@ Json.parse(text).\n",
 
     let allowed = target_profile_checks_with_options(
         &module,
-        TargetProfile::Erlang,
+        TargetProfile::Vm,
         TargetProfileCheckOptions {
             allow_asset_imports: false,
             allow_rust_backed_std_modules: true,
@@ -161,7 +190,7 @@ Json.parse(text).\n",
                     .message
                     .contains("rust-backed std module std.data.Json")
         }),
-        "SafeNative-enabled Erlang validation should accept JSON, got {allowed:?}"
+        "NativeBoundary-enabled VM validation should accept JSON, got {allowed:?}"
     );
 }
 
@@ -171,7 +200,7 @@ Json.parse(text).\n",
 /// - A lowered CoreIR module with a synthetic `std.js.String` import.
 ///
 /// Output:
-/// - Test passes when Erlang and CoreV0 reject the import, while `js.shared`
+/// - Test passes when VM and CoreV0 reject the import, while `js.shared`
 ///   accepts it.
 ///
 /// Transformation:
@@ -181,15 +210,15 @@ Json.parse(text).\n",
 fn rejects_js_std_module_for_non_js_profiles() {
     let module = module_with_module_import("std.js.String");
 
-    let erlang = target_profile_checks(&module, TargetProfile::Erlang);
+    let vm = target_profile_checks(&module, TargetProfile::Vm);
     assert!(
-        erlang.iter().any(|violation| {
+        vm.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
                     .contains("JavaScript std module std.js.String")
         }),
-        "expected JavaScript std diagnostic for Erlang, got {erlang:?}"
+        "expected JavaScript std diagnostic for VM, got {vm:?}"
     );
 
     let core_v0 = target_profile_checks(&module, TargetProfile::CoreV0);
@@ -213,31 +242,29 @@ fn rejects_js_std_module_for_non_js_profiles() {
     );
 }
 
-/// Verifies JavaScript profiles reject BEAM std modules.
+/// Verifies JavaScript profiles reject VM std modules.
 ///
 /// Inputs:
-/// - A lowered CoreIR module with a synthetic `std.beam.Process` import.
+/// - A lowered CoreIR module with a synthetic `std.vm.Process` import.
 ///
 /// Output:
 /// - Test passes when `js.shared` rejects the import with a stable
 ///   target-profile diagnostic.
 ///
 /// Transformation:
-/// - Exercises the import-family gate directly, proving BEAM-specific process
+/// - Exercises the import-family gate directly, proving VM-specific process
 ///   contracts cannot pass into JS backend validation.
 #[test]
-fn rejects_beam_std_module_for_js_profile() {
-    let module = module_with_module_import("std.beam.Process");
+fn rejects_vm_std_module_for_js_profile() {
+    let module = module_with_module_import("std.vm.Process");
 
     let js_shared = target_profile_checks(&module, TargetProfile::JsShared);
     assert!(
         js_shared.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation
-                    .message
-                    .contains("BEAM std module std.beam.Process")
+                && violation.message.contains("VM std module std.vm.Process")
         }),
-        "expected BEAM std diagnostic for js.shared, got {js_shared:?}"
+        "expected VM std diagnostic for js.shared, got {js_shared:?}"
     );
 }
 
@@ -267,6 +294,49 @@ fn rejects_native_std_module_for_js_profile() {
                     .contains("native std module std.native.collections.Vector")
         }),
         "expected native std diagnostic for js.shared, got {js_shared:?}"
+    );
+}
+
+/// Verifies WebAssembly std modules are accepted only by the Wasm profile.
+///
+/// Inputs:
+/// - A lowered CoreIR module with a synthetic `std.wasm.Abi` import.
+///
+/// Output:
+/// - VM and JS profiles reject the import; `wasm.core` accepts it.
+///
+/// Transformation:
+/// - Keeps WebAssembly ABI contracts target-specific while still allowing them
+///   to participate in normal source imports and target inference.
+#[test]
+fn gates_wasm_std_module_to_wasm_core_profile() {
+    let module = module_with_module_import("std.wasm.Abi");
+
+    let vm = target_profile_checks(&module, TargetProfile::Vm);
+    assert!(
+        vm.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation.message.contains("Wasm std module std.wasm.Abi")
+        }),
+        "vm should reject Wasm std module imports, got {vm:?}"
+    );
+
+    let js_shared = target_profile_checks(&module, TargetProfile::JsShared);
+    assert!(
+        js_shared.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation.message.contains("Wasm std module std.wasm.Abi")
+        }),
+        "js.shared should reject Wasm std module imports, got {js_shared:?}"
+    );
+
+    let wasm_core = target_profile_checks(&module, TargetProfile::WasmCore);
+    assert!(
+        !wasm_core.iter().any(|violation| {
+            violation.code == "target_profile_unsupported"
+                && violation.message.contains("Wasm std module")
+        }),
+        "wasm.core should accept Wasm std module imports, got {wasm_core:?}"
     );
 }
 
@@ -307,93 +377,91 @@ fn rejects_browser_dom_js_std_module_for_shared_js_profile() {
     );
 }
 
-/// Verifies BEAM std modules are target-gated outside BEAM profiles.
+/// Verifies VM std modules are target-gated outside VM profiles.
 ///
 /// Inputs:
-/// - A source module that imports the `std.beam.Process` type contract and
+/// - A source module that imports the `std.vm.Process` type contract and
 ///   uses it in a function signature.
 ///
 /// Output:
 /// - Test passes when the portable CoreV0 target-profile validation reports
-///   a stable unsupported BEAM std module diagnostic, while the full
-///   Erlang profile accepts the same type-level contract.
+///   a stable unsupported VM std module diagnostic, while the full
+///   VM profile accepts the same type-level contract.
 ///
 /// Transformation:
-/// - Resolves the BEAM process contract from checked-in summaries, lowers
-///   the module to CoreIR, and validates that BEAM-specific std contracts
+/// - Resolves the VM process contract from checked-in summaries, lowers
+///   the module to CoreIR, and validates that VM-specific std contracts
 ///   remain ordinary imports with target-profile gating rather than source
 ///   grammar special cases.
 #[test]
-fn rejects_beam_std_module_for_core_v0_profile() {
+fn rejects_vm_std_module_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_beam_process_contract.\n\
+module profile_vm_process_contract.\n\
 \n\
-import type std.beam.Process.Process.\n\
+import type std.vm.Process.Process.\n\
 import std.core.Unit.{Unit}.\n\
 \n\
 pub observe(process: Process[String]): Unit ->\n\
 Unit.\n",
-        "src/profile_beam_process_contract.terl",
+        "src/profile_vm_process_contract.terl",
     );
 
-    let erlang = target_profile_checks(&module, TargetProfile::Erlang);
+    let vm = target_profile_checks(&module, TargetProfile::Vm);
     assert!(
-        !erlang.iter().any(|violation| {
+        !vm.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation.message.contains("BEAM std module")
+                && violation.message.contains("VM std module")
         }),
-        "Erlang profile should accept BEAM std contracts, got {erlang:?}"
+        "VM profile should accept VM std contracts, got {vm:?}"
     );
 
     let core_v0 = target_profile_checks(&module, TargetProfile::CoreV0);
     assert!(
         core_v0.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation
-                    .message
-                    .contains("BEAM std module std.beam.Process")
+                && violation.message.contains("VM std module std.vm.Process")
         }),
-        "expected BEAM std target-profile diagnostic, got {core_v0:?}"
+        "expected VM std target-profile diagnostic, got {core_v0:?}"
     );
 }
 
-/// Verifies NativeBridge contracts are target-gated outside BEAM profiles.
+/// Verifies NativeBridge contracts are target-gated outside VM profiles.
 ///
 /// Inputs:
-/// - A source module that imports the `std.beam.NativeBridge` type contract
+/// - A source module that imports the `std.vm.NativeBridge` type contract
 ///   and uses it in a function signature.
 ///
 /// Output:
 /// - Test passes when portable CoreV0 validation reports a stable
-///   unsupported BEAM std module diagnostic for `std.beam.NativeBridge`.
+///   unsupported VM std module diagnostic for `std.vm.NativeBridge`.
 ///
 /// Transformation:
-/// - Resolves the BEAM native-bridge contract from checked-in summaries,
-///   lowers the module to CoreIR, and validates that SafeNative/BEAM bridge
+/// - Resolves the VM native-bridge contract from checked-in summaries,
+///   lowers the module to CoreIR, and validates that NativeBoundary/VM bridge
 ///   types remain target-profile gated before any native attachment path is
 ///   considered.
 #[test]
-fn rejects_beam_native_bridge_contract_for_core_v0_profile() {
+fn rejects_vm_native_bridge_contract_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_beam_native_bridge_contract.\n\
+module profile_vm_native_bridge_contract.\n\
 \n\
-import type std.beam.NativeBridge.NativeBridge.\n\
+import type std.vm.NativeBridge.NativeBridge.\n\
 import std.core.Unit.{Unit}.\n\
 \n\
 pub observe(bridge: NativeBridge[String]): Unit ->\n\
 Unit.\n",
-        "src/profile_beam_native_bridge_contract.terl",
+        "src/profile_vm_native_bridge_contract.terl",
     );
 
-    let erlang = target_profile_checks(&module, TargetProfile::Erlang);
+    let vm = target_profile_checks(&module, TargetProfile::Vm);
     assert!(
-        !erlang.iter().any(|violation| {
+        !vm.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation.message.contains("BEAM std module")
+                && violation.message.contains("VM std module")
         }),
-        "Erlang profile should accept BEAM NativeBridge contracts, got {erlang:?}"
+        "VM profile should accept VM NativeBridge contracts, got {vm:?}"
     );
 
     let core_v0 = target_profile_checks(&module, TargetProfile::CoreV0);
@@ -402,13 +470,13 @@ Unit.\n",
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
-                    .contains("BEAM std module std.beam.NativeBridge")
+                    .contains("VM std module std.vm.NativeBridge")
         }),
-        "expected BEAM NativeBridge target-profile diagnostic, got {core_v0:?}"
+        "expected VM NativeBridge target-profile diagnostic, got {core_v0:?}"
     );
 }
 
-/// Verifies every current BEAM bridge contract module is gated together.
+/// Verifies every current VM bridge contract module is gated together.
 ///
 /// Inputs:
 /// - A source module importing representative type contracts from Agent,
@@ -417,28 +485,28 @@ Unit.\n",
 ///
 /// Output:
 /// - Test passes when CoreV0 target-profile validation reports stable
-///   unsupported BEAM std module diagnostics for each imported module.
+///   unsupported VM std module diagnostics for each imported module.
 ///
 /// Transformation:
-/// - Resolves the whole BEAM contract family from checked-in summaries,
+/// - Resolves the whole VM contract family from checked-in summaries,
 ///   lowers the module once, and validates that adding new bridge-adjacent
-///   std modules does not accidentally make any BEAM-only contract
+///   std modules does not accidentally make any VM-only contract
 ///   portable.
 #[test]
-fn rejects_all_beam_bridge_contract_modules_for_core_v0_profile() {
+fn rejects_all_vm_bridge_contract_modules_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_beam_bridge_family_contract.\n\
+module profile_vm_bridge_family_contract.\n\
 \n\
-import type std.beam.Agent.Agent.\n\
-import type std.beam.Backpressure.Credit.\n\
-import type std.beam.GenServer.CallReply.\n\
-import type std.beam.Message.Message.\n\
-import type std.beam.NativeBridge.NativeBridge.\n\
-import type std.beam.Process.Process.\n\
-import type std.beam.Supervisor.ChildSpec.\n\
-import type std.beam.Supervisor.Supervisor.\n\
-import type std.beam.Task.Task.\n\
+import type std.vm.Agent.Agent.\n\
+import type std.vm.Backpressure.Credit.\n\
+import type std.vm.GenServer.CallReply.\n\
+import type std.vm.Message.Message.\n\
+import type std.vm.NativeBridge.NativeBridge.\n\
+import type std.vm.Process.Process.\n\
+import type std.vm.Supervisor.ChildSpec.\n\
+import type std.vm.Supervisor.Supervisor.\n\
+import type std.vm.Task.Task.\n\
 import std.core.Unit.{Unit}.\n\
 \n\
 pub observe(\n\
@@ -453,104 +521,104 @@ supervisor: Supervisor,\n\
 task: Task[Int]\n\
 ): Unit ->\n\
 Unit.\n",
-        "src/profile_beam_bridge_family_contract.terl",
+        "src/profile_vm_bridge_family_contract.terl",
     );
 
-    let erlang = target_profile_checks(&module, TargetProfile::Erlang);
+    let vm = target_profile_checks(&module, TargetProfile::Vm);
     assert!(
-        erlang.is_empty(),
-        "Erlang profile should accept the BEAM bridge contract family, got {erlang:?}"
+        vm.is_empty(),
+        "VM profile should accept the VM bridge contract family, got {vm:?}"
     );
 
     let core_v0 = target_profile_checks(&module, TargetProfile::CoreV0);
     for expected in [
-        "std.beam.Agent",
-        "std.beam.Backpressure",
-        "std.beam.GenServer",
-        "std.beam.Message",
-        "std.beam.NativeBridge",
-        "std.beam.Process",
-        "std.beam.Supervisor",
-        "std.beam.Task",
+        "std.vm.Agent",
+        "std.vm.Backpressure",
+        "std.vm.GenServer",
+        "std.vm.Message",
+        "std.vm.NativeBridge",
+        "std.vm.Process",
+        "std.vm.Supervisor",
+        "std.vm.Task",
     ] {
         assert!(
             core_v0.iter().any(|violation| {
                 violation.code == "target_profile_unsupported"
                     && violation
                         .message
-                        .contains(&format!("BEAM std module {expected}"))
+                        .contains(&format!("VM std module {expected}"))
             }),
-            "expected BEAM std target-profile diagnostic for {expected}, got {core_v0:?}"
+            "expected VM std target-profile diagnostic for {expected}, got {core_v0:?}"
         );
     }
 }
 
-/// Verifies paired BEAM Agent state transitions are admitted after runtime
+/// Verifies paired VM Agent state transitions are admitted after runtime
 /// lowering exists.
 ///
 /// Inputs:
-/// - A source module that imports `std.beam.Agent` and calls the deferred
+/// - A source module that imports `std.vm.Agent` and calls the deferred
 ///   paired-result `Agent.get_and_update` operation.
 ///
 /// Output:
-/// - Test passes when the full Erlang profile accepts `get_and_update`
-///   without an unsupported BEAM Agent operation diagnostic.
+/// - Test passes when the full VM profile accepts `get_and_update`
+///   without an unsupported VM Agent operation diagnostic.
 ///
 /// Transformation:
 /// - Resolves the Agent type contract from checked-in summaries, lowers the
 ///   source to CoreIR, and validates that the paired state/value operation
-///   is part of the admitted BEAM Agent runtime surface.
+///   is part of the admitted VM Agent runtime surface.
 #[test]
-fn accepts_beam_agent_get_and_update_operation_for_erlang_profile() {
+fn accepts_vm_agent_get_and_update_operation_for_vm_profile() {
     let module = lower(
         "\
-module profile_beam_agent_operation.\n\
+module profile_vm_agent_operation.\n\
 \n\
-import std.beam.Agent.\n\
-import type std.beam.Agent.Agent.\n\
+import std.vm.Agent.\n\
+import type std.vm.Agent.Agent.\n\
 import type std.core.Error.Error.\n\
 import type std.core.Result.Result.\n\
 \n\
 pub queue_update(agent: Agent[Int]): Int ->\n\
 Agent.get_and_update(agent, (value: Int) -> {state: value, value: value}).\n",
-        "src/profile_beam_agent_operation.terl",
+        "src/profile_vm_agent_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
-                    .contains("BEAM Agent operation std.beam.Agent.get_and_update")
+                    .contains("VM Agent operation std.vm.Agent.get_and_update")
         }),
-        "BEAM Agent get_and_update should be admitted, got {violations:?}"
+        "VM Agent get_and_update should be admitted, got {violations:?}"
     );
 }
 
 /// Verifies GenServer runtime operations are admitted after callback lowering exists.
 ///
 /// Inputs:
-/// - A source module importing `std.beam.GenServer` and calling
+/// - A source module importing `std.vm.GenServer` and calling
 ///   `GenServer.start(server)`.
 ///
 /// Output:
-/// - Test passes when the full Erlang profile accepts `GenServer.start`
+/// - Test passes when the full VM profile accepts `GenServer.start`
 ///   without an unsupported GenServer operation diagnostic.
 ///
 /// Transformation:
 /// - Resolves the GenServer contract from checked-in summaries, lowers the
 ///   source to CoreIR, and validates that callback-process startup is part
-///   of the admitted BEAM GenServer runtime surface.
+///   of the admitted VM GenServer runtime surface.
 #[test]
-fn accepts_beam_gen_server_operation_for_erlang_profile() {
+fn accepts_vm_gen_server_operation_for_vm_profile() {
     let module = lower(
         "\
-module profile_beam_gen_server_operation.\n\
+module profile_vm_gen_server_operation.\n\
 \n\
-import std.beam.GenServer.\n\
-import type std.beam.GenServer.{CallReply, GenServer, ServerRef}.\n\
+import std.vm.GenServer.\n\
+import type std.vm.GenServer.{CallReply, GenServer, ServerRef}.\n\
 import std.core.Result.{Ok}.\n\
 import type std.core.Result.Result.\n\
 import type std.core.Error.Error.\n\
@@ -570,145 +638,146 @@ Ok(state + event).\n\
 \n\
 pub start_server(server: CounterServer): Result[ServerRef[Int, Int, Int, Int], Error] ->\n\
 GenServer.start(server).\n",
-        "src/profile_beam_gen_server_operation.terl",
+        "src/profile_vm_gen_server_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
-                    .contains("BEAM GenServer operation std.beam.GenServer.start")
+                    .contains("VM GenServer operation std.vm.GenServer.start")
         }),
-        "BEAM GenServer.start should be admitted, got {violations:?}"
+        "VM GenServer.start should be admitted, got {violations:?}"
     );
 }
 
 /// Verifies NativeBridge runtime operations are admitted once local lowering exists.
 ///
 /// Inputs:
-/// - A source module importing `std.beam.NativeBridge` and calling
+/// - A source module importing `std.vm.NativeBridge` and calling
 ///   `NativeBridge.start(resource)`.
 ///
 /// Output:
-/// - Test passes when the full Erlang profile accepts the NativeBridge
+/// - Test passes when the full VM profile accepts the NativeBridge
 ///   operation without an unsupported-operation diagnostic.
 ///
 /// Transformation:
 /// - Keeps the callable NativeBridge contract visible while proving the
-///   Erlang profile has an explicit compiler-owned lowering decision for
+///   VM profile has an explicit compiler-owned lowering decision for
 ///   the local bridge proof.
 #[test]
-fn accepts_beam_native_bridge_operation_for_erlang_profile() {
+fn accepts_vm_native_bridge_operation_for_vm_profile() {
     let module = lower(
         "\
-module profile_beam_native_bridge_operation.\n\
+module profile_vm_native_bridge_operation.\n\
 \n\
-import std.beam.NativeBridge.\n\
-import type std.beam.NativeBridge.NativeBridge.\n\
+import std.vm.NativeBridge.\n\
+import std.vm.NativeBridge.{NativeTransfer}.\n\
+import type std.vm.NativeBridge.NativeBridge.\n\
 import type std.core.Result.Result.\n\
 import type std.core.Error.Error.\n\
 \n\
 pub start_bridge(resource: String): Result[NativeBridge[String], Error] ->\n\
 NativeBridge.start(resource).\n",
-        "src/profile_beam_native_bridge_operation.terl",
+        "src/profile_vm_native_bridge_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
-                    .contains("BEAM NativeBridge operation std.beam.NativeBridge.start")
+                    .contains("VM NativeBridge operation std.vm.NativeBridge.start")
         }),
-        "BEAM NativeBridge.start should be admitted for Erlang, got {violations:?}"
+        "VM NativeBridge.start should be admitted for VM, got {violations:?}"
     );
 }
 
 /// Verifies Supervisor runtime operations are admitted once local lowering exists.
 ///
 /// Inputs:
-/// - A source module importing `std.beam.Supervisor` and calling
+/// - A source module importing `std.vm.Supervisor` and calling
 ///   `Supervisor.child_spec(value)`.
 ///
 /// Output:
-/// - Test passes when the full Erlang profile accepts the Supervisor
+/// - Test passes when the full VM profile accepts the Supervisor
 ///   operation without an unsupported-operation diagnostic.
 ///
 /// Transformation:
 /// - Keeps the callable Supervisor contract visible while proving the
-///   Erlang profile has an explicit compiler-owned lowering decision for
+///   VM profile has an explicit compiler-owned lowering decision for
 ///   the local supervision proof.
 #[test]
-fn accepts_beam_supervisor_operation_for_erlang_profile() {
+fn accepts_vm_supervisor_operation_for_vm_profile() {
     let module = lower(
         "\
-module profile_beam_supervisor_operation.\n\
+module profile_vm_supervisor_operation.\n\
 \n\
-import std.beam.Supervisor.\n\
+import std.vm.Supervisor.\n\
 \n\
 pub make_spec(value: Int): Dynamic ->\n\
 Supervisor.child_spec(value).\n",
-        "src/profile_beam_supervisor_operation.terl",
+        "src/profile_vm_supervisor_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
-                    .contains("BEAM Supervisor operation std.beam.Supervisor.child_spec")
+                    .contains("VM Supervisor operation std.vm.Supervisor.child_spec")
         }),
-        "BEAM Supervisor.child_spec should be admitted for Erlang, got {violations:?}"
+        "VM Supervisor.child_spec should be admitted for VM, got {violations:?}"
     );
 }
 
-/// Verifies BEAM Task operations are admitted once process lowering exists.
+/// Verifies VM Task operations are admitted once process lowering exists.
 ///
 /// Inputs:
-/// - A source module that imports `std.beam.Task` and calls `Task.start`.
+/// - A source module that imports `std.vm.Task` and calls `Task.start`.
 ///
 /// Output:
-/// - Test passes when the full Erlang profile accepts `Task.start`
-///   without an unsupported BEAM Task operation diagnostic.
+/// - Test passes when the full VM profile accepts `Task.start`
+///   without an unsupported VM Task operation diagnostic.
 ///
 /// Transformation:
-/// - Resolves the BEAM Task type contract from checked-in summaries,
+/// - Resolves the VM Task type contract from checked-in summaries,
 ///   lowers the source to CoreIR, and validates that executable
-///   task-process calls are admitted after shared BEAM process lowering is
+///   task-process calls are admitted after shared VM process lowering is
 ///   implemented.
 #[test]
-fn accepts_beam_task_operation_for_erlang_profile() {
+fn accepts_vm_task_operation_for_vm_profile() {
     let module = lower(
         "\
-module profile_beam_task_operation.\n\
+module profile_vm_task_operation.\n\
 \n\
-import std.beam.Task.\n\
-import type std.beam.Task.Task.\n\
+import std.vm.Task.\n\
+import type std.vm.Task.Task.\n\
 import type std.core.Error.Error.\n\
 import type std.core.Result.Result.\n\
 \n\
 pub start_work(): Result[Task[Int], Error] ->\n\
 Task.start(() -> 1).\n",
-        "src/profile_beam_task_operation.terl",
+        "src/profile_vm_task_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
-                    .contains("BEAM Task operation std.beam.Task.start")
+                    .contains("VM Task operation std.vm.Task.start")
         }),
-        "BEAM Task.start should be admitted, got {violations:?}"
+        "VM Task.start should be admitted, got {violations:?}"
     );
 }
 
@@ -719,15 +788,15 @@ Task.start(() -> 1).\n",
 ///   `std.net.Uri`.
 ///
 /// Output:
-/// - Test passes when Erlang target-profile validation reports stable
+/// - Test passes when VM target-profile validation reports stable
 ///   unsupported Rust-backed std module diagnostics for all three imports.
 ///
 /// Transformation:
 /// - Resolves the portable utility std contracts from checked-in summaries,
 ///   lowers the module to CoreIR, and validates that executable utility use
-///   is blocked until the selected target owns the Rust/SafeNative bridge.
+///   is blocked until the selected target owns the Rust/NativeBoundary bridge.
 #[test]
-fn rejects_rust_backed_web_data_std_modules_for_erlang_profile() {
+fn rejects_rust_backed_web_data_std_modules_for_vm_profile() {
     let module = lower(
         "\
 module profile_web_data_operation.\n\
@@ -753,7 +822,7 @@ Uri.parse(text).\n",
         "src/profile_web_data_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
     let messages = violations
         .iter()
         .map(|violation| violation.message.as_str())
@@ -780,13 +849,13 @@ Uri.parse(text).\n",
 /// - A source module that imports `std.http.Request` and `std.http.Response`.
 ///
 /// Output:
-/// - Test passes when Erlang and JavaScript web packaging profiles accept the
+/// - Test passes when VM and JavaScript web packaging profiles accept the
 ///   HTTP std modules without target-profile diagnostics.
 ///
 /// Transformation:
 /// - Resolves the HTTP std contracts from checked-in summaries, lowers the
-///   module to CoreIR, and validates that the Rust/Tokio-owned HTTP server
-///   surface is available to the 0.0.5 web package path.
+///   module to CoreIR, and validates that the VM-owned HTTP server surface is
+///   available to the web package path.
 #[test]
 fn accepts_rust_backed_http_std_modules_for_web_profiles() {
     let module = lower(
@@ -804,7 +873,7 @@ Response.text(\"ok\").\n",
     );
 
     for profile in [
-        TargetProfile::Erlang,
+        TargetProfile::Vm,
         TargetProfile::JsShared,
         TargetProfile::JsBrowser,
         TargetProfile::JsWorker,
@@ -824,23 +893,20 @@ Response.text(\"ok\").\n",
     }
 }
 
-/// Verifies Postgres std imports are target-gated until the worker adapter can
-/// execute them.
+/// Verifies the VM profile accepts Postgres through its actor-owned worker.
 ///
 /// Inputs:
 /// - A source module that imports `std.db.Postgres` and calls its public
 ///   connection function.
 ///
 /// Output:
-/// - Test passes when Erlang target-profile validation reports a stable
-///   unsupported Rust-backed std module diagnostic for the import.
+/// - Test passes when VM target-profile validation accepts the import.
 ///
 /// Transformation:
 /// - Resolves the Postgres std contract from checked-in summaries, lowers the
-///   module to CoreIR, and validates that database APIs do not silently pass
-///   into a backend profile before the supervised worker bridge exists.
+///   module to CoreIR, and validates the supervised worker bridge capability.
 #[test]
-fn rejects_postgres_std_module_for_erlang_profile_until_adapter_exists() {
+fn accepts_postgres_std_module_for_vm_profile() {
     let module = lower(
         "\
 module profile_postgres_operation.\n\
@@ -856,15 +922,11 @@ Postgres.connect(config).\n",
         "src/profile_postgres_operation.terl",
     );
 
-    let violations = target_profile_checks(&module, TargetProfile::Erlang);
-    let messages = violations
-        .iter()
-        .map(|violation| violation.message.as_str())
-        .collect::<Vec<_>>()
-        .join("\n");
-
+    let violations = target_profile_checks(&module, TargetProfile::Vm);
     assert!(
-        messages.contains("rust-backed std module std.db.Postgres"),
-        "expected Postgres target-profile diagnostic, got {violations:?}"
+        !violations.iter().any(|violation| violation
+            .message
+            .contains("rust-backed std module std.db.Postgres")),
+        "VM should accept Postgres through its worker bridge, got {violations:?}"
     );
 }

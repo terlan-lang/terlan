@@ -1,8 +1,8 @@
 module=std.js.Dom.Animatable
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=16860621686788567663
-interface_hash=8630902539280584278
-interface_doc_hash=8630902539280584278
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=7035269371339285774
+interface_hash=3065572933727408398
+interface_doc_hash=3065572933727408398
 deps=0

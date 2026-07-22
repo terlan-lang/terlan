@@ -1,22 +1,22 @@
-/// Derives the SafeNative backend module from a Terlan module path.
+/// Derives the NativeBoundary backend module from a Terlan module path.
 ///
 /// Inputs:
 /// - `module`: source module path such as `std.data.Json`.
 ///
 /// Output:
-/// - Lower-snake SafeNative module name such as `std_data_json_safe_native`.
+/// - Lower-snake NativeBoundary module name such as `std_data_json_native_boundary`.
 ///
 /// Transformation:
 /// - Converts each path segment to lower snake case, joins segments with
-///   underscores, and appends the SafeNative suffix.
-pub fn module_path_to_safe_native_module(module: &str) -> String {
+///   underscores, and appends the NativeBoundary suffix.
+pub fn module_path_to_native_boundary_module(module: &str) -> String {
     let base = module
         .split('.')
         .filter(|segment| !segment.is_empty())
         .map(identifier_to_snake)
         .collect::<Vec<_>>()
         .join("_");
-    format!("{base}_safe_native")
+    format!("{base}_native_boundary")
 }
 
 /// Converts one identifier segment to lower snake case.

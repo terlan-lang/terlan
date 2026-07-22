@@ -1,0 +1,58 @@
+module compiler_big_parity.
+
+import std.collections.Map.
+import std.core.Option.{None, Option, Some}.
+
+pub totals(limit: Int): Option[Map[String, Int]] ->
+    case limit >= 0 {
+        true -> Some(accumulate(0, limit, true, Map({"even", 0}, {"odd", 0})));
+        false -> None
+    }.
+
+accumulate(index: Int, limit: Int, even: Bool, totals: Map[String, Int]): Map[String, Int] ->
+    case index > limit {
+        true -> totals;
+        false -> case even {
+            true -> case totals.get("even") {
+                Some(current) ->
+                    accumulate(index + 1, limit, toggle(even), updated(totals, "even", current, index));
+                None -> totals
+            };
+            false -> case totals.get("odd") {
+                Some(current) ->
+                    accumulate(index + 1, limit, toggle(even), updated(totals, "odd", current, index));
+                None -> totals
+            }
+        }
+    }.
+
+updated(totals: Map[String, Int], key: String, current: Int, value: Int): Map[String, Int] ->
+    let _put = totals.put(key, current + value);
+    totals.
+
+toggle(value: Bool): Bool ->
+    case value {
+        true -> false;
+        false -> true
+    }.
+
+matches(totals: Map[String, Int], even: Int, odd: Int): Bool ->
+    totals.get("even") == Some(even) and totals.get("odd") == Some(odd).
+
+pub run(): Bool ->
+    case totals(-1) {
+        Some(_invalid) -> false;
+        None -> case totals(0) {
+            Some(zero) -> case totals(10) {
+                Some(ten) -> case totals(1000) {
+                    Some(thousand) ->
+                        matches(zero, 0, 0)
+                            and matches(ten, 30, 25)
+                            and matches(thousand, 250500, 250000);
+                    None -> false
+                };
+                None -> false
+            };
+            None -> false
+        }
+    }.

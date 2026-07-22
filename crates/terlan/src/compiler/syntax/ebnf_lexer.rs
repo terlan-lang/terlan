@@ -123,7 +123,7 @@ impl<'a> EbnfLexer<'a> {
                     return Err(EbnfError {
                         message: format!("unexpected EBNF character '{ch}'"),
                         span: Span::new(start, start + ch.len_utf8()),
-                    })
+                    });
                 }
             };
             tokens.push(EbnfToken {

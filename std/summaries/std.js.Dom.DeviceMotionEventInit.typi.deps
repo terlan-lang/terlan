@@ -1,8 +1,8 @@
 module=std.js.Dom.DeviceMotionEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=3407660045447895136
-interface_hash=4212896351150048825
-interface_doc_hash=4212896351150048825
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=15602816150896084020
+interface_hash=5616195313073857197
+interface_doc_hash=5616195313073857197
 deps=0

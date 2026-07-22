@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Backend-neutral type representation in CoreIR.
 ///
 /// Inputs:
@@ -40,7 +40,7 @@ pub enum CoreType {
     Union(Vec<CoreType>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Tuple element shape in CoreIR types.
 ///
 /// Inputs:
@@ -57,7 +57,7 @@ pub enum CoreTupleTypeElem {
     Field { name: String, ty: CoreType },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// CoreIR map type field.
 ///
 /// Inputs:
@@ -75,7 +75,7 @@ pub struct CoreMapTypeField {
     pub value: CoreType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// CoreIR struct type field.
 ///
 /// Inputs:
@@ -167,7 +167,7 @@ impl CoreType {
     /// Transformation:
     /// - Serializes built-in and simple named type payloads without backend
     ///   syntax or source span data.
-    pub(super) fn contract_text(&self) -> String {
+    pub(crate) fn contract_text(&self) -> String {
         match self {
             CoreType::Int => "Int".to_string(),
             CoreType::Float => "Float".to_string(),
@@ -271,6 +271,9 @@ pub(super) fn core_type_contract_text(ty: Option<&CoreType>) -> String {
 ///   backend-neutral Core type payloads.
 pub(crate) fn core_type_from_text(text: &str) -> Option<CoreType> {
     let text = text.trim();
+    if let Some(inner) = strip_outer_type_parentheses(text) {
+        return core_type_from_text(inner);
+    }
     if let Some(items) = split_top_level_type_union(text) {
         return items
             .into_iter()
@@ -337,6 +340,27 @@ pub(crate) fn core_type_from_text(text: &str) -> Option<CoreType> {
             }
         }
     }
+}
+
+/// Removes one balanced grouping pair only when it encloses the complete type.
+fn strip_outer_type_parentheses(text: &str) -> Option<&str> {
+    if !text.starts_with('(') || !text.ends_with(')') {
+        return None;
+    }
+    let mut depth = 0_usize;
+    for (index, character) in text.char_indices() {
+        match character {
+            '(' => depth = depth.checked_add(1)?,
+            ')' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 && index + character.len_utf8() != text.len() {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+    }
+    (depth == 0).then(|| &text[1..text.len() - 1])
 }
 
 /// Returns the inner field text for a map type annotation.

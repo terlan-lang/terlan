@@ -1,0 +1,54 @@
+module tests.operator.OperatorCoverageTest.
+
+import std.test.Test.{assert_equal}.
+
+pub add_one(value: Int): Int ->
+    value + 1.
+
+@test
+pub arithmetic_addition_executes(): Bool ->
+    assert_equal(5, 2 + 3).
+
+@test
+pub arithmetic_subtraction_executes(): Bool ->
+    assert_equal(2, 5 - 3).
+
+@test
+pub arithmetic_multiplication_executes(): Bool ->
+    assert_equal(12, 3 * 4).
+
+@test
+pub arithmetic_division_executes(): Bool ->
+    assert_equal(3, 7 / 2).
+
+@test
+pub arithmetic_div_keyword_executes(): Bool ->
+    assert_equal(3, 7 div 2).
+
+@test
+pub unary_negation_executes(): Bool ->
+    assert_equal(-4, -4).
+
+@test
+pub unary_not_keyword_executes(): Bool ->
+    assert_equal(false, not true).
+
+@test
+pub boolean_and_keyword_executes(): Bool ->
+    assert_equal(false, true and false).
+
+@test
+pub boolean_or_keyword_executes(): Bool ->
+    assert_equal(true, false or true).
+
+@test
+pub boolean_and_symbols_execute(): Bool ->
+    assert_equal(false, true and false).
+
+@test
+pub boolean_or_symbols_execute(): Bool ->
+    assert_equal(true, false or true).
+
+@test
+pub string_concat_executes(): Bool ->
+    assert_equal("hello world", "hello " + "world").

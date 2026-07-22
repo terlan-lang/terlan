@@ -59,7 +59,10 @@ pub(super) fn infer_implicit_type_value(name: &str) -> Option<Type> {
 ///   `Unit` is excluded here so `pub main(): Unit -> Unit.` keeps working as a
 ///   value expression.
 pub(super) fn is_implicit_type_value_name(name: &str) -> bool {
-    matches!(name, "Bool" | "Int" | "Float" | "String" | "Atom" | "Type")
+    matches!(
+        name,
+        "Bool" | "Int" | "Float" | "Number" | "String" | "Atom" | "Type" | "Dynamic" | "Never"
+    )
 }
 
 /// Checks whether a name is an uppercase spelling reserved for diagnostics.

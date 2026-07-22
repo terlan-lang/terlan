@@ -19,6 +19,8 @@ pub(super) fn check_parsed_trait_impl_signature(
     impl_span: Span,
     trait_map: &HashMap<String, ParsedTraitSignature>,
     inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
+    alias_names: &HashSet<String>,
+    aliases: &HashMap<String, TypeAlias>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let Some(trait_signature) = trait_map.get(&impl_decl.target.name) else {
@@ -142,7 +144,9 @@ pub(super) fn check_parsed_trait_impl_signature(
                     severity: DiagSeverity::Error,
                 });
             }
-            if !found_type.trim().is_empty() && !trait_type_text_equal(expected_type, found_type) {
+            if !found_type.trim().is_empty()
+                && !trait_impl_type_equal(expected_type, found_type, alias_names, aliases)
+            {
                 diagnostics.push(Diagnostic {
                     span: method.span,
                     message: format!(
@@ -159,7 +163,12 @@ pub(super) fn check_parsed_trait_impl_signature(
         }
 
         if !method.return_type.trim().is_empty()
-            && !trait_type_text_equal(&specialized_return, &method.return_type)
+            && !trait_impl_type_equal(
+                &specialized_return,
+                &method.return_type,
+                alias_names,
+                aliases,
+            )
         {
             diagnostics.push(Diagnostic {
                 span: method.span,
@@ -189,4 +198,27 @@ pub(super) fn check_parsed_trait_impl_signature(
             });
         }
     }
+}
+
+/// Compares specialized trait and impl method types through transparent aliases.
+fn trait_impl_type_equal(
+    expected: &str,
+    found: &str,
+    alias_names: &HashSet<String>,
+    aliases: &HashMap<String, TypeAlias>,
+) -> bool {
+    if trait_type_text_equal(expected, found) {
+        return true;
+    }
+
+    let mut vars = HashMap::new();
+    let mut next_var = 0;
+    let Some(expected) = parse_type_expr(expected, alias_names, &mut vars, &mut next_var) else {
+        return false;
+    };
+    let Some(found) = parse_type_expr(found, alias_names, &mut vars, &mut next_var) else {
+        return false;
+    };
+
+    expand_type_aliases(&expected, aliases) == expand_type_aliases(&found, aliases)
 }

@@ -1,7 +1,7 @@
 use super::{CoreExpr, CoreType};
 use crate::terlan_syntax::span::Span;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Backend-neutral effect labels for a Core expression.
 ///
 /// Inputs: effect names discovered during lowering. Output: effect set.
@@ -30,7 +30,7 @@ impl CoreEffectSet {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Compiler-owned primitive intrinsic identity.
 ///
 /// Inputs: resolved intrinsic operation. Output: closed primitive enum.
@@ -44,10 +44,18 @@ pub enum CorePrimitiveIntrinsic {
     BoolToString,
     BoolFromString,
     AtomToString,
+    ValueToString,
     IntToString,
     IntFromString,
+    IntToStringBase,
+    IntFromStringBase,
     FloatToString,
     FloatFromString,
+    FloatFloor,
+    FloatCeil,
+    FloatLog,
+    FloatPi,
+    FloatTau,
     StringEqual,
     StringCompare,
     StringToString,
@@ -62,6 +70,7 @@ pub enum CorePrimitiveIntrinsic {
     StringByteSize,
     StringLowercase,
     StringUppercase,
+    StringReverse,
     StringTrim,
     StringTrimStart,
     StringTrimEnd,
@@ -72,6 +81,9 @@ pub enum CorePrimitiveIntrinsic {
     ListIsEmpty,
     ListLength,
     ListFirst,
+    ListRest,
+    ListConcat,
+    ListSubtract,
     ListIterator,
     ListPush,
     ListClear,
@@ -81,6 +93,7 @@ pub enum CorePrimitiveIntrinsic {
     MapIsEmpty,
     MapSize,
     MapGet,
+    MapTake,
     MapContainsKey,
     MapIterator,
     MapPut,
@@ -96,42 +109,95 @@ pub enum CorePrimitiveIntrinsic {
     SetRemove,
     SetClear,
     TaskDone,
+    TaskFailed,
     TaskResult,
-    BeamAgentStart,
-    BeamAgentGet,
-    BeamAgentGetAndUpdate,
-    BeamAgentUpdate,
-    BeamAgentCast,
-    BeamAgentStop,
-    BeamGenServerStart,
-    BeamGenServerCall,
-    BeamGenServerCast,
-    BeamGenServerStop,
-    BeamNativeBridgeStart,
-    BeamNativeBridgeCall,
-    BeamNativeBridgeDispose,
-    BeamNativeBridgeStop,
-    BeamBytesFromList,
-    BeamBytesToList,
-    BeamBytesLength,
-    BeamBytesConcat,
-    BeamTimeoutMilliseconds,
-    BeamTimeoutForever,
-    BeamTcpConnect,
-    BeamTcpSend,
-    BeamTcpReceive,
-    BeamTcpClose,
-    BeamPortOpen,
-    BeamPortWrite,
-    BeamPortRead,
-    BeamPortClose,
-    BeamSupervisorStartRoot,
-    BeamSupervisorChildSpec,
-    BeamSupervisorStart,
-    BeamSupervisorStop,
-    BeamTaskStart,
-    BeamTaskResult,
-    BeamTaskCancel,
+    VmEffectRun,
+    VmProcessYield,
+    VmProcessSendInt,
+    VmProcessReceiveInt,
+    VmProcessSendString,
+    VmProcessReceiveString,
+    VmProcessSendBytes,
+    VmProcessReceiveBytes,
+    VmProcessSendBinary,
+    VmProcessReceiveBinary,
+    VmProcessSendAtom,
+    VmProcessReceiveAtom,
+    VmProcessSleep,
+    VmProcessFail,
+    VmProcessSchedule,
+    VmAgentStart,
+    VmAgentGet,
+    VmAgentGetAndUpdate,
+    VmAgentUpdate,
+    VmAgentCast,
+    VmAgentStop,
+    VmGenServerStart,
+    VmGenServerCall,
+    VmGenServerCast,
+    VmGenServerStop,
+    VmNativeBridgeStart,
+    VmNativeBridgeCall,
+    VmNativeBridgeDispose,
+    VmNativeBridgeStop,
+    VmBytesFromList,
+    VmBytesToList,
+    VmBytesLength,
+    VmBytesConcat,
+    VmBytesSlice,
+    VmBytesReadUintBe,
+    VmBytesReadIntBe,
+    VmBytesReadUintLe,
+    VmBytesReadIntLe,
+    VmBitStringFromBytes,
+    VmBitStringFromAllBytes,
+    VmBitStringFromExactBytes,
+    VmBitStringRequireExactBits,
+    VmBitStringFromUintBe,
+    VmBitStringFromIntBe,
+    VmBitStringFromUintLe,
+    VmBitStringFromIntLe,
+    VmBitStringUtf8Scalar,
+    VmBitStringToUtf8Scalar,
+    VmBitStringUtf16BeScalar,
+    VmBitStringUtf16LeScalar,
+    VmBitStringToUtf16BeScalar,
+    VmBitStringToUtf16LeScalar,
+    VmBitStringUtf32BeScalar,
+    VmBitStringUtf32LeScalar,
+    VmBitStringToUtf32BeScalar,
+    VmBitStringToUtf32LeScalar,
+    VmBitStringBitLength,
+    VmBitStringByteLength,
+    VmBitStringIsByteAligned,
+    VmBitStringSlice,
+    VmBitStringConcat,
+    VmBitStringToBytes,
+    VmBitStringToUintBe,
+    VmBitStringToIntBe,
+    VmBitStringToUintLe,
+    VmBitStringToIntLe,
+    VmTimeoutMilliseconds,
+    VmTimeoutForever,
+    VmTcpListen,
+    VmTcpListenWithBacklog,
+    VmTcpAccept,
+    VmTcpConnect,
+    VmTcpSend,
+    VmTcpReceive,
+    VmTcpClose,
+    VmTcpCloseListener,
+    VmPortOpen,
+    VmPortWrite,
+    VmPortRead,
+    VmPortClose,
+    VmSupervisorStartRoot,
+    VmSupervisorChildSpec,
+    VmSupervisorStart,
+    VmSupervisorStop,
+    VmTaskStart,
+    VmTaskResult,
+    VmTaskCancel,
 }
 
 impl CorePrimitiveIntrinsic {
@@ -156,10 +222,18 @@ impl CorePrimitiveIntrinsic {
             Self::BoolToString => "core.bool.to_string",
             Self::BoolFromString => "core.bool.from_string",
             Self::AtomToString => "core.atom.to_string",
+            Self::ValueToString => "core.value.to_string",
             Self::IntToString => "core.int.to_string",
             Self::IntFromString => "core.int.from_string",
+            Self::IntToStringBase => "core.int.to_string_base",
+            Self::IntFromStringBase => "core.int.from_string_base",
             Self::FloatToString => "core.float.to_string",
             Self::FloatFromString => "core.float.from_string",
+            Self::FloatFloor => "core.float.floor",
+            Self::FloatCeil => "core.float.ceil",
+            Self::FloatLog => "core.float.log",
+            Self::FloatPi => "core.float.pi",
+            Self::FloatTau => "core.float.tau",
             Self::StringEqual => "core.string.equal",
             Self::StringCompare => "core.string.compare",
             Self::StringToString => "core.string.to_string",
@@ -174,6 +248,7 @@ impl CorePrimitiveIntrinsic {
             Self::StringByteSize => "core.string.byte_size",
             Self::StringLowercase => "core.string.lowercase",
             Self::StringUppercase => "core.string.uppercase",
+            Self::StringReverse => "core.string.reverse",
             Self::StringTrim => "core.string.trim",
             Self::StringTrimStart => "core.string.trim_start",
             Self::StringTrimEnd => "core.string.trim_end",
@@ -184,6 +259,9 @@ impl CorePrimitiveIntrinsic {
             Self::ListIsEmpty => "core.list.is_empty",
             Self::ListLength => "core.list.length",
             Self::ListFirst => "core.list.first",
+            Self::ListRest => "core.list.rest",
+            Self::ListConcat => "core.list.concat",
+            Self::ListSubtract => "core.list.subtract",
             Self::ListIterator => "core.list.iterator",
             Self::ListPush => "core.list.push",
             Self::ListClear => "core.list.clear",
@@ -193,6 +271,7 @@ impl CorePrimitiveIntrinsic {
             Self::MapIsEmpty => "core.map.is_empty",
             Self::MapSize => "core.map.size",
             Self::MapGet => "core.map.get",
+            Self::MapTake => "core.map.take",
             Self::MapContainsKey => "core.map.contains_key",
             Self::MapIterator => "core.map.iterator",
             Self::MapPut => "core.map.put",
@@ -208,47 +287,100 @@ impl CorePrimitiveIntrinsic {
             Self::SetRemove => "core.set.remove",
             Self::SetClear => "core.set.clear",
             Self::TaskDone => "core.task.done",
+            Self::TaskFailed => "core.task.failed",
             Self::TaskResult => "core.task.result",
-            Self::BeamAgentStart => "beam.agent.start",
-            Self::BeamAgentGet => "beam.agent.get",
-            Self::BeamAgentGetAndUpdate => "beam.agent.get_and_update",
-            Self::BeamAgentUpdate => "beam.agent.update",
-            Self::BeamAgentCast => "beam.agent.cast",
-            Self::BeamAgentStop => "beam.agent.stop",
-            Self::BeamGenServerStart => "beam.gen_server.start",
-            Self::BeamGenServerCall => "beam.gen_server.call",
-            Self::BeamGenServerCast => "beam.gen_server.cast",
-            Self::BeamGenServerStop => "beam.gen_server.stop",
-            Self::BeamNativeBridgeStart => "beam.native_bridge.start",
-            Self::BeamNativeBridgeCall => "beam.native_bridge.call",
-            Self::BeamNativeBridgeDispose => "beam.native_bridge.dispose",
-            Self::BeamNativeBridgeStop => "beam.native_bridge.stop",
-            Self::BeamBytesFromList => "beam.bytes.from_list",
-            Self::BeamBytesToList => "beam.bytes.to_list",
-            Self::BeamBytesLength => "beam.bytes.length",
-            Self::BeamBytesConcat => "beam.bytes.concat",
-            Self::BeamTimeoutMilliseconds => "beam.timeout.milliseconds",
-            Self::BeamTimeoutForever => "beam.timeout.forever",
-            Self::BeamTcpConnect => "beam.tcp.connect",
-            Self::BeamTcpSend => "beam.tcp.send",
-            Self::BeamTcpReceive => "beam.tcp.receive",
-            Self::BeamTcpClose => "beam.tcp.close",
-            Self::BeamPortOpen => "beam.port.open",
-            Self::BeamPortWrite => "beam.port.write",
-            Self::BeamPortRead => "beam.port.read",
-            Self::BeamPortClose => "beam.port.close",
-            Self::BeamSupervisorStartRoot => "beam.supervisor.start_root",
-            Self::BeamSupervisorChildSpec => "beam.supervisor.child_spec",
-            Self::BeamSupervisorStart => "beam.supervisor.start",
-            Self::BeamSupervisorStop => "beam.supervisor.stop",
-            Self::BeamTaskStart => "beam.task.start",
-            Self::BeamTaskResult => "beam.task.result",
-            Self::BeamTaskCancel => "beam.task.cancel",
+            Self::VmEffectRun => "vm.effect.run",
+            Self::VmProcessYield => "vm.process.yield_now",
+            Self::VmProcessSendInt => "vm.process.send_int",
+            Self::VmProcessReceiveInt => "vm.process.receive_int",
+            Self::VmProcessSendString => "vm.process.send_string",
+            Self::VmProcessReceiveString => "vm.process.receive_string",
+            Self::VmProcessSendBytes => "vm.process.send_bytes",
+            Self::VmProcessReceiveBytes => "vm.process.receive_bytes",
+            Self::VmProcessSendBinary => "vm.process.send_binary",
+            Self::VmProcessReceiveBinary => "vm.process.receive_binary",
+            Self::VmProcessSendAtom => "vm.process.send_atom",
+            Self::VmProcessReceiveAtom => "vm.process.receive_atom",
+            Self::VmProcessSleep => "vm.process.sleep",
+            Self::VmProcessFail => "vm.process.fail",
+            Self::VmProcessSchedule => "vm.process.schedule",
+            Self::VmAgentStart => "vm.agent.start",
+            Self::VmAgentGet => "vm.agent.get",
+            Self::VmAgentGetAndUpdate => "vm.agent.get_and_update",
+            Self::VmAgentUpdate => "vm.agent.update",
+            Self::VmAgentCast => "vm.agent.cast",
+            Self::VmAgentStop => "vm.agent.stop",
+            Self::VmGenServerStart => "vm.gen_server.start",
+            Self::VmGenServerCall => "vm.gen_server.call",
+            Self::VmGenServerCast => "vm.gen_server.cast",
+            Self::VmGenServerStop => "vm.gen_server.stop",
+            Self::VmNativeBridgeStart => "vm.native_bridge.start",
+            Self::VmNativeBridgeCall => "vm.native_bridge.call",
+            Self::VmNativeBridgeDispose => "vm.native_bridge.dispose",
+            Self::VmNativeBridgeStop => "vm.native_bridge.stop",
+            Self::VmBytesFromList => "vm.bytes.from_list",
+            Self::VmBytesToList => "vm.bytes.to_list",
+            Self::VmBytesLength => "vm.bytes.length",
+            Self::VmBytesConcat => "vm.bytes.concat",
+            Self::VmBytesSlice => "vm.bytes.slice",
+            Self::VmBytesReadUintBe => "vm.bytes.read_uint_be",
+            Self::VmBytesReadIntBe => "vm.bytes.read_int_be",
+            Self::VmBytesReadUintLe => "vm.bytes.read_uint_le",
+            Self::VmBytesReadIntLe => "vm.bytes.read_int_le",
+            Self::VmBitStringFromBytes => "vm.bitstring.from_bytes",
+            Self::VmBitStringFromAllBytes => "vm.bitstring.from_all_bytes",
+            Self::VmBitStringFromExactBytes => "vm.bitstring.from_exact_bytes",
+            Self::VmBitStringRequireExactBits => "vm.bitstring.require_exact_bits",
+            Self::VmBitStringFromUintBe => "vm.bitstring.from_uint_be",
+            Self::VmBitStringFromIntBe => "vm.bitstring.from_int_be",
+            Self::VmBitStringFromUintLe => "vm.bitstring.from_uint_le",
+            Self::VmBitStringFromIntLe => "vm.bitstring.from_int_le",
+            Self::VmBitStringUtf8Scalar => "vm.bitstring.utf8_scalar",
+            Self::VmBitStringToUtf8Scalar => "vm.bitstring.to_utf8_scalar",
+            Self::VmBitStringUtf16BeScalar => "vm.bitstring.utf16_be_scalar",
+            Self::VmBitStringUtf16LeScalar => "vm.bitstring.utf16_le_scalar",
+            Self::VmBitStringToUtf16BeScalar => "vm.bitstring.to_utf16_be_scalar",
+            Self::VmBitStringToUtf16LeScalar => "vm.bitstring.to_utf16_le_scalar",
+            Self::VmBitStringUtf32BeScalar => "vm.bitstring.utf32_be_scalar",
+            Self::VmBitStringUtf32LeScalar => "vm.bitstring.utf32_le_scalar",
+            Self::VmBitStringToUtf32BeScalar => "vm.bitstring.to_utf32_be_scalar",
+            Self::VmBitStringToUtf32LeScalar => "vm.bitstring.to_utf32_le_scalar",
+            Self::VmBitStringBitLength => "vm.bitstring.bit_length",
+            Self::VmBitStringByteLength => "vm.bitstring.byte_length",
+            Self::VmBitStringIsByteAligned => "vm.bitstring.is_byte_aligned",
+            Self::VmBitStringSlice => "vm.bitstring.slice",
+            Self::VmBitStringConcat => "vm.bitstring.concat",
+            Self::VmBitStringToBytes => "vm.bitstring.to_bytes",
+            Self::VmBitStringToUintBe => "vm.bitstring.to_uint_be",
+            Self::VmBitStringToIntBe => "vm.bitstring.to_int_be",
+            Self::VmBitStringToUintLe => "vm.bitstring.to_uint_le",
+            Self::VmBitStringToIntLe => "vm.bitstring.to_int_le",
+            Self::VmTimeoutMilliseconds => "vm.timeout.milliseconds",
+            Self::VmTimeoutForever => "vm.timeout.forever",
+            Self::VmTcpListen => "vm.tcp.listen",
+            Self::VmTcpListenWithBacklog => "vm.tcp.listen_with_backlog",
+            Self::VmTcpAccept => "vm.tcp.accept",
+            Self::VmTcpConnect => "vm.tcp.connect",
+            Self::VmTcpSend => "vm.tcp.send",
+            Self::VmTcpReceive => "vm.tcp.receive",
+            Self::VmTcpClose => "vm.tcp.close",
+            Self::VmTcpCloseListener => "vm.tcp.close_listener",
+            Self::VmPortOpen => "vm.port.open",
+            Self::VmPortWrite => "vm.port.write",
+            Self::VmPortRead => "vm.port.read",
+            Self::VmPortClose => "vm.port.close",
+            Self::VmSupervisorStartRoot => "vm.supervisor.start_root",
+            Self::VmSupervisorChildSpec => "vm.supervisor.child_spec",
+            Self::VmSupervisorStart => "vm.supervisor.start",
+            Self::VmSupervisorStop => "vm.supervisor.stop",
+            Self::VmTaskStart => "vm.task.start",
+            Self::VmTaskResult => "vm.task.result",
+            Self::VmTaskCancel => "vm.task.cancel",
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Runtime capability intrinsic identity.
 ///
 /// Inputs: resolved runtime operation. Output: closed capability enum.
@@ -288,7 +420,7 @@ impl CoreRuntimeCapability {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Closed Core intrinsic identity.
 ///
 /// Inputs: primitive or runtime intrinsic classification. Output: namespaced
@@ -297,6 +429,20 @@ impl CoreRuntimeCapability {
 pub enum CoreIntrinsicId {
     Primitive(CorePrimitiveIntrinsic),
     Runtime(CoreRuntimeCapability),
+    /// Typed public process send retaining its concrete message payload type.
+    VmProcessSendMessage(CoreType),
+    /// Typed public process receive retaining its concrete message payload type.
+    VmProcessReceiveMessage(CoreType),
+    /// Typed process spawn retaining the child mailbox payload type.
+    VmProcessSpawn(CoreType),
+    /// Typed process link retaining the peer mailbox payload type.
+    VmProcessLink(CoreType),
+    /// Typed process monitor retaining the target mailbox payload type.
+    VmProcessMonitor(CoreType),
+    /// Typed resource acquisition retaining the resource family type.
+    VmProcessAcquireResource(CoreType),
+    /// Typed process cancellation retaining the target mailbox payload type.
+    VmProcessCancel(CoreType),
 }
 
 impl CoreIntrinsicId {
@@ -311,15 +457,36 @@ impl CoreIntrinsicId {
     /// Transformation:
     /// - Delegates to the namespace-specific intrinsic identity while keeping
     ///   backend-specific names out of CoreIR.
-    fn registry_key(&self) -> &'static str {
+    fn registry_key(&self) -> String {
         match self {
-            Self::Primitive(intrinsic) => intrinsic.registry_key(),
-            Self::Runtime(capability) => capability.registry_key(),
+            Self::Primitive(intrinsic) => intrinsic.registry_key().to_string(),
+            Self::Runtime(capability) => capability.registry_key().to_string(),
+            Self::VmProcessSendMessage(value_type) => {
+                format!("vm.process.send[{}]", value_type.contract_text())
+            }
+            Self::VmProcessReceiveMessage(value_type) => {
+                format!("vm.process.receive[{}]", value_type.contract_text())
+            }
+            Self::VmProcessSpawn(value_type) => {
+                format!("vm.process.spawn[{}]", value_type.contract_text())
+            }
+            Self::VmProcessLink(value_type) => {
+                format!("vm.process.link[{}]", value_type.contract_text())
+            }
+            Self::VmProcessMonitor(value_type) => {
+                format!("vm.process.monitor[{}]", value_type.contract_text())
+            }
+            Self::VmProcessAcquireResource(value_type) => {
+                format!("vm.process.acquire[{}]", value_type.contract_text())
+            }
+            Self::VmProcessCancel(value_type) => {
+                format!("vm.process.cancel[{}]", value_type.contract_text())
+            }
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core intrinsic call expression payload.
 ///
 /// Inputs: intrinsic identity, typed args, return type, effects, and span.

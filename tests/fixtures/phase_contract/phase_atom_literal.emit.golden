@@ -1,3 +1,0 @@
--module(phase_atom_literal).
--export([status/0]).
-status() ->

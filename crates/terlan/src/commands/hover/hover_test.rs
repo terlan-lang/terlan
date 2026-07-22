@@ -25,11 +25,17 @@ fn empty_interface(module: &str) -> ModuleInterface {
         type_bodies: HashMap::new(),
         struct_fields: HashMap::new(),
         type_docs: HashMap::new(),
+        shapes: HashMap::new(),
         traits: HashMap::new(),
         trait_conformances: Vec::new(),
         constructors: HashMap::new(),
         functions: HashMap::new(),
         function_overloads: HashMap::new(),
+        constants: HashMap::new(),
+        const_functions: HashMap::new(),
+        expression_macros: HashMap::new(),
+        valued_unions: HashMap::new(),
+        associated_constants: HashMap::new(),
     }
 }
 
@@ -209,6 +215,7 @@ fn interface_item_docs_prefers_type_docs_then_public_function_docs() {
             receiver_method: false,
             receiver_mutable: false,
             public: true,
+            pure: false,
             docs: vec!["Renders a value.".to_string()],
         },
     );
@@ -219,6 +226,7 @@ fn interface_item_docs_prefers_type_docs_then_public_function_docs() {
             type_params: vec!["T".to_string()],
             super_traits: Vec::new(),
             methods: HashMap::new(),
+            constants: HashMap::new(),
             docs: vec!["Imported show trait.".to_string()],
         },
     );
@@ -260,6 +268,7 @@ import std.core.Sample.{UserId as Id, render}.
             receiver_method: false,
             receiver_mutable: false,
             public: true,
+            pure: false,
             docs: vec!["Imported renderer.".to_string()],
         },
     );

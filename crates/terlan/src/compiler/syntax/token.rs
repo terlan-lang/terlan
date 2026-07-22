@@ -13,6 +13,7 @@
 pub enum TokenKind {
     Module,
     Pub,
+    Const,
     Macro,
     Constructor,
     Export,
@@ -41,6 +42,7 @@ pub enum TokenKind {
     When,
     With,
     And,
+    In,
     Or,
 
     Atom,
@@ -61,6 +63,7 @@ pub enum TokenKind {
     Hash,
     Comma,
     Dot,
+    DotDot,
     Ellipsis,
     Colon,
     Semicolon,

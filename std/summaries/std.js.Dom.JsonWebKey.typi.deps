@@ -1,8 +1,8 @@
 module=std.js.Dom.JsonWebKey
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:695b1f70dad2726d
-source_hash=12585806545816569781
-interface_hash=564841569960687534
-interface_doc_hash=564841569960687534
+syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+source_hash=757093788303260782
+interface_hash=16260338771783149824
+interface_doc_hash=16260338771783149824
 deps=0

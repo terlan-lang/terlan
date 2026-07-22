@@ -1,0 +1,37 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface ValidityStateFlags
+ */
+module std.js.Dom.ValidityStateFlags.
+
+import type std.core.{Bool}.
+
+pub opaque type ValidityStateFlags.
+
+pub (value: ValidityStateFlags) bad_input(): Bool.
+
+pub (value: ValidityStateFlags) custom_error(): Bool.
+
+pub (value: ValidityStateFlags) pattern_mismatch(): Bool.
+
+pub (value: ValidityStateFlags) range_overflow(): Bool.
+
+pub (value: ValidityStateFlags) range_underflow(): Bool.
+
+pub (value: ValidityStateFlags) step_mismatch(): Bool.
+
+pub (value: ValidityStateFlags) too_long(): Bool.
+
+pub (value: ValidityStateFlags) too_short(): Bool.
+
+pub (value: ValidityStateFlags) type_mismatch(): Bool.
+
+pub (value: ValidityStateFlags) value_missing(): Bool.

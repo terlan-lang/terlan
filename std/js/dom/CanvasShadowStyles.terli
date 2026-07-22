@@ -1,0 +1,37 @@
+/**
+ * @generated true
+ * @do-not-edit true
+ * @generator terlc
+ * @generator-version 0.0.7
+ * @generator-profile typescript-standard-js-dom
+ * @artifact-kind interface
+ * @input-manifest std/js/manifests/std_js_dom_inputs.json
+ * @source-package typescript@5.9.3
+ * @source-input std/js/fixtures/lib.es5.d.ts,std/js/fixtures/lib.es2015.collection.d.ts,std/js/fixtures/lib.dom.d.ts
+ * @source-interface CanvasShadowStyles
+ */
+module std.js.Dom.CanvasShadowStyles.
+
+import type std.js.Number.{JsNumber}.
+
+pub opaque type CanvasShadowStyles.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowBlur)
+ */
+pub (value: CanvasShadowStyles) shadow_blur(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowColor)
+ */
+pub (value: CanvasShadowStyles) shadow_color(): std.js.String.JsString.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX)
+ */
+pub (value: CanvasShadowStyles) shadow_offset_x(): JsNumber.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetY)
+ */
+pub (value: CanvasShadowStyles) shadow_offset_y(): JsNumber.

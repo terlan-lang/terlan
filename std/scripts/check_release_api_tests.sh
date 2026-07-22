@@ -7,13 +7,16 @@ set -euo pipefail
 #
 # Output:
 # - Exit status 0 when every listed release API has an @test-annotated Terlan
-#   test function.
+#   test function, or when generated JS interface rows point at an unannotated
+#   generated contract function.
 # - Exit status 1 with API-specific diagnostics when a manifest entry is
 #   missing, malformed, or not backed by an @test declaration.
 #
 # Transformation:
 # - Reads the release API manifest, validates test-file paths, and checks that
 #   each expected public test function is immediately introduced by @test.
+#   Generated JS interface rows are validated as contract functions instead,
+#   because they are compile/interface conformance and not executable tests.
 
 manifest="tests/std/RELEASE_API_TESTS.tsv"
 failures=0
@@ -64,6 +67,33 @@ has_annotated_test_function() {
   ' "$path"
 }
 
+# Inputs:
+# - $1: Terlan generated contract file path.
+# - $2: Public zero-argument contract function name.
+#
+# Output:
+# - Exit status 0 when the file contains `pub name(` without requiring @test.
+# - Exit status 1 when the public function is absent.
+#
+# Transformation:
+# - Keeps generated JS binding contracts out of executable test accounting while
+#   still proving the checked-in generated contract surface exists.
+has_public_contract_function() {
+  local path="$1"
+  local function_name="$2"
+
+  awk -v function_name="$function_name" '
+    $0 ~ "^[[:space:]]*pub[[:space:]]+" function_name "\\(" {
+      found = 1
+      exit
+    }
+
+    END {
+      exit found ? 0 : 1
+    }
+  ' "$path"
+}
+
 while IFS=$'\t' read -r api_id test_file test_function extra; do
   [[ -z "${api_id:-}" || "${api_id:0:1}" == "#" ]] && continue
 
@@ -91,6 +121,15 @@ while IFS=$'\t' read -r api_id test_file test_function extra; do
     printf '%s: API `%s` references missing test file `%s`\n' \
       "$manifest" "$api_id" "$test_file" >&2
     failures=1
+    continue
+  fi
+
+  if [[ "$api_id" == std.js.*.generated_surface ]]; then
+    if ! has_public_contract_function "$test_file" "$test_function"; then
+      printf '%s: generated API `%s` is missing contract function `%s` in `%s`\n' \
+        "$manifest" "$api_id" "$test_function" "$test_file" >&2
+      failures=1
+    fi
     continue
   fi
 

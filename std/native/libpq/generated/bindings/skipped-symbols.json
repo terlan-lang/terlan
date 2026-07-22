@@ -1,0 +1,10 @@
+{
+  "schema": "terlan.c-abi.binding.skipped-symbols.v1",
+  "metadata_producer": {
+    "name": "terlan-curated-metadata",
+    "version": "1",
+    "format": "reviewed-declaration-json"
+  },
+  "abi_version": 1,
+  "skipped": []
+}

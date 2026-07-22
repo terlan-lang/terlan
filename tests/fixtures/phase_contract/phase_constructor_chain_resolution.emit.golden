@@ -1,4 +1,0 @@
--module(phase_constructor_chain_resolution).
--export([build/2, typer_ctor_user_2/2]).
-typer_ctor_user_2(Id, Name) ->
-build(Id, Name) ->
