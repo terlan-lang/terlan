@@ -322,7 +322,7 @@ fn process_table_rejects_missing_recipient() {
 fn process_table_rejects_missing_parent_sender_recipient_and_exit_pid() {
     let mut table = VmProcessTable::default();
     let root = table.spawn_root(source("root"));
-    let missing = VmProcessId(99);
+    let missing = VmProcessId::from_raw_for_test(99);
 
     let missing_parent_error = table
         .spawn_child(missing, source("orphan"))
@@ -348,7 +348,7 @@ fn process_table_system_messages_allow_exited_origin_but_reject_missing_origin()
     let mut table = VmProcessTable::default();
     let origin = table.spawn_root(source("origin"));
     let recipient = table.spawn_root(source("recipient"));
-    let missing = VmProcessId(99);
+    let missing = VmProcessId::from_raw_for_test(99);
     table
         .exit_process(origin, VmExitReason::Normal)
         .expect("origin should exit");

@@ -16,7 +16,7 @@ use super::super::scheduler_topology::{VmFixedActorRoute, VmSchedulerTopology};
 const CHILD_SEED_ENV: &str = "TERLAN_VM_MULTICORE_STRESS_CHILD_SEED";
 const FORCE_HANG_ENV: &str = "TERLAN_VM_MULTICORE_STRESS_FORCE_HANG";
 const REPORT_PATH_ENV: &str = "TERLAN_VM_MULTICORE_STRESS_OUTPUT";
-const CHILD_TEST_NAME: &str = "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::seeded_multicore_memory_model_child";
+const CHILD_TEST_FILTER: &str = "seeded_multicore_memory_model_child";
 const ACTORS: usize = 8;
 const PRODUCERS: usize = 6;
 const PUBLICATIONS_PER_PRODUCER: usize = 32;
@@ -302,8 +302,7 @@ fn run_seed_child(seed: u64) -> Result<(), String> {
     let mut child = Command::new(env::current_exe().map_err(|error| error.to_string())?)
         .args([
             "--ignored",
-            "--exact",
-            CHILD_TEST_NAME,
+            CHILD_TEST_FILTER,
             "--nocapture",
             "--test-threads=1",
         ])
@@ -389,8 +388,7 @@ fn deadlock_watchdog_terminates_stuck_child() {
     let mut child = Command::new(env::current_exe().expect("current test executable"))
         .args([
             "--ignored",
-            "--exact",
-            CHILD_TEST_NAME,
+            CHILD_TEST_FILTER,
             "--nocapture",
             "--test-threads=1",
         ])
