@@ -51,15 +51,18 @@ Final AOT roadmap retirement runs
 complete. Ordinary compiler CI keeps running the implementation gates while an
 AOT slice is deliberately open.
 
-A separate Linux x86-64 job installs Rust's fully instrumented
-`x86_64-unknown-linux-gnutsan` standard library target and runs:
+A separate Linux x86-64 job installs the pinned
+`nightly-2026-07-16` toolchain with `rust-src` and runs:
 
 ```sh
 make tvm-aot-thread-sanitizer-check
 ```
 
-This job detects data races in the thread-neutral AOT runtime independently of
-the deterministic schedule models in `make tvm-aot-multicore-readiness-check`.
+This job rebuilds the standard library for `x86_64-unknown-linux-gnu` with
+`-Zsanitizer=thread` and detects data races in the thread-neutral AOT runtime
+independently of the deterministic schedule models in
+`make tvm-aot-multicore-readiness-check`. The ordinary GNU target keeps
+Cranelift dependencies on a target triple they support.
 
 Every native matrix runner also executes the bounded, reproducibly seeded VM
 memory-model stress. A separate Linux x86-64 release-candidate lane installs

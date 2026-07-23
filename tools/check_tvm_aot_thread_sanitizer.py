@@ -17,7 +17,10 @@ import check_tvm_aot_platform_matrix as platform_matrix
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "target/quality/tvm-aot-thread-sanitizer-report.json"
 SCHEMA = "terlan.tvm-aot-thread-sanitizer.v1"
-TARGET = "x86_64-unknown-linux-gnutsan"
+TOOLCHAIN = "nightly-2026-07-16"
+TARGET = "x86_64-unknown-linux-gnu"
+SANITIZER = "thread"
+INSTRUMENTATION = "rustflags-build-std"
 TEST_FILTER = "runtime::vm::pure_native"
 
 
@@ -47,7 +50,10 @@ def validate_report(report: dict[str, object], require_ci: bool) -> None:
         "decision": "pass",
         "host": "linux-x86_64",
         "instrumented_target": TARGET,
+        "instrumentation": INSTRUMENTATION,
+        "sanitizer": SANITIZER,
         "test_filter": TEST_FILTER,
+        "toolchain": TOOLCHAIN,
     }
     for field, value in expected.items():
         if report.get(field) != value:
@@ -80,14 +86,21 @@ def run_instrumented_tests() -> Path:
     normalized_machine = "x86_64" if machine == "amd64" else machine
     if (platform.system().lower(), normalized_machine) != ("linux", "x86_64"):
         raise AssertionError("ThreadSanitizer validation requires Linux x86-64")
-    installed = set(command_output(["rustup", "target", "list", "--installed"]).splitlines())
-    if TARGET not in installed:
-        raise AssertionError(f"install the Rust `{TARGET}` target before validation")
+    installed = command_output(["rustup", "toolchain", "list"]).splitlines()
+    if not any(entry.split()[0].startswith(f"{TOOLCHAIN}-") for entry in installed):
+        raise AssertionError(f"install the Rust `{TOOLCHAIN}` toolchain before validation")
 
+    rustflags = " ".join(
+        flag
+        for flag in (os.environ.get("RUSTFLAGS", ""), f"-Zsanitizer={SANITIZER}")
+        if flag
+    )
     subprocess.run(
         [
             "cargo",
+            f"+{TOOLCHAIN}",
             "test",
+            "-Zbuild-std",
             "--locked",
             "-p",
             "terlan",
@@ -99,7 +112,11 @@ def run_instrumented_tests() -> Path:
         ],
         cwd=ROOT,
         check=True,
-        env={**os.environ, "TSAN_OPTIONS": "halt_on_error=1"},
+        env={
+            **os.environ,
+            "RUSTFLAGS": rustflags,
+            "TSAN_OPTIONS": "halt_on_error=1",
+        },
     )
     revision = source_revision()
     report: dict[str, object] = {
@@ -107,9 +124,14 @@ def run_instrumented_tests() -> Path:
         "decision": "pass",
         "host": "linux-x86_64",
         "instrumented_target": TARGET,
+        "instrumentation": INSTRUMENTATION,
+        "sanitizer": SANITIZER,
         "test_filter": TEST_FILTER,
+        "toolchain": TOOLCHAIN,
         "source_revision": revision,
-        "rustc": command_output(["rustc", "--version", "--verbose"]),
+        "rustc": command_output(
+            ["rustc", f"+{TOOLCHAIN}", "--version", "--verbose"]
+        ),
         **platform_matrix.execution_provenance(revision),
     }
     validate_report(
@@ -130,7 +152,10 @@ def self_test() -> None:
         "decision": "pass",
         "host": "linux-x86_64",
         "instrumented_target": TARGET,
+        "instrumentation": INSTRUMENTATION,
+        "sanitizer": SANITIZER,
         "test_filter": TEST_FILTER,
+        "toolchain": TOOLCHAIN,
         "source_revision": "a" * 40,
         "rustc": "rustc 1.96.0\nbinary: rustc",
         "execution_environment": "github-actions",
@@ -142,7 +167,10 @@ def self_test() -> None:
     }
     validate_report(valid, require_ci=True)
     for field, value in (
-        ("instrumented_target", "x86_64-unknown-linux-gnu"),
+        ("instrumented_target", "x86_64-unknown-linux-gnutsan"),
+        ("instrumentation", "plain"),
+        ("sanitizer", "none"),
+        ("toolchain", "stable"),
         ("decision", "skipped"),
         ("repository", "fork/terlan"),
         ("commit_sha", "b" * 40),

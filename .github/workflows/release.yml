@@ -141,8 +141,8 @@ jobs:
       - name: Install release utilities
         run: sudo apt-get update && sudo apt-get install --yes ripgrep
 
-      - name: Install Rust ThreadSanitizer target
-        run: rustup toolchain install stable --profile minimal --target x86_64-unknown-linux-gnutsan
+      - name: Install pinned Rust ThreadSanitizer toolchain
+        run: rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src
 
       - name: Validate thread-neutral AOT runtime
         run: make tvm-aot-thread-sanitizer-check

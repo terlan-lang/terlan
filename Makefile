@@ -1115,10 +1115,10 @@ tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
 
 tvm-aot-thread-sanitizer-check:
 	$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py self-test
-	@if rustup target list --installed | grep -Fqx 'x86_64-unknown-linux-gnutsan'; then \
+	@if rustup toolchain list | grep -Eq '^nightly-2026-07-16-'; then \
 		$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py run; \
 	elif test "$${GITHUB_ACTIONS:-}" = true; then \
-		echo 'error[aot.tsan]: Rust ThreadSanitizer target is mandatory in CI'; \
+		echo 'error[aot.tsan]: pinned nightly ThreadSanitizer toolchain is mandatory in CI'; \
 		exit 1; \
 	else \
 		echo 'TVM AOT ThreadSanitizer executable lane unavailable locally; contract passed'; \

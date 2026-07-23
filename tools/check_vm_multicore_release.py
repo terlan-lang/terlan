@@ -66,6 +66,11 @@ WORKFLOW_MC9_JOIN_REQUIREMENTS = (
 )
 WORKFLOW_STATUS_CONTEXT = 'context: "release-validation/run"'
 WORKFLOW_RELEASE_UTILITY_STEP = "      - name: Install release utilities\n"
+WORKFLOW_AOT_TSAN_REQUIREMENTS = (
+    "Install pinned Rust ThreadSanitizer toolchain",
+    "rustup toolchain install nightly-2026-07-16 --profile minimal "
+    "--component rust-src",
+)
 WORKFLOW_NATIVE_DEPENDENCY_STEPS = (
     "      - name: Install Linux native dependencies\n",
     "      - name: Install macOS native dependencies\n",
@@ -84,11 +89,10 @@ WORKFLOW_STATUS_REQUIREMENTS = (
     "if: always()",
 )
 MAKEFILE_TSAN_REQUIREMENTS = (
-    "rustup target list --installed | grep -Fqx "
-    "'x86_64-unknown-linux-gnutsan'",
+    "rustup toolchain list | grep -Eq '^nightly-2026-07-16-'",
     "rustup target list --installed --toolchain 1.96.0 2>/dev/null | "
     "grep -Fqx 'x86_64-unknown-linux-gnutsan'",
-    "error[aot.tsan]: Rust ThreadSanitizer target is mandatory in CI",
+    "error[aot.tsan]: pinned nightly ThreadSanitizer toolchain is mandatory in CI",
     "error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target "
     "is mandatory in CI",
 )
@@ -145,6 +149,11 @@ def validate_workflow(workflow: str) -> None:
             raise AssertionError(
                 "release workflow must retain the canonical MC-9 join "
                 f"`{requirement}` exactly {expected_count} time(s)"
+            )
+    for requirement in WORKFLOW_AOT_TSAN_REQUIREMENTS:
+        if workflow.count(requirement) != 1:
+            raise AssertionError(
+                f"release workflow must retain pinned AOT TSan setup `{requirement}`"
             )
     for requirement in WORKFLOW_NATIVE_DEPENDENCY_STEPS:
         if requirement not in workflow:
@@ -479,7 +488,7 @@ def self_test() -> None:
     require_rejection(
         lambda: validate_makefile(
             makefile.replace(
-                "error[aot.tsan]: Rust ThreadSanitizer target is mandatory in CI",
+                "error[aot.tsan]: pinned nightly ThreadSanitizer toolchain is mandatory in CI",
                 "TVM AOT ThreadSanitizer executable lane unavailable locally",
                 1,
             )
@@ -515,6 +524,12 @@ def self_test() -> None:
             )
         ),
         "release contract accepted raw multicore artifacts without an MC-9 join",
+    )
+    require_rejection(
+        lambda: validate_workflow(
+            workflow.replace(WORKFLOW_AOT_TSAN_REQUIREMENTS[1], "rustup update", 1)
+        ),
+        "release contract accepted an unpinned AOT sanitizer toolchain",
     )
     require_rejection(
         lambda: validate_workflow(
