@@ -443,15 +443,21 @@ fn link_native_image(
     let linker = std::env::var_os("TERLAN_NATIVE_LINKER").unwrap_or_else(|| {
         if cfg!(target_os = "windows") {
             "link.exe".into()
+        } else if cfg!(target_os = "macos") {
+            "cc".into()
         } else {
             "ld".into()
         }
     });
     let mut command = Command::new(&linker);
     if cfg!(target_os = "macos") {
-        command.arg("-dylib").arg("-o").arg(image_path);
+        command
+            .arg("-dynamiclib")
+            .arg("-Wl,-undefined,dynamic_lookup")
+            .arg("-o")
+            .arg(image_path);
         if policy.optimizes_link() {
-            command.arg("-dead_strip");
+            command.arg("-Wl,-dead_strip");
         }
         command
             .args(unit_paths)
