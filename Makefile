@@ -1115,8 +1115,11 @@ tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
 
 tvm-aot-thread-sanitizer-check:
 	$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py self-test
-	@if rustup target list --installed | rg -qx 'x86_64-unknown-linux-gnutsan'; then \
+	@if rustup target list --installed | grep -Fqx 'x86_64-unknown-linux-gnutsan'; then \
 		$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py run; \
+	elif test "$${GITHUB_ACTIONS:-}" = true; then \
+		echo 'error[aot.tsan]: Rust ThreadSanitizer target is mandatory in CI'; \
+		exit 1; \
 	else \
 		echo 'TVM AOT ThreadSanitizer executable lane unavailable locally; contract passed'; \
 	fi
@@ -2471,7 +2474,7 @@ vm-multicore-thread-sanitizer-contract-check:
 	$(PYTHON) tools/check_vm_multicore_thread_sanitizer.py self-test
 
 vm-multicore-thread-sanitizer-check: vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check
-	@if rustup target list --installed --toolchain 1.96.0 2>/dev/null | rg -qx 'x86_64-unknown-linux-gnutsan'; then \
+	@if rustup target list --installed --toolchain 1.96.0 2>/dev/null | grep -Fqx 'x86_64-unknown-linux-gnutsan'; then \
 		$(PYTHON) tools/check_vm_multicore_thread_sanitizer.py run; \
 	elif test "$${GITHUB_ACTIONS:-}" = true; then \
 		echo 'error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target is mandatory in CI'; \

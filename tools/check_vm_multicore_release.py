@@ -58,6 +58,7 @@ WORKFLOW_PRODUCERS = (
     "run: make vm-multicore-performance-check",
 )
 WORKFLOW_STATUS_CONTEXT = 'context: "release-validation/run"'
+WORKFLOW_RELEASE_UTILITY_STEP = "      - name: Install release utilities\n"
 WORKFLOW_STATUS_REQUIREMENTS = (
     "statuses: write",
     "release-validation-identity:",
@@ -66,6 +67,15 @@ WORKFLOW_STATUS_REQUIREMENTS = (
     "/actions/runs/${context.runId}",
     "needs: validate",
     "if: always()",
+)
+MAKEFILE_TSAN_REQUIREMENTS = (
+    "rustup target list --installed | grep -Fqx "
+    "'x86_64-unknown-linux-gnutsan'",
+    "rustup target list --installed --toolchain 1.96.0 2>/dev/null | "
+    "grep -Fqx 'x86_64-unknown-linux-gnutsan'",
+    "error[aot.tsan]: Rust ThreadSanitizer target is mandatory in CI",
+    "error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target "
+    "is mandatory in CI",
 )
 
 
@@ -96,6 +106,11 @@ def make_list_variable(makefile: str, name: str) -> tuple[str, ...]:
 def validate_makefile(makefile: str) -> None:
     """Require the canonical target to consume evidence before local gates."""
 
+    for requirement in MAKEFILE_TSAN_REQUIREMENTS:
+        if requirement not in makefile:
+            raise AssertionError(
+                f"release Makefile omits sanitizer requirement `{requirement}`"
+            )
     gates = make_list_variable(makefile, "VM_MULTICORE_RELEASE_LOCAL_GATES")
     if gates != LOCAL_GATES:
         raise AssertionError("multicore release gates disagree with the contract")
@@ -118,6 +133,10 @@ def validate_workflow(workflow: str) -> None:
     if workflow.count(WORKFLOW_STATUS_CONTEXT) != 2:
         raise AssertionError(
             "release workflow must publish initial and terminal run status"
+        )
+    if workflow.count(WORKFLOW_RELEASE_UTILITY_STEP) != 3:
+        raise AssertionError(
+            "release workflow must provision utilities for all hosted source gates"
         )
     for producer in WORKFLOW_PRODUCERS:
         if workflow.count(producer) != 1:
@@ -432,6 +451,16 @@ def self_test() -> None:
         "release contract accepted gates before official evidence",
     )
     require_rejection(
+        lambda: validate_makefile(
+            makefile.replace(
+                "error[aot.tsan]: Rust ThreadSanitizer target is mandatory in CI",
+                "TVM AOT ThreadSanitizer executable lane unavailable locally",
+                1,
+            )
+        ),
+        "release contract accepted a skippable CI sanitizer lane",
+    )
+    require_rejection(
         lambda: validate_workflow(
             workflow.replace(
                 "run: make vm-multicore-performance-check",
@@ -468,6 +497,12 @@ def self_test() -> None:
             workflow.replace("    if: always()\n", "", 1)
         ),
         "release contract accepted conditional terminal status publication",
+    )
+    require_rejection(
+        lambda: validate_workflow(
+            workflow.replace(WORKFLOW_RELEASE_UTILITY_STEP, "", 1)
+        ),
+        "release contract accepted a hosted source gate without utilities",
     )
 
     revision = "a" * 40
