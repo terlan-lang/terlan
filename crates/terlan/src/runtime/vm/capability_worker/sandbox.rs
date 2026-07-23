@@ -21,6 +21,7 @@ const CLOSE_INHERITED_DESCRIPTORS: &str = concat!(
     "done; exec \"$@\"",
 );
 const MAX_SANDBOX_DIR_ATTEMPTS: u64 = 64;
+#[cfg(target_os = "linux")]
 static NEXT_SANDBOX_DIR: AtomicU64 = AtomicU64::new(1);
 
 /// Private host directory mounted as the worker's only writable persistent path.

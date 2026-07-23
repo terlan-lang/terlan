@@ -170,7 +170,7 @@ impl<P: Send + 'static> Drop for VmLogicalNodeBootstrap<P> {
 /// Allocates one nonzero registration identity for the node supervisor.
 fn next_connection_id() -> Result<ConnectionId, String> {
     NEXT_LOGICAL_NODE_CONNECTION
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
             value.checked_add(1)
         })
         .map(ConnectionId::new)

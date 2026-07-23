@@ -213,7 +213,7 @@ impl VmFixedSchedulerTelemetry {
         }
         let interval = self
             .next_execution_interval
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
                 next.checked_add(1)
             })
             .map_err(|_| {

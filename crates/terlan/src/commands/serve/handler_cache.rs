@@ -175,7 +175,7 @@ impl AotHandlerGeneration {
         }
         let topology = VmSchedulerTopology::new(shard_count)?;
         let identity = NEXT_HANDLER_GENERATION
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |identity| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |identity| {
                 identity.checked_add(1)
             })
             .map_err(|_| "error[serve.aot.generation]: identity exhausted".to_string())?;
@@ -239,7 +239,7 @@ impl AotHandlerGeneration {
     fn route_new_actor(&self) -> Result<VmFixedActorRoute, String> {
         let actor = self
             .next_actor_route
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
                 current.checked_add(1)
             })
             .map_err(|_| "error[vm.actor_route]: actor route identity exhausted".to_string())?;
@@ -265,7 +265,7 @@ impl AotHandlerGeneration {
         }
         let base = self
             .next_actor_route
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
                 current.checked_add(width)
             })
             .map_err(|_| "error[vm.actor_route]: actor route identity exhausted".to_string())?;

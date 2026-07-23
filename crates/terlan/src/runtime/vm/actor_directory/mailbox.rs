@@ -61,7 +61,7 @@ impl<P> VmActorMailbox<P> {
         payload: P,
     ) -> Result<(VmActorPublication, VmMailboxWake), VmActorDirectoryError> {
         self.admitted
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |admitted| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |admitted| {
                 (admitted < ACTOR_MAILBOX_CAPACITY).then_some(admitted + 1)
             })
             .map_err(|_| VmActorDirectoryError::MailboxFull(handle))?;

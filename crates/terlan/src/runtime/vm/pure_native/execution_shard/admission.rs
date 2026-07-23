@@ -67,7 +67,7 @@ pub(super) fn local_protocol_version() -> VmShardProtocolVersion {
 
 pub(super) fn allocate_sequence(sequence: &AtomicU64, kind: &str) -> Result<u64, String> {
     sequence
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
             current.checked_add(1)
         })
         .map_err(|_| format!("error[execution_shard.identity]: {kind} identity space exhausted"))

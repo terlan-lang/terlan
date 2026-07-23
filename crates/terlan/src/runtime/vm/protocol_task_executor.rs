@@ -403,7 +403,7 @@ impl VmProtocolShardIngress {
 
     fn reserve(&self) -> Result<(), String> {
         self.load
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |load| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |load| {
                 (load < MAX_TASKS_PER_SHARD).then_some(load + 1)
             })
             .map_err(|_| {

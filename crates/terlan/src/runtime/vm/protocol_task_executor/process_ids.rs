@@ -48,7 +48,7 @@ impl VmProtocolProcessIds {
 
 fn reserve_block() -> Result<u64, String> {
     NEXT_PROTOCOL_PROCESS_BLOCK
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
             value.checked_add(PROCESS_ID_RESERVATION_SIZE)
         })
         .map_err(|_| "error[vm.protocol_process]: identity exhausted".to_string())

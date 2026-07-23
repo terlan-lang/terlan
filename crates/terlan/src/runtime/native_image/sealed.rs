@@ -131,7 +131,7 @@ pub(crate) fn reject_tvm_image_sidecars(image_path: &Path) -> Result<(), String>
 fn create_private_root() -> Result<PathBuf, String> {
     for _ in 0..128 {
         let sequence = NEXT_SEAL
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
                 value.checked_add(1)
             })
             .map_err(|_| "error[tvm.image.seal_identity]: seal identity exhausted".to_string())?;

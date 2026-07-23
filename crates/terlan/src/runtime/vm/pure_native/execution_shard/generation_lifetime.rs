@@ -26,7 +26,7 @@ impl PureNativeGenerationTransferTracker {
     ) -> Result<PureNativeActorGenerationLease, String> {
         let retained_boundary = boundary.fork_empty()?;
         self.outstanding
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |count| {
                 count.checked_add(1)
             })
             .map_err(|_| {
@@ -73,7 +73,7 @@ impl Drop for PureNativeActorGenerationLease {
     fn drop(&mut self) {
         let result = self
             .outstanding
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |count| {
                 count.checked_sub(1)
             });
         debug_assert!(

@@ -454,7 +454,7 @@ impl<T, P> VmActorDirectory<T, P> {
     pub(crate) fn unpin_lookup(&self, handle: VmActorHandle) -> Result<(), VmActorDirectoryError> {
         let cell = self.cell_for_handle(handle)?;
         cell.lookup_pins
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |pins| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |pins| {
                 pins.checked_sub(1)
             })
             .map(|_| ())
