@@ -167,6 +167,13 @@ where
                 self.pending_event = Some(event);
                 Ok(AotChannelCallbackState::Waiting(wait))
             }
+            AotHandlerInvocationStep::CapabilityWaiting(invocation) => {
+                let request = invocation.request()?;
+                Err(format!(
+                    "error[serve.{}.capability_orchestration]: capability `{}` operation `{}` requires the capability worker event pump",
+                    self.channel, request.capability, request.operation
+                ))
+            }
         }
     }
 }

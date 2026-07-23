@@ -11,6 +11,7 @@ use crate::terlan_native_boundary::capability_wire::{
     CapabilityOutcome, CapabilityRequest, CapabilityResponse, CapabilityValue,
     CAPABILITY_PROTOCOL_VERSION,
 };
+use crate::terlan_native_boundary::dispatch::operation_arity;
 use crate::terlan_native_boundary::error::{error_for, ErrorKind};
 use crate::terlan_native_boundary::metadata::{
     postgres_worker_manifest, NativeBoundaryCancellationPolicy, NativeBoundaryWorkerClass,
@@ -422,7 +423,8 @@ fn admit_call(
     active: &mut BTreeMap<u64, ActiveRequest>,
     call: CapabilityCall,
 ) -> Result<(), String> {
-    let Some(export) = postgres_worker_manifest().export_for_operation(&call.operation) else {
+    let Some((required_capability, cancellation_policy)) = operation_admission(&call.operation)
+    else {
         return write_rejection(
             config,
             output,
@@ -432,7 +434,7 @@ fn admit_call(
             "operation is not declared by this capability worker",
         );
     };
-    if call.capability != export.required_capability {
+    if call.capability != required_capability {
         return write_rejection(
             config,
             output,
@@ -454,7 +456,7 @@ fn admit_call(
         );
     }
 
-    let cancellation = (export.cancellation == NativeBoundaryCancellationPolicy::Cooperative)
+    let cancellation = (cancellation_policy == NativeBoundaryCancellationPolicy::Cooperative)
         .then(NativeBoundaryCancellationToken::new);
     let command_token = cancellation
         .clone()
@@ -477,6 +479,28 @@ fn admit_call(
         active,
         request_id,
     )
+}
+
+/// Resolves the closed operation family admitted by this worker executable.
+fn operation_admission(
+    operation: &str,
+) -> Option<(&'static str, NativeBoundaryCancellationPolicy)> {
+    if let Some(export) = postgres_worker_manifest().export_for_operation(operation) {
+        return Some((export.required_capability, export.cancellation));
+    }
+    if operation_arity(operation).is_none() {
+        return None;
+    }
+    if operation.starts_with("std.io.file.") {
+        return Some((
+            "filesystem",
+            NativeBoundaryCancellationPolicy::NotCancellable,
+        ));
+    }
+    if operation.starts_with("std.io.console.") {
+        return Some(("stdio", NativeBoundaryCancellationPolicy::NotCancellable));
+    }
+    None
 }
 
 /// Admits one non-cancellable disposal request.

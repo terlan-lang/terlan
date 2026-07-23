@@ -9,6 +9,7 @@ use crate::runtime::native_image::managed::{
 use crate::runtime::native_image::{TvmBoundaryType, TvmContinuationDescriptor};
 use crate::runtime::vm::execution_shard_protocol::VmShardEpoch;
 use crate::runtime::vm::execution_shard_supervisor::VmShardPhase;
+use crate::runtime::vm::multicore_replay::VmMulticoreEventKind;
 use crate::runtime::vm::process::{
     VmExitReason, VmProcessResumeState, VmProcessSource, VmProcessState,
 };
@@ -22,7 +23,7 @@ use crate::runtime::vm::pure_native::{
 
 impl PureNativeExecutionShard {
     /// Creates a shard around one admitted boundary.
-    fn with_boundary(boundary: PureNativeBoundary) -> Self {
+    pub(super) fn with_boundary(boundary: PureNativeBoundary) -> Self {
         let execution = PureNativeExecutionRuntime::runtime_default()
             .expect("default native execution limits must be valid");
         Self::with_boundary_and_execution(
@@ -32,6 +33,7 @@ impl PureNativeExecutionShard {
                 "test-native-shard",
             )
             .expect("test shard identity"),
+            crate::runtime::vm::scheduler_topology::VmSchedulerId::primary(),
         )
         .expect("test shard admission")
     }
@@ -42,12 +44,12 @@ impl PureNativeExecutionShard {
     }
 
     /// Returns the shard-owned actor runtime for VM inspection.
-    fn actors(&self) -> &crate::runtime::vm::actor::VmActorRuntime {
+    pub(super) fn actors(&self) -> &crate::runtime::vm::actor::VmActorRuntime {
         &self.actors
     }
 
     /// Returns mutable actor services to direct-shard lifecycle tests.
-    fn actors_mut(&mut self) -> &mut crate::runtime::vm::actor::VmActorRuntime {
+    pub(super) fn actors_mut(&mut self) -> &mut crate::runtime::vm::actor::VmActorRuntime {
         &mut self.actors
     }
 
@@ -161,7 +163,7 @@ fn local_boundary() -> PureNativeBoundary {
 }
 
 /// Creates the local transition fixture with distinct sealed image metadata.
-fn local_boundary_named(image_identity: &str, digest: u8) -> PureNativeBoundary {
+pub(super) fn local_boundary_named(image_identity: &str, digest: u8) -> PureNativeBoundary {
     PureNativeBoundary {
         artifact: Some(ResolvedPureArtifact {
             image_identity: image_identity.to_string(),
@@ -193,6 +195,89 @@ fn local_boundary_named(image_identity: &str, digest: u8) -> PureNativeBoundary 
             ],
         }),
         backend: Some(Box::<LocalTransitionBackend>::default()),
+        call_cache: None,
+    }
+}
+
+/// Typed external-I/O backend used to test generation-fenced completions.
+#[derive(Debug, Default)]
+struct TypedIoEpochBackend;
+
+impl NativeImageBackend for TypedIoEpochBackend {
+    fn call_frame(
+        &mut self,
+        context: &mut crate::runtime::vm::pure_native::PureNativeExecutionContext<'_>,
+        request_id: u64,
+        _export_id: u64,
+        _args: &[ReplValue],
+    ) -> Result<TvmControlFrame, String> {
+        Ok(TvmControlFrame::Transition {
+            request_id,
+            owner_id: context.owner_id(),
+            continuation_id: 31,
+            operation: TvmTransitionOperation::Receive,
+            arguments: TvmBoundaryType::Int.transition_words().to_vec(),
+            values: Vec::new(),
+        })
+    }
+
+    fn resume_frame(
+        &mut self,
+        context: &mut crate::runtime::vm::pure_native::PureNativeExecutionContext<'_>,
+        request_id: u64,
+        continuation_id: u64,
+        values: Vec<i64>,
+    ) -> Result<TvmControlFrame, String> {
+        if continuation_id != 31 || values != [42] {
+            return Err("unexpected typed I/O resume".to_string());
+        }
+        Ok(TvmControlFrame::Success {
+            request_id,
+            owner_id: context.owner_id(),
+            value: 1,
+        })
+    }
+
+    fn shutdown(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn shutdown_owner(
+        &mut self,
+        context: &mut crate::runtime::vm::pure_native::PureNativeExecutionContext<'_>,
+    ) -> Result<(), String> {
+        let owner_id = context.owner_id();
+        context.managed().release_owner(owner_id);
+        Ok(())
+    }
+
+    fn fork_box(&self) -> Result<Box<dyn NativeImageBackend>, String> {
+        Ok(Box::<Self>::default())
+    }
+}
+
+/// Creates one typed-I/O image whose local identities repeat after recovery.
+fn typed_io_epoch_boundary(image_identity: &str, digest: u8) -> PureNativeBoundary {
+    PureNativeBoundary {
+        artifact: Some(ResolvedPureArtifact {
+            image_identity: image_identity.to_string(),
+            descriptor_digest: [digest; 32],
+            exports: vec![PureNativeExportSpec {
+                id: 17,
+                module: "local.TypedIo".to_string(),
+                function: "wait".to_string(),
+                arity: 0,
+                parameters: Vec::new(),
+                result: TvmBoundaryType::Bool,
+            }],
+            continuations: vec![TvmContinuationDescriptor {
+                id: 31,
+                parameters: vec![TvmBoundaryType::Int],
+                results: vec![TvmBoundaryType::Bool],
+            }],
+        }),
+        backend: Some(Box::<TypedIoEpochBackend>::default()),
+        call_cache: None,
     }
 }
 
@@ -304,6 +389,7 @@ fn failing_boundary() -> PureNativeBoundary {
             ],
         }),
         backend: Some(Box::<FailingResumeBackend>::default()),
+        call_cache: None,
     }
 }
 
@@ -344,15 +430,69 @@ fn local_actor_entry_and_resume_never_use_worker_transport() {
             NativeShardDispatchEvent::Complete { owner },
         ]
     );
-    assert!(matches!(
-        shard
-            .actors()
-            .processes()
-            .get(owner)
-            .expect("completed local actor")
-            .state,
-        VmProcessState::Exited(VmExitReason::Normal)
-    ));
+    assert!(
+        shard.actors().processes().get(owner).is_none(),
+        "completed local actor tombstone must be reaped"
+    );
+}
+
+/// Verifies a long-lived shard does not retain per-request actor ownership.
+#[test]
+fn repeated_completed_calls_reap_actor_and_operation_state() {
+    let mut shard = PureNativeExecutionShard::with_boundary(local_boundary());
+
+    for _ in 0..1_000 {
+        assert_eq!(
+            shard
+                .call("local.Shard.round_trip", &[])
+                .expect("same-shard native call"),
+            ReplValue::Bool(true)
+        );
+    }
+
+    assert_eq!(shard.completed_call_count(), 1_000);
+    assert_eq!(shard.actors().processes().metrics().total_processes, 0);
+    assert!(shard.generation_references().is_quiescent());
+    assert_eq!(shard.supervisor.operation_count(), 0);
+}
+
+/// Verifies a shard-local service actor can reuse its process identity while
+/// every completed call still releases request-owned heap and operation state.
+#[test]
+fn repeated_fixed_owner_calls_reuse_actor_and_release_request_state() {
+    let mut shard = PureNativeExecutionShard::with_boundary(local_boundary());
+    let owner = shard
+        .spawn_fixed_owner_actor("local.Shard.round_trip", 0)
+        .expect("fixed owner actor");
+
+    for _ in 0..1_000 {
+        assert_eq!(
+            shard
+                .call_on_fixed_owner(owner, "local.Shard.round_trip", &[])
+                .expect("fixed-owner native call"),
+            ReplValue::Bool(true)
+        );
+        assert_eq!(shard.managed_actor_count(), 0);
+        assert_eq!(shard.supervisor.operation_count(), 0);
+    }
+
+    assert_eq!(shard.completed_call_count(), 1_000);
+    assert_eq!(shard.actors().processes().metrics().total_processes, 1);
+    assert!(shard.actors().processes().get(owner).is_some());
+    assert!(shard
+        .dispatch_trace()
+        .iter()
+        .filter_map(|event| match event {
+            NativeShardDispatchEvent::Entry { owner } => Some(*owner),
+            _ => None,
+        })
+        .all(|observed| observed == owner));
+
+    shard
+        .finish_completed_call(owner)
+        .expect("retire fixed owner actor");
+    assert_eq!(shard.actors().processes().metrics().total_processes, 0);
+    assert!(shard.generation_references().is_quiescent());
 }
 
 /// Verifies entry rejection exits the allocated actor without recording a
@@ -370,16 +510,11 @@ fn rejected_entry_releases_its_local_actor() {
         [NativeShardDispatchEvent::Entry { owner }] => *owner,
         trace => panic!("expected only a rejected entry event, found {trace:?}"),
     };
-    assert!(matches!(
-        shard
-            .actors()
-            .processes()
-            .get(owner)
-            .expect("rejected local actor")
-            .state,
-        VmProcessState::Exited(VmExitReason::Error(ref reason))
-            if reason.contains("error[pure_native_export_missing]")
-    ));
+    assert!(
+        shard.actors().processes().get(owner).is_none(),
+        "rejected local actor tombstone must be reaped after diagnostics"
+    );
+    assert!(shard.actors().latest_fatal_diagnostic().is_some());
 }
 
 /// Verifies the shard rejects foreign resume authority before recording a
@@ -432,6 +567,181 @@ fn foreign_resume_owner_cannot_consume_or_fail_another_actor() {
         .finish_owner(foreign, VmExitReason::Killed)
         .expect("release foreign fixture");
     assert_eq!(shard.actors().pending_native_continuation_count(), 0);
+}
+
+#[test]
+fn generated_actor_state_migrates_repeatedly_and_resumes_exactly_once() {
+    let template = PureNativeExecutionShard::with_boundary(local_boundary());
+    let mut first = template.fork_empty().expect("first shard");
+    let mut second = template.fork_empty().expect("second shard");
+    let (owner, execution) = first
+        .begin_call("local.Shard.round_trip", &[])
+        .expect("begin generated actor");
+    let PureNativeExecution::Suspended(suspension) = execution else {
+        panic!("generated actor must publish a safepoint");
+    };
+    first
+        .execution
+        .park_continuation(
+            owner.as_u64(),
+            suspension.request_id(),
+            suspension.continuation_id(),
+            None,
+            None,
+        )
+        .expect("publish synthetic managed continuation");
+
+    for sequence in 0..100 {
+        if sequence % 2 == 0 {
+            let transfer = first.detach_actor_state(owner).expect("detach first");
+            assert_eq!(transfer.owner(), owner);
+            second.import_actor_state(transfer).expect("import second");
+        } else {
+            let transfer = second.detach_actor_state(owner).expect("detach second");
+            first.import_actor_state(transfer).expect("import first");
+        }
+    }
+
+    let mut execution = first
+        .resume_call(owner, suspension)
+        .expect("resume after migrations");
+    loop {
+        execution = match execution {
+            PureNativeExecution::Complete(value) => {
+                assert_eq!(value, ReplValue::Bool(true));
+                first
+                    .finish_completed_call(owner)
+                    .expect("finish migrated actor");
+                break;
+            }
+            PureNativeExecution::HttpResponse(_) => {
+                panic!("public actor migration unexpectedly returned an HTTP projection")
+            }
+            PureNativeExecution::Suspended(next) => first
+                .resume_call(owner, next)
+                .expect("continue migrated actor"),
+        };
+    }
+    assert!(!first.actors().is_alive(owner));
+    assert!(!second.actors().is_alive(owner));
+}
+
+#[test]
+fn detached_actor_generation_blocks_source_reload_and_rejects_replaced_destination() {
+    let template = PureNativeExecutionShard::with_boundary(local_boundary());
+    let mut source = template.fork_empty().expect("source shard");
+    let mut destination = template.fork_empty().expect("destination shard");
+    let (owner, execution) = source
+        .begin_call("local.Shard.round_trip", &[])
+        .expect("begin generated actor");
+    let PureNativeExecution::Suspended(suspension) = execution else {
+        panic!("generated actor must publish a safepoint");
+    };
+    source
+        .execution
+        .park_continuation(
+            owner.as_u64(),
+            suspension.request_id(),
+            suspension.continuation_id(),
+            None,
+            None,
+        )
+        .expect("publish synthetic managed continuation");
+
+    let transfer = source.detach_actor_state(owner).expect("detach actor");
+    assert_eq!(transfer.source_generation(), 1);
+    assert_eq!(transfer.image_identity(), "local-transition-image");
+    assert_eq!(
+        source
+            .generation_references()
+            .count(VmNativeGenerationReferenceClass::ActorTransfer),
+        1
+    );
+    let reload_error = source
+        .replace_components(
+            local_boundary_named("source-reload-v2", 21),
+            PureNativeExecutionRuntime::runtime_default().expect("source candidate runtime"),
+        )
+        .expect_err("detached actor must pin source generation");
+    assert!(reload_error.contains("actor_transfers=1"), "{reload_error}");
+    assert_eq!(source.generation().expect("source generation").as_u64(), 1);
+
+    destination
+        .replace_components(
+            local_boundary_named("destination-reload-v2", 22),
+            PureNativeExecutionRuntime::runtime_default().expect("destination candidate runtime"),
+        )
+        .expect("idle destination may reload");
+    let failure = destination
+        .import_actor_state(transfer)
+        .expect_err("new destination generation rejects old actor envelope");
+    assert!(
+        failure.reason().contains("transfer_generation"),
+        "{}",
+        failure.reason()
+    );
+    source
+        .import_actor_state(failure.into_transfer())
+        .expect("still-pinned source accepts exact generation");
+    assert_eq!(
+        source
+            .generation_references()
+            .count(VmNativeGenerationReferenceClass::ActorTransfer),
+        0
+    );
+    assert!(matches!(
+        source
+            .resume_call(owner, suspension)
+            .expect("rolled-back continuation resumes"),
+        PureNativeExecution::Suspended(_)
+    ));
+}
+
+#[test]
+fn failed_generated_actor_import_rolls_back_every_runtime_layer() {
+    let template = PureNativeExecutionShard::with_boundary(local_boundary());
+    let mut source = template.fork_empty().expect("source shard");
+    let mut destination = template.fork_empty().expect("destination shard");
+    let (owner, source_execution) = source
+        .begin_call("local.Shard.round_trip", &[])
+        .expect("begin source actor");
+    let PureNativeExecution::Suspended(source_suspension) = source_execution else {
+        panic!("source actor must suspend");
+    };
+    source
+        .execution
+        .park_continuation(
+            owner.as_u64(),
+            source_suspension.request_id(),
+            source_suspension.continuation_id(),
+            None,
+            None,
+        )
+        .expect("publish synthetic managed continuation");
+    let (collision, _) = destination
+        .begin_call("local.Shard.round_trip", &[])
+        .expect("begin destination collision");
+    assert_eq!(collision, owner);
+
+    let transfer = source.detach_actor_state(owner).expect("detach source");
+    let failure = destination
+        .import_actor_state(transfer)
+        .expect_err("destination collision must retain all actor state");
+    assert!(failure.reason().contains("already contains"));
+    source
+        .import_actor_state(failure.into_transfer())
+        .expect("restore source actor");
+    assert!(source.actors().is_alive(owner));
+    assert_eq!(source.actors().pending_native_continuation_count(), 1);
+    source
+        .resume_call(owner, source_suspension)
+        .expect("restored generated continuation resumes");
+}
+
+#[test]
+fn complete_generated_actor_transfer_is_send() {
+    fn assert_send<T: Send>() {}
+    assert_send::<super::actor_transfer::PureNativeActorTransfer>();
 }
 
 /// Verifies two actors can interleave every direct continuation on one shard
@@ -684,6 +994,104 @@ fn active_shard_crash_recovery_rejects_early_restart_and_stale_execution() {
             .expect("recovered image call"),
         ReplValue::Bool(true)
     );
+    let replay = shard
+        .lifecycle_replay_capture()
+        .expect("supervision replay capture");
+    assert_eq!(
+        replay
+            .events
+            .iter()
+            .map(|event| (
+                event.kind,
+                event.context.shard_epoch,
+                event.context.operation_sequence,
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (VmMulticoreEventKind::ImageGeneration, Some(1), None),
+            (VmMulticoreEventKind::SupervisionFailed, Some(1), Some(1),),
+            (
+                VmMulticoreEventKind::SupervisionRestartScheduled,
+                Some(1),
+                Some(1),
+            ),
+            (VmMulticoreEventKind::SupervisionRestarted, Some(2), Some(1),),
+            (VmMulticoreEventKind::ImageGeneration, Some(2), None),
+        ]
+    );
+}
+
+/// Orderly shutdown starts and completes under one exact admitted generation.
+#[test]
+fn orderly_shard_shutdown_records_one_generation_qualified_lifecycle() {
+    let mut shard = PureNativeExecutionShard::with_boundary(local_boundary());
+
+    shard.shutdown().expect("orderly shard shutdown");
+
+    let replay = shard
+        .lifecycle_replay_capture()
+        .expect("shutdown replay capture");
+    assert_eq!(
+        replay
+            .events
+            .iter()
+            .map(|event| (
+                event.kind,
+                event.context.shard_epoch,
+                event.context.operation_sequence,
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (VmMulticoreEventKind::ImageGeneration, Some(1), None),
+            (VmMulticoreEventKind::ShutdownStarted, Some(1), None),
+            (VmMulticoreEventKind::Shutdown, Some(1), None),
+        ]
+    );
+}
+
+/// A completion from a crashed generation cannot resume reused local identities.
+#[test]
+fn stale_io_completion_cannot_cross_execution_shard_epoch() {
+    let mut shard =
+        PureNativeExecutionShard::with_boundary(typed_io_epoch_boundary("typed-io-image", 11));
+    let (old_owner, old_execution) = shard
+        .begin_call("local.TypedIo.wait", &[])
+        .expect("begin old generation call");
+    let PureNativeExecution::Suspended(old_receive) = old_execution else {
+        panic!("old generation must suspend on receive")
+    };
+    let old_wait = shard
+        .io_wait(old_owner, &old_receive)
+        .expect("capture old generation wait");
+    assert_eq!(old_wait.epoch().as_u64(), 1);
+
+    shard
+        .report_crash("crash with pending typed I/O", 100)
+        .expect("record old generation crash");
+    let recovered_epoch = shard
+        .recover_components(
+            typed_io_epoch_boundary("recovered-io-image", 12),
+            PureNativeExecutionRuntime::runtime_default().expect("recovered runtime"),
+            110,
+        )
+        .expect("recover I/O shard");
+    assert_eq!(recovered_epoch.as_u64(), 2);
+
+    let (new_owner, new_execution) = shard
+        .begin_call("local.TypedIo.wait", &[])
+        .expect("begin recovered generation call");
+    assert_eq!(new_owner, old_owner, "fixture must reuse actor identity");
+    let PureNativeExecution::Suspended(new_receive) = new_execution else {
+        panic!("recovered generation must suspend on receive")
+    };
+
+    let error = shard
+        .resume_io_call(new_owner, new_receive, old_wait.wake(ReplValue::Int(42)))
+        .expect_err("old generation completion must fail closed");
+    assert!(error.contains("error[pure_native_io.identity]"), "{error}");
+    assert!(error.contains("epoch-1"), "{error}");
+    assert!(error.contains("epoch-2"), "{error}");
+    assert!(shard.actors().processes().get(new_owner).is_none());
 }
 
 /// Verifies a post-entry direct-path failure uses the unified actor exit path
@@ -742,30 +1150,13 @@ fn resume_failure_propagates_and_releases_all_direct_path_ownership() {
         .resume_call(owner, second)
         .expect_err("forced backend failure must escape");
     assert_eq!(error, "forced direct resume failure");
-    let reason = VmExitReason::Error(error);
     for exited in [owner, linked] {
-        let process = shard
-            .actors()
-            .processes()
-            .get(exited)
-            .expect("exited process");
-        assert_eq!(process.state, VmProcessState::Exited(reason.clone()));
+        assert!(
+            shard.actors().processes().get(exited).is_none(),
+            "failed native actor tombstone must be reaped"
+        );
     }
-    let owner_process = shard
-        .actors()
-        .processes()
-        .get(owner)
-        .expect("owner process");
-    assert_eq!(owner_process.mailbox_len(), 0);
-    assert_eq!(owner_process.mailbox_accounted_bytes(), Ok(0));
-    assert_eq!(
-        shard
-            .actors()
-            .memory_metrics(owner)
-            .expect("owner memory accounting")
-            .current_bytes,
-        0
-    );
+    assert!(shard.actors().memory_metrics(owner).is_none());
     assert_eq!(shard.actors().pending_native_continuation_count(), 0);
     assert_eq!(shard.managed_actor_count(), 0);
     let fatal = shard

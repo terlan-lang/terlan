@@ -101,6 +101,11 @@ pub(crate) struct VmMetaTraceRegistry {
 }
 
 impl VmMetaTraceRegistry {
+    /// Returns whether no function currently has an observer subscription.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
     pub(crate) fn enable(
         &mut self,
         source: VmProcessSource,

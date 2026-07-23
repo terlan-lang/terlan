@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use std::fs;
 use std::path::Path;
 
-use crate::runtime::vm::ReplValue;
+use crate::runtime::vm::{ReplValue, VmAotHttpResponse};
 use crate::terlan_native::http as native_http;
 
 use super::super::package_relative_path;
@@ -22,13 +23,190 @@ use super::types::WebPackageResponseHeader;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct HandlerResponse {
     pub(crate) status: u16,
-    pub(crate) content_type: String,
+    pub(crate) content_type: Cow<'static, str>,
     pub(crate) headers: Vec<(String, String)>,
-    pub(crate) body: Vec<u8>,
+    pub(crate) body: HandlerBody,
+}
+
+/// Preserves text ownership while retaining exact bytes for file responses.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum HandlerBody {
+    Text(String),
+    Bytes(Vec<u8>),
+}
+
+impl HandlerBody {
+    pub(crate) fn as_bytes(&self) -> &[u8] {
+        match self {
+            Self::Text(body) => body.as_bytes(),
+            Self::Bytes(body) => body,
+        }
+    }
+
+    #[allow(dead_code)] // Retained for adapters that can elide empty response bodies.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.as_bytes().is_empty()
+    }
 }
 
 #[cfg_attr(not(test), allow(dead_code))]
 impl HandlerResponse {
+    /// Converts the direct managed response envelope copied before heap release.
+    pub(crate) fn from_aot_http_response(response: VmAotHttpResponse) -> Result<Self, String> {
+        let status = vm_status_to_u16(response.status)?;
+        validate_handler_status(status)?;
+        let mut headers = response
+            .headers
+            .into_iter()
+            .map(|(name, value)| validate_response_header_owned(name, value))
+            .collect::<Result<Vec<_>, _>>()?;
+        let (content_type, body) = match response.kind {
+            0 => (
+                Cow::Borrowed("text/plain; charset=utf-8"),
+                HandlerBody::Text(response.payload),
+            ),
+            1 => (
+                Cow::Borrowed("text/html; charset=utf-8"),
+                HandlerBody::Text(response.payload),
+            ),
+            2 => (
+                Cow::Borrowed("application/json; charset=utf-8"),
+                HandlerBody::Text(response.payload),
+            ),
+            3 => {
+                headers.push(validate_response_header_owned(
+                    "Location".to_string(),
+                    response.payload,
+                )?);
+                (
+                    Cow::Borrowed("text/plain; charset=utf-8"),
+                    HandlerBody::Text(String::new()),
+                )
+            }
+            other => {
+                return Err(format!(
+                    "error[serve_handler]: unsupported native Response kind `{other}`"
+                ))
+            }
+        };
+        Ok(Self {
+            status,
+            content_type,
+            headers,
+            body,
+        })
+    }
+
+    /// Consumes an immediate AOT response without copying its managed body.
+    pub(crate) fn from_owned_vm_response_with_package_root(
+        response: ReplValue,
+        package_root: &Path,
+    ) -> Result<Self, String> {
+        match response {
+            ReplValue::Tuple(fields)
+                if matches!(fields.first(), Some(ReplValue::Int(0)))
+                    && matches!(fields.get(1), Some(ReplValue::Int(_))) =>
+            {
+                Self::from_owned_native_response(fields, package_root)
+            }
+            response => Self::from_vm_response_inner(&response, Some(package_root)),
+        }
+    }
+
+    /// Decodes the compiler-owned response layout by transferring allocations.
+    fn from_owned_native_response(
+        fields: Vec<ReplValue>,
+        package_root: &Path,
+    ) -> Result<Self, String> {
+        let mut fields = fields.into_iter();
+        let Some(ReplValue::Int(0)) = fields.next() else {
+            unreachable!("owned native response guard checks the layout tag");
+        };
+        let Some(ReplValue::Int(kind)) = fields.next() else {
+            unreachable!("owned native response guard checks the kind");
+        };
+        let kind = native_response_kind(kind)?;
+        let mut rest: Vec<_> = fields.collect();
+
+        // File responses already perform filesystem I/O and require their
+        // complete optional-field parser. Keep that uncommon path centralized.
+        if kind == "file" {
+            let mut borrowed = vec![ReplValue::Int(0), ReplValue::Int(4)];
+            borrowed.append(&mut rest);
+            return Self::from_vm_response_inner(&ReplValue::Tuple(borrowed), Some(package_root));
+        }
+
+        let mut headers = if rest.len() > 3 {
+            owned_native_response_headers(rest.remove(3))?
+        } else {
+            Vec::new()
+        };
+        let mut rest = rest.into_iter();
+        let payload = rest.next();
+        let status = owned_native_response_status(kind, rest.next())?;
+        validate_handler_status(status)?;
+
+        let (content_type, body, headers) = match (kind, payload) {
+            ("text", Some(ReplValue::String(body))) => (
+                Cow::Borrowed("text/plain; charset=utf-8"),
+                HandlerBody::Text(body),
+                headers,
+            ),
+            ("html", Some(ReplValue::String(body))) => (
+                Cow::Borrowed("text/html; charset=utf-8"),
+                HandlerBody::Text(body),
+                headers,
+            ),
+            ("html", Some(ReplValue::Tuple(mut fragment))) => match fragment.as_mut_slice() {
+                [ReplValue::Atom(tag), ReplValue::String(body)] if tag == "html" => (
+                    Cow::Borrowed("text/html; charset=utf-8"),
+                    HandlerBody::Text(std::mem::take(body)),
+                    headers,
+                ),
+                _ => {
+                    return Err(
+                        "error[serve_handler]: Response.html expects Template.Html".to_string()
+                    )
+                }
+            },
+            ("json_text", Some(ReplValue::String(body))) => (
+                Cow::Borrowed("application/json; charset=utf-8"),
+                HandlerBody::Text(body),
+                headers,
+            ),
+            ("redirect", Some(ReplValue::String(location))) => {
+                headers.push(validate_response_header_owned(
+                    "Location".to_string(),
+                    location,
+                )?);
+                (
+                    Cow::Borrowed("text/plain; charset=utf-8"),
+                    HandlerBody::Text(String::new()),
+                    headers,
+                )
+            }
+            ("text", _) => {
+                return Err("error[serve_handler]: Response.text expects String".to_string())
+            }
+            ("html", _) => {
+                return Err("error[serve_handler]: Response.html expects Template.Html".to_string())
+            }
+            ("json_text", _) => {
+                return Err("error[serve_handler]: Response.json_text expects String".to_string())
+            }
+            ("redirect", _) => {
+                return Err("error[serve_handler]: Response.redirect expects String".to_string())
+            }
+            _ => unreachable!("native response kind was validated"),
+        };
+        Ok(Self {
+            status,
+            content_type,
+            headers,
+            body,
+        })
+    }
+
     /// Converts a VM-owned `std.http.Response` descriptor with file context.
     ///
     /// Inputs:
@@ -88,11 +266,51 @@ impl HandlerResponse {
         validate_handler_status(status)?;
         Ok(Self {
             status,
-            content_type,
+            content_type: Cow::Owned(content_type),
             headers,
-            body,
+            body: HandlerBody::Bytes(body),
         })
     }
+}
+
+/// Reads the native constructor status while retaining existing diagnostics.
+fn owned_native_response_status(kind: &str, status: Option<ReplValue>) -> Result<u16, String> {
+    match status {
+        Some(ReplValue::Int(status)) => vm_status_to_u16(status),
+        Some(ReplValue::Tuple(_)) | None => Ok(if kind == "redirect" { 302 } else { 200 }),
+        Some(_) => Err(format!(
+            "error[serve_handler]: Response.{kind} status must be Int"
+        )),
+    }
+}
+
+/// Consumes repeated native headers after validating the server boundary.
+fn owned_native_response_headers(metadata: ReplValue) -> Result<Vec<(String, String)>, String> {
+    let ReplValue::List(entries) = metadata else {
+        return Err(
+            "error[serve_handler]: native Response headers must be List[Header]".to_string(),
+        );
+    };
+    let mut headers = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let ReplValue::Tuple(fields) = entry else {
+            return Err("error[serve_handler]: malformed native Response header".to_string());
+        };
+        let mut fields = fields.into_iter();
+        let (Some(ReplValue::String(name)), Some(ReplValue::String(value)), None) =
+            (fields.next(), fields.next(), fields.next())
+        else {
+            return Err("error[serve_handler]: malformed native Response header".to_string());
+        };
+        headers.push(validate_response_header_owned(name, value)?);
+    }
+    Ok(headers)
+}
+
+/// Validates an already-owned response header without cloning it again.
+fn validate_response_header_owned(name: String, value: String) -> Result<(String, String), String> {
+    validate_response_header(&name, &value)?;
+    Ok((name, value))
 }
 
 /// Applies the persistent repeated-header list carried by a managed response.

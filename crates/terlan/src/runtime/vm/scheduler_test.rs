@@ -301,8 +301,8 @@ fn scheduler_skips_stale_non_runnable_queue_entries() {
         .expect("blocked should exist")
         .block();
     let mut scheduler = VmScheduler::default();
-    scheduler.enqueue_for_test(blocked);
-    scheduler.enqueue_for_test(runnable);
+    scheduler.enqueue_for_test(&table, blocked);
+    scheduler.enqueue_for_test(&table, runnable);
 
     let run = scheduler
         .run_next(&mut table, |_process, _slice| VmSchedulerDecision::Yield {
@@ -323,8 +323,8 @@ fn scheduler_skips_stale_exited_queue_entries() {
         .exit_process(exited, VmExitReason::Normal)
         .expect("process should exit");
     let mut scheduler = VmScheduler::default();
-    scheduler.enqueue_for_test(exited);
-    scheduler.enqueue_for_test(runnable);
+    scheduler.enqueue_for_test(&table, exited);
+    scheduler.enqueue_for_test(&table, runnable);
 
     let run = scheduler
         .run_next(&mut table, |_process, _slice| VmSchedulerDecision::Yield {
@@ -435,7 +435,7 @@ fn scheduler_returns_idle_after_stale_queue_poll_budget_is_exhausted() {
         .expect("blocked process should exist")
         .block();
     let mut scheduler = VmScheduler::new(VmSchedulerConfig::new(10, 1));
-    scheduler.enqueue_for_test(blocked);
+    scheduler.enqueue_for_test(&table, blocked);
 
     let run = scheduler
         .run_next(&mut table, benign_scheduler_decision)
@@ -449,7 +449,7 @@ fn scheduler_returns_idle_after_stale_queue_poll_budget_is_exhausted() {
 fn scheduler_reports_missing_stale_queue_entry() {
     let mut table = VmProcessTable::default();
     let mut scheduler = VmScheduler::default();
-    scheduler.enqueue_for_test(VmProcessId::from_raw_for_test(99));
+    scheduler.enqueue_for_test(&table, VmProcessId::from_raw_for_test(99));
 
     let error = scheduler
         .run_next(&mut table, benign_scheduler_decision)

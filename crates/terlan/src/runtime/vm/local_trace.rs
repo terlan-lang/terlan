@@ -83,6 +83,11 @@ pub(crate) struct VmLocalTraceRegistry {
 }
 
 impl VmLocalTraceRegistry {
+    /// Returns whether no function currently has local tracing enabled.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.enabled.is_empty()
+    }
+
     /// Enables or updates one exact function without disturbing history.
     pub(crate) fn enable(&mut self, source: VmProcessSource, config: VmLocalTraceConfig) -> bool {
         let key = VmLocalTraceKey::from(&source);

@@ -4,6 +4,12 @@ use std::collections::BTreeMap;
 
 use super::process::{VmProcessId, VmProcessState, VmProcessTable};
 
+#[path = "resource/transfer.rs"]
+mod transfer;
+
+#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
+pub(crate) use transfer::{VmResourceImportFailure, VmResourceTransfer};
+
 /// VM-owned native resource identifier.
 ///
 /// Inputs:
@@ -121,10 +127,9 @@ impl VmResourceTable {
 
         self.next_id = self.next_id.saturating_add(1);
         let id = VmResourceId(self.next_id);
-        processes
-            .get_mut(owner)
-            .expect("owner process was checked before resource registration")
-            .add_resource_handle(resource_handle_name(id));
+        processes.with_process_control_mutator(owner, |process| {
+            process.add_resource_handle(resource_handle_name(id));
+        })?;
         self.resources.insert(
             id,
             VmResourceRecord {
@@ -170,14 +175,12 @@ impl VmResourceTable {
             .get_mut(&resource)
             .expect("resource was validated before transfer mutation");
         let handle = resource_handle_name(resource);
-        processes
-            .get_mut(from)
-            .expect("source process was checked before resource transfer")
-            .remove_resource_handle(&handle);
-        processes
-            .get_mut(to)
-            .expect("target process was checked before resource transfer")
-            .add_resource_handle(handle);
+        processes.with_process_control_mutator(from, |process| {
+            process.remove_resource_handle(&handle);
+        })?;
+        processes.with_process_control_mutator(to, |process| {
+            process.add_resource_handle(handle);
+        })?;
         record.owner = to;
         Ok(VmResourceEvent::Transferred {
             id: resource,
@@ -225,10 +228,9 @@ impl VmResourceTable {
         self.validate_release(processes, owner, resource)?;
 
         self.resources.remove(&resource);
-        processes
-            .get_mut(owner)
-            .expect("owner process was checked before resource release")
-            .remove_resource_handle(&resource_handle_name(resource));
+        processes.with_process_control_mutator(owner, |process| {
+            process.remove_resource_handle(&resource_handle_name(resource));
+        })?;
         Ok(VmResourceEvent::Released {
             id: resource,
             owner,
@@ -289,10 +291,12 @@ impl VmResourceTable {
             .filter_map(|record| (record.owner == owner).then_some(record.id))
             .collect::<Vec<_>>();
         let events = self.cleanup_owner(owner);
-        if let Some(process) = processes.get_mut(owner) {
-            for id in owned_ids {
-                process.remove_resource_handle(&resource_handle_name(id));
-            }
+        if processes.get(owner).is_some() {
+            let _ = processes.with_process_control_mutator(owner, |process| {
+                for id in owned_ids {
+                    process.remove_resource_handle(&resource_handle_name(id));
+                }
+            });
         }
         events
     }
@@ -361,3 +365,7 @@ mod resource_owner_test;
 #[cfg(test)]
 #[path = "resource_test.rs"]
 mod resource_test;
+
+#[cfg(test)]
+#[path = "resource_transfer_test.rs"]
+mod resource_transfer_test;

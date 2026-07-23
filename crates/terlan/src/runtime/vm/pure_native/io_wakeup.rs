@@ -2,7 +2,7 @@
 
 use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::native_image::TvmBoundaryType;
-use crate::runtime::vm::execution_shard_protocol::VmExecutionShardId;
+use crate::runtime::vm::execution_shard_protocol::{VmExecutionShardId, VmShardEpoch};
 use crate::runtime::vm::process::VmProcessId;
 use crate::runtime::vm::ReplValue;
 
@@ -13,6 +13,8 @@ use super::PureNativeSuspension;
 pub(crate) struct PureNativeIoWait {
     /// Execution shard that exclusively owns the continuation tables.
     shard: VmExecutionShardId,
+    /// Exact admitted shard generation that parked the continuation.
+    epoch: VmShardEpoch,
     /// Actor that owns the parked generated call.
     owner: VmProcessId,
     /// Shard-local native request identity.
@@ -27,6 +29,7 @@ impl PureNativeIoWait {
     /// Derives an external wait token from one typed receive suspension.
     pub(crate) fn from_suspension(
         shard: VmExecutionShardId,
+        epoch: VmShardEpoch,
         owner: VmProcessId,
         suspension: &PureNativeSuspension,
     ) -> Result<Self, String> {
@@ -47,6 +50,7 @@ impl PureNativeIoWait {
             .map_err(|error| format!("error[pure_native_io.type]: {error}"))?;
         Ok(Self {
             shard,
+            epoch,
             owner,
             request_id: suspension.request_id(),
             continuation_id: suspension.continuation_id(),
@@ -59,6 +63,12 @@ impl PureNativeIoWait {
         &self.boundary_type
     }
 
+    /// Returns the exact admitted generation authorized to accept completion.
+    #[cfg(test)]
+    pub(crate) const fn epoch(&self) -> VmShardEpoch {
+        self.epoch
+    }
+
     /// Creates one owned completion for this exact wait.
     pub(crate) fn wake(&self, value: ReplValue) -> PureNativeIoWake {
         PureNativeIoWake {
@@ -67,22 +77,38 @@ impl PureNativeIoWait {
         }
     }
 
+    /// Rebinds the same continuation authority after an admitted shard migration.
+    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration surface.
+    pub(crate) fn migrated_to(&self, shard: VmExecutionShardId, epoch: VmShardEpoch) -> Self {
+        Self {
+            shard,
+            epoch,
+            owner: self.owner,
+            request_id: self.request_id,
+            continuation_id: self.continuation_id,
+            boundary_type: self.boundary_type.clone(),
+        }
+    }
+
     /// Validates that this token still names the supplied suspension.
     pub(super) fn validate_suspension(
         &self,
         shard: &VmExecutionShardId,
+        epoch: VmShardEpoch,
         owner: VmProcessId,
         suspension: &PureNativeSuspension,
     ) -> Result<(), String> {
-        let expected = Self::from_suspension(shard.clone(), owner, suspension)?;
+        let expected = Self::from_suspension(shard.clone(), epoch, owner, suspension)?;
         if self != &expected {
             return Err(format!(
-                "error[pure_native_io.identity]: wake {}/{}/{}/{} does not own suspension {}/{}/{}/{}",
+                "error[pure_native_io.identity]: wake {}/epoch-{}/{}/{}/{} does not own suspension {}/epoch-{}/{}/{}/{}",
                 self.shard.as_str(),
+                self.epoch.as_u64(),
                 self.owner.as_u64(),
                 self.request_id,
                 self.continuation_id,
                 expected.shard.as_str(),
+                expected.epoch.as_u64(),
                 expected.owner.as_u64(),
                 expected.request_id,
                 expected.continuation_id

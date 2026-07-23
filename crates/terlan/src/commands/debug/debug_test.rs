@@ -4,6 +4,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
+use crate::runtime::vm::multicore_replay::{
+    VmMulticoreEventContext, VmMulticoreEventKind, VmMulticoreReplayEvidence,
+    VmMulticoreReplayRecorder,
+};
+use crate::runtime::vm::scheduler_topology::VmSchedulerId;
 use crate::{CliCommand, CliState};
 
 use super::{
@@ -35,7 +40,22 @@ fn native_debug_report() -> NativeDebugSessionReport {
         }],
         script_commands: Some(2),
         json_events: true,
+        multicore_replay: debugger_replay_evidence(),
     }
+}
+
+/// Returns one canonical debugger admission capture for renderer tests.
+fn debugger_replay_evidence() -> VmMulticoreReplayEvidence {
+    let mut recorder = VmMulticoreReplayRecorder::recording(VmSchedulerId::primary(), 8)
+        .expect("debug replay recorder");
+    let context = VmMulticoreEventContext::scheduler()
+        .with_shard_epoch(1)
+        .expect("debug generation");
+    recorder
+        .observe(VmMulticoreEventKind::ImageGeneration, context)
+        .expect("debug generation event");
+    VmMulticoreReplayEvidence::new(1, 1, 8, vec![recorder.capture().expect("capture")])
+        .expect("debug evidence")
 }
 
 /// Allocates one unique command-level debugger fixture directory.
@@ -94,6 +114,10 @@ fn native_debug_session_admits_built_image_and_resolves_breakpoint() {
     assert_eq!(report.breakpoints.len(), 1);
     assert!(report.breakpoints[0].functions[0].contains("debug_session.main/0"));
     assert!(report.json_events);
+    assert_eq!(report.multicore_replay.runtime_generation, 1);
+    assert_eq!(report.multicore_replay.schedulers.len(), 1);
+    assert_eq!(report.multicore_replay.retained_events, 1);
+    assert!(report.multicore_replay.replayable);
     let _ = fs::remove_dir_all(dir);
 }
 
@@ -476,6 +500,9 @@ fn debug_native_image_json_report_is_stable() {
     assert_eq!(value["source_record_count"], 3);
     assert_eq!(value["script_commands"], 2);
     assert_eq!(value["json_events"], true);
+    assert_eq!(value["multicore_replay"]["runtimeGeneration"], 1);
+    assert_eq!(value["multicore_replay"]["retainedEvents"], 1);
+    assert_eq!(value["multicore_replay"]["replayable"], true);
     assert_eq!(value["live_execution"], false);
 }
 

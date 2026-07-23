@@ -12,6 +12,7 @@ mod thread_neutral;
 mod multicore_model_test;
 
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::runtime::native_image::control::TvmControlFrame;
 use crate::runtime::native_image::managed::ManagedExecutionRuntime;
@@ -21,6 +22,7 @@ use crate::runtime::native_image::{
 use crate::runtime::vm::execution_shard_protocol::VmSealedShardImage;
 use crate::runtime::vm::process::{VmManagedMailboxToken, VmMessage, VmProcessSource};
 use crate::runtime::vm::ReplValue;
+use crate::runtime::vm::VmAotHttpResponse;
 
 pub(crate) use crate::runtime::vm::native_image_diagnostics::{
     VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
@@ -32,7 +34,11 @@ pub(crate) use execution::{
     PureNativeExecution,
 };
 pub(crate) use execution_runtime::{NativeContinuationClaim, PureNativeExecutionRuntime};
-pub(crate) use execution_shard::{PureNativeExecutionImage, PureNativeExecutionShard};
+#[allow(unused_imports)] // Tick remains available to focused epoch-ingress tests.
+pub(crate) use execution_shard::{
+    PureNativeActorImportFailure, PureNativeActorTransfer, PureNativeCapabilityWait,
+    PureNativeExecutionImage, PureNativeExecutionShard, PureNativeTimerTick, PureNativeTimerWait,
+};
 pub(crate) use io_wakeup::{PureNativeIoWait, PureNativeIoWake};
 pub(crate) use thread_neutral::PureNativeSuspension;
 
@@ -113,6 +119,12 @@ impl<'a> PureNativeExecutionContext<'a> {
         self.runtime.release_owner(owner_id);
     }
 
+    /// Reclaims one completed request heap while retaining its live owner.
+    pub(crate) fn reset_owner(&mut self) {
+        let owner_id = self.owner_id();
+        self.runtime.reset_owner(owner_id);
+    }
+
     /// Reborrows the same shard state for a child actor executing synchronously.
     pub(crate) fn reborrow(
         &mut self,
@@ -146,9 +158,11 @@ pub(crate) trait NativeImageBackend: std::fmt::Debug + Send + Sync {
         context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-    ) -> Result<ReplValue, String> {
+        projection: NativeResultProjection,
+    ) -> Result<NativeDecodedResult, String> {
         let _ = context;
-        decode_native_value(result_type, value)
+        let _ = projection;
+        decode_native_value(result_type, value).map(NativeDecodedResult::Value)
     }
 
     /// Materializes one typed transition payload from backend-owned storage.
@@ -158,7 +172,13 @@ pub(crate) trait NativeImageBackend: std::fmt::Debug + Send + Sync {
         boundary_type: &TvmBoundaryType,
         value: i64,
     ) -> Result<ReplValue, String> {
-        self.decode_result(context, boundary_type, value)
+        self.decode_result(
+            context,
+            boundary_type,
+            value,
+            NativeResultProjection::PublicValue,
+        )?
+        .into_public_value()
     }
 
     /// Allocates one VM-owned mailbox value into backend-owned actor storage.
@@ -236,6 +256,11 @@ pub(crate) trait NativeImageBackend: std::fmt::Debug + Send + Sync {
         self.shutdown()
     }
 
+    /// Reclaims request-local state for a live reusable service actor.
+    fn reset_owner(&mut self, context: &mut PureNativeExecutionContext<'_>) -> Result<(), String> {
+        self.shutdown_owner(context)
+    }
+
     fn fork_box(&self) -> Result<Box<dyn NativeImageBackend>, String>;
 }
 
@@ -244,6 +269,7 @@ pub(crate) trait NativeImageBackend: std::fmt::Debug + Send + Sync {
 pub(crate) struct PureNativeBoundary {
     artifact: Option<ResolvedPureArtifact>,
     backend: Option<Box<dyn NativeImageBackend>>,
+    call_cache: Option<NativeCallCache>,
 }
 
 /// Runtime-owned typed export description independent from artifact JSON.
@@ -272,8 +298,45 @@ struct PreparedNativeCall {
     owner_id: u64,
     export_id: u64,
     result_type: TvmBoundaryType,
-    continuations: Vec<TvmContinuationDescriptor>,
-    source: VmProcessSource,
+    /// Populated only after generated code actually returns a transition.
+    continuations: Option<Vec<TvmContinuationDescriptor>>,
+    trace_source: Option<VmProcessSource>,
+    result_projection: NativeResultProjection,
+}
+
+/// Last resolved entry on one owner-local boundary.
+#[derive(Clone, Debug)]
+struct NativeCallCache {
+    requested_function: String,
+    arity: usize,
+    export_index: usize,
+    continuations: Arc<[TvmContinuationDescriptor]>,
+}
+
+/// Call-scoped result representation selected by the VM consumer.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeResultProjection {
+    PublicValue,
+    HttpResponse,
+}
+
+/// Backend-decoded result before the execution driver selects its consumer.
+#[derive(Debug)]
+pub(crate) enum NativeDecodedResult {
+    Value(ReplValue),
+    HttpResponse(VmAotHttpResponse),
+}
+
+impl NativeDecodedResult {
+    fn into_public_value(self) -> Result<ReplValue, String> {
+        match self {
+            Self::Value(value) => Ok(value),
+            Self::HttpResponse(_) => Err(
+                "error[pure_native.result_projection]: typed HTTP response escaped its direct call"
+                    .to_string(),
+            ),
+        }
+    }
 }
 
 impl PureNativeBoundary {
@@ -285,16 +348,19 @@ impl PureNativeBoundary {
             Self {
                 artifact: Some(artifact),
                 backend: Some(Box::new(backend)),
+                call_cache: None,
             },
             managed,
         ))
     }
 
     fn prepare_call(
-        &self,
+        &mut self,
         context: &mut PureNativeExecutionContext<'_>,
         function: &str,
         args: &[ReplValue],
+        trace_enabled: bool,
+        result_projection: NativeResultProjection,
     ) -> Result<PreparedNativeCall, String> {
         let owner_id = context.owner_id();
         let artifact = self.artifact.as_ref().ok_or_else(|| {
@@ -303,33 +369,46 @@ impl PureNativeBoundary {
                 args.len()
             )
         })?;
-        let matches = artifact
-            .exports
-            .iter()
-            .filter(|export| {
-                export.arity == args.len()
-                    && (export.function == function
-                        || format!("{}.{}", export.module, export.function) == function)
-            })
-            .collect::<Vec<_>>();
-        let export = match matches.as_slice() {
-            [export] => *export,
-            [] => {
-                return Err(format!(
-                    "error[pure_native_export_missing]: AOT artifact does not export `{function}/{}`",
-                    args.len()
-                ));
-            }
-            _ => {
-                return Err(format!(
-                    "error[pure_native_export_ambiguous]: native entry `{function}/{}` exists in multiple modules; use its qualified name",
-                    args.len()
-                ));
+        let cached_index = self.call_cache.as_ref().and_then(|cached| {
+            (cached.arity == args.len() && cached.requested_function == function)
+                .then_some(cached.export_index)
+        });
+        let export_index = match cached_index {
+            Some(index) => index,
+            None => {
+                let mut matches = artifact.exports.iter().enumerate().filter(|(_, export)| {
+                    export.arity == args.len() && export_matches(export, function)
+                });
+                let (index, _) = match matches.next() {
+                    Some(found) => found,
+                    None => {
+                        return Err(format!(
+                            "error[pure_native_export_missing]: AOT artifact does not export `{function}/{}`",
+                            args.len()
+                        ));
+                    }
+                };
+                if matches.next().is_some() {
+                    return Err(format!(
+                        "error[pure_native_export_ambiguous]: native entry `{function}/{}` exists in multiple modules; use its qualified name",
+                        args.len()
+                    ));
+                }
+                self.call_cache = Some(NativeCallCache {
+                    requested_function: function.to_owned(),
+                    arity: args.len(),
+                    export_index: index,
+                    continuations: Arc::from(artifact.continuations.clone()),
+                });
+                index
             }
         };
+        let artifact = self
+            .artifact
+            .as_ref()
+            .expect("artifact remains admitted while resolving its cached export");
+        let export = &artifact.exports[export_index];
         validate_arguments(export, args)?;
-        let export = (*export).clone();
-        let continuations = artifact.continuations.clone();
         if self.backend.is_none() {
             return Err(
                 "error[execution_shard.backend_missing]: admitted AOT image has no in-shard backend"
@@ -340,20 +419,22 @@ impl PureNativeBoundary {
             request_id: context.allocate_request_id()?,
             owner_id,
             export_id: export.id,
-            result_type: export.result,
-            continuations,
-            source: VmProcessSource::new(export.module, export.function, export.arity),
+            result_type: export.result.clone(),
+            continuations: None,
+            trace_source: trace_enabled.then(|| {
+                VmProcessSource::new(export.module.clone(), export.function.clone(), export.arity)
+            }),
+            result_projection,
         })
     }
 
     /// Returns whether this boundary owns an exact typed export.
     pub(crate) fn has_export(&self, function: &str, arity: usize) -> bool {
         self.artifact.as_ref().is_some_and(|artifact| {
-            artifact.exports.iter().any(|export| {
-                export.arity == arity
-                    && (export.function == function
-                        || format!("{}.{}", export.module, export.function) == function)
-            })
+            artifact
+                .exports
+                .iter()
+                .any(|export| export.arity == arity && export_matches(export, function))
         })
     }
 
@@ -438,6 +519,7 @@ impl PureNativeBoundary {
         Ok(Self {
             artifact: self.artifact.clone(),
             backend: Some(backend.fork_box()?),
+            call_cache: None,
         })
     }
 
@@ -452,6 +534,16 @@ impl PureNativeBoundary {
                 "error[pure_native_backend_missing]: no active native execution backend".to_string()
             })?
             .shutdown_owner(context)
+    }
+
+    /// Resets backend request state without terminating its fixed owner.
+    fn reset_owner(&mut self, context: &mut PureNativeExecutionContext<'_>) -> Result<(), String> {
+        self.backend
+            .as_deref_mut()
+            .ok_or_else(|| {
+                "error[pure_native_backend_missing]: no active native execution backend".to_string()
+            })?
+            .reset_owner(context)
     }
 
     /// Gracefully terminates the active native backend.
@@ -586,6 +678,15 @@ fn exports_from_descriptor(
     descriptor: &TvmExecutableDescriptor,
 ) -> Result<Vec<PureNativeExportSpec>, String> {
     exports_from_descriptor_parts(&descriptor.exports)
+}
+
+/// Matches an unqualified or exact module-qualified export without formatting.
+fn export_matches(export: &PureNativeExportSpec, function: &str) -> bool {
+    export.function == function
+        || function
+            .strip_prefix(&export.module)
+            .and_then(|suffix| suffix.strip_prefix('.'))
+            .is_some_and(|suffix| suffix == export.function)
 }
 
 fn validate_arguments(export: &PureNativeExportSpec, args: &[ReplValue]) -> Result<(), String> {

@@ -10,7 +10,6 @@ use hyper::{Request, Response};
 use std::sync::Arc;
 
 use super::handler::WebPackageWebSocket;
-use super::manifest::read_web_manifest;
 #[cfg(test)]
 use super::ServeBody;
 
@@ -56,15 +55,20 @@ pub(super) fn websocket_hub() -> WebSocketHub {
 /// Transformation:
 /// - Keeps WebSocket route discovery manifest-owned while runtime socket
 ///   dispatch remains blocked until the generic VM handler ABI exists.
+#[allow(dead_code)] // Retained for the legacy request adapter during Hyper promotion.
 pub(super) fn manifest_websocket_for_path(
     web_root: &Path,
     request_path: &str,
 ) -> Option<WebPackageWebSocket> {
-    read_web_manifest(web_root)
-        .ok()?
-        .websockets
-        .into_iter()
-        .find(|websocket| websocket.route == request_path)
+    super::manifest::with_web_manifest(web_root, |manifest| {
+        manifest
+            .websockets
+            .iter()
+            .find(|websocket| websocket.route == request_path)
+            .cloned()
+    })
+    .ok()
+    .flatten()
 }
 
 /// WebSocket handshake classification before transport ownership begins.

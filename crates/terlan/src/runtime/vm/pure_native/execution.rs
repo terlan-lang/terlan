@@ -6,8 +6,8 @@ use std::collections::HashSet;
 
 use super::{
     native_status_error, validate_continuation, validate_owner_id, validate_request_id,
-    PreparedNativeCall, PureNativeBoundary, PureNativeExecutionContext, PureNativeExportSpec,
-    PureNativeIoWake, PureNativeSuspension,
+    NativeDecodedResult, NativeResultProjection, PreparedNativeCall, PureNativeBoundary,
+    PureNativeExecutionContext, PureNativeExportSpec, PureNativeIoWake, PureNativeSuspension,
 };
 use crate::runtime::native_image::control::{TvmControlFrame, TvmTransitionOperation};
 use crate::runtime::native_image::TvmBoundaryType;
@@ -30,6 +30,7 @@ pub(crate) struct PureNativeCapabilityRequest {
 #[derive(Debug)]
 pub(crate) enum PureNativeExecution {
     Complete(ReplValue),
+    HttpResponse(crate::runtime::vm::VmAotHttpResponse),
     Suspended(PureNativeSuspension),
 }
 
@@ -108,9 +109,51 @@ impl PureNativeBoundary {
         function: &str,
         args: &[ReplValue],
     ) -> Result<PureNativeExecution, String> {
+        self.begin_call_for_actor_with_projection(
+            actors,
+            context,
+            function,
+            args,
+            NativeResultProjection::PublicValue,
+        )
+    }
+
+    /// Starts a direct HTTP call whose non-file Response may bypass generic
+    /// public-value materialization.
+    pub(crate) fn begin_http_response_call_for_actor(
+        &mut self,
+        actors: &mut VmActorRuntime,
+        context: &mut PureNativeExecutionContext<'_>,
+        function: &str,
+        args: &[ReplValue],
+    ) -> Result<PureNativeExecution, String> {
+        self.begin_call_for_actor_with_projection(
+            actors,
+            context,
+            function,
+            args,
+            NativeResultProjection::HttpResponse,
+        )
+    }
+
+    fn begin_call_for_actor_with_projection(
+        &mut self,
+        actors: &mut VmActorRuntime,
+        context: &mut PureNativeExecutionContext<'_>,
+        function: &str,
+        args: &[ReplValue],
+        result_projection: NativeResultProjection,
+    ) -> Result<PureNativeExecution, String> {
         let owner = context.actor();
-        let prepared = self.prepare_call(context, function, args)?;
-        let trace_call = actors.begin_native_trace_call(owner, prepared.source.clone())?;
+        let mut prepared = self.prepare_call(
+            context,
+            function,
+            args,
+            actors.native_trace_enabled(),
+            result_projection,
+        )?;
+        let trace_call =
+            actors.begin_optional_native_trace_call(owner, prepared.trace_source.take())?;
         let reply = match self
             .backend
             .as_mut()
@@ -123,6 +166,16 @@ impl PureNativeBoundary {
                 return Err(error);
             }
         };
+        if matches!(reply, TvmControlFrame::Transition { .. }) {
+            prepared.continuations = Some(
+                self.call_cache
+                    .as_ref()
+                    .expect("resolved export installs its continuation cache")
+                    .continuations
+                    .as_ref()
+                    .to_vec(),
+            );
+        }
         let backend = self
             .backend
             .as_deref()
@@ -288,6 +341,25 @@ impl PureNativeBoundary {
         self.finish_transition_resume(actors, context, suspension, vec![encoded], None, None)
     }
 
+    /// Advances a generated timer continuation after scheduler-owned delivery.
+    pub(crate) fn resume_timer_for_actor(
+        &mut self,
+        actors: &mut VmActorRuntime,
+        context: &mut PureNativeExecutionContext<'_>,
+        suspension: PureNativeSuspension,
+    ) -> Result<PureNativeExecution, String> {
+        if suspension.owner_id() != context.owner_id() {
+            return Err("error[pure_native_timer_owner]: foreign suspension owner".to_string());
+        }
+        if suspension.operation() != TvmTransitionOperation::Timer {
+            return Err(format!(
+                "error[pure_native_timer_operation]: expected Timer, found {:?}",
+                suspension.operation()
+            ));
+        }
+        self.finish_transition_resume(actors, context, suspension, Vec::new(), None, None)
+    }
+
     /// Restores generated continuation state after one VM transition completes.
     pub(super) fn finish_transition_resume(
         &mut self,
@@ -346,7 +418,6 @@ impl PureNativeBoundary {
             return Err(native_actor_exit_error(owner_id, reason));
         }
         resume_values.extend(resume_state.values);
-        let source = resume_state.trace_call.source().clone();
         let backend = self.backend.as_mut().ok_or_else(|| {
             "error[pure_native_backend_missing]: no active native execution backend".to_string()
         })?;
@@ -367,8 +438,9 @@ impl PureNativeBoundary {
             owner_id: resume_state.owner_id,
             export_id: 0,
             result_type: resume_state.result_type,
-            continuations: resume_state.continuations,
-            source,
+            continuations: resume_state.continuations.into(),
+            trace_source: None,
+            result_projection: resume_state.result_projection,
         };
         let backend = self
             .backend
@@ -397,6 +469,9 @@ impl PureNativeBoundary {
         loop {
             execution = match execution {
                 PureNativeExecution::Complete(value) => return Ok(value),
+                PureNativeExecution::HttpResponse(_) => {
+                    return Err("error[pure_native.result_projection]: typed HTTP response returned through a public-value call".to_string())
+                }
                 PureNativeExecution::Suspended(suspension) => {
                     self.resume_transition_for_actor(actors, context, suspension)?
                 }
@@ -448,6 +523,7 @@ impl PureNativeBoundary {
         let mut boundary = PureNativeBoundary {
             artifact: self.artifact.clone(),
             backend: Some(backend),
+            call_cache: None,
         };
         let function = format!("{}.{}", export.module, export.function);
         let result: Result<(), String> = (|| {
@@ -457,6 +533,9 @@ impl PureNativeBoundary {
             loop {
                 execution = match execution {
                     PureNativeExecution::Complete(_) => return Ok(()),
+                    PureNativeExecution::HttpResponse(_) => {
+                        return Err("error[pure_native.result_projection]: spawned child returned an HTTP-only result".to_string())
+                    }
                     PureNativeExecution::Suspended(suspension) => boundary
                         .resume_transition_for_actor(actors, &mut child_context, suspension)?,
                 };
@@ -494,13 +573,25 @@ fn handle_reply(
         } => {
             validate_request_id(request_id, prepared.request_id)?;
             validate_owner_id(owner_id, prepared.owner_id)?;
-            match backend.decode_result(context, &prepared.result_type, value) {
-                Ok(value) => {
+            match backend.decode_result(
+                context,
+                &prepared.result_type,
+                value,
+                prepared.result_projection,
+            ) {
+                Ok(NativeDecodedResult::Value(value)) => {
                     actors.complete_native_trace_call(
                         VmProcessId::from_native_owner(owner_id)?,
                         trace_call,
                     )?;
                     Ok(PureNativeExecution::Complete(value))
+                }
+                Ok(NativeDecodedResult::HttpResponse(response)) => {
+                    actors.complete_native_trace_call(
+                        VmProcessId::from_native_owner(owner_id)?,
+                        trace_call,
+                    )?;
+                    Ok(PureNativeExecution::HttpResponse(response))
                 }
                 Err(error) => {
                     let _ = actors.fail_native_trace_call(
@@ -543,8 +634,11 @@ fn handle_reply(
                     "error[pure_native_continuation_cycle]: continuation {continuation_id} was yielded more than once"
                 ));
             }
-            let continuation = prepared
-                .continuations
+            let continuations = prepared.continuations.as_ref().ok_or_else(|| {
+                "error[pure_native_continuation_metadata]: transition has no admitted continuation table"
+                    .to_string()
+            })?;
+            let continuation = continuations
                 .iter()
                 .find(|entry| entry.id == continuation_id)
                 .ok_or_else(|| {
@@ -568,7 +662,8 @@ fn handle_reply(
                 arguments,
                 values,
                 prepared.result_type,
-                prepared.continuations,
+                prepared.result_projection,
+                continuations.clone(),
                 observed_continuations,
                 trace_call,
             )))

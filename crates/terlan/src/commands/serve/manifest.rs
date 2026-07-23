@@ -1,5 +1,9 @@
+use std::cell::RefCell;
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, OnceLock, RwLock};
 
 use serde::Deserialize;
 
@@ -13,6 +17,25 @@ use super::handler::{
     WebPackageWebSocket,
 };
 use super::package_relative_path;
+
+static WEB_MANIFEST_CACHE: OnceLock<RwLock<HashMap<PathBuf, Arc<WebPackageManifest>>>> =
+    OnceLock::new();
+static PROJECT_ROOT_CACHE: OnceLock<RwLock<HashMap<PathBuf, Option<PathBuf>>>> = OnceLock::new();
+static WEB_METADATA_CACHE_EPOCH: AtomicU64 = AtomicU64::new(1);
+
+thread_local! {
+    static LOCAL_WEB_METADATA: RefCell<LocalWebMetadata> =
+        RefCell::new(LocalWebMetadata::default());
+}
+
+#[derive(Default)]
+struct LocalWebMetadata {
+    epoch: u64,
+    last_manifest: Option<(PathBuf, Arc<WebPackageManifest>)>,
+    last_project_root: Option<(PathBuf, Option<PathBuf>)>,
+    manifests: HashMap<PathBuf, Arc<WebPackageManifest>>,
+    project_roots: HashMap<PathBuf, Option<PathBuf>>,
+}
 
 /// Browser package manifest consumed by `terlc serve`.
 ///
@@ -129,7 +152,7 @@ pub(crate) fn validate_web_package(web_root: &Path) -> Result<(), String> {
         ));
     }
 
-    for asset in manifest.assets {
+    for asset in &manifest.assets {
         validate_asset_kind(&asset.kind)?;
         let asset_path =
             package_relative_path(web_root, &asset.web_relative_path).ok_or_else(|| {
@@ -347,7 +370,88 @@ fn validate_manual_tls_file_reference(
 /// - Reuses the same deterministic manifest search path as package validation
 ///   so dependency startup cannot drift from `terlc serve --check`.
 pub(super) fn adjacent_project_root(web_root: &Path) -> Option<std::path::PathBuf> {
-    adjacent_project_manifest_path(web_root).and_then(|path| path.parent().map(Path::to_path_buf))
+    let epoch = WEB_METADATA_CACHE_EPOCH.load(Ordering::Acquire);
+    if let Some(root) = LOCAL_WEB_METADATA.with(|local| {
+        let mut local = local.borrow_mut();
+        synchronize_local_metadata(&mut local, epoch);
+        local
+            .last_project_root
+            .as_ref()
+            .filter(|(cached_root, _)| cached_root == web_root)
+            .map(|(_, root)| root.clone())
+    }) {
+        return root;
+    }
+    if let Some(root) = LOCAL_WEB_METADATA.with(|local| {
+        let mut local = local.borrow_mut();
+        synchronize_local_metadata(&mut local, epoch);
+        local.project_roots.get(web_root).cloned()
+    }) {
+        return root;
+    }
+    let cache = PROJECT_ROOT_CACHE.get_or_init(|| RwLock::new(HashMap::new()));
+    if let Ok(cache) = cache.read() {
+        if let Some(root) = cache.get(web_root) {
+            remember_local_project_root(web_root, root, epoch);
+            return root.clone();
+        }
+    }
+    let root = adjacent_project_manifest_path(web_root)
+        .and_then(|path| path.parent().map(Path::to_path_buf));
+    if let Ok(mut cache) = cache.write() {
+        cache.insert(web_root.to_path_buf(), root.clone());
+    }
+    remember_local_project_root(web_root, &root, epoch);
+    root
+}
+
+/// Resolves every source file whose change can replace a handler generation.
+pub(super) fn web_package_handler_source_paths(web_root: &Path) -> Vec<PathBuf> {
+    let Some(project_root) = adjacent_project_root(web_root) else {
+        return Vec::new();
+    };
+    let Ok(manifest) = read_web_manifest(web_root) else {
+        return Vec::new();
+    };
+    let mut relative = BTreeSet::new();
+    relative.extend(
+        manifest
+            .handlers
+            .iter()
+            .filter_map(|handler| handler.source.as_ref())
+            .map(|source| source.path.as_str()),
+    );
+    relative.extend(
+        manifest
+            .websockets
+            .iter()
+            .filter_map(|endpoint| endpoint.source.as_ref())
+            .map(|source| source.path.as_str()),
+    );
+    relative.extend(
+        manifest
+            .sse
+            .iter()
+            .map(|endpoint| endpoint.source.path.as_str()),
+    );
+    relative.extend(
+        manifest
+            .static_responses
+            .iter()
+            .filter_map(|response| response.source.as_ref())
+            .map(|source| source.path.as_str()),
+    );
+    relative.extend(
+        manifest
+            .file_responses
+            .iter()
+            .filter_map(|response| response.source.as_ref())
+            .map(|source| source.path.as_str()),
+    );
+    relative
+        .into_iter()
+        .filter_map(|path| super::source_path_from_manifest(&project_root, path))
+        .collect()
 }
 
 /// Loads adjacent project TLS metadata for a packaged web root.
@@ -429,7 +533,117 @@ fn adjacent_project_manifest_path(web_root: &Path) -> Option<std::path::PathBuf>
 /// Transformation:
 /// - Reads the manifest text and deserializes it into the current server
 ///   contract, including optional handler entries.
-pub(super) fn read_web_manifest(web_root: &Path) -> Result<WebPackageManifest, String> {
+pub(super) fn read_web_manifest(web_root: &Path) -> Result<Arc<WebPackageManifest>, String> {
+    with_web_manifest(web_root, Arc::clone)
+}
+
+/// Borrows the active owner-local manifest without mutating its shared
+/// reference count on every request.
+pub(super) fn with_web_manifest<R>(
+    web_root: &Path,
+    operation: impl FnOnce(&Arc<WebPackageManifest>) -> R,
+) -> Result<R, String> {
+    let epoch = WEB_METADATA_CACHE_EPOCH.load(Ordering::Acquire);
+    let mut operation = Some(operation);
+    if let Some(result) = LOCAL_WEB_METADATA.with(|local| {
+        let mut local = local.borrow_mut();
+        synchronize_local_metadata(&mut local, epoch);
+        let (cached_root, manifest) = local.last_manifest.as_ref()?;
+        (cached_root == web_root).then(|| {
+            operation
+                .take()
+                .expect("owner-local manifest operation runs exactly once")(manifest)
+        })
+    }) {
+        return Ok(result);
+    }
+    if let Some(result) = LOCAL_WEB_METADATA.with(|local| {
+        let mut local = local.borrow_mut();
+        synchronize_local_metadata(&mut local, epoch);
+        local.manifests.get(web_root).map(|manifest| {
+            operation
+                .take()
+                .expect("cached manifest operation runs exactly once")(manifest)
+        })
+    }) {
+        return Ok(result);
+    }
+    let cache = WEB_MANIFEST_CACHE.get_or_init(|| RwLock::new(HashMap::new()));
+    if let Some(manifest) = cache
+        .read()
+        .map_err(|_| "browser manifest cache read lock poisoned".to_string())?
+        .get(web_root)
+        .cloned()
+    {
+        remember_local_manifest(web_root, &manifest, epoch);
+        return Ok(operation
+            .take()
+            .expect("global manifest hit retains the operation")(
+            &manifest
+        ));
+    }
+    let manifest = Arc::new(load_web_manifest(web_root)?);
+    cache
+        .write()
+        .map_err(|_| "browser manifest cache write lock poisoned".to_string())?
+        .insert(web_root.to_path_buf(), Arc::clone(&manifest));
+    remember_local_manifest(web_root, &manifest, epoch);
+    Ok(operation
+        .take()
+        .expect("manifest load retains the operation")(
+        &manifest
+    ))
+}
+
+fn synchronize_local_metadata(local: &mut LocalWebMetadata, epoch: u64) {
+    if local.epoch != epoch {
+        local.last_manifest = None;
+        local.last_project_root = None;
+        local.manifests.clear();
+        local.project_roots.clear();
+        local.epoch = epoch;
+    }
+}
+
+fn remember_local_manifest(web_root: &Path, manifest: &Arc<WebPackageManifest>, epoch: u64) {
+    LOCAL_WEB_METADATA.with(|local| {
+        let mut local = local.borrow_mut();
+        synchronize_local_metadata(&mut local, epoch);
+        local.last_manifest = Some((web_root.to_path_buf(), Arc::clone(manifest)));
+        local
+            .manifests
+            .insert(web_root.to_path_buf(), Arc::clone(manifest));
+    });
+}
+
+fn remember_local_project_root(web_root: &Path, root: &Option<PathBuf>, epoch: u64) {
+    LOCAL_WEB_METADATA.with(|local| {
+        let mut local = local.borrow_mut();
+        synchronize_local_metadata(&mut local, epoch);
+        local.last_project_root = Some((web_root.to_path_buf(), root.clone()));
+        local
+            .project_roots
+            .insert(web_root.to_path_buf(), root.clone());
+    });
+}
+
+/// Removes one parsed package manifest after its watcher observes a change.
+pub(super) fn invalidate_web_manifest_cache(web_root: &Path) {
+    if let Some(cache) = WEB_MANIFEST_CACHE.get() {
+        if let Ok(mut cache) = cache.write() {
+            cache.remove(web_root);
+        }
+    }
+    if let Some(cache) = PROJECT_ROOT_CACHE.get() {
+        if let Ok(mut cache) = cache.write() {
+            cache.remove(web_root);
+        }
+    }
+    WEB_METADATA_CACHE_EPOCH.fetch_add(1, Ordering::AcqRel);
+}
+
+/// Reads and parses one manifest on a cache miss.
+fn load_web_manifest(web_root: &Path) -> Result<WebPackageManifest, String> {
     let manifest_path = web_root.join("manifest.json");
     let manifest_text = fs::read_to_string(&manifest_path).map_err(|err| err.to_string())?;
     serde_json::from_str(&manifest_text).map_err(|err| format!("malformed manifest: {err}"))
@@ -450,7 +664,7 @@ pub(super) fn read_web_manifest(web_root: &Path) -> Result<WebPackageManifest, S
 #[cfg(test)]
 pub(super) fn manifest_build_id(web_root: &Path) -> String {
     read_web_manifest(web_root)
-        .map(|manifest| manifest.build_id)
+        .map(|manifest| manifest.build_id.clone())
         .unwrap_or_else(|_| default_build_id())
 }
 
@@ -470,22 +684,32 @@ pub(super) fn manifest_build_id(web_root: &Path) -> String {
 /// - Converts `/` to the manifest index, compares other requests against
 ///   declared web-relative asset paths, and resolves the selected manifest path
 ///   through the same package-relative safety boundary used during validation.
+#[cfg(test)]
 pub(super) fn manifest_static_file_for_request(
     web_root: &Path,
     request_path: &str,
 ) -> Option<std::path::PathBuf> {
     let manifest = read_web_manifest(web_root).ok()?;
+    manifest_static_file_from_manifest(web_root, &manifest, request_path)
+}
+
+/// Resolves a static request against an already-loaded manifest.
+pub(super) fn manifest_static_file_from_manifest(
+    web_root: &Path,
+    manifest: &WebPackageManifest,
+    request_path: &str,
+) -> Option<std::path::PathBuf> {
     let request_relative = request_path.trim_start_matches('/');
     let manifest_relative = if request_relative.is_empty() {
-        Some(manifest.index)
+        Some(manifest.index.clone())
     } else if request_relative == manifest.index {
-        Some(manifest.index)
+        Some(manifest.index.clone())
     } else {
         manifest
             .assets
-            .into_iter()
+            .iter()
             .find(|asset| request_relative == asset.web_relative_path)
-            .map(|asset| asset.web_relative_path)
+            .map(|asset| asset.web_relative_path.clone())
     }?;
     let path = package_relative_path(web_root, &manifest_relative)?;
     path.is_file().then_some(path)

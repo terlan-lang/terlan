@@ -26,8 +26,12 @@ mod collection;
 mod publication;
 #[path = "memory/shared.rs"]
 mod shared;
+#[path = "memory/transfer.rs"]
+mod transfer;
 
 pub(crate) use publication::{VmAccountedMessageSend, VmMailboxPublication};
+#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
+pub(crate) use transfer::{VmMemoryImportFailure, VmMemoryTransfer};
 
 /// Per-process logical heap limits enforced before host allocation paths run.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -239,19 +243,24 @@ impl VmMemoryAccountant {
         pid: VmProcessId,
         requested_bytes: usize,
     ) -> Result<VmMemoryPressureDecision, String> {
-        let process = live_process_mut(processes, pid)?;
-        let previous_bytes = process.heap_bytes;
-        let projected = previous_bytes.checked_add(requested_bytes);
-        let projected_bytes = projected.unwrap_or(usize::MAX);
-        let outcome = if projected.is_none() || projected_bytes > self.limits.hard_bytes {
-            VmMemoryPressureOutcome::HardLimitRejected
-        } else if projected_bytes > self.limits.soft_bytes {
-            process.heap_bytes = projected_bytes;
-            VmMemoryPressureOutcome::SoftLimitExceeded
-        } else {
-            process.heap_bytes = projected_bytes;
-            VmMemoryPressureOutcome::Accounted
-        };
+        let soft_bytes = self.limits.soft_bytes;
+        let hard_bytes = self.limits.hard_bytes;
+        let (previous_bytes, projected_bytes, outcome, current_bytes) =
+            with_live_process_mut(processes, pid, |process| {
+                let previous_bytes = process.heap_bytes;
+                let projected = previous_bytes.checked_add(requested_bytes);
+                let projected_bytes = projected.unwrap_or(usize::MAX);
+                let outcome = if projected.is_none() || projected_bytes > hard_bytes {
+                    VmMemoryPressureOutcome::HardLimitRejected
+                } else if projected_bytes > soft_bytes {
+                    process.heap_bytes = projected_bytes;
+                    VmMemoryPressureOutcome::SoftLimitExceeded
+                } else {
+                    process.heap_bytes = projected_bytes;
+                    VmMemoryPressureOutcome::Accounted
+                };
+                (previous_bytes, projected_bytes, outcome, process.heap_bytes)
+            })?;
         let decision = VmMemoryPressureDecision {
             pid: pid.as_u64(),
             requested_bytes,
@@ -261,8 +270,8 @@ impl VmMemoryAccountant {
         };
         let metrics = self.processes.entry(pid.as_u64()).or_default();
         metrics.pid = pid.as_u64();
-        metrics.current_bytes = process.heap_bytes;
-        metrics.high_water_bytes = metrics.high_water_bytes.max(process.heap_bytes);
+        metrics.current_bytes = current_bytes;
+        metrics.high_water_bytes = metrics.high_water_bytes.max(current_bytes);
         self.decisions.push(decision.clone());
         Ok(decision)
     }
@@ -273,12 +282,14 @@ impl VmMemoryAccountant {
         pid: VmProcessId,
         released_bytes: usize,
     ) -> Result<usize, String> {
-        let process = live_process_mut(processes, pid)?;
-        let actual_release = released_bytes.min(process.heap_bytes);
-        process.heap_bytes -= actual_release;
+        let (actual_release, current_bytes) = with_live_process_mut(processes, pid, |process| {
+            let actual_release = released_bytes.min(process.heap_bytes);
+            process.heap_bytes -= actual_release;
+            (actual_release, process.heap_bytes)
+        })?;
         let metrics = self.processes.entry(pid.as_u64()).or_default();
         metrics.pid = pid.as_u64();
-        metrics.current_bytes = process.heap_bytes;
+        metrics.current_bytes = current_bytes;
         if actual_release > 0 {
             metrics.collection_events = metrics.collection_events.saturating_add(1);
             metrics.released_bytes = metrics.released_bytes.saturating_add(actual_release);
@@ -437,8 +448,8 @@ impl VmMemoryAccountant {
         processes: &mut VmProcessTable,
         recipient: VmProcessId,
     ) -> Result<Option<VmMessage>, String> {
-        let process = live_process_mut(processes, recipient)?;
-        let message = process.receive_next();
+        let message =
+            with_live_process_mut(processes, recipient, |process| process.receive_next())?;
         if let Some(message) = &message {
             self.release_heap(processes, recipient, message.accounted_bytes)?;
         }
@@ -464,12 +475,13 @@ impl VmMemoryAccountant {
         recipient: VmProcessId,
         mut predicate: impl FnMut(&VmMessage) -> bool,
     ) -> Result<VmSelectiveReceiveOutcome, String> {
-        let process = live_process_mut(processes, recipient)?;
         let mut inspected_messages = 0;
-        let message = process.selective_receive(|message| {
-            inspected_messages += 1;
-            predicate(message)
-        });
+        let message = with_live_process_mut(processes, recipient, |process| {
+            process.selective_receive(|message| {
+                inspected_messages += 1;
+                predicate(message)
+            })
+        })?;
         if let Some(message) = &message {
             self.release_heap(processes, recipient, message.accounted_bytes)?;
         }
@@ -621,7 +633,7 @@ impl VmMemoryAccountant {
         owner: VmProcessId,
         reason: VmExitReason,
     ) -> Result<VmAccountedProcessExit, String> {
-        live_process_mut(processes, owner)?;
+        require_live_process(processes, owner)?;
         let resource_ids = resources
             .snapshots()
             .into_iter()
@@ -722,6 +734,24 @@ impl VmMemoryAccountant {
 
     pub(crate) fn process_metrics(&self, pid: VmProcessId) -> Option<&VmProcessMemoryMetrics> {
         self.processes.get(&pid.as_u64())
+    }
+
+    /// Releases zero-live-byte accounting after postmortem capture.
+    pub(crate) fn reap_process_metrics(&mut self, pid: VmProcessId) -> Result<(), String> {
+        if self
+            .processes
+            .get(&pid.as_u64())
+            .is_some_and(|metrics| metrics.current_bytes != 0)
+        {
+            return Err(format!(
+                "cannot reap process {} with live VM memory",
+                pid.as_u64()
+            ));
+        }
+        self.processes.remove(&pid.as_u64());
+        self.decisions
+            .retain(|decision| decision.pid != pid.as_u64());
+        Ok(())
     }
 
     /// Synchronizes accounting after lifecycle operations such as process exit.
@@ -910,12 +940,20 @@ fn checked_add_size(total: &mut usize, bytes: usize) -> Result<(), VmValueSizeEr
     Ok(())
 }
 
-fn live_process_mut(
+/// Runs one memory mutation under the process table's scoped actor ownership.
+fn with_live_process_mut<R>(
     processes: &mut VmProcessTable,
     pid: VmProcessId,
-) -> Result<&mut super::process::VmProcess, String> {
+    mutate: impl FnOnce(&mut super::process::VmProcess) -> R,
+) -> Result<R, String> {
+    require_live_process(processes, pid)?;
+    processes.with_process_control_mutator(pid, mutate)
+}
+
+/// Validates a live process before memory ownership is read or changed.
+fn require_live_process(processes: &VmProcessTable, pid: VmProcessId) -> Result<(), String> {
     let process = processes
-        .get_mut(pid)
+        .get(pid)
         .ok_or_else(|| format!("missing process {} for VM memory accounting", pid.as_u64()))?;
     if matches!(process.state, VmProcessState::Exited(_)) {
         return Err(format!(
@@ -923,7 +961,7 @@ fn live_process_mut(
             pid.as_u64()
         ));
     }
-    Ok(process)
+    Ok(())
 }
 
 fn stale_shared_allocation(allocation: VmSharedAllocationId) -> String {
@@ -945,6 +983,10 @@ mod memory_alloc_beam_suite_parity_test;
 #[cfg(test)]
 #[path = "memory_test.rs"]
 mod memory_test;
+
+#[cfg(test)]
+#[path = "memory_transfer_test.rs"]
+mod memory_transfer_test;
 
 #[cfg(test)]
 #[path = "term_model_parity_test.rs"]

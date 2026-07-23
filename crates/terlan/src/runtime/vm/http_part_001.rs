@@ -20,9 +20,9 @@ use request_resources::{
     VmHttpRequestResourceLeak, VmHttpRequestResourceMetrics, VmHttpRequestResourceTracker,
 };
 use response_memory::VmHttpResponseMemory;
+#[allow(unused_imports)] // Retained for VM stream types and their focused protocol tests.
 pub(crate) use response_wire::{
-    write_http1_response, write_http1_stream_chunk, write_http1_stream_end,
-    write_http1_stream_head,
+    write_http1_response, write_http1_stream_chunk, write_http1_stream_end, write_http1_stream_head,
 };
 pub(crate) use template_response::{render_http_template_response, VmHttpTemplateResponse};
 

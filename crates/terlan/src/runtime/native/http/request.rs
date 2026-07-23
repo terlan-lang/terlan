@@ -13,7 +13,33 @@ pub struct Request {
     cookies: Vec<(String, String)>,
 }
 
+/// Owned request metadata transferred into the VM managed-value boundary.
+pub(crate) struct RequestParts {
+    pub(crate) method: String,
+    pub(crate) path: String,
+    pub(crate) body: String,
+    pub(crate) params: Vec<(String, String)>,
+    pub(crate) query_string: String,
+    pub(crate) query: Vec<(String, String)>,
+    pub(crate) headers: Vec<(String, String)>,
+    pub(crate) cookies: Vec<(String, String)>,
+}
+
 impl Request {
+    /// Transfers every request allocation into its VM boundary projection.
+    pub(crate) fn into_parts(self) -> RequestParts {
+        RequestParts {
+            method: self.method,
+            path: self.path,
+            body: self.body,
+            params: self.params,
+            query_string: self.query_string,
+            query: self.query,
+            headers: self.headers,
+            cookies: self.cookies,
+        }
+    }
+
     /// Builds a request wrapper from body text.
     ///
     /// Inputs:

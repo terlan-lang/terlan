@@ -2,6 +2,17 @@
 
 include!("actor_impl.rs");
 
+pub(crate) use self::actor_suspension::VmNativeTimerWait;
+pub(crate) use self::actor_timer::VmActorTimerAdvance;
+#[cfg(test)]
+pub(crate) use self::actor_timer::VmActorTimerDelivery;
+
+#[path = "actor/transfer.rs"]
+mod transfer;
+
+#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
+pub(crate) use transfer::{VmActorRuntimeImportFailure, VmActorRuntimeTransfer};
+
 vm_capability_component! {
     #[path = "actor_capability.rs"]
     mod actor_capability;
@@ -50,6 +61,10 @@ mod actor_alias_test;
 #[cfg(test)]
 #[path = "actor_identity_test.rs"]
 mod actor_identity_test;
+
+#[cfg(test)]
+#[path = "actor_runtime_transfer_test.rs"]
+mod actor_runtime_transfer_test;
 
 #[cfg(test)]
 #[path = "actor_send_test.rs"]

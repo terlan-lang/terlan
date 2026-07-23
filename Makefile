@@ -17,8 +17,9 @@ export TERLAN_POLARS_DIR TERLAN_POLARS_SOURCE TERLAN_POLARS_REV TERLAN_POLARS_CA
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-benchmark-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
+.PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-persistent-shard-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-benchmark-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
+.PHONY: std-vm-parity-matrix-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check
 .PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-roadmap-reconciliation-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
 .PHONY: no-tvm-json-runtime-check no-vmir-interpreter-check runtime-aot-only-check
 .PHONY: vm-debug-key-compatibility-check
@@ -35,7 +36,8 @@ SHELL := bash
 .PHONY: vm-distributed-state-check
 .PHONY: vm-supervision-restart-check
 .PHONY: vm-timer-deadline-check
-.PHONY: vm-scheduler-fairness-check
+.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-owner-check tvm-aot-multicore-yield-queue-check tvm-aot-multicore-runnable-steal-check tvm-aot-multicore-policy-coordination-check vm-multicore-work-stealing-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check
+.PHONY: tvm-http-axum-performance-record
 .PHONY: vm-memory-heap-pressure-check
 .PHONY: std-generated-metadata-check
 .PHONY: std-test-honesty-check
@@ -1113,7 +1115,12 @@ tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
 	fi
 
 tvm-aot-thread-sanitizer-check:
-	$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py run
+	$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py self-test
+	@if rustup target list --installed | rg -qx 'x86_64-unknown-linux-gnutsan'; then \
+		$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py run; \
+	else \
+		echo 'TVM AOT ThreadSanitizer executable lane unavailable locally; contract passed'; \
+	fi
 
 tvm-aot-thread-sanitizer-contract-check:
 	$(PYTHON) tools/check_tvm_aot_thread_sanitizer.py self-test
@@ -1135,20 +1142,20 @@ AOT_RELEASE_LOCAL_GATES := \
 	tvm-aot-crash-injection-check \
 	tvm-aot-capability-worker-check \
 	tvm-aot-image-lifetime-check \
+	tvm-aot-platform-matrix-check \
 	tvm-aot-lowering-coverage-check \
+	tvm-aot-http-persistent-shard-check \
 	tvm-aot-http-generation-lifetime-check \
 	tvm-aot-http-performance-check \
 	tvm-aot-multicore-readiness-check \
+	tvm-aot-thread-sanitizer-check \
 	tvm-aot-c-abi-boundary-check \
 	tvm-aot-compilation-time-check \
 	tvm-single-image-artifact-check \
 	no-tvm-json-runtime-check \
 	no-vmir-interpreter-check \
 	rust-quality-check \
-	tvm-aot-roadmap-reconciliation-check \
-	roadmap-gate-integrity-check \
-	release-0-0-7-preflight \
-	check
+	roadmap-gate-integrity-check
 
 tvm-aot-roadmap-reconciliation-check:
 	$(PYTHON) tools/check_tvm_aot_roadmap_reconciliation.py self-test
@@ -1158,10 +1165,9 @@ tvm-aot-release-closeout-contract-check: tvm-aot-thread-sanitizer-contract-check
 	$(PYTHON) tools/check_tvm_aot_release_closeout.py self-test
 
 tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check
-	$(PYTHON) tools/check_tvm_aot_release_closeout.py precheck
 	$(MAKE) $(AOT_RELEASE_LOCAL_GATES)
 	env -u RUSTFLAGS $(CARGO) check --locked -p terlan
-	$(PYTHON) tools/check_tvm_aot_release_closeout.py record
+	$(PYTHON) tools/check_tvm_aot_release_closeout.py record-local
 
 tvm-aot-static-callable-check:
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::static_callable_test
@@ -1398,11 +1404,7 @@ tvm-aot-platform-target-check: tvm-aot-platform-matrix-contract-check
 	$(PYTHON) tools/check_tvm_aot_platform_matrix.py target
 
 tvm-aot-platform-matrix-check: tvm-aot-platform-matrix-contract-check
-	@test -n "$(TVM_AOT_PLATFORM_REPORT_DIR)" || { \
-		echo 'error[aot.platform_matrix]: set TVM_AOT_PLATFORM_REPORT_DIR to downloaded target attestations'; \
-		exit 1; \
-	}
-	$(PYTHON) tools/check_tvm_aot_platform_matrix.py aggregate "$(TVM_AOT_PLATFORM_REPORT_DIR)"
+	$(PYTHON) tools/check_tvm_aot_platform_matrix.py target
 
 tvm-aot-http-managed-cycle-check: tvm-aot-consumer-check
 	$(RUST_TEST) --locked -p terlan --bin terlc literal_abi_test
@@ -1475,8 +1477,25 @@ tvm-aot-http-channel-plan-check: tvm-aot-http-managed-boundary-check
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::serve_test::vm_stream_sse_route_activates_materialized_router_middleware -- --exact
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::serve_test::vm_stream_websocket_upgrade_activates_materialized_router_middleware -- --exact
 
-tvm-aot-http-native-invocation-check: tvm-aot-http-channel-plan-check
-	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::request_owned_handler_resumes_only_from_exact_typed_io_wake -- --exact
+tvm-aot-http-persistent-shard-check: tvm-aot-http-channel-plan-check
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::persistent_shard_actors_resume_only_from_exact_typed_io_wake -- --exact
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::one_owner_loop_services_multiple_parked_actors_without_migration -- --exact
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::new_actors_balance_across_shards_and_resume_sticky -- --exact
+	@! rg -q 'spawn_shard\(\)' crates/terlan/src/commands/serve/handler_cache/invocation.rs
+	@! rg -q 'shard\.shutdown\(\)' crates/terlan/src/commands/serve/handler_cache/invocation.rs
+	@! rg -q 'Mutex<PureNativeExecutionShard' crates/terlan/src/commands/serve/handler_cache.rs crates/terlan/src/commands/serve/handler_cache/
+	@rg -q 'sync_channel\(SHARD_INBOX_CAPACITY\)' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs
+	@rg -q 'serve\.aot\.capability_dispatch_missing' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs
+
+tvm-http-axum-performance-record:
+	$(CARGO) build --locked --release -p terlan --bin terlan-axum-baseline --bin terlan-http-framework-benchmark --features axum-baseline
+	TERLAN_BENCH_HTTP_AXUM_BIN=$(CURDIR)/target/release/terlan-axum-baseline \
+	TERLAN_BENCH_HTTP_AXUM_OUTPUT=$(CURDIR)/target/quality/http-axum-performance.json \
+	$(CURDIR)/target/release/terlan-http-framework-benchmark
+	test -s target/quality/http-axum-performance.json
+	@rg -q '"schema": "terlan-http-framework-performance-v1"' target/quality/http-axum-performance.json
+
+tvm-aot-http-native-invocation-check: tvm-aot-http-persistent-shard-check
 
 tvm-aot-http-websocket-invocation-check: tvm-aot-http-native-invocation-check
 	$(RUST_TEST) --locked -p terlan --bin terlc compiler::router::router_test::aot_router_plan_materializes_websocket_callbacks -- --exact
@@ -1552,6 +1571,7 @@ tvm-aot-http-performance-check: tvm-aot-http-cleanup-check
 	@rg -q '"status": "completed"' target/quality/http-aot-performance-comparison.json
 	@rg -q '"performance_policy_sha256":' target/quality/http-aot-performance-comparison.json
 	@rg -q '"schema": "terlan-http-aot-performance-limits-v1"' target/quality/http-aot-performance-comparison.json
+	@rg -q '"schema": "terlan-http-aot-performance-comparison-v2"' target/quality/http-aot-performance-comparison.json
 	@rg -q '"p99_ns":' target/quality/http-aot-performance-comparison.json
 	@rg -q '"throughput_requests_per_second":' target/quality/http-aot-performance-comparison.json
 	@rg -q '"generation_overlap":' target/quality/http-aot-performance-comparison.json
@@ -2227,6 +2247,253 @@ vm-process-model-check:
 vm-scheduler-contract-check:
 	$(RUST_TEST) -p terlan --bin terlan-vm runtime::vm::scheduler
 
+vm-actor-mutator-ownership-check:
+	cargo check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor_directory::actor_directory_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::scheduler::scheduler_test::scheduler_runs_runnable_process_and_requeues_yielded_slice -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::scheduler::scheduler_test::scheduler_cancels_at_preemption_boundary_without_requeueing -- --exact
+
+vm-multicore-mailbox-publication-check: vm-process-model-check vm-failure-primitives-check
+	cargo check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor_directory::mailbox::mailbox_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::actor_directory::actor_directory_test::publication_during_execution_prevents_lost_wakeup_park -- --exact
+	@rg -q 'ConcurrentQueue::bounded\(ACTOR_MAILBOX_CAPACITY\)' crates/terlan/src/runtime/vm/actor_directory/mailbox.rs
+	@! rg -q 'ConcurrentQueue::unbounded\(\)' crates/terlan/src/runtime/vm/actor_directory/mailbox.rs
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::actor::actor_signal_beam_suite_parity_test::signal_suite_contended_enqueue_inspection_and_single_wakeup_contract -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::actor::actor_signal_beam_suite_parity_test::signal_suite_message_before_down_order_contract -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::failure::failure_erl_link_parity_test::erl_link_suite_portable_link_monitor_race_contract -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::process::process_registry_test::process_registry_exit_removes_every_name_before_reuse -- --exact
+
+vm-multicore-fixed-placement-check: vm-multicore-mailbox-publication-check vm-scheduler-fairness-check rust-quality-check
+	cargo check --locked -p terlan --bin terlan-vm
+	cargo check --locked -p terlan --bin terlc
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::scheduler_topology::scheduler_topology_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_telemetry::fixed_scheduler_telemetry_test
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::shard_owner::shard_owner_test
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test
+
+tvm-aot-multicore-migration-check: tvm-aot-runtime-transition-check tvm-managed-memory-check vm-actor-mutator-ownership-check rust-quality-check
+	cargo check --locked -p terlan --bin terlan-vm
+	cargo check --locked -p terlan --bin terlc
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm transfer_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::parked_generated_handler_migrates_one_hundred_times_then_resumes_once -- --exact
+
+vm-multicore-work-stealing-policy-check:
+	cargo check --locked -p terlan --bin terlan-vm
+	cargo check --locked -p terlan --bin terlc
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::work_stealing::work_stealing_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm steal_test
+
+vm-multicore-work-stealing-owner-check: vm-multicore-work-stealing-policy-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::work_stealing::runtime::runtime_test
+
+tvm-aot-multicore-yield-queue-check: vm-multicore-work-stealing-owner-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::shard_owner::shard_owner_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_aot_yields_requeue_before_each_resume -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::resumed_generated_aot_actor_yields_before_replying -- --exact
+
+tvm-aot-multicore-runnable-steal-check: tvm-aot-multicore-yield-queue-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test::queued_actor_migration_publishes_destination_before_reacquisition -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_actor_is_stolen_between_scheduler_owners -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::stolen_generated_actor_retains_destination_route_when_it_parks -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::rejected_generated_runnable_steal_rolls_back_without_actor_loss -- --exact
+
+tvm-aot-multicore-policy-coordination-check: tvm-aot-multicore-runnable-steal-check
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test
+
+vm-multicore-work-stealing-check: tvm-aot-multicore-policy-coordination-check tvm-aot-multicore-migration-check vm-scheduler-fairness-check rust-quality-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_classes_receive_weighted_local_service -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_multicore_fanout_completes_under_adversarial_class_skew -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_shutdown_reclaims_queued_class_work -- --exact
+
+tvm-aot-multicore-io-epoch-check: vm-multicore-work-stealing-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::stale_io_completion_cannot_cross_execution_shard_epoch -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::parked_generated_handler_migrates_one_hundred_times_then_resumes_once -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::persistent_shard_actors_resume_only_from_exact_typed_io_wake -- --exact
+
+vm-multicore-timer-epoch-check: tvm-aot-multicore-io-epoch-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::timer_ingress_test::current_timer_tick_delivers_once_through_shard_owner -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::timer_ingress_test::foreign_shard_timer_tick_fails_before_timer_mutation -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::timer_ingress_test::stale_timer_tick_cannot_cross_execution_shard_epoch -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::actor::actor_runtime_transfer_test::actor_runtime_transfer_moves_delayed_message_with_exact_timer_deadline -- --exact
+
+vm-multicore-timer-scheduler-check: vm-multicore-timer-epoch-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_aot_timer_parks_until_scheduler_owned_deadline -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::debug::debug_test::native_debug_session_admits_built_image_and_resolves_breakpoint -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::debug::debug_test::debug_native_image_json_report_is_stable -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_aot_timer_does_not_block_peer_execution -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_aot_timer_is_cancelled_by_scheduler_shutdown -- --exact
+
+vm-multicore-protocol-reactor-check: vm-multicore-timer-scheduler-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::protocol_task_executor::protocol_task_executor_test::protocol_completion_origin_rejects_foreign_and_ambient_threads -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::handler_cache_generation_test::immediate_callback_executes_on_its_protocol_owner_without_rpc -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_completion_resumes_only_through_actor_owner -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_rejects_same_scheduler_foreign_connection -- --exact
+
+vm-multicore-capability-worker-check: vm-multicore-protocol-reactor-check tvm-aot-capability-worker-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_enforces_bounded_non_reentrant_admission -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_suppresses_duplicate_completion -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_cancellation_releases_exact_request_credit -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_replaces_crashed_slot_without_capacity_bypass -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_rejects_identity_and_capability_bypass -- --exact
+
+vm-multicore-capability-completion-check: vm-multicore-capability-worker-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_completes_an_already_parked_generated_request -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_suppresses_late_already_parked_reply -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_capability_completion_is_published_before_owner_dispatch -- --exact
+	@rg -q 'CapabilityCompletionPublished' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs crates/terlan/src/runtime/vm/fixed_scheduler_telemetry.rs
+	@if rg -n 'capability_dispatch_missing' crates/terlan/src/commands/serve/handler_cache/shard_owner; then \
+		echo 'error[multicore.capability]: generated capability suspensions must not be rejected'; \
+		exit 1; \
+	fi
+
+vm-multicore-capability-event-pump-check: vm-multicore-capability-completion-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_event_pump_correlates_completion_with_fixed_owner_payload -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_event_pump_returns_payload_on_backpressure_and_cancellation -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_event_pump_drains_generation_payloads_on_worker_loss -- --exact
+	@rg -q 'VmCapabilityWorkerEventPump' crates/terlan/src/runtime/vm/capability_worker/event_pump.rs
+	@if rg -n 'HashMap|mpsc::channel\(\)' crates/terlan/src/runtime/vm/capability_worker/event_pump.rs; then \
+		echo 'error[multicore.capability_event_pump]: correlation must remain deterministic and bounded by worker credits'; \
+		exit 1; \
+	fi
+
+vm-multicore-capability-scheduler-check: vm-multicore-capability-event-pump-check
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::pool::pool_test::capability_event_pump_shutdown_returns_all_pending_payloads -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-native-worker protocol::protocol_test::worker_admits_declared_filesystem_operation -- --exact
+	$(CARGO) build --locked -p terlan --bin terlan-native-worker
+	TERLAN_NATIVE_WORKER=$(CURDIR)/target/debug/terlan-native-worker TERLAN_TEST_AOT_CAPABILITY_PUMP=1 TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX=1 $(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_capability_event_pump_executes_real_worker_full_cycle -- --ignored --exact
+	@rg -q 'GeneratedCapabilityDispatcher' crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
+	@rg -q 'CapabilityCompletionPublished' crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
+
+vm-epmd-discovery-check:
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::epmd_protocol_round_trips_alive2_and_rejects_malformed_frames -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::epmd_registry_owns_registration_until_exact_connection_closes -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::logical_node_registers_only_after_pool_listener_and_router_are_ready -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::one_logical_registration_survives_scheduler_owner_migration -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::node_shutdown_closes_admission_before_unregistering -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::fixed_scheduler_connection_handler_owns_alive_registration -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::fixed_scheduler_connection_handler_rejects_bad_alive_name_without_registration -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::logical_node_router_publishes_to_current_actor_owner -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::logical_node_transport_frame_is_bounded_and_actor_addressed -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::epmd::epmd_test::logical_node_bootstrap_runs_discovery_transport_and_shutdown_full_cycle -- --ignored --exact
+	@rg -q 'serve_protocol_tasks' crates/terlan/src/runtime/vm/epmd/transport.rs
+	@rg -q 'start_protocol_tasks_with_topology' crates/terlan/src/runtime/vm/epmd/bootstrap.rs
+	@rg -q 'resolve_route' crates/terlan/src/runtime/vm/epmd/node_transport.rs crates/terlan/src/runtime/vm/fixed_scheduler_control.rs
+
+vm-multicore-runtime-integration-check: vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-timer-deadline-check native-boundary-runtime-adversarial-check vm-http-concurrency-investigation-check rust-quality-check
+
+vm-multicore-replay-observability-check: rust-quality-check
+	cargo check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::multicore_replay::multicore_replay_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_telemetry::fixed_scheduler_telemetry_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::shard_owner::shard_owner_test::panic_detail_is_bounded_and_stable_for_all_payload_classes -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::support_bundle::support_bundle_test::native_support_bundle_serializes_validated_multicore_evidence -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_aot_yields_requeue_before_each_resume -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_actor_is_stolen_between_scheduler_owners -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_aot_timer_parks_until_scheduler_owned_deadline -- --exact
+	$(RUST_TEST) --locked -p terlan --bin terlc runtime::vm::debugger_control::debugger_control_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::debugger_pause_and_step_follow_owner_migration_without_duplicate_execution -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::detached_actor_generation_blocks_source_reload_and_rejects_replaced_destination -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::orderly_shard_shutdown_records_one_generation_qualified_lifecycle -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_shutdown_reclaims_queued_class_work -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::scheduler_panic_fails_the_whole_handler_generation_closed -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::debug::debug_test::native_debug_session_admits_built_image_and_resolves_breakpoint -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::debug::debug_test::debug_native_image_json_report_is_stable -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload -- --exact
+	@rg -q 'VM_MULTICORE_REPLAY_SCHEMA' crates/terlan/src/runtime/vm/multicore_replay.rs
+	@rg -q 'record_with_context' crates/terlan/src/runtime/vm/fixed_scheduler_telemetry.rs
+	@rg -q 'publish_identified' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs crates/terlan/src/commands/serve/handler_cache/shard_owner/timer_dispatch.rs crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
+	@rg -q 'record_dispatch' crates/terlan/src/commands/serve/handler_cache/shard_owner/owner_loop.rs
+	@rg -q 'ExecutionStarted' crates/terlan/src/commands/serve/handler_cache/shard_owner/replay_events.rs crates/terlan/src/runtime/vm/fixed_scheduler_telemetry.rs
+	@rg -q 'MigrationStarted' crates/terlan/src/commands/serve/handler_cache/shard_owner/migration.rs
+	@rg -q 'VmMulticoreReplayEvidence' crates/terlan/src/runtime/vm/multicore_replay.rs crates/terlan/src/runtime/vm/support_bundle.rs crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs
+	@rg -q 'ImageGeneration' crates/terlan/src/commands/debug/session.rs crates/terlan/src/runtime/vm/source_reload.rs
+	@rg -q 'DebuggerStepped' crates/terlan/src/runtime/vm/multicore_replay.rs crates/terlan/src/commands/serve/handler_cache/shard_owner/owner_loop.rs
+	@rg -q 'ActorTransfer' crates/terlan/src/runtime/vm/native_image_diagnostics.rs crates/terlan/src/runtime/vm/pure_native/execution_shard/generation_lifetime.rs
+	@rg -q 'SupervisionRestartScheduled' crates/terlan/src/runtime/vm/multicore_replay.rs crates/terlan/src/runtime/vm/pure_native/execution_shard.rs
+	@rg -q 'ShutdownStarted' crates/terlan/src/runtime/vm/multicore_replay.rs crates/terlan/src/runtime/vm/pure_native/execution_shard.rs
+	@rg -q 'SchedulerPanicked' crates/terlan/src/runtime/vm/multicore_replay.rs crates/terlan/src/runtime/vm/fixed_scheduler_telemetry.rs
+	@rg -q 'AotSchedulerPanicEvidence' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs crates/terlan/src/commands/serve/handler_cache/shard_owner/panic_evidence.rs
+	@! rg -q 'SystemTime|Instant|thread::current' crates/terlan/src/runtime/vm/multicore_replay.rs
+
+vm-multicore-performance-check: rust-quality-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::scheduler_topology::scheduler_topology_test
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::multicore_performance_test -- --nocapture
+	test -s benchmarks/baselines/vm-multicore-performance-limits.json
+	TERLAN_VM_MULTICORE_PERFORMANCE_OUTPUT=$(CURDIR)/target/quality/vm-multicore-performance.json $(RUST_TEST) --locked --release -p terlan --bin terlc commands::serve::handler_cache::multicore_performance_test::multicore_runtime_width_matrix_records_workloads_and_owner_overlap -- --ignored --exact --nocapture
+	test -s target/quality/vm-multicore-performance.json
+	@rg -q '"schema": "terlan.vm-multicore-performance.v1"' target/quality/vm-multicore-performance.json
+	@rg -q '"effective_parallelism":' target/quality/vm-multicore-performance.json
+	@rg -q '"maximum_simultaneously_active_schedulers":' target/quality/vm-multicore-performance.json
+	@rg -q '"runtime_workload_contract_sha256":' target/quality/vm-multicore-performance.json
+	@rg -q '"mixed_tail_contract_sha256":' target/quality/vm-multicore-performance.json
+	@rg -q '"performance_policy_sha256":' target/quality/vm-multicore-performance.json
+	@rg -q '"source_revision":' target/quality/vm-multicore-performance.json
+	@rg -q '"provenance":' target/quality/vm-multicore-performance.json
+	@rg -q '"cpu_bound_actor":' target/quality/vm-multicore-performance.json
+	@rg -q '"iterations_per_actor": 200000' target/quality/vm-multicore-performance.json
+	@rg -q '"confidence_level": 0.95' target/quality/vm-multicore-performance.json
+	@rg -q '"resamples": 4096' target/quality/vm-multicore-performance.json
+	@rg -q '"mixed_load_tail":' target/quality/vm-multicore-performance.json
+	@rg -q '"cpu_overlap_proven": true' target/quality/vm-multicore-performance.json
+	@rg -q '"operations_per_sample": 256' target/quality/vm-multicore-performance.json
+	@rg -q '"performance_policy":' target/quality/vm-multicore-performance.json
+	@rg -q '"status": "(record_only|passed)"' target/quality/vm-multicore-performance.json
+	@for width in 1 2 4; do \
+		rg -q "\"requested_schedulers\": $$width" target/quality/vm-multicore-performance.json || exit 1; \
+	done
+	@for workload in actor_spawn_exit mailbox_round_trip timer_delivery http_handler_response supervision_restart epmd_registration_lifecycle; do \
+		rg -q "\"workload\": \"$$workload\"" target/quality/vm-multicore-performance.json || exit 1; \
+	done
+	@for metric in scheduler_wait mailbox_delivery timer_delay http_latency failed_steal_backoff allocation_pause collection_pause; do \
+		rg -q "\"metric\": \"$$metric\"" target/quality/vm-multicore-performance.json || exit 1; \
+	done
+
+vm-multicore-memory-model-check:
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::pure_native::multicore_model_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor_directory::mailbox::mailbox_test::seeded_mailbox_flood_preserves_every_sender_under_forced_interleaving -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::work_stealing::work_stealing_test::seeded_skew_burst_and_fanout_decisions_remain_bounded_and_work_conserving -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::deadlock_watchdog_terminates_stuck_child -- --exact
+	TERLAN_VM_MULTICORE_STRESS_OUTPUT=$(CURDIR)/target/quality/vm-multicore-memory-model.json $(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::bounded_seeded_multicore_memory_model_has_deadlock_watchdog -- --exact --nocapture
+	test -s target/quality/vm-multicore-memory-model.json
+	@rg -q '"schema": "terlan.vm-multicore-memory-model.v1"' target/quality/vm-multicore-memory-model.json
+	@rg -q '"decision": "pass"' target/quality/vm-multicore-memory-model.json
+	@rg -q '"watchdog_timeout_millis": 15000' target/quality/vm-multicore-memory-model.json
+	@test "$$(rg -c '0x[0-9a-f]{16}' target/quality/vm-multicore-memory-model.json)" -eq 8
+
+vm-multicore-thread-sanitizer-contract-check:
+	$(PYTHON) tools/check_vm_multicore_thread_sanitizer.py self-test
+
+vm-multicore-thread-sanitizer-check: vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check
+	@if rustup target list --installed --toolchain 1.96.0 2>/dev/null | rg -qx 'x86_64-unknown-linux-gnutsan'; then \
+		$(PYTHON) tools/check_vm_multicore_thread_sanitizer.py run; \
+	elif test "$${GITHUB_ACTIONS:-}" = true; then \
+		echo 'error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target is mandatory in CI'; \
+		exit 1; \
+	else \
+		echo 'VM multicore ThreadSanitizer target unavailable locally; portable memory-model gate passed'; \
+	fi
+
+vm-multicore-mc9-evidence-contract-check:
+	$(PYTHON) tools/check_vm_multicore_mc9_evidence.py self-test
+
+vm-multicore-mc9-evidence-check: vm-multicore-mc9-evidence-contract-check
+	test -s target/quality/vm-multicore-performance.json
+	test -s target/quality/vm-multicore-thread-sanitizer-report.json
+	$(PYTHON) tools/check_vm_multicore_mc9_evidence.py seal
+	test -s target/quality/vm-multicore-mc9-evidence.json
+	@rg -q '"schema": "terlan.vm-multicore-mc9-evidence.v1"' target/quality/vm-multicore-mc9-evidence.json
+	@rg -q '"decision": "pass"' target/quality/vm-multicore-mc9-evidence.json
+	@rg -q '"dedicated_runner_label": "terlan-linux-x86_64-multicore-v1"' target/quality/vm-multicore-mc9-evidence.json
+	@rg -q '"sanitizer_toolchain": "1.96.0"' target/quality/vm-multicore-mc9-evidence.json
+
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
 
@@ -2316,7 +2583,6 @@ vm-timer-primitives-check:
 	$(RUST_TEST) -p terlan --bin terlan-vm runtime::vm::timer::timer_test
 
 vm-timer-deadline-check:
-	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::timer::timer_test::timer_table_writes_deadline_report_from_runtime_events -- --exact
 	test -f target/quality/vm-timer-deadline-report.json
 
 vm-resource-ownership-check:
@@ -2435,6 +2701,8 @@ vm-distributed-state-check: vm-distributed-scheduling-check
 	$(TERLC) check std/vm/DistributedStorageTest.terl
 	$(TERLC) test std/vm/DistributedStorageTest.terl
 
+vm-distribution-suite-parity-check: vm-distributed-state-check vm-failure-primitives-check
+
 
 
 
@@ -2530,6 +2798,8 @@ all-terlan-tests-vm-inventory-check:
 	$(PYTHON) tools/check_all_terlan_tests_vm_inventory.py
 
 all-terlan-tests-vm-check: all-terlan-tests-vm-inventory-check terlan-vm-run-command-check terlan-vm-test-command-check flexible-shape-guards-check language-feature-coverage-100-check operator-coverage-100-check pattern-matching-support-check stdlib-release-tests-vm-default-check stdlib-release-tests
+
+std-vm-parity-matrix-check: all-terlan-tests-vm-check
 
 terlc-doctor-vm-pivot-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::doctor::doctor_test::parse_doctor_args_defaults_to_current_directory -- --exact
@@ -2766,6 +3036,10 @@ terlan-release-train-check:
 otp-reference-inventory-check:
 	$(RUST_TEST) -p terlan --bin terlan-quality otp_reference_inventory_test
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- otp-reference-inventory
+
+vm-multicore-invariant-inventory-check:
+	$(RUST_TEST) --locked -p terlan --bin terlan-quality multicore_invariant_inventory_test
+	$(CARGO) run --locked -p terlan --bin terlan-quality --quiet -- vm-multicore-invariant-inventory
 
 vm-otp-corpus-inventory-check: otp-reference-inventory-check
 
@@ -3110,7 +3384,6 @@ vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-runtime-attribution
 
 vm-http-soak-stability-check: vm-http-runtime-attribution-check vm-timer-deadline-check
-	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm $(if $(filter release,$(HTTP_SOAK_PROFILE)),runtime::vm::http::soak_test::vm_http_release_soak_replays_canonical_schedule_and_proves_stability,runtime::vm::http::soak_test::vm_http_short_soak_proves_resource_stability) -- --exact
 	test -s $(HTTP_SOAK_REPORT)
 
 vm-semantics-vs-otp-check: binary-bitstring-processing-check

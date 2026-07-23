@@ -1,5 +1,7 @@
 //! Direct execution-shard loader for admitted Terlan AOT images.
 
+#[path = "direct_backend/managed_http_response.rs"]
+mod managed_http_response;
 #[path = "direct_backend/managed_values.rs"]
 mod managed_values;
 
@@ -8,6 +10,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use libloading::{Library, Symbol};
+use smallvec::SmallVec;
 
 use crate::runtime::native_image::control::{TvmControlFrame, TvmTransitionOperation};
 use crate::runtime::native_image::managed::{ManagedExecutionRuntime, SemanticTypeId};
@@ -18,7 +21,10 @@ use crate::runtime::native_image::{
 use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
 
-use super::{decode_native_value, NativeImageBackend, PureNativeExecutionContext};
+use super::{
+    decode_native_value, NativeDecodedResult, NativeImageBackend, NativeResultProjection,
+    PureNativeExecutionContext,
+};
 use managed_values::{allocate_public_managed, materialize_public_managed};
 
 /// Runtime-ABI-2 native image dispatch ABI.
@@ -52,12 +58,16 @@ struct LoadedDirectImage {
     image_identity: String,
     /// Descriptor digest validated against the sealed executable mapping.
     descriptor_digest: [u8; 32],
+    /// Standard HTTP layouts projected once when this image is admitted.
+    http_response_schema: managed_http_response::HttpResponseSchema,
 }
 
 /// Shard-owned direct native dispatch with no application-call IPC.
 pub(crate) struct DirectNativeBackend {
     /// Immutable loaded image shared by independent actor-runtime forks.
     image: Arc<LoadedDirectImage>,
+    /// Shard-local native transition storage reused across synchronous calls.
+    transition_scratch: Vec<i64>,
 }
 
 impl std::fmt::Debug for DirectNativeBackend {
@@ -117,6 +127,8 @@ impl DirectNativeBackend {
             descriptor_digest,
             &descriptor.callables,
         )?;
+        let http_response_schema =
+            managed_http_response::HttpResponseSchema::admit(managed.layout_registry());
         Ok((
             Self {
                 image: Arc::new(LoadedDirectImage {
@@ -128,7 +140,9 @@ impl DirectNativeBackend {
                     continuations: descriptor.continuations,
                     image_identity,
                     descriptor_digest,
+                    http_response_schema,
                 }),
+                transition_scratch: vec![0_i64; transition_capacity],
             },
             managed,
         ))
@@ -154,10 +168,10 @@ impl DirectNativeBackend {
     ) -> Result<TvmControlFrame, String> {
         let owner_id = context.owner_id();
         let mut value = 0_i64;
-        let mut transition_values = vec![0_i64; self.image.transition_capacity];
         let mut transition_len = 0_u64;
         let dispatch = self.image.dispatch;
         let transition_capacity = self.image.transition_capacity;
+        debug_assert_eq!(self.transition_scratch.len(), transition_capacity);
         let status =
             context
                 .managed()
@@ -174,7 +188,7 @@ impl DirectNativeBackend {
                             arguments.as_ptr(),
                             arguments.len() as u64,
                             &mut value,
-                            transition_values.as_mut_ptr(),
+                            self.transition_scratch.as_mut_ptr(),
                             transition_capacity as u64,
                             &mut transition_len,
                         )
@@ -192,7 +206,11 @@ impl DirectNativeBackend {
                 self.image.transition_capacity
             ));
         }
-        transition_values.truncate(transition_len);
+        let transition_values = if status == 0 {
+            Vec::new()
+        } else {
+            self.transition_scratch[..transition_len].to_vec()
+        };
         let mut frame = frame_from_status(request_id, owner_id, status, value, transition_values)?;
         self.validate_result(context, entry_id, &frame)?;
         self.park_transition(context, &mut frame)?;
@@ -261,17 +279,6 @@ impl DirectNativeBackend {
                     .map(|entry| entry.parameters.as_slice())
             })
             .ok_or_else(|| format!("error[execution_shard.entry]: image has no entry {entry_id}"))
-    }
-
-    /// Converts one public runtime value into an owner-local native word.
-    fn encode_argument(
-        &mut self,
-        context: &mut PureNativeExecutionContext<'_>,
-        boundary_type: &TvmBoundaryType,
-        value: &ReplValue,
-    ) -> Result<i64, String> {
-        let owner_id = context.owner_id();
-        encode_public_argument(context.managed(), owner_id, boundary_type, value)
     }
 
     /// Removes managed captures from a transition and retains precise roots.
@@ -365,7 +372,7 @@ impl NativeImageBackend for DirectNativeBackend {
         export_id: u64,
         args: &[ReplValue],
     ) -> Result<TvmControlFrame, String> {
-        let parameters = self.entry_parameters(export_id)?.to_vec();
+        let parameters = self.entry_parameters(export_id)?;
         if parameters.len() != args.len() {
             return Err(format!(
                 "error[execution_shard.arity]: entry {export_id} expects {} arguments, received {}",
@@ -373,11 +380,14 @@ impl NativeImageBackend for DirectNativeBackend {
                 args.len()
             ));
         }
+        let owner_id = context.owner_id();
         let arguments = parameters
             .iter()
             .zip(args)
-            .map(|(boundary_type, value)| self.encode_argument(context, boundary_type, value))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|(boundary_type, value)| {
+                encode_public_argument(context.managed(), owner_id, boundary_type, value)
+            })
+            .collect::<Result<SmallVec<[i64; 4]>, _>>()?;
         self.dispatch(context, request_id, export_id, &arguments)
     }
 
@@ -397,13 +407,26 @@ impl NativeImageBackend for DirectNativeBackend {
         context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-    ) -> Result<ReplValue, String> {
+        projection: NativeResultProjection,
+    ) -> Result<NativeDecodedResult, String> {
+        if projection == NativeResultProjection::HttpResponse {
+            if let Some(response) = managed_http_response::materialize_http_response(
+                context.managed_ref(),
+                &self.image.http_response_schema,
+                context.owner_id(),
+                result_type,
+                value,
+            )? {
+                return Ok(NativeDecodedResult::HttpResponse(response));
+            }
+        }
         decode_public_result(
             context.managed_ref(),
             context.owner_id(),
             result_type,
             value,
         )
+        .map(NativeDecodedResult::Value)
     }
 
     fn decode_transition_value(
@@ -509,9 +532,15 @@ impl NativeImageBackend for DirectNativeBackend {
         Ok(())
     }
 
+    fn reset_owner(&mut self, context: &mut PureNativeExecutionContext<'_>) -> Result<(), String> {
+        context.reset_owner();
+        Ok(())
+    }
+
     fn fork_box(&self) -> Result<Box<dyn NativeImageBackend>, String> {
         Ok(Box::new(Self {
             image: self.image.clone(),
+            transition_scratch: vec![0_i64; self.image.transition_capacity],
         }))
     }
 }

@@ -203,6 +203,16 @@ fn render_map_entries(entries: &[(ReplValue, ReplValue)]) -> String {
 }
 
 impl ReplValue {
+    /// Borrows map entries without cloning the public boundary graph.
+    pub(crate) fn map_entries_ref(&self) -> Option<&[(ReplValue, ReplValue)]> {
+        match self {
+            Self::Map(entries) => Some(entries),
+            #[cfg(test)]
+            Self::MapIndexed(_) => None,
+            _ => None,
+        }
+    }
+
     /// Returns map entries in stable insertion order.
     pub(crate) fn map_entries_owned(&self) -> Option<Vec<(ReplValue, ReplValue)>> {
         match self {

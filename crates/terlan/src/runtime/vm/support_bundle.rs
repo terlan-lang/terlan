@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::multicore_replay::VmMulticoreReplayEvidence;
 use super::native_image_diagnostics::VmNativeImageDiagnosticMetadata;
 use super::process::VmProcessId;
 
@@ -19,6 +20,9 @@ pub(crate) struct VmNativeSupportBundle {
     pub(crate) schema: &'static str,
     /// Structural admitted-image and generation-lifetime metadata.
     pub(crate) native_image: VmNativeImageDiagnosticMetadata,
+    /// Optional bounded evidence from a live multicore runtime generation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) multicore_replay: Option<VmMulticoreReplayEvidence>,
 }
 
 impl VmNativeSupportBundle {
@@ -27,6 +31,19 @@ impl VmNativeSupportBundle {
         Self {
             schema: NATIVE_SUPPORT_BUNDLE_SCHEMA,
             native_image,
+            multicore_replay: None,
+        }
+    }
+
+    /// Attaches validated live scheduler evidence without changing image data.
+    pub(crate) fn with_multicore_replay(
+        native_image: VmNativeImageDiagnosticMetadata,
+        multicore_replay: VmMulticoreReplayEvidence,
+    ) -> Self {
+        Self {
+            schema: NATIVE_SUPPORT_BUNDLE_SCHEMA,
+            native_image,
+            multicore_replay: Some(multicore_replay),
         }
     }
 

@@ -88,11 +88,16 @@ fn benchmark_lookup(
     operation_profile(name, samples, 0)
 }
 
-/// Writes the benchmark report to its explicit or canonical quality path.
-fn write_report(report: &ManagedListProfileReport) {
+/// Writes the benchmark report to its explicit release or isolated test path.
+fn write_report(report: &ManagedListProfileReport) -> PathBuf {
     let path = std::env::var_os("TERLAN_MANAGED_LIST_PROFILE_OUTPUT")
         .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("target/quality/tvm-managed-list-profile.json"));
+        .unwrap_or_else(|| {
+            std::env::temp_dir().join(format!(
+                "terlan-managed-list-profile-{}.json",
+                std::process::id()
+            ))
+        });
     fs::create_dir_all(path.parent().expect("report parent")).expect("create report directory");
     fs::write(
         &path,
@@ -100,6 +105,7 @@ fn write_report(report: &ManagedListProfileReport) {
     )
     .expect("write report");
     println!("managed list profile report: {}", path.display());
+    path
 }
 
 /// Records timing baselines while enforcing deterministic RRB shape budgets.
@@ -229,7 +235,7 @@ fn managed_list_profiles_emit_stable_benchmark_report() {
         build_objects,
     ));
 
-    write_report(&ManagedListProfileReport {
+    let report_path = write_report(&ManagedListProfileReport {
         schema: "terlan.tvm.managed-list-profile.v1",
         benchmark: "managed-list-profile",
         inline_limit: INLINE_LIMIT,
@@ -237,4 +243,8 @@ fn managed_list_profiles_emit_stable_benchmark_report() {
         correctness_verified: true,
         operations,
     });
+    assert!(report_path.is_file());
+    if std::env::var_os("TERLAN_MANAGED_LIST_PROFILE_OUTPUT").is_none() {
+        fs::remove_file(report_path).expect("remove isolated benchmark report");
+    }
 }

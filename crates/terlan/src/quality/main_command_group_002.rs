@@ -320,6 +320,24 @@ fn run_command_group_002(
             }
             Err(message) => failure(message),
         },
+        Some("vm-multicore-invariant-inventory") => {
+            match run_multicore_invariant_inventory(Path::new(".")) {
+                Ok(summary) => {
+                    let classifications = summary
+                        .classification_counts
+                        .iter()
+                        .map(|(name, count)| format!("{name}={count}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    println!(
+                        "[vm-multicore-invariant-inventory] {} entries cover {} domains ({classifications}).",
+                        summary.entry_count, summary.domain_count
+                    );
+                    ExitCode::SUCCESS
+                }
+                Err(message) => failure(message),
+            }
+        }
         Some("otp-test-pipeline-inventory") => {
             match run_otp_test_pipeline_inventory(Path::new(".")) {
                 Ok(summary) => {

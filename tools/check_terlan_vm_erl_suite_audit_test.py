@@ -166,7 +166,7 @@ class SuiteInventoryOverrideTest(unittest.TestCase):
         exact = inventory(
             "terlan-vm/erts/rust/replaced.rs",
             "delete-after-vm-equivalent",
-            "vm-check",
+            "retired-vm-check",
             3,
         )
         files = ["terlan-vm/erts/rust/runtime.rs"]

@@ -113,7 +113,7 @@ fn vm_native_worker_runtime_writes_report_for_complete_gate() {
     assert_eq!(summary.policy_count, 6);
     assert_eq!(summary.trace_case_count, 8);
     assert_eq!(summary.rejected_runtime_count, 8);
-    assert_eq!(summary.canonical_rust_test_count, 17);
+    assert_eq!(summary.canonical_rust_test_count, 15);
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("terlan-vm-native-worker-runtime-report-v2"));
     assert!(report.contains("workerPolicyMatrix"));

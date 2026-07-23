@@ -3,8 +3,9 @@ use std::sync::Arc;
 
 use crate::terlan_typeck::{CoreExpr, CoreFunction, CoreLetBinding, CorePattern};
 
-pub(crate) use model::{NativeBinaryOperator, NativeExpr, NativeTransitionOperation, NativeType};
 pub(crate) use codegen_policy::NativeCodegenPolicy;
+pub(crate) use model::{NativeBinaryOperator, NativeExpr, NativeTransitionOperation, NativeType};
+pub(crate) use request_projection::{native_request_projections, NativeRequestProjection};
 
 pub(crate) use crate::runtime::native_image::{
     TVM_DISPATCH_SYMBOL_V2 as DISPATCH_SYMBOL, TVM_IMAGE_ENTRY_SYMBOL_V1 as IMAGE_ENTRY_SYMBOL,
@@ -18,13 +19,13 @@ use closure_conversion::{
     lower_escaping_closure, lower_escaping_function_reference, NativeCallableShape,
 };
 use constructors::NativeConstructorLayouts;
+#[cfg(test)]
+pub(crate) use cranelift::emit_native_application_object;
 pub(crate) use cranelift::{
     emit_native_application_dispatch_object_with_policy,
     emit_native_application_object_with_policy, emit_native_module_object_with_policy,
     native_application_abi_fingerprint,
 };
-#[cfg(test)]
-pub(crate) use cranelift::emit_native_application_object;
 use expression::{
     expr_is_scalar, free_variables, infer_native_type, infer_native_type_with_constructors,
     lower_expr_with_constructors, native_type,

@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::AtomicU64;
 
 use crate::runtime::vm::actor::VmActorRuntime;
 use crate::runtime::vm::execution_shard_epoch::{
@@ -12,32 +12,62 @@ use crate::runtime::vm::execution_shard_epoch::{
 use crate::runtime::vm::execution_shard_protocol::{
     VmExecutionShardId, VmSealedShardImage, VmShardEpoch,
 };
-use crate::runtime::vm::execution_shard_supervisor::{
-    VmExecutionShardSupervisor, VmShardProtocolVersion, VmShardSupervisorPolicy,
-};
+use crate::runtime::vm::execution_shard_supervisor::VmExecutionShardSupervisor;
 use crate::runtime::vm::http_session::VmHttpSessionService;
+use crate::runtime::vm::multicore_replay::{VmMulticoreEventKind, VmMulticoreReplayCapture};
 use crate::runtime::vm::native_image_diagnostics::VmNativeImageDiagnosticMetadata;
-use crate::runtime::vm::process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessState};
-use crate::runtime::vm::supervision::VmRestartBackoffSchedule;
+use crate::runtime::vm::process::{VmExitReason, VmProcessId};
+use crate::runtime::vm::scheduler::VmSchedulerClass;
+use crate::runtime::vm::scheduler_topology::VmSchedulerId;
 use crate::runtime::vm::support_bundle::VmNativeSupportBundle;
 use crate::runtime::vm::ReplValue;
 
 use super::{
-    PureNativeBoundary, PureNativeExecution, PureNativeExecutionContext,
+    NativeResultProjection, PureNativeBoundary, PureNativeExecution, PureNativeExecutionContext,
     PureNativeExecutionRuntime, PureNativeIoWait, PureNativeIoWake, PureNativeSuspension,
-    VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
+    VmNativeGenerationReferenceClass,
 };
 
-/// Version of the in-process supervisor-to-shard lifecycle contract.
-const LOCAL_SHARD_PROTOCOL_VERSION: u16 = 1;
-/// Number of abnormal shard restarts admitted before quarantine.
-const LOCAL_SHARD_RESTART_BUDGET: u32 = 3;
-/// Initial caller-owned monotonic-tick delay before crash recovery.
-const LOCAL_SHARD_RESTART_INITIAL_TICKS: u64 = 10;
-/// Maximum caller-owned monotonic-tick delay before crash recovery.
-const LOCAL_SHARD_RESTART_MAX_TICKS: u64 = 1_000;
+#[path = "execution_shard/actor_transfer.rs"]
+#[allow(dead_code)] // Staged MC-5 migration API precedes production orchestration.
+mod actor_transfer;
+
+#[path = "execution_shard/generation_lifetime.rs"]
+mod generation_lifetime;
+
+#[path = "execution_shard/lifecycle_replay.rs"]
+mod lifecycle_replay;
+
+#[path = "execution_shard/timer_ingress.rs"]
+mod timer_ingress;
+
+#[path = "execution_shard/capability_ingress.rs"]
+mod capability_ingress;
+
+#[path = "execution_shard/admission.rs"]
+mod admission;
+
+#[path = "execution_shard/http_response.rs"]
+mod http_response;
+
+use admission::{
+    admit_supervisor, allocate_sequence, call_source, lifecycle_error, load_image_components,
+    local_protocol_version, pending_generation_error, shard_identity,
+};
+use generation_lifetime::PureNativeGenerationTransferTracker;
+use lifecycle_replay::PureNativeShardLifecycleReplay;
+
+#[allow(unused_imports)] // Re-exported for staged MC-5 transfer tests.
+pub(crate) use actor_transfer::{PureNativeActorImportFailure, PureNativeActorTransfer};
+pub(crate) use capability_ingress::PureNativeCapabilityWait;
+pub(crate) use timer_ingress::{PureNativeTimerTick, PureNativeTimerWait};
+
+#[cfg(test)]
+#[path = "execution_shard/timer_ingress_test.rs"]
+mod timer_ingress_test;
 
 /// One observable native dispatch step executed inside the owning shard.
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeShardDispatchEvent {
     /// A generated export entered directly from its actor.
@@ -102,12 +132,21 @@ impl PureNativeExecutionImage {
 
     /// Creates one independently mutable actor shard over shared admitted code.
     pub(crate) fn spawn_shard(&self) -> Result<PureNativeExecutionShard, String> {
+        self.spawn_shard_on_scheduler(VmSchedulerId::primary())
+    }
+
+    /// Creates one mutable shard pinned to an explicit scheduler owner.
+    pub(crate) fn spawn_shard_on_scheduler(
+        &self,
+        scheduler: VmSchedulerId,
+    ) -> Result<PureNativeExecutionShard, String> {
         let sequence = allocate_sequence(&self.next_shard_sequence, "image shard")?;
         let shard_id = shard_identity(self.boundary.image_identity()?, sequence)?;
         PureNativeExecutionShard::with_boundary_and_execution(
             self.boundary.fork_empty()?,
             self.execution.fork_empty(),
             shard_id,
+            scheduler,
         )
     }
 }
@@ -126,11 +165,14 @@ pub(crate) struct PureNativeExecutionShard {
     /// Mutable actor heaps and continuations owned by this shard alone.
     execution: PureNativeExecutionRuntime,
     /// Ordered proof that entry and resume stayed on the direct path.
+    #[cfg(test)]
     trace: Vec<NativeShardDispatchEvent>,
     /// Calls that completed through actor-owned execution.
     completed_call_count: u64,
     /// Active admission, readiness, replacement, crash, and stop lifecycle.
     supervisor: VmExecutionShardSupervisor,
+    /// Generation-qualified image, supervision, and shutdown evidence.
+    lifecycle_replay: PureNativeShardLifecycleReplay,
     /// Monotonic identity source for independently supervised child forks.
     #[cfg(test)]
     next_fork_sequence: AtomicU64,
@@ -138,6 +180,8 @@ pub(crate) struct PureNativeExecutionShard {
     next_operation_sequence: AtomicU64,
     /// Runtime-owned pins not discoverable from actor tables directly.
     generation_pins: BTreeMap<VmNativeGenerationReferenceClass, usize>,
+    /// Detached actor envelopes retaining this exact executable generation.
+    generation_transfers: PureNativeGenerationTransferTracker,
 }
 
 impl PureNativeExecutionShard {
@@ -151,26 +195,39 @@ impl PureNativeExecutionShard {
         boundary: PureNativeBoundary,
         execution: PureNativeExecutionRuntime,
         shard_id: VmExecutionShardId,
+        scheduler: VmSchedulerId,
     ) -> Result<Self, String> {
         let sealed_image = boundary.sealed_image()?;
         let supervisor = admit_supervisor(shard_id, sealed_image)?;
+        let epoch = supervisor.epoch().ok_or_else(|| {
+            "error[execution_shard.lifecycle]: admitted shard has no generation".to_string()
+        })?;
+        let lifecycle_replay = PureNativeShardLifecycleReplay::new(scheduler, epoch.as_u64())?;
         Ok(Self {
             boundary,
-            actors: VmActorRuntime::default(),
+            actors: VmActorRuntime::with_scheduler_owner(scheduler.owner_word())?,
             execution,
+            #[cfg(test)]
             trace: Vec::new(),
             completed_call_count: 0,
             supervisor,
+            lifecycle_replay,
             #[cfg(test)]
             next_fork_sequence: AtomicU64::new(1),
             next_operation_sequence: AtomicU64::new(1),
             generation_pins: BTreeMap::new(),
+            generation_transfers: PureNativeGenerationTransferTracker::default(),
         })
     }
 
     /// Returns whether the admitted image owns one exact export.
     pub(crate) fn has_export(&self, function: &str, arity: usize) -> bool {
         self.boundary.has_export(function, arity)
+    }
+
+    /// Returns the exact supervised shard identity used by typed I/O waits.
+    pub(crate) fn shard_id(&self) -> &VmExecutionShardId {
+        self.supervisor.shard_id()
     }
 
     /// Returns the whole-image digest bound to the loaded executable mapping.
@@ -185,34 +242,81 @@ impl PureNativeExecutionShard {
         args: &[ReplValue],
     ) -> Result<(VmProcessId, PureNativeExecution), String> {
         self.require_routable("begin_call")?;
-        let operation = self.begin_epoch_operation(
-            "begin_call",
-            VmShardOperationKind::ActorRoute,
-            VmShardReplayPolicy::AtMostOnce,
-        )?;
-        let owner = self.actors.spawn_root(call_source(function, args.len()));
-        self.trace.push(NativeShardDispatchEvent::Entry { owner });
-        let execution = {
-            let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
-            match self
-                .boundary
-                .begin_call_for_actor(&mut self.actors, &mut context, function, args)
-            {
-                Ok(execution) => execution,
-                Err(error) => {
-                    let cleanup = self.finish_owner(owner, VmExitReason::Error(error.clone()));
-                    return match cleanup {
-                        Ok(()) => Err(error),
-                        Err(cleanup_error) => Err(format!(
-                            "{error}; error[execution_shard.cleanup]: {cleanup_error}"
-                        )),
-                    };
-                }
+        let owner = self
+            .actors
+            .spawn_fixed_owner_root(call_source(function, args.len()));
+        self.begin_call_for_owner(owner, function, args)
+            .map(|execution| (owner, execution))
+    }
+
+    /// Creates one long-lived service actor on this shard's fixed owner.
+    pub(crate) fn spawn_fixed_owner_actor(
+        &mut self,
+        function: &str,
+        arity: usize,
+    ) -> Result<VmProcessId, String> {
+        self.require_routable("spawn_fixed_owner_actor")?;
+        Ok(self
+            .actors
+            .spawn_fixed_owner_root(call_source(function, arity)))
+    }
+
+    /// Runs one complete synchronous call on an existing fixed-owner actor.
+    pub(crate) fn call_on_fixed_owner(
+        &mut self,
+        owner: VmProcessId,
+        function: &str,
+        args: &[ReplValue],
+    ) -> Result<ReplValue, String> {
+        if !self.actors.is_alive(owner) {
+            return Err(format!(
+                "error[execution_shard.fixed_owner]: actor {} is not alive",
+                owner.as_u64()
+            ));
+        }
+        let result = (|| {
+            let mut execution = self.begin_fixed_owner_call_with_projection(
+                owner,
+                function,
+                args,
+                NativeResultProjection::PublicValue,
+            )?;
+            loop {
+                execution = match execution {
+                    PureNativeExecution::Complete(value) => {
+                        self.reset_owner_heap(owner)?;
+                        return Ok(value);
+                    }
+                    PureNativeExecution::HttpResponse(_) => {
+                        return Err("error[execution_shard.result_projection]: HTTP response returned through a public-value call".to_string())
+                    }
+                    PureNativeExecution::Suspended(suspension) => {
+                        self.resume_call(owner, suspension)?
+                    }
+                };
             }
-        };
-        self.record_completion(owner, &execution);
-        self.commit_epoch_operation(operation)?;
-        Ok((owner, execution))
+        })();
+        if result.is_err() && self.actors.is_alive(owner) {
+            let _ = self.finish_owner(
+                owner,
+                VmExitReason::Error("fixed-owner call failed".to_string()),
+            );
+        }
+        result
+    }
+
+    fn begin_call_for_owner(
+        &mut self,
+        owner: VmProcessId,
+        function: &str,
+        args: &[ReplValue],
+    ) -> Result<PureNativeExecution, String> {
+        self.begin_call_for_owner_with_projection(
+            owner,
+            function,
+            args,
+            NativeResultProjection::PublicValue,
+        )
     }
 
     /// Resumes one parked generated continuation for its exact local actor.
@@ -240,8 +344,23 @@ impl PureNativeExecutionShard {
         owner: VmProcessId,
         suspension: &PureNativeSuspension,
     ) -> Result<PureNativeIoWait, String> {
-        self.require_active_epoch("io_wait")?;
-        PureNativeIoWait::from_suspension(self.supervisor.shard_id().clone(), owner, suspension)
+        let epoch = self.require_active_epoch("io_wait")?;
+        PureNativeIoWait::from_suspension(
+            self.supervisor.shard_id().clone(),
+            epoch,
+            owner,
+            suspension,
+        )
+    }
+
+    /// Returns the scheduling class selected by the generated actor.
+    pub(crate) fn scheduler_class(&self, owner: VmProcessId) -> Result<VmSchedulerClass, String> {
+        self.actors.scheduler_class(owner).ok_or_else(|| {
+            format!(
+                "error[pure_native_scheduler_class]: actor {} has no scheduler class",
+                owner.as_u64()
+            )
+        })
     }
 
     /// Applies one authorized continuation resume under this shard's active epoch.
@@ -251,7 +370,7 @@ impl PureNativeExecutionShard {
         suspension: PureNativeSuspension,
         wake: Option<PureNativeIoWake>,
     ) -> Result<PureNativeExecution, String> {
-        self.require_active_epoch("resume_call")?;
+        let epoch = self.require_active_epoch("resume_call")?;
         if suspension.owner_id() != owner.as_u64() {
             return Err(format!(
                 "error[pure_native_owner]: actor {} cannot resume owner {}",
@@ -260,10 +379,12 @@ impl PureNativeExecutionShard {
             ));
         }
         if let Some(wake) = &wake {
-            if let Err(error) =
-                wake.wait()
-                    .validate_suspension(self.supervisor.shard_id(), owner, &suspension)
-            {
+            if let Err(error) = wake.wait().validate_suspension(
+                self.supervisor.shard_id(),
+                epoch,
+                owner,
+                &suspension,
+            ) {
                 let cleanup = self.finish_owner(owner, VmExitReason::Error(error.clone()));
                 return match cleanup {
                     Ok(()) => Err(error),
@@ -273,11 +394,12 @@ impl PureNativeExecutionShard {
                 };
             }
         }
-        let operation = self.begin_epoch_operation(
+        let operation = self.begin_internal_epoch_operation(
             "resume_call",
             VmShardOperationKind::ContinuationResume,
             VmShardReplayPolicy::AtMostOnce,
         )?;
+        #[cfg(test)]
         self.trace.push(NativeShardDispatchEvent::Resume {
             owner,
             continuation_id: suspension.continuation_id(),
@@ -301,6 +423,7 @@ impl PureNativeExecutionShard {
         let execution = match execution {
             Ok(execution) => execution,
             Err(error) => {
+                let _ = self.supervisor.abort_internal_operation(operation);
                 let cleanup = self.finish_owner(owner, VmExitReason::Error(error.clone()));
                 return match cleanup {
                     Ok(()) => Err(error),
@@ -311,7 +434,7 @@ impl PureNativeExecutionShard {
             }
         };
         self.record_completion(owner, &execution);
-        self.commit_epoch_operation(operation)?;
+        self.commit_internal_epoch_operation(operation)?;
         Ok(execution)
     }
 
@@ -323,6 +446,15 @@ impl PureNativeExecutionShard {
                 PureNativeExecution::Complete(value) => {
                     self.finish_owner(owner, VmExitReason::Normal)?;
                     return Ok(value);
+                }
+                PureNativeExecution::HttpResponse(_) => {
+                    self.finish_owner(
+                        owner,
+                        VmExitReason::Error(
+                            "HTTP response returned through a public-value call".to_string(),
+                        ),
+                    )?;
+                    return Err("error[execution_shard.result_projection]: HTTP response returned through a public-value call".to_string());
                 }
                 PureNativeExecution::Suspended(suspension) => {
                     self.resume_call(owner, suspension)?
@@ -357,79 +489,9 @@ impl PureNativeExecutionShard {
         })
     }
 
-    /// Pins one runtime reference that cannot be inferred from actor tables.
-    pub(crate) fn pin_generation_reference(
-        &mut self,
-        class: VmNativeGenerationReferenceClass,
-    ) -> Result<(), String> {
-        let count = self.generation_pins.entry(class).or_default();
-        *count = count.checked_add(1).ok_or_else(|| {
-            format!(
-                "error[execution_shard.generation_pin]: {} reference count overflowed",
-                class.name()
-            )
-        })?;
-        Ok(())
-    }
-
-    /// Releases one externally tracked generation reference exactly once.
-    pub(crate) fn release_generation_reference(
-        &mut self,
-        class: VmNativeGenerationReferenceClass,
-    ) -> Result<(), String> {
-        let Some(count) = self.generation_pins.get_mut(&class) else {
-            return Err(format!(
-                "error[execution_shard.generation_pin]: {} has no reference to release",
-                class.name()
-            ));
-        };
-        *count -= 1;
-        if *count == 0 {
-            self.generation_pins.remove(&class);
-        }
-        Ok(())
-    }
-
-    /// Captures every runtime reference that prevents generation unload.
-    pub(crate) fn generation_references(&self) -> VmNativeGenerationReferenceSnapshot {
-        let processes = self.actors.processes().snapshots();
-        let live = processes
-            .iter()
-            .filter(|process| !matches!(process.state, VmProcessState::Exited(_)))
-            .collect::<Vec<_>>();
-        let parked_continuations = self
-            .execution
-            .pending_continuation_count()
-            .max(self.actors.pending_native_continuation_count());
-        let mut snapshot = VmNativeGenerationReferenceSnapshot::new();
-        snapshot.record(VmNativeGenerationReferenceClass::NativeFrame, live.len());
-        snapshot.record(
-            VmNativeGenerationReferenceClass::ParkedContinuation,
-            parked_continuations,
-        );
-        snapshot.record(
-            VmNativeGenerationReferenceClass::ActorHeap,
-            self.execution.managed_ref().actor_count(),
-        );
-        snapshot.record(
-            VmNativeGenerationReferenceClass::MailboxFragment,
-            live.iter().map(|process| process.mailbox_messages).sum(),
-        );
-        snapshot.record(
-            VmNativeGenerationReferenceClass::Timer,
-            self.actors.timer_snapshots().len(),
-        );
-        snapshot.record(
-            VmNativeGenerationReferenceClass::Resource,
-            self.actors.resource_snapshots().len(),
-        );
-        snapshot.record(VmNativeGenerationReferenceClass::AsyncCapabilityCallback, 0);
-        snapshot.record(VmNativeGenerationReferenceClass::Debugger, 0);
-        snapshot.record(VmNativeGenerationReferenceClass::CrashMetadata, 0);
-        for (class, count) in &self.generation_pins {
-            snapshot.add(*class, *count);
-        }
-        snapshot
+    /// Captures bounded image, supervision, and shutdown lifecycle evidence.
+    pub(crate) fn lifecycle_replay_capture(&self) -> Result<VmMulticoreReplayCapture, String> {
+        self.lifecycle_replay.capture()
     }
 
     /// Captures immutable identity and current lifetime state for diagnostics.
@@ -460,6 +522,7 @@ impl PureNativeExecutionShard {
             self.boundary.fork_empty()?,
             self.execution.fork_empty(),
             shard_id,
+            VmSchedulerId::primary(),
         )
     }
 
@@ -473,8 +536,9 @@ impl PureNativeExecutionShard {
         self.supervisor
             .begin_drain(epoch)
             .map_err(|error| lifecycle_error("begin shutdown drain", error))?;
+        self.record_lifecycle(VmMulticoreEventKind::ShutdownStarted, epoch, None)?;
         if let Err(error) = self.boundary.shutdown() {
-            let _ = self.supervisor.report_crash_with_lifetime(
+            let _ = self.report_crash_with_references(
                 format!("native backend shutdown failed: {error}"),
                 0,
                 &references,
@@ -488,6 +552,7 @@ impl PureNativeExecutionShard {
             .acknowledge_stopped(epoch)
             .map_err(|error| lifecycle_error("acknowledge graceful stop", error))?;
         self.execution = self.execution.fork_empty();
+        self.record_lifecycle(VmMulticoreEventKind::Shutdown, epoch, None)?;
         Ok(())
     }
 
@@ -559,6 +624,10 @@ impl PureNativeExecutionShard {
         candidate_execution: PureNativeExecutionRuntime,
     ) -> Result<VmShardEpoch, String> {
         self.reject_duplicate_generation(&candidate_boundary)?;
+        let references = self.generation_references();
+        if !references.is_quiescent() {
+            return Err(pending_generation_error(self.generation()?, &references));
+        }
         let candidate_image = candidate_boundary.sealed_image()?;
         let current_epoch = self.require_routable("replace_image")?;
         self.supervisor
@@ -609,7 +678,7 @@ impl PureNativeExecutionShard {
     ) -> Result<VmShardEpoch, String> {
         if let Err(error) = self.boundary.shutdown() {
             let references = self.generation_references();
-            let _ = self.supervisor.report_crash_with_lifetime(
+            let _ = self.report_crash_with_references(
                 format!("native backend replacement shutdown failed: {error}"),
                 0,
                 &references,
@@ -624,26 +693,58 @@ impl PureNativeExecutionShard {
         self.execution = candidate_execution;
         self.actors = VmActorRuntime::default();
         self.generation_pins.clear();
+        self.generation_transfers = PureNativeGenerationTransferTracker::default();
         self.supervisor
             .acknowledge_ready(replacement_epoch)
             .map_err(|error| lifecycle_error("publish replacement readiness", error))?;
         self.supervisor
             .signal_health(replacement_epoch, 1)
             .map_err(|error| lifecycle_error("publish replacement health", error))?;
+        self.record_lifecycle(
+            VmMulticoreEventKind::ImageGeneration,
+            replacement_epoch,
+            None,
+        )?;
         Ok(replacement_epoch)
     }
 
     /// Records an abnormal shard failure under the active supervised epoch.
-    #[cfg(test)]
     pub(crate) fn report_crash(
         &mut self,
         reason: impl Into<String>,
         observed_tick: u64,
     ) -> Result<(), String> {
         let references = self.generation_references();
+        self.report_crash_with_references(reason, observed_tick, &references)
+    }
+
+    /// Records a supervised crash and its bounded restart decision.
+    fn report_crash_with_references(
+        &mut self,
+        reason: impl Into<String>,
+        observed_tick: u64,
+        references: &crate::runtime::vm::native_image_diagnostics::VmNativeGenerationReferenceSnapshot,
+    ) -> Result<(), String> {
+        let epoch = self.generation()?;
         self.supervisor
-            .report_crash_with_lifetime(reason, observed_tick, &references)
-            .map_err(|error| lifecycle_error("report native shard crash", error))
+            .report_crash_with_lifetime(reason, observed_tick, references)
+            .map_err(|error| lifecycle_error("report native shard crash", error))?;
+        let restart_count = u64::from(self.supervisor.restart_count());
+        self.record_lifecycle(
+            VmMulticoreEventKind::SupervisionFailed,
+            epoch,
+            Some(restart_count),
+        )?;
+        if self.supervisor.phase()
+            == crate::runtime::vm::execution_shard_supervisor::VmShardPhase::RestartBackoff
+        {
+            self.record_lifecycle(
+                VmMulticoreEventKind::SupervisionRestartScheduled,
+                epoch,
+                Some(restart_count),
+            )?;
+        }
+        Ok(())
     }
 
     /// Recovers a crashed shard with a newly validated image after backoff.
@@ -664,6 +765,10 @@ impl PureNativeExecutionShard {
         candidate_execution: PureNativeExecutionRuntime,
         now_tick: u64,
     ) -> Result<VmShardEpoch, String> {
+        let references = self.generation_references();
+        if references.count(VmNativeGenerationReferenceClass::ActorTransfer) > 0 {
+            return Err(pending_generation_error(self.generation()?, &references));
+        }
         let candidate_image = candidate_boundary.sealed_image()?;
         self.supervisor
             .restart_when_due(now_tick)
@@ -678,19 +783,45 @@ impl PureNativeExecutionShard {
         self.boundary = candidate_boundary;
         self.execution = candidate_execution;
         self.actors = VmActorRuntime::default();
+        self.generation_pins.clear();
+        self.generation_transfers = PureNativeGenerationTransferTracker::default();
         self.supervisor
             .acknowledge_ready(recovered_epoch)
             .map_err(|error| lifecycle_error("publish recovered readiness", error))?;
         self.supervisor
             .signal_health(recovered_epoch, 1)
             .map_err(|error| lifecycle_error("publish recovered health", error))?;
+        let restart_count = u64::from(self.supervisor.restart_count());
+        self.record_lifecycle(
+            VmMulticoreEventKind::SupervisionRestarted,
+            recovered_epoch,
+            Some(restart_count),
+        )?;
+        self.record_lifecycle(VmMulticoreEventKind::ImageGeneration, recovered_epoch, None)?;
         Ok(recovered_epoch)
+    }
+
+    /// Records one lifecycle transition under its exact admitted generation.
+    fn record_lifecycle(
+        &mut self,
+        kind: VmMulticoreEventKind,
+        epoch: VmShardEpoch,
+        operation_sequence: Option<u64>,
+    ) -> Result<(), String> {
+        self.lifecycle_replay
+            .record(kind, epoch.as_u64(), operation_sequence)
     }
 
     /// Records one successful generated return exactly once.
     fn record_completion(&mut self, owner: VmProcessId, execution: &PureNativeExecution) {
-        if matches!(execution, PureNativeExecution::Complete(_)) {
+        #[cfg(not(test))]
+        let _ = owner;
+        if matches!(
+            execution,
+            PureNativeExecution::Complete(_) | PureNativeExecution::HttpResponse(_)
+        ) {
             self.completed_call_count = self.completed_call_count.saturating_add(1);
+            #[cfg(test)]
             self.trace
                 .push(NativeShardDispatchEvent::Complete { owner });
         }
@@ -707,8 +838,19 @@ impl PureNativeExecutionShard {
         } else if self.actors.processes().get(owner).is_none() {
             return Err(format!("missing process {}", owner.as_u64()));
         }
+        self.release_owner_heap(owner)?;
+        self.actors.reap_exited_actors()?;
+        Ok(())
+    }
+
+    fn release_owner_heap(&mut self, owner: VmProcessId) -> Result<(), String> {
         let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
         self.boundary.release_owner(&mut context)
+    }
+
+    fn reset_owner_heap(&mut self, owner: VmProcessId) -> Result<(), String> {
+        let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
+        self.boundary.reset_owner(&mut context)
     }
 
     /// Requires this shard to own one fully acknowledged routable image.
@@ -746,11 +888,7 @@ impl PureNativeExecutionShard {
         kind: VmShardOperationKind,
         replay_policy: VmShardReplayPolicy,
     ) -> Result<VmShardEpochOperation, String> {
-        let epoch = self.require_active_epoch(label)?;
-        let sequence = allocate_sequence(&self.next_operation_sequence, "shard operation")?;
-        let operation_id = VmShardOperationId::new(sequence)
-            .map_err(|error| lifecycle_error("allocate shard operation identity", error))?;
-        let operation = VmShardEpochOperation::new(operation_id, epoch, kind, replay_policy);
+        let operation = self.new_epoch_operation(label, kind, replay_policy)?;
         match self
             .supervisor
             .begin_epoch_operation(operation)
@@ -758,9 +896,49 @@ impl PureNativeExecutionShard {
         {
             VmShardOperationAdmission::ExecuteFirst => Ok(operation),
             admission => Err(format!(
-                "error[execution_shard.operation_admission]: fresh operation {sequence} received {admission:?}"
+                "error[execution_shard.operation_admission]: fresh operation {} received {admission:?}",
+                operation.id.as_u64()
             )),
         }
+    }
+
+    /// Admits one non-resubmittable owner-local step without a tree allocation.
+    fn begin_internal_epoch_operation(
+        &mut self,
+        label: &'static str,
+        kind: VmShardOperationKind,
+        replay_policy: VmShardReplayPolicy,
+    ) -> Result<VmShardEpochOperation, String> {
+        let operation = self.new_epoch_operation(label, kind, replay_policy)?;
+        match self
+            .supervisor
+            .begin_internal_operation(operation)
+            .map_err(|error| lifecycle_error("admit internal shard operation", error))?
+        {
+            VmShardOperationAdmission::ExecuteFirst => Ok(operation),
+            admission => Err(format!(
+                "error[execution_shard.operation_admission]: fresh internal operation {} received {admission:?}",
+                operation.id.as_u64()
+            )),
+        }
+    }
+
+    fn new_epoch_operation(
+        &mut self,
+        label: &'static str,
+        kind: VmShardOperationKind,
+        replay_policy: VmShardReplayPolicy,
+    ) -> Result<VmShardEpochOperation, String> {
+        let epoch = self.require_active_epoch(label)?;
+        let sequence = allocate_sequence(&self.next_operation_sequence, "shard operation")?;
+        let operation_id = VmShardOperationId::new(sequence)
+            .map_err(|error| lifecycle_error("allocate shard operation identity", error))?;
+        Ok(VmShardEpochOperation::new(
+            operation_id,
+            epoch,
+            kind,
+            replay_policy,
+        ))
     }
 
     /// Commits one direct native execution step and advances observable progress.
@@ -770,104 +948,45 @@ impl PureNativeExecutionShard {
             .commit_epoch_operation(operation)
             .map_err(|error| lifecycle_error("commit shard operation", error))?
         {
-            VmShardOperationCommit::Committed => self
-                .supervisor
-                .signal_progress(operation.epoch, operation.id.as_u64())
-                .map_err(|error| lifecycle_error("publish shard operation progress", error)),
+            VmShardOperationCommit::Committed => {
+                self.supervisor
+                    .signal_progress(operation.epoch, operation.id.as_u64())
+                    .map_err(|error| lifecycle_error("publish shard operation progress", error))?;
+                if !self.supervisor.retire_internal_operation(operation) {
+                    return Err(format!(
+                        "error[execution_shard.operation_retirement]: committed internal operation {} was not retained",
+                        operation.id.as_u64()
+                    ));
+                }
+                Ok(())
+            }
             VmShardOperationCommit::AlreadyCommitted => Err(format!(
                 "error[execution_shard.operation_commit]: fresh operation {} was already committed",
                 operation.id.as_u64()
             )),
         }
     }
-}
 
-/// Loads one validated boundary and its empty managed execution state.
-fn load_image_components(
-    path: &Path,
-) -> Result<(PureNativeBoundary, PureNativeExecutionRuntime), String> {
-    let (boundary, managed) = PureNativeBoundary::load_image(path)?;
-    Ok((boundary, PureNativeExecutionRuntime::from_managed(managed)))
-}
-
-/// Creates and fully admits one active local shard supervisor.
-fn admit_supervisor(
-    shard_id: VmExecutionShardId,
-    image: VmSealedShardImage,
-) -> Result<VmExecutionShardSupervisor, String> {
-    let protocol = local_protocol_version();
-    let policy = VmShardSupervisorPolicy::new(
-        protocol,
-        LOCAL_SHARD_RESTART_BUDGET,
-        VmRestartBackoffSchedule::exponential(
-            LOCAL_SHARD_RESTART_INITIAL_TICKS,
-            LOCAL_SHARD_RESTART_MAX_TICKS,
-        ),
-    );
-    let mut supervisor = VmExecutionShardSupervisor::new(shard_id, policy);
-    supervisor
-        .begin_negotiation()
-        .map_err(|error| lifecycle_error("begin native shard negotiation", error))?;
-    supervisor
-        .negotiate(protocol)
-        .map_err(|error| lifecycle_error("negotiate native shard", error))?;
-    let epoch = supervisor
-        .admit_image(image)
-        .map_err(|error| lifecycle_error("admit native shard image", error))?;
-    supervisor
-        .acknowledge_ready(epoch)
-        .map_err(|error| lifecycle_error("publish native shard readiness", error))?;
-    supervisor
-        .signal_health(epoch, 1)
-        .map_err(|error| lifecycle_error("publish native shard health", error))?;
-    Ok(supervisor)
-}
-
-/// Returns the single protocol version implemented by the local shard path.
-fn local_protocol_version() -> VmShardProtocolVersion {
-    VmShardProtocolVersion::new(LOCAL_SHARD_PROTOCOL_VERSION)
-        .expect("constant local shard protocol version must be nonzero")
-}
-
-/// Allocates one nonzero sequence without wrapping or reusing identities.
-fn allocate_sequence(sequence: &AtomicU64, kind: &str) -> Result<u64, String> {
-    sequence
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-            current.checked_add(1)
-        })
-        .map_err(|_| format!("error[execution_shard.identity]: {kind} identity space exhausted"))
-}
-
-/// Builds a stable shard identity from admitted image metadata and sequence.
-fn shard_identity(image_identity: &str, sequence: u64) -> Result<VmExecutionShardId, String> {
-    VmExecutionShardId::new(format!("{image_identity}.shard-{sequence}"))
-        .map_err(|error| lifecycle_error("create native shard identity", error))
-}
-
-/// Renders one stable lifecycle diagnostic at the active shard boundary.
-fn lifecycle_error(context: &str, error: impl std::fmt::Debug) -> String {
-    format!("error[execution_shard.lifecycle]: {context}: {error:?}")
-}
-
-/// Renders one stable proof that a native generation remains reachable.
-fn pending_generation_error(
-    epoch: VmShardEpoch,
-    references: &VmNativeGenerationReferenceSnapshot,
-) -> String {
-    format!(
-        "error[execution_shard.generation_references]: epoch={} total={} references={}",
-        epoch.as_u64(),
-        references.total(),
-        references.render_pending()
-    )
-}
-
-/// Derives an inspection-only process source from a qualified export name.
-fn call_source(function: &str, arity: usize) -> VmProcessSource {
-    let (module, function) = function
-        .rsplit_once('.')
-        .unwrap_or(("native.Image", function));
-    VmProcessSource::new(module, function, arity)
+    /// Commits one scalar owner-local step and advances observable progress.
+    fn commit_internal_epoch_operation(
+        &mut self,
+        operation: VmShardEpochOperation,
+    ) -> Result<(), String> {
+        match self
+            .supervisor
+            .commit_internal_operation(operation)
+            .map_err(|error| lifecycle_error("commit internal shard operation", error))?
+        {
+            VmShardOperationCommit::Committed => self
+                .supervisor
+                .signal_progress(operation.epoch, operation.id.as_u64())
+                .map_err(|error| lifecycle_error("publish shard operation progress", error)),
+            VmShardOperationCommit::AlreadyCommitted => Err(format!(
+                "error[execution_shard.operation_commit]: fresh internal operation {} was already committed",
+                operation.id.as_u64()
+            )),
+        }
+    }
 }
 
 #[cfg(test)]

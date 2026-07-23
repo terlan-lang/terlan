@@ -1,11 +1,13 @@
 //! Descriptor-directed managed-value conversion at the direct native boundary.
 
-use std::collections::BTreeSet;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
+use smallvec::SmallVec;
+
 use crate::runtime::native_image::managed::{
-    ActorHeap, ManagedAggregate, ManagedAggregateDescriptor, ManagedAggregateKind,
+    managed_binary_semantic_id, managed_bytes_semantic_id, managed_string_semantic_id, ActorHeap,
+    ManagedAggregate, ManagedAggregateDescriptor, ManagedAggregateKind,
     ManagedCollectionDescriptor, ManagedCollectionKind, ManagedFieldType, ManagedFieldValue,
     ManagedKeySemantics, ManagedLayoutRegistry, ManagedList, ManagedMap, ManagedMemoryError,
     ManagedScalarKeySemantics, ManagedSet, SemanticTypeId, TvmRef,
@@ -15,6 +17,47 @@ use crate::runtime::vm::ReplValue;
 
 const MAX_PUBLIC_MANAGED_DEPTH: usize = 256;
 const MAX_PUBLIC_MANAGED_VALUES: usize = 65_536;
+const INLINE_AGGREGATE_FIELDS: usize = 16;
+const INLINE_COLLECTION_ELEMENTS: usize = 8;
+const INLINE_ACTIVE_REFERENCES: usize = 16;
+
+#[derive(Default)]
+struct AllocationMemo {
+    // One public request normally contains only a handful of empty typed
+    // collections. Keeping their canonical references inline avoids a tree
+    // node allocation for each request while preserving semantic identity.
+    empty_collections: SmallVec<[(SemanticTypeId, TvmRef<()>); INLINE_COLLECTION_ELEMENTS]>,
+    // Projected fixed envelopes often contain several unobservable empty
+    // sequence placeholders of the same semantic type. One immutable value is
+    // enough for the complete request graph.
+    empty_sequences: SmallVec<[(SemanticTypeId, TvmRef<()>); 3]>,
+}
+
+impl AllocationMemo {
+    fn empty_collection(&self, semantic: SemanticTypeId) -> Option<TvmRef<()>> {
+        self.empty_collections
+            .iter()
+            .find_map(|(candidate, reference)| (*candidate == semantic).then_some(*reference))
+    }
+
+    fn remember_empty_collection(&mut self, semantic: SemanticTypeId, reference: TvmRef<()>) {
+        debug_assert!(self.empty_collection(semantic).is_none());
+        self.empty_collections.push((semantic, reference));
+    }
+
+    fn empty_sequence(&self, semantic: SemanticTypeId) -> Option<TvmRef<()>> {
+        self.empty_sequences
+            .iter()
+            .find_map(|(candidate, reference)| (*candidate == semantic).then_some(*reference))
+    }
+
+    fn remember_empty_sequence(&mut self, semantic: SemanticTypeId, reference: TvmRef<()>) {
+        debug_assert!(self.empty_sequence(semantic).is_none());
+        self.empty_sequences.push((semantic, reference));
+    }
+}
+
+type ActiveReferences = SmallVec<[u64; INLINE_ACTIVE_REFERENCES]>;
 
 /// Allocates one complete public managed graph through an admitted root identity.
 pub(super) fn allocate_public_managed(
@@ -24,7 +67,8 @@ pub(super) fn allocate_public_managed(
     value: &ReplValue,
 ) -> Result<i64, String> {
     let mut budget = MAX_PUBLIC_MANAGED_VALUES;
-    let reference = allocate_managed(heap, layouts, semantic, value, 0, &mut budget)?;
+    let mut memo = AllocationMemo::default();
+    let reference = allocate_managed(heap, layouts, semantic, value, 0, &mut budget, &mut memo)?;
     Ok(i64::from_ne_bytes(
         reference.encoded_abi_word().to_ne_bytes(),
     ))
@@ -54,7 +98,7 @@ pub(super) fn materialize_public_managed(
         reference,
         0,
         &mut budget,
-        &mut BTreeSet::new(),
+        &mut ActiveReferences::new(),
     )
 }
 
@@ -66,11 +110,12 @@ fn allocate_managed(
     value: &ReplValue,
     depth: usize,
     budget: &mut usize,
+    memo: &mut AllocationMemo,
 ) -> Result<TvmRef<()>, String> {
     if let Some(descriptor) = layouts.collection(semantic) {
-        return allocate_collection(heap, layouts, descriptor, value, depth, budget);
+        return allocate_collection(heap, layouts, descriptor, value, depth, budget, memo);
     }
-    allocate_aggregate(heap, layouts, semantic, value, depth, budget)
+    allocate_aggregate(heap, layouts, semantic, value, depth, budget, memo)
 }
 
 /// Allocates one collection through its existing actor-heap storage profile.
@@ -81,6 +126,7 @@ fn allocate_collection(
     value: &ReplValue,
     depth: usize,
     budget: &mut usize,
+    memo: &mut AllocationMemo,
 ) -> Result<TvmRef<()>, String> {
     consume_budget(depth, budget)?;
     match descriptor.kind() {
@@ -88,51 +134,115 @@ fn allocate_collection(
             let ReplValue::List(elements) = value else {
                 return collection_mismatch("List", value);
             };
+            if elements.is_empty() {
+                if let Some(reference) = memo.empty_collection(descriptor.semantic_id()) {
+                    return Ok(reference);
+                }
+            }
             let list = descriptor.list_descriptor().expect("checked list schema");
-            let elements = elements
-                .iter()
-                .map(|value| {
-                    allocate_field(heap, layouts, list.element_type(), value, depth + 1, budget)
-                })
-                .collect::<Result<Vec<_>, _>>()?;
-            heap.list_from_elements(list, &elements)
+            let mut allocated =
+                SmallVec::<[ManagedFieldValue; INLINE_COLLECTION_ELEMENTS]>::with_capacity(
+                    elements.len(),
+                );
+            for value in elements {
+                allocated.push(allocate_field(
+                    heap,
+                    layouts,
+                    list.element_type(),
+                    value,
+                    depth + 1,
+                    budget,
+                    memo,
+                )?);
+            }
+            let reference = heap
+                .list_from_elements(list, &allocated)
                 .map(TvmRef::erase)
-                .map_err(managed_allocation_error)
+                .map_err(managed_allocation_error)?;
+            if allocated.is_empty() {
+                memo.remember_empty_collection(descriptor.semantic_id(), reference);
+            }
+            Ok(reference)
         }
         ManagedCollectionKind::Map => {
-            let entries = value
-                .map_entries_owned()
-                .ok_or_else(|| collection_type_error("Map", value))?;
+            let owned;
+            let entries = if let Some(entries) = value.map_entries_ref() {
+                entries
+            } else {
+                owned = value
+                    .map_entries_owned()
+                    .ok_or_else(|| collection_type_error("Map", value))?;
+                owned.as_slice()
+            };
+            if entries.is_empty() {
+                if let Some(reference) = memo.empty_collection(descriptor.semantic_id()) {
+                    return Ok(reference);
+                }
+            }
             let map = descriptor.map_descriptor().expect("checked map schema");
-            let entries = entries
-                .iter()
-                .map(|(key, value)| {
-                    Ok((
-                        allocate_field(heap, layouts, map.key_type(), key, depth + 1, budget)?,
-                        allocate_field(heap, layouts, map.value_type(), value, depth + 1, budget)?,
-                    ))
-                })
-                .collect::<Result<Vec<_>, String>>()?;
+            let mut allocated = SmallVec::<
+                [(ManagedFieldValue, ManagedFieldValue); INLINE_COLLECTION_ELEMENTS],
+            >::with_capacity(entries.len());
+            for (key, value) in entries {
+                allocated.push((
+                    allocate_field(heap, layouts, map.key_type(), key, depth + 1, budget, memo)?,
+                    allocate_field(
+                        heap,
+                        layouts,
+                        map.value_type(),
+                        value,
+                        depth + 1,
+                        budget,
+                        memo,
+                    )?,
+                ));
+            }
             let mut semantics = PublicKeySemantics::new(layouts, map.key_type(), *budget);
-            let result = heap.map_from_entries(map, &entries, &mut semantics);
+            let result = heap.map_from_entries(map, &allocated, &mut semantics);
             *budget = semantics.remaining_budget();
-            result.map(TvmRef::erase).map_err(managed_allocation_error)
+            let reference = result
+                .map(TvmRef::erase)
+                .map_err(managed_allocation_error)?;
+            if allocated.is_empty() {
+                memo.remember_empty_collection(descriptor.semantic_id(), reference);
+            }
+            Ok(reference)
         }
         ManagedCollectionKind::Set => {
             let ReplValue::Set(elements) = value else {
                 return collection_mismatch("Set", value);
             };
+            if elements.is_empty() {
+                if let Some(reference) = memo.empty_collection(descriptor.semantic_id()) {
+                    return Ok(reference);
+                }
+            }
             let set = descriptor.set_descriptor().expect("checked set schema");
-            let elements = elements
-                .iter()
-                .map(|value| {
-                    allocate_field(heap, layouts, set.element_type(), value, depth + 1, budget)
-                })
-                .collect::<Result<Vec<_>, _>>()?;
+            let mut allocated =
+                SmallVec::<[ManagedFieldValue; INLINE_COLLECTION_ELEMENTS]>::with_capacity(
+                    elements.len(),
+                );
+            for value in elements {
+                allocated.push(allocate_field(
+                    heap,
+                    layouts,
+                    set.element_type(),
+                    value,
+                    depth + 1,
+                    budget,
+                    memo,
+                )?);
+            }
             let mut semantics = PublicKeySemantics::new(layouts, set.element_type(), *budget);
-            let result = heap.set_from_elements(set, &elements, &mut semantics);
+            let result = heap.set_from_elements(set, &allocated, &mut semantics);
             *budget = semantics.remaining_budget();
-            result.map(TvmRef::erase).map_err(managed_allocation_error)
+            let reference = result
+                .map(TvmRef::erase)
+                .map_err(managed_allocation_error)?;
+            if allocated.is_empty() {
+                memo.remember_empty_collection(descriptor.semantic_id(), reference);
+            }
+            Ok(reference)
         }
     }
 }
@@ -145,18 +255,24 @@ fn allocate_aggregate(
     value: &ReplValue,
     depth: usize,
     budget: &mut usize,
+    memo: &mut AllocationMemo,
 ) -> Result<TvmRef<()>, String> {
     consume_budget(depth, budget)?;
     let (descriptor, fields) = select_layout(layouts, semantic, value)?;
-    let values = descriptor
-        .fields()
-        .iter()
-        .zip(fields)
-        .map(|(field, value)| {
-            allocate_field(heap, layouts, field.field_type(), value, depth + 1, budget)
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    heap.allocate_aggregate(descriptor, &values)
+    let mut values =
+        SmallVec::<[ManagedFieldValue; INLINE_AGGREGATE_FIELDS]>::with_capacity(fields.len());
+    for (index, field) in descriptor.fields().iter().enumerate() {
+        values.push(allocate_field(
+            heap,
+            layouts,
+            field.field_type(),
+            fields.value(index),
+            depth + 1,
+            budget,
+            memo,
+        )?);
+    }
+    heap.allocate_aggregate_ref(descriptor, &values)
         .map(TvmRef::erase)
         .map_err(|error| format!("error[execution_shard.managed_allocate]: {error}"))
 }
@@ -169,6 +285,7 @@ fn allocate_field(
     value: &ReplValue,
     depth: usize,
     budget: &mut usize,
+    memo: &mut AllocationMemo,
 ) -> Result<ManagedFieldValue, String> {
     consume_budget(depth, budget)?;
     match (field_type, value) {
@@ -184,7 +301,8 @@ fn allocate_field(
             .map(ManagedFieldValue::Atom)
             .map_err(|error| format!("error[execution_shard.managed_atom]: {error}")),
         (ManagedFieldType::Reference(semantic), value) => {
-            let reference = allocate_reference(heap, layouts, semantic, value, depth, budget)?;
+            let reference =
+                allocate_reference(heap, layouts, semantic, value, depth, budget, memo)?;
             Ok(ManagedFieldValue::Reference(reference))
         }
         (expected, actual) => Err(format!(
@@ -201,26 +319,45 @@ fn allocate_reference(
     value: &ReplValue,
     depth: usize,
     budget: &mut usize,
+    memo: &mut AllocationMemo,
 ) -> Result<TvmRef<()>, String> {
-    if semantic == sequence_semantic("std.core.String")? {
+    if semantic == managed_string_semantic_id() {
         let ReplValue::String(value) = value else {
             return reference_mismatch("String", value);
         };
-        return heap
+        if value.is_empty() {
+            if let Some(reference) = memo.empty_sequence(semantic) {
+                return Ok(reference);
+            }
+        }
+        let reference = heap
             .allocate_string(value)
             .map(TvmRef::erase)
-            .map_err(managed_allocation_error);
+            .map_err(managed_allocation_error)?;
+        if value.is_empty() {
+            memo.remember_empty_sequence(semantic, reference);
+        }
+        return Ok(reference);
     }
-    if semantic == sequence_semantic("std.binary.Bytes")? {
+    if semantic == managed_bytes_semantic_id() {
         let ReplValue::Bytes(value) = value else {
             return reference_mismatch("Bytes", value);
         };
-        return heap
+        if value.is_empty() {
+            if let Some(reference) = memo.empty_sequence(semantic) {
+                return Ok(reference);
+            }
+        }
+        let reference = heap
             .allocate_bytes(value)
             .map(TvmRef::erase)
-            .map_err(managed_allocation_error);
+            .map_err(managed_allocation_error)?;
+        if value.is_empty() {
+            memo.remember_empty_sequence(semantic, reference);
+        }
+        return Ok(reference);
     }
-    if semantic == sequence_semantic("std.binary.Binary")? {
+    if semantic == managed_binary_semantic_id() {
         let ReplValue::BitString(value) = value else {
             return reference_mismatch("Binary", value);
         };
@@ -232,22 +369,27 @@ fn allocate_reference(
             .map(TvmRef::erase)
             .map_err(managed_allocation_error);
     }
-    allocate_managed(heap, layouts, semantic, value, depth, budget)
+    allocate_managed(heap, layouts, semantic, value, depth, budget, memo)
 }
 
 /// Selects exactly one admitted active layout and borrows its public fields.
-fn select_layout<'a>(
-    layouts: &ManagedLayoutRegistry,
+fn select_layout<'layout, 'value>(
+    layouts: &'layout ManagedLayoutRegistry,
     semantic: SemanticTypeId,
-    value: &'a ReplValue,
-) -> Result<(Arc<ManagedAggregateDescriptor>, Vec<&'a ReplValue>), String> {
-    let matches = layouts
-        .layouts(semantic)
-        .iter()
-        .filter_map(|layout| public_fields(layout, value).map(|fields| (layout.clone(), fields)))
-        .collect::<Vec<_>>();
-    match matches.len() {
-        1 => Ok(matches.into_iter().next().expect("one checked layout")),
+    value: &'value ReplValue,
+) -> Result<(&'layout ManagedAggregateDescriptor, PublicFields<'value>), String> {
+    let mut matched = None;
+    let mut match_count = 0;
+    for layout in layouts.layouts(semantic) {
+        if let Some(fields) = public_fields(layout, value) {
+            match_count += 1;
+            if matched.is_none() {
+                matched = Some((layout.as_ref(), fields));
+            }
+        }
+    }
+    match match_count {
+        1 => Ok(matched.expect("one checked layout")),
         0 => Err(format!(
             "error[execution_shard.managed_layout]: no admitted fixed layout matches `{value:?}`"
         )),
@@ -257,29 +399,52 @@ fn select_layout<'a>(
     }
 }
 
+/// Borrowed aggregate fields without allocating a temporary reference vector.
+#[derive(Clone, Copy)]
+enum PublicFields<'a> {
+    Positional(&'a [ReplValue]),
+    Named(&'a [(String, ReplValue)]),
+}
+
+impl<'a> PublicFields<'a> {
+    fn len(self) -> usize {
+        match self {
+            Self::Positional(values) => values.len(),
+            Self::Named(fields) => fields.len(),
+        }
+    }
+
+    fn value(self, index: usize) -> &'a ReplValue {
+        match self {
+            Self::Positional(values) => &values[index],
+            Self::Named(fields) => &fields[index].1,
+        }
+    }
+}
+
 /// Matches one public aggregate shape against an admitted active descriptor.
 fn public_fields<'a>(
     descriptor: &ManagedAggregateDescriptor,
     value: &'a ReplValue,
-) -> Option<Vec<&'a ReplValue>> {
+) -> Option<PublicFields<'a>> {
     match (descriptor.kind(), value) {
         (ManagedAggregateKind::Tuple, ReplValue::Tuple(values))
         | (ManagedAggregateKind::FixedArray, ReplValue::List(values))
             if values.len() == descriptor.fields().len() =>
         {
-            Some(values.iter().collect())
+            Some(PublicFields::Positional(values))
         }
         (ManagedAggregateKind::Record, ReplValue::Record { name, fields })
             if type_name_matches(descriptor.canonical_type(), name)
                 && named_fields_match(descriptor, fields) =>
         {
-            Some(fields.iter().map(|(_, value)| value).collect())
+            Some(PublicFields::Named(fields))
         }
         (ManagedAggregateKind::Constructor, ReplValue::Record { name, fields })
             if descriptor.variant_name() == Some(name.as_str())
                 && named_fields_match(descriptor, fields) =>
         {
-            Some(fields.iter().map(|(_, value)| value).collect())
+            Some(PublicFields::Named(fields))
         }
         _ => None,
     }
@@ -311,15 +476,16 @@ fn materialize_managed(
     reference: TvmRef<()>,
     depth: usize,
     budget: &mut usize,
-    active: &mut BTreeSet<u64>,
+    active: &mut ActiveReferences,
 ) -> Result<ReplValue, String> {
     consume_budget(depth, budget)?;
     let identity = reference.encoded_abi_word();
-    if !active.insert(identity) {
+    if active.contains(&identity) {
         return Err(
             "error[execution_shard.managed_cycle]: cyclic public managed value".to_string(),
         );
     }
+    active.push(identity);
     let result = (|| {
         if let Some(descriptor) = layouts.collection(semantic) {
             materialize_collection(heap, layouts, descriptor, reference, depth, budget, active)
@@ -327,7 +493,7 @@ fn materialize_managed(
             materialize_aggregate(heap, layouts, semantic, reference, depth, budget, active)
         }
     })();
-    active.remove(&identity);
+    debug_assert_eq!(active.pop(), Some(identity));
     result
 }
 
@@ -339,7 +505,7 @@ fn materialize_aggregate(
     reference: TvmRef<()>,
     depth: usize,
     budget: &mut usize,
-    active: &mut BTreeSet<u64>,
+    active: &mut ActiveReferences,
 ) -> Result<ReplValue, String> {
     let descriptor = layouts.layout_for_reference(heap, semantic, reference)?;
     let view = heap
@@ -375,7 +541,7 @@ fn materialize_collection(
     reference: TvmRef<()>,
     depth: usize,
     budget: &mut usize,
-    active: &mut BTreeSet<u64>,
+    active: &mut ActiveReferences,
 ) -> Result<ReplValue, String> {
     match descriptor.kind() {
         ManagedCollectionKind::List => {
@@ -457,7 +623,7 @@ fn materialize_field(
     value: ManagedFieldValue,
     depth: usize,
     budget: &mut usize,
-    active: &mut BTreeSet<u64>,
+    active: &mut ActiveReferences,
 ) -> Result<ReplValue, String> {
     consume_budget(depth, budget)?;
     match (field_type, value) {
@@ -488,21 +654,21 @@ fn materialize_reference(
     reference: TvmRef<()>,
     depth: usize,
     budget: &mut usize,
-    active: &mut BTreeSet<u64>,
+    active: &mut ActiveReferences,
 ) -> Result<ReplValue, String> {
-    if semantic == sequence_semantic("std.core.String")? {
+    if semantic == managed_string_semantic_id() {
         return heap
             .read_string(reference.cast())
             .map(|value| ReplValue::String(value.to_owned()))
             .map_err(managed_read_error);
     }
-    if semantic == sequence_semantic("std.binary.Bytes")? {
+    if semantic == managed_bytes_semantic_id() {
         return heap
             .read_bytes(reference.cast())
             .map(|value| ReplValue::Bytes(Arc::from(value)))
             .map_err(managed_read_error);
     }
-    if semantic == sequence_semantic("std.binary.Binary")? {
+    if semantic == managed_binary_semantic_id() {
         let view = heap
             .read_binary(reference.cast())
             .map_err(managed_read_error)?;
@@ -600,7 +766,7 @@ impl<'a> PublicKeySemantics<'a> {
             reference,
             0,
             &mut self.budget,
-            &mut BTreeSet::new(),
+            &mut ActiveReferences::new(),
         )
         .map_err(|error| {
             if error.contains("managed_budget") {
@@ -696,12 +862,6 @@ fn finite_float(value: &str) -> Result<f64, String> {
         .is_finite()
         .then_some(value)
         .ok_or_else(|| "error[execution_shard.managed_float]: Float must be finite".to_string())
-}
-
-/// Derives one built-in sequence identity through the checked semantic API.
-fn sequence_semantic(canonical: &str) -> Result<SemanticTypeId, String> {
-    SemanticTypeId::from_canonical(canonical)
-        .map_err(|error| format!("error[execution_shard.managed_type]: {error}"))
 }
 
 /// Reports one exact managed-reference value mismatch.

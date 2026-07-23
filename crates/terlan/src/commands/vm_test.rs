@@ -273,6 +273,9 @@ fn vm_native_reload_executes_two_compiled_generations() {
         .reload(std::slice::from_ref(&source), &state)
         .expect("admit first generation");
     assert_eq!(first.native_generation, 1);
+    assert_eq!(first.replay.runtime_generation, 1);
+    assert_eq!(first.replay.retained_events, 1);
+    assert!(first.replay.replayable);
     assert_eq!(
         reload.call("reload.Counter.value", &[]),
         Ok(ReplValue::Int(1))
@@ -287,6 +290,16 @@ fn vm_native_reload_executes_two_compiled_generations() {
         .reload(std::slice::from_ref(&source), &state)
         .expect("replace native generation");
     assert_eq!(second.native_generation, 2);
+    assert_eq!(second.replay.runtime_generation, 2);
+    assert_eq!(second.replay.retained_events, 2);
+    assert_eq!(
+        second.replay.schedulers[0]
+            .events
+            .iter()
+            .map(|event| event.context.shard_epoch)
+            .collect::<Vec<_>>(),
+        vec![Some(1), Some(2)]
+    );
     assert!(matches!(
         second.sources.events.as_slice(),
         [VmCodeServerEvent::HotReloaded { .. }]
@@ -424,6 +437,11 @@ fn vm_native_reload_quarantines_timed_out_generation_without_force_unload() {
         .call("reload.Pinned.value", &[])
         .expect_err("quarantined shard rejects routing")
         .contains("found Quarantined"));
+    let replay = reload
+        .replay_evidence()
+        .expect("quarantined generation replay evidence");
+    assert_eq!(replay.retained_events, 1);
+    assert_eq!(replay.schedulers[0].events[0].context.shard_epoch, Some(1));
     fs::remove_dir_all(root).expect("clean temp dir");
 }
 

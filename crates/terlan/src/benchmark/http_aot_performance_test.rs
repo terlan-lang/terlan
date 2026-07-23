@@ -23,6 +23,35 @@ fn timing_summary_records_tail_latency_and_throughput() {
     assert_eq!(timing.throughput_requests_per_second, 30_000_000);
 }
 
+/// Verifies noisy outlier rounds cannot become the policy aggregate.
+#[test]
+fn repeated_measurement_selects_one_median_throughput_round() {
+    let timing = |throughput| HttpTiming {
+        sample_count: 1,
+        total_wall_ns: 1,
+        throughput_requests_per_second: throughput,
+        min_ns: throughput,
+        mean_ns: throughput,
+        p50_ns: throughput,
+        p95_ns: throughput,
+        p99_ns: throughput,
+        max_ns: throughput,
+    };
+    let rounds = vec![
+        timing(10),
+        timing(1_000),
+        timing(20),
+        timing(30),
+        timing(40),
+    ];
+    assert_eq!(
+        median_throughput_round(&rounds)
+            .expect("median round")
+            .throughput_requests_per_second,
+        30
+    );
+}
+
 /// Verifies comparable complete reports produce a stable comparison.
 #[test]
 fn comparison_accepts_matching_complete_lane_reports() {

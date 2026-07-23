@@ -1,4 +1,5 @@
 use std::fs;
+#[cfg(test)]
 use std::io::{Read, Write};
 use std::net as std_net;
 use std::path::{Component, Path, PathBuf};
@@ -23,28 +24,24 @@ use http_body_util::{combinators::BoxBody, BodyExt, Full};
 use hyper::body::Frame;
 #[cfg(test)]
 use hyper::{Request, Response};
-use rustls::ServerConnection;
 
 use crate::commands::dev_dependencies;
-use crate::runtime::vm::{
-    http::{write_http1_response, VmHttpTcpServer},
-    process::{VmProcessSource, VmProcessTable},
-    tcp::{VmTcpRuntime, VmTcpStream},
-};
+#[cfg(test)]
+use crate::runtime::vm::http::{handle_http1_in_memory_exchange, write_http1_response};
 use crate::{CliCommand, CliState};
 
 use crate::terlan_native::http::content_type_for_path;
 #[cfg(test)]
 use handler::handler_log_identity;
 use handler::{
-    execute_vm_handler_with_package_root, execute_vm_router_handler_with_package_root,
+    execute_vm_handler_with_package_root_projected, execute_vm_router_handler_with_package_root,
     execute_vm_router_sse_admission_with_package_root,
     execute_vm_router_static_response_with_package_root,
     execute_vm_router_websocket_admission_with_package_root, http_reason_phrase,
     manifest_route_for_request, sse_router_handler, static_response_header_tuples,
     static_response_router_handler, websocket_router_handler, MatchedWebPackageHandler,
-    MatchedWebPackageRoute, VmSseRouterAdmission, VmWebSocketRouterAdmission,
-    VmHttpChannelTransport, WebPackageFileResponse, WebPackageSse, WebPackageStaticResponse,
+    MatchedWebPackageRoute, VmHttpChannelTransport, VmSseRouterAdmission,
+    VmWebSocketRouterAdmission, WebPackageFileResponse, WebPackageSse, WebPackageStaticResponse,
     WebPackageWebSocket,
 };
 #[cfg(test)]
@@ -54,7 +51,11 @@ use handler::{
 };
 #[cfg(test)]
 use handler_cache::handler_cache_test_support::clear_vm_handler_module_cache_for_test;
-use handler_cache::{cached_vm_handler_for_manifest, cached_vm_handler_runtime_for_manifest};
+use handler_cache::{
+    cached_vm_handler_for_manifest, cached_vm_handler_runtime_for_manifest,
+    cached_vm_handler_runtime_for_request, with_cached_vm_handler_runtime_for_request,
+    AotHandlerRuntime,
+};
 #[cfg(test)]
 use logging::{
     log_file_route_result, log_handler_result, log_static_result, log_static_route_result,
@@ -62,18 +63,26 @@ use logging::{
 };
 #[cfg(test)]
 use manifest::manifest_build_id;
+#[cfg(test)]
 use manifest::manifest_static_file_for_request;
 pub(crate) use manifest::validate_web_package;
-use response::{build_http_response, inject_reload_script};
+#[cfg(test)]
+use response::build_http_response;
+use response::{
+    build_http_response_for_stream, build_http_response_owned_for_stream,
+    build_http_text_response_owned_for_stream, inject_reload_script,
+};
 use tls::{
     acme_http01_challenge, runtime_tls_config_for_serve, AcmeHttp01Challenge, RuntimeTlsConfig,
 };
 #[cfg(test)]
 use watch::ReloadHub;
 use watch::{spawn_reload_watcher, ReloadWatchBackend};
-use websocket::{manifest_websocket_for_path, websocket_upgrade_state, WebSocketUpgradeState};
+#[cfg(test)]
+use websocket::manifest_websocket_for_path;
 #[cfg(test)]
 use websocket::{websocket_hub, websocket_upgrade_response, WebSocketHub};
+use websocket::{websocket_upgrade_state, WebSocketUpgradeState};
 
 pub(crate) use args::{parse_serve_args, ServeArgs};
 
@@ -345,24 +354,44 @@ fn prewarm_dynamic_handler_sources(web_root: &Path) -> Result<(), String> {
 /// - Resolves compiler-generated source metadata relative to the adjacent
 ///   project root, reuses the cached loaded VM module when possible, and
 ///   dispatches the matched handler.
+#[allow(dead_code)] // Retained for the legacy test adapter during Hyper promotion.
 fn execute_dynamic_vm_handler(
     web_root: &Path,
     matched: &MatchedWebPackageHandler,
-    request: &crate::terlan_native::http::Request,
+    request: crate::terlan_native::http::Request,
 ) -> Result<handler::HandlerResponse, String> {
-    let project_root = manifest::adjacent_project_root(web_root).ok_or_else(|| {
-        "error[serve_runtime]: dynamic handlers require an adjacent project root".to_string()
-    })?;
-    let runtime =
-        cached_vm_handler_runtime_for_manifest(web_root, &project_root, &matched.handler)?;
-    let vm = runtime.vm();
+    let runtime = cached_vm_handler_runtime_for_request(web_root, &matched.handler)?;
+    let projection = runtime.vm().request_projection(
+        &matched.handler.module,
+        &matched.handler.function,
+        matched.handler.arity,
+    );
+    execute_dynamic_vm_handler_with_runtime(runtime.vm(), web_root, matched, request, projection)
+}
+
+/// Executes through the exact generation whose projection was used to build
+/// the Request boundary value, preventing reload races between proof and use.
+fn execute_dynamic_vm_handler_with_runtime(
+    vm: &AotHandlerRuntime,
+    web_root: &Path,
+    matched: &MatchedWebPackageHandler,
+    request: crate::terlan_native::http::Request,
+    projection: crate::runtime::native::http::RequestFieldProjection,
+) -> Result<handler::HandlerResponse, String> {
     let mut output = |_line: &str| {};
     if let Some(response) =
-        execute_vm_router_handler_with_package_root(vm, matched, request, web_root, &mut output)?
+        execute_vm_router_handler_with_package_root(vm, matched, &request, web_root, &mut output)?
     {
         return Ok(response);
     }
-    execute_vm_handler_with_package_root(vm, matched, request, web_root, &mut output)
+    execute_vm_handler_with_package_root_projected(
+        vm,
+        matched,
+        request,
+        projection,
+        web_root,
+        &mut output,
+    )
 }
 
 /// Executes middleware for a compiler-folded static route through its source router.
@@ -556,12 +585,7 @@ pub(crate) fn spawn_directory_server(
 /// - Performs synchronous bind validation before the VM stream accept loop is
 ///   spawned, so callers receive startup failures directly.
 fn bind_std_listener(host: &str, port: u16) -> Result<std_net::TcpListener, String> {
-    let listener = std_net::TcpListener::bind(format!("{host}:{port}"))
-        .map_err(|err| format!("error[serve_bind]: failed to bind {host}:{port}: {err}"))?;
-    listener.set_nonblocking(true).map_err(|err| {
-        format!("error[serve_bind]: failed to set {host}:{port} nonblocking: {err}")
-    })?;
-    Ok(listener)
+    crate::runtime::vm::protocol_task_executor::bind_protocol_listener(host, port)
 }
 
 /// Serves one plain HTTP web package through VM-owned HTTP stream handling.
@@ -623,10 +647,9 @@ fn serve_web_package_vm_tls(
 /// - `Ok(())` only if the listener loop exits without accept errors.
 ///
 /// Transformation:
-/// - Accepts plain TCP connections with the standard library, schedules each
-///   connection on a small OS thread, and delegates HTTP parsing/routing to the
-///   VM stream adapter. This is a transitional production cut while the VM
-///   scheduler takes over external socket readiness.
+/// - Registers the listener with topology-sized owner-thread readiness loops.
+///   Each accepted socket remains nonblocking and reactor-local through finite
+///   request reads and response writes.
 fn serve_bound_directory_vm_plain(
     listener: std_net::TcpListener,
     web_root: PathBuf,
@@ -649,9 +672,9 @@ fn serve_bound_directory_vm_plain(
 /// - `Ok(())` only if the listener loop exits without accept errors.
 ///
 /// Transformation:
-/// - Accepts TCP connections with the standard library, wraps them in rustls
-///   when configured, and delegates HTTP parsing/routing to the VM stream
-///   adapter. This removes the host async TLS accept adapter from production serve.
+/// - Routes finite plain HTTP through the socket-readiness reactors. TLS remains
+///   isolated in a bounded blocking transport executor until maintained rustls
+///   is driven directly by readiness state.
 fn serve_bound_directory_vm_stream(
     listener: std_net::TcpListener,
     web_root: PathBuf,
@@ -659,9 +682,6 @@ fn serve_bound_directory_vm_stream(
     log_prefix: &str,
     tls_config: Option<RuntimeTlsConfig>,
 ) -> Result<(), String> {
-    listener
-        .set_nonblocking(false)
-        .map_err(|err| format!("error[serve_bind]: failed to set listener blocking: {err}"))?;
     let local_addr = listener
         .local_addr()
         .map(|addr| addr.to_string())
@@ -681,55 +701,14 @@ fn serve_bound_directory_vm_stream(
 
     let reload_hub = Arc::new(Mutex::new(Vec::new()));
     spawn_reload_watcher(web_root.clone(), poll_ms, Arc::clone(&reload_hub));
-    for accepted in listener.incoming() {
-        match accepted {
-            Ok(mut stream) => {
-                let root = web_root.clone();
-                let tls_config = tls_config.clone();
-                thread::spawn(move || {
-                    let result = if let Some(tls_config) = tls_config {
-                        serve_vm_tls_http1_connection(&mut stream, &root, tls_config)
-                    } else {
-                        serve_vm_plain_http1_connection(&mut stream, &root)
-                    };
-                    if let Err(message) = result {
-                        eprintln!("error[serve_http]: VM plain HTTP connection failed: {message}");
-                    }
-                });
-            }
-            Err(err) => {
-                return Err(format!(
-                    "error[serve_accept]: failed to accept HTTP connection: {err}"
-                ));
-            }
-        }
+    if let Some(tls_config) = tls_config {
+        let _ = tls_config.server_config;
+        return Err(
+            "error[serve_tls.adapter_missing]: maintained async Hyper TLS adapter is required"
+                .to_string(),
+        );
     }
-    Ok(())
-}
-
-/// Serves one blocking TLS stream through the VM HTTP/1 adapter.
-///
-/// Inputs:
-/// - `stream`: accepted TCP stream.
-/// - `web_root`: generated browser package root.
-/// - `tls_config`: rustls server configuration.
-///
-/// Output:
-/// - Success after one HTTP response is written through TLS.
-///
-/// Transformation:
-/// - Creates a maintained rustls server connection over the accepted stream
-///   and delegates plaintext HTTP handling to the same VM stream adapter used
-///   by non-TLS serving.
-fn serve_vm_tls_http1_connection(
-    stream: &mut std_net::TcpStream,
-    web_root: &Path,
-    tls_config: RuntimeTlsConfig,
-) -> Result<(), String> {
-    let connection = ServerConnection::new(tls_config.server_config)
-        .map_err(|err| format!("failed to start VM TLS connection: {err}"))?;
-    let mut tls_stream = rustls::StreamOwned::new(connection, stream);
-    serve_vm_plain_http1_connection(&mut tls_stream, web_root)
+    hyper_server::serve(listener, web_root)
 }
 
 /// Serves one blocking stream through the VM HTTP/1 adapter.
@@ -744,7 +723,7 @@ fn serve_vm_tls_http1_connection(
 /// Transformation:
 /// - Reads exactly one HTTP/1 request with `httparse` header validation, routes
 ///   it through the VM stream adapter, and writes the serialized response.
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 fn serve_vm_plain_http1_connection<S>(stream: &mut S, web_root: &Path) -> Result<(), String>
 where
     S: Read + Write,
@@ -765,7 +744,7 @@ where
 /// Transformation:
 /// - Uses `httparse` to detect header completion and content-length, keeping
 ///   protocol parsing in a maintained crate before VM HTTP validation runs.
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 fn read_vm_plain_http1_request<S>(stream: &mut S) -> Result<Vec<u8>, String>
 where
     S: Read,
@@ -793,6 +772,7 @@ where
 }
 
 /// Returns whether buffered bytes contain one complete HTTP/1 request.
+#[cfg(test)]
 fn vm_plain_http1_request_complete(bytes: &[u8]) -> Result<bool, String> {
     let mut headers = [httparse::EMPTY_HEADER; 64];
     let mut request = httparse::Request::new(&mut headers);

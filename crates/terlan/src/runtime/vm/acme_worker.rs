@@ -443,10 +443,15 @@ impl VmAcmeWorkerRuntime {
         let timer =
             self.schedule_renewal_timer(handle, processes, timers, not_before_epoch_secs)?;
         let resource_handle = renewal_actor_resource_handle(handle);
-        processes
-            .get_mut(owner)
-            .ok_or_else(|| format!("missing ACME renewal actor owner {}", owner.as_u64()))?
-            .add_resource_handle(resource_handle);
+        if processes.get(owner).is_none() {
+            return Err(format!(
+                "missing ACME renewal actor owner {}",
+                owner.as_u64()
+            ));
+        }
+        processes.with_process_control_mutator(owner, |process| {
+            process.add_resource_handle(resource_handle);
+        })?;
         Ok(VmAcmeRenewalActor {
             owner,
             worker: handle,
@@ -832,8 +837,10 @@ impl VmAcmeRenewalActor {
             Some(timer) => Some(timers.cancel(timer)?),
             None => None,
         };
-        if let Some(process) = processes.get_mut(self.owner) {
-            process.remove_resource_handle(&renewal_actor_resource_handle(self.worker));
+        if processes.get(self.owner).is_some() {
+            processes.with_process_control_mutator(self.owner, |process| {
+                process.remove_resource_handle(&renewal_actor_resource_handle(self.worker));
+            })?;
         }
         let terminal_wake = runtime.shutdown_worker(self.worker)?;
         self.state = VmAcmeRenewalActorState::Shutdown;

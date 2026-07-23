@@ -4,6 +4,12 @@ use std::collections::BTreeMap;
 
 use super::process::{VmProcessId, VmProcessState, VmProcessTable};
 
+#[path = "process_alias/transfer.rs"]
+mod transfer;
+
+#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
+pub(crate) use transfer::{VmProcessAliasImportFailure, VmProcessAliasTransfer};
+
 /// Opaque local capability that resolves to one live VM process.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct VmProcessAlias(u64);
@@ -168,3 +174,7 @@ impl VmProcessAliasTable {
         self.next_alias = u64::MAX;
     }
 }
+
+#[cfg(test)]
+#[path = "process_alias_transfer_test.rs"]
+mod process_alias_transfer_test;

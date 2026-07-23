@@ -317,6 +317,20 @@ impl VmShardEpochFence {
         }
     }
 
+    /// Retires a completed in-process operation whose identity cannot be
+    /// resubmitted by an external caller.
+    pub(crate) fn retire_committed(&mut self, operation: VmShardEpochOperation) -> bool {
+        let matches_committed = self.operations.get(&operation.id).is_some_and(|record| {
+            record.kind == operation.kind
+                && record.replay_policy == operation.replay_policy
+                && record.state == VmShardOperationState::Committed
+        });
+        if matches_committed {
+            self.operations.remove(&operation.id);
+        }
+        matches_committed
+    }
+
     /// Returns the number of stable operation identities retained for recovery.
     #[cfg(test)]
     pub(crate) fn operation_count(&self) -> usize {

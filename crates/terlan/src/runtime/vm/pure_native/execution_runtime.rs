@@ -5,6 +5,13 @@ use std::collections::BTreeMap;
 use crate::runtime::native_image::managed::{ManagedExecutionRuntime, PendingManagedCaptures};
 use crate::runtime::native_image::TvmBoundaryType;
 
+#[path = "execution_runtime/actor_transfer.rs"]
+mod actor_transfer;
+
+pub(crate) use actor_transfer::{
+    PureNativeActorExecutionImportFailure, PureNativeActorExecutionTransfer,
+};
+
 /// One actor's backend continuation metadata retained outside immutable code.
 #[derive(Debug)]
 struct PendingNativeContinuation {
@@ -172,6 +179,12 @@ impl PureNativeExecutionRuntime {
         self.managed.release_owner(owner_id);
     }
 
+    /// Clears request-local state without removing a live service actor's heap.
+    pub(crate) fn reset_owner(&mut self, owner_id: u64) {
+        self.continuations.remove(&owner_id);
+        self.managed.reset_owner(owner_id);
+    }
+
     /// Rejects graceful shard shutdown while any actor remains parked.
     #[cfg(test)]
     pub(crate) fn ensure_idle(&self) -> Result<(), String> {
@@ -188,3 +201,6 @@ impl PureNativeExecutionRuntime {
 #[cfg(test)]
 #[path = "execution_runtime_access_test.rs"]
 mod execution_runtime_access_test;
+#[cfg(test)]
+#[path = "execution_runtime_actor_transfer_test.rs"]
+mod execution_runtime_actor_transfer_test;

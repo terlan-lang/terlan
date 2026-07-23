@@ -9,6 +9,8 @@ use super::code_server::{
 };
 
 use super::code_server_compiler::{publish_staged_replacement, stage_source_replacement};
+use super::fixed_scheduler_telemetry::VM_FIXED_SCHEDULER_TRACE_CAPACITY;
+use super::multicore_replay::VmMulticoreReplayEvidence;
 use super::pure_native::{
     PureNativeExecutionShard, VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
 };
@@ -25,7 +27,7 @@ use super::ReplValue;
 /// Transformation:
 /// - Keeps filesystem event handling outside the VM while centralizing the
 ///   source-to-generation publication step that preserves hot-reload semantics.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct VmSourceReloadAdapter {
     code_server: VmCodeServer,
     native_shard: Option<PureNativeExecutionShard>,
@@ -40,6 +42,8 @@ pub(crate) struct VmNativeReloadPublication {
     pub(crate) references: VmNativeGenerationReferenceSnapshot,
     /// Code-server events made visible after native admission.
     pub(crate) events: Vec<VmCodeServerEvent>,
+    /// Bounded scheduler evidence ending at this image publication.
+    pub(crate) replay: VmMulticoreReplayEvidence,
 }
 
 /// Inspectable outcome for one source-reload path batch.
@@ -75,7 +79,10 @@ impl VmSourceReloadAdapter {
     /// Transformation:
     /// - Initializes the code-server boundary used by later file publications.
     pub(crate) fn new() -> Self {
-        Self::default()
+        Self {
+            code_server: VmCodeServer::default(),
+            native_shard: None,
+        }
     }
 
     /// Admits one compiled native generation and then publishes its metadata.
@@ -102,6 +109,7 @@ impl VmSourceReloadAdapter {
                 generation
             }
         };
+        let replay = self.multicore_replay_evidence()?;
         let events = self.publish_compiled_sources(staged);
         let references = self
             .native_shard
@@ -112,6 +120,7 @@ impl VmSourceReloadAdapter {
             generation: generation.as_u64(),
             references,
             events,
+            replay,
         })
     }
 
@@ -289,6 +298,28 @@ impl VmSourceReloadAdapter {
     ///   access to code-server generation tables.
     pub(crate) fn event_snapshots(&self) -> Vec<VmCodeServerEventSnapshot> {
         self.code_server.event_snapshots()
+    }
+
+    /// Captures bounded reload evidence for the currently admitted generation.
+    pub(crate) fn multicore_replay_evidence(&self) -> Result<VmMulticoreReplayEvidence, String> {
+        let shard = self.native_shard.as_ref().ok_or_else(|| {
+            "error[vm.reload.native_generation]: no native generation is admitted".to_string()
+        })?;
+        let generation = shard.generation()?.as_u64();
+        VmMulticoreReplayEvidence::new(
+            generation,
+            1,
+            VM_FIXED_SCHEDULER_TRACE_CAPACITY,
+            vec![shard.lifecycle_replay_capture()?],
+        )
+        .map_err(|error| format!("error[vm.reload.replay]: {error}"))
+    }
+}
+
+impl Default for VmSourceReloadAdapter {
+    /// Creates the canonical bounded recorder used by source reload.
+    fn default() -> Self {
+        Self::new()
     }
 }
 

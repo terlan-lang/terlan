@@ -1,18 +1,30 @@
 //! Actor-local bump allocation and precise semispace collection.
 
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::num::NonZeroUsize;
+use std::ops::Range;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
 use super::{
-    ActorId, ManagedMailboxFragment, ManagedMemoryError, ManagedRoot, ManagedTypeDescriptor,
-    RootLocation, SemanticTypeId, TvmRef,
+    ActorId, AllocationClass, ManagedMailboxFragment, ManagedMemoryError, ManagedRoot,
+    ManagedTypeDescriptor, RootLocation, SemanticTypeId, TvmRef,
+};
+
+#[path = "heap/support.rs"]
+mod support;
+use support::{
+    align_up, next_token, read_reference, reference_with_token, relocate_object_fields,
+    write_reference,
 };
 
 const TOKEN_SHIFT: usize = 32;
 const OFFSET_MASK: usize = u32::MAX as usize;
 const METADATA_WORK_BYTES: usize = 32;
+const MAX_CACHED_SEQUENCE_DESCRIPTORS: usize = 64;
+const MAX_CACHED_SPECIALIZED_DESCRIPTORS: usize = 64;
+const MAX_CACHED_AGGREGATE_DESCRIPTORS: usize = 64;
+const TOKEN_RESERVATION_SIZE: u32 = 1_024;
 static NEXT_HEAP_TOKEN: AtomicU32 = AtomicU32::new(1);
 
 /// Soft and hard actor-local managed-heap limits.
@@ -50,15 +62,99 @@ struct ObjectMetadata {
     descriptor: Arc<ManagedTypeDescriptor>,
 }
 
+/// Immutable sequence layout retained across owner-local heap reuse.
+#[derive(Clone, Debug)]
+struct SequenceDescriptorCacheEntry {
+    semantic: SemanticTypeId,
+    size: usize,
+    allocation_class: AllocationClass,
+    descriptor: Arc<ManagedTypeDescriptor>,
+}
+
+/// Immutable specialized layout retained across owner-local heap reuse.
+#[derive(Clone, Debug)]
+struct SpecializedDescriptorCacheEntry {
+    semantic: SemanticTypeId,
+    size: usize,
+    alignment: usize,
+    allocation_class: AllocationClass,
+    representation: Box<[u8]>,
+    descriptor: Arc<ManagedTypeDescriptor>,
+}
+
+/// Offset-ordered metadata for append-only semispace objects.
+///
+/// Managed allocation is monotonic until collection or rollback, so a tree
+/// node per object only adds allocator traffic to the actor hot path. A compact
+/// vector preserves ordered lookup and precise traversal without per-object
+/// host allocations.
+#[derive(Clone, Debug, Default)]
+struct ObjectTable {
+    entries: Vec<(usize, ObjectMetadata)>,
+}
+
+impl ObjectTable {
+    fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+    }
+
+    fn get(&self, offset: &usize) -> Option<&ObjectMetadata> {
+        if let Some((last_offset, metadata)) = self.entries.last() {
+            if last_offset == offset {
+                return Some(metadata);
+            }
+        }
+        self.entries
+            .binary_search_by_key(offset, |(object_offset, _)| *object_offset)
+            .ok()
+            .map(|index| &self.entries[index].1)
+    }
+
+    fn contains_key(&self, offset: &usize) -> bool {
+        self.get(offset).is_some()
+    }
+
+    fn insert(&mut self, offset: usize, metadata: ObjectMetadata) {
+        debug_assert!(
+            self.entries.last().is_none_or(|(prior, _)| *prior < offset),
+            "managed objects must be appended in offset order"
+        );
+        self.entries.push((offset, metadata));
+    }
+
+    fn truncate_from(&mut self, offset: usize) {
+        let retained = self
+            .entries
+            .partition_point(|(object_offset, _)| *object_offset < offset);
+        self.entries.truncate(retained);
+    }
+}
+
 /// Independently collectible managed heap owned by exactly one actor.
 #[derive(Debug)]
 pub struct ActorHeap {
     owner: ActorId,
     token: u32,
-    retired_tokens: BTreeSet<u32>,
+    next_reserved_token: u32,
+    reserved_tokens_remaining: u32,
+    latest_retired_token: Option<u32>,
+    retired_tokens: HashSet<u32>,
     limits: HeapLimits,
     space: Vec<u8>,
-    objects: BTreeMap<usize, ObjectMetadata>,
+    objects: ObjectTable,
+    sequence_descriptors: Vec<SequenceDescriptorCacheEntry>,
+    next_sequence_descriptor: usize,
+    specialized_descriptors: Vec<SpecializedDescriptorCacheEntry>,
+    next_specialized_descriptor: usize,
+    aggregate_descriptors: Vec<Arc<ManagedTypeDescriptor>>,
     collections: u64,
 }
 
@@ -71,10 +167,18 @@ impl ActorHeap {
         Ok(Self {
             owner,
             token: next_token(),
-            retired_tokens: BTreeSet::new(),
+            next_reserved_token: 0,
+            reserved_tokens_remaining: 0,
+            latest_retired_token: None,
+            retired_tokens: HashSet::new(),
             limits,
             space: Vec::with_capacity(limits.soft_bytes.min(64 * 1024)),
-            objects: BTreeMap::new(),
+            objects: ObjectTable::default(),
+            sequence_descriptors: Vec::with_capacity(MAX_CACHED_SEQUENCE_DESCRIPTORS),
+            next_sequence_descriptor: 0,
+            specialized_descriptors: Vec::with_capacity(MAX_CACHED_SPECIALIZED_DESCRIPTORS),
+            next_specialized_descriptor: 0,
+            aggregate_descriptors: Vec::with_capacity(MAX_CACHED_AGGREGATE_DESCRIPTORS),
             collections: 0,
         })
     }
@@ -114,7 +218,7 @@ impl ActorHeap {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.space.truncate(space_len);
-                self.objects.split_off(&space_len);
+                self.objects.truncate_from(space_len);
                 Err(error)
             }
         }
@@ -130,34 +234,247 @@ impl ActorHeap {
         if payload.len() != descriptor.size() {
             return Err(ManagedMemoryError::LayoutMismatch);
         }
-        let supplied_offsets = references
-            .iter()
-            .map(|(offset, _)| *offset)
-            .collect::<Vec<_>>();
-        if supplied_offsets != descriptor.reference_offsets() {
+        self.allocate_initialized(descriptor, references, |destination| {
+            destination.copy_from_slice(payload);
+            Ok(())
+        })
+    }
+
+    /// Bump-allocates one immutable object directly into its final heap slot.
+    pub(super) fn allocate_initialized<T>(
+        &mut self,
+        descriptor: Arc<ManagedTypeDescriptor>,
+        references: &[(usize, TvmRef<()>)],
+        initialize: impl FnOnce(&mut [u8]) -> Result<(), ManagedMemoryError>,
+    ) -> Result<TvmRef<T>, ManagedMemoryError> {
+        let expected_offsets = descriptor.reference_offsets();
+        if references.len() != expected_offsets.len()
+            || references
+                .iter()
+                .zip(expected_offsets)
+                .any(|((supplied, _), expected)| supplied != expected)
+        {
             return Err(ManagedMemoryError::InvalidReferenceMap);
         }
         for (_, reference) in references {
             self.resolve_offset(*reference)?;
         }
+        let original_len = self.space.len();
+        let offset = align_up(original_len, descriptor.alignment())?;
+        let end = offset
+            .checked_add(descriptor.size())
+            .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
+        if end > self.limits.hard_bytes || end > OFFSET_MASK {
+            return Err(ManagedMemoryError::AllocationLimitExceeded);
+        }
+        self.space.resize(end, 0);
+        if let Err(error) = initialize(&mut self.space[offset..end]) {
+            self.space.truncate(original_len);
+            return Err(error);
+        }
+        for (reference_offset, reference) in references {
+            if let Err(error) = write_reference(
+                &mut self.space,
+                offset + reference_offset,
+                reference.encoded().get(),
+            ) {
+                self.space.truncate(original_len);
+                return Err(error);
+            }
+        }
+        self.objects.insert(offset, ObjectMetadata { descriptor });
+        self.reference_for_offset(offset)
+    }
+
+    /// Bump-allocates a reference-free object from borrowed byte parts.
+    pub(super) fn allocate_reference_free_parts<T>(
+        &mut self,
+        descriptor: Arc<ManagedTypeDescriptor>,
+        parts: &[&[u8]],
+    ) -> Result<TvmRef<T>, ManagedMemoryError> {
+        if !descriptor.reference_offsets().is_empty() {
+            return Err(ManagedMemoryError::InvalidReferenceMap);
+        }
+        let payload_size = parts.iter().try_fold(0_usize, |size, part| {
+            size.checked_add(part.len())
+                .ok_or(ManagedMemoryError::AllocationLimitExceeded)
+        })?;
+        if payload_size != descriptor.size() {
+            return Err(ManagedMemoryError::LayoutMismatch);
+        }
         let offset = align_up(self.space.len(), descriptor.alignment())?;
         let end = offset
-            .checked_add(payload.len())
+            .checked_add(payload_size)
             .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
         if end > self.limits.hard_bytes || end > OFFSET_MASK {
             return Err(ManagedMemoryError::AllocationLimitExceeded);
         }
         self.space.resize(offset, 0);
-        self.space.extend_from_slice(payload);
-        for (reference_offset, reference) in references {
-            write_reference(
-                &mut self.space,
-                offset + reference_offset,
-                reference.encoded().get(),
-            )?;
+        for part in parts {
+            self.space.extend_from_slice(part);
         }
         self.objects.insert(offset, ObjectMetadata { descriptor });
         self.reference_for_offset(offset)
+    }
+
+    /// Bump-allocates a reference-free object from fixed bytes and ranges
+    /// already owned by this heap. Offset ranges remain valid when reserving
+    /// the destination relocates the backing `Vec`.
+    pub(super) fn allocate_reference_free_ranges<T>(
+        &mut self,
+        descriptor: Arc<ManagedTypeDescriptor>,
+        prefix: &[u8],
+        ranges: &[Range<usize>],
+    ) -> Result<TvmRef<T>, ManagedMemoryError> {
+        if !descriptor.reference_offsets().is_empty() {
+            return Err(ManagedMemoryError::InvalidReferenceMap);
+        }
+        let original_len = self.space.len();
+        let payload_size = ranges.iter().try_fold(prefix.len(), |size, range| {
+            if range.start > range.end || range.end > original_len {
+                return Err(ManagedMemoryError::UnknownReference);
+            }
+            size.checked_add(range.len())
+                .ok_or(ManagedMemoryError::AllocationLimitExceeded)
+        })?;
+        if payload_size != descriptor.size() {
+            return Err(ManagedMemoryError::LayoutMismatch);
+        }
+        let offset = align_up(original_len, descriptor.alignment())?;
+        let end = offset
+            .checked_add(payload_size)
+            .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
+        if end > self.limits.hard_bytes || end > OFFSET_MASK {
+            return Err(ManagedMemoryError::AllocationLimitExceeded);
+        }
+        self.space.reserve(end.saturating_sub(original_len));
+        self.space.resize(offset, 0);
+        self.space.extend_from_slice(prefix);
+        for range in ranges {
+            self.space.extend_from_within(range.clone());
+        }
+        self.objects.insert(offset, ObjectMetadata { descriptor });
+        self.reference_for_offset(offset)
+    }
+
+    /// Returns the absolute payload range for one validated heap reference.
+    pub(super) fn payload_range<T>(
+        &self,
+        value: TvmRef<T>,
+    ) -> Result<Range<usize>, ManagedMemoryError> {
+        let offset = self.resolve_offset(value.erase())?;
+        let size = self
+            .objects
+            .get(&offset)
+            .ok_or(ManagedMemoryError::UnknownReference)?
+            .descriptor
+            .size();
+        Ok(offset..offset + size)
+    }
+
+    /// Localizes an image-shared aggregate descriptor once per actor heap.
+    pub(super) fn allocate_shared_aggregate<T>(
+        &mut self,
+        descriptor: &Arc<ManagedTypeDescriptor>,
+        references: &[(usize, TvmRef<()>)],
+        initialize: impl FnOnce(&mut [u8]) -> Result<(), ManagedMemoryError>,
+    ) -> Result<TvmRef<T>, ManagedMemoryError> {
+        let local = self
+            .aggregate_descriptors
+            .iter()
+            .find(|local| local.fingerprint() == descriptor.fingerprint())
+            .cloned()
+            .unwrap_or_else(|| {
+                let local = Arc::new(descriptor.as_ref().clone());
+                if self.aggregate_descriptors.len() < MAX_CACHED_AGGREGATE_DESCRIPTORS {
+                    self.aggregate_descriptors.push(Arc::clone(&local));
+                }
+                local
+            });
+        self.allocate_initialized(local, references, initialize)
+    }
+
+    /// Reuses immutable sequence layouts by semantic identity and byte size.
+    pub(super) fn sequence_descriptor(
+        &mut self,
+        semantic: SemanticTypeId,
+        size: usize,
+        allocation_class: AllocationClass,
+    ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
+        if let Some(entry) = self.sequence_descriptors.iter().find(|entry| {
+            entry.semantic == semantic
+                && entry.size == size
+                && entry.allocation_class == allocation_class
+        }) {
+            return Ok(Arc::clone(&entry.descriptor));
+        }
+        let descriptor = Arc::new(ManagedTypeDescriptor::new(
+            semantic,
+            size,
+            8,
+            Vec::new(),
+            allocation_class,
+        )?);
+        let entry = SequenceDescriptorCacheEntry {
+            semantic,
+            size,
+            allocation_class,
+            descriptor: Arc::clone(&descriptor),
+        };
+        if self.sequence_descriptors.len() < MAX_CACHED_SEQUENCE_DESCRIPTORS {
+            self.sequence_descriptors.push(entry);
+        } else {
+            let index = self.next_sequence_descriptor % MAX_CACHED_SEQUENCE_DESCRIPTORS;
+            self.sequence_descriptors[index] = entry;
+            self.next_sequence_descriptor = (index + 1) % MAX_CACHED_SEQUENCE_DESCRIPTORS;
+        }
+        Ok(descriptor)
+    }
+
+    /// Reuses immutable shape-specialized layouts without a global cache.
+    pub(super) fn specialized_descriptor(
+        &mut self,
+        semantic: SemanticTypeId,
+        size: usize,
+        alignment: usize,
+        reference_offsets: &[usize],
+        allocation_class: AllocationClass,
+        representation: &[u8],
+    ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
+        if let Some(entry) = self.specialized_descriptors.iter().find(|entry| {
+            entry.semantic == semantic
+                && entry.size == size
+                && entry.alignment == alignment
+                && entry.allocation_class == allocation_class
+                && entry.representation.as_ref() == representation
+                && entry.descriptor.reference_offsets() == reference_offsets
+        }) {
+            return Ok(Arc::clone(&entry.descriptor));
+        }
+        let descriptor = Arc::new(ManagedTypeDescriptor::new_specialized(
+            semantic,
+            size,
+            alignment,
+            reference_offsets.to_vec(),
+            allocation_class,
+            representation,
+        )?);
+        let entry = SpecializedDescriptorCacheEntry {
+            semantic,
+            size,
+            alignment,
+            allocation_class,
+            representation: representation.into(),
+            descriptor: Arc::clone(&descriptor),
+        };
+        if self.specialized_descriptors.len() < MAX_CACHED_SPECIALIZED_DESCRIPTORS {
+            self.specialized_descriptors.push(entry);
+        } else {
+            let index = self.next_specialized_descriptor % MAX_CACHED_SPECIALIZED_DESCRIPTORS;
+            self.specialized_descriptors[index] = entry;
+            self.next_specialized_descriptor = (index + 1) % MAX_CACHED_SPECIALIZED_DESCRIPTORS;
+        }
+        Ok(descriptor)
     }
 
     /// Reads one immutable object payload after validating owner and generation.
@@ -256,10 +573,18 @@ impl ActorHeap {
         let mut staged = ActorHeap {
             owner: receiver.owner,
             token: receiver.token,
+            next_reserved_token: receiver.next_reserved_token,
+            reserved_tokens_remaining: receiver.reserved_tokens_remaining,
+            latest_retired_token: receiver.latest_retired_token,
             retired_tokens: receiver.retired_tokens.clone(),
             limits: receiver.limits,
             space: receiver.space.clone(),
             objects: receiver.objects.clone(),
+            sequence_descriptors: receiver.sequence_descriptors.clone(),
+            next_sequence_descriptor: receiver.next_sequence_descriptor,
+            specialized_descriptors: receiver.specialized_descriptors.clone(),
+            next_specialized_descriptor: receiver.next_specialized_descriptor,
+            aggregate_descriptors: receiver.aggregate_descriptors.clone(),
             collections: receiver.collections,
         };
         let mut relocated = BTreeMap::<usize, TvmRef<()>>::new();
@@ -382,7 +707,7 @@ impl ActorHeap {
             return Err(ManagedMemoryError::InvalidMailboxTransfer);
         }
         self.space.truncate(start);
-        self.objects.split_off(&start);
+        self.objects.truncate_from(start);
         Ok(())
     }
 
@@ -397,7 +722,7 @@ impl ActorHeap {
         let objects_before = self.objects.len();
         let new_token = next_token();
         let mut new_space = Vec::with_capacity(bytes_before.min(self.limits.hard_bytes));
-        let mut new_objects = BTreeMap::new();
+        let mut new_objects = ObjectTable::default();
         let mut relocation = BTreeMap::new();
 
         for old_offset in &live_offsets {
@@ -435,7 +760,7 @@ impl ActorHeap {
             root.relocate(reference_with_token(new_token, new_offset)?);
         }
 
-        self.retired_tokens.insert(self.token);
+        self.retire_token(self.token);
         self.token = new_token;
         self.space = new_space;
         self.objects = new_objects;
@@ -462,8 +787,54 @@ impl ActorHeap {
     pub fn reclaim_all(&mut self) {
         self.space.clear();
         self.objects.clear();
-        self.retired_tokens.insert(self.token);
-        self.token = next_token();
+        self.retire_token(self.token);
+        self.token = self.next_reuse_token();
+    }
+
+    /// Reclaims a completed actor heap for bounded shard-local reuse.
+    pub(crate) fn reclaim_for_reuse(&mut self) {
+        let retired = self.token;
+        self.space.clear();
+        self.objects.clear();
+        self.retired_tokens.clear();
+        self.latest_retired_token = Some(retired);
+        self.token = self.next_reuse_token();
+        self.collections = 0;
+    }
+
+    /// Retains complete stale-token classification while keeping the newest
+    /// generation in a direct slot.
+    fn retire_token(&mut self, token: u32) {
+        if let Some(previous) = self.latest_retired_token.replace(token) {
+            self.retired_tokens.insert(previous);
+        }
+    }
+
+    /// Draws a fresh generation from an owner-local reservation.
+    ///
+    /// The global allocator is touched only once per block, avoiding cache-line
+    /// contention when independent shards reset request heaps concurrently.
+    fn next_reuse_token(&mut self) -> u32 {
+        loop {
+            if self.reserved_tokens_remaining == 0 {
+                self.next_reserved_token =
+                    NEXT_HEAP_TOKEN.fetch_add(TOKEN_RESERVATION_SIZE, Ordering::Relaxed);
+                self.reserved_tokens_remaining = TOKEN_RESERVATION_SIZE;
+            }
+            let token = self.next_reserved_token;
+            self.next_reserved_token = self.next_reserved_token.wrapping_add(1);
+            self.reserved_tokens_remaining -= 1;
+            if token != 0 {
+                return token;
+            }
+        }
+    }
+
+    /// Assigns an already-reclaimed heap to one new actor owner.
+    pub(crate) fn assign_recycled_owner(&mut self, owner: ActorId) {
+        debug_assert!(self.space.is_empty());
+        debug_assert!(self.objects.is_empty());
+        self.owner = owner;
     }
 
     /// Traces every object reachable from precise roots without mutating the heap.
@@ -515,7 +886,9 @@ impl ActorHeap {
     fn resolve_encoded(&self, encoded: usize) -> Result<usize, ManagedMemoryError> {
         let token = (encoded >> TOKEN_SHIFT) as u32;
         if token != self.token {
-            return if self.retired_tokens.contains(&token) {
+            return if self.latest_retired_token == Some(token)
+                || self.retired_tokens.contains(&token)
+            {
                 Err(ManagedMemoryError::StaleReference)
             } else {
                 Err(ManagedMemoryError::CrossActorReference)
@@ -597,88 +970,3 @@ impl ActorHeap {
 #[cfg(test)]
 #[path = "heap_support_test.rs"]
 mod heap_test_support;
-
-/// Returns a fresh nonzero heap-generation token.
-fn next_token() -> u32 {
-    loop {
-        let token = NEXT_HEAP_TOKEN.fetch_add(1, Ordering::Relaxed);
-        if token != 0 {
-            return token;
-        }
-    }
-}
-
-/// Aligns one semispace cursor without overflow.
-fn align_up(value: usize, alignment: usize) -> Result<usize, ManagedMemoryError> {
-    value
-        .checked_add(alignment - 1)
-        .map(|aligned| aligned & !(alignment - 1))
-        .ok_or(ManagedMemoryError::AllocationLimitExceeded)
-}
-
-/// Encodes a heap-generation token and semispace offset into one pointer-width reference.
-fn reference_with_token<T>(token: u32, offset: usize) -> Result<TvmRef<T>, ManagedMemoryError> {
-    let low = offset
-        .checked_add(1)
-        .filter(|value| *value <= OFFSET_MASK)
-        .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
-    let encoded = ((token as usize) << TOKEN_SHIFT) | low;
-    NonZeroUsize::new(encoded)
-        .map(TvmRef::from_encoded)
-        .ok_or(ManagedMemoryError::UnknownReference)
-}
-
-/// Reads one pointer-width reference field from an object payload.
-fn read_reference(space: &[u8], offset: usize) -> Result<usize, ManagedMemoryError> {
-    let bytes: [u8; std::mem::size_of::<usize>()] = space
-        .get(offset..offset + std::mem::size_of::<usize>())
-        .ok_or(ManagedMemoryError::CorruptedRelocationMetadata)?
-        .try_into()
-        .map_err(|_| ManagedMemoryError::CorruptedRelocationMetadata)?;
-    Ok(usize::from_le_bytes(bytes))
-}
-
-/// Writes one pointer-width reference field into an object payload.
-fn write_reference(
-    space: &mut [u8],
-    offset: usize,
-    encoded: usize,
-) -> Result<(), ManagedMemoryError> {
-    let destination = space
-        .get_mut(offset..offset + std::mem::size_of::<usize>())
-        .ok_or(ManagedMemoryError::CorruptedRelocationMetadata)?;
-    destination.copy_from_slice(&encoded.to_le_bytes());
-    Ok(())
-}
-
-/// Rewrites every copied managed field using the completed relocation table.
-fn relocate_object_fields(
-    space: &mut [u8],
-    objects: &BTreeMap<usize, ObjectMetadata>,
-    old_token: u32,
-    new_token: u32,
-    relocation: &BTreeMap<usize, usize>,
-) -> Result<(), ManagedMemoryError> {
-    for (object_offset, metadata) in objects {
-        for reference_offset in metadata.descriptor.reference_offsets() {
-            let encoded = read_reference(space, object_offset + reference_offset)?;
-            if (encoded >> TOKEN_SHIFT) as u32 != old_token {
-                return Err(ManagedMemoryError::CorruptedRelocationMetadata);
-            }
-            let old_offset = (encoded & OFFSET_MASK)
-                .checked_sub(1)
-                .ok_or(ManagedMemoryError::CorruptedRelocationMetadata)?;
-            let new_offset = relocation
-                .get(&old_offset)
-                .copied()
-                .ok_or(ManagedMemoryError::CorruptedRelocationMetadata)?;
-            let relocated = reference_with_token::<()>(new_token, new_offset)?;
-            write_reference(
-                space,
-                object_offset + reference_offset,
-                relocated.encoded().get(),
-            )?;
-        }
-    }
-    Ok(())
-}

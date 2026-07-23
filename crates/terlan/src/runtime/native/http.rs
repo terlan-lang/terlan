@@ -83,6 +83,10 @@ impl HttpError {
 #[path = "http/request.rs"]
 mod request;
 pub use request::Request;
+pub(crate) use request::RequestParts;
+#[path = "http/request_projection.rs"]
+mod request_projection;
+pub(crate) use request_projection::RequestFieldProjection;
 
 /// Returns a request-scoped cookie jar.
 ///

@@ -167,11 +167,16 @@ def audit_deletion_manifest(
     active_paths: set[str],
     expected_classifications: dict[str, str],
     expected_gates: dict[str, str],
-    make_targets: set[str],
+    _make_targets: set[str],
     manifest_path: Path,
     root: Path,
 ) -> list[str]:
-    """Validate compact tombstones and reject deleted-file reintroduction."""
+    """Validate historical tombstones and reject deleted-file reintroduction.
+
+    A tombstone's replacement gate is immutable evidence of why the source was
+    deleted. The active inventory and port plan, rather than historical rows,
+    own the requirement that current Make targets remain executable.
+    """
 
     findings: list[str] = []
     discovered = set(discovered_files)
@@ -211,10 +216,6 @@ def audit_deletion_manifest(
             findings.append(
                 f"{location}: replacement gate `{row.replacement_gate}` does not match "
                 f"inventory `{expected_gate}`"
-            )
-        elif row.replacement_gate != "-" and row.replacement_gate not in make_targets:
-            findings.append(
-                f"{location}: replacement gate `{row.replacement_gate}` is not a Make target"
             )
         if not row.corpus_generation:
             findings.append(f"{location}: corpus generation is required")

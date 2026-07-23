@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 use super::HttpPerformanceReport;
 
 const POLICY_SCHEMA: &str = "terlan-http-aot-performance-limits-v1";
-const MAXIMUM_LATENCY_RATIO_CEILING: f64 = 1.50;
-const MINIMUM_THROUGHPUT_RATIO_FLOOR: f64 = 0.70;
-const MAXIMUM_PEAK_RSS_RATIO_CEILING: f64 = 1.20;
-const MAXIMUM_RELOAD_RATIO_CEILING: f64 = 1.25;
+const MAXIMUM_LATENCY_RATIO_CEILING: f64 = 1.0;
+const MINIMUM_THROUGHPUT_RATIO_FLOOR: f64 = 1.0;
+const MAXIMUM_PEAK_RSS_RATIO_CEILING: f64 = 1.0;
+const MAXIMUM_RELOAD_RATIO_CEILING: f64 = 1.0;
 const CANONICAL_POLICY: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../benchmarks/baselines/http-aot-performance-limits.json"
@@ -184,7 +184,7 @@ pub(super) fn validate_performance(
     )
 }
 
-/// Rejects policy drift and any budget weaker than the hard v1 ceilings.
+/// Rejects policy drift and any budget that permits an AOT regression.
 pub(super) fn validate_policy(policy: &HttpPerformancePolicy) -> Result<(), String> {
     if policy.schema != POLICY_SCHEMA {
         return Err(

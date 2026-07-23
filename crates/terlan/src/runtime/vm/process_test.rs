@@ -2,6 +2,7 @@ use super::{
     VmExitReason, VmProcessId, VmProcessRegistryError, VmProcessSource, VmProcessState,
     VmProcessTable,
 };
+use crate::runtime::vm::actor_directory::VmActorLifecycle;
 use crate::runtime::vm::ReplValue;
 
 fn source(name: &str) -> VmProcessSource {
@@ -414,8 +415,11 @@ fn process_messages_record_stable_id_and_sender() {
     assert_eq!(first, 1);
     assert_eq!(second, 2);
     assert_eq!(first_message.id, 1);
+    assert_eq!(first_message.publication_sequence, 1);
     assert_eq!(first_message.sender, sender);
     assert_eq!(first_message.accounted_bytes, 0);
+    let second_message = recipient_process.receive_next().expect("second message");
+    assert_eq!(second_message.publication_sequence, 2);
 }
 
 #[test]
@@ -499,4 +503,33 @@ fn process_block_wake_are_noops_for_nonmatching_states() {
 fn process_id_test_constructor_preserves_raw_value_for_adversarial_paths() {
     assert_eq!(VmProcessId::system_runtime_worker().as_u64(), 0);
     assert_eq!(VmProcessId::from_raw_for_test(42).as_u64(), 42);
+}
+
+#[test]
+fn send_to_owned_actor_defers_integration_until_receiver_safepoint() {
+    let mut table = VmProcessTable::default();
+    let sender = table.spawn_root(source("sender"));
+    let receiver = table.spawn_root(source("receiver"));
+    table.mark_actor_queued(receiver).expect("queue receiver");
+    let token = table
+        .acquire_actor_mutator(receiver, 1)
+        .expect("own receiver");
+
+    assert_eq!(
+        table
+            .send(sender, receiver, ReplValue::Atom("ready".to_string()))
+            .expect("publication does not seize receiver mutation"),
+        1
+    );
+    assert_eq!(table.get(receiver).expect("receiver").mailbox_len(), 0);
+    assert_eq!(
+        table
+            .integrate_actor_mailbox(&token)
+            .expect("integrate at safepoint"),
+        1
+    );
+    assert_eq!(table.get(receiver).expect("receiver").mailbox_len(), 1);
+    table
+        .release_actor_mutator(token, VmActorLifecycle::Yielding)
+        .expect("release receiver");
 }

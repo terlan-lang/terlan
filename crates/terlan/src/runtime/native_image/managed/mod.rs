@@ -36,9 +36,12 @@ pub use collection_abi::{
     ManagedCollectionKind, MAX_MANAGED_COLLECTION_ABI_BYTES,
 };
 pub use core::{ActorId, ManagedMemoryError, TvmRef};
-pub(crate) use execution::{ManagedExecutionRuntime, PendingManagedCaptures};
+pub(crate) use execution::{ManagedActorTransfer, ManagedExecutionRuntime, PendingManagedCaptures};
 pub use heap::{ActorHeap, CollectionStats, HeapLimits};
-pub use layout::{AllocationClass, LayoutFingerprint, ManagedTypeDescriptor, SemanticTypeId};
+pub use layout::{
+    managed_binary_semantic_id, managed_bytes_semantic_id, managed_string_semantic_id,
+    AllocationClass, LayoutFingerprint, ManagedTypeDescriptor, SemanticTypeId,
+};
 pub(crate) use layout_registry::ManagedLayoutRegistry;
 pub use lists::{ManagedList, ManagedListBuilder, ManagedListDescriptor, ManagedListProfile};
 pub use literal_abi::{encode_string_literal, MAX_MANAGED_LITERAL_ABI_BYTES};
@@ -50,6 +53,10 @@ pub use maps::{
 #[cfg(test)]
 #[allow(unused_imports)]
 pub(crate) use operation_abi::execute_managed_operation;
+pub(crate) use operation_abi::{
+    decode_aggregate_field_projection, execute_managed_operation_with_context,
+    managed_abi_result_is_reference,
+};
 pub use operation_abi::{
     encode_aggregate_append_pair_operation, encode_aggregate_append_value_operation,
     encode_aggregate_field_operation, encode_aggregate_replace_field_operation,
@@ -71,9 +78,6 @@ pub use operation_abi::{
     encode_template_render_operation, is_managed_operation, ManagedBinaryPatternEndian,
     ManagedBinaryPatternField, ManagedCookieHeaderOperation, ManagedSessionMutation,
     ManagedTemplateValueKind,
-};
-pub(crate) use operation_abi::{
-    execute_managed_operation_with_context, managed_abi_result_is_reference,
 };
 pub use roots::{
     ManagedContinuation, ManagedRoot, RootLocation, StackMapEntry, StackMapRecord, StackMapTable,

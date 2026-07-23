@@ -89,6 +89,10 @@ mod model;
 #[cfg(test)]
 #[path = "native_ir/native_object_test_support.rs"]
 mod native_object_test_support;
+mod request_projection;
+#[cfg(test)]
+#[path = "native_ir/request_projection_test.rs"]
+mod request_projection_test;
 mod scalar_replacement;
 #[cfg(test)]
 #[path = "native_ir/scalar_replacement_index_test.rs"]

@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::num::NonZeroU64;
 
 use super::call_count::{VmCallCountRegistry, VmCallCountSnapshot, VmCallCountState};
 use super::call_memory::{VmCallMemoryRegistry, VmCallMemorySnapshot, VmCallMemoryState};
@@ -25,7 +26,8 @@ use super::process_environment::{VmRuntimeEnvironmentProfile, VmRuntimeEnvironme
 use super::reference::VmReferenceAllocator;
 use super::resource::{VmResourceSnapshot, VmResourceTable};
 use super::scheduler::{
-    VmScheduler, VmSchedulerDecision, VmSchedulerMetrics, VmSchedulerRun, VmSchedulerSlice,
+    VmScheduler, VmSchedulerClass, VmSchedulerDecision, VmSchedulerMetrics, VmSchedulerRun,
+    VmSchedulerSlice,
 };
 use super::statistics::VmRuntimeStatisticsDelta;
 use super::system_information::VmSystemInformationSnapshot;
@@ -131,12 +133,32 @@ impl VmActorRuntime {
         node_id: impl Into<String>,
         epoch: u64,
     ) -> Result<Self, String> {
+        Self::with_runtime_identity_and_scheduler(limits, node_id, epoch, NonZeroU64::MIN)
+    }
+
+    /// Creates an actor runtime owned by one fixed scheduler identity.
+    pub(crate) fn with_scheduler_owner(owner: NonZeroU64) -> Result<Self, String> {
+        Self::with_runtime_identity_and_scheduler(
+            VmMemoryLimits::new(64 * 1024 * 1024, 256 * 1024 * 1024)?,
+            "local",
+            1,
+            owner,
+        )
+    }
+
+    /// Creates an actor runtime with explicit reference and scheduler identity.
+    fn with_runtime_identity_and_scheduler(
+        limits: VmMemoryLimits,
+        node_id: impl Into<String>,
+        epoch: u64,
+        scheduler_owner: NonZeroU64,
+    ) -> Result<Self, String> {
         Ok(Self {
             processes: VmProcessTable::default(),
             aliases: VmProcessAliasTable::default(),
             failures: VmFailureRuntime::default(),
             references: VmReferenceAllocator::new(node_id, epoch)?,
-            scheduler: VmScheduler::default(),
+            scheduler: VmScheduler::with_owner(Default::default(), scheduler_owner),
             memory: VmMemoryAccountant::new(limits),
             resources: VmResourceTable::default(),
             code_server: VmCodeServer::default(),
@@ -168,6 +190,15 @@ impl VmActorRuntime {
         pid
     }
 
+    /// Spawns a root actor directly under an already-running fixed owner.
+    pub(crate) fn spawn_fixed_owner_root(&mut self, source: VmProcessSource) -> VmProcessId {
+        let pid = self.processes.spawn_root(source);
+        self.scheduler
+            .register_fixed_owner(&self.processes, pid)
+            .expect("fresh fixed-owner root must be runnable");
+        pid
+    }
+
     /// Spawns and schedules a child actor.
     pub(crate) fn spawn_child(
         &mut self,
@@ -193,6 +224,23 @@ impl VmActorRuntime {
     /// Returns the process table for inspection.
     pub(crate) fn processes(&self) -> &VmProcessTable {
         &self.processes
+    }
+
+    /// Returns the scheduler class currently assigned to one actor.
+    pub(crate) fn scheduler_class(&self, pid: VmProcessId) -> Option<VmSchedulerClass> {
+        self.scheduler.process_class(pid)
+    }
+
+    /// Reaps exited actor tombstones after their failure diagnostics and all
+    /// live-owned resources have been released.
+    pub(crate) fn reap_exited_actors(&mut self) -> Result<usize, String> {
+        let exited = self.processes.exited_process_ids();
+        for pid in &exited {
+            self.memory.reap_process_metrics(*pid)?;
+            self.scheduler.reap_process_diagnostics(*pid);
+            self.processes.reap_exited(*pid)?;
+        }
+        Ok(exited.len())
     }
 
     /// Returns the newest bounded snapshot captured before an abnormal exit.
@@ -696,9 +744,7 @@ impl VmActorRuntime {
             Ok(VmActorReceive::Message(message))
         } else {
             self.processes
-                .get_mut(pid)
-                .expect("process was checked before receive")
-                .block();
+                .with_process_control_mutator(pid, |process| process.block())?;
             Ok(VmActorReceive::Blocked)
         }
     }
@@ -724,9 +770,7 @@ impl VmActorRuntime {
             Ok(VmActorReceive::Message(message))
         } else {
             self.processes
-                .get_mut(pid)
-                .expect("process was checked before receive")
-                .block();
+                .with_process_control_mutator(pid, |process| process.block())?;
             Ok(VmActorReceive::Blocked)
         }
     }
@@ -749,9 +793,7 @@ impl VmActorRuntime {
             Ok(VmActorReceive::Timeout)
         } else {
             self.processes
-                .get_mut(pid)
-                .expect("process was checked before timeout receive")
-                .block();
+                .with_process_control_mutator(pid, |process| process.block())?;
             Ok(VmActorReceive::Blocked)
         }
     }

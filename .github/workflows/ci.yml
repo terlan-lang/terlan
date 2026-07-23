@@ -82,6 +82,9 @@ jobs:
         env:
           TERLAN_MATRIX_TARGET: ${{ matrix.target }}
 
+      - name: Stress the portable multicore memory model
+        run: cargo test --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
+
       - name: Upload target execution attestation
         uses: actions/upload-artifact@v4
         with:
@@ -138,6 +141,30 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  multicore-thread-sanitizer:
+    name: VM multicore ThreadSanitizer
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust ThreadSanitizer target
+        run: rustup toolchain install 1.96.0 --profile minimal --target x86_64-unknown-linux-gnutsan
+
+      - name: Validate multicore VM memory safety
+        run: make vm-multicore-thread-sanitizer-check
+
+      - name: Upload multicore ThreadSanitizer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vm-multicore-thread-sanitizer
+          path: |
+            target/quality/vm-multicore-thread-sanitizer-report.json
+            target/quality/vm-multicore-memory-model-tsan.json
+          if-no-files-found: error
+          retention-days: 90
+
   # Non-AOT feature jobs are intentionally paused during the hard AOT cutover.
   # cpp-metadata-extractor:
   #   ...
@@ -152,6 +179,9 @@ jobs:
 
       - name: Install Rust toolchain
         run: rustup toolchain install stable --profile minimal
+
+      - name: Validate MC-9 evidence contract
+        run: make vm-multicore-mc9-evidence-contract-check
 
       - name: Validate AOT cutover
         run: make release-candidate-check

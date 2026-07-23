@@ -1,4 +1,3 @@
-
 /// Builds one static file response for `terlc serve`.
 ///
 /// Inputs:
@@ -217,27 +216,48 @@ fn serve_vm_stream_response(
     body: &[u8],
     head_only: bool,
 ) -> Result<::http::Response<String>, String> {
-    let response = build_http_response(status, content_type, extra_headers, body, head_only)
+    let response = build_http_response_for_stream(status, content_type, extra_headers, body, head_only)
         .map_err(|message| format!("response build failed for {status} {reason}: {message}"))?;
     let (parts, body) = response.into_parts();
-    let mut builder = ::http::Response::builder().status(parts.status);
-    for (name, value) in &parts.headers {
-        if name == http::header::CONNECTION {
-            continue;
+    let body = String::from_utf8(body)
+        .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
+    Ok(::http::Response::from_parts(parts, body))
+}
+
+/// Consumes a VM handler response without recopying its managed body bytes.
+fn serve_vm_stream_handler_response(
+    response: handler::HandlerResponse,
+    head_only: bool,
+) -> Result<::http::Response<String>, String> {
+    match response.body {
+        handler::HandlerBody::Text(body) => build_http_text_response_owned_for_stream(
+            response.status,
+            &response.content_type,
+            &response.headers,
+            body,
+            head_only,
+        ),
+        handler::HandlerBody::Bytes(body) => {
+            let response = build_http_response_owned_for_stream(
+                response.status,
+                &response.content_type,
+                &response.headers,
+                body,
+                head_only,
+            )?;
+            let (parts, body) = response.into_parts();
+            let body = String::from_utf8(body)
+                .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
+            Ok(::http::Response::from_parts(parts, body))
         }
-        builder = builder.header(name, value);
     }
-    builder
-        .body(String::from_utf8_lossy(&body).into_owned())
-        .map_err(|error| format!("VM stream response cannot be built: {error}"))
 }
 
 /// Builds a VM-stream WebSocket opening-handshake response.
 fn serve_vm_stream_websocket_upgrade_response(
-    request: &::http::Request<String>,
+    headers: &::http::HeaderMap,
 ) -> Result<::http::Response<String>, String> {
-    let key = request
-        .headers()
+    let key = headers
         .get("sec-websocket-key")
         .and_then(|value| value.to_str().ok())
         .ok_or_else(|| "VM stream WebSocket upgrade is missing Sec-WebSocket-Key".to_string())?;
@@ -251,22 +271,6 @@ fn serve_vm_stream_websocket_upgrade_response(
     builder
         .body(String::new())
         .map_err(|error| format!("VM stream WebSocket response cannot be built: {error}"))
-}
-
-/// Reads all currently available response bytes from one VM TCP client stream.
-#[cfg_attr(not(test), allow(dead_code))]
-fn read_vm_stream_response_bytes(
-    tcp: &mut VmTcpRuntime,
-    client: VmTcpStream,
-) -> Result<Vec<u8>, String> {
-    let mut response = Vec::new();
-    while let Some(bytes) = tcp.receive(client, 64 * 1024)? {
-        response.extend(bytes);
-    }
-    if response.is_empty() {
-        return Err("VM stream request produced no response bytes".to_string());
-    }
-    Ok(response)
 }
 
 /// Builds one local live-reload SSE response.

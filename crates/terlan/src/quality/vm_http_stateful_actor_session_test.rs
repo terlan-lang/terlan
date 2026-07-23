@@ -139,7 +139,7 @@ fn vm_http_stateful_actor_session_writes_report_for_complete_gate() {
 
     assert_eq!(summary.affinity_fixture_count, 18);
     assert_eq!(summary.lifecycle_trace_count, 8);
-    assert_eq!(summary.exact_selector_count, 26);
+    assert_eq!(summary.exact_selector_count, 24);
     assert_eq!(summary.rejected_session_path_count, 0);
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("terlan-vm-http-stateful-actor-session-report-v1"));

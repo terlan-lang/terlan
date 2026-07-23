@@ -67,9 +67,15 @@ impl NativeImageBackend for TypedMailboxBackend {
         _context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-    ) -> Result<ReplValue, String> {
+        projection: NativeResultProjection,
+    ) -> Result<NativeDecodedResult, String> {
+        if projection != NativeResultProjection::PublicValue {
+            return Err("unexpected typed mailbox result projection".to_string());
+        }
         match (result_type, value) {
-            (TvmBoundaryType::String, 41) => Ok(ReplValue::String("mailbox".to_string())),
+            (TvmBoundaryType::String, 41) => Ok(NativeDecodedResult::Value(ReplValue::String(
+                "mailbox".to_string(),
+            ))),
             _ => Err("unexpected typed mailbox result".to_string()),
         }
     }
@@ -139,6 +145,7 @@ fn typed_mailbox_boundary() -> PureNativeBoundary {
             ],
         }),
         backend: Some(Box::new(TypedMailboxBackend)),
+        call_cache: None,
     }
 }
 
@@ -357,7 +364,11 @@ impl NativeImageBackend for ManagedMailboxBackend {
         context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-    ) -> Result<ReplValue, String> {
+        projection: NativeResultProjection,
+    ) -> Result<NativeDecodedResult, String> {
+        if projection != NativeResultProjection::PublicValue {
+            return Err("unexpected managed result projection".to_string());
+        }
         if result_type != &self.boundary_type() {
             return Err("unexpected managed result type".to_string());
         }
@@ -377,10 +388,10 @@ impl NativeImageBackend for ManagedMailboxBackend {
                     .map_err(|error| error.to_string())?;
                 match (view.field(0), view.field(1)) {
                     (Ok(ManagedFieldValue::Int(integer)), Ok(ManagedFieldValue::Bool(boolean))) => {
-                        Ok(ReplValue::Tuple(vec![
+                        Ok(NativeDecodedResult::Value(ReplValue::Tuple(vec![
                             ReplValue::Int(integer),
                             ReplValue::Bool(boolean),
-                        ]))
+                        ])))
                     }
                     _ => Err("managed Pair fields did not match".to_string()),
                 }
@@ -508,6 +519,7 @@ fn managed_mailbox_full_cycle_preserves_native_graph_identity() {
             ],
         }),
         backend: Some(Box::new(backend)),
+        call_cache: None,
     };
     let mut execution = PureNativeExecutionRuntime::runtime_default().expect("execution runtime");
     let mut context = PureNativeExecutionContext::new(owner, &mut execution);
@@ -565,6 +577,7 @@ fn managed_mailbox_rejection_rolls_back_receiver_heap_and_retains_lease() {
             }],
         }),
         backend: Some(Box::new(backend)),
+        call_cache: None,
     };
     let mut execution = PureNativeExecutionRuntime::runtime_default().expect("execution runtime");
     let mut context = PureNativeExecutionContext::new(owner, &mut execution);

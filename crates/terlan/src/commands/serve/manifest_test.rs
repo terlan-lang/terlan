@@ -90,6 +90,23 @@ fn write_manifest_package(web_root: &Path) {
     .expect("write manifest");
 }
 
+#[test]
+fn parsed_manifest_cache_requires_explicit_watcher_invalidation() {
+    let dir = temp_dir("parsed_manifest_cache");
+    let web_root = dir.join("web");
+    write_manifest_package(&web_root);
+
+    let first = read_web_manifest(&web_root).expect("load first manifest");
+    fs::remove_file(web_root.join("manifest.json")).expect("remove manifest after cache load");
+    let cached = read_web_manifest(&web_root).expect("reuse cached manifest");
+    assert!(Arc::ptr_eq(&first, &cached));
+
+    invalidate_web_manifest_cache(&web_root);
+    let error = read_web_manifest(&web_root).expect_err("invalidated cache must reread disk");
+    assert!(error.contains("No such file") || error.contains("not found"));
+    fs::remove_dir_all(dir).expect("cleanup");
+}
+
 /// Writes a project manifest next to a web package fixture.
 ///
 /// Inputs:

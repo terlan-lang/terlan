@@ -13,6 +13,8 @@ pub(crate) enum VmNativeGenerationReferenceClass {
     NativeFrame,
     /// Generated continuations parked across scheduler turns.
     ParkedContinuation,
+    /// Detached actor envelopes retaining generation-owned executable state.
+    ActorTransfer,
     /// Managed actor heaps whose layouts belong to the generation.
     ActorHeap,
     /// Mailbox values encoded with generation-owned layouts.
@@ -35,6 +37,7 @@ impl VmNativeGenerationReferenceClass {
         match self {
             Self::NativeFrame => "native_frames",
             Self::ParkedContinuation => "parked_continuations",
+            Self::ActorTransfer => "actor_transfers",
             Self::ActorHeap => "actor_heaps",
             Self::MailboxFragment => "mailbox_fragments",
             Self::Timer => "timers",

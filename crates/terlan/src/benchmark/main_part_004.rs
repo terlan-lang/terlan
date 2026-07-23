@@ -1,4 +1,3 @@
-
 /// Measures VM-owned scheduler primitives directly.
 ///
 /// Inputs:
@@ -14,10 +13,9 @@
 fn measure_vm_scheduler_runtime_primitives() -> Result<(), String> {
     let mut processes = VmProcessTable::default();
     let pid = processes.spawn_root(VmProcessSource::new("bench.Scheduler", "main", 0));
-    processes
-        .get_mut(pid)
-        .ok_or_else(|| "process missing after spawn".to_string())?
-        .add_resource_handle("native:scheduler-benchmark");
+    processes.with_process_control_mutator(pid, |process| {
+        process.add_resource_handle("native:scheduler-benchmark");
+    })?;
 
     let mut scheduler = VmScheduler::default();
     scheduler.enqueue_runnable(&processes, pid)?;

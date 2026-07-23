@@ -346,6 +346,73 @@ impl VmActorRuntime {
         })
     }
 
+    /// Starts a VM-owned one-shot timer against an absolute scheduler clock.
+    pub(crate) fn begin_native_timer_at(
+        &mut self,
+        owner_id: u64,
+        request_id: u64,
+        continuation_id: u64,
+        observed_tick: u64,
+        delay_ticks: u64,
+    ) -> Result<VmNativeTimerWait, String> {
+        let owner =
+            self.validate_native_continuation_owner(owner_id, request_id, continuation_id)?;
+        if delay_ticks == 0 {
+            return Err("native timer delay must be positive".to_string());
+        }
+        if observed_tick < self.timers.current_tick() {
+            return Err(format!(
+                "native timer clock moved backwards from {} to {observed_tick}",
+                self.timers.current_tick()
+            ));
+        }
+        let deadline_tick = observed_tick
+            .checked_add(delay_ticks)
+            .ok_or_else(|| format!("native timer deadline overflow for process {owner_id}"))?;
+        let timer_id = self
+            .timers
+            .start_one_shot(&self.processes, owner, deadline_tick)?;
+        Ok(VmNativeTimerWait {
+            timer_id,
+            deadline_tick,
+        })
+    }
+
+    /// Consumes one native continuation after its exact timer event was delivered.
+    pub(crate) fn complete_delivered_native_timer(
+        &mut self,
+        owner_id: u64,
+        request_id: u64,
+        continuation_id: u64,
+        wait: VmNativeTimerWait,
+        advance: &super::actor_timer::VmActorTimerAdvance,
+    ) -> Result<(), String> {
+        let owner =
+            self.validate_native_continuation_owner(owner_id, request_id, continuation_id)?;
+        let delivered = advance.timer_events.iter().any(|event| {
+            matches!(
+                event,
+                VmTimerEvent::Fired {
+                    timer_id,
+                    owner: event_owner,
+                    kind: VmTimerKind::OneShot,
+                } | VmTimerEvent::DeadlineMissed {
+                    timer_id,
+                    owner: event_owner,
+                    kind: VmTimerKind::OneShot,
+                    ..
+                } if *timer_id == wait.timer_id && *event_owner == owner
+            )
+        });
+        if !delivered {
+            return Err(format!(
+                "native timer {} did not produce its scheduler delivery for continuation {request_id}/{continuation_id}",
+                wait.timer_id.as_u64()
+            ));
+        }
+        self.consume_native_continuation(owner, (request_id, continuation_id))
+    }
+
     /// Fires an exact native timer before consuming and resuming its lease.
     pub(crate) fn complete_native_timer(
         &mut self,
@@ -561,16 +628,18 @@ impl VmActorRuntime {
         source: VmProcessSource,
     ) -> Result<(), String> {
         let child = VmProcessId::from_native_recipient(child_id)?;
-        let process = self
-            .processes
-            .get_mut(child)
-            .ok_or_else(|| format!("missing spawned native process {child_id}"))?;
-        if process.state != VmProcessState::Runnable {
-            return Err(format!("spawned native process {child_id} is not runnable"));
+        if self.processes.get(child).is_none() {
+            return Err(format!("missing spawned native process {child_id}"));
         }
-        process.source = source.clone();
-        process.set_current_location(source, 0);
-        Ok(())
+        self.processes
+            .with_process_control_mutator(child, |process| {
+                if process.state != VmProcessState::Runnable {
+                    return Err(format!("spawned native process {child_id} is not runnable"));
+                }
+                process.source = source.clone();
+                process.set_current_location(source, 0);
+                Ok(())
+            })?
     }
 
     pub(super) fn remove_native_continuation_for_owner(&mut self, owner: VmProcessId) {

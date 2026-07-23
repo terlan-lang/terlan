@@ -1,7 +1,9 @@
 mod args;
+#[cfg(test)]
 mod channel_transport;
 mod handler;
 mod handler_cache;
+mod hyper_server;
 #[cfg(test)]
 mod logging;
 mod manifest;

@@ -13,6 +13,12 @@ macro_rules! vm_map_profile_component {
     };
 }
 
+macro_rules! vm_code_server_test_component {
+    ($($item:item)*) => {
+        $(#[cfg(test)] $item)*
+    };
+}
+
 #[path = "commands.rs"]
 pub mod commands;
 #[path = "../compiler/mod.rs"]

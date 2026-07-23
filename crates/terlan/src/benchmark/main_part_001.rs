@@ -12,9 +12,8 @@ use serde::Serialize;
 use terlan_native::http;
 use terlan_native::json;
 use terlan_native::postgres::{self, Config, Pool, PostgresError};
-pub(crate) use value::ReplValue;
 pub(crate) use vm_runtime::{
-    actor, bitstring, map_value, memory, process, resource, scheduler, table, timer,
+    actor, map_value, memory, process, resource, scheduler, table, timer, ReplValue,
 };
 
 use actor::{VmActorReceive, VmActorRuntime};
@@ -41,6 +40,7 @@ pub(crate) mod runtime {
         #[cfg(test)]
         pub(crate) use crate::resource;
         pub(crate) use crate::scheduler;
+        pub(crate) use crate::vm_runtime::scheduler_topology;
         pub(crate) use crate::timer;
         pub(crate) use crate::vm_runtime::native_boundary;
         pub(crate) use crate::vm_runtime::native_image_diagnostics;

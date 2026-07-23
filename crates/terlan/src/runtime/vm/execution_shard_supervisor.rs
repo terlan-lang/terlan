@@ -186,6 +186,9 @@ pub(crate) struct VmExecutionShardSupervisor {
     epoch: Option<VmShardEpoch>,
     /// Cross-restart ingress and effect deduplication ledger.
     epoch_fence: Option<VmShardEpochFence>,
+    /// Allocation-free slot for one owner-local operation whose identity can
+    /// never be resubmitted by an external caller.
+    internal_operation: Option<VmShardEpochOperation>,
     /// Numeric identity reserved for the next admission.
     next_epoch: u64,
     /// Monotonic health and work sequence state.
@@ -210,6 +213,7 @@ impl VmExecutionShardSupervisor {
             image: None,
             epoch: None,
             epoch_fence: None,
+            internal_operation: None,
             next_epoch: 1,
             signals: VmShardSignalProgress::default(),
             restart_count: 0,
@@ -240,7 +244,6 @@ impl VmExecutionShardSupervisor {
     }
 
     /// Returns the admitted sealed image, when one exists.
-    #[cfg(test)]
     pub(crate) const fn image(&self) -> Option<&VmSealedShardImage> {
         self.image.as_ref()
     }
@@ -252,7 +255,6 @@ impl VmExecutionShardSupervisor {
     }
 
     /// Returns the number of restart budget units consumed.
-    #[cfg(test)]
     pub(crate) const fn restart_count(&self) -> u32 {
         self.restart_count
     }
@@ -342,6 +344,7 @@ impl VmExecutionShardSupervisor {
         self.image = Some(image);
         self.epoch = Some(epoch);
         self.epoch_fence = Some(epoch_fence);
+        self.internal_operation = None;
         self.next_epoch = next_epoch;
         self.signals = VmShardSignalProgress::default();
         self.phase = VmShardPhase::AwaitingReady;
@@ -409,6 +412,82 @@ impl VmExecutionShardSupervisor {
             .expect("operation phase requires an admitted epoch fence")
             .commit(operation)
             .map_err(VmShardSupervisorError::EpochOperation)
+    }
+
+    /// Admits one freshly generated owner-local operation without allocating a
+    /// replay-ledger node. External ingress/effects must use `begin_epoch_operation`.
+    pub(crate) fn begin_internal_operation(
+        &mut self,
+        operation: VmShardEpochOperation,
+    ) -> Result<VmShardOperationAdmission, VmShardSupervisorError> {
+        self.require_operation_phase("begin_internal_operation")?;
+        self.require_epoch(operation.epoch)?;
+        match self.internal_operation {
+            None => {
+                self.internal_operation = Some(operation);
+                Ok(VmShardOperationAdmission::ExecuteFirst)
+            }
+            Some(current) if current == operation => {
+                Ok(VmShardOperationAdmission::DuplicateSuppressed)
+            }
+            Some(_) => Err(VmShardSupervisorError::EpochOperation(
+                VmShardEpochError::OperationIdentityConflict {
+                    operation_id: operation.id,
+                },
+            )),
+        }
+    }
+
+    /// Commits and clears the exact owner-local operation in constant space.
+    pub(crate) fn commit_internal_operation(
+        &mut self,
+        operation: VmShardEpochOperation,
+    ) -> Result<VmShardOperationCommit, VmShardSupervisorError> {
+        self.require_operation_phase("commit_internal_operation")?;
+        self.require_epoch(operation.epoch)?;
+        match self.internal_operation {
+            Some(current) if current == operation => {
+                self.internal_operation = None;
+                Ok(VmShardOperationCommit::Committed)
+            }
+            Some(_) => Err(VmShardSupervisorError::EpochOperation(
+                VmShardEpochError::OperationIdentityConflict {
+                    operation_id: operation.id,
+                },
+            )),
+            None => Err(VmShardSupervisorError::EpochOperation(
+                VmShardEpochError::UnknownOperation {
+                    operation_id: operation.id,
+                },
+            )),
+        }
+    }
+
+    /// Clears a failed owner-local operation before its actor is retired.
+    pub(crate) fn abort_internal_operation(&mut self, operation: VmShardEpochOperation) -> bool {
+        if self.internal_operation == Some(operation) {
+            self.internal_operation = None;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Retires a committed VM-internal operation after progress publication.
+    pub(crate) fn retire_internal_operation(&mut self, operation: VmShardEpochOperation) -> bool {
+        self.epoch_fence
+            .as_mut()
+            .is_some_and(|fence| fence.retire_committed(operation))
+    }
+
+    /// Returns retained replay identities for bounded-state tests.
+    #[cfg(test)]
+    pub(crate) fn operation_count(&self) -> usize {
+        usize::from(self.internal_operation.is_some())
+            + self
+                .epoch_fence
+                .as_ref()
+                .map_or(0, VmShardEpochFence::operation_count)
     }
 
     /// Revokes routing before accepted work begins draining.
@@ -585,6 +664,7 @@ impl VmExecutionShardSupervisor {
         }
         self.image = None;
         self.epoch = None;
+        self.internal_operation = None;
         self.signals = VmShardSignalProgress::default();
         self.restart_deadline_tick = None;
         self.termination = None;

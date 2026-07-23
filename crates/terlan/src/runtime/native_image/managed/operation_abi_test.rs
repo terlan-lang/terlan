@@ -321,7 +321,7 @@ fn binary_pattern_operations_match_and_extract_checked_fields() {
 fn string_append_operation_concatenates_validated_values() {
     let mut heap = heap();
     let layouts = ManagedLayoutRegistry::default();
-    let left = heap.allocate_string("fall").expect("left");
+    let left = heap.allocate_string("fallλ").expect("left");
     let right = heap.allocate_string("back").expect("right");
     let operation = encode_string_append_operation();
     assert!(managed_abi_result_is_reference(&operation));
@@ -329,8 +329,15 @@ fn string_append_operation_concatenates_validated_values() {
         execute_managed_operation(&mut heap, &layouts, &operation, &[word(left), word(right)])
             .map(reference)
             .expect("append strings");
+    let aliased =
+        execute_managed_operation(&mut heap, &layouts, &operation, &[word(left), word(left)])
+            .map(reference)
+            .expect("append aliased string");
 
-    assert_eq!(heap.read_string(result.cast()), Ok("fallback"));
+    assert_eq!(heap.read_string(result.cast()), Ok("fallλback"));
+    assert_eq!(heap.read_string(aliased.cast()), Ok("fallλfallλ"));
+    assert_eq!(heap.read_string(left), Ok("fallλ"));
+    assert_eq!(heap.read_string(right), Ok("back"));
 }
 
 /// Builds the fixed aggregate descriptors admitted by the operation fixture.

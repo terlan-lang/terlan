@@ -151,6 +151,59 @@ fn public_sequence_allocation_rejects_zero_owner() {
     assert_eq!(runtime.actor_count(), 0);
 }
 
+#[test]
+fn completed_actor_heap_capacity_is_reused_with_a_fresh_owner_token() {
+    let mut runtime = ManagedExecutionRuntime::runtime_default().expect("managed runtime");
+    let stale = runtime
+        .allocate_string_value(81, "first owner")
+        .expect("first actor string");
+
+    runtime.release_owner(81);
+    assert_eq!(runtime.actor_count(), 0);
+    assert_eq!(runtime.recycled_heap_count(), 1);
+
+    let current = runtime
+        .allocate_string_value(82, "second owner")
+        .expect("second actor string");
+    assert_eq!(runtime.recycled_heap_count(), 0);
+    assert_eq!(
+        runtime
+            .materialize_string_value(82, current)
+            .expect("current owner reference"),
+        "second owner"
+    );
+    let error = runtime
+        .materialize_string_value(82, stale)
+        .expect_err("recycled heap must reject prior-owner reference");
+    assert!(error.contains("reference"), "{error}");
+}
+
+#[test]
+fn fixed_owner_heap_resets_in_place_with_stale_token_protection() {
+    let mut runtime = ManagedExecutionRuntime::runtime_default().expect("managed runtime");
+    let stale = runtime
+        .allocate_string_value(81, "first request")
+        .expect("first request string");
+
+    runtime.reset_owner(81);
+    assert_eq!(runtime.actor_count(), 1);
+    assert_eq!(runtime.recycled_heap_count(), 0);
+
+    let current = runtime
+        .allocate_string_value(81, "second request")
+        .expect("second request string");
+    assert_eq!(
+        runtime
+            .materialize_string_value(81, current)
+            .expect("current request reference"),
+        "second request"
+    );
+    let error = runtime
+        .materialize_string_value(81, stale)
+        .expect_err("reset heap must reject prior-request reference");
+    assert!(error.contains("reference"), "{error}");
+}
+
 /// Copies a native aggregate directly between actor heaps and rolls it back atomically.
 #[test]
 fn managed_mailbox_copy_preserves_type_owner_and_rollback_boundary() {

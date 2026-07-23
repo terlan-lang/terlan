@@ -2,6 +2,22 @@
 
 #[path = "capability_worker/sandbox.rs"]
 mod sandbox;
+#[path = "capability_worker/parked.rs"]
+mod parked;
+#[path = "capability_worker/event_pump.rs"]
+mod event_pump;
+#[allow(dead_code)] // MC-6 pool surface is staged before its runtime consumer.
+#[path = "capability_worker/pool.rs"]
+mod pool;
+
+#[allow(unused_imports)] // MC-6 pool surface is staged before its runtime consumer.
+pub(crate) use pool::{
+    VmCapabilityWorkerParkedRequest, VmCapabilityWorkerPool, VmCapabilityWorkerPoolRequest,
+    VmCapabilityWorkerPoolSlot,
+};
+pub(crate) use event_pump::{
+    VmCapabilityWorkerEventPump, VmCapabilityWorkerEventPumpEvent,
+};
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufReader, Read, Write};
@@ -318,6 +334,8 @@ pub(crate) struct VmCapabilityWorkerClient {
     deadlines: VmNativeBoundaryDeadlineQueue,
     /// Capability and epoch ownership for each live request.
     pending_contexts: BTreeMap<u64, VmCapabilityRequestContext>,
+    /// Generated continuations already parked by their execution shard.
+    parked_contexts: BTreeMap<u64, (VmProcessId, VmCapabilityRequestContext)>,
     /// Closed capability names granted to this worker process.
     capabilities: BTreeSet<String>,
     /// Last locally allocated request identity.
@@ -327,6 +345,21 @@ pub(crate) struct VmCapabilityWorkerClient {
 }
 
 impl VmCapabilityWorkerClient {
+    /// Returns the exact logical slot and process generation of this client.
+    pub(crate) fn identity(&self) -> &VmCapabilityWorkerIdentity {
+        &self.identity
+    }
+
+    /// Returns the maximum number of requests admitted by this worker process.
+    pub(crate) const fn credit_limit(&self) -> u64 {
+        self.remote_credit_limit
+    }
+
+    /// Returns whether startup policy granted one capability to this worker.
+    pub(crate) fn admits_capability(&self, capability: &VmCapabilityId) -> bool {
+        self.capabilities.contains(capability.as_str())
+    }
+
     /// Starts a capability worker with no inherited environment variables.
     pub(crate) fn spawn(
         identity: VmCapabilityWorkerIdentity,
@@ -390,6 +423,7 @@ impl VmCapabilityWorkerClient {
             transport,
             deadlines: VmNativeBoundaryDeadlineQueue::new(policy.credit_limit),
             pending_contexts: BTreeMap::new(),
+            parked_contexts: BTreeMap::new(),
             capabilities: policy.capabilities.into_iter().collect(),
             last_request_id: RequestId { value: 0 },
             remote_credit_limit: policy.credit_limit,
@@ -545,7 +579,7 @@ impl VmCapabilityWorkerClient {
 
     /// Returns the number of VM requests currently parked on this worker.
     pub(crate) fn pending_len(&self) -> usize {
-        self.deadlines.pending_len()
+        self.deadlines.pending_len() + self.parked_contexts.len()
     }
 
     /// Starts VM deadline ownership before publishing the request to transport.

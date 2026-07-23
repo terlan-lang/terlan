@@ -1,16 +1,30 @@
 #![allow(dead_code)]
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::num::NonZeroU64;
 
 use serde::Serialize;
 
+use super::actor_directory::VmActorLifecycle;
 use super::process::{
     VmExitReason, VmProcess, VmProcessId, VmProcessResumeState, VmProcessState, VmProcessTable,
 };
 pub(crate) use telemetry::{VmSchedulerMetrics, VmSchedulerQueueTransition};
 
+#[path = "scheduler/steal.rs"]
+mod steal;
 #[path = "scheduler/telemetry.rs"]
 mod telemetry;
+#[path = "scheduler/transfer.rs"]
+mod transfer;
+
+#[allow(unused_imports)] // Used when MC-6 scheduler owners enable bounded stealing.
+pub(crate) use steal::{
+    transfer_steal_batch, VmSchedulerStealBatch, VmSchedulerStealClaim,
+    VmSchedulerStealImportFailure,
+};
+#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
+pub(crate) use transfer::{VmSchedulerImportFailure, VmSchedulerPlacementTransfer};
 
 /// Scheduler configuration for local VM process execution.
 ///
@@ -152,6 +166,7 @@ pub(crate) struct VmSchedulerRun {
 #[derive(Debug)]
 pub(crate) struct VmScheduler {
     config: VmSchedulerConfig,
+    owner: NonZeroU64,
     queues: [VecDeque<VmProcessId>; 3],
     queued: BTreeSet<VmProcessId>,
     classes: BTreeMap<VmProcessId, VmSchedulerClass>,
@@ -164,8 +179,14 @@ pub(crate) struct VmScheduler {
 impl VmScheduler {
     /// Creates a scheduler from explicit configuration.
     pub(crate) fn new(config: VmSchedulerConfig) -> Self {
+        Self::with_owner(config, NonZeroU64::MIN)
+    }
+
+    /// Creates a scheduler with an explicit nonzero actor-mutator owner.
+    pub(crate) fn with_owner(config: VmSchedulerConfig, owner: NonZeroU64) -> Self {
         Self {
             config,
+            owner,
             queues: std::array::from_fn(|_| VecDeque::new()),
             queued: BTreeSet::new(),
             classes: BTreeMap::new(),
@@ -194,12 +215,26 @@ impl VmScheduler {
             .collect()
     }
 
+    /// Returns the scheduling class retained for one live process.
+    pub(crate) fn process_class(&self, pid: VmProcessId) -> Option<VmSchedulerClass> {
+        self.classes.get(&pid).copied()
+    }
+
     /// Removes all scheduler-owned state for a process that exited outside a
     /// scheduler slice, including runnable entries from cascaded actor exits.
     pub(crate) fn forget_process(&mut self, pid: VmProcessId) {
         self.remove_queued(pid, "exit");
         self.classes.remove(&pid);
         self.enqueued_at.remove(&pid);
+    }
+
+    /// Releases per-process replay telemetry after postmortem capture.
+    pub(crate) fn reap_process_diagnostics(&mut self, pid: VmProcessId) {
+        self.forget_process(pid);
+        self.metrics.processes.remove(&pid.as_u64());
+        self.metrics
+            .queue_transitions
+            .retain(|transition| transition.pid != pid.as_u64());
     }
 
     /// Returns cumulative deterministic scheduler accounting.
@@ -255,22 +290,22 @@ impl VmScheduler {
         charge_label: &str,
         allow_exited: bool,
     ) -> Result<u64, String> {
-        let process = match processes.get_mut(pid) {
-            Some(process) => process,
-            None => {
-                return Err(format!(
-                    "cannot charge {charge_label} for missing process {}",
-                    pid.as_u64()
-                ));
-            }
-        };
-        if !allow_exited && matches!(process.state, VmProcessState::Exited(_)) {
+        if processes.get(pid).is_none() {
             return Err(format!(
-                "cannot charge {charge_label} for exited process {}",
+                "cannot charge {charge_label} for missing process {}",
                 pid.as_u64()
             ));
         }
-        process.charge_reductions(reductions);
+        processes.with_process_control_mutator(pid, |process| {
+            if !allow_exited && matches!(process.state, VmProcessState::Exited(_)) {
+                return Err(format!(
+                    "cannot charge {charge_label} for exited process {}",
+                    pid.as_u64()
+                ));
+            }
+            process.charge_reductions(reductions);
+            Ok(())
+        })??;
         self.metrics.total_reductions = self.metrics.total_reductions.saturating_add(reductions);
         let metrics = self.metrics.processes.entry(pid.as_u64()).or_default();
         metrics.pid = pid.as_u64();
@@ -312,6 +347,18 @@ impl VmScheduler {
         self.enqueue_runnable_with_class(processes, pid, class)
     }
 
+    /// Registers a runnable actor whose execution is already owned by a fixed
+    /// scheduler loop. The generic run queue must not also enqueue it.
+    pub(crate) fn register_fixed_owner(
+        &mut self,
+        processes: &VmProcessTable,
+        pid: VmProcessId,
+    ) -> Result<(), String> {
+        processes.mark_actor_queued(pid)?;
+        self.classes.insert(pid, VmSchedulerClass::Normal);
+        Ok(())
+    }
+
     /// Enqueues a runnable process in an explicit deterministic class.
     pub(crate) fn enqueue_runnable_with_class(
         &mut self,
@@ -333,7 +380,7 @@ impl VmScheduler {
                     return Err(format!("cannot reclassify queued process {}", pid.as_u64()));
                 }
                 self.classes.insert(pid, class);
-                self.enqueue_unchecked(pid)
+                self.enqueue_unchecked(processes, pid)
             }
             VmProcessState::Blocked => {
                 Err(format!("cannot enqueue blocked process {}", pid.as_u64()))
@@ -371,7 +418,7 @@ impl VmScheduler {
         }
         self.classes.insert(pid, class);
         if was_queued {
-            self.enqueue_unchecked(pid)?;
+            self.enqueue_unchecked(processes, pid)?;
         }
         self.charge_runtime_reductions(processes, pid, VM_SCHEDULER_OPERATION_REDUCTIONS)?;
         Ok(())
@@ -383,20 +430,27 @@ impl VmScheduler {
         processes: &mut VmProcessTable,
         pid: VmProcessId,
     ) -> Result<(), String> {
-        let process = processes
-            .get_mut(pid)
-            .ok_or_else(|| format!("cannot wake missing process {}", pid.as_u64()))?;
-        match process.state {
-            VmProcessState::Exited(_) => {
-                return Err(format!("cannot wake exited process {}", pid.as_u64()));
-            }
-            VmProcessState::Suspended(_) => {
-                process.wake();
-                return Ok(());
-            }
-            VmProcessState::Runnable | VmProcessState::Blocked => process.wake(),
+        if processes.get(pid).is_none() {
+            return Err(format!("cannot wake missing process {}", pid.as_u64()));
         }
-        self.enqueue_unchecked(pid)
+        let suspended =
+            processes.with_process_control_mutator(pid, |process| match process.state {
+                VmProcessState::Exited(_) => {
+                    Err(format!("cannot wake exited process {}", pid.as_u64()))
+                }
+                VmProcessState::Suspended(_) => {
+                    process.wake();
+                    Ok(true)
+                }
+                VmProcessState::Runnable | VmProcessState::Blocked => {
+                    process.wake();
+                    Ok(false)
+                }
+            })??;
+        if suspended {
+            return Ok(());
+        }
+        self.enqueue_unchecked(processes, pid)
     }
 
     /// Suspends a live process and removes any runnable queue entry.
@@ -405,11 +459,11 @@ impl VmScheduler {
         processes: &mut VmProcessTable,
         pid: VmProcessId,
     ) -> Result<(), String> {
-        let process = processes
-            .get_mut(pid)
-            .ok_or_else(|| format!("cannot suspend missing process {}", pid.as_u64()))?;
-        process
-            .suspend()
+        if processes.get(pid).is_none() {
+            return Err(format!("cannot suspend missing process {}", pid.as_u64()));
+        }
+        processes
+            .with_process_control_mutator(pid, |process| process.suspend())?
             .map_err(|_| format!("cannot suspend exited process {}", pid.as_u64()))?;
         self.remove_queued(pid, "suspend");
         Ok(())
@@ -421,18 +475,20 @@ impl VmScheduler {
         processes: &mut VmProcessTable,
         pid: VmProcessId,
     ) -> Result<(), String> {
-        let process = processes
-            .get_mut(pid)
-            .ok_or_else(|| format!("cannot resume missing process {}", pid.as_u64()))?;
-        let resume_state = process.resume().map_err(|reason| {
-            if matches!(process.state, VmProcessState::Exited(_)) {
-                format!("cannot resume exited process {}", pid.as_u64())
-            } else {
-                format!("cannot resume process {}: {reason}", pid.as_u64())
-            }
-        })?;
+        if processes.get(pid).is_none() {
+            return Err(format!("cannot resume missing process {}", pid.as_u64()));
+        }
+        let resume_state = processes.with_process_control_mutator(pid, |process| {
+            process.resume().map_err(|reason| {
+                if matches!(process.state, VmProcessState::Exited(_)) {
+                    format!("cannot resume exited process {}", pid.as_u64())
+                } else {
+                    format!("cannot resume process {}: {reason}", pid.as_u64())
+                }
+            })
+        })??;
         if resume_state == VmProcessResumeState::Runnable {
-            self.enqueue_unchecked(pid)?;
+            self.enqueue_unchecked(processes, pid)?;
         }
         Ok(())
     }
@@ -443,13 +499,16 @@ impl VmScheduler {
         processes: &mut VmProcessTable,
         pid: VmProcessId,
     ) -> Result<(), String> {
-        let process = processes
-            .get_mut(pid)
-            .ok_or_else(|| format!("cannot cancel missing process {}", pid.as_u64()))?;
-        if matches!(process.state, VmProcessState::Exited(_)) {
-            return Err(format!("cannot cancel exited process {}", pid.as_u64()));
+        if processes.get(pid).is_none() {
+            return Err(format!("cannot cancel missing process {}", pid.as_u64()));
         }
-        process.request_cancellation();
+        processes.with_process_control_mutator(pid, |process| {
+            if matches!(process.state, VmProcessState::Exited(_)) {
+                return Err(format!("cannot cancel exited process {}", pid.as_u64()));
+            }
+            process.request_cancellation();
+            Ok(())
+        })??;
         self.charge_runtime_reductions(processes, pid, VM_SCHEDULER_OPERATION_REDUCTIONS)?;
         Ok(())
     }
@@ -486,21 +545,51 @@ impl VmScheduler {
                 tick: self.tick,
                 reduction_budget: self.config.reductions_per_slice,
             };
-            let process = processes
-                .get_mut(pid)
-                .expect("process was checked immediately before slice execution");
-            let decision = run_slice(process, slice);
-            process.charge_reductions(decision.reductions());
+            let token = processes.acquire_actor_mutator(pid, self.owner.get())?;
+            processes.integrate_actor_mailbox(&token)?;
+            let (decision, cancellation_at_boundary) =
+                processes.with_actor_mutator(&token, |process| {
+                    let decision = run_slice(process, slice);
+                    if matches!(&decision, VmSchedulerDecision::Block { .. }) {
+                        process.block();
+                    }
+                    process.charge_reductions(decision.reductions());
+                    let cancellation_at_boundary = process.cancellation_requested
+                        && !matches!(&decision, VmSchedulerDecision::Exit { .. });
+                    (decision, cancellation_at_boundary)
+                })?;
             let preempted = matches!(&decision, VmSchedulerDecision::Yield { .. })
                 && decision.reductions() >= slice.reduction_budget;
-            let cancellation_at_boundary = process.cancellation_requested
-                && !matches!(&decision, VmSchedulerDecision::Exit { .. });
+            let release_state = if cancellation_at_boundary
+                || matches!(&decision, VmSchedulerDecision::Exit { .. })
+            {
+                VmActorLifecycle::Exiting
+            } else if matches!(&decision, VmSchedulerDecision::Block { .. }) {
+                VmActorLifecycle::Parked
+            } else {
+                VmActorLifecycle::Yielding
+            };
+            let released = processes.release_actor_mutator(token, release_state)?;
             if cancellation_at_boundary {
                 let run = self.cancel_process(processes, pid, decision.reductions())?;
                 self.record_run(pid, &run, enqueued_tick, preempted);
                 return Ok(run);
             }
-            let run = self.apply_decision(processes, pid, decision);
+            let block_interrupted = matches!(&decision, VmSchedulerDecision::Block { .. })
+                && released != VmActorLifecycle::Parked;
+            let run = if block_interrupted {
+                processes.integrate_process_mailbox(pid)?;
+                processes.with_process_control_mutator(pid, |process| process.wake())?;
+                self.enqueue_unchecked(processes, pid)?;
+                VmSchedulerRun {
+                    pid: Some(pid),
+                    tick: self.tick,
+                    reductions_charged: decision.reductions(),
+                    outcome: VmSchedulerOutcome::Ran,
+                }
+            } else {
+                self.apply_decision(processes, pid, decision)
+            };
             self.record_run(pid, &run, enqueued_tick, preempted);
             return Ok(run);
         }
@@ -509,11 +598,26 @@ impl VmScheduler {
 
     /// Injects a queued id for adversarial scheduler tests.
     #[cfg(test)]
-    pub(crate) fn enqueue_for_test(&mut self, pid: VmProcessId) {
-        let _ = self.enqueue_unchecked(pid);
+    pub(crate) fn enqueue_for_test(&mut self, processes: &VmProcessTable, pid: VmProcessId) {
+        if processes
+            .get(pid)
+            .is_some_and(|process| process.state == VmProcessState::Runnable)
+        {
+            let _ = processes.mark_actor_queued(pid);
+        }
+        let _ = self.enqueue_unchecked_raw(pid);
     }
 
-    fn enqueue_unchecked(&mut self, pid: VmProcessId) -> Result<(), String> {
+    fn enqueue_unchecked(
+        &mut self,
+        processes: &VmProcessTable,
+        pid: VmProcessId,
+    ) -> Result<(), String> {
+        processes.mark_actor_queued(pid)?;
+        self.enqueue_unchecked_raw(pid)
+    }
+
+    fn enqueue_unchecked_raw(&mut self, pid: VmProcessId) -> Result<(), String> {
         let class = self
             .classes
             .get(&pid)
@@ -649,7 +753,7 @@ impl VmScheduler {
                     .get(pid)
                     .is_some_and(|process| process.state == VmProcessState::Runnable)
                 {
-                    let _ = self.enqueue_unchecked(pid);
+                    let _ = self.enqueue_unchecked(processes, pid);
                 } else {
                     self.classes.remove(&pid);
                 }
@@ -660,18 +764,12 @@ impl VmScheduler {
                     outcome: VmSchedulerOutcome::Ran,
                 }
             }
-            VmSchedulerDecision::Block { .. } => {
-                processes
-                    .get_mut(pid)
-                    .expect("process was checked before block decision")
-                    .block();
-                VmSchedulerRun {
-                    pid: Some(pid),
-                    tick: self.tick,
-                    reductions_charged,
-                    outcome: VmSchedulerOutcome::Blocked,
-                }
-            }
+            VmSchedulerDecision::Block { .. } => VmSchedulerRun {
+                pid: Some(pid),
+                tick: self.tick,
+                reductions_charged,
+                outcome: VmSchedulerOutcome::Blocked,
+            },
             VmSchedulerDecision::Exit { reason, .. } => {
                 let cleanup = processes.exit_process(pid, reason).unwrap_or_default();
                 self.classes.remove(&pid);
@@ -719,3 +817,11 @@ mod scheduler_reclassification_accounting_test;
 #[cfg(test)]
 #[path = "scheduler_cancellation_accounting_test.rs"]
 mod scheduler_cancellation_accounting_test;
+
+#[cfg(test)]
+#[path = "scheduler_transfer_test.rs"]
+mod scheduler_transfer_test;
+
+#[cfg(test)]
+#[path = "scheduler/steal_test.rs"]
+mod scheduler_steal_test;

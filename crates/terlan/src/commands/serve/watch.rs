@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -134,9 +135,30 @@ fn watch_web_package_for_reload(
     reload_hub: ReloadHub,
 ) {
     let (event_tx, event_rx) = mpsc::channel();
+    let manifest_path = web_root.join("manifest.json");
+    let source_paths = super::manifest::web_package_handler_source_paths(&web_root)
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let source_directories = source_paths
+        .iter()
+        .filter_map(|path| path.parent().map(Path::to_path_buf))
+        .collect::<BTreeSet<_>>();
+    let watched_sources = Arc::new(source_paths);
+    let callback_sources = Arc::clone(&watched_sources);
+    let cache_root = web_root.clone();
     let mut watcher = match RecommendedWatcher::new(
         move |result: notify::Result<Event>| match result {
             Ok(event) if should_reload_for_event(&event) => {
+                if event.paths.iter().any(|path| path == &manifest_path) {
+                    super::manifest::invalidate_web_manifest_cache(&cache_root);
+                }
+                if event
+                    .paths
+                    .iter()
+                    .any(|path| callback_sources.contains(path))
+                {
+                    super::handler_cache::invalidate_vm_handler_cache();
+                }
                 let _ = event_tx.send(());
             }
             Ok(_) => {}
@@ -156,6 +178,14 @@ fn watch_web_package_for_reload(
             web_root.display()
         );
         return;
+    }
+    for directory in source_directories {
+        if let Err(err) = watcher.watch(&directory, RecursiveMode::NonRecursive) {
+            eprintln!(
+                "error[serve_watch]: failed to watch handler source directory `{}`: {err}",
+                directory.display()
+            );
+        }
     }
 
     let mut version = 0_u64;

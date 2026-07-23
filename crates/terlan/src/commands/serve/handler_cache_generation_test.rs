@@ -53,6 +53,7 @@ fn hot_reload_pins_in_flight_generation_until_its_last_lease_drops() {
     assert_eq!(execute(&first_runtime), 7);
 
     fs::write(&source_path, source(700)).expect("write replacement generation");
+    invalidate_vm_handler_cache();
     let second = cached_source_entry(&web_root, &source_path, MODULE)
         .expect("compile replacement generation");
     let second_runtime = Arc::clone(&second.runtime);
@@ -67,6 +68,8 @@ fn hot_reload_pins_in_flight_generation_until_its_last_lease_drops() {
 
     cache()
         .expect("handler cache")
+        .write()
+        .expect("handler cache write")
         .remove(&source_path)
         .expect("remove current generation");
     drop(second);
@@ -116,8 +119,101 @@ fn handler_cache_compilation_removes_legacy_runtime_sidecars() {
 
     cache()
         .expect("handler cache")
+        .write()
+        .expect("handler cache write")
         .remove(&source_path)
         .expect("remove admitted handler");
     drop(entry);
     fs::remove_dir_all(root).expect("cleanup legacy HTTP fixture");
+}
+
+#[test]
+fn immediate_callback_executes_on_its_protocol_owner_without_rpc() {
+    let root = test_fs::temp_path("serve", "aot_handler_owner_local");
+    let web_root = root.join("_build/web");
+    let source_path = root.join("src/app/ReloadGeneration.terl");
+    fs::create_dir_all(source_path.parent().expect("source parent"))
+        .expect("create source directory");
+    fs::create_dir_all(&web_root).expect("create native output directory");
+    fs::write(&source_path, source(23)).expect("write handler source");
+    let entry = cached_source_entry(&web_root, &source_path, MODULE)
+        .expect("compile owner-local generation");
+
+    let value = crate::runtime::vm::protocol_task_executor::with_protocol_scheduler_for_test(
+        VmSchedulerId::primary(),
+        || execute(&entry.runtime),
+    );
+
+    assert_eq!(value, 23);
+    let metrics = entry.runtime.generation.shards[0].telemetry_snapshot();
+    assert_eq!(metrics.entries, 0);
+    assert_eq!(metrics.completions, 0);
+    cache()
+        .expect("handler cache")
+        .write()
+        .expect("handler cache write")
+        .remove(&source_path);
+    drop(entry);
+    fs::remove_dir_all(root).expect("cleanup owner-local fixture");
+}
+
+#[test]
+fn admitted_body_handler_retains_compiler_request_projection() {
+    const REQUEST_MODULE: &str = "app.RequestProjection";
+    let root = test_fs::temp_path("serve", "aot_handler_request_projection");
+    let web_root = root.join("_build/web");
+    let source_path = root.join("src/app/RequestProjection.terl");
+    fs::create_dir_all(source_path.parent().expect("source parent"))
+        .expect("create source directory");
+    fs::create_dir_all(&web_root).expect("create native output directory");
+    fs::write(
+        &source_path,
+        "module app.RequestProjection.\n\nimport std.http.Response.\nimport type std.http.Request.{Request}.\nimport type std.http.Response.{Response}.\n\npub handle(request: Request): Response ->\n    Response.text(request.body_text()).\n",
+    )
+    .expect("write request handler");
+
+    let entry = cached_source_entry(&web_root, &source_path, REQUEST_MODULE)
+        .expect("compile projected handler");
+    assert_eq!(
+        entry
+            .runtime
+            .request_projection(REQUEST_MODULE, "handle", 1),
+        crate::runtime::native::http::RequestFieldProjection::Fields(
+            1 << crate::runtime::native::http::RequestFieldProjection::BODY,
+        )
+    );
+    let projection = crate::runtime::native::http::RequestFieldProjection::Fields(
+        1 << crate::runtime::native::http::RequestFieldProjection::BODY,
+    );
+    let request = crate::terlan_native::http::Request::new("typed response body").into_parts();
+    let response = crate::runtime::vm::protocol_task_executor::with_protocol_scheduler_for_test(
+        VmSchedulerId::primary(),
+        || {
+            entry
+                .runtime
+                .execute_projected_http_request(
+                    REQUEST_MODULE,
+                    "handle",
+                    request,
+                    projection,
+                    &mut |_| {},
+                )
+                .expect("execute typed HTTP response")
+        },
+    );
+    let crate::runtime::vm::VmHttpCallResult::Response(response) = response else {
+        panic!("direct handler did not use the typed managed Response projection")
+    };
+    assert_eq!(response.kind, 0);
+    assert_eq!(response.status, 200);
+    assert_eq!(response.payload, "typed response body");
+    assert!(response.headers.is_empty());
+
+    cache()
+        .expect("handler cache")
+        .write()
+        .expect("handler cache write")
+        .remove(&source_path);
+    drop(entry);
+    fs::remove_dir_all(root).expect("cleanup request projection fixture");
 }

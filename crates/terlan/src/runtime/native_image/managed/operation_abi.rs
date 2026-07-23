@@ -247,29 +247,40 @@ pub(crate) fn execute_managed_operation_with_context(
     encoded: &[u8],
     words: &[i64],
 ) -> Result<u64, ManagedMemoryError> {
-    if http::is_http_operation(encoded) {
-        return http::execute_http_operation(heap, layouts, encoded, words);
-    }
-    if binary_pattern::is_binary_pattern_operation(encoded) {
-        return binary_pattern::execute_binary_pattern_operation(heap, encoded, words);
-    }
-    if collections::is_collection_operation(encoded) {
-        return collections::execute_collection_operation(heap, layouts, encoded, words);
-    }
-    if equality::is_equality_operation(encoded) {
-        return equality::execute_equality_operation(heap, layouts, encoded, words);
-    }
-    if json::is_json_operation(encoded) {
-        return json::execute_json_operation(heap, layouts, encoded, words);
-    }
-    if pattern::is_pattern_operation(encoded) {
-        return pattern::execute_pattern_operation(heap, layouts, encoded, words);
-    }
-    if session::is_session_operation(encoded) {
-        return session::execute_session_operation(heap, layouts, http_sessions, encoded, words);
-    }
-    if template::is_template_operation(encoded) {
-        return template::execute_template_operation(heap, layouts, encoded, words);
+    // The generic family is the most common generated scalar/aggregate ABI.
+    // Select it from its authenticated magic once instead of probing every
+    // specialized family before decoding the operation.
+    if !encoded.starts_with(MAGIC) {
+        if http::is_http_operation(encoded) {
+            return http::execute_http_operation(heap, layouts, encoded, words);
+        }
+        if binary_pattern::is_binary_pattern_operation(encoded) {
+            return binary_pattern::execute_binary_pattern_operation(heap, encoded, words);
+        }
+        if collections::is_collection_operation(encoded) {
+            return collections::execute_collection_operation(heap, layouts, encoded, words);
+        }
+        if equality::is_equality_operation(encoded) {
+            return equality::execute_equality_operation(heap, layouts, encoded, words);
+        }
+        if json::is_json_operation(encoded) {
+            return json::execute_json_operation(heap, layouts, encoded, words);
+        }
+        if pattern::is_pattern_operation(encoded) {
+            return pattern::execute_pattern_operation(heap, layouts, encoded, words);
+        }
+        if session::is_session_operation(encoded) {
+            return session::execute_session_operation(
+                heap,
+                layouts,
+                http_sessions,
+                encoded,
+                words,
+            );
+        }
+        if template::is_template_operation(encoded) {
+            return template::execute_template_operation(heap, layouts, encoded, words);
+        }
     }
     let operation = decode_operation(encoded)?;
     let reference = match operation {
@@ -507,6 +518,17 @@ fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation, ManagedMemoryErr
     }
 }
 
+/// Decodes only an exact aggregate-reference projection for compiler analysis.
+///
+/// Other managed operations and malformed payloads deliberately return `None`;
+/// callers must then retain their conservative full-value behavior.
+pub(crate) fn decode_aggregate_field_projection(encoded: &[u8]) -> Option<(SemanticTypeId, usize)> {
+    match decode_operation(encoded).ok()? {
+        ManagedOperation::Project { semantic, field } => Some((semantic, field)),
+        _ => None,
+    }
+}
+
 /// Compares two actor-owned managed strings after validating both references.
 fn strings_equal(heap: &ActorHeap, left: i64, right: i64) -> Result<bool, ManagedMemoryError> {
     let left = reference_word(left)?.cast::<ManagedString>();
@@ -520,13 +542,10 @@ fn append_strings(
     left: i64,
     right: i64,
 ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
-    let left = heap
-        .read_string(reference_word(left)?.cast::<ManagedString>())?
-        .to_string();
-    let right = heap
-        .read_string(reference_word(right)?.cast::<ManagedString>())?
-        .to_string();
-    heap.allocate_string(&format!("{left}{right}"))
+    heap.concatenate_strings(
+        reference_word(left)?.cast::<ManagedString>(),
+        reference_word(right)?.cast::<ManagedString>(),
+    )
 }
 
 /// Allocates the ordered concatenation of one actor-owned managed string list.
@@ -646,7 +665,7 @@ fn lookup_string_map(
         None => ("None", Vec::new()),
     };
     let option = option_layout(layouts, option_semantic, variant, fields.len())?;
-    heap.allocate_aggregate(option, &fields)
+    heap.allocate_aggregate_ref(option, &fields)
 }
 
 /// Allocates one empty list from its admitted collection descriptor.
@@ -682,7 +701,7 @@ fn replace_aggregate_field(
         .ok_or(ManagedMemoryError::InvalidAggregateField)?
         .field_type();
     values[field] = field_value(replacement, field_type)?;
-    heap.allocate_aggregate(descriptor, &values)
+    heap.allocate_aggregate_ref(descriptor, &values)
         .map(TvmRef::erase)
 }
 
@@ -719,14 +738,14 @@ fn append_pair_to_aggregate_list(
         .zip([first, second])
         .map(|(descriptor, word)| field_value(word, descriptor.field_type()))
         .collect::<Result<Vec<_>, _>>()?;
-    let pair = heap.allocate_aggregate(pair_layout, &pair_values)?;
+    let pair = heap.allocate_aggregate_ref(pair_layout, &pair_values)?;
     let list = heap.list_append(
         list_descriptor,
         list,
         ManagedFieldValue::Reference(pair.erase()),
     )?;
     aggregate_values[field] = ManagedFieldValue::Reference(list.erase());
-    heap.allocate_aggregate(aggregate_layout, &aggregate_values)
+    heap.allocate_aggregate_ref(aggregate_layout, &aggregate_values)
         .map(TvmRef::erase)
 }
 
@@ -756,7 +775,7 @@ fn append_value_to_aggregate_list(
     let value = field_value(value, list_descriptor.element_type())?;
     let list = heap.list_append(list_descriptor, list, value)?;
     aggregate_values[field] = ManagedFieldValue::Reference(list.erase());
-    heap.allocate_aggregate(aggregate_layout, &aggregate_values)
+    heap.allocate_aggregate_ref(aggregate_layout, &aggregate_values)
         .map(TvmRef::erase)
 }
 
@@ -777,14 +796,14 @@ pub(super) fn unique_layout(
     layouts: &ManagedLayoutRegistry,
     semantic: SemanticTypeId,
     arity: usize,
-) -> Result<Arc<ManagedAggregateDescriptor>, ManagedMemoryError> {
+) -> Result<&ManagedAggregateDescriptor, ManagedMemoryError> {
     let mut matching = layouts
         .layouts(semantic)
         .iter()
         .filter(|layout| layout.fields().len() == arity);
     let layout = matching
         .next()
-        .cloned()
+        .map(Arc::as_ref)
         .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
     if matching.next().is_some() {
         return Err(ManagedMemoryError::ManagedTypeMismatch);
@@ -824,17 +843,17 @@ fn field_value(
 }
 
 /// Selects the exact admitted option variant used by one lookup result.
-fn option_layout(
-    layouts: &ManagedLayoutRegistry,
+fn option_layout<'a>(
+    layouts: &'a ManagedLayoutRegistry,
     semantic: SemanticTypeId,
     variant: &str,
     arity: usize,
-) -> Result<Arc<ManagedAggregateDescriptor>, ManagedMemoryError> {
+) -> Result<&'a ManagedAggregateDescriptor, ManagedMemoryError> {
     layouts
         .layouts(semantic)
         .iter()
         .find(|layout| layout.variant_name() == Some(variant) && layout.fields().len() == arity)
-        .cloned()
+        .map(Arc::as_ref)
         .ok_or(ManagedMemoryError::ManagedTypeMismatch)
 }
 

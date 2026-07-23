@@ -7,8 +7,8 @@ use std::process::Command;
 
 use crate::compiler::native_ir::{
     emit_native_application_dispatch_object_with_policy,
-    emit_native_application_object_with_policy, NativeCodegenPolicy, NativeModule, DISPATCH_SYMBOL,
-    IMAGE_ENTRY_SYMBOL,
+    emit_native_application_object_with_policy, native_request_projections, NativeCodegenPolicy,
+    NativeModule, NativeRequestProjection, DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
 };
 use crate::runtime::native_boundary::adapter_abi::NativeAdapterAbiContract;
 use crate::runtime::native_image::{
@@ -32,6 +32,14 @@ pub(super) struct CompiledNativeApplicationImage {
     pub(super) image_name: String,
     pub(super) cache_input_sha256: String,
     pub(super) cached_image_path: PathBuf,
+    pub(super) request_projections: Vec<NativeRequestProjection>,
+}
+
+/// Live-serve image plus compiler proof metadata that is deliberately not part
+/// of the frozen TVM image descriptor format.
+pub(crate) struct CompiledServeNativeImage {
+    pub(crate) path: PathBuf,
+    pub(crate) request_projections: Vec<NativeRequestProjection>,
 }
 
 /// Immutable inputs required to publish one native application image.
@@ -70,6 +78,7 @@ pub(super) fn compile_native_application_image(
     }
     natives.sort_by(|left, right| left.name.cmp(&right.name));
     validate_export_id_uniqueness(&natives)?;
+    let request_projections = native_request_projections(&natives);
     let debug_metadata = if debug_inputs.is_empty() {
         Vec::new()
     } else {
@@ -196,6 +205,7 @@ pub(super) fn compile_native_application_image(
         image_name,
         cache_input_sha256: input_sha256,
         cached_image_path,
+        request_projections,
     }))
 }
 
@@ -223,6 +233,7 @@ pub(crate) fn compile_repl_native_image(
 }
 
 /// Compiles one live serve generation into its package-local native cache.
+#[allow(dead_code)] // Retained for focused serve-image compilation and tests.
 pub(crate) fn compile_serve_native_image(
     web_root: &Path,
     module_stem: &str,
@@ -239,10 +250,40 @@ pub(crate) fn compile_serve_native_image(
         module_stem,
         &[core],
         &[],
-        NativeCodegenPolicy::Development,
+        NativeCodegenPolicy::Serve,
         true,
     )
     .map(|image| image.map(|image| image.cached_image_path))
+    .map_err(build_error_message)
+}
+
+/// Compiles one live serve generation and retains export-specific Request
+/// projection proofs for admission into the matching runtime generation.
+pub(crate) fn compile_serve_native_image_with_metadata(
+    web_root: &Path,
+    module_stem: &str,
+    core: &CoreModule,
+) -> Result<Option<CompiledServeNativeImage>, String> {
+    let workspace = web_root.join(".terlan").join("serve-aot");
+    let vm_dir = workspace.join("vm");
+    fs::create_dir_all(&vm_dir)
+        .map_err(|error| format!("cannot create serve AOT output directory: {error}"))?;
+    let native_cache_root = workspace.join("native-aot");
+    compile_native_application_image(
+        &vm_dir,
+        &native_cache_root,
+        module_stem,
+        &[core],
+        &[],
+        NativeCodegenPolicy::Serve,
+        true,
+    )
+    .map(|image| {
+        image.map(|image| CompiledServeNativeImage {
+            path: image.cached_image_path,
+            request_projections: image.request_projections,
+        })
+    })
     .map_err(build_error_message)
 }
 

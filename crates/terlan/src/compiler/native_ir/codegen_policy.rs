@@ -5,6 +5,8 @@
 pub(crate) enum NativeCodegenPolicy {
     /// Fast code generation with independently reusable module objects.
     Development,
+    /// Speed-optimized generated code with modular units for live serving.
+    Serve,
     /// Speed-optimized whole-application code generation and optimized linking.
     Release,
 }
@@ -14,6 +16,7 @@ impl NativeCodegenPolicy {
     pub(crate) fn cache_identity(self) -> &'static str {
         match self {
             Self::Development => "development-cranelift-none-modular-link-v1",
+            Self::Serve => "serve-cranelift-speed-modular-link-v1",
             Self::Release => "release-cranelift-speed-whole-application-link-v1",
         }
     }
@@ -22,13 +25,13 @@ impl NativeCodegenPolicy {
     pub(super) fn cranelift_opt_level(self) -> &'static str {
         match self {
             Self::Development => "none",
-            Self::Release => "speed",
+            Self::Serve | Self::Release => "speed",
         }
     }
 
     /// Reports whether independently cacheable module objects are preferred.
     pub(crate) fn uses_incremental_module_units(self) -> bool {
-        matches!(self, Self::Development)
+        matches!(self, Self::Development | Self::Serve)
     }
 
     /// Reports whether the final native linker should optimize the image.

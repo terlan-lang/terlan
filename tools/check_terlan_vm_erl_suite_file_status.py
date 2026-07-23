@@ -183,7 +183,7 @@ class FileStatusTest(unittest.TestCase):
                 "terlan-vm/b.erl": "vm-check",
                 "terlan-vm/c.erl": "vm-check",
             },
-            {"vm-check"},
+            set(),
             Path("status.tsv"),
             Path("."),
         )

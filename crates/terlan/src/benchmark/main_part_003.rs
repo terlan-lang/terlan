@@ -1,4 +1,3 @@
-
 /// Writes a source-backed browser package fixture for VM HTTP benchmarking.
 fn write_vm_http_benchmark_package(workspace: &Path) -> Result<PathBuf, String> {
     let web_root = workspace.join("_build/web");
@@ -711,36 +710,36 @@ fn measure_vm_process_runtime_primitives() -> Result<(), String> {
         ));
     }
 
-    let child_process = processes
-        .get_mut(child)
-        .ok_or_else(|| "child process missing after spawn".to_string())?;
-    let selected = child_process
-        .selective_receive(|message| {
-            message.payload == VmPrimitiveValue::Atom("second".to_string())
-        })
-        .ok_or_else(|| "selective receive did not find second message".to_string())?;
-    if selected.id != second_id {
-        return Err(format!(
-            "selective receive returned message {}, expected {second_id}",
-            selected.id
-        ));
-    }
-    if child_process.mailbox_len() != 1 {
-        return Err(format!(
-            "skipped mailbox length was {}, expected 1",
-            child_process.mailbox_len()
-        ));
-    }
-    let remaining = child_process
-        .receive_next()
-        .ok_or_else(|| "remaining message was not preserved".to_string())?;
-    if remaining.id != first_id {
-        return Err(format!(
-            "remaining message id was {}, expected {first_id}",
-            remaining.id
-        ));
-    }
-    child_process.add_resource_handle("native:process-benchmark");
+    processes.with_process_control_mutator(child, |child_process| -> Result<(), String> {
+        let selected = child_process
+            .selective_receive(|message| {
+                message.payload == VmPrimitiveValue::Atom("second".to_string())
+            })
+            .ok_or_else(|| "selective receive did not find second message".to_string())?;
+        if selected.id != second_id {
+            return Err(format!(
+                "selective receive returned message {}, expected {second_id}",
+                selected.id
+            ));
+        }
+        if child_process.mailbox_len() != 1 {
+            return Err(format!(
+                "skipped mailbox length was {}, expected 1",
+                child_process.mailbox_len()
+            ));
+        }
+        let remaining = child_process
+            .receive_next()
+            .ok_or_else(|| "remaining message was not preserved".to_string())?;
+        if remaining.id != first_id {
+            return Err(format!(
+                "remaining message id was {}, expected {first_id}",
+                remaining.id
+            ));
+        }
+        child_process.add_resource_handle("native:process-benchmark");
+        Ok(())
+    })??;
     let cleanup = processes.exit_process(child, process::VmExitReason::Normal)?;
     if cleanup == ["native:process-benchmark".to_string()] {
         Ok(())
@@ -767,12 +766,11 @@ fn measure_vm_process_inspection_startup() -> Result<(), String> {
     let child = processes.spawn_child(parent, VmProcessSource::new("bench.Inspect", "child", 1))?;
     processes.send(parent, child, VmPrimitiveValue::String("ready".to_string()))?;
 
-    let child_process = processes
-        .get_mut(child)
-        .ok_or_else(|| "child process missing for inspection setup".to_string())?;
-    child_process.charge_reductions(11);
-    child_process.add_resource_handle("native:inspect-benchmark");
-    child_process.block();
+    processes.with_process_control_mutator(child, |child_process| {
+        child_process.charge_reductions(11);
+        child_process.add_resource_handle("native:inspect-benchmark");
+        child_process.block();
+    })?;
 
     let inspected = processes
         .get(child)

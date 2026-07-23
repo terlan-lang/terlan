@@ -66,6 +66,9 @@ pub use lean_proof_runtime::{run_lean_proof_runtime, LeanProofRuntimeSummary};
 pub use lean_proof_track::{run_lean_proof_track, LeanProofTrackSummary};
 pub use mobile_boundary::{run_mobile_boundary, MobileBoundarySummary};
 pub use module_readmes::{run_module_readmes, ModuleReadmeSummary};
+pub use multicore_invariant_inventory::{
+    run_multicore_invariant_inventory, MulticoreInvariantInventorySummary,
+};
 pub use native_binding_generator_contract::{
     run_native_binding_generator_contract, NativeBindingGeneratorContractSummary,
 };

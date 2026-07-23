@@ -155,6 +155,47 @@ fn map_preserves_order_replaces_duplicates_and_persists_updates() {
 }
 
 #[test]
+fn equal_map_shapes_reuse_immutable_root_descriptors() {
+    let descriptor = ManagedMapDescriptor::new(
+        "Map[Int, Int]",
+        ManagedFieldType::Int,
+        ManagedFieldType::Int,
+    )
+    .expect("descriptor");
+    let mut heap = heap();
+    let mut semantics = ManagedScalarKeySemantics;
+    let first = heap
+        .map_from_entries(&descriptor, &int_entries(3), &mut semantics)
+        .expect("first map");
+    let first_descriptor = heap.descriptor(first).expect("first descriptor") as *const _;
+    let second = heap
+        .map_from_entries(
+            &descriptor,
+            &[
+                (ManagedFieldValue::Int(4), ManagedFieldValue::Int(40)),
+                (ManagedFieldValue::Int(5), ManagedFieldValue::Int(50)),
+                (ManagedFieldValue::Int(6), ManagedFieldValue::Int(60)),
+            ],
+            &mut semantics,
+        )
+        .expect("second map");
+
+    assert_eq!(
+        first_descriptor,
+        heap.descriptor(second).expect("second descriptor") as *const _
+    );
+
+    let different_shape = heap
+        .map_from_entries(&descriptor, &int_entries(2), &mut semantics)
+        .expect("different map shape");
+    assert_ne!(
+        first_descriptor,
+        heap.descriptor(different_shape)
+            .expect("different descriptor") as *const _
+    );
+}
+
+#[test]
 fn indexed_map_path_copies_updates_and_survives_precise_relocation() {
     let descriptor = ManagedMapDescriptor::new(
         "Map[Int, Int]",

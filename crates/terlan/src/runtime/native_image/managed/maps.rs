@@ -2,9 +2,14 @@
 
 use std::sync::Arc;
 
+use smallvec::SmallVec;
+
 use crate::runtime::map_layout::should_use_indexed_map;
 
-use super::aggregates::{decode_typed_slot, encode_typed_slot, validate_typed_value};
+use super::aggregates::{
+    decode_typed_slot, encode_typed_slot, encode_validated_typed_slot, validate_typed_slot,
+    validate_typed_value,
+};
 use super::slots::align_up;
 use super::{
     ActorHeap, AllocationClass, ManagedFieldType, ManagedFieldValue, ManagedList,
@@ -141,6 +146,8 @@ fn write_hash_byte(hash: &mut u64, byte: u8) {
 /// Compile-time marker for one actor-local immutable map root.
 #[derive(Debug)]
 pub struct ManagedMap;
+
+const INLINE_MAP_ENTRIES: usize = 8;
 
 /// Observable storage family selected for one managed map.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -512,8 +519,12 @@ fn unique_entries<S: ManagedKeySemantics>(
     descriptor: &ManagedMapDescriptor,
     entries: &[(ManagedFieldValue, ManagedFieldValue)],
     semantics: &mut S,
-) -> Result<Vec<(ManagedFieldValue, ManagedFieldValue)>, ManagedMemoryError> {
-    let mut unique = Vec::with_capacity(entries.len());
+) -> Result<
+    SmallVec<[(ManagedFieldValue, ManagedFieldValue); INLINE_MAP_ENTRIES]>,
+    ManagedMemoryError,
+> {
+    let mut unique: SmallVec<[(ManagedFieldValue, ManagedFieldValue); INLINE_MAP_ENTRIES]> =
+        SmallVec::with_capacity(entries.len());
     for &(key, value) in entries {
         validate_typed_value(heap, descriptor.key_type, key)?;
         validate_typed_value(heap, descriptor.value_type, value)?;
@@ -587,36 +598,55 @@ fn allocate_flat_map(
     } else {
         FORM_FLAT
     };
-    let mut payload = vec![0; size];
-    write_root_header(&mut payload, form, entries.len())?;
-    let mut references = Vec::new();
+    let mut references = SmallVec::<[(usize, TvmRef<()>); 16]>::new();
     for (index, &(key, value)) in entries.iter().enumerate() {
         let base = flat_entry_base(layout, index)?;
-        encode_typed_slot(
+        validate_typed_slot(
             heap,
-            &mut payload,
             base + layout.key_offset,
             descriptor.key_type,
             key,
             &mut references,
         )?;
-        encode_typed_slot(
+        validate_typed_slot(
             heap,
-            &mut payload,
             base + layout.value_offset,
             descriptor.value_type,
             value,
             &mut references,
         )?;
     }
+    let reference_offsets = references
+        .iter()
+        .map(|item| item.0)
+        .collect::<SmallVec<[usize; 16]>>();
     let managed = root_descriptor(
+        heap,
         descriptor,
         form,
         entries.len(),
         size,
-        references.iter().map(|item| item.0).collect(),
+        &reference_offsets,
     )?;
-    heap.allocate(managed, &payload, &references)
+    heap.allocate_initialized(managed, &references, |payload| {
+        write_root_header(payload, form, entries.len())?;
+        for (index, &(key, value)) in entries.iter().enumerate() {
+            let base = flat_entry_base(layout, index)?;
+            encode_validated_typed_slot(
+                payload,
+                base + layout.key_offset,
+                descriptor.key_type,
+                key,
+            )?;
+            encode_validated_typed_slot(
+                payload,
+                base + layout.value_offset,
+                descriptor.value_type,
+                value,
+            )?;
+        }
+        Ok(())
+    })
 }
 
 /// Allocates one indexed root referencing its trie and insertion-order list.
@@ -629,14 +659,16 @@ fn allocate_indexed_root(
 ) -> Result<TvmRef<ManagedMap>, ManagedMemoryError> {
     let mut payload = vec![0; INDEXED_ROOT_BYTES];
     write_root_header(&mut payload, FORM_INDEXED, length)?;
+    let managed = root_descriptor(
+        heap,
+        descriptor,
+        FORM_INDEXED,
+        length,
+        INDEXED_ROOT_BYTES,
+        &[INDEXED_TRIE_OFFSET, INDEXED_ORDER_OFFSET],
+    )?;
     heap.allocate(
-        root_descriptor(
-            descriptor,
-            FORM_INDEXED,
-            length,
-            INDEXED_ROOT_BYTES,
-            vec![INDEXED_TRIE_OFFSET, INDEXED_ORDER_OFFSET],
-        )?,
+        managed,
         &payload,
         &[
             (INDEXED_TRIE_OFFSET, trie.erase()),
@@ -835,17 +867,18 @@ fn read_root(
 
 /// Builds one shape-specific map root descriptor.
 fn root_descriptor(
+    heap: &mut ActorHeap,
     descriptor: &ManagedMapDescriptor,
     form: u8,
     count: usize,
     size: usize,
-    reference_offsets: Vec<usize>,
+    reference_offsets: &[usize],
 ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
-    let mut representation = vec![b'M', form];
+    let mut representation = SmallVec::<[u8; 48]>::from_slice(&[b'M', form]);
     descriptor.key_type.encode(&mut representation);
     descriptor.value_type.encode(&mut representation);
     representation.extend_from_slice(&(count as u64).to_le_bytes());
-    ManagedTypeDescriptor::new_specialized(
+    heap.specialized_descriptor(
         descriptor.semantic_id,
         size,
         8,
@@ -853,7 +886,6 @@ fn root_descriptor(
         AllocationClass::Young,
         &representation,
     )
-    .map(Arc::new)
 }
 
 /// Computes the repeated packed layout for one flat key/value entry.

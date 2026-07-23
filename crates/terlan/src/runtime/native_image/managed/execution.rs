@@ -19,10 +19,18 @@ use super::{
     MANAGED_ALLOCATION_FAILED_STATUS, MAX_MANAGED_AGGREGATE_ABI_BYTES,
 };
 
+#[path = "execution/actor_transfer.rs"]
+mod actor_transfer;
+pub(crate) use actor_transfer::ManagedActorTransfer;
+#[path = "execution/owner_heaps.rs"]
+mod owner_heaps;
+use owner_heaps::ManagedOwnerHeaps;
+
 const DEFAULT_SOFT_HEAP_BYTES: usize = 1024 * 1024;
 const DEFAULT_HARD_HEAP_BYTES: usize = 64 * 1024 * 1024;
 const DEFAULT_MAILBOX_TRANSFER_WORK_BYTES: usize = 64 * 1024 * 1024;
 const MAX_AGGREGATE_FIELD_WORDS: usize = MAX_MANAGED_AGGREGATE_ABI_BYTES / 2;
+const MAX_RECYCLED_ACTOR_HEAPS: usize = 64;
 
 /// Generated aggregate allocation callback ABI.
 type ManagedAllocator =
@@ -56,7 +64,9 @@ pub(crate) struct ManagedExecutionRuntime {
     /// Authenticated closure-call membership for the admitted image generation.
     closure_dispatch: Option<Arc<ManagedClosureDispatchTable>>,
     /// Actor heaps exclusively owned by this execution-runtime instance.
-    heaps: HashMap<u64, ActorHeap>,
+    heaps: ManagedOwnerHeaps,
+    /// Reclaimed semispaces available only to this fixed execution shard.
+    recycled_heaps: Vec<ActorHeap>,
     /// Precise mailbox roots retained while VM messages carry opaque tokens.
     mailbox_fragments: HashMap<u32, ManagedMailboxFragment>,
     /// Next nonzero shard-local managed mailbox fragment identity.
@@ -88,7 +98,20 @@ pub(crate) struct PendingManagedCaptures {
     capture_count: usize,
 }
 
+impl PendingManagedCaptures {
+    /// Returns the actor that owns every precise continuation root.
+    #[allow(dead_code)] // Read by the staged MC-5 scheduler transfer path.
+    pub(crate) fn owner_id(&self) -> u64 {
+        self.owner.get()
+    }
+}
+
 impl ManagedExecutionRuntime {
+    /// Borrows the immutable image layouts for admission-time runtime projections.
+    pub(crate) fn layout_registry(&self) -> &ManagedLayoutRegistry {
+        &self.layouts
+    }
+
     /// Creates an execution runtime with the default per-actor heap limits.
     pub(crate) fn runtime_default() -> Result<Self, String> {
         let limits = HeapLimits::new(DEFAULT_SOFT_HEAP_BYTES, DEFAULT_HARD_HEAP_BYTES)
@@ -97,7 +120,8 @@ impl ManagedExecutionRuntime {
             limits,
             layouts: Arc::new(ManagedLayoutRegistry::default()),
             closure_dispatch: None,
-            heaps: HashMap::new(),
+            heaps: ManagedOwnerHeaps::default(),
+            recycled_heaps: Vec::new(),
             mailbox_fragments: HashMap::new(),
             next_mailbox_fragment_id: 0,
             http_sessions: None,
@@ -180,7 +204,8 @@ impl ManagedExecutionRuntime {
             limits: self.limits,
             layouts: Arc::clone(&self.layouts),
             closure_dispatch: self.closure_dispatch.as_ref().map(Arc::clone),
-            heaps: HashMap::new(),
+            heaps: ManagedOwnerHeaps::default(),
+            recycled_heaps: Vec::new(),
             mailbox_fragments: HashMap::new(),
             next_mailbox_fragment_id: 0,
             http_sessions: self.http_sessions.clone(),
@@ -305,7 +330,21 @@ impl ManagedExecutionRuntime {
 
     /// Releases one actor heap after its boundary and continuations have shut down.
     pub(crate) fn release_owner(&mut self, owner_id: u64) {
-        self.heaps.remove(&owner_id);
+        if let Some(mut heap) = self.heaps.remove(&owner_id) {
+            heap.reclaim_for_reuse();
+            if self.recycled_heaps.len() < MAX_RECYCLED_ACTOR_HEAPS {
+                self.recycled_heaps.push(heap);
+            }
+        }
+        self.mailbox_fragments
+            .retain(|_, fragment| fragment.receiver().get() != owner_id);
+    }
+
+    /// Reclaims request-local objects while retaining a live fixed owner's heap.
+    pub(crate) fn reset_owner(&mut self, owner_id: u64) {
+        if let Some(heap) = self.heaps.get_mut(&owner_id) {
+            heap.reclaim_for_reuse();
+        }
         self.mailbox_fragments
             .retain(|_, fragment| fragment.receiver().get() != owner_id);
     }
@@ -316,9 +355,14 @@ impl ManagedExecutionRuntime {
         owner_id: u64,
         allocate: impl FnOnce(&mut ActorHeap, &ManagedLayoutRegistry) -> Result<R, String>,
     ) -> Result<R, String> {
-        let layouts = Arc::clone(&self.layouts);
-        self.heap(owner_id)?
-            .with_allocation_transaction(|heap| allocate(heap, &layouts))
+        self.heap(owner_id)?;
+        let layouts = self.layouts.as_ref();
+        self.heaps
+            .get_mut(&owner_id)
+            .ok_or_else(|| {
+                "error[managed_execution.heap]: actor heap insertion was lost".to_string()
+            })?
+            .with_allocation_transaction(|heap| allocate(heap, layouts))
     }
 
     /// Lends one materialized actor heap and its immutable admitted layouts.
@@ -461,13 +505,25 @@ impl ManagedExecutionRuntime {
         self.heaps.len()
     }
 
+    /// Returns reclaimed heap capacity retained by this shard for focused tests.
+    #[cfg(test)]
+    pub(crate) fn recycled_heap_count(&self) -> usize {
+        self.recycled_heaps.len()
+    }
+
     /// Returns or creates the heap exclusively owned by one protocol actor.
     fn heap(&mut self, owner_id: u64) -> Result<&mut ActorHeap, String> {
         if !self.heaps.contains_key(&owner_id) {
             let owner = ActorId::new(owner_id)
                 .map_err(|error| format!("error[managed_execution.owner]: {error}"))?;
-            let heap = ActorHeap::new(owner, self.limits)
-                .map_err(|error| format!("error[managed_execution.heap]: {error}"))?;
+            let heap = match self.recycled_heaps.pop() {
+                Some(mut heap) => {
+                    heap.assign_recycled_owner(owner);
+                    heap
+                }
+                None => ActorHeap::new(owner, self.limits)
+                    .map_err(|error| format!("error[managed_execution.heap]: {error}"))?,
+            };
             self.heaps.insert(owner_id, heap);
         }
         self.heaps.get_mut(&owner_id).ok_or_else(|| {
@@ -869,22 +925,25 @@ fn managed_allocate_inner(
     // SAFETY: `with_dispatch` created this runtime pointer from an exclusive
     // borrow and does not expose it beyond the synchronous invocation.
     let runtime = unsafe { &mut *context.runtime };
-    let layouts = Arc::clone(&runtime.layouts);
-    let closure_dispatch = runtime.closure_dispatch.as_ref().map(Arc::clone);
-    let http_sessions = runtime.http_sessions.clone();
-    let allocation = runtime.heap(context.owner_id).and_then(|heap| {
+    let allocation = (|| {
+        runtime.heap(context.owner_id)?;
+        let layouts = runtime.layouts.as_ref();
+        let closure_dispatch = runtime.closure_dispatch.as_deref();
+        let http_sessions = runtime.http_sessions.as_ref();
+        let heap = runtime.heaps.get_mut(&context.owner_id).ok_or_else(|| {
+            "error[managed_execution.heap]: actor heap insertion was lost".to_string()
+        })?;
         heap.with_allocation_transaction(|heap| {
             if super::is_closure_allocation(layout) {
                 let dispatch = closure_dispatch
-                    .as_deref()
                     .ok_or("managed closure allocation has no admitted image dispatch")?;
                 super::execute_closure_allocation(heap, dispatch, layout, fields)
                     .map_err(|error| error.to_string())
             } else if super::is_managed_operation(layout) {
                 super::execute_managed_operation_with_context(
                     heap,
-                    &layouts,
-                    http_sessions.as_ref(),
+                    layouts,
+                    http_sessions,
                     layout,
                     fields,
                 )
@@ -899,8 +958,8 @@ fn managed_allocate_inner(
                     .map_err(|error| error.to_string())
             }
         })
-        .map_err(|error| format!("error[managed_execution.allocate]: {error}"))
-    });
+    })()
+    .map_err(|error| format!("error[managed_execution.allocate]: {error}"));
     match allocation {
         Ok(reference) => {
             // SAFETY: Non-null caller-owned result storage remains live for the

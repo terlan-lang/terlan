@@ -1,5 +1,7 @@
 //! Deterministic managed type and physical-layout identity.
 
+use std::sync::OnceLock;
+
 use sha2::{Digest, Sha256};
 
 use super::ManagedMemoryError;
@@ -32,6 +34,33 @@ impl SemanticTypeId {
     pub(crate) fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }
+}
+
+/// Returns the process-wide immutable semantic identity for managed String.
+pub fn managed_string_semantic_id() -> SemanticTypeId {
+    static IDENTITY: OnceLock<SemanticTypeId> = OnceLock::new();
+    *IDENTITY.get_or_init(|| {
+        SemanticTypeId::from_canonical("std.core.String")
+            .expect("canonical managed String identity is valid")
+    })
+}
+
+/// Returns the process-wide immutable semantic identity for managed Bytes.
+pub fn managed_bytes_semantic_id() -> SemanticTypeId {
+    static IDENTITY: OnceLock<SemanticTypeId> = OnceLock::new();
+    *IDENTITY.get_or_init(|| {
+        SemanticTypeId::from_canonical("std.binary.Bytes")
+            .expect("canonical managed Bytes identity is valid")
+    })
+}
+
+/// Returns the process-wide immutable semantic identity for managed Binary.
+pub fn managed_binary_semantic_id() -> SemanticTypeId {
+    static IDENTITY: OnceLock<SemanticTypeId> = OnceLock::new();
+    *IDENTITY.get_or_init(|| {
+        SemanticTypeId::from_canonical("std.binary.Binary")
+            .expect("canonical managed Binary identity is valid")
+    })
 }
 
 /// Target-specific 256-bit fingerprint of one physical managed layout.

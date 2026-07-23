@@ -41,6 +41,8 @@ pub(super) struct VmNativeSourceReloadReport {
     pub(super) native_image: PathBuf,
     /// Reference proof captured immediately after admission.
     pub(super) references: VmNativeGenerationReferenceSnapshot,
+    /// Bounded scheduler evidence ending at the admitted image generation.
+    pub(super) replay: crate::runtime::vm::multicore_replay::VmMulticoreReplayEvidence,
 }
 
 /// One source file compiled through the formal frontend exactly once.
@@ -139,6 +141,7 @@ impl VmNativeSourceReloadService {
             native_generation: publication.generation,
             native_image: image,
             references: publication.references,
+            replay: publication.replay,
         })
     }
 
@@ -164,6 +167,14 @@ impl VmNativeSourceReloadService {
         class: VmNativeGenerationReferenceClass,
     ) -> Result<(), String> {
         self.runtime.release_native_generation(class)
+    }
+
+    /// Returns bounded image-publication evidence for focused lifecycle tests.
+    #[cfg(test)]
+    pub(super) fn replay_evidence(
+        &self,
+    ) -> Result<crate::runtime::vm::multicore_replay::VmMulticoreReplayEvidence, String> {
+        self.runtime.multicore_replay_evidence()
     }
 }
 

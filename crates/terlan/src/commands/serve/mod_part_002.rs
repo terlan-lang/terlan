@@ -1,4 +1,3 @@
-
 /// Handles one Hyper request for the browser package server.
 ///
 /// Inputs:
@@ -27,16 +26,16 @@ where
 {
     let request_id = next_request_id();
     let build_id = manifest_build_id(&web_root);
-    let method = request.method().as_str().to_string();
-    let request_path = request.uri().path().to_string();
-    let request_query = request.uri().query().unwrap_or("").to_string();
+    // Keep HTTP-owned method and URI storage borrowed across route selection.
+    // Projected dynamic handlers allocate only the fields observable by their
+    // generated image instead of cloning method, path, and query eagerly.
+    let request_method = request.method().clone();
+    let request_uri = request.uri().clone();
+    let method = request_method.as_str();
+    let request_path = request_uri.path();
+    let request_query = request_uri.query().unwrap_or("");
     let header_pairs = request_header_pairs(request.headers());
-    let cookie_pairs = request
-        .headers()
-        .get(http::header::COOKIE)
-        .and_then(|value| value.to_str().ok())
-        .map(crate::terlan_native::http::parse_request_cookie_header)
-        .unwrap_or_default();
+    let cookie_pairs = request_cookie_pairs(request.headers());
     if manifest_websocket_for_path(&web_root, &request_path).is_some() {
         if method != "GET" {
             return serve_response(
@@ -192,16 +191,16 @@ where
         };
         let native_request =
             crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-                method.clone(),
-                request_path.clone(),
+                method,
+                request_path,
                 body_text,
                 handler.params.clone(),
-                request_query.clone(),
+                request_query,
                 query_pairs(&request_query),
                 header_pairs,
                 cookie_pairs,
             );
-        let result = execute_dynamic_vm_handler(&web_root, &handler, &native_request);
+        let result = execute_dynamic_vm_handler(&web_root, &handler, native_request);
         match result {
             Ok(response) => {
                 let status = response.status;
@@ -210,7 +209,7 @@ where
                     http_reason_phrase(response.status),
                     &response.content_type,
                     &response.headers,
-                    &response.body,
+                    response.body.as_bytes(),
                     method == "HEAD",
                 );
                 log_handler_result(
@@ -370,96 +369,93 @@ fn handle_vm_stream_request(
     web_root: &Path,
     channel: &mut Option<VmHttpChannelTransport>,
 ) -> Result<::http::Response<String>, String> {
-    let method = request.method().as_str().to_string();
-    let request_path = request.uri().path().to_string();
-    let request_query = request.uri().query().unwrap_or("").to_string();
-    let header_pairs = request_header_pairs(request.headers());
-    let cookie_pairs = request
-        .headers()
-        .get(http::header::COOKIE)
-        .and_then(|value| value.to_str().ok())
-        .map(crate::terlan_native::http::parse_request_cookie_header)
-        .unwrap_or_default();
+    let (request, body) = request.into_parts();
+    let method = request.method.as_str();
+    let request_path = request.uri.path();
+    let request_query = request.uri.query().unwrap_or("");
 
-    if let Some(websocket) = manifest_websocket_for_path(web_root, &request_path) {
-        if method != "GET" {
-            return serve_vm_stream_response(
-                405,
-                "Method Not Allowed",
-                "text/plain; charset=utf-8",
-                &[
-                    ("allow".to_string(), "GET".to_string()),
-                    ("upgrade".to_string(), "websocket".to_string()),
-                ],
-                b"websocket upgrades require GET",
-                method == "HEAD",
-            );
-        }
-        match websocket_upgrade_state(request.headers()) {
-            WebSocketUpgradeState::Missing => {
+    let route = match manifest_route_for_request(web_root, method, request_path) {
+        Some(MatchedWebPackageRoute::WebSocket(websocket)) => {
+            if method != "GET" {
                 return serve_vm_stream_response(
-                    426,
-                    "Upgrade Required",
+                    405,
+                    "Method Not Allowed",
                     "text/plain; charset=utf-8",
-                    &[("upgrade".to_string(), "websocket".to_string())],
-                    b"websocket upgrade required",
+                    &[
+                        ("allow".to_string(), "GET".to_string()),
+                        ("upgrade".to_string(), "websocket".to_string()),
+                    ],
+                    b"websocket upgrades require GET",
                     method == "HEAD",
                 );
             }
-            WebSocketUpgradeState::Malformed => {
-                return serve_vm_stream_response(
-                    400,
-                    "Bad Request",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    b"malformed websocket upgrade request",
-                    method == "HEAD",
-                );
+            match websocket_upgrade_state(&request.headers) {
+                WebSocketUpgradeState::Missing => {
+                    return serve_vm_stream_response(
+                        426,
+                        "Upgrade Required",
+                        "text/plain; charset=utf-8",
+                        &[("upgrade".to_string(), "websocket".to_string())],
+                        b"websocket upgrade required",
+                        method == "HEAD",
+                    );
+                }
+                WebSocketUpgradeState::Malformed => {
+                    return serve_vm_stream_response(
+                        400,
+                        "Bad Request",
+                        "text/plain; charset=utf-8",
+                        &[],
+                        b"malformed websocket upgrade request",
+                        method == "HEAD",
+                    );
+                }
+                WebSocketUpgradeState::Upgrade => {}
             }
-            WebSocketUpgradeState::Upgrade => {}
+            let native_request =
+                crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
+                    method.to_owned(),
+                    request_path.to_owned(),
+                    body.clone(),
+                    Vec::new(),
+                    request_query.to_owned(),
+                    query_pairs(request_query),
+                    request_header_pairs(&request.headers),
+                    request_cookie_pairs(&request.headers),
+                );
+            match execute_websocket_vm_router(web_root, &websocket, &native_request) {
+                Ok(Some(VmWebSocketRouterAdmission::Respond(response))) => {
+                    return serve_vm_stream_response(
+                        response.status,
+                        http_reason_phrase(response.status),
+                        &response.content_type,
+                        &response.headers,
+                        response.body.as_bytes(),
+                        false,
+                    );
+                }
+                Ok(Some(VmWebSocketRouterAdmission::Upgrade(session))) => {
+                    debug_assert!(session.is_open());
+                    debug_assert!(session.inspect().max_pending_frames > 0);
+                    let _ = session.plan();
+                    *channel = Some(VmHttpChannelTransport::WebSocket(session));
+                }
+                Ok(None) => {}
+                Err(message) => {
+                    return serve_vm_stream_response(
+                        502,
+                        "Bad Gateway",
+                        "text/plain; charset=utf-8",
+                        &[],
+                        message.as_bytes(),
+                        false,
+                    );
+                }
+            }
+            return serve_vm_stream_websocket_upgrade_response(&request.headers);
         }
-        let native_request =
-            crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-                method.clone(),
-                request_path,
-                request.body().clone(),
-                Vec::new(),
-                request_query,
-                query_pairs(request.uri().query().unwrap_or("")),
-                header_pairs,
-                cookie_pairs,
-            );
-        match execute_websocket_vm_router(web_root, &websocket, &native_request) {
-            Ok(Some(VmWebSocketRouterAdmission::Respond(response))) => {
-                return serve_vm_stream_response(
-                    response.status,
-                    http_reason_phrase(response.status),
-                    &response.content_type,
-                    &response.headers,
-                    &response.body,
-                    false,
-                );
-            }
-            Ok(Some(VmWebSocketRouterAdmission::Upgrade(session))) => {
-                debug_assert!(session.is_open());
-                debug_assert!(session.inspect().max_pending_frames > 0);
-                let _ = session.plan();
-                *channel = Some(VmHttpChannelTransport::WebSocket(session));
-            }
-            Ok(None) => {}
-            Err(message) => {
-                return serve_vm_stream_response(
-                    502,
-                    "Bad Gateway",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    message.as_bytes(),
-                    false,
-                );
-            }
-        }
-        return serve_vm_stream_websocket_upgrade_response(&request);
-    }
+        route => route,
+    };
 
     if request_path == RELOAD_ENDPOINT {
         if method != "GET" && method != "HEAD" {
@@ -476,7 +472,7 @@ fn handle_vm_stream_request(
     }
 
     if method == "GET" || method == "HEAD" {
-        match acme_http01_challenge(web_root, &request_path) {
+        match acme_http01_challenge(web_root, request_path) {
             Ok(AcmeHttp01Challenge::Found(body)) => {
                 return serve_vm_stream_response(
                     200,
@@ -521,35 +517,79 @@ fn handle_vm_stream_request(
         }
     }
 
-    if method == "GET" || method == "HEAD" {
-        if let Some(response_path) = manifest_static_file_for_request(web_root, &request_path) {
-            return static_vm_stream_file_response(&method, &response_path);
-        }
-    }
-
-    if let Some(route) = manifest_route_for_request(web_root, &method, &request_path) {
+    if let Some(route) = route {
         match route {
+            MatchedWebPackageRoute::WebSocket(_) => {
+                unreachable!("WebSocket routes are handled before reserved endpoints")
+            }
             MatchedWebPackageRoute::Handler(handler) => {
-                let native_request =
-                    crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-                        method.clone(),
-                        request_path,
-                        request.into_body(),
-                        handler.params.clone(),
-                        request_query.clone(),
-                        query_pairs(&request_query),
-                        header_pairs,
-                        cookie_pairs,
-                    );
-                return match execute_dynamic_vm_handler(web_root, &handler, &native_request) {
-                    Ok(response) => serve_vm_stream_response(
-                        response.status,
-                        http_reason_phrase(response.status),
-                        &response.content_type,
-                        &response.headers,
-                        &response.body,
-                        method == "HEAD",
-                    ),
+                let response = with_cached_vm_handler_runtime_for_request(
+                    web_root,
+                    &handler.handler,
+                    |runtime| {
+                        let projection = runtime.request_projection(
+                            &handler.handler.module,
+                            &handler.handler.function,
+                            handler.handler.arity,
+                        );
+                        let projected_headers = projection
+                            .requires(crate::runtime::native::http::RequestFieldProjection::HEADERS)
+                            .then(|| request_header_pairs(&request.headers))
+                            .unwrap_or_default();
+                        let projected_cookies = (projection.requires(
+                            crate::runtime::native::http::RequestFieldProjection::COOKIES,
+                        ) || projection.requires(
+                            crate::runtime::native::http::RequestFieldProjection::COOKIE_JAR,
+                        ))
+                        .then(|| request_cookie_pairs(&request.headers))
+                        .unwrap_or_default();
+                        let native_request =
+                            crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
+                                projection
+                                    .requires(
+                                        crate::runtime::native::http::RequestFieldProjection::METHOD,
+                                    )
+                                    .then(|| method.to_owned())
+                                    .unwrap_or_default(),
+                                projection
+                                    .requires(
+                                        crate::runtime::native::http::RequestFieldProjection::PATH,
+                                    )
+                                    .then(|| request_path.to_owned())
+                                    .unwrap_or_default(),
+                                body,
+                                projection
+                                    .requires(
+                                        crate::runtime::native::http::RequestFieldProjection::PARAMS,
+                                    )
+                                    .then(|| handler.params.clone())
+                                    .unwrap_or_default(),
+                                projection
+                                    .requires(
+                                        crate::runtime::native::http::RequestFieldProjection::QUERY_STRING,
+                                    )
+                                    .then(|| request_query.to_owned())
+                                    .unwrap_or_default(),
+                                projection
+                                    .requires(
+                                        crate::runtime::native::http::RequestFieldProjection::QUERY,
+                                    )
+                                    .then(|| query_pairs(request_query))
+                                    .unwrap_or_default(),
+                                projected_headers,
+                                projected_cookies,
+                            );
+                        execute_dynamic_vm_handler_with_runtime(
+                            runtime,
+                            web_root,
+                            &handler,
+                            native_request,
+                            projection,
+                        )
+                    },
+                )?;
+                return match response {
+                    Ok(response) => serve_vm_stream_handler_response(response, method == "HEAD"),
                     Err(message) => serve_vm_stream_response(
                         502,
                         "Bad Gateway",
@@ -560,15 +600,20 @@ fn handle_vm_stream_request(
                     ),
                 };
             }
+            MatchedWebPackageRoute::StaticFile(response_path) => {
+                return static_vm_stream_file_response(method, &response_path);
+            }
             MatchedWebPackageRoute::StaticResponse(response) => {
+                let header_pairs = request_header_pairs(&request.headers);
+                let cookie_pairs = request_cookie_pairs(&request.headers);
                 let native_request =
                     crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-                        method.clone(),
-                        request_path,
-                        request.into_body(),
+                        method.to_owned(),
+                        request_path.to_owned(),
+                        body,
                         Vec::new(),
-                        request_query.clone(),
-                        query_pairs(&request_query),
+                        request_query.to_owned(),
+                        query_pairs(request_query),
                         header_pairs,
                         cookie_pairs,
                     );
@@ -580,7 +625,7 @@ fn handle_vm_stream_request(
                         http_reason_phrase(rendered.status),
                         &rendered.content_type,
                         &rendered.headers,
-                        &rendered.body,
+                        rendered.body.as_bytes(),
                         method == "HEAD",
                     );
                 }
@@ -598,14 +643,16 @@ fn handle_vm_stream_request(
                 return manifest_vm_stream_file_response(&method, &response_path, &response);
             }
             MatchedWebPackageRoute::Sse(endpoint) => {
+                let header_pairs = request_header_pairs(&request.headers);
+                let cookie_pairs = request_cookie_pairs(&request.headers);
                 let native_request =
                     crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-                        method.clone(),
-                        request_path,
-                        request.into_body(),
+                        method.to_owned(),
+                        request_path.to_owned(),
+                        body,
                         Vec::new(),
-                        request_query.clone(),
-                        query_pairs(&request_query),
+                        request_query.to_owned(),
+                        query_pairs(request_query),
                         header_pairs,
                         cookie_pairs,
                     );
@@ -615,7 +662,7 @@ fn handle_vm_stream_request(
                         http_reason_phrase(response.status),
                         &response.content_type,
                         &response.headers,
-                        &response.body,
+                        response.body.as_bytes(),
                         method == "HEAD",
                     ),
                     Ok(VmSseRouterAdmission::Stream(session)) => {
@@ -662,7 +709,7 @@ fn handle_vm_stream_request(
         );
     }
 
-    let Some(file_path) = request_file_path(web_root, &request_path) else {
+    let Some(file_path) = request_file_path(web_root, request_path) else {
         return serve_vm_stream_response(
             400,
             "Bad Request",
@@ -681,8 +728,9 @@ fn handle_vm_stream_request(
     } else {
         file_path
     };
-    static_vm_stream_file_response(&method, &response_path)
+    static_vm_stream_file_response(method, &response_path)
 }
+
 /// Builds the finite VM-stream live-reload handshake response.
 ///
 /// Inputs:
@@ -726,44 +774,39 @@ fn reload_vm_stream_response(head_only: bool) -> Result<::http::Response<String>
 /// - Connects an in-memory VM TCP client to a VM HTTP listener, dispatches the
 ///   request through the serve route graph, and reads the response from the
 ///   VM-managed stream without binding host sockets or entering Hyper.
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 fn handle_vm_stream_http1_request(web_root: &Path, raw_request: &[u8]) -> Result<Vec<u8>, String> {
     handle_vm_stream_http1_exchange(web_root, raw_request).map(|exchange| exchange.response)
 }
 
 /// Raw response and optional admitted channel retained for socket handoff.
 #[derive(Debug)]
+#[cfg(test)]
 struct VmStreamHttp1Exchange {
     response: Vec<u8>,
     channel: Option<VmHttpChannelTransport>,
 }
 
 /// Handles one raw request while preserving any admitted long-lived channel.
+#[cfg(test)]
 fn handle_vm_stream_http1_exchange(
     web_root: &Path,
     raw_request: &[u8],
 ) -> Result<VmStreamHttp1Exchange, String> {
-    let mut tcp = VmTcpRuntime::new();
-    let listener = tcp.listen("serve.vm.http1")?;
-    let client = tcp.connect("serve.vm.http1", "serve.vm.client")?;
-    tcp.send(client, raw_request.to_vec())?;
-    tcp.close_write(client)?;
-    let mut processes = VmProcessTable::default();
-    let mut server = VmHttpTcpServer::new(
-        listener,
-        VmProcessSource::new("std.http.Server", "handle", 1),
-    );
+    let mut reader = std::io::Cursor::new(raw_request);
+    let mut response = Vec::new();
     let mut channel = None;
-    if let Err(error) = server.poll_keep_alive(&mut processes, &mut tcp, |request| {
-        handle_vm_stream_request(request, web_root, &mut channel)
-    }) {
+    if let Err(error) =
+        handle_http1_in_memory_exchange(&mut reader, &mut response, true, |request| {
+            handle_vm_stream_request(request, web_root, &mut channel)
+        })
+    {
         return vm_stream_bad_request_response(&error).map(|response| VmStreamHttp1Exchange {
             response,
             channel: None,
         });
     }
-    read_vm_stream_response_bytes(&mut tcp, client)
-        .map(|response| VmStreamHttp1Exchange { response, channel })
+    Ok(VmStreamHttp1Exchange { response, channel })
 }
 
 /// Converts a malformed VM-stream HTTP request into a stable wire response.
@@ -778,7 +821,7 @@ fn handle_vm_stream_http1_exchange(
 /// - Keeps protocol diagnostics strict inside `runtime::vm::http` while giving
 ///   `terlc serve` the same user-facing bad-request response shape as the
 ///   legacy adapter for malformed input.
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 fn vm_stream_bad_request_response(error: &str) -> Result<Vec<u8>, String> {
     let response = serve_vm_stream_response(
         400,
@@ -810,11 +853,23 @@ fn request_header_pairs(headers: &http::HeaderMap) -> Vec<(String, String)> {
         .iter()
         .map(|(name, value)| {
             (
-                name.as_str().to_ascii_lowercase(),
+                // `http::HeaderName` canonicalizes names to lowercase when
+                // parsing, so copying is sufficient here; rescanning every
+                // name for ASCII case conversion only burns request CPU.
+                name.as_str().to_owned(),
                 String::from_utf8_lossy(value.as_bytes()).into_owned(),
             )
         })
         .collect()
+}
+
+/// Parses cookies only for Request projections that can observe cookie state.
+fn request_cookie_pairs(headers: &http::HeaderMap) -> Vec<(String, String)> {
+    headers
+        .get(http::header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .map(crate::terlan_native::http::parse_request_cookie_header)
+        .unwrap_or_default()
 }
 
 /// Extracts source-visible query pairs from a raw URI query string.

@@ -393,14 +393,14 @@ impl VmCodeServer {
             ));
         }
 
-        let process = processes
-            .get_mut(pid)
-            .expect("live process was validated before function entry");
-        if let Err(error) = process.enter_execution_frame(
-            VmProcessSource::new(module, function, arity),
-            entry_instruction_offset,
-            return_instruction_offset,
-        ) {
+        let entered = processes.with_process_control_mutator(pid, |process| {
+            process.enter_execution_frame(
+                VmProcessSource::new(module, function, arity),
+                entry_instruction_offset,
+                return_instruction_offset,
+            )
+        })?;
+        if let Err(error) = entered {
             if created_binding {
                 self.release_process(&binding)?;
             }
@@ -429,14 +429,15 @@ impl VmCodeServer {
                 pid.as_u64()
             )
         })?;
-        let process = processes
-            .get_mut(pid)
-            .expect("live process was validated before function return");
-        let returned = process.pop_execution_frame()?;
-        let module_still_active = process
-            .current_stacktrace()
-            .iter()
-            .any(|location| location.source.module == module);
+        let (returned, module_still_active) =
+            processes.with_process_control_mutator(pid, |process| {
+                let returned = process.pop_execution_frame()?;
+                let module_still_active = process
+                    .current_stacktrace()
+                    .iter()
+                    .any(|location| location.source.module == module);
+                Ok::<_, String>((returned, module_still_active))
+            })??;
         let event = if module_still_active {
             None
         } else {
@@ -804,18 +805,16 @@ fn ensure_live_process(processes: &VmProcessTable, pid: VmProcessId) -> Result<(
     Ok(())
 }
 
-#[cfg(test)]
-#[path = "code_server_test.rs"]
-mod code_server_test;
+vm_code_server_test_component! {
+    #[path = "code_server_test.rs"]
+    mod code_server_test;
 
-#[cfg(test)]
-#[path = "code_server_inspection_test.rs"]
-mod code_server_inspection_test;
+    #[path = "code_server_inspection_test.rs"]
+    mod code_server_inspection_test;
 
-#[cfg(test)]
-#[path = "code_false_dependency_test.rs"]
-mod code_false_dependency_test;
+    #[path = "code_false_dependency_test.rs"]
+    mod code_false_dependency_test;
 
-#[cfg(test)]
-#[path = "code_parallel_load_beam_suite_parity_test.rs"]
-mod code_parallel_load_beam_suite_parity_test;
+    #[path = "code_parallel_load_beam_suite_parity_test.rs"]
+    mod code_parallel_load_beam_suite_parity_test;
+}

@@ -56,6 +56,41 @@ fn adaptive_list_selects_empty_inline_regular_and_relaxed_profiles() {
 }
 
 #[test]
+fn equal_list_shapes_reuse_immutable_root_descriptors() {
+    let descriptor =
+        ManagedListDescriptor::new("List[Int]", ManagedFieldType::Int).expect("descriptor");
+    let mut heap = heap();
+    let first = heap
+        .list_from_elements(&descriptor, &ints(3))
+        .expect("first list");
+    let first_descriptor = heap.descriptor(first).expect("first descriptor") as *const _;
+    let second = heap
+        .list_from_elements(
+            &descriptor,
+            &[
+                ManagedFieldValue::Int(30),
+                ManagedFieldValue::Int(31),
+                ManagedFieldValue::Int(32),
+            ],
+        )
+        .expect("second list");
+
+    assert_eq!(
+        first_descriptor,
+        heap.descriptor(second).expect("second descriptor") as *const _
+    );
+
+    let different_shape = heap
+        .list_from_elements(&descriptor, &ints(2))
+        .expect("different list shape");
+    assert_ne!(
+        first_descriptor,
+        heap.descriptor(different_shape)
+            .expect("different descriptor") as *const _
+    );
+}
+
+#[test]
 fn rrb_lookup_handles_leaf_and_multilevel_boundaries() {
     let descriptor =
         ManagedListDescriptor::new("List[Int]", ManagedFieldType::Int).expect("descriptor");

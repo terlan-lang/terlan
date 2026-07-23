@@ -5,7 +5,13 @@ use std::path::Path;
 
 use crate::runtime::native_image::debug::{inspect_tvm_native_debug, TvmNativeDebugRecord};
 use crate::runtime::native_image::{host_tvm_target, inspect_tvm_image};
+use crate::runtime::vm::fixed_scheduler_telemetry::VM_FIXED_SCHEDULER_TRACE_CAPACITY;
+use crate::runtime::vm::multicore_replay::{
+    VmMulticoreEventContext, VmMulticoreEventKind, VmMulticoreReplayEvidence,
+    VmMulticoreReplayRecorder,
+};
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
+use crate::runtime::vm::scheduler_topology::VmSchedulerId;
 
 use super::{DebugArgs, DebugCliError};
 
@@ -51,6 +57,8 @@ pub(super) struct NativeDebugSessionReport {
     pub(super) script_commands: Option<usize>,
     /// Whether machine-readable debugger event output was requested.
     pub(super) json_events: bool,
+    /// Bounded scheduler evidence for the admitted debugger generation.
+    pub(super) multicore_replay: VmMulticoreReplayEvidence,
 }
 
 /// Admits one `.tvm` image and resolves its debugger metadata without executing code.
@@ -86,6 +94,27 @@ pub(super) fn open_native_debug_session(
     let breakpoints = resolve_breakpoints(&args.breakpoints, &source_records)?;
 
     let mut shard = PureNativeExecutionShard::load_image(target).map_err(native_admission_error)?;
+    let runtime_generation = shard.generation().map_err(native_admission_error)?.as_u64();
+    let mut replay = VmMulticoreReplayRecorder::recording(
+        VmSchedulerId::primary(),
+        VM_FIXED_SCHEDULER_TRACE_CAPACITY,
+    )
+    .map_err(|error| native_admission_error(error.to_string()))?;
+    let context = VmMulticoreEventContext::scheduler()
+        .with_shard_epoch(runtime_generation)
+        .map_err(|error| native_admission_error(error.to_string()))?;
+    replay
+        .observe(VmMulticoreEventKind::ImageGeneration, context)
+        .map_err(|error| native_admission_error(error.to_string()))?;
+    let multicore_replay = VmMulticoreReplayEvidence::new(
+        runtime_generation,
+        1,
+        VM_FIXED_SCHEDULER_TRACE_CAPACITY,
+        vec![replay
+            .capture()
+            .map_err(|error| native_admission_error(error.to_string()))?],
+    )
+    .map_err(|error| native_admission_error(error.to_string()))?;
     shard.shutdown().map_err(native_admission_error)?;
 
     Ok(NativeDebugSessionReport {
@@ -114,6 +143,7 @@ pub(super) fn open_native_debug_session(
         breakpoints,
         script_commands,
         json_events: args.json_events,
+        multicore_replay,
     })
 }
 

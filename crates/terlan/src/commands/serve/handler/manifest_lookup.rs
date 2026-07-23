@@ -1,3 +1,4 @@
+use super::route::select_handler_for_request_ref;
 use super::*;
 
 pub(crate) fn manifest_handler_for_request(
@@ -6,7 +7,7 @@ pub(crate) fn manifest_handler_for_request(
     request_path: &str,
 ) -> Option<MatchedWebPackageHandler> {
     let manifest = read_web_manifest(web_root).ok()?;
-    select_handler_for_request(manifest.handlers, method, request_path)
+    select_handler_for_request_ref(&manifest.handlers, method, request_path)
 }
 
 pub(crate) fn manifest_static_response_for_request(
@@ -28,9 +29,13 @@ pub(crate) fn manifest_static_response_for_request(
         })
         .collect();
     let matched = select_handler_for_request(candidates, method, request_path)?;
-    manifest.static_responses.into_iter().find(|response| {
-        response.method == matched.handler.method && response.route == matched.handler.route
-    })
+    manifest
+        .static_responses
+        .iter()
+        .find(|response| {
+            response.method == matched.handler.method && response.route == matched.handler.route
+        })
+        .cloned()
 }
 
 pub(crate) fn manifest_file_response_for_request(
@@ -52,9 +57,13 @@ pub(crate) fn manifest_file_response_for_request(
         })
         .collect();
     let matched = select_handler_for_request(candidates, method, request_path)?;
-    let response = manifest.file_responses.into_iter().find(|response| {
-        response.method == matched.handler.method && response.route == matched.handler.route
-    })?;
+    let response = manifest
+        .file_responses
+        .iter()
+        .find(|response| {
+            response.method == matched.handler.method && response.route == matched.handler.route
+        })?
+        .clone();
     let path = package_relative_path(web_root, &response.path)?;
     path.is_file().then_some((response, path))
 }

@@ -1,15 +1,20 @@
 #![deny(unsafe_code)]
 
-// `terlc` compiles images and hosts compiler-facing commands. The external
-// capability transport belongs to the execution VM; retain it here only in
-// unit-test builds that exercise the shared source modules.
+// `terlc serve` hosts generated scheduler owners and therefore includes the
+// VM capability event pump. Unused low-level client modes remain VM-internal.
 macro_rules! vm_capability_component {
+    ($($item:item)*) => {
+        $(#[allow(dead_code)] $item)*
+    };
+}
+
+macro_rules! vm_map_profile_component {
     ($($item:item)*) => {
         $(#[cfg(test)] $item)*
     };
 }
 
-macro_rules! vm_map_profile_component {
+macro_rules! vm_code_server_test_component {
     ($($item:item)*) => {
         $(#[cfg(test)] $item)*
     };

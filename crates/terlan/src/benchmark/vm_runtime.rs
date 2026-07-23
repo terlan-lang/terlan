@@ -1,5 +1,3 @@
-pub(crate) use crate::ReplValue;
-
 #[allow(dead_code, unused_imports)]
 #[path = "../runtime/vm/actor_impl.rs"]
 pub(crate) mod actor;
@@ -29,6 +27,12 @@ pub(crate) mod map_layout;
 #[allow(dead_code)]
 #[path = "../runtime/vm/map_value.rs"]
 pub(crate) mod map_value;
+#[allow(dead_code)]
+#[path = "../runtime/vm/value.rs"]
+mod value;
+pub(crate) use value::ReplValue;
+#[path = "../runtime/vm/actor_directory.rs"]
+pub(crate) mod actor_directory;
 #[path = "../runtime/vm/memory.rs"]
 pub(crate) mod memory;
 #[allow(dead_code)]
@@ -54,6 +58,9 @@ pub(crate) mod reference;
 pub(crate) mod resource;
 #[path = "../runtime/vm/scheduler.rs"]
 pub(crate) mod scheduler;
+#[allow(dead_code)]
+#[path = "../runtime/vm/scheduler_topology.rs"]
+pub(crate) mod scheduler_topology;
 #[path = "../runtime/vm/statistics.rs"]
 pub(crate) mod statistics;
 #[path = "../runtime/vm/system_information.rs"]
@@ -65,3 +72,5 @@ pub(crate) mod system_profile;
 pub(crate) mod table;
 #[path = "../runtime/vm/timer.rs"]
 pub(crate) mod timer;
+#[path = "../runtime/vm/work_stealing.rs"]
+pub(crate) mod work_stealing;

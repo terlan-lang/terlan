@@ -323,7 +323,12 @@ fn render_native_debug_report_text(report: &NativeDebugSessionReport) -> String 
             "  source_records: {}\n",
             "  breakpoints: {}\n",
             "  script_commands: {}\n",
-            "  json_events: {}"
+            "  json_events: {}\n",
+            "  runtime_generation: {}\n",
+            "  schedulers: {}\n",
+            "  replay_retained_events: {}\n",
+            "  replay_dropped_events: {}\n",
+            "  replayable: {}"
         ),
         report.target,
         report.format,
@@ -339,7 +344,12 @@ fn render_native_debug_report_text(report: &NativeDebugSessionReport) -> String 
         report.source_record_count,
         breakpoints,
         script_commands,
-        report.json_events
+        report.json_events,
+        report.multicore_replay.runtime_generation,
+        report.multicore_replay.schedulers.len(),
+        report.multicore_replay.retained_events,
+        report.multicore_replay.dropped_events,
+        report.multicore_replay.replayable
     )
 }
 
@@ -383,6 +393,7 @@ fn render_native_debug_report_json(report: &NativeDebugSessionReport) -> String 
         "breakpoints": breakpoints,
         "script_commands": report.script_commands,
         "json_events": report.json_events,
+        "multicore_replay": report.multicore_replay,
         "live_execution": false,
     })
     .to_string()

@@ -42,6 +42,9 @@ jobs:
         env:
           TERLAN_MATRIX_TARGET: ${{ matrix.target }}
 
+      - name: Stress the portable multicore memory model
+        run: cargo test --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
+
       - name: Upload target execution attestation
         uses: actions/upload-artifact@v4
         with:
@@ -98,12 +101,65 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  multicore-thread-sanitizer:
+    name: release VM multicore ThreadSanitizer
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust ThreadSanitizer target
+        run: rustup toolchain install 1.96.0 --profile minimal --target x86_64-unknown-linux-gnutsan
+
+      - name: Validate multicore VM memory safety
+        run: make vm-multicore-thread-sanitizer-check
+
+      - name: Upload multicore ThreadSanitizer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-vm-multicore-thread-sanitizer
+          path: |
+            target/quality/vm-multicore-thread-sanitizer-report.json
+            target/quality/vm-multicore-memory-model-tsan.json
+          if-no-files-found: error
+          retention-days: 90
+
+  multicore-performance:
+    name: release VM multicore controlled performance
+    runs-on: [self-hosted, linux, x64, terlan-linux-x86_64-multicore-v1]
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Enforce multicore performance policy
+        run: make vm-multicore-performance-check
+        env:
+          RUSTUP_TOOLCHAIN: 1.96.0
+          TERLAN_VM_MULTICORE_DEDICATED_RUNNER: terlan-linux-x86_64-multicore-v1
+          TERLAN_BENCH_BACKGROUND_LOAD: controlled
+
+      - name: Upload controlled multicore performance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-vm-multicore-performance
+          path: target/quality/vm-multicore-performance.json
+          if-no-files-found: error
+          retention-days: 90
+
   validate:
     name: validate release
     runs-on: ubuntu-latest
     needs:
       - platform-matrix
       - thread-sanitizer
+      - multicore-thread-sanitizer
+      - multicore-performance
 
     steps:
       - name: Checkout
@@ -124,6 +180,21 @@ jobs:
           name: release-tvm-aot-thread-sanitizer
           path: target/quality
 
+      - name: Download multicore ThreadSanitizer evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: release-vm-multicore-thread-sanitizer
+          path: target/quality
+
+      - name: Download controlled multicore performance evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: release-vm-multicore-performance
+          path: target/quality
+
+      - name: Join MC-9 release-candidate evidence
+        run: make vm-multicore-mc9-evidence-check
+
       - name: Validate and seal complete AOT closeout
         run: make tvm-aot-release-closeout-check
 
@@ -136,6 +207,10 @@ jobs:
             target/quality/tvm-aot-release-clean-checkout.json
             target/quality/tvm-aot-platform-matrix-report.json
             target/quality/tvm-aot-thread-sanitizer-report.json
+            target/quality/vm-multicore-thread-sanitizer-report.json
+            target/quality/vm-multicore-memory-model-tsan.json
+            target/quality/vm-multicore-performance.json
+            target/quality/vm-multicore-mc9-evidence.json
             target/quality/aot-compilation-benchmark.json
             target/quality/http-aot-performance-comparison.json
             target/quality/tvm-managed-list-profile.json

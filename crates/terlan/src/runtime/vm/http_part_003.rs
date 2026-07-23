@@ -1,4 +1,3 @@
-
 /// Reads one HTTP/1 response and returns the exact wire bytes observed.
 ///
 /// Inputs:
@@ -393,20 +392,11 @@ fn poll_or_park_http1_tcp_exchange_with_connection(
     )? {
         VmHttpTcpPoll::Complete(exchange) => Ok(VmHttpTcpActorPoll::Complete(exchange)),
         VmHttpTcpPoll::NeedRead => {
-            let actor = processes.get_mut(process).ok_or_else(|| {
-                format!("VM HTTP handler process {} is missing", process.as_u64())
-            })?;
-            if matches!(actor.state, VmProcessState::Exited(_)) {
-                return Err(format!(
-                    "VM HTTP handler process {} has exited",
-                    process.as_u64()
-                ));
-            }
-            actor.block();
+            block_http_handler(processes, process)?;
             if tcp.park_receive(stream, process)? {
                 Ok(VmHttpTcpActorPoll::Parked)
             } else {
-                actor.wake();
+                processes.with_process_control_mutator(process, |actor| actor.wake())?;
                 Ok(VmHttpTcpActorPoll::Ready)
             }
         }
@@ -437,24 +427,35 @@ fn poll_or_park_http1_tls_tcp_exchange_with_connection(
     match poll_result? {
         VmHttpTcpPoll::Complete(exchange) => Ok(VmHttpTcpActorPoll::Complete(exchange)),
         VmHttpTcpPoll::NeedRead => {
-            let actor = processes.get_mut(process).ok_or_else(|| {
-                format!("VM HTTP handler process {} is missing", process.as_u64())
-            })?;
-            if matches!(actor.state, VmProcessState::Exited(_)) {
-                return Err(format!(
-                    "VM HTTP handler process {} has exited",
-                    process.as_u64()
-                ));
-            }
-            actor.block();
+            block_http_handler(processes, process)?;
             if tcp.park_receive(tls_stream.stream(), process)? {
                 Ok(VmHttpTcpActorPoll::Parked)
             } else {
-                actor.wake();
+                processes.with_process_control_mutator(process, |actor| actor.wake())?;
                 Ok(VmHttpTcpActorPoll::Ready)
             }
         }
     }
+}
+
+/// Blocks one live HTTP handler under scoped actor ownership.
+fn block_http_handler(processes: &mut VmProcessTable, process: VmProcessId) -> Result<(), String> {
+    if processes.get(process).is_none() {
+        return Err(format!(
+            "VM HTTP handler process {} is missing",
+            process.as_u64()
+        ));
+    }
+    processes.with_process_control_mutator(process, |actor| {
+        if matches!(actor.state, VmProcessState::Exited(_)) {
+            return Err(format!(
+                "VM HTTP handler process {} has exited",
+                process.as_u64()
+            ));
+        }
+        actor.block();
+        Ok(())
+    })?
 }
 
 /// Accepts one VM TCP stream and creates its HTTP handler process.

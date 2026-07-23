@@ -1,12 +1,19 @@
+use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use percent_encoding::percent_decode_str;
 
 use crate::commands::web_route::{route_ambiguity_key, route_segments, typed_route_param_segment};
 
-use super::{WebPackageFileResponse, WebPackageHandler, WebPackageSse, WebPackageStaticResponse};
-use crate::commands::serve::manifest::read_web_manifest;
+use super::{
+    WebPackageFileResponse, WebPackageHandler, WebPackageSse, WebPackageStaticResponse,
+    WebPackageWebSocket,
+};
+use crate::commands::serve::manifest::{
+    manifest_static_file_from_manifest, with_web_manifest, WebPackageManifest,
+};
 use crate::commands::serve::package_relative_path;
 
 /// A manifest handler selected for one concrete HTTP request.
@@ -29,10 +36,25 @@ pub(crate) struct MatchedWebPackageHandler {
 
 /// One best route selected across all executable manifest response kinds.
 pub(in crate::commands::serve) enum MatchedWebPackageRoute {
-    Handler(MatchedWebPackageHandler),
+    WebSocket(WebPackageWebSocket),
+    Handler(Arc<MatchedWebPackageHandler>),
+    StaticFile(PathBuf),
     StaticResponse(WebPackageStaticResponse),
     FileResponse(WebPackageFileResponse, PathBuf),
     Sse(WebPackageSse),
+}
+
+thread_local! {
+    /// The common repeated exact route stays owner-local and generation-safe.
+    static LAST_SIMPLE_HANDLER_ROUTE: RefCell<Option<LastSimpleHandlerRoute>> =
+        const { RefCell::new(None) };
+}
+
+struct LastSimpleHandlerRoute {
+    manifest: Arc<WebPackageManifest>,
+    method: String,
+    request_path: String,
+    matched: Arc<MatchedWebPackageHandler>,
 }
 
 /// Selects one route across dynamic, folded-static, and file-backed rows.
@@ -41,7 +63,61 @@ pub(in crate::commands::serve) fn manifest_route_for_request(
     method: &str,
     request_path: &str,
 ) -> Option<MatchedWebPackageRoute> {
-    let manifest = read_web_manifest(web_root).ok()?;
+    with_web_manifest(web_root, |manifest| {
+        manifest_route_for_loaded_manifest(web_root, method, request_path, manifest)
+    })
+    .ok()
+    .flatten()
+}
+
+fn manifest_route_for_loaded_manifest(
+    web_root: &Path,
+    method: &str,
+    request_path: &str,
+    manifest: &Arc<WebPackageManifest>,
+) -> Option<MatchedWebPackageRoute> {
+    if let Some(websocket) = manifest
+        .websockets
+        .iter()
+        .find(|websocket| websocket.route == request_path)
+    {
+        return Some(MatchedWebPackageRoute::WebSocket(websocket.clone()));
+    }
+    if method == "GET" || method == "HEAD" {
+        if let Some(path) = manifest_static_file_from_manifest(web_root, manifest, request_path) {
+            return Some(MatchedWebPackageRoute::StaticFile(path));
+        }
+    }
+    if manifest.websockets.is_empty()
+        && manifest.sse.is_empty()
+        && manifest.static_responses.is_empty()
+        && manifest.file_responses.is_empty()
+    {
+        if let Some(matched) = LAST_SIMPLE_HANDLER_ROUTE.with(|cached| {
+            let cached = cached.borrow();
+            let cached = cached.as_ref()?;
+            (Arc::ptr_eq(&cached.manifest, manifest)
+                && cached.method == method
+                && cached.request_path == request_path)
+                .then(|| Arc::clone(&cached.matched))
+        }) {
+            return Some(MatchedWebPackageRoute::Handler(matched));
+        }
+        let matched = Arc::new(select_handler_for_request_ref(
+            &manifest.handlers,
+            method,
+            request_path,
+        )?);
+        LAST_SIMPLE_HANDLER_ROUTE.with(|cached| {
+            *cached.borrow_mut() = Some(LastSimpleHandlerRoute {
+                manifest: Arc::clone(manifest),
+                method: method.to_string(),
+                request_path: request_path.to_string(),
+                matched: Arc::clone(&matched),
+            });
+        });
+        return Some(MatchedWebPackageRoute::Handler(matched));
+    }
     let mut candidates = manifest.handlers.clone();
     candidates.extend(manifest.sse.iter().map(|endpoint| WebPackageHandler {
         method: "GET".to_string(),
@@ -82,23 +158,27 @@ pub(in crate::commands::serve) fn manifest_route_for_request(
     if manifest.handlers.iter().any(|handler| {
         handler.method == matched.handler.method && handler.route == matched.handler.route
     }) {
-        return Some(MatchedWebPackageRoute::Handler(matched));
+        return Some(MatchedWebPackageRoute::Handler(Arc::new(matched)));
     }
-    if let Some(response) = manifest.static_responses.into_iter().find(|response| {
+    if let Some(response) = manifest.static_responses.iter().find(|response| {
         response.method == matched.handler.method && response.route == matched.handler.route
     }) {
-        return Some(MatchedWebPackageRoute::StaticResponse(response));
+        return Some(MatchedWebPackageRoute::StaticResponse(response.clone()));
     }
     if let Some(endpoint) = manifest
         .sse
-        .into_iter()
+        .iter()
         .find(|endpoint| matched.handler.method == "GET" && endpoint.route == matched.handler.route)
     {
-        return Some(MatchedWebPackageRoute::Sse(endpoint));
+        return Some(MatchedWebPackageRoute::Sse(endpoint.clone()));
     }
-    let response = manifest.file_responses.into_iter().find(|response| {
-        response.method == matched.handler.method && response.route == matched.handler.route
-    })?;
+    let response = manifest
+        .file_responses
+        .iter()
+        .find(|response| {
+            response.method == matched.handler.method && response.route == matched.handler.route
+        })?
+        .clone();
     let path = package_relative_path(web_root, &response.path)?;
     path.is_file()
         .then_some(MatchedWebPackageRoute::FileResponse(response, path))
@@ -188,38 +268,29 @@ pub(super) fn select_handler_for_request(
     method: &str,
     request_path: &str,
 ) -> Option<MatchedWebPackageHandler> {
-    let exact_method = select_best_handler(
-        handlers
-            .iter()
-            .filter(|handler| handler.method == method)
-            .cloned(),
+    select_handler_for_request_ref(&handlers, method, request_path)
+}
+
+pub(super) fn select_handler_for_request_ref(
+    handlers: &[WebPackageHandler],
+    method: &str,
+    request_path: &str,
+) -> Option<MatchedWebPackageHandler> {
+    let exact_method = select_best_handler_ref(
+        handlers.iter().filter(|handler| handler.method == method),
         request_path,
     );
     if exact_method.is_some() || method != "HEAD" {
         return exact_method;
     }
-    select_best_handler(
-        handlers
-            .into_iter()
-            .filter(|handler| handler.method == "GET"),
+    select_best_handler_ref(
+        handlers.iter().filter(|handler| handler.method == "GET"),
         request_path,
     )
 }
 
-/// Selects the highest-precedence matching route from candidate handlers.
-///
-/// Inputs:
-/// - `handlers`: candidate manifest handlers for a single method class.
-/// - `request_path`: URL path without query text.
-///
-/// Output:
-/// - Best matching handler plus captured params.
-///
-/// Transformation:
-/// - Runs route pattern matching for each candidate and picks the maximum route
-///   score. Manifest validation rejects ambiguous equal signatures earlier.
-fn select_best_handler(
-    handlers: impl Iterator<Item = WebPackageHandler>,
+fn select_best_handler_ref<'a>(
+    handlers: impl Iterator<Item = &'a WebPackageHandler>,
     request_path: &str,
 ) -> Option<MatchedWebPackageHandler> {
     handlers
@@ -228,7 +299,7 @@ fn select_best_handler(
                 (
                     matched.score,
                     MatchedWebPackageHandler {
-                        handler,
+                        handler: handler.clone(),
                         params: matched.params,
                     },
                 )
@@ -397,3 +468,7 @@ fn decode_wildcard_route_param(segments: &[&str]) -> Option<String> {
         .collect::<Option<Vec<_>>>()
         .map(|decoded| decoded.join("/"))
 }
+
+#[cfg(test)]
+#[path = "route_test.rs"]
+mod route_test;

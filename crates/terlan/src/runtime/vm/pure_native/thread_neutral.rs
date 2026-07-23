@@ -6,6 +6,8 @@ use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::native_image::{TvmBoundaryType, TvmContinuationDescriptor};
 use crate::runtime::vm::actor::VmNativeTraceCall;
 
+use super::NativeResultProjection;
+
 /// Stable identities required to resume one exact native call.
 #[derive(Debug)]
 struct NativeContinuationIdentity {
@@ -26,6 +28,7 @@ struct OwnedNativeTransition {
 #[derive(Debug)]
 struct OwnedNativeResumeProgram {
     result_type: TvmBoundaryType,
+    result_projection: NativeResultProjection,
     continuations: Vec<TvmContinuationDescriptor>,
     observed_continuations: HashSet<u64>,
 }
@@ -49,6 +52,7 @@ pub(super) struct NativeResumeState {
     pub(super) owner_id: u64,
     pub(super) values: Vec<i64>,
     pub(super) result_type: TvmBoundaryType,
+    pub(super) result_projection: NativeResultProjection,
     pub(super) continuations: Vec<TvmContinuationDescriptor>,
     pub(super) observed_continuations: HashSet<u64>,
     pub(super) trace_call: VmNativeTraceCall,
@@ -65,6 +69,7 @@ impl PureNativeSuspension {
         arguments: Vec<i64>,
         values: Vec<i64>,
         result_type: TvmBoundaryType,
+        result_projection: NativeResultProjection,
         continuations: Vec<TvmContinuationDescriptor>,
         observed_continuations: HashSet<u64>,
         trace_call: VmNativeTraceCall,
@@ -82,6 +87,7 @@ impl PureNativeSuspension {
             },
             resume: OwnedNativeResumeProgram {
                 result_type,
+                result_projection,
                 continuations,
                 observed_continuations,
             },
@@ -121,6 +127,7 @@ impl PureNativeSuspension {
             owner_id: self.identity.owner_id,
             values: self.transition.values,
             result_type: self.resume.result_type,
+            result_projection: self.resume.result_projection,
             continuations: self.resume.continuations,
             observed_continuations: self.resume.observed_continuations,
             trace_call: self.trace_call,

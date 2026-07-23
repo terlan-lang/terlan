@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::{
-    live_process_mut, stale_shared_allocation, VmMemoryAccountant, VmMemoryPressureOutcome,
+    require_live_process, stale_shared_allocation, VmMemoryAccountant, VmMemoryPressureOutcome,
     VmSharedAllocation, VmSharedAllocationDecision, VmSharedAllocationId, VmSharedAllocationKind,
 };
 use crate::runtime::vm::process::{VmProcessId, VmProcessTable};
@@ -49,8 +49,8 @@ impl VmMemoryAccountant {
         current_owner: VmProcessId,
         new_owner: VmProcessId,
     ) -> Result<VmSharedAllocationDecision, String> {
-        live_process_mut(processes, current_owner)?;
-        live_process_mut(processes, new_owner)?;
+        require_live_process(processes, current_owner)?;
+        require_live_process(processes, new_owner)?;
         let record = self
             .shared_allocations
             .get(&allocation.as_u64())
@@ -91,7 +91,7 @@ impl VmMemoryAccountant {
         allocation: VmSharedAllocationId,
         owner: VmProcessId,
     ) -> Result<bool, String> {
-        live_process_mut(processes, owner)?;
+        require_live_process(processes, owner)?;
         let record = self
             .shared_allocations
             .get(&allocation.as_u64())
@@ -123,7 +123,7 @@ impl VmMemoryAccountant {
         allocations: &[VmSharedAllocationId],
         owner: VmProcessId,
     ) -> Result<usize, String> {
-        let process = live_process_mut(processes, owner)?;
+        require_live_process(processes, owner)?;
         let mut seen = BTreeSet::new();
         let mut logical_bytes = 0usize;
         for allocation in allocations {
@@ -148,12 +148,16 @@ impl VmMemoryAccountant {
                 .checked_add(record.logical_bytes)
                 .ok_or_else(|| "VM shared allocation bulk release byte overflow".to_string())?;
         }
-        if process.heap_bytes < logical_bytes {
+        let heap_bytes = processes
+            .get(owner)
+            .expect("shared allocation owner was validated")
+            .heap_bytes;
+        if heap_bytes < logical_bytes {
             return Err(format!(
                 "process {} shared allocation bytes {} exceed accounted heap {}",
                 owner.as_u64(),
                 logical_bytes,
-                process.heap_bytes
+                heap_bytes
             ));
         }
         self.release_heap(processes, owner, logical_bytes)?;

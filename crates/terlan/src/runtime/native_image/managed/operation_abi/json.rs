@@ -84,15 +84,17 @@ fn parse_result(
                 .map_err(|_| ManagedMemoryError::InvalidManagedOperation)?;
             let canonical = heap.allocate_string(&canonical)?;
             let layout = super::unique_layout(layouts, json_semantic, 1)?;
-            let json = heap
-                .allocate_aggregate(layout, &[ManagedFieldValue::Reference(canonical.erase())])?;
+            let json = heap.allocate_aggregate_ref(
+                layout,
+                &[ManagedFieldValue::Reference(canonical.erase())],
+            )?;
             ("Ok", ManagedFieldValue::Reference(json.erase()))
         }
         Err(error) => {
             let message = heap.allocate_string(error.message())?;
             let code = layouts.atom_index(error.code())?;
             let layout = super::unique_layout(layouts, error_semantic, 2)?;
-            let error = heap.allocate_aggregate(
+            let error = heap.allocate_aggregate_ref(
                 layout,
                 &[
                     ManagedFieldValue::Atom(code),
@@ -103,7 +105,7 @@ fn parse_result(
         }
     };
     let layout = super::option_layout(layouts, result_semantic, variant, 1)?;
-    heap.allocate_aggregate(layout, &[payload])
+    heap.allocate_aggregate_ref(layout, &[payload])
         .map(|result| result.erase().encoded_abi_word())
 }
 

@@ -14,6 +14,10 @@ macro_rules! vm_map_profile_component {
     };
 }
 
+macro_rules! vm_code_server_test_component {
+    ($($item:item)*) => {};
+}
+
 #[allow(dead_code)]
 #[path = "../database_schema.rs"]
 pub(crate) mod database_schema;
@@ -26,8 +30,6 @@ pub(crate) mod terlan_native_boundary;
 
 #[cfg(test)]
 mod http_runtime_lane;
-
-mod value;
 
 #[allow(dead_code)]
 #[path = "../runtime/native_image/boundary_type.rs"]

@@ -30,6 +30,7 @@ mod lean_proof_runtime;
 pub(crate) mod lean_proof_track;
 mod mobile_boundary;
 mod module_readmes;
+mod multicore_invariant_inventory;
 mod native_binding_generator_contract;
 mod native_boundary_security;
 mod native_boundary_terminology;

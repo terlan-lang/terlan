@@ -1,9 +1,10 @@
 //! Actor-local immutable string, byte, and bitstring values.
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use super::{
-    ActorHeap, AllocationClass, ManagedMemoryError, ManagedTypeDescriptor, SemanticTypeId, TvmRef,
+    managed_binary_semantic_id, managed_bytes_semantic_id, managed_string_semantic_id, ActorHeap,
+    AllocationClass, ManagedMemoryError, ManagedTypeDescriptor, SemanticTypeId, TvmRef,
 };
 
 /// Bytes reserved for the canonical sequence byte-length prefix.
@@ -90,15 +91,47 @@ impl ActorHeap {
         value: &[u8],
     ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
         std::str::from_utf8(value).map_err(|_| ManagedMemoryError::InvalidUtf8)?;
-        let (descriptor, payload) = sequence_object("std.core.String", value)?;
-        self.allocate(descriptor, &payload, &[])
+        allocate_sequence(self, managed_string_semantic_id(), value)
     }
 
     /// Reads one managed string after owner, generation, and semantic-type checks.
     pub fn read_string(&self, value: TvmRef<ManagedString>) -> Result<&str, ManagedMemoryError> {
-        require_semantic_type(self, value, "std.core.String")?;
+        require_semantic_type(self, value, managed_string_semantic_id())?;
         std::str::from_utf8(sequence_bytes(self.read(value)?)?)
             .map_err(|_| ManagedMemoryError::InvalidUtf8)
+    }
+
+    /// Concatenates two validated actor-owned strings directly into the
+    /// managed heap without allocating an intermediate host `String`.
+    pub(super) fn concatenate_strings(
+        &mut self,
+        left: TvmRef<ManagedString>,
+        right: TvmRef<ManagedString>,
+    ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
+        let left_length = self.read_string(left)?.len();
+        let right_length = self.read_string(right)?.len();
+        let value_length = left_length
+            .checked_add(right_length)
+            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        let mut left_range = self.payload_range(left)?;
+        let mut right_range = self.payload_range(right)?;
+        left_range.start = left_range
+            .start
+            .checked_add(MANAGED_SEQUENCE_HEADER_BYTES)
+            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        right_range.start = right_range
+            .start
+            .checked_add(MANAGED_SEQUENCE_HEADER_BYTES)
+            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        if left_range.len() != left_length || right_range.len() != right_length {
+            return Err(ManagedMemoryError::InvalidSequenceLength);
+        }
+        allocate_sequence_ranges(
+            self,
+            managed_string_semantic_id(),
+            value_length,
+            &[left_range, right_range],
+        )
     }
 
     /// Allocates one immutable byte sequence in this actor's managed heap.
@@ -106,13 +139,12 @@ impl ActorHeap {
         &mut self,
         value: &[u8],
     ) -> Result<TvmRef<ManagedBytes>, ManagedMemoryError> {
-        let (descriptor, payload) = sequence_object("std.binary.Bytes", value)?;
-        self.allocate(descriptor, &payload, &[])
+        allocate_sequence(self, managed_bytes_semantic_id(), value)
     }
 
     /// Reads one managed byte sequence after owner, generation, and type checks.
     pub fn read_bytes(&self, value: TvmRef<ManagedBytes>) -> Result<&[u8], ManagedMemoryError> {
-        require_semantic_type(self, value, "std.binary.Bytes")?;
+        require_semantic_type(self, value, managed_bytes_semantic_id())?;
         sequence_bytes(self.read(value)?)
     }
 
@@ -123,14 +155,14 @@ impl ActorHeap {
         bit_offset: usize,
         bit_length: usize,
     ) -> Result<TvmRef<ManagedBinary>, ManagedMemoryError> {
-        require_semantic_type(self, storage, "std.binary.Bytes")?;
+        require_semantic_type(self, storage, managed_bytes_semantic_id())?;
         validate_bit_range(self.read_bytes(storage)?.len(), bit_offset, bit_length)?;
         let mut payload = [0_u8; BINARY_PAYLOAD_BYTES];
         payload[BINARY_BIT_OFFSET_OFFSET..BINARY_BIT_LENGTH_OFFSET]
             .copy_from_slice(&encode_usize(bit_offset)?);
         payload[BINARY_BIT_LENGTH_OFFSET..].copy_from_slice(&encode_usize(bit_length)?);
         self.allocate(
-            binary_descriptor()?,
+            binary_descriptor(),
             &payload,
             &[(BINARY_STORAGE_OFFSET, storage.erase())],
         )
@@ -141,12 +173,12 @@ impl ActorHeap {
         &self,
         value: TvmRef<ManagedBinary>,
     ) -> Result<ManagedBinaryView<'_>, ManagedMemoryError> {
-        require_semantic_type(self, value, "std.binary.Binary")?;
+        require_semantic_type(self, value, managed_binary_semantic_id())?;
         let payload = self.read(value)?;
         let bit_offset = decode_usize(payload, BINARY_BIT_OFFSET_OFFSET)?;
         let bit_length = decode_usize(payload, BINARY_BIT_LENGTH_OFFSET)?;
         let storage = self.reference_field(value, BINARY_STORAGE_OFFSET)?;
-        require_semantic_type(self, storage, "std.binary.Bytes")?;
+        require_semantic_type(self, storage, managed_bytes_semantic_id())?;
         let storage = self.read_bytes(storage.cast())?;
         validate_bit_range(storage.len(), bit_offset, bit_length)?;
         Ok(ManagedBinaryView {
@@ -158,31 +190,45 @@ impl ActorHeap {
 }
 
 /// Builds a deterministic actor-local sequence descriptor and payload.
-fn sequence_object(
-    canonical_type: &str,
+fn allocate_sequence<T>(
+    heap: &mut ActorHeap,
+    semantic: SemanticTypeId,
     value: &[u8],
-) -> Result<(Arc<ManagedTypeDescriptor>, Vec<u8>), ManagedMemoryError> {
+) -> Result<TvmRef<T>, ManagedMemoryError> {
     let length =
         u64::try_from(value.len()).map_err(|_| ManagedMemoryError::InvalidSequenceLength)?;
     let size = MANAGED_SEQUENCE_HEADER_BYTES
         .checked_add(value.len())
         .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
-    let mut payload = Vec::with_capacity(size);
-    payload.extend_from_slice(&length.to_le_bytes());
-    payload.extend_from_slice(value);
     let allocation_class = if size > 64 * 1024 {
         AllocationClass::Large
     } else {
         AllocationClass::Young
     };
-    let descriptor = ManagedTypeDescriptor::new(
-        SemanticTypeId::from_canonical(canonical_type)?,
-        size,
-        8,
-        vec![],
-        allocation_class,
-    )?;
-    Ok((Arc::new(descriptor), payload))
+    let descriptor = heap.sequence_descriptor(semantic, size, allocation_class)?;
+    let header = length.to_le_bytes();
+    heap.allocate_reference_free_parts(descriptor, &[&header, value])
+}
+
+/// Builds a sequence by copying exact source ranges already inside the heap.
+fn allocate_sequence_ranges<T>(
+    heap: &mut ActorHeap,
+    semantic: SemanticTypeId,
+    value_length: usize,
+    ranges: &[std::ops::Range<usize>],
+) -> Result<TvmRef<T>, ManagedMemoryError> {
+    let length =
+        u64::try_from(value_length).map_err(|_| ManagedMemoryError::InvalidSequenceLength)?;
+    let size = MANAGED_SEQUENCE_HEADER_BYTES
+        .checked_add(value_length)
+        .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+    let allocation_class = if size > 64 * 1024 {
+        AllocationClass::Large
+    } else {
+        AllocationClass::Young
+    };
+    let descriptor = heap.sequence_descriptor(semantic, size, allocation_class)?;
+    heap.allocate_reference_free_ranges(descriptor, &length.to_le_bytes(), ranges)
 }
 
 /// Returns the length-delimited bytes from one validated sequence payload.
@@ -200,24 +246,28 @@ fn sequence_bytes(payload: &[u8]) -> Result<&[u8], ManagedMemoryError> {
 }
 
 /// Builds the fixed descriptor for a bitstring slice object.
-fn binary_descriptor() -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
-    ManagedTypeDescriptor::new(
-        SemanticTypeId::from_canonical("std.binary.Binary")?,
-        BINARY_PAYLOAD_BYTES,
-        8,
-        vec![BINARY_STORAGE_OFFSET],
-        AllocationClass::Young,
-    )
-    .map(Arc::new)
+fn binary_descriptor() -> Arc<ManagedTypeDescriptor> {
+    static DESCRIPTOR: OnceLock<Arc<ManagedTypeDescriptor>> = OnceLock::new();
+    Arc::clone(DESCRIPTOR.get_or_init(|| {
+        Arc::new(
+            ManagedTypeDescriptor::new(
+                managed_binary_semantic_id(),
+                BINARY_PAYLOAD_BYTES,
+                8,
+                vec![BINARY_STORAGE_OFFSET],
+                AllocationClass::Young,
+            )
+            .expect("canonical managed Binary layout is valid"),
+        )
+    }))
 }
 
 /// Ensures a managed reference carries the expected canonical semantic identity.
 fn require_semantic_type<T>(
     heap: &ActorHeap,
     value: TvmRef<T>,
-    canonical_type: &str,
+    expected: SemanticTypeId,
 ) -> Result<(), ManagedMemoryError> {
-    let expected = SemanticTypeId::from_canonical(canonical_type)?;
     if heap.descriptor(value)?.semantic_id() != expected {
         return Err(ManagedMemoryError::ManagedTypeMismatch);
     }

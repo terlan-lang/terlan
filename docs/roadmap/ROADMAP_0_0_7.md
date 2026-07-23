@@ -1229,9 +1229,8 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     releases and has a stable-tag workflow that rebuilds the package from exact
     compiler and OpenCV commits, replays the target archive, binds its manifest
     to the release commit, records promotion evidence, attests its checksum,
-    and refuses to replace an existing GitHub release. Actual publication
-    remains an OpenCV package milestone and requires repository-level release
-    immutability plus a stable package version.
+    and refuses to replace an existing staged release. External publication is
+    outside this roadmap and is not a completion requirement.
   - Gate: `make terlan-polars-package-check`.
   - Completed 2026-07-20: `make check` runs
     `terlan-polars-package-check` after the generated C ABI binding gate and
@@ -1279,11 +1278,11 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
   - Make integration: run `terlan-pytorch-package-check` from `make check`
     only for the CPU/default surface. CUDA-specific checks must be separate
     and opt-in.
-  - Remaining package work before LibTorch CUDA execution: publish the pinned
-    external commit and prove the no-sibling remote checkout in CI. Invalid-device
-    placement becomes mandatory when that public request operation is introduced;
-    the current observation-only device API cannot issue an invalid request without
-    a rejection-only surface.
+  - Remaining package work before LibTorch CUDA execution: preserve a pinned
+    external-source fixture and prove a no-sibling, network-free checkout in a
+    clean local workspace. Invalid-device placement becomes mandatory when that
+    public request operation is introduced; the current observation-only device
+    API cannot issue an invalid request without a rejection-only surface.
   - Acceptance: the gate builds the generated C ABI adapter, runs CPU tensor smoke tests,
     runs Terlan package tests, and proves a consumer Terlan project can import
     the package without changing compiler source.
@@ -3488,21 +3487,21 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
   - Acceptance: replay artifacts include per-slice elapsed, hash, and proof-id
     summaries suitable for trend and cacheability checks.
 
-- [ ] Slice 26: make proof trace and coverage artifacts first-class release
-  artifacts with traceability and expiration policy.
+- [ ] Slice 26: make proof trace and coverage artifacts first-class local
+  release evidence with traceability and deterministic cleanup policy.
   - Progress: `vm-coverage-classification-check` now requires every VM coverage
     debt row to name executable evidence (`make ...` or `cargo test ...`) and
     classifies the current VM runtime inventory: 25 promoted files and 26
     explicitly classified unpromoted files.
-  - Requirement: publish a release artifact bundle that includes:
+  - Requirement: generate a local release evidence bundle that includes:
     `proof-trace-index.tsv`, `proof-trace-baseline.json`,
     `proof-trace-replay-summary.json`, and one manifest for each compiled slice.
   - Requirement: add machine-validated provenance fields (`git_sha`, `rustc_version`,
     `compiler_target`, `target_profile`, `feature_set`, `build_id`) to every proof
     and coverage artifact used in closeout.
-  - Requirement: define artifact retention policy in docs and tooling: rolling
-    30-day history for trace baselines, 90-day history for gate summaries, and
-    immutable snapshots per tagged release candidate branch.
+  - Requirement: define deterministic local cleanup and versioning policy in
+    docs and tooling. Closeout must not depend on an upload, tag, remote branch,
+    hosted retention period, or external account.
   - Requirement: add `make release-artifacts-closeout-check` that fails when
     required artifacts are missing, malformed, stale, or missing provenance fields.
   - Requirement: add integrity checks for artifact drift where only tolerated drift
@@ -3515,8 +3514,9 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     manipulated manifest linkage to ensure integrity gate blocks release.
   - Gate: add `make release-artifacts-closeout-check` as a hard dependency of
     `release-0-0-7-preflight` after trace/replay/correlation checks.
-  - Acceptance: release closeout must attach complete artifact bundle and provenance
-    metadata; release cannot pass with unresolved artifact-policy violations.
+  - Acceptance: release closeout must generate a complete local evidence bundle
+    and provenance metadata; release cannot pass with unresolved artifact-policy
+    violations.
   - Acceptance: artifact audit output includes per-slice provenance diffs and slice
     ownership attribution for any unexpected semantic delta.
 
@@ -4164,7 +4164,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     are stopped, if readiness is inferred from sleeps, or if command artifacts omit the
     dependency fingerprint.
 
-### Release Artifact And Publication Hardening
+### Release Artifact And Local Validation Hardening
 
 - [ ] Slice 51: validate installed example projects against the release
   artifact.
@@ -4199,7 +4199,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     if diagnostics regress to internal implementation errors, or if generated
     projects are not reproducible across two clean workspaces.
 
-- [ ] Slice 52: publish a release diagnostic catalog with stable text and JSON
+- [ ] Slice 52: generate a release diagnostic catalog with stable text and JSON
   contracts.
   - Requirement: collect every public compiler, formatter, lint, package, VM,
     HTTP, database, template, debugger, release, and installer diagnostic into a
@@ -4240,7 +4240,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     manifests, editor command IDs, LSP capabilities, VM commands, and release
     artifact layout.
   - Requirement: compare the current release candidate against the previous
-    published baseline and classify every difference as additive, compatible
+    versioned baseline and classify every difference as additive, compatible
     behavioral tightening, documented breaking change, deprecated surface, or
     private implementation detail.
   - Requirement: require a migration note, diagnostic/codemod plan, docs link,
@@ -4265,7 +4265,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     diagnostics, migration documentation, example updates, and editor/LSP
     coverage where the old surface was user-visible.
 
-- [ ] Slice 54: publish release supply-chain provenance and dependency policy.
+- [ ] Slice 54: validate release supply-chain provenance and dependency policy.
   - Requirement: generate a release SBOM for the compiler, VM runtime, stdlib,
     editor packages, generated docs, native packages, benchmark harnesses, and
     installer artifacts with crate/package versions, source revisions, licenses,
@@ -4279,7 +4279,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     owner, justification, tests, and release risk status.
   - Requirement: prove release artifacts are reproducible from the sealed
     candidate manifest inputs and that checksum/signature files match the
-    published artifact set.
+    staged artifact set.
   - Requirement: add adversarial tests for undeclared dependencies, license drift,
     checksum mismatch, stale lockfile, unclassified unsafe code, native library
     path leakage, generated binding drift, vendored code without provenance, and
@@ -4413,43 +4413,40 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     attestation path, report coverage, candidate hash, skipped-host matrix,
     failure injection coverage, and deterministic hash comparison.
   - Gate: add `make release-readiness-attestation-check` and run it after
-    `release-performance-baseline-check` and before any publish or promotion
-    command.
+    `release-performance-baseline-check` and before final local readiness.
   - Acceptance: release cannot pass if there is no single attestation tying all
     release gates and artifacts to the same sealed candidate.
   - Acceptance: the gate fails if a report is missing, stale, generated from a
     different candidate, or claims success while a required subgate failed.
 
-- [ ] Slice 59: verify published release surfaces and rollback behavior.
-  - Requirement: define a post-publish verification plan that checks the public
+- [ ] Slice 59: verify staged release surfaces and rollback behavior.
+  - Requirement: define a staged-distribution verification plan that checks the
     installer script, release archives, checksums, static docs, editor packages,
-    package indexes, release notes, and attestation URL all match the sealed
+    package indexes, release notes, and attestation record all match the sealed
     release candidate.
-  - Requirement: provide an offline dry-run mode using a local publish mirror and
-    an online mode that can be run manually after publication without rebuilding
-    or mutating artifacts.
-  - Requirement: verify a clean install from the published surface reports the
+  - Requirement: operate entirely against an offline local mirror without
+    uploads, hosted services, external accounts, or publication credentials.
+  - Requirement: verify a clean install from the staged surface reports the
     correct `terlc --version`, uses the VM default runtime, resolves stdlib/docs
     from the installed layout, runs the release example matrix, and rejects stale
     or mismatched artifacts.
-  - Requirement: define rollback steps for partial publication, bad checksum,
+  - Requirement: define rollback steps for a partial staging operation, bad checksum,
     stale installer metadata, broken docs deployment, missing editor package,
-    package-index drift, and published artifact mismatch.
+    package-index drift, and staged artifact mismatch.
   - Requirement: add adversarial tests for partial mirror contents, stale
     installer pointing at an older release, checksum mismatch, missing
     attestation, docs/version mismatch, package index mismatch, and rollback
     leaving mixed-version metadata.
-  - Requirement: persist `release-post-publish-verification-report.json` with
-    checked URLs or mirror paths, artifact hashes, install smoke results,
+  - Requirement: persist `release-staged-distribution-verification-report.json`
+    with checked mirror paths, artifact hashes, install smoke results,
     rollback dry-run results, and mismatch diagnostics.
-  - Gate: add `make release-post-publish-verification-check` and run its offline
-    dry-run after `release-readiness-attestation-check`; the online mode remains
-    a documented manual post-publish verification command.
-  - Acceptance: release cannot be considered complete until published artifacts
-    match the attested candidate and a clean install succeeds from the published
+  - Gate: add `make release-staged-distribution-verification-check` and run it
+    after `release-readiness-attestation-check`.
+  - Acceptance: release cannot be considered complete until staged artifacts
+    match the attested candidate and a clean install succeeds from the staged
     surface.
   - Acceptance: the gate fails if rollback cannot be dry-run safely, if
-    publication verification relies on source checkout paths, or if the published
+    staged verification relies on source checkout paths, or if the staged
     install path can resolve mixed-version artifacts.
 
 - [ ] Slice 60: generate factual release notes and migration guide from gate
@@ -4475,7 +4472,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     evidence links, unsupported-claim list, migration coverage, known-limitation
     coverage, and release-candidate hash.
   - Gate: add `make release-notes-accuracy-check` and run it after
-    `release-post-publish-verification-check` and before final release
+    `release-staged-distribution-verification-check` and before final release
     readiness.
   - Acceptance: release cannot pass if release notes claim support for anything
     not proven by a gate, installed example, generated API reference, or
@@ -4709,9 +4706,10 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
 
 ### Superseded VMIR Baseline And AOT-Native TVM Pivot
 
-The focused execution order and current AOT closure scorecard live in
-[`ROADMAP_0_0_7_AOT.md`](ROADMAP_0_0_7_AOT.md). That mini-roadmap decomposes
-the requirements below without changing their scope or authority.
+The direct-AOT implementation is native-only, but its performance closeout is
+reopened. Its former focused mini-roadmap remains retired; the architectural
+correction and strict regression evidence are owned by Slice 101F, the native
+data ABI specification, and the executable Make gates.
 
 The completed Slice 101 through 105 records below describe the transitional
 serialized-VMIR implementation. Their checkmarks prove that work existed and
@@ -5329,10 +5327,13 @@ their former gate names are not release commands and must not be recreated.
     preserved checked-CoreIR runtime baseline on the same recorded hardware.
     Enforce throughput, p50/p95/p99 latency, allocation rate, backpressure,
     WebSocket/SSE longevity, and overlapping hot-reload-generation behavior.
-  - Requirement: execute packaged and installed images on every supported
+  - Requirement: execute packaged and installed images on the current native
+    host and validate the portable target contract for every supported
     architecture, operating system, object format, and calling convention.
     Exercise debug/stack metadata, crash reports, generation unloading, and
-    incompatible-image rejection; static descriptor inspection is insufficient.
+    incompatible-image rejection on the executable host; strict target-schema
+    and aggregate self-tests reject incomplete portable coverage without making
+    remote execution or artifact publication a completion requirement.
   - Requirement: from a clean environment with `RUSTFLAGS` unset, require
     `cargo check --locked -p terlan` and the complete AOT gate set to pass.
     Dead-code and unused-import suppression cannot conceal hard-removal debris.
@@ -5354,24 +5355,38 @@ their former gate names are not release commands and must not be recreated.
     evaluation, REPL/test evaluation fallbacks, evaluator variants, fallback
     flags, and evaluator/parity-era gates have since been hard-removed. Missing
     AOT coverage now fails loudly rather than selecting a compatibility path.
-  - Implemented evidence 2026-07-21: REPL and test execution are native-only;
-    the live inventory contains zero `deletion-debt` rows and three
-    `temporary-migration-support` rows: two owned by the HTTP handler/cache
-    surface and one application worker that must be narrowed to unsafe adapter
-    capability RPC. The application call boundary is now reusable in-shard
-    runtime semantics. The
-    retired checked-CoreIR runtime remains documented as valuable predecessor
-    semantic and HTTP-performance evidence rather than as an error.
-  - Remaining closeout 2026-07-22: retain one green six-target native execution
-    aggregate from official CI or release validation, then seal the clean
-    release closeout report. Local Linux execution and static cross-format
-    inspection cannot satisfy this requirement.
+  - Implemented evidence 2026-07-22: REPL and test execution are native-only;
+    the live inventory contains zero `deletion-debt` and zero
+    `temporary-migration-support` rows. Ordinary same-shard execution uses
+    direct runtime ABI calls; only explicit unsafe Rust/C/C++ capabilities may
+    cross the bounded worker protocol. The retired checked-CoreIR runtime
+    remains documented as valuable predecessor semantic and HTTP-performance
+    evidence rather than as an error.
+  - Reopened evidence 2026-07-22: the previous single-run HTTP comparison was
+    not sufficient closeout evidence. The policy now treats every AOT latency,
+    RSS, reload, or throughput regression against checked-CoreIR as an error
+    with exact 1.00 ratios. The v2 harness performs an unmeasured warm-up and
+    retains five raw rounds per track before selecting the intact
+    median-throughput round. HTTP generations now own one persistent execution
+    shard, requests own actors within it, abandoned continuations cancel their
+    actors, and completed actors plus internal epoch operations are reaped.
+    A 1,000-call soak retains zero actors and zero operation identities; the
+    current five-round native run is stable without monotonic RSS growth. A
+    methodologically equivalent v2 checked-CoreIR report is still required
+    before this slice may close again; the legacy v1 report remains historical
+    evidence and cannot be silently upgraded or used to weaken policy.
+  - Platform closeout evidence 2026-07-22: the Linux x86-64 native target executes the complete
+    compile/package/install/debug/crash/reload/quarantine/rejection cycle, while
+    the strict six-target matrix contract self-test covers the portable target
+    schema. The local AOT gate set, Rust size/quality gate, roadmap integrity,
+    and locked Cargo check pass without requiring a commit, push, upload,
+    external account, or retained hosted artifact.
   - Acceptance: a repository and installed-release scan finds no default or
     fallback execution of serialized Terlan instructions.
 
 ### Roadmap Gate Integrity
 
-Current validated inventory: 181 planned gates, 65 unchecked slices, and 485 Make targets.
+Current validated inventory: 180 planned gates, 65 unchecked slices, and 505 Make targets.
 
 - Gate: `make roadmap-gate-integrity-check`.
 - Purpose: keep the active roadmap synchronized with planned gates, unchecked
@@ -5470,7 +5485,7 @@ make release-security-hardening-check
 make release-support-bundle-check
 make release-performance-baseline-check
 make release-readiness-attestation-check
-make release-post-publish-verification-check
+make release-staged-distribution-verification-check
 make release-notes-accuracy-check
 make release-version-channel-check
 make release-generated-artifacts-check
@@ -5483,7 +5498,6 @@ make release-fault-injection-check
 make native-no-std-target-feasibility-check
 make device-target-planner-check
 make package-resolver-reproducibility-check
-make package-registry-publish-check
 make package-capability-contract-check
 make package-release-test-matrix-check
 make package-api-compatibility-check

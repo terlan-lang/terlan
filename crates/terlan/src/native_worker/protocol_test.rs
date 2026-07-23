@@ -302,6 +302,44 @@ fn worker_rejects_stale_cancellation_without_failing_the_transport() {
     assert_eq!(acknowledgement["accepted"], false);
 }
 
+/// Executes one compiler-intrinsic filesystem operation under its closed capability.
+#[test]
+fn worker_admits_declared_filesystem_operation() {
+    let requests = [
+        CapabilityRequest::Call {
+            version: CAPABILITY_PROTOCOL_VERSION,
+            request_id: 1,
+            owner_id: 7,
+            capability: "filesystem".to_string(),
+            operation: "std.io.file.exists".to_string(),
+            arguments: vec![CapabilityValue::Text("/".to_string())],
+        },
+        CapabilityRequest::Shutdown {
+            version: CAPABILITY_PROTOCOL_VERSION,
+        },
+    ];
+    let mut input = Vec::new();
+    for request in requests {
+        write_json_frame(&mut input, &request, 4_096).expect("request frame");
+    }
+    let mut output = Vec::new();
+    run_capability_worker(
+        test_config(&["--allow", "filesystem", "--credit-limit", "1"]),
+        Cursor::new(input),
+        &mut output,
+    )
+    .expect("filesystem worker run");
+    let responses = String::from_utf8(output).expect("response frames");
+    let replies = responses
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).expect("response JSON"))
+        .collect::<Vec<_>>();
+    assert_eq!(replies[0]["outcome"]["status"], "ok");
+    assert_eq!(replies[0]["outcome"]["value"]["type"], "bool");
+    assert_eq!(replies[0]["outcome"]["value"]["value"], true);
+    assert_eq!(replies[1]["type"], "shutdown_ack");
+}
+
 /// Proves a cancel frame is consumed while adapter execution is still polling.
 #[test]
 fn worker_delivers_cooperative_cancellation_during_adapter_execution() {

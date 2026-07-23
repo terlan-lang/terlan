@@ -3,10 +3,12 @@ use super::{
     VmSupportBundleReplayExpectation, VmSupportBundleReplayRecorder, VmSupportBundleReplayResource,
     VmSupportBundleReplayResourceKind, VmSupportBundleReplaySource,
 };
+use crate::runtime::vm::multicore_replay::{VmMulticoreReplayEvidence, VmMulticoreReplayRecorder};
 use crate::runtime::vm::native_image_diagnostics::{
     VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
     VmNativeImageDiagnosticMetadata,
 };
+use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
 
 /// Verifies replay metadata binds one exact admitted native generation.
 #[test]
@@ -32,6 +34,39 @@ fn support_bundle_replay_metadata_binds_native_generation_once() {
         .native_image
         .as_ref()
         .is_some_and(|image| image.generation_reference_total == 1));
+}
+
+/// Verifies native support JSON embeds bounded scheduler-local evidence.
+#[test]
+fn native_support_bundle_serializes_validated_multicore_evidence() {
+    let native = VmNativeImageDiagnosticMetadata::new(
+        "compiler:build:package:module",
+        [9; 32],
+        vec![3, 7],
+        1,
+        &VmNativeGenerationReferenceSnapshot::new(),
+    )
+    .expect("native diagnostics");
+    let scheduler = VmSchedulerTopology::new(1)
+        .expect("topology")
+        .schedulers()
+        .next()
+        .expect("scheduler");
+    let capture = VmMulticoreReplayRecorder::recording(scheduler, 8)
+        .expect("recorder")
+        .capture()
+        .expect("capture");
+    let evidence =
+        VmMulticoreReplayEvidence::new(12, 1, 8, vec![capture]).expect("multicore evidence");
+    let bundle = super::VmNativeSupportBundle::with_multicore_replay(native, evidence);
+    let json =
+        String::from_utf8(bundle.serialized_bytes().expect("support JSON")).expect("UTF-8 JSON");
+
+    assert!(json.contains("\"multicoreReplay\""));
+    assert!(json.contains("\"runtimeGeneration\": 12"));
+    assert!(json.contains("\"replayable\": true"));
+    assert!(!json.contains("SystemTime"));
+    assert!(!json.contains("Instant"));
 }
 
 /// Verifies deterministic support-bundle replay metadata for VM I/O.

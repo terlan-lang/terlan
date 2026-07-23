@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 
+use smallvec::SmallVec;
+
 use super::aggregates::{decode_typed_slot, encode_typed_slot};
 use super::slots::{packed_slot_layout, packed_slot_offset};
 use super::{
@@ -358,11 +360,8 @@ fn allocate_empty_root(
 ) -> Result<TvmRef<ManagedList>, ManagedMemoryError> {
     let mut payload = vec![0; ROOT_HEADER_BYTES];
     write_root_header(&mut payload, FORM_EMPTY, 0, 0)?;
-    heap.allocate(
-        root_descriptor(descriptor, FORM_EMPTY, &[], vec![])?,
-        &payload,
-        &[],
-    )
+    let managed = root_descriptor(heap, descriptor, FORM_EMPTY, &[], &[])?;
+    heap.allocate(managed, &payload, &[])
 }
 
 /// Allocates a compact inline root with no child node.
@@ -386,16 +385,12 @@ fn allocate_inline_root(
             &mut references,
         )?;
     }
-    heap.allocate(
-        root_descriptor(
-            descriptor,
-            FORM_INLINE,
-            elements,
-            references.iter().map(|item| item.0).collect(),
-        )?,
-        &payload,
-        &references,
-    )
+    let reference_offsets = references
+        .iter()
+        .map(|item| item.0)
+        .collect::<SmallVec<[usize; INLINE_LIMIT]>>();
+    let managed = root_descriptor(heap, descriptor, FORM_INLINE, elements, &reference_offsets)?;
+    heap.allocate(managed, &payload, &references)
 }
 
 /// Allocates one root that owns a tree and optional front cursor.
@@ -411,8 +406,9 @@ fn allocate_tree_root(
     }
     let mut payload = vec![0; TREE_ROOT_BYTES];
     write_root_header(&mut payload, FORM_TREE, length, start)?;
+    let managed = root_descriptor(heap, descriptor, FORM_TREE, &[], &[TREE_REFERENCE_OFFSET])?;
     heap.allocate(
-        root_descriptor(descriptor, FORM_TREE, &[], vec![TREE_REFERENCE_OFFSET])?,
+        managed,
         &payload,
         &[(TREE_REFERENCE_OFFSET, tree.reference.erase())],
     )
@@ -449,19 +445,21 @@ fn allocate_leaf(
             &mut references,
         )?;
     }
-    let reference = heap.allocate(
-        node_descriptor(
-            descriptor.leaf_semantic_id,
-            NODE_LEAF,
-            0,
-            elements.len(),
-            size,
-            &[],
-            references.iter().map(|item| item.0).collect(),
-        )?,
-        &payload,
-        &references,
+    let reference_offsets = references
+        .iter()
+        .map(|item| item.0)
+        .collect::<SmallVec<[usize; BRANCH_FACTOR]>>();
+    let managed = node_descriptor(
+        heap,
+        descriptor.leaf_semantic_id,
+        NODE_LEAF,
+        0,
+        elements.len(),
+        size,
+        &[],
+        &reference_offsets,
     )?;
+    let reference = heap.allocate(managed, &payload, &references)?;
     Ok(NodeSummary {
         reference,
         total: elements.len(),
@@ -520,19 +518,21 @@ fn allocate_internal(
             write_u64(&mut payload, sizes_offset + index * 8, cumulative)?;
         }
     }
-    let reference = heap.allocate(
-        node_descriptor(
-            descriptor.node_semantic_id,
-            kind,
-            child_height + 1,
-            children.len(),
-            size,
-            if regular { &[] } else { children },
-            references.iter().map(|item| item.0).collect(),
-        )?,
-        &payload,
-        &references,
+    let reference_offsets = references
+        .iter()
+        .map(|item| item.0)
+        .collect::<SmallVec<[usize; BRANCH_FACTOR]>>();
+    let managed = node_descriptor(
+        heap,
+        descriptor.node_semantic_id,
+        kind,
+        child_height + 1,
+        children.len(),
+        size,
+        if regular { &[] } else { children },
+        &reference_offsets,
     )?;
+    let reference = heap.allocate(managed, &payload, &references)?;
     Ok(NodeSummary {
         reference,
         total,
@@ -667,10 +667,11 @@ fn read_node(
 
 /// Builds a shape-specific opaque root descriptor.
 fn root_descriptor(
+    heap: &mut ActorHeap,
     descriptor: &ManagedListDescriptor,
     form: u8,
     elements: &[ManagedFieldValue],
-    reference_offsets: Vec<usize>,
+    reference_offsets: &[usize],
 ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
     let size = if form == FORM_INLINE {
         packed_slot_layout(descriptor.element_type, ROOT_HEADER_BYTES, elements.len())?.0
@@ -679,10 +680,10 @@ fn root_descriptor(
     } else {
         ROOT_HEADER_BYTES
     };
-    let mut representation = vec![b'L', form];
+    let mut representation = SmallVec::<[u8; 48]>::from_slice(&[b'L', form]);
     descriptor.element_type.encode(&mut representation);
     representation.extend_from_slice(&(elements.len() as u64).to_le_bytes());
-    ManagedTypeDescriptor::new_specialized(
+    heap.specialized_descriptor(
         descriptor.semantic_id,
         size,
         8,
@@ -690,25 +691,25 @@ fn root_descriptor(
         AllocationClass::Young,
         &representation,
     )
-    .map(Arc::new)
 }
 
 /// Builds a shape-specific private leaf or internal-node descriptor.
 fn node_descriptor(
+    heap: &mut ActorHeap,
     semantic_id: SemanticTypeId,
     kind: u8,
     height: u8,
     count: usize,
     size: usize,
     sizes: &[NodeSummary],
-    reference_offsets: Vec<usize>,
+    reference_offsets: &[usize],
 ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
-    let mut representation = vec![b'N', kind, height];
+    let mut representation = SmallVec::<[u8; 288]>::from_slice(&[b'N', kind, height]);
     representation.extend_from_slice(&(count as u64).to_le_bytes());
     for child in sizes {
         representation.extend_from_slice(&(child.total as u64).to_le_bytes());
     }
-    ManagedTypeDescriptor::new_specialized(
+    heap.specialized_descriptor(
         semantic_id,
         size,
         8,
@@ -716,7 +717,6 @@ fn node_descriptor(
         AllocationClass::Young,
         &representation,
     )
-    .map(Arc::new)
 }
 
 /// Writes one root header.

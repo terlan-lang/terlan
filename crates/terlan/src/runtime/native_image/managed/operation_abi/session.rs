@@ -296,7 +296,7 @@ fn allocate_session(
     let id = heap.allocate_string(id)?;
     let pending = heap.allocate_string(pending_cookie)?;
     let layout = super::unique_layout(layouts, semantic, 2)?;
-    heap.allocate_aggregate(
+    heap.allocate_aggregate_ref(
         layout,
         &[
             ManagedFieldValue::Reference(id.erase()),
@@ -379,7 +379,7 @@ fn allocate_option_string(
         None => ("None", Vec::new()),
     };
     let layout = super::option_layout(layouts, semantic, variant, fields.len())?;
-    heap.allocate_aggregate(layout, &fields)
+    heap.allocate_aggregate_ref(layout, &fields)
         .map(TvmRef::encoded_abi_word)
 }
 

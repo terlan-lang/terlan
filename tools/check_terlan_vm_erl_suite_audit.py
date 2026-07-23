@@ -14,11 +14,12 @@ Inputs:
 - The golden repo `Makefile` for replacement-gate validation.
 
 Outputs:
-- Exit status 0 when every discovered external test-suite file is classified
-  and every replacement gate exists.
+- Exit status 0 when every discovered external test-suite file is classified,
+  every active replacement gate exists, and deleted-file tombstones retain
+  their historical replacement-gate identity.
 - Exit status 1 with stable diagnostics for uncovered files, stale inventory
-  rows, invalid classifications, missing replacement gates, or still-present
-  `remove-non-portable` files.
+  rows, invalid classifications, missing active replacement gates, or
+  still-present `remove-non-portable` files.
 
 Transformation:
 - Treats the external OTP-derived test corpus as migration input only. Any
@@ -429,14 +430,18 @@ def audit(
             findings.append(f"{location}: unknown classification `{row.classification}`")
         if row.classification in REQUIRES_REPLACEMENT_GATE and not row.replacement_gate:
             findings.append(f"{location}: classification `{row.classification}` requires a replacement gate")
-        if row.replacement_gate and row.replacement_gate not in targets:
+        deleted_tombstone = row.pattern in deleted_paths
+        if (
+            row.replacement_gate
+            and row.replacement_gate not in targets
+            and not deleted_tombstone
+        ):
             findings.append(f"{location}: replacement gate `{row.replacement_gate}` is not a Make target")
         if not row.owner:
             findings.append(f"{location}: owner is required")
         if not row.notes:
             findings.append(f"{location}: notes are required")
         matched = files_by_row[row]
-        deleted_tombstone = row.pattern in deleted_paths
         if not matched and not deleted_tombstone:
             findings.append(f"{location}: pattern `{row.pattern}` does not match any external test-suite file")
         if row.classification == "remove-non-portable" and matched:

@@ -6,7 +6,7 @@ use crate::commands::web_route::{is_identifier, route_param_names, validate_rout
 use crate::runtime::vm::http_router::{
     validate_response_middleware_result, VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome,
 };
-use crate::runtime::vm::ReplValue;
+use crate::runtime::vm::{ReplValue, VmHttpCallResult};
 use crate::terlan_native::http as native_http;
 
 use super::handler_cache::AotHandlerRuntime;
@@ -19,6 +19,7 @@ use super::RELOAD_ENDPOINT;
 mod channel_invocation;
 #[cfg(test)]
 mod manifest_lookup;
+pub(super) mod request_materialization;
 mod response_bridge;
 mod route;
 mod sse;
@@ -41,8 +42,9 @@ pub(super) use manifest_lookup::{
     manifest_file_response_for_request, manifest_handler_for_request,
     manifest_static_response_for_request,
 };
+use request_materialization::vm_request_descriptor_owned;
 use response_bridge::validate_response_header;
-pub(super) use response_bridge::{static_response_header_tuples, HandlerResponse};
+pub(super) use response_bridge::{static_response_header_tuples, HandlerBody, HandlerResponse};
 #[cfg(test)]
 use route::select_handler_for_request;
 pub(super) use route::{
@@ -53,6 +55,7 @@ pub(super) use sse::{
     execute_vm_router_sse_admission_with_package_root, sse_router_handler, validate_sse,
     VmSseRouterAdmission,
 };
+#[cfg(test)]
 pub(in crate::commands::serve) use sse_invocation::AotSseCallbackSession;
 pub(super) use types::{
     WebPackageErrorHandler, WebPackageFileResponse, WebPackageHandler, WebPackageSourceSpan,
@@ -62,6 +65,7 @@ pub(super) use websocket::{
     execute_vm_router_websocket_admission_with_package_root, validate_websocket,
     websocket_router_handler, VmWebSocketRouterAdmission,
 };
+#[cfg(test)]
 pub(in crate::commands::serve) use websocket_invocation::AotWebSocketCallbackSession;
 
 /// Handler identity used by local request logs.
@@ -127,15 +131,45 @@ pub(super) fn handler_log_identity(matched: &MatchedWebPackageHandler) -> Handle
 /// - Runs the handler through the same VM argument bridge as normal dynamic
 ///   handlers, then resolves file responses through the package-root boundary.
 #[cfg_attr(not(test), allow(dead_code))]
+#[allow(dead_code)] // Retained for callers without a projected request shape.
 pub(super) fn execute_vm_handler_with_package_root(
     vm: &AotHandlerRuntime,
     matched: &MatchedWebPackageHandler,
-    request: &native_http::Request,
+    request: native_http::Request,
     package_root: &Path,
     output: &mut dyn FnMut(&str),
 ) -> Result<HandlerResponse, String> {
-    let value = execute_vm_handler_value(vm, matched, request, output)?;
-    HandlerResponse::from_vm_response_with_package_root(&value, package_root)
+    let projection = vm.request_projection(
+        &matched.handler.module,
+        &matched.handler.function,
+        matched.handler.arity,
+    );
+    execute_vm_handler_with_package_root_projected(
+        vm,
+        matched,
+        request,
+        projection,
+        package_root,
+        output,
+    )
+}
+
+/// Executes with the exact request projection already selected by the active
+/// generation, avoiding a second export metadata lookup on the hot path.
+pub(super) fn execute_vm_handler_with_package_root_projected(
+    vm: &AotHandlerRuntime,
+    matched: &MatchedWebPackageHandler,
+    request: native_http::Request,
+    projection: native_http::RequestFieldProjection,
+    package_root: &Path,
+    output: &mut dyn FnMut(&str),
+) -> Result<HandlerResponse, String> {
+    match execute_vm_handler_response(vm, matched, request, projection, output)? {
+        VmHttpCallResult::Response(response) => HandlerResponse::from_aot_http_response(response),
+        VmHttpCallResult::Generic(value) => {
+            HandlerResponse::from_owned_vm_response_with_package_root(value, package_root)
+        }
+    }
 }
 
 /// Executes a manifest-selected request through its source router graph.
@@ -450,14 +484,25 @@ fn vm_route_method(method: &str) -> Result<VmHttpRouteMethod, String> {
         .ok_or_else(|| format!("error[serve_router]: unsupported router method `{method}`"))
 }
 
-/// Executes one VM handler and returns the raw VM value.
-fn execute_vm_handler_value(
+/// Executes one VM handler with direct managed-Response extraction when possible.
+fn execute_vm_handler_response(
     vm: &AotHandlerRuntime,
     matched: &MatchedWebPackageHandler,
-    request: &native_http::Request,
+    request: native_http::Request,
+    projection: native_http::RequestFieldProjection,
     output: &mut dyn FnMut(&str),
-) -> Result<ReplValue, String> {
-    let mut args = vec![vm_request_descriptor(request, &matched.params)];
+) -> Result<VmHttpCallResult, String> {
+    if matched.handler.arity == 1 {
+        return vm.execute_projected_http_request(
+            &matched.handler.module,
+            &matched.handler.function,
+            request.into_parts(),
+            projection,
+            output,
+        );
+    }
+    let request = vm_request_descriptor_owned(request.into_parts(), projection);
+    let mut args = vec![request];
     if matched.handler.arity > 1 {
         args.extend(
             matched
@@ -475,7 +520,7 @@ fn execute_vm_handler_value(
             args.len()
         ));
     }
-    vm.execute_immediate_native(
+    vm.execute_immediate_http_response(
         &matched.handler.module,
         &matched.handler.function,
         args,
@@ -483,7 +528,7 @@ fn execute_vm_handler_value(
     )
 }
 
-/// Builds a compact VM `std.http.Request` descriptor.
+/// Builds a borrowed request descriptor for router and long-lived channels.
 fn vm_request_descriptor(request: &native_http::Request, params: &[(String, String)]) -> ReplValue {
     let cookies = string_map(request.cookie_pairs());
     ReplValue::Tuple(vec![

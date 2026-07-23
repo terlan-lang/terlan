@@ -292,6 +292,26 @@ fn allocation_enforces_layout_reference_map_and_hard_limit() {
 }
 
 #[test]
+fn direct_heap_initialization_rolls_back_failed_payloads() {
+    let owner = actor(16);
+    let mut heap = ActorHeap::new(owner, limits()).expect("actor heap");
+    heap.allocate::<u64>(descriptor("example.Keep", 8, vec![]), &[7; 8], &[])
+        .expect("retained object");
+    let bytes_before = heap.allocated_bytes();
+    let objects_before = heap.object_count();
+
+    let result =
+        heap.allocate_initialized::<u64>(descriptor("example.Direct", 8, vec![]), &[], |payload| {
+            payload.copy_from_slice(&[9; 8]);
+            Err(ManagedMemoryError::CorruptedCollection)
+        });
+
+    assert_eq!(result, Err(ManagedMemoryError::CorruptedCollection));
+    assert_eq!(heap.allocated_bytes(), bytes_before);
+    assert_eq!(heap.object_count(), objects_before);
+}
+
+#[test]
 fn precise_stack_maps_reject_missing_duplicate_derived_and_borrowed_roots() {
     let record = StackMapRecord::new(
         17,

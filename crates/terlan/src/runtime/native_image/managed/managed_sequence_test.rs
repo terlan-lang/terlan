@@ -26,6 +26,24 @@ fn strings_and_bytes_preserve_empty_unicode_and_nul_payloads() {
 }
 
 #[test]
+fn equal_sequence_shapes_reuse_immutable_descriptors_without_crossing_types() {
+    let mut heap = heap();
+    let first = heap.allocate_string("first").expect("first string");
+    let first_descriptor = heap.descriptor(first).expect("first descriptor") as *const _;
+    let second = heap.allocate_string("other").expect("equal-size string");
+    let bytes = heap.allocate_bytes(b"bytes").expect("equal-size bytes");
+
+    assert_eq!(
+        first_descriptor,
+        heap.descriptor(second).expect("second descriptor") as *const _
+    );
+    assert_ne!(
+        first_descriptor,
+        heap.descriptor(bytes).expect("bytes descriptor") as *const _
+    );
+}
+
+#[test]
 fn binary_slices_enforce_bounds_and_bit_order() {
     let mut heap = heap();
     let storage = heap

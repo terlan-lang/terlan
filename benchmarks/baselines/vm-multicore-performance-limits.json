@@ -1,0 +1,66 @@
+{
+  "schema": "terlan-vm-multicore-performance-limits-v1",
+  "dedicated_runner_label": "terlan-linux-x86_64-multicore-v1",
+  "required_target_os": "linux",
+  "required_target_arch": "x86_64",
+  "minimum_effective_cpus": 2,
+  "required_sample_count": 31,
+  "required_iterations_per_actor": 200000,
+  "minimum_two_scheduler_median_speedup": 1.5,
+  "minimum_two_scheduler_confidence_lower_bound": 1.25,
+  "reference_one_scheduler_actors_per_second": 350,
+  "minimum_one_scheduler_throughput_ratio": 0.8,
+  "reference_one_scheduler_p99_ns": 3500000,
+  "maximum_one_scheduler_p99_ratio": 2.0,
+  "mixed_tail_budgets": [
+    {
+      "metric": "scheduler_wait",
+      "reference_p95_ns": 16000000,
+      "maximum_p95_ratio": 2.0,
+      "reference_p99_ns": 19000000,
+      "maximum_p99_ratio": 2.0
+    },
+    {
+      "metric": "mailbox_delivery",
+      "reference_p95_ns": 1500,
+      "maximum_p95_ratio": 2.0,
+      "reference_p99_ns": 1500,
+      "maximum_p99_ratio": 2.0
+    },
+    {
+      "metric": "timer_delay",
+      "reference_p95_ns": 2000,
+      "maximum_p95_ratio": 2.0,
+      "reference_p99_ns": 2000,
+      "maximum_p99_ratio": 2.0
+    },
+    {
+      "metric": "http_latency",
+      "reference_p95_ns": 14000000,
+      "maximum_p95_ratio": 2.0,
+      "reference_p99_ns": 17000000,
+      "maximum_p99_ratio": 2.0
+    },
+    {
+      "metric": "failed_steal_backoff",
+      "reference_p95_ns": 25,
+      "maximum_p95_ratio": 2.0,
+      "reference_p99_ns": 25,
+      "maximum_p99_ratio": 2.0
+    },
+    {
+      "metric": "allocation_pause",
+      "reference_p95_ns": 50,
+      "maximum_p95_ratio": 2.0,
+      "reference_p99_ns": 50,
+      "maximum_p99_ratio": 2.0
+    },
+    {
+      "metric": "collection_pause",
+      "reference_p95_ns": 12000,
+      "maximum_p95_ratio": 2.0,
+      "reference_p99_ns": 12000,
+      "maximum_p99_ratio": 2.0
+    }
+  ]
+}

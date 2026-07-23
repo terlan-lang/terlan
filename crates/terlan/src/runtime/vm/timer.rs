@@ -9,6 +9,12 @@ use super::process::{VmProcessId, VmProcessState, VmProcessTable};
 use super::scheduler::VmScheduler;
 use super::ReplValue;
 
+#[path = "timer/transfer.rs"]
+mod transfer;
+
+#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
+pub(crate) use transfer::{VmTimerImportFailure, VmTimerTransfer};
+
 const TIMER_MAILBOX_DELIVERY_REDUCTIONS: u64 = 1;
 
 /// VM-owned timer identifier.
@@ -288,9 +294,8 @@ impl VmTimerTable {
             .checked_add(timeout_ticks)
             .ok_or_else(|| format!("timer deadline overflow for process {}", owner.as_u64()))?;
         processes
-            .get_mut(owner)
-            .expect("owner process was checked before blocking receive timeout")
-            .block();
+            .with_process_control_mutator(owner, |process| process.block())
+            .expect("owner process was checked before blocking receive timeout");
         Ok(self.insert_timer(owner, deadline_tick, VmTimerKind::ReceiveTimeout, None))
     }
 
@@ -779,3 +784,7 @@ mod timer_load_parity_test;
 #[cfg(test)]
 #[path = "long_timer_parity_test.rs"]
 mod long_timer_parity_test;
+
+#[cfg(test)]
+#[path = "timer_transfer_test.rs"]
+mod timer_transfer_test;

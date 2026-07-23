@@ -108,9 +108,8 @@ impl VmNativeBoundaryDeadlineQueue {
             return Err(error);
         }
         processes
-            .get_mut(owner)
-            .expect("timer start proved NativeBoundary owner exists")
-            .block();
+            .with_process_control_mutator(owner, |process| process.block())
+            .expect("timer start proved NativeBoundary owner exists");
         let pending = VmPendingNativeBoundaryRequest { owner, request_id };
         self.pending.insert(timer_id, pending);
         self.pending_by_owner.insert(owner, timer_id);

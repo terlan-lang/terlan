@@ -2,11 +2,8 @@
 
 use std::env;
 use std::fs;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, ExitCode, Stdio};
-use std::thread;
+use std::process::ExitCode;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use super::hardware::{sha256, HardwareFingerprint};
@@ -15,8 +12,16 @@ use serde::{Deserialize, Serialize};
 #[path = "http_aot_performance/deltas.rs"]
 mod deltas;
 
+#[path = "http_aot_performance/harness.rs"]
+mod harness;
+
 #[path = "http_aot_performance/policy.rs"]
 mod policy;
+
+use harness::{
+    create_workspace, measure_requests, reserve_port, resident_bytes, spawn_server,
+    wait_for_generation, write_handler_source, write_package, ServerGuard,
+};
 
 /// Benchmark command that records one executable HTTP lane.
 pub(crate) const COMMAND: &str = "http-aot-performance";
@@ -25,8 +30,8 @@ pub(crate) const COMPARE_COMMAND: &str = "http-aot-performance-compare";
 /// Pure report-contract self-test command used when socket benchmarks are unavailable.
 pub(crate) const SELF_TEST_COMMAND: &str = "http-aot-performance-self-test";
 
-const REPORT_SCHEMA: &str = "terlan-http-aot-performance-v1";
-const COMPARISON_SCHEMA: &str = "terlan-http-aot-performance-comparison-v1";
+const REPORT_SCHEMA: &str = "terlan-http-aot-performance-v2";
+const COMPARISON_SCHEMA: &str = "terlan-http-aot-performance-comparison-v2";
 const DEFAULT_NATIVE_OUTPUT: &str = "target/quality/http-native-aot-performance.json";
 const DEFAULT_CHECKED_COREIR_OUTPUT: &str =
     "../benchmarks/results/http-checked-coreir-performance.json";
@@ -70,6 +75,10 @@ impl HttpExecutionLane {
 /// Fixed workload dimensions shared by both executable lanes.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct HttpPerformanceWorkload {
+    warmup_requests: usize,
+    measurement_rounds: usize,
+    #[serde(alias = "connection_workers")]
+    readiness_reactors: usize,
     sequential_requests: usize,
     concurrency: usize,
     requests_per_worker: usize,
@@ -81,6 +90,22 @@ impl HttpPerformanceWorkload {
     /// Reads benchmark workload controls while retaining non-zero defaults.
     fn from_env() -> Self {
         Self {
+            // Warm the compiler-produced image, dynamic linker, allocator,
+            // TCP path, and CPU before any measured request enters a report.
+            warmup_requests: read_positive_env("TERLAN_BENCH_HTTP_AOT_WARMUP", 250),
+            // A median of independent rounds rejects one-off scheduler and
+            // frequency-state noise while retaining every raw round.
+            measurement_rounds: read_positive_env("TERLAN_BENCH_HTTP_AOT_ROUNDS", 5),
+            // Keep socket-readiness ownership explicit and reproducible instead
+            // of inheriting an implicit host topology in benchmark subprocesses.
+            readiness_reactors: read_positive_env(
+                "TERLAN_BENCH_HTTP_AOT_REACTORS",
+                std::thread::available_parallelism()
+                    .map(usize::from)
+                    .unwrap_or(1)
+                    .clamp(1, 32),
+            )
+            .min(32),
             // Keep p99 distinct from the single maximum request so scheduler
             // noise cannot decide the regression gate by itself.
             sequential_requests: read_positive_env("TERLAN_BENCH_HTTP_AOT_ITERATIONS", 500),
@@ -109,6 +134,15 @@ struct HttpTiming {
     p95_ns: u128,
     p99_ns: u128,
     max_ns: u128,
+}
+
+/// Auditable raw rounds behind each median timing selected for policy checks.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct HttpMeasurementEvidence {
+    aggregation: String,
+    sequential_rounds: Vec<HttpTiming>,
+    pressure_rounds: Vec<HttpTiming>,
+    longevity_rounds: Vec<HttpTiming>,
 }
 
 impl HttpTiming {
@@ -183,6 +217,7 @@ struct HttpPerformanceReport {
     compiler_binary_sha256: String,
     hardware: HardwareFingerprint,
     workload: HttpPerformanceWorkload,
+    measurement: HttpMeasurementEvidence,
     sequential: HttpTiming,
     allocation: HttpAllocationEvidence,
     pressure: HttpPressureEvidence,
@@ -369,11 +404,20 @@ fn fixture_report(lane: HttpExecutionLane) -> HttpPerformanceReport {
             sha256: "hardware".to_string(),
         },
         workload: HttpPerformanceWorkload {
+            warmup_requests: 1,
+            measurement_rounds: 1,
+            readiness_reactors: 2,
             sequential_requests: 2,
             concurrency: 2,
             requests_per_worker: 1,
             longevity_requests: 2,
             payload_bytes: 8,
+        },
+        measurement: HttpMeasurementEvidence {
+            aggregation: "median-throughput-round".to_string(),
+            sequential_rounds: vec![timing.clone()],
+            pressure_rounds: vec![timing.clone()],
+            longevity_rounds: vec![timing.clone()],
         },
         sequential: timing.clone(),
         allocation: HttpAllocationEvidence {
@@ -434,26 +478,54 @@ fn run_lane(
     let workspace = create_workspace()?;
     let web_root = write_package(&workspace, "generation-one", workload.payload_bytes)?;
     let port = reserve_port()?;
-    let mut server = ServerGuard::new(spawn_server(compiler, &web_root, port)?);
+    let mut server = ServerGuard::new(spawn_server(
+        compiler,
+        &web_root,
+        port,
+        workload.readiness_reactors,
+    )?);
     wait_for_generation(port, "generation-one", workload.payload_bytes)?;
 
+    // Readiness proves correctness; a separate sustained warm-up stabilizes
+    // all runtime layers and is deliberately excluded from every timing.
+    measure_requests(port, 1, workload.warmup_requests, workload.payload_bytes)?;
+    // Warm every readiness owner and the host frequency state before any
+    // sequential or pressure policy sample is selected.
+    let pressure_warmup_per_worker = workload
+        .warmup_requests
+        .div_ceil(workload.concurrency)
+        .max(1);
+    measure_requests(
+        port,
+        workload.concurrency,
+        pressure_warmup_per_worker,
+        workload.payload_bytes,
+    )?;
+
     let memory_before = resident_bytes(server.id());
-    let sequential = measure_requests(
+    let (sequential, sequential_rounds) = measure_request_rounds(
         port,
         1,
         workload.sequential_requests,
         workload.payload_bytes,
+        workload.measurement_rounds,
     )?;
-    let pressure_timing = measure_requests(
+    let (pressure_timing, pressure_rounds) = measure_request_rounds(
         port,
         workload.concurrency,
         workload.requests_per_worker,
         workload.payload_bytes,
+        workload.measurement_rounds,
     )?;
     let pressure_attempted = workload.concurrency * workload.requests_per_worker;
     let memory_after_pressure = resident_bytes(server.id());
-    let longevity_timing =
-        measure_requests(port, 1, workload.longevity_requests, workload.payload_bytes)?;
+    let (longevity_timing, longevity_rounds) = measure_request_rounds(
+        port,
+        1,
+        workload.longevity_requests,
+        workload.payload_bytes,
+        workload.measurement_rounds,
+    )?;
     let memory_after_longevity = resident_bytes(server.id());
 
     let generation_start = Instant::now();
@@ -475,6 +547,12 @@ fn run_lane(
         compiler_binary_sha256: sha256_file(compiler)?,
         hardware: HardwareFingerprint::current(),
         workload: workload.clone(),
+        measurement: HttpMeasurementEvidence {
+            aggregation: "median-throughput-round".to_string(),
+            sequential_rounds,
+            pressure_rounds,
+            longevity_rounds,
+        },
         sequential,
         allocation: HttpAllocationEvidence {
             measurement: "server_process_resident_set_bytes".to_string(),
@@ -597,7 +675,7 @@ fn validate_report(
     expected_lane: HttpExecutionLane,
 ) -> Result<(), String> {
     if report.schema != REPORT_SCHEMA || report.status != "completed" {
-        return Err("HTTP benchmark report is not a completed v1 report".to_string());
+        return Err("HTTP benchmark report is not a completed v2 report".to_string());
     }
     if report.lane != expected_lane {
         return Err(format!("unexpected HTTP benchmark lane: {:?}", report.lane));
@@ -619,6 +697,23 @@ fn validate_report(
             ));
         }
     }
+    if report.measurement.aggregation != "median-throughput-round"
+        || report.workload.measurement_rounds < 1
+        || report.measurement.sequential_rounds.len() != report.workload.measurement_rounds
+        || report.measurement.pressure_rounds.len() != report.workload.measurement_rounds
+        || report.measurement.longevity_rounds.len() != report.workload.measurement_rounds
+        || median_throughput_round(&report.measurement.sequential_rounds)?
+            .throughput_requests_per_second
+            != report.sequential.throughput_requests_per_second
+        || median_throughput_round(&report.measurement.pressure_rounds)?
+            .throughput_requests_per_second
+            != report.pressure.timing.throughput_requests_per_second
+        || median_throughput_round(&report.measurement.longevity_rounds)?
+            .throughput_requests_per_second
+            != report.longevity.timing.throughput_requests_per_second
+    {
+        return Err("HTTP benchmark repeated-round evidence is incomplete".to_string());
+    }
     if report.pressure.completed_requests != report.pressure.attempted_requests
         || report.pressure.failed_requests != 0
         || report.longevity.completed_requests != report.longevity.attempted_requests
@@ -632,249 +727,34 @@ fn validate_report(
     Ok(())
 }
 
-/// Measures individual request latency and aggregate wall-clock throughput.
-fn measure_requests(
+/// Runs independent rounds and selects the median-throughput round intact.
+fn measure_request_rounds(
     port: u16,
     concurrency: usize,
     requests_per_worker: usize,
     payload_bytes: usize,
-) -> Result<HttpTiming, String> {
-    let started = Instant::now();
-    let mut workers = Vec::with_capacity(concurrency);
-    for _ in 0..concurrency {
-        workers.push(thread::spawn(move || {
-            let mut durations = Vec::with_capacity(requests_per_worker);
-            for _ in 0..requests_per_worker {
-                let request_started = Instant::now();
-                let body = request(port, payload_bytes)?;
-                if !body.starts_with("generation-") {
-                    return Err(format!("unexpected benchmark response body `{body}`"));
-                }
-                durations.push(request_started.elapsed());
-            }
-            Ok::<_, String>(durations)
-        }));
+    rounds: usize,
+) -> Result<(HttpTiming, Vec<HttpTiming>), String> {
+    let mut timings = Vec::with_capacity(rounds);
+    for _ in 0..rounds {
+        timings.push(measure_requests(
+            port,
+            concurrency,
+            requests_per_worker,
+            payload_bytes,
+        )?);
     }
-    let mut durations = Vec::with_capacity(concurrency * requests_per_worker);
-    for worker in workers {
-        durations.extend(
-            worker
-                .join()
-                .map_err(|_| "HTTP benchmark worker panicked".to_string())??,
-        );
+    Ok((median_throughput_round(&timings)?.clone(), timings))
+}
+
+/// Selects one coherent observed round instead of synthesizing percentiles.
+fn median_throughput_round(rounds: &[HttpTiming]) -> Result<&HttpTiming, String> {
+    if rounds.is_empty() {
+        return Err("HTTP benchmark requires at least one measurement round".to_string());
     }
-    HttpTiming::from_durations(&durations, started.elapsed())
-}
-
-/// Sends one complete loopback request and returns its validated response body.
-fn request(port: u16, payload_bytes: usize) -> Result<String, String> {
-    let payload = "x".repeat(payload_bytes);
-    let mut stream = TcpStream::connect(("127.0.0.1", port))
-        .map_err(|error| format!("HTTP benchmark connect failed: {error}"))?;
-    stream
-        .set_read_timeout(Some(Duration::from_secs(5)))
-        .map_err(|error| format!("HTTP benchmark read timeout setup failed: {error}"))?;
-    write!(
-        stream,
-        "POST /api/bench HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-        payload.len(),
-        payload
-    )
-    .map_err(|error| format!("HTTP benchmark request write failed: {error}"))?;
-    let mut bytes = Vec::new();
-    stream
-        .read_to_end(&mut bytes)
-        .map_err(|error| format!("HTTP benchmark response read failed: {error}"))?;
-    let response = String::from_utf8(bytes)
-        .map_err(|error| format!("HTTP benchmark response was not UTF-8: {error}"))?;
-    let (head, body) = response
-        .split_once("\r\n\r\n")
-        .ok_or_else(|| "HTTP benchmark response lacked a header terminator".to_string())?;
-    if !head.lines().next().unwrap_or_default().contains(" 200 ") {
-        return Err(format!("HTTP benchmark returned non-200 response `{head}`"));
-    }
-    Ok(body.to_string())
-}
-
-/// Waits for one named source generation to become visible through HTTP.
-fn wait_for_generation(port: u16, generation: &str, payload_bytes: usize) -> Result<(), String> {
-    let deadline = Instant::now() + Duration::from_secs(30);
-    let mut last = String::new();
-    while Instant::now() < deadline {
-        match request(port, payload_bytes) {
-            Ok(body) if body == format!("{generation}:{}", "x".repeat(payload_bytes)) => {
-                return Ok(())
-            }
-            Ok(body) => last = body,
-            Err(error) => last = error,
-        }
-        thread::sleep(Duration::from_millis(25));
-    }
-    Err(format!(
-        "HTTP benchmark generation `{generation}` did not become ready; last result `{last}`"
-    ))
-}
-
-/// Creates an isolated benchmark package and returns its web root.
-fn write_package(
-    workspace: &Path,
-    generation: &str,
-    _payload_bytes: usize,
-) -> Result<PathBuf, String> {
-    let web_root = workspace.join("_build/web");
-    fs::create_dir_all(web_root.join("assets/js/modules"))
-        .map_err(|error| format!("failed to create HTTP benchmark web root: {error}"))?;
-    fs::create_dir_all(workspace.join("src/app"))
-        .map_err(|error| format!("failed to create HTTP benchmark source root: {error}"))?;
-    fs::write(
-        workspace.join("terlan.toml"),
-        "[package]\nname = \"http_aot_performance\"\nversion = \"0.0.7\"\n",
-    )
-    .map_err(|error| format!("failed to write HTTP benchmark manifest: {error}"))?;
-    fs::write(web_root.join("index.html"), "<!doctype html>\n")
-        .map_err(|error| format!("failed to write HTTP benchmark index: {error}"))?;
-    fs::write(
-        web_root.join("assets/js/modules/app.js"),
-        "export const benchmark = true;\n",
-    )
-    .map_err(|error| format!("failed to write HTTP benchmark asset: {error}"))?;
-    write_handler_source(workspace, generation)?;
-    fs::write(
-        web_root.join("manifest.json"),
-        r#"{
-  "schema": "terlan-web-build-v1",
-  "target_profile": "js.browser",
-  "source_js_manifest": "../js/manifest.json",
-  "index": "index.html",
-  "handlers": [{
-    "method": "POST",
-    "route": "/api/bench",
-    "module": "app.Api",
-    "function": "handle",
-    "arity": 1,
-    "source": {"path": "src/app/Api.terl", "line": 7, "column": 5}
-  }],
-  "assets": [{
-    "module": "app",
-    "kind": "javascript-module",
-    "source_relative_path": "modules/app.js",
-    "web_relative_path": "assets/js/modules/app.js",
-    "fingerprint": 1
-  }]
-}
-"#,
-    )
-    .map_err(|error| format!("failed to write HTTP benchmark web manifest: {error}"))?;
-    Ok(web_root)
-}
-
-/// Writes the source handler for one distinguishable generation.
-fn write_handler_source(workspace: &Path, generation: &str) -> Result<(), String> {
-    fs::write(
-        workspace.join("src/app/Api.terl"),
-        format!(
-            "module app.Api.\n\nimport std.http.Response.\nimport type std.http.Request.{{Request}}.\nimport type std.http.Response.{{Response}}.\n\npub handle(request: Request): Response ->\n    Response.text(\"{generation}:\" + request.body_text()).\n"
-        ),
-    )
-    .map_err(|error| format!("failed to write HTTP benchmark handler source: {error}"))
-}
-
-/// Spawns `terlc serve` with fast source generation polling.
-fn spawn_server(compiler: &Path, web_root: &Path, port: u16) -> Result<Child, String> {
-    let web_root = web_root.to_string_lossy().to_string();
-    let port = port.to_string();
-    Command::new(compiler)
-        .args([
-            "serve",
-            &web_root,
-            "--host",
-            "127.0.0.1",
-            "--port",
-            &port,
-            "--poll-ms",
-            "25",
-        ])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|error| format!("failed to start HTTP benchmark server: {error}"))
-}
-
-/// Drop guard that always terminates and reaps a benchmark server.
-struct ServerGuard {
-    child: Child,
-}
-
-impl ServerGuard {
-    /// Wraps a newly spawned benchmark server.
-    fn new(child: Child) -> Self {
-        Self { child }
-    }
-
-    /// Returns the operating-system process identifier.
-    fn id(&self) -> u32 {
-        self.child.id()
-    }
-
-    /// Terminates the server before normal report serialization.
-    fn stop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
-}
-
-impl Drop for ServerGuard {
-    /// Ensures failed benchmark paths do not retain a serving process.
-    fn drop(&mut self) {
-        self.stop();
-    }
-}
-
-/// Reserves a currently unused loopback port.
-fn reserve_port() -> Result<u16, String> {
-    let listener = TcpListener::bind(("127.0.0.1", 0))
-        .map_err(|error| format!("failed to reserve HTTP benchmark port: {error}"))?;
-    listener
-        .local_addr()
-        .map(|address| address.port())
-        .map_err(|error| format!("failed to inspect HTTP benchmark port: {error}"))
-}
-
-/// Creates a unique temporary benchmark workspace.
-fn create_workspace() -> Result<PathBuf, String> {
-    let path = env::temp_dir().join(format!(
-        "terlan-http-aot-performance-{}-{}",
-        std::process::id(),
-        unix_timestamp_nanos()
-    ));
-    fs::create_dir_all(&path)
-        .map_err(|error| format!("failed to create HTTP benchmark workspace: {error}"))?;
-    Ok(path)
-}
-
-/// Reads resident-set bytes for a child process through procfs or `ps`.
-fn resident_bytes(pid: u32) -> Option<u64> {
-    let procfs_kilobytes = fs::read_to_string(format!("/proc/{pid}/status"))
-        .ok()
-        .and_then(|status| {
-            status
-                .lines()
-                .find_map(|line| line.strip_prefix("VmRSS:"))?
-                .split_whitespace()
-                .next()?
-                .parse::<u64>()
-                .ok()
-        });
-    let kilobytes = procfs_kilobytes.or_else(|| {
-        Command::new("ps")
-            .args(["-o", "rss=", "-p", &pid.to_string()])
-            .output()
-            .ok()
-            .filter(|output| output.status.success())
-            .and_then(|output| String::from_utf8(output.stdout).ok())
-            .and_then(|value| value.trim().parse::<u64>().ok())
-    })?;
-    kilobytes.checked_mul(1024)
+    let mut ordered = rounds.iter().collect::<Vec<_>>();
+    ordered.sort_by_key(|timing| timing.throughput_requests_per_second);
+    Ok(ordered[ordered.len() / 2])
 }
 
 /// Computes the digest of one compiler or report file.

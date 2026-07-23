@@ -384,10 +384,11 @@ impl VmHttpSoakRuntime {
             .tcp
             .send_with_wakeups(client, b"GET /static HTTP/1.1\r\n".to_vec())?;
         self.counters.handler_wakeups += wakeups.len();
+        if self.processes.get(process).is_none() {
+            return Err("VM HTTP slow-client handler disappeared".to_string());
+        }
         self.processes
-            .get_mut(process)
-            .ok_or_else(|| "VM HTTP slow-client handler disappeared".to_string())?
-            .wake();
+            .with_process_control_mutator(process, |actor| actor.wake())?;
         let partial_tick = self.next_tick();
         let partial = self.server.poll_keep_alive_with_deadlines(
             &mut self.processes,
@@ -404,10 +405,11 @@ impl VmHttpSoakRuntime {
                 .into_bytes(),
         )?;
         self.counters.handler_wakeups += wakeups.len();
+        if self.processes.get(process).is_none() {
+            return Err("VM HTTP slow-client handler disappeared".to_string());
+        }
         self.processes
-            .get_mut(process)
-            .ok_or_else(|| "VM HTTP slow-client handler disappeared".to_string())?
-            .wake();
+            .with_process_control_mutator(process, |actor| actor.wake())?;
         let complete_tick = self.next_tick();
         let complete = self.server.poll_keep_alive_with_deadlines(
             &mut self.processes,

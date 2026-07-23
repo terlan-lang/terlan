@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 
+use smallvec::SmallVec;
+
 use super::{
     ActorHeap, AllocationClass, AtomIndex, ManagedMemoryError, ManagedTypeDescriptor,
     SemanticTypeId, TvmRef,
@@ -57,16 +59,16 @@ impl ManagedFieldType {
     }
 
     /// Appends this field category to canonical representation bytes.
-    pub(super) fn encode(self, bytes: &mut Vec<u8>) {
+    pub(super) fn encode(self, bytes: &mut impl Extend<u8>) {
         match self {
-            Self::Unit => bytes.push(0),
-            Self::Bool => bytes.push(1),
-            Self::Int => bytes.push(2),
-            Self::Float => bytes.push(3),
-            Self::Atom => bytes.push(4),
+            Self::Unit => bytes.extend([0]),
+            Self::Bool => bytes.extend([1]),
+            Self::Int => bytes.extend([2]),
+            Self::Float => bytes.extend([3]),
+            Self::Atom => bytes.extend([4]),
             Self::Reference(semantic) => {
-                bytes.push(5);
-                bytes.extend_from_slice(&semantic.bytes());
+                bytes.extend([5]);
+                bytes.extend(semantic.bytes());
             }
         }
     }
@@ -357,25 +359,37 @@ impl ActorHeap {
         descriptor: Arc<ManagedAggregateDescriptor>,
         values: &[ManagedFieldValue],
     ) -> Result<TvmRef<ManagedAggregate>, ManagedMemoryError> {
+        self.allocate_aggregate_ref(&descriptor, values)
+    }
+
+    /// Allocates through a borrowed image descriptor localized by this heap.
+    pub(crate) fn allocate_aggregate_ref(
+        &mut self,
+        descriptor: &ManagedAggregateDescriptor,
+        values: &[ManagedFieldValue],
+    ) -> Result<TvmRef<ManagedAggregate>, ManagedMemoryError> {
         if values.len() != descriptor.fields.len() {
             return Err(ManagedMemoryError::InvalidAggregateArity);
         }
-        let mut payload = vec![0_u8; descriptor.managed.size()];
-        if let Some(discriminant) = descriptor.discriminant {
-            payload[..VARIANT_TAG_BYTES].copy_from_slice(&discriminant.to_le_bytes());
-        }
-        let mut references = Vec::new();
+        let mut references = SmallVec::<[(usize, TvmRef<()>); 16]>::new();
         for (field, value) in descriptor.fields.iter().zip(values) {
-            encode_typed_slot(
+            validate_typed_slot(
                 self,
-                &mut payload,
                 field.offset,
                 field.field_type,
                 *value,
                 &mut references,
             )?;
         }
-        self.allocate(descriptor.managed.clone(), &payload, &references)
+        self.allocate_shared_aggregate(&descriptor.managed, &references, |payload| {
+            if let Some(discriminant) = descriptor.discriminant {
+                payload[..VARIANT_TAG_BYTES].copy_from_slice(&discriminant.to_le_bytes());
+            }
+            for (field, value) in descriptor.fields.iter().zip(values) {
+                encode_validated_typed_slot(payload, field.offset, field.field_type, *value)?;
+            }
+            Ok(())
+        })
     }
 
     /// Opens a typed immutable view after descriptor and discriminant validation.
@@ -409,9 +423,36 @@ pub(super) fn encode_typed_slot(
     offset: usize,
     field_type: ManagedFieldType,
     value: ManagedFieldValue,
-    references: &mut Vec<(usize, TvmRef<()>)>,
+    references: &mut impl Extend<(usize, TvmRef<()>)>,
+) -> Result<(), ManagedMemoryError> {
+    validate_typed_slot(heap, offset, field_type, value, references)?;
+    encode_validated_typed_slot(payload, offset, field_type, value)
+}
+
+/// Validates one typed slot and records its precise reference, when present.
+pub(super) fn validate_typed_slot(
+    heap: &ActorHeap,
+    offset: usize,
+    field_type: ManagedFieldType,
+    value: ManagedFieldValue,
+    references: &mut impl Extend<(usize, TvmRef<()>)>,
 ) -> Result<(), ManagedMemoryError> {
     validate_typed_value(heap, field_type, value)?;
+    if let (ManagedFieldType::Reference(_), ManagedFieldValue::Reference(value)) =
+        (field_type, value)
+    {
+        references.extend(std::iter::once((offset, value)));
+    }
+    Ok(())
+}
+
+/// Writes one already-validated scalar slot; references are patched by the heap.
+pub(super) fn encode_validated_typed_slot(
+    payload: &mut [u8],
+    offset: usize,
+    field_type: ManagedFieldType,
+    value: ManagedFieldValue,
+) -> Result<(), ManagedMemoryError> {
     match (field_type, value) {
         (ManagedFieldType::Unit, ManagedFieldValue::Unit) => Ok(()),
         (ManagedFieldType::Bool, ManagedFieldValue::Bool(value)) => {
@@ -426,10 +467,7 @@ pub(super) fn encode_typed_slot(
         (ManagedFieldType::Atom, ManagedFieldValue::Atom(value)) => {
             write(payload, offset, &value.get().to_le_bytes())
         }
-        (ManagedFieldType::Reference(_), ManagedFieldValue::Reference(value)) => {
-            references.push((offset, value));
-            Ok(())
-        }
+        (ManagedFieldType::Reference(_), ManagedFieldValue::Reference(_)) => Ok(()),
         _ => Err(ManagedMemoryError::InvalidAggregateField),
     }
 }

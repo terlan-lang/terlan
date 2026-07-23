@@ -108,7 +108,7 @@ impl ManagedLayoutRegistry {
         heap: &ActorHeap,
         semantic: SemanticTypeId,
         reference: TvmRef<()>,
-    ) -> Result<Arc<ManagedAggregateDescriptor>, String> {
+    ) -> Result<&ManagedAggregateDescriptor, String> {
         let actual = heap
             .descriptor(reference)
             .map_err(|error| format!("error[managed_layout_registry.reference]: {error}"))?;
@@ -121,7 +121,7 @@ impl ManagedLayoutRegistry {
         self.layouts(semantic)
             .iter()
             .find(|layout| layout.managed().fingerprint() == actual.fingerprint())
-            .cloned()
+            .map(Arc::as_ref)
             .ok_or_else(|| {
                 "error[managed_layout_registry.layout]: live aggregate has no admitted layout"
                     .to_string()
