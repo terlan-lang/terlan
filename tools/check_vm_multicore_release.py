@@ -57,6 +57,16 @@ WORKFLOW_PRODUCERS = (
     "run: make vm-multicore-thread-sanitizer-check",
     "run: make vm-multicore-performance-check",
 )
+WORKFLOW_STATUS_CONTEXT = 'context: "release-validation/run"'
+WORKFLOW_STATUS_REQUIREMENTS = (
+    "statuses: write",
+    "release-validation-identity:",
+    "release-validation-result:",
+    "const targetUrl =",
+    "/actions/runs/${context.runId}",
+    "needs: validate",
+    "if: always()",
+)
 
 
 def make_list_variable(makefile: str, name: str) -> tuple[str, ...]:
@@ -100,6 +110,15 @@ def validate_makefile(makefile: str) -> None:
 def validate_workflow(workflow: str) -> None:
     """Require distributed producers and one final canonical consumer."""
 
+    for requirement in WORKFLOW_STATUS_REQUIREMENTS:
+        if requirement not in workflow:
+            raise AssertionError(
+                f"release workflow omits status requirement `{requirement}`"
+            )
+    if workflow.count(WORKFLOW_STATUS_CONTEXT) != 2:
+        raise AssertionError(
+            "release workflow must publish initial and terminal run status"
+        )
     for producer in WORKFLOW_PRODUCERS:
         if workflow.count(producer) != 1:
             raise AssertionError(f"release workflow must invoke `{producer}` once")
@@ -431,6 +450,24 @@ def self_test() -> None:
             )
         ),
         "release contract accepted a missing canonical consumer",
+    )
+    require_rejection(
+        lambda: validate_workflow(
+            workflow.replace("  statuses: write\n", "", 1)
+        ),
+        "release contract accepted undiscoverable workflow runs",
+    )
+    require_rejection(
+        lambda: validate_workflow(
+            workflow.replace(WORKFLOW_STATUS_CONTEXT, 'context: "removed"', 1)
+        ),
+        "release contract accepted a missing initial run status",
+    )
+    require_rejection(
+        lambda: validate_workflow(
+            workflow.replace("    if: always()\n", "", 1)
+        ),
+        "release contract accepted conditional terminal status publication",
     )
 
     revision = "a" * 40
