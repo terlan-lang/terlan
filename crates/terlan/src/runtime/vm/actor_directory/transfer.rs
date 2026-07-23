@@ -6,7 +6,7 @@ use super::{
     next_generation, VmActorCell, VmActorDirectory, VmActorDirectoryError, VmActorHandle,
     VmActorLifecycle, VmActorSlot,
 };
-use crate::runtime::vm::process::VmProcessId;
+use super::super::process::VmProcessId;
 
 impl<T, P> VmActorDirectory<T, P> {
     /// Detaches one fully published, unowned value at a migration boundary.

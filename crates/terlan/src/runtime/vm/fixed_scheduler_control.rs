@@ -468,7 +468,7 @@ fn control_error(operation: &str, error: super::actor_directory::VmActorDirector
     format!("error[vm.fixed_scheduler.{operation}]: {error:?}")
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "multicore-tsan-harness")))]
 #[path = "fixed_scheduler_control_test.rs"]
 mod fixed_scheduler_control_test;
 

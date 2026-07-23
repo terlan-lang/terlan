@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 
 use super::*;
-use crate::runtime::vm::scheduler_topology::{VmFixedActorRoute, VmSchedulerTopology};
+use super::super::scheduler_topology::{VmFixedActorRoute, VmSchedulerTopology};
 
 const CHILD_SEED_ENV: &str = "TERLAN_VM_MULTICORE_STRESS_CHILD_SEED";
 const FORCE_HANG_ENV: &str = "TERLAN_VM_MULTICORE_STRESS_FORCE_HANG";

@@ -986,6 +986,6 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "multicore-tsan-harness")))]
 #[path = "actor_directory_test.rs"]
 mod actor_directory_test;

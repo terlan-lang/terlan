@@ -23,9 +23,11 @@ STRESS_SCHEMA = "terlan.vm-multicore-memory-model.v1"
 TOOLCHAIN = "1.96.0"
 TARGET = "x86_64-unknown-linux-gnutsan"
 TEST_NAME = (
-    "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::"
+    "fixed_scheduler_control::fixed_scheduler_control_stress_test::"
     "bounded_seeded_multicore_memory_model_has_deadlock_watchdog"
 )
+HARNESS_BINARY = "terlan-multicore-tsan-harness"
+HARNESS_FEATURE = "multicore-tsan-harness"
 SEED_COUNT = 8
 
 
@@ -136,6 +138,25 @@ def validate_contract_files() -> None:
     ):
         if fragment not in makefile:
             raise AssertionError(f"Makefile omits `{fragment}`")
+    manifest = (ROOT / "crates/terlan/Cargo.toml").read_text(encoding="utf-8")
+    for fragment in (
+        f'name = "{HARNESS_BINARY}"',
+        f'required-features = ["{HARNESS_FEATURE}"]',
+        f"{HARNESS_FEATURE} = []",
+    ):
+        if fragment not in manifest:
+            raise AssertionError(f"Terlan manifest omits `{fragment}`")
+    harness = (
+        ROOT / "crates/terlan/src/quality/multicore_tsan_harness.rs"
+    ).read_text(encoding="utf-8")
+    for module in (
+        "actor_directory.rs",
+        "fixed_scheduler_control.rs",
+        "process/identity.rs",
+        "scheduler_topology.rs",
+    ):
+        if module not in harness:
+            raise AssertionError(f"ThreadSanitizer harness omits production `{module}`")
     for workflow_name in ("ci.yml", "release.yml"):
         workflow = (ROOT / ".github/workflows" / workflow_name).read_text(
             encoding="utf-8"
@@ -185,8 +206,11 @@ def run_instrumented_tests() -> Path:
             "--locked",
             "-p",
             "terlan",
+            "--no-default-features",
+            "--features",
+            HARNESS_FEATURE,
             "--bin",
-            "terlan-vm",
+            HARNESS_BINARY,
             "--target",
             TARGET,
             TEST_NAME,

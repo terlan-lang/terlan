@@ -320,6 +320,6 @@ fn parse_cgroup_v2_quota(value: &str) -> Option<CgroupV2CpuQuota> {
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "multicore-tsan-harness")))]
 #[path = "scheduler_topology_test.rs"]
 mod scheduler_topology_test;

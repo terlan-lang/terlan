@@ -145,6 +145,6 @@ impl<P> VmActorMailbox<P> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "multicore-tsan-harness")))]
 #[path = "mailbox_test.rs"]
 mod mailbox_test;
