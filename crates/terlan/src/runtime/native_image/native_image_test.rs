@@ -270,6 +270,36 @@ fn descriptor() -> TvmExecutableDescriptor {
 }
 
 #[test]
+fn macho_debug_metadata_uses_a_retained_terlan_section() {
+    use object::write::Object as WriteObject;
+    use object::{
+        Architecture, BinaryFormat, Endianness, Object, ObjectSection, SectionKind,
+    };
+
+    let native = WriteObject::new(BinaryFormat::MachO, Architecture::Aarch64, Endianness::Little)
+        .write()
+        .expect("write Mach-O fixture");
+    let embedded =
+        descriptor_object_for_native_with_debug(&native, &descriptor(), b"debug metadata")
+            .expect("embed Mach-O metadata");
+    let object = object::File::parse(embedded.as_slice()).expect("parse embedded Mach-O object");
+    let sections = object
+        .sections()
+        .filter(|section| section.name().ok() == Some("__terlan"))
+        .collect::<Vec<_>>();
+    assert_eq!(sections.len(), 1);
+    assert_ne!(sections[0].kind(), SectionKind::Debug);
+    assert_eq!(
+        sections[0].segment_name().expect("Mach-O segment name"),
+        Some("__TERLAN")
+    );
+    assert_eq!(
+        sections[0].data().expect("Mach-O metadata"),
+        b"debug metadata"
+    );
+}
+
+#[test]
 fn descriptor_round_trip_is_canonical_and_deterministic() {
     let expected = descriptor();
     let first = encode_descriptor(&expected).expect("encode descriptor");

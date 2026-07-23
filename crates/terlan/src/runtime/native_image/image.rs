@@ -59,17 +59,25 @@ pub fn descriptor_object_for_native_with_debug(
         .section_mut(section)
         .set_data(encode_descriptor(descriptor)?, 8);
     if !debug_metadata.is_empty() {
-        let (debug_segment, debug_section) = match native.format() {
-            BinaryFormat::Elf => (Vec::new(), b".debug_terlan".to_vec()),
-            BinaryFormat::MachO => (b"__DWARF".to_vec(), b"__terlan".to_vec()),
-            BinaryFormat::Coff => (Vec::new(), b".debug$T".to_vec()),
+        let (debug_segment, debug_section, debug_kind) = match native.format() {
+            BinaryFormat::Elf => (
+                Vec::new(),
+                b".debug_terlan".to_vec(),
+                SectionKind::Debug,
+            ),
+            BinaryFormat::MachO => (
+                b"__TERLAN".to_vec(),
+                b"__terlan".to_vec(),
+                SectionKind::ReadOnlyData,
+            ),
+            BinaryFormat::Coff => (Vec::new(), b".debug$T".to_vec(), SectionKind::Debug),
             format => {
                 return Err(format!(
                     "error[tvm.image.debug_format]: unsupported native debug format {format:?}"
                 ))
             }
         };
-        let debug = object.add_section(debug_segment, debug_section, SectionKind::Debug);
+        let debug = object.add_section(debug_segment, debug_section, debug_kind);
         object
             .section_mut(debug)
             .set_data(debug_metadata.to_vec(), 1);
