@@ -3,6 +3,8 @@ name: Release validation
 on:
   workflow_dispatch:
   push:
+    branches:
+      - "release-validation/**"
     tags:
       - "v*"
 
